@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import ast
 import subprocess
 import sys
 from pathlib import Path
@@ -9,43 +10,54 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-pytest.importorskip("pyvista_js")  # _lite imports it at module level
+from mne.viz.backends._abstract import _AbstractRenderer
 
-from mne.viz.backends._abstract import _AbstractRenderer  # noqa: E402
-from mne.viz.backends._lite import (  # noqa: E402
-    _LITE_MAX_LIVE_SCENES,
-    _activate,
-    _deactivate,
-    _lite_live_plotters,
-    _lite_set_view,
-    _LiteBackend,
-    _LiteRenderer,
-)
+# imported this way rather than with a plain import so that the whole file
+# skips without pyvista-js, which _lite needs at module level
+_lite = pytest.importorskip("mne.viz.backends._lite")
 
 # a unit square, split into two triangles
-_RR = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
+_RR = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=float)
 _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 
-@pytest.fixture
-def lite_scene():
-    """Skip without pyvista-js, and give each test a clean live-scene registry."""
-    pytest.importorskip("pyvista_js")
-    _lite_live_plotters.clear()
-    yield
-    _lite_live_plotters.clear()
-    _deactivate()
+def test_is_a_registered_backend(renderer_lite):
+    """``set_3d_backend("jupyterlite")`` must hand out this renderer."""
+    assert renderer_lite.get_3d_backend() == "jupyterlite"
+    assert renderer_lite.backend._Renderer is _lite._LiteRenderer
+    assert isinstance(renderer_lite._get_renderer(size=(200, 200)), _lite._LiteRenderer)
+
+
+def test_module_covers_everything_renderer_calls():
+    """``_lite`` must define every helper ``renderer.py`` reaches for.
+
+    These are module-level functions that read the ``renderer.backend`` global
+    directly rather than going through ``_get_renderer``, so a new one added
+    upstream breaks the browser silently. ``clear_3d_figure`` did exactly that.
+    """
+    from mne.viz.backends import renderer
+
+    src = Path(renderer.__file__).read_text()
+    needed = {
+        node.attr
+        for node in ast.walk(ast.parse(src))
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "backend"
+    }
+    missing = sorted(name for name in needed if not hasattr(_lite, name))
+    assert not missing, f"mne.viz.backends._lite is missing {missing}"
 
 
 def test_implements_abstract_renderer():
     """The lite renderer must satisfy the full _AbstractRenderer contract.
 
-    This is the test that matters when someone adds a method to the abstract
-    renderer: without it the browser build keeps importing and only fails at
-    the point a tutorial tries to draw.
+    ``_AbstractRenderer`` declares its API with ``@abstractmethod``, so leaving
+    one out makes ``_LiteRenderer(...)`` raise ``TypeError`` the first time a
+    notebook draws. Assert the class is instantiable instead of waiting for it.
     """
-    assert issubclass(_LiteRenderer, _AbstractRenderer)
-    assert not _LiteRenderer.__abstractmethods__
+    assert issubclass(_lite._LiteRenderer, _AbstractRenderer)
+    assert not _lite._LiteRenderer.__abstractmethods__
 
 
 def test_kind_is_its_own():
@@ -55,26 +67,24 @@ def test_kind_is_its_own():
     VTK, no filesystem and no OS threads, so it must not be mistaken for the
     notebook backend that does.
     """
-    assert _LiteRenderer._kind == "jupyterlite_notebook"
-    # the two desktop backends, which this must not be confused with
-    assert _LiteRenderer._kind not in ("notebook", "qt")
+    assert _lite._LiteRenderer._kind == "jupyterlite_notebook"
 
 
 def test_import_is_side_effect_free():
-    """Importing the module must not pull in VTK or touch the drawing factory.
+    """Importing the module must not pull in VTK or pick a backend.
 
-    The browser kernel has no VTK at all, and ``mne.viz.backends.renderer``
-    has to keep its own factory until :func:`_activate` is called. Run in a
-    subprocess because by this point in a full test session another backend
-    has usually already imported VTK.
+    The browser kernel has no VTK at all, and ``mne.viz.backends.renderer`` has
+    to keep drawing with whatever it was until something asks for this one. Run
+    in a subprocess because by this point in a full test session another
+    backend has usually already imported VTK.
     """
     code = (
         "import sys\n"
-        "import mne.viz.backends._lite  # noqa: F401\n"
+        "import mne.viz.backends._lite\n"
         "from mne.viz.backends import renderer\n"
         "assert 'vtk' not in sys.modules, 'importing _lite pulled in vtk'\n"
         "assert 'vtkmodules' not in sys.modules, 'importing _lite pulled in vtk'\n"
-        "assert renderer._get_renderer.__module__.endswith('renderer')\n"
+        "assert renderer.MNE_3D_BACKEND is None\n"
         "print('ok')\n"
     )
     out = subprocess.run(
@@ -86,28 +96,57 @@ def test_import_is_side_effect_free():
 
 @pytest.mark.parametrize(
     "azimuth, elevation",
-    [(0, None), (90, None), (180, None), (270, None), (45, 30), (None, 2), (None, 90)],
+    [
+        (None, None),
+        (0, None),
+        (90, None),
+        (180, None),
+        (270, None),
+        (45, 30),
+        (None, 2),
+        (None, 90),
+    ],
 )
-def test_set_view(azimuth, elevation, lite_scene):
+def test_set_view_reaches_the_camera(azimuth, elevation, renderer_lite):
     """Every azimuth/elevation pair must reach the camera, poles included."""
-    r = _LiteRenderer(size=(200, 200))
-    # 2 and 90 degrees sit either side of the 5/175 view-up flip
-    assert _lite_set_view(r.plotter, azimuth, elevation) is None
+    r = renderer_lite._get_renderer(size=(200, 200))
+    r.set_camera(azimuth=azimuth, elevation=elevation)
+    roll, distance, got_azimuth, got_elevation, focalpoint = r.get_camera()
+    assert np.asarray(focalpoint).shape == (3,)
+
+    if azimuth is None and elevation is None:
+        # no angle to point at, so the camera is left for vtk.js to frame
+        assert (roll, distance, got_azimuth, got_elevation) == (0.0, 1.0, 0.0, 0.0)
+        return
+    # one angle given means "leave the other alone", which _lite_set_view
+    # spells 90; 2 and 90 degrees sit either side of the 5/175 view-up flip
+    assert got_azimuth == pytest.approx(90.0 if azimuth is None else azimuth % 360)
+    assert got_elevation == pytest.approx(
+        90.0 if elevation is None else elevation % 180
+    )
+    assert (roll, distance) == (0.0, 1.0)
 
 
-def test_set_view_without_angles_is_a_no_op(lite_scene):
-    """No azimuth and no elevation means leave the camera alone."""
-    r = _LiteRenderer(size=(200, 200))
-    assert _lite_set_view(r.plotter, None, None) is None
+def test_get_camera_matches_the_expected_order(renderer_lite):
+    """``get_camera`` must unpack the way ``_get_3d_view`` does.
+
+    ``Brain`` reads it as ``_, _, azimuth, elevation, _``, so the focalpoint
+    has to be last; putting it fourth hands ``Brain`` a tuple for an angle.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    roll, distance, azimuth, elevation, focalpoint = r.get_camera()
+    for angle in (roll, distance, azimuth, elevation):
+        assert isinstance(angle, float)
+    assert np.asarray(focalpoint).shape == (3,)
 
 
-def test_draws_every_primitive(lite_scene):
+def test_draws_every_primitive(renderer_lite):
     """Each drawing primitive must add exactly one actor to the scene."""
-    r = _LiteRenderer(size=(200, 200), bgcolor="white")
+    r = renderer_lite._get_renderer(size=(200, 200), bgcolor="white")
     assert len(r.plotter.actors) == 0
 
     r.mesh(_RR[:, 0], _RR[:, 1], _RR[:, 2], _TRIS, color="red", opacity=0.5)
-    r.surface(dict(rr=_RR, tris=_TRIS), color="blue")
+    r.surface(dict(rr=_RR, tris=_TRIS), color="#0000ff")
     r.sphere(np.array([[0.0, 0, 0]]), "green", 0.1)
     r.tube([[0.0, 0, 0]], [[1.0, 1, 1]], radius=0.01, color="black")
     r.quiver3d(
@@ -117,165 +156,180 @@ def test_draws_every_primitive(lite_scene):
         np.r_[1.0],
         np.r_[0.0],
         np.r_[0.0],
-        color="orange",
+        color=(1.0, 0.5, 0.0),
         scale=0.1,
         mode="arrow",
     )
     assert len(r.plotter.actors) == 5
 
 
-def test_draws_into_an_existing_figure(lite_scene):
-    """``fig=`` composites into a scene rather than opening a second one.
+def test_glyphs_scale_by_their_scalars(renderer_lite):
+    """``mode="arrow"`` must size each glyph by its scalar, as the filter does.
 
-    ``plot_alignment`` passes it positionally and ``create_3d_figure`` by name,
-    so both spellings have to land on the same plotter.
+    ``plot_alignment(show_axes=True)`` draws a coordinate frame as three arrows
+    with ``scalars=[0.33, 0.66, 1.0]``, so ignoring them gives three
+    equal-length arrows and a wrong-looking frame.
     """
-    first = _LiteRenderer(size=(200, 200))
-    by_name = _LiteRenderer(fig=first.plotter)
-    by_position = _LiteRenderer(first.plotter)
-    assert by_name.plotter is first.plotter
-    assert by_position.plotter is first.plotter
+    xyz = np.zeros(3)
+    uvw = np.eye(3)
+    _, mesh = renderer_lite._get_renderer(size=(200, 200)).quiver3d(
+        *xyz[:, None].repeat(3, 1),
+        *uvw,
+        mode="arrow",
+        scale=2e-2,
+        color="red",
+        scale_mode="scalar",
+        scalars=[0.33, 0.66, 1.0],
+    )
+    # one copy of the template per glyph, in order
+    lengths = np.linalg.norm(np.asarray(mesh.points).reshape(3, -1, 3), axis=2).max(
+        axis=1
+    )
+    assert lengths / lengths.max() == pytest.approx([0.33, 0.66, 1.0])
 
-    by_name.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
+
+def test_arrow_template_matches_vtk(renderer_lite):
+    """``mode="arrow"`` must be a shaft plus a tip, not a bare cone.
+
+    ``_pyvista.py`` glyphs it with ``vtkArrowSource``, whose defaults put a
+    0.03-radius shaft under a 0.1-radius tip starting at 0.65, over a total
+    length of 1.
+    """
+    rr, _ = renderer_lite._get_renderer(size=(200, 200))._glyph_template("arrow")
+    x = rr[:, 0]
+    radius = np.linalg.norm(rr[:, 1:], axis=1)
+    assert (x.min(), x.max()) == pytest.approx((0.0, 1.0))
+    assert radius[x < 0.6].max() == pytest.approx(0.03)
+    assert radius[x > 0.6].max() == pytest.approx(0.1)
+    assert x[radius > 0.05].min() == pytest.approx(0.65)
+
+
+def test_sphere_radius_matches_pyvista(renderer_lite):
+    """``scale`` sizes a radius-0.5 template, so the drawn radius is half of it.
+
+    ``_pyvista.py`` glyphs ``pyvista.Sphere(radius=0.5)`` by ``scale``; taking
+    ``scale`` as the radius draws every dig point and fiducial twice too big,
+    and no caller in ``_3d.py`` passes ``radius`` to say otherwise.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    _, mesh = r.sphere(np.zeros((1, 3)), "red", 0.01)
+    assert np.linalg.norm(np.asarray(mesh.points), axis=1).max() == pytest.approx(0.005)
+    # an explicit radius is used as-is, again matching _pyvista.py
+    _, mesh = r.sphere(np.zeros((1, 3)), "red", 1.0, radius=0.02)
+    assert np.linalg.norm(np.asarray(mesh.points), axis=1).max() == pytest.approx(0.02)
+
+
+def test_cylinder_center_is_turned_with_the_axis(renderer_lite):
+    """``center`` arrives in ``_cylinder_geom``'s pre-rotation frame.
+
+    That helper builds the cylinder along y and turns it 90 degrees about z, so
+    ``(cx, cy, cz)`` lands at ``(-cy, cx, cz)``. ``_3d.py`` gives the EEG
+    electrode offset that way, and skipping the turn stands the cylinders
+    beside their sensors instead of on them.
+    """
+    rr, _ = renderer_lite._get_renderer(size=(200, 200))._glyph_template(
+        "cylinder", radius=0.5, height=3.0, center=(0.0, -0.75, 0.0), resolution=16
+    )
+    # the offset lands on the axis, not across it
+    assert rr.min(axis=0) == pytest.approx([-0.75, -0.5, -0.5])
+    assert rr.max(axis=0) == pytest.approx([2.25, 0.5, 0.5])
+
+
+def test_instances_are_merged_per_color(renderer_lite):
+    """``instanced_mesh`` draws one actor per distinct color, not one per instance."""
+    r = renderer_lite._get_renderer(size=(200, 200))
+    colors = np.array([[1.0, 0, 0], [0, 1.0, 0], [1.0, 0, 0]])
+    r.instanced_mesh(
+        _RR,
+        _TRIS,
+        np.zeros((3, 3)),
+        quats=np.tile([1.0, 0, 0, 0], (3, 1)),
+        colors=colors,
+    )
+    assert len(r.plotter.actors) == 2
+
+
+def test_draws_into_an_existing_figure(renderer_lite):
+    """``fig=`` composites into a scene rather than opening a second one."""
+    first = renderer_lite._get_renderer(size=(200, 200))
+    second = renderer_lite._get_renderer(fig=first.plotter)
+    assert second.plotter is first.plotter
+
+    second.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
     assert len(first.plotter.actors) == 1
 
 
-def test_live_scenes_are_capped(lite_scene):
+def test_live_scenes_are_capped(renderer_lite):
     """Old scenes are released, so a notebook cannot run the tab out of memory.
 
     Every live scene holds its meshes in the WASM heap, a copy in JS and a set
     of GPU buffers, and nothing in a notebook calls ``close_3d_figure``.
     """
-    kept = [_LiteRenderer() for _ in range(_LITE_MAX_LIVE_SCENES + 3)]
-    assert len(_lite_live_plotters) == _LITE_MAX_LIVE_SCENES
+    kept = [
+        renderer_lite._get_renderer() for _ in range(_lite._LITE_MAX_LIVE_SCENES + 3)
+    ]
+    assert len(_lite._lite_live_plotters) == _lite._LITE_MAX_LIVE_SCENES
     # the survivors are the most recent ones
-    live = [ref() for ref in _lite_live_plotters]
-    assert live == [r.plotter for r in kept[-_LITE_MAX_LIVE_SCENES:]]
+    live = [ref() for ref in _lite._lite_live_plotters]
+    assert live == [r.plotter for r in kept[-_lite._LITE_MAX_LIVE_SCENES :]]
 
 
-def test_get_camera_matches_the_expected_order(lite_scene):
-    """``get_camera`` must unpack the way ``_get_3d_view`` does.
-
-    ``Brain`` reads it as ``_, _, azimuth, elevation, _``, so the focalpoint
-    has to be last; putting it fourth hands ``Brain`` a tuple for an angle.
-    """
-    roll, distance, azimuth, elevation, focalpoint = _LiteRenderer(
-        size=(200, 200)
-    ).get_camera()
-    for angle in (roll, distance, azimuth, elevation):
-        assert isinstance(angle, float)
-    assert np.asarray(focalpoint).shape == (3,)
-
-
-@pytest.mark.parametrize("method, args", [("project", ({}, [])), ("screenshot", ())])
-def test_unsupported_methods_say_so(method, args, lite_scene):
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ("project", ({}, [])),
+        ("screenshot", ()),
+        ("contour", ()),
+        ("scalarbar", ()),
+        ("legend", ()),
+        ("subplot", ()),
+        ("remove_mesh", ()),
+        ("_process_events", ()),
+        ("_window_set_cursor", ()),
+        ("_enable_time_interaction", ()),
+    ],
+)
+def test_unsupported_methods_raise(method, args, renderer_lite):
     """Things pyvista-js cannot do must raise, not hand back a plausible stub.
 
     ``project`` used to return an array where callers expect a ``_Projection``
     and would fail a line later on ``.visible()``; ``screenshot`` used to
     return a 2x2 black image.
     """
-    r = _LiteRenderer(size=(200, 200))
+    r = renderer_lite._get_renderer(size=(200, 200))
     with pytest.raises(NotImplementedError, match="browser"):
         getattr(r, method)(*args)
 
 
-def test_activate_and_deactivate_round_trip(lite_scene):
-    """Activation swaps the factory and the backend global, and undoes itself."""
-    from mne.viz.backends import renderer
+def test_text_is_drawn(renderer_lite):
+    """Text lands on the canvas with the size and color that was asked for."""
+    r = renderer_lite._get_renderer(size=(200, 200))
+    text = r.text2d(0.1, 0.9, "hello", size=12, color="red")
+    assert (text.input, text.position) == ("hello", (0.1, 0.9))
+    assert (text.prop.font_size, text.prop.color) == (12, (1.0, 0.0, 0.0))
 
-    before = (renderer._get_renderer, renderer.backend, renderer.MNE_3D_BACKEND)
-
-    _activate()
-    assert renderer._get_renderer(size=(100, 100)).__class__ is _LiteRenderer
-    assert isinstance(renderer.backend, _LiteBackend)
-    # a named backend stops _get_3d_backend() walking VALID_3D_BACKENDS and
-    # importing _qt, which would undo the line above on its way to failing
-    assert renderer.MNE_3D_BACKEND is not None
-
-    _deactivate()
-    assert (renderer._get_renderer, renderer.backend, renderer.MNE_3D_BACKEND) == before
+    title = renderer_lite.set_3d_title(figure=r.scene(), title="a title", size=20)
+    assert title.input == "a title"
+    # justification and a font file are the two things vtk.js cannot honour
+    with pytest.raises(NotImplementedError, match="browser"):
+        r.text2d(0.1, 0.9, "hello", justification="center")
 
 
-def test_activate_is_idempotent(lite_scene):
-    """Activating twice must still restore the original state once."""
-    from mne.viz.backends import renderer
-
-    before = renderer._get_renderer
-    _activate()
-    _activate()
-    _deactivate()
-    assert renderer._get_renderer is before
-
-
-def test_backend_covers_everything_renderer_calls():
-    """``_LiteBackend`` must implement every helper ``renderer.py`` reaches for.
-
-    These are module-level functions that read ``renderer.backend`` directly
-    rather than going through ``_get_renderer``, so a new one added upstream
-    breaks the browser silently. ``clear_3d_figure`` did exactly that.
-    """
-    import ast
-
-    from mne.viz.backends import renderer
-
-    src = Path(renderer.__file__).read_text()
-    needed = {
-        n.attr
-        for n in ast.walk(ast.parse(src))
-        if isinstance(n, ast.Attribute)
-        and isinstance(n.value, ast.Name)
-        and n.value.id == "backend"
-    }
-    # _Renderer is the factory and _testing_context is test-only scaffolding
-    needed -= {"_Renderer", "_testing_context"}
-    missing = sorted(m for m in needed if not hasattr(_LiteBackend, m))
-    assert not missing, f"_LiteBackend is missing {missing}"
-
-
-def test_clear_keeps_the_scene(lite_scene):
+def test_clear_keeps_the_scene(renderer_lite):
     """Clearing drops the geometry but leaves the scene open to draw into."""
-    r = _LiteRenderer(size=(200, 200))
+    r = renderer_lite._get_renderer(size=(200, 200))
     r.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
     assert len(r.plotter.actors) == 1
 
-    _LiteBackend()._clear_3d_figure(r.plotter)
+    renderer_lite.clear_3d_figure(r.scene())
     assert len(r.plotter.actors) == 0
-    # still usable, unlike after _close_3d_figure
+    # still usable, unlike after close_3d_figure
     r.sphere(np.array([[1.0, 0, 0]]), "blue", 1.0)
     assert len(r.plotter.actors) == 1
 
 
-def test_backend_scene_helpers(lite_scene):
-    """The scene-level helpers MNE calls on ``renderer.backend`` all work.
-
-    ``set_3d_view`` and the ``close_*`` helpers read that global directly
-    instead of going through ``_get_renderer``, so a renderer alone is not
-    enough.
-    """
-    backend = _LiteBackend()
-    r = _LiteRenderer()
-    r.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
-
-    assert backend._set_3d_view(r.plotter, azimuth=90) is None
-    assert backend._set_3d_title(r.plotter, "ignored") is None
-
-    backend._close_3d_figure(r.plotter)
-    assert len(r.plotter.actors) == 0
-    assert _lite_live_plotters == []
-
-
-def test_close_all_releases_every_scene(lite_scene):
-    """``close_all`` must drain the registry, not spin on dead references."""
-    scenes = [_LiteRenderer() for _ in range(_LITE_MAX_LIVE_SCENES)]
-    assert _lite_live_plotters
-    _LiteBackend()._close_all()
-    assert _lite_live_plotters == []
-    assert all(len(s.plotter.actors) == 0 for s in scenes)
-
-
-def test_public_helpers_route_through_the_backend(lite_scene):
-    """``mne.viz.set_3d_view`` and friends must work once activated.
+def test_public_helpers_route_through_the_backend(renderer_lite):
+    """``mne.viz.set_3d_view`` and friends must work once the backend is set.
 
     These are the calls the tutorials actually make. They read
     ``renderer.backend`` directly rather than going through ``_get_renderer``,
@@ -283,17 +337,27 @@ def test_public_helpers_route_through_the_backend(lite_scene):
     """
     from mne.viz import close_all_3d_figures, set_3d_view
 
-    _activate()
-    r = _LiteRenderer(size=(200, 200))
+    r = renderer_lite._get_renderer(size=(200, 200))
     r.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
 
     set_3d_view(r.scene(), azimuth=90, elevation=45)
+    assert r.get_camera()[2:4] == pytest.approx((90.0, 45.0))
+
     close_all_3d_figures()
     assert len(r.plotter.actors) == 0
-    assert _lite_live_plotters == []
+    assert _lite._lite_live_plotters == []
 
 
-def test_renders_in_a_notebook_kernel(nbexec, lite_scene):
+def test_close_all_releases_every_scene(renderer_lite):
+    """``close_all`` must drain the registry, not spin on dead references."""
+    scenes = [renderer_lite._get_renderer() for _ in range(_lite._LITE_MAX_LIVE_SCENES)]
+    assert _lite._lite_live_plotters
+    renderer_lite.backend._close_all()
+    assert _lite._lite_live_plotters == []
+    assert all(len(s.plotter.actors) == 0 for s in scenes)
+
+
+def test_renders_in_a_notebook_kernel(nbexec):
     """Draw through MNE's own factory inside a live Jupyter kernel.
 
     Everything above drives the renderer in-process. This goes through
@@ -304,20 +368,16 @@ def test_renders_in_a_notebook_kernel(nbexec, lite_scene):
     import numpy as np
 
     from mne.viz.backends import renderer
-    from mne.viz.backends._lite import _activate, _deactivate
 
-    _activate()
-    try:
-        assert renderer._get_renderer.__name__ == "_lite_get_renderer"
-        r = renderer._get_renderer(size=(200, 200), bgcolor="white")
-        assert type(r).__name__ == "_LiteRenderer"
+    renderer.set_3d_backend("jupyterlite")
+    assert renderer.get_3d_backend() == "jupyterlite"
+    r = renderer._get_renderer(size=(200, 200), bgcolor="white")
+    assert type(r).__name__ == "_LiteRenderer"
 
-        rr = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
-        tris = np.array([[0, 1, 2], [0, 2, 3]])
-        r.mesh(rr[:, 0], rr[:, 1], rr[:, 2], tris, color="red")
-        assert len(r.plotter.actors) == 1
+    rr = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
+    tris = np.array([[0, 1, 2], [0, 2, 3]])
+    r.mesh(rr[:, 0], rr[:, 1], rr[:, 2], tris, color="red")
+    assert len(r.plotter.actors) == 1
 
-        html = r.plotter.generate_standalone_html()
-        assert "<script" in html and "vtk" in html.lower()
-    finally:
-        _deactivate()
+    html = r.plotter.generate_standalone_html()
+    assert "<script" in html and "vtk" in html.lower()

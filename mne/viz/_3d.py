@@ -841,7 +841,7 @@ def plot_alignment(
 
     # initialize figure
     renderer = _get_renderer(
-        fig,
+        fig=fig,
         name=f"Sensor alignment: {subject}",
         bgcolor=(0.5, 0.5, 0.5),
         size=(800, 800),
@@ -3931,7 +3931,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         )
 
     # initialize figure
-    renderer = _get_renderer(fig, show=True)
+    renderer = _get_renderer(fig=fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)

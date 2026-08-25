@@ -29,7 +29,13 @@ VALID_BROWSE_BACKENDS = (
 VALID_3D_BACKENDS = (
     "pyvistaqt",  # default 3d backend
     "notebook",
+    "jupyterlite",
 )
+# The backends _get_3d_backend() falls back to when none has been set. The
+# JupyterLite one is left out on purpose: it draws through vtk.js and only
+# displays inside a browser kernel, so picking it on a desktop that happens to
+# have pyvista-js installed would quietly produce figures nothing can show.
+_AUTO_3D_BACKENDS = ("pyvistaqt", "notebook")
 ALLOWED_QUIVER_MODES = ("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")
 _ICONS_PATH = Path(__file__).parents[2] / "icons"
 

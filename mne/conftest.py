@@ -755,6 +755,22 @@ def renderer_notebook(request, options_3d):
         yield renderer
 
 
+@pytest.fixture(params=[pytest.param("jupyterlite", marks=pytest.mark.pvtest)])
+def renderer_lite(request, options_3d):
+    """Yield the JupyterLite (vtk.js) renderer."""
+    from mne.viz.backends import renderer as renderer_module
+
+    # use_3d_backend only puts a backend back if one was already selected, and
+    # this one draws for a browser, so make sure it is never what a later test
+    # inherits
+    was = (renderer_module.MNE_3D_BACKEND, renderer_module.backend)
+    try:
+        with _use_backend(request.param, interactive=False) as renderer:
+            yield renderer
+    finally:
+        renderer_module.MNE_3D_BACKEND, renderer_module.backend = was
+
+
 @pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
@@ -798,6 +814,10 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
 
+    if name == "jupyterlite":
+        # draws with vtk.js in a browser: no VTK, no Qt, no ffmpeg
+        pytest.importorskip("pyvista_js")
+        return
     pytest.importorskip("pyvista")
     pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
