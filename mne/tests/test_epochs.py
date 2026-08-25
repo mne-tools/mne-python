@@ -5365,7 +5365,8 @@ def test_mask_epochs_per_channel():
 
     # test mask that contains floats instead of bool
     float_mask = reject_mask.astype(float)
-    ep.mark_bad_epochs_by_channel(float_mask)
+    ep.mask_epochs_per_channel(float_mask)
+
     data = ep.get_data()
     assert np.all(np.isnan(data[1, 0, :])) and np.all(np.isnan(data[3, 2, :]))
 
