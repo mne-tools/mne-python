@@ -209,7 +209,7 @@ T_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_1samp_test
     n_jobs=None,
     threshold=t_threshold,
     buffer_size=None,
-    seed=0,
+    rng=179,
     verbose=True,
 )
 

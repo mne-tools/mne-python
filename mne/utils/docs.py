@@ -3760,12 +3760,21 @@ projs : bool | None
 docdict["random_state"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
 """
+
+docdict["random_state_rng"] = """
+random_state : None | int | instance of ~numpy.random.RandomState
+    Supported for compatibility. New code should use ``rng``. If ``None``,
+    NumPy's global :class:`~numpy.random.RandomState` is used.
+"""
+
+docdict["random_state_rng_method_random"] = (
+    docdict["random_state_rng"].rstrip("\n")
+    + "\n    Used only if ``method='random'``.\n"
+)
 
 _rank_base = """
 rank : None | 'info' | 'full' | dict
@@ -4034,6 +4043,28 @@ return_pca_vars : bool
     Default to False.
 """
 
+docdict["rng"] = """
+rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+    The random number generator (RNG). If ``None`` (default), a new
+    :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+    a :class:`numpy.random.Generator` for reproducible results, or a legacy
+    :class:`~numpy.random.RandomState` to control the random-number stream or
+    for interoperability with third-party code such as scikit-learn that does
+    not accept generators. An integer seed uses
+    :func:`numpy.random.default_rng` and therefore produces a different stream
+    than the same integer passed to a legacy ``random_state`` or ``seed``
+    parameter.
+
+    .. versionadded:: 1.13
+"""
+
+# The ``rng`` entry ends with a directive, so anything appended at the call site
+# would be swallowed by it; make the ``method='random'`` variant here instead.
+docdict["rng_method_random"] = docdict["rng"].replace(
+    "\n\n    .. versionadded",
+    "\n    Used only if ``method='random'``.\n\n    .. versionadded",
+)
+
 docdict["roll"] = """
 roll : float | None
     The roll of the camera rendering the view in degrees.
@@ -4127,12 +4158,12 @@ section : str | None
 docdict["seed"] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
 """
+
+docdict["seed_rng"] = docdict["random_state_rng"].replace("random_state", "seed")
 
 docdict["seeg"] = """
 seeg : bool
