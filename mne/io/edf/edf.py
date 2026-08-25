@@ -2110,9 +2110,10 @@ def read_raw_edf(
     units: dict | str | None = None,
     encoding: str = "utf8",
     exclude_after_unique: bool = False,
+    engine: Literal["mne", "edfio"] = "mne",
     *,
     verbose: bool | str | int | None = None,
-) -> RawEDF:
+) -> RawEDF | BaseRaw:
     """Reader function for EDF and EDF+ files.
 
     Parameters
@@ -2159,6 +2160,13 @@ def read_raw_edf(
     %(units_edf_bdf_io)s
     %(encoding_edf)s
     %(exclude_after_unique)s
+    engine : ``'mne'`` | ``'edfio'``
+        Parser backend. ``'mne'`` (default) uses the native reader;
+        ``'edfio'`` parses via the optional edfio package, which is faster on
+        uniform-sampling-rate recordings but always preloads, types all
+        channels as EEG, and does not set ``info['meas_date']``.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -2218,6 +2226,19 @@ def read_raw_edf(
     The EDF specification allows storage of subseconds in measurement date.
     However, this reader currently sets subseconds to 0 by default.
     """
+    if engine == "edfio":
+        from ._edfio_backend import read_raw_edf_edfio
+
+        return read_raw_edf_edfio(
+            input_fname,
+            preload=preload,
+            exclude=exclude,
+            include=include,
+            verbose=verbose,
+        )
+    if engine != "mne":
+        raise ValueError(f"Unknown engine {engine!r}; use 'mne' or 'edfio'.")
+
     _check_args(input_fname, preload, "edf")
 
     return RawEDF(
