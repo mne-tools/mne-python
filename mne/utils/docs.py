@@ -221,12 +221,6 @@ allow_2d : bool
     If True, allow 2D data as input (i.e. n_samples, n_features).
 """
 
-docdict["axis"] = """
-axis : int
-    Axis of the input data along which independent estimators are fitted.
-    The default ``-1`` uses the final axis.
-"""
-
 docdict["allow_empty_eltc"] = """
 allow_empty : bool | str
     ``False`` (default) will emit an error if there are labels that have no
@@ -436,6 +430,12 @@ docdict["axes_tfr_plot"] = _axes_list.format(
     extra="""If ``combine`` is not None,
     ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
+
+docdict["axis"] = """
+axis : int
+    Axis of the input data along which independent estimators are fitted.
+    The default ``-1`` uses the final axis.
+"""
 
 docdict["axis_facecolor"] = """\
 axis_facecolor : str | tuple
