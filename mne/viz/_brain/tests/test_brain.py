@@ -1206,6 +1206,38 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
+def test_brain_overlay_switch_label_mode(renderer_interactive_pyvistaqt, brain_gc):
+    """Overlay switching in label-traces mode must not auto-pick labels.
+
+    Regression: _update_peak_vertices published VertexSelect events in label
+    mode, toggling the label containing each hemi's peak on every switch (and
+    crashing outright for overlays added without an src).
+    """
+    brain = _create_testing_brain(hemi="lh", show_traces="label", initial_time=0)
+    assert brain.traces_mode == "label"
+    vertices = brain._all_data["data"]["lh"]["vertices"]
+    time = brain._all_data["data"]["time"]
+    array2 = np.zeros((len(vertices), len(time)))
+    array2[0] = 1.0
+    brain.add_data(
+        array2,
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=vertices,
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data2",
+        smoothing_steps=0,
+        remove_existing=False,
+    )
+    assert brain._active_data_key == "data2"
+    assert sum(len(v) for v in brain._picked_patches.values()) == 0
+    brain.close()
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize(
     "hemi, src",
     [
@@ -1542,6 +1574,78 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     assert [ln.get_color() for ln in brain.rms] == rms_colors
     new_peak_line = next(iter(brain._picked_points.values()))[0]["line"]
     assert new_peak_line.get_color() == peak_color
+
+    # the auto-picked "Peak" trace must follow the active overlay; use
+    # decimated data with the same smoothing as the current widget value so
+    # that select_data_key cannot rely on a smooth_mat computed as a side
+    # effect of the smoothing spin box changing (regression: add_data updated
+    # the data_key widget before set_data_smoothing, crashing on decimated
+    # overlays)
+    peak1 = brain._peak_vertices["lh"]
+    vertices2 = brain._all_data["data"]["lh"]["vertices"]
+    peak2 = int(vertices2[-1] if peak1 != vertices2[-1] else vertices2[-2])
+    manual_vertex = next(v for v in (0, 1, 2) if v not in (peak1, peak2))
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=manual_vertex))
+    assert ("lh", manual_vertex) in brain._picked_points
+    time = brain._all_data["data"]["time"]
+    array2 = np.zeros((len(vertices2), len(time)))
+    array2[np.searchsorted(vertices2, peak2)] = 1.0
+    brain.add_data(
+        array2,
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=vertices2,
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data2",
+        smoothing_steps=0,  # match the smoothing widget's current value
+        remove_existing=False,  # keep "data" around so we can switch back
+    )
+    assert brain._active_data_key == "data2"
+    assert brain._peak_vertices["lh"] == peak2
+    assert ("lh", peak2) in brain._picked_points
+    assert ("lh", peak1) not in brain._picked_points
+    assert ("lh", manual_vertex) in brain._picked_points  # manual pick untouched
+
+    # switching back to the original overlay restores its peak
+    brain.widgets["data_key"].set_value("data")
+    assert brain._peak_vertices["lh"] == peak1
+    assert ("lh", peak1) in brain._picked_points
+    assert ("lh", peak2) not in brain._picked_points
+    assert ("lh", manual_vertex) in brain._picked_points  # still untouched
+    row_lines2 = [rows.itemAt(i).widget()._line for i in range(rows.count())]
+    peak_row2 = next(
+        rows.itemAt(i).widget()
+        for i, ln in enumerate(row_lines2)
+        if brain._trace_meta.get(ln, (None,))[0] == "lh"
+        and brain._trace_meta[ln][1] == peak1
+    )
+    assert row_text(peak_row2) == f"Peak (LH) {peak1}"
+
+    # an overlay peaking at the *same* vertex must still refresh the trace
+    # data (regression: the unchanged-peak branch skipped the re-plot)
+    peak_line1 = brain._picked_points[("lh", peak1)][0]["line"]
+    y1 = peak_line1.get_ydata().copy()
+    brain.add_data(
+        2.0 * brain._all_data["data"]["lh"]["array"],
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=vertices2,
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data3",
+        smoothing_steps=0,
+        initial_time=0,  # match "data" so the peak vertex is the same
+        remove_existing=False,
+    )
+    assert brain._peak_vertices["lh"] == peak1
+    peak_line3 = brain._picked_points[("lh", peak1)][0]["line"]
+    assert peak_line3 is peak_line1  # refreshed in place, not re-added
+    assert_allclose(peak_line3.get_ydata(), 2.0 * y1)
 
 
 def _send_mouse_move(widget, point, buttons=None):
