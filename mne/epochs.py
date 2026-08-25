@@ -718,8 +718,10 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def drop_bad_epochs_by_channel(self, reject_mask=None):
-        """Drop bad epochs for individual channels.
+    def mark_bad_epochs_by_channel(self, reject_mask=None):
+        """Mark bad epochs for individual channels.
+
+        This is only useful for channel-wise analyses.
 
         Parameters
         ----------
@@ -738,8 +740,10 @@ class BaseEpochs(
         if not self.preload:
             raise ValueError("Epochs must be preloaded.")
 
-        data = self.get_data()
-        n_epochs, n_channels, n_times = data.shape
+        data = self._data
+        assert data is not None  # preloaded => _data is an ndarray
+
+        n_epochs, n_channels, _ = data.shape
 
         if reject_mask.shape != (n_epochs, n_channels):
             raise ValueError(
@@ -747,16 +751,12 @@ class BaseEpochs(
                 f"got {reject_mask.shape}"
             )
 
-        # mask needs to contain integer or boolean
+        # required: bool -> boolean indexing, not int
         if not np.issubdtype(reject_mask.dtype, np.bool_):
             reject_mask = reject_mask.astype(bool)
 
         # Set bad epochs to NaN
-        # We need to add a dimension for time to the array
-        mask_3d = reject_mask[:, :, np.newaxis]  # shape: (n_epochs, n_channels, 1)
-
-        # Broadcast to (n_epochs, n_channels, n_times) and set to NaN
-        data[mask_3d.repeat(n_times, axis=2)] = np.nan
+        data[reject_mask] = np.nan
 
         # store mask for updating nave
         self.reject_mask = reject_mask
@@ -765,9 +765,8 @@ class BaseEpochs(
         valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
         self.nave_per_channel = valid_epochs_per_channel
 
-        # Update data
-        self._data = data
         return self
+
     def _check_events_outside_data(self, on_outside, raw):
         """Warn when events fall outside the range of the recorded data (gh-12989)."""
         if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
