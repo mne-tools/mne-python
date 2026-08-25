@@ -38,3 +38,5 @@ of commits):
 
 * 80  Alexandre Gramfort
 * 51  Martin Luessi
+
+.. include:: names.inc

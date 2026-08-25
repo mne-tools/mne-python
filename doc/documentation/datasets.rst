@@ -7,7 +7,7 @@ Datasets Overview
     :class: sidebar
 
     Do not hesitate to contact MNE-Python developers on the
-    `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
+    `MNE Forum`_ to discuss the possibility of
     adding more publicly available datasets.
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
@@ -162,7 +162,7 @@ EEGBCI motor imagery
 :func:`mne.datasets.eegbci.load_data`
 
 The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004` and on the
-`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+`PhysioNet documentation page`_.
 The data set is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 It contains 64-channel EEG recordings from 109 subjects and 14 runs on each
 subject in EDF+ format. The recordings were made using the BCI2000 system.
@@ -255,7 +255,7 @@ based on Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
+    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
 
 
 mTRF Dataset
@@ -541,6 +541,24 @@ the people in the scene were unrecognizable.
 
     * :ref:`tut-eyetrack-heatmap`
 
+.. _lite-data:
+
+JupyterLite data
+================
+:func:`mne.datasets.lite_data.data_path`
+
+A small curated archive holding the data files needed to run the tutorials and
+examples in the browser, taken from the ``sample``, ``kiloword``, ``erp_core``,
+``mtrf`` and ``eegbci`` datasets. The files are unchanged and keep the same
+checksums as the full datasets. It extracts to ``MNE-lite-data/``, keeping each
+file under its original dataset folder (``MNE-sample-data/``,
+``MNE-kiloword-data/``, ...).
+The ``somato`` dataset is not included, so the somatosensory tutorials and
+examples are not available in the browser.
+
+This exists for the documentation build; for analysis, use the individual
+dataset fetchers above.
+
 References
 ==========
 
@@ -553,4 +571,5 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-.. _ERP-CORE dataset: https://erpinfo.org/erp-core
+
+.. include:: ../links.inc

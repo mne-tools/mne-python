@@ -114,6 +114,14 @@ User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types:
 to `doc/changes/names.inc` (build fails otherwise) and are credited with `:newcontrib:` in their
 changelog entry instead of a plain name link.
 
+The `<PR-number>` for a not-yet-opened PR is one more than the highest number currently in use;
+issues and PRs share a single number sequence, so query the most recently created of either
+(the `issues` API endpoint includes PRs):
+```bash
+gh api "repos/mne-tools/mne-python/issues?state=all&per_page=1&sort=created&direction=desc" \
+    --jq '.[0].number'
+```
+
 ## Code conventions (beyond what ruff enforces)
 
 - Classes: `CamelCase`. Functions/variables: `snake_case`, no abbreviated names like `nsamples`.
@@ -135,6 +143,13 @@ changelog entry instead of a plain name link.
 - Deprecations use the `@mne.utils.deprecated` decorator (functions/classes) or
   `mne.utils.warn(..., FutureWarning)` (parameters); add a test asserting the warning fires, and
   grep for internal call sites to update immediately rather than at end-of-cycle.
+- Workarounds that exist only because of a minimum-version floor (an upstream bug fixed in a
+  newer release, a fallback for an older Python/NumPy/SciPy/...) must be marked with a
+  `# TODO VERSION` comment naming the version at which they can be removed and, when there is
+  one, the upstream issue, e.g.
+  `# TODO VERSION: segfaults on NumPy < 2.2.5 (numpy/numpy#28609)`. These are grepped for
+  when bumping minimum versions, so a workaround without the marker tends to outlive its
+  reason for existing.
 - Prefer the `testing` dataset over `sample`/other large datasets in tests (smaller, faster).
 - Prefer to keep unit tests compact and add to existing tests when possible. The full test suite takes about an hour on CIs, so minimizing test time (for CIs) and test verbosity (for reviewers) is important.
 - When new functionality is added, it is good in general to add it somewhere in an example (`examples/`) or a tutorial (`tutorials/`) to help with discoverability and documentation.
@@ -144,3 +159,15 @@ changelog entry instead of a plain name link.
   # (BSD-compatible).
   ```
   If the license of a snippet cannot be determined, do not adapt it.
+
+- Benchmarking performance changes: only interleaved A/B runs against a
+  pristine snapshot built from the exact upstream base are trustworthy;
+  whole-suite back-to-back runs drift ±20–100 %. Verify which installed mne a
+  benchmark actually imports (`print(mne.__file__)`) before trusting numbers,
+  and keep fixture data out of commits.
+- Changelog fragments (`doc/changes/dev/<PR#>.<type>.rst`): pick `<type>` by
+  intent — performance improvements are `newfeature`, not `bugfix`. Keep the
+  entry to one short sentence ending with the contributor name link, e.g.
+  "Speed up X by optimizing Y, by `Jane Doe`_", and make sure the name anchors
+  in `doc/changes/names.inc` (add it if missing). Read an existing fragment
+  or two before writing yours.

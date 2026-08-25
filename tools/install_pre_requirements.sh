@@ -54,7 +54,7 @@ echo "::endgroup::"
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
 	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
-	"pyvistaqt @ https://github.com/larsoner/pyvistaqt/archive/refs/heads/qvtk-opengl-widget.zip" \
+	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
 	"git+https://github.com/the-siesta-group/edfio" \

@@ -18,7 +18,6 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
-from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,
@@ -428,12 +427,11 @@ class Raw(BaseRaw):
                 # already (cutting out some of read_tag) ...
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
-                try:
-                    one = _reshape_view(one, (nsamp, nchan))
-                except AttributeError:  # one is None
+                if one is None:
                     n_bad += picksamp
                 else:
                     # ... then pick samples we want
+                    one = one.reshape((nsamp, nchan), copy=False)
                     if first_pick != 0 or last_pick != nsamp:
                         one = one[first_pick:last_pick]
                     _mult_cal_one(

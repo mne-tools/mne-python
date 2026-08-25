@@ -7,7 +7,6 @@ from math import sqrt
 
 import numpy as np
 from scipy import linalg
-from scipy.stats import chi2
 
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
@@ -39,7 +38,7 @@ from .._fiff.write import (
 from ..cov import Covariance, _read_cov, _write_cov, compute_whitener, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _reshape_view, _safe_svd
+from ..fixes import _safe_svd
 from ..forward import (
     _read_forward_meas_info,
     _select_orient_forward,
@@ -86,7 +85,13 @@ class InverseOperator(dict):
     """InverseOperator class to represent info from inverse operator."""
 
     def copy(self):
-        """Return a copy of the InverseOperator."""
+        """Return a copy of the InverseOperator.
+
+        Returns
+        -------
+        inv : instance of InverseOperator
+            The copied inverse operator.
+        """
         return InverseOperator(deepcopy(self))
 
     @property
@@ -835,8 +840,8 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             # No need to rotate source_cov because it should be uniform
             # (loose=1., and depth weighting is uniform across columns)
             offset = sl.stop
-        eigen_leads = _reshape_view(eigen_leads, (-1, eigen_leads.shape[2]))
-        source_nn = _reshape_view(source_nn, (-1, 3))
+        eigen_leads = eigen_leads.reshape((-1, eigen_leads.shape[2]), copy=False)
+        source_nn = source_nn.reshape((-1, 3), copy=False)
 
     if pick_ori == "normal":
         if not inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -1675,7 +1680,7 @@ def apply_inverse_cov(
     sol = cov.data[sel][:, sel] @ K.T
     sol = np.sum(K * sol.T, axis=1, keepdims=True)
     # Reshape back to (n_src, ..., 1)
-    sol = _reshape_view(sol, stc.data.shape[:-1] + (1,))
+    sol = sol.reshape(stc.data.shape[:-1] + (1,), copy=False)
     stc = stc.__class__(sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info("    Combining the current components...")
@@ -2196,6 +2201,8 @@ def estimate_snr(evoked, inv, verbose=None):
 
     .. versionadded:: 0.9.0
     """  # noqa: E501
+    from scipy.stats import chi2
+
     _check_reference(evoked, inv["info"]["ch_names"])
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")
