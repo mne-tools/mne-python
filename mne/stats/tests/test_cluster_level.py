@@ -19,6 +19,7 @@ from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEsti
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
     _find_clusters,
+    _labels_to_clusters,
     _TTestReordered,
     f_oneway,
     permutation_cluster_1samp_test,
@@ -732,6 +733,22 @@ def test_find_clusters_sums_only(kind, t_power):
     clusters_none, sums_only = _find_clusters(x, sums_only=True, **kwargs)
     assert clusters_none is None
     assert_allclose(sorted(sums_only), sorted(sums_full))
+
+
+def test_labels_to_clusters():
+    """Test grouping of active indices by component label."""
+    rng = np.random.default_rng(0)
+    active = np.sort(rng.choice(500, 200, replace=False))
+    labels = rng.integers(0, 30, size=200)
+    got = _labels_to_clusters(active, labels)
+    want = [active[labels == label] for label in np.unique(labels)]
+    assert len(got) == len(want) == len(np.unique(labels))
+    for a, b in zip(got, want):
+        assert_array_equal(a, b)
+    # a single cluster
+    got = _labels_to_clusters(active, np.zeros(200, int))
+    assert len(got) == 1
+    assert_array_equal(got[0], active)
 
 
 def test_spatio_temporal_cluster_adjacency(numba_conditional):

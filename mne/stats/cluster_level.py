@@ -87,12 +87,23 @@ def _get_labels_st(x_in, adjacency, max_step):
     return active, labels
 
 
+def _labels_to_clusters(active, labels):
+    """Group active indices by component label into a list of index arrays."""
+    # A stable sort keeps clusters in ascending label order and indices in
+    # ascending order within each cluster, i.e., the same output as masking
+    # once per label, but without the O(n_active * n_clusters) cost.
+    order = np.argsort(labels, kind="stable")
+    active = active[order]
+    labels = labels[order]
+    return np.split(active, np.flatnonzero(np.diff(labels)) + 1)
+
+
 def _get_clusters_st(x_in, adjacency, max_step=1):
     """Find spatio-temporal clusters via SciPy connected components."""
     active, labels = _get_labels_st(x_in, adjacency, max_step)
     if labels is None:
         return []
-    return [active[labels == id_] for id_ in np.unique(labels)]
+    return _labels_to_clusters(active, labels)
 
 
 def _get_cluster_sums_st(x, x_in, adjacency, max_step, t_power):
@@ -142,7 +153,7 @@ def _get_components(x_in, adjacency):
     active, labels = _get_labels(x_in, adjacency)
     if labels is None:
         return []
-    return [active[labels == id_] for id_ in np.unique(labels)]
+    return _labels_to_clusters(active, labels)
 
 
 def _get_cluster_sums(x, x_in, adjacency, t_power):

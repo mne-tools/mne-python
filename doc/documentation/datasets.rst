@@ -553,11 +553,6 @@ examples in the browser, taken from the ``sample``, ``kiloword``, ``erp_core``,
 checksums as the full datasets. It extracts to ``MNE-lite-data/``, keeping each
 file under its original dataset folder (``MNE-sample-data/``,
 ``MNE-kiloword-data/``, ...).
-
-Those datasets ship as separate multi-GB archives, so without this the
-documentation build would download several gigabytes to serve a handful of
-files.
-
 The ``somato`` dataset is not included, so the somatosensory tutorials and
 examples are not available in the browser.
 
