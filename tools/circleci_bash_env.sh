@@ -3,16 +3,28 @@
 set -e
 set -o pipefail
 
-./tools/setup_xvfb.sh
-sudo apt install -qq graphviz optipng python3.12-venv python3-venv libxft2 ffmpeg
+curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/setup_xvfb.sh | bash
+# Need different installs for 24.04 and 26.04
+if [[ $(lsb_release -rs) == "26.04" ]]; then
+    EXTRA_DEPS="libgvplugin-neato-layout8"
+else
+    EXTRA_DEPS=""
+fi
+APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+# no -qq: it hides download progress, which trips CircleCI's 10 min no-output timeout (gh-14103)
+sudo apt install -y $APT_OPTS graphviz optipng python3-venv libxft2 ffmpeg libtirpc-dev $EXTRA_DEPS
+# r-base-dev rather than r-base: rpy2-rinterface has no manylinux wheel so it builds against
+# R's headers, but we don't need r-recommended (the r-cran-* set) or the html manuals
+sudo apt install -y $APT_OPTS r-base-dev
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo apt install ./google-chrome-stable_current_amd64.deb
-python3.12 -m venv ~/python_env
+sudo apt install -y $APT_OPTS ./google-chrome-stable_current_amd64.deb
+python -m venv ~/python_env
 echo "set -e" >> $BASH_ENV
 echo "set -o pipefail" >> $BASH_ENV
 echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
 echo "export MNE_FULL_DATE=true" >> $BASH_ENV
 echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+echo "export MNE_QT_BACKEND=PySide6" >> $BASH_ENV
 echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
 echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
 echo "export MNE_ADD_CONTRIBUTOR_IMAGE=true" >> $BASH_ENV

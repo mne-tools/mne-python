@@ -1,0 +1,1 @@
+Add support for reading cross-talk and fine-calibration embedded in FIF files during acquisition into ``raw.info["cross_talk"]`` and ``raw.info["fine_calibration"]``, respectively, by `Eric Larson`_.

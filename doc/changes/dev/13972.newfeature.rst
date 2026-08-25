@@ -1,0 +1,3 @@
+Skip replotting of annotations on the horizontal scrollbar in the matplotlib
+browser backend, resulting in a significant speedup for traces with a large
+number of annotations by `Frankie Robertson`_.

@@ -11,7 +11,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .._fiff.pick import pick_types
 from ..defaults import DEFAULTS
@@ -23,7 +22,7 @@ from ..utils import (
     _validate_type,
     fill_doc,
 )
-from ._3d_overlay import _LayeredMesh
+from ._3d_overlay import LayeredMesh
 from .ui_events import (
     ColormapRange,
     Contours,
@@ -252,6 +251,8 @@ class EvokedField:
 
     def _prepare_surf_map(self, surf_map, color, alpha):
         """Compute all the data required to render a fieldlines map."""
+        from scipy.interpolate import interp1d
+
         if surf_map["kind"] == "eeg":
             pick = pick_types(self._evoked.info, meg=False, eeg=True)
         else:
@@ -286,13 +287,13 @@ class EvokedField:
         map_vmax = self._vmax.get(surf_map["kind"])
         if map_vmax is None:
             map_vmax = float(np.max(current_data))
-        mesh = _LayeredMesh(
+        mesh = LayeredMesh(
             renderer=self._renderer,
             vertices=surf["rr"],
             triangles=surf["tris"],
             normals=surf["nn"],
         )
-        mesh.map()
+        mesh._map()
         color = _to_rgb(color, alpha=True)
         cmap = np.array([(0, 0, 0, 0), color])
         ctable = np.round(cmap * 255).astype(np.uint8)

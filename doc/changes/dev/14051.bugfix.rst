@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.concatenate_epochs` could silently concatenate epochs with conflicting ``event_id`` dicts, by `Eric Larson`_.

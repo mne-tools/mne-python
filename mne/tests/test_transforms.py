@@ -19,7 +19,7 @@ from numpy.testing import (
 import mne
 from mne import read_trans, write_trans
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata, _reshape_view
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.transforms import (
     _angle_between_quats,
@@ -76,7 +76,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph = _reshape_view(sph, (3, -1))
+    sph = sph.reshape((3, -1), copy=False)
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()
@@ -131,7 +131,7 @@ def test_io_trans(tmp_path):
 def test_get_ras_to_neuromag_trans():
     """Test the coordinate transformation from ras to neuromag."""
     # create model points in neuromag-like space
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     anterior = [0, 1, 0]
     left = [-1, 0, 0]
     right = [0.8, 0, 0]
@@ -182,9 +182,9 @@ def test_sph_to_cart():
     coord = _sph_to_cart(np.array([[r, theta, phi]]))[0]
     assert_allclose(coord, (x, y, z), atol=1e-7)
     assert_allclose(coord, (r, 0, 0), atol=1e-7)
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     # round-trip test
-    coords = rng.randn(10, 3)
+    coords = rng.standard_normal((10, 3))
     assert_allclose(_sph_to_cart(_cart_to_sph(coords)), coords, atol=1e-5)
     # equivalence tests to old versions
     for coord in coords:
@@ -217,9 +217,9 @@ def test_polar_to_cartesian():
     assert_allclose(coord, (x, y), atol=1e-7)
     assert_allclose(coord, (-1, 0), atol=1e-7)
     assert_allclose(coord, _polar_to_cartesian(theta, r), atol=1e-7)
-    rng = np.random.RandomState(0)
-    r = rng.randn(10)
-    theta = rng.rand(10) * (2 * np.pi)
+    rng = np.random.default_rng(0)
+    r = rng.standard_normal(10)
+    theta = rng.random(10) * (2 * np.pi)
     polar = np.array((r, theta)).T
     assert_allclose(
         [_polar_to_cartesian(p[1], p[0]) for p in polar], _pol_to_cart(polar), atol=1e-7
@@ -235,9 +235,9 @@ def _topo_to_phi_theta(theta, radius):
 
 def test_topo_to_sph():
     """Test topo to sphere conversion."""
-    rng = np.random.RandomState(0)
-    angles = rng.rand(10) * 360
-    radii = rng.rand(10)
+    rng = np.random.default_rng(0)
+    angles = rng.random(10) * 360
+    radii = rng.random(10)
     angles[0] = 30
     radii[0] = 0.25
     # new way
@@ -428,7 +428,7 @@ def test_average_quats():
 @testing.requires_testing_data
 @pytest.mark.parametrize("subject", ("fsaverage", "sample"))
 def test_fs_xfm(subject, tmp_path):
-    """Test reading and writing of Freesurfer transforms."""
+    """Test reading and writing of FreeSurfer transforms."""
     fname = data_path / "subjects" / subject / "mri" / "transforms" / "talairach.xfm"
     xfm, kind = _read_fs_xfm(str(fname))
     if subject == "fsaverage":
@@ -440,7 +440,7 @@ def test_fs_xfm(subject, tmp_path):
     assert kind_read == kind
     assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
     # Some wacky one
-    xfm[:3] = np.random.RandomState(0).randn(3, 4)
+    xfm[:3] = np.random.default_rng(0).standard_normal((3, 4))
     _write_fs_xfm(fname_out, xfm, "foo")
     xfm_read, kind_read = _read_fs_xfm(str(fname_out))
     assert kind_read == "foo"
@@ -458,7 +458,7 @@ def test_fs_xfm(subject, tmp_path):
 @pytest.fixture()
 def quats():
     """Make some unit quats."""
-    quats = np.random.RandomState(0).randn(5, 3)
+    quats = np.random.default_rng(0).standard_normal((5, 3))
     quats[:, 0] = 0  # identity
     quats /= 2 * np.linalg.norm(quats, axis=1, keepdims=True)  # some real part
     return quats
@@ -468,13 +468,13 @@ def _check_fit_matched_points(
     p, x, weights, do_scale, angtol=1e-5, dtol=1e-5, stol=1e-7
 ):
     __tracebackhide__ = True
-    mne.coreg._ALLOW_ANALITICAL = False
+    mne.transforms._ALLOW_ANALITICAL = False
     try:
-        params = mne.coreg.fit_matched_points(
+        params = mne.transforms.fit_matched_points(
             p, x, weights=weights, scale=do_scale, out="params"
         )
     finally:
-        mne.coreg._ALLOW_ANALITICAL = True
+        mne.transforms._ALLOW_ANALITICAL = True
     quat_an, scale_an = _fit_matched_points(p, x, weights, scale=do_scale)
     assert len(params) == 6 + int(do_scale)
     q_co = _euler_to_quat(params[:3])
@@ -491,7 +491,7 @@ def _check_fit_matched_points(
     trans[:3, :3] *= scale_an
     weights = np.ones(1) if weights is None else weights
     err_an = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
-    trans = mne.coreg._trans_from_params((True, True, do_scale), params)
+    trans = mne.transforms._trans_from_params((True, True, do_scale), params)
     err_co = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
     if err_an > 1e-14:
         assert err_an < err_co * 1.5
@@ -504,9 +504,10 @@ def test_fit_matched_points(quats, scaling, do_scale):
     """Test analytical least-squares matched point fitting."""
     if scaling != 1 and not do_scale:
         return  # no need to test this, it will not be good
-    rng = np.random.RandomState(0)
-    fro = rng.randn(10, 3)
-    translation = rng.randn(3)
+    # seed chosen to give points that fit within the asserted tolerance
+    rng = np.random.default_rng(11)
+    fro = rng.standard_normal((10, 3))
+    translation = rng.standard_normal(3)
     for qi, quat in enumerate(quats):
         print(qi)
         to = scaling * np.dot(quat_to_rot(quat), fro.T).T + translation

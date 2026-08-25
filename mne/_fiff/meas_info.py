@@ -7,6 +7,7 @@ import datetime
 import operator
 import re
 import string
+import weakref
 from collections import Counter, OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
@@ -58,7 +59,12 @@ from .pick import (
     get_channel_type_constants,
     pick_types,
 )
-from .proc_history import _read_proc_history, _write_proc_history
+from .proc_history import (
+    _read_mf_data,
+    _read_proc_history,
+    _write_mf_data,
+    _write_proc_history,
+)
 from .proj import (
     Projection,
     _normalize_proj,
@@ -79,7 +85,7 @@ from .tag import (
 from .tree import dir_tree_find
 from .write import (
     DATE_NONE,
-    _safe_name_list,
+    _safe_read_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -445,6 +451,7 @@ _unit2human = {
     FIFF.FIFF_UNIT_NONE: "NA",
     FIFF.FIFF_UNIT_CEL: "C",
     FIFF.FIFF_UNIT_S: "S",
+    FIFF.FIFF_UNIT_SEC: "s",
     FIFF.FIFF_UNIT_PX: "px",
 }
 
@@ -683,7 +690,7 @@ class SetChannelsMixin(MontageMixin):
         ch_groups=None,
         to_sphere=True,
         axes=None,
-        block=False,
+        block=None,
         show=True,
         sphere=None,
         *,
@@ -729,11 +736,18 @@ class SetChannelsMixin(MontageMixin):
             instance of Axes3D. If None (default), a new axes will be created.
 
             .. versionadded:: 0.13.0
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Defaults to False.
+        block : bool | None
+            Whether to halt program execution until the figure is closed. By default
+            (``None``) this follows :func:`matplotlib.pyplot.show`: it blocks unless
+            Matplotlib's interactive mode is on (see :func:`matplotlib.pyplot.ion`), in
+            which case it returns immediately. Set to ``True`` to force blocking, which
+            is useful with ``kind="select"`` to collect the interactive selection
+            synchronously when interactive mode is on.
 
             .. versionadded:: 0.13.0
+            .. versionchanged:: 1.13
+               The default changed from ``False`` to ``None`` (follow
+               Matplotlib).
         show : bool
             Show figure if True. Defaults to True.
         %(sphere_topomap_auto)s
@@ -887,7 +901,6 @@ class ContainsMixin:
             True
             >>> 'seeg' in inst  # doctest: +SKIP
             False
-
         """
         # this method is not supported by Info object. An Info object inherits from a
         # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
@@ -987,7 +1000,15 @@ class ValidatedDict(dict):
         super().__setitem__(key, val)
 
     def update(self, other=None, **kwargs):
-        """Update method using __setitem__()."""
+        """Update the instance, validating each key like ``__setitem__``.
+
+        Parameters
+        ----------
+        other : dict | iterable of pair | None
+            The entries to set, as a mapping or as ``(key, value)`` pairs.
+        **kwargs : dict
+            Additional entries to set, as keyword arguments.
+        """
         iterable = other.items() if isinstance(other, Mapping) else other
         if other is not None:
             for key, val in iterable:
@@ -1071,6 +1092,12 @@ class HeliumInfo(ValidatedDict):
             types="numeric",
             cast=float,
         ),
+        "gantry_angle": partial(
+            _check_types,
+            name='helium_info["gantry_angle"]',
+            types="int-like",
+            cast=int,
+        ),
         "helium_level": partial(
             _check_types,
             name='helium_info["helium_level"]',
@@ -1140,18 +1167,17 @@ class MNEBadsList(list):
 
     def __init__(self, *, bads, info):
         _check_bads_info_compat(bads, info)
-        self._mne_info = info
+        # avoid an info <-> bads reference cycle
+        self._mne_info = weakref.ref(info)
         super().__init__(bads)
 
     def extend(self, iterable):
         if not isinstance(iterable, list):
             iterable = list(iterable)
-        # can happen during pickling
-        try:
-            info = self._mne_info
-        except AttributeError:
-            pass  # can happen during pickling
-        else:
+        # info may be absent (during unpickling) or already gone (dead weakref)
+        info_ref = getattr(self, "_mne_info", None)
+        info = info_ref() if info_ref is not None else None
+        if info is not None:
             _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
@@ -1161,6 +1187,11 @@ class MNEBadsList(list):
     def __iadd__(self, x):
         self.extend(x)
         return self
+
+    def __reduce__(self):
+        # The weakref is not picklable, and the parent Info re-wraps it as an
+        # MNEBadsList (via __setitem__) on load.
+        return (list, (list(self),))
 
 
 # As options are added here, test_meas_info.py:test_info_bad should be updated
@@ -1286,6 +1317,22 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         modified by various MNE-Python functions or methods (which have
         safeguards to ensure all fields remain in sync).
 
+    Some common methods that safely modify the ``info`` object include:
+
+    * :meth:`mne.io.Raw.add_proj`, :meth:`mne.Epochs.add_proj`,
+      :meth:`mne.Evoked.add_proj`
+    * :meth:`mne.io.Raw.del_proj`, :meth:`mne.Epochs.del_proj`,
+      :meth:`mne.Evoked.del_proj`
+    * :meth:`mne.io.Raw.rename_channels`,
+      :meth:`mne.Epochs.rename_channels`,
+      :meth:`mne.Evoked.rename_channels`
+    * :meth:`mne.io.Raw.set_channel_types`,
+      :meth:`mne.Epochs.set_channel_types`,
+      :meth:`mne.Evoked.set_channel_types`
+    * :meth:`mne.io.Raw.set_meas_date`,
+      :meth:`mne.Epochs.set_meas_date`,
+      :meth:`mne.Evoked.set_meas_date`
+
     Parameters
     ----------
     *args : list
@@ -1314,6 +1361,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
     comps : list of dict
         CTF software gradient compensation data.
         See Notes for more information.
+    cross_talk : dict | None
+        Cross-talk information added at acquisition time by MEGIN systems.
     ctf_head_t : Transform | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
@@ -1344,7 +1393,9 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         Name of the person that ran the experiment.
     file_id : dict | None
         The FIF globally unique ID. See Notes for more information.
-    gantry_angle : float | None
+    fine_calibration : dict | None
+        Fine calibration information added at acquisition time by MEGIN systems.
+    gantry_angle : int | None
         Tilt angle of the gantry in degrees.
     helium_info : dict | None
         Information about the device helium. See Notes for details.
@@ -1698,6 +1749,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "comps": "comps cannot be set directly. "
         "Please use method Raw.apply_gradient_compensation() "
         "instead.",
+        "cross_talk": "cross_talk cannot be set directly.",
         "ctf_head_t": "ctf_head_t cannot be set directly.",
         "custom_ref_applied": "custom_ref_applied cannot be set directly. "
         "Please use method inst.set_eeg_reference() "
@@ -1711,6 +1763,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "events": "events cannot be set directly.",
         "experimenter": partial(_check_types, name="experimenter", types=(str, None)),
         "file_id": "file_id cannot be set directly.",
+        "fine_calibration": "fine_calibration cannot be set directly.",
         "gantry_angle": "gantry_angle cannot be set directly.",
         "helium_info": partial(
             _check_types, name="helium_info", types=(dict, None), cast=HeliumInfo
@@ -1782,6 +1835,19 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 self._check_consistency()
         finally:
             self._unlocked = state
+
+    @contextlib.contextmanager
+    def _skip_checks(self):
+        """Skip ``_check_consistency()`` on this instance within the block."""
+        # dominates frequently used pick/copy operations an already-consistent info
+        # flag is transient: not pickled (see ``__getstate__``) and ``__deepcopy__``
+        # builds a fresh instance
+        prev = getattr(self, "_no_check", False)
+        self._no_check = True
+        try:
+            yield
+        finally:
+            self._no_check = prev
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
@@ -1909,6 +1975,18 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             elif k == "ch_names":
                 # we know it's list of str, shallow okay and saves ~100 µs
                 result[k] = v.copy()
+            elif k == "dig":
+                # DigPoint has a fast __deepcopy__ (only copies its "r" array);
+                # calling it directly avoids the generic list-deepcopy dispatch.
+                # dig is almost always DigPoints, but can hold plain dicts (e.g.
+                # appended directly), which lack __deepcopy__; fall back for those.
+                if v is None:
+                    result[k] = None
+                else:
+                    try:
+                        result[k] = [d.__deepcopy__(memodict) for d in v]
+                    except AttributeError:
+                        result[k] = deepcopy(v, memodict)
             elif k == "hpi_meas":
                 hms = list()
                 for hm in v:
@@ -1932,12 +2010,14 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def _check_consistency(self, prepend_error=""):
         """Do some self-consistency checks and datatype tweaks."""
+        if getattr(self, "_no_check", False):
+            return
         meas_date = self.get("meas_date")
         if meas_date is not None:
             if (
                 not isinstance(self["meas_date"], datetime.datetime)
                 or self["meas_date"].tzinfo is None
-                or self["meas_date"].tzinfo is not datetime.timezone.utc
+                or self["meas_date"].tzinfo is not datetime.UTC
             ):
                 raise RuntimeError(
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
@@ -2309,7 +2389,7 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = _safe_name_list(tag.data, "read", "bads")
+                bads = _safe_read_name_list(tag.data)
         bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
 
@@ -2319,7 +2399,7 @@ def _write_bad_channels(fid, bads, ch_names_mapping):
         ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
         bads = _rename_list(bads, ch_names_mapping)
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list_sanitized(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, "bads")
+        write_name_list_sanitized(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, name="bads")
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
@@ -2352,14 +2432,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     if len(meas) == 0:
         raise ValueError("Could not find measurement data")
     if len(meas) > 1:
-        raise ValueError("Cannot read more that 1 measurement data")
+        raise ValueError("Cannot read more than 1 measurement data")
     meas = meas[0]
 
     meas_info = dir_tree_find(meas, FIFF.FIFFB_MEAS_INFO)
     if len(meas_info) == 0:
         raise ValueError("Could not find measurement info")
     if len(meas_info) > 1:
-        raise ValueError("Cannot read more that 1 measurement info")
+        raise ValueError("Cannot read more than 1 measurement info")
     meas_info = meas_info[0]
 
     #   Read measurement info
@@ -2452,7 +2532,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             line_freq = float(tag.data.item())
         elif kind == FIFF.FIFF_GANTRY_ANGLE:
             tag = read_tag(fid, pos)
-            gantry_angle = float(tag.data.item())
+            gantry_angle = int(tag.data.item())
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
             custom_ref_applied = int(tag.data.item())
@@ -2587,6 +2667,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         for k in range(hpi_meas["nent"]):
             kind = hpi_meas["directory"][k].kind
             pos = hpi_meas["directory"][k].pos
+            if kind == FIFF.FIFF_BLOCK_ID:
+                hm["block_id"] = read_tag(fid, pos).data
+            if kind == FIFF.FIFF_PARENT_BLOCK_ID:
+                hm["parent_id"] = read_tag(fid, pos).data
             if kind == FIFF.FIFF_CREATOR:
                 hm["creator"] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
@@ -2711,6 +2795,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if kind == FIFF.FIFF_HE_LEVEL_RAW:
                 tag = read_tag(fid, pos)
                 hi["he_level_raw"] = float(tag.data.item())
+            elif kind == FIFF.FIFF_GANTRY_ANGLE:
+                tag = read_tag(fid, pos)
+                hi["gantry_angle"] = int(tag.data.item())
             elif kind == FIFF.FIFF_HELIUM_LEVEL:
                 tag = read_tag(fid, pos)
                 hi["helium_level"] = float(tag.data.item())
@@ -2754,6 +2841,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hc.append(this_coil)
             hs["hpi_coils"] = hc
     info["hpi_subsystem"] = hs
+
+    #   Read cross-talk and fine cal
+    cross_talk = _read_mf_data(fid, tree, kind="sss_ctc")
+    if len(cross_talk):
+        info["cross_talk"] = cross_talk
+    fine_calibration = _read_mf_data(fid, tree, kind="sss_cal")
+    if len(fine_calibration):
+        info["fine_calibration"] = fine_calibration
 
     #   Read processing history
     info["proc_history"] = _read_proc_history(fid, tree)
@@ -2970,6 +3065,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   HPI Measurement
     for hpi_meas in info["hpi_meas"]:
         start_block(fid, FIFF.FIFFB_HPI_MEAS)
+        if hpi_meas.get("block_id") is not None:
+            write_id(fid, FIFF.FIFF_BLOCK_ID, hpi_meas["block_id"])
+        if hpi_meas.get("parent_id") is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, hpi_meas["parent_id"])
         if hpi_meas.get("creator") is not None:
             write_string(fid, FIFF.FIFF_CREATOR, hpi_meas["creator"])
         if hpi_meas.get("sfreq") is not None:
@@ -3023,13 +3122,6 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info["dev_ctf_t"] is not None:
         write_coord_trans(fid, info["dev_ctf_t"])
 
-    #   Projectors
-    ch_names_mapping = _make_ch_names_mapping(info["chs"])
-    _write_proj(fid, info["projs"], ch_names_mapping=ch_names_mapping)
-
-    #   Bad channels
-    _write_bad_channels(fid, info["bads"], ch_names_mapping=ch_names_mapping)
-
     #   General
     if info.get("experimenter") is not None:
         write_string(fid, FIFF.FIFF_EXPERIMENTER, info["experimenter"])
@@ -3051,17 +3143,14 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_float(fid, FIFF.FIFF_HIGHPASS, info["highpass"])
     if info.get("line_freq") is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info["line_freq"])
-    if info.get("gantry_angle") is not None:
-        write_float(fid, FIFF.FIFF_GANTRY_ANGLE, info["gantry_angle"])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
+    if info.get("gantry_angle") is not None:
+        write_int(fid, FIFF.FIFF_GANTRY_ANGLE, info["gantry_angle"])
     if info.get("custom_ref_applied"):
         write_int(fid, FIFF.FIFF_MNE_CUSTOM_REF, info["custom_ref_applied"])
     if info.get("xplotter_layout"):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info["xplotter_layout"])
-
-    #  Channel information
-    _write_ch_infos(fid, info["chs"], reset_range, ch_names_mapping)
 
     # Subject information
     if info.get("subject_info") is not None:
@@ -3090,6 +3179,16 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_SUBJECT)
         del si
 
+    #   Projectors
+    ch_names_mapping = _make_ch_names_mapping(info["chs"])
+    _write_proj(fid, info["projs"], ch_names_mapping=ch_names_mapping)
+
+    #  Channel information
+    _write_ch_infos(fid, info["chs"], reset_range, ch_names_mapping)
+
+    _write_mf_data(fid, info, kind="sss_ctc", key="cross_talk")
+    _write_mf_data(fid, info, kind="sss_cal", key="fine_calibration")
+
     if info.get("device_info") is not None:
         start_block(fid, FIFF.FIFFB_DEVICE)
         di = info["device_info"]
@@ -3106,6 +3205,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         hi = info["helium_info"]
         if hi.get("he_level_raw") is not None:
             write_float(fid, FIFF.FIFF_HE_LEVEL_RAW, hi["he_level_raw"])
+        if hi.get("gantry_angle") is not None:
+            write_int(fid, FIFF.FIFF_GANTRY_ANGLE, hi["gantry_angle"])
         if hi.get("helium_level") is not None:
             write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi["helium_level"])
         if hi.get("orig_file_guid") is not None:
@@ -3130,6 +3231,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
                 end_block(fid, FIFF.FIFFB_HPI_COIL)
         end_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
         del hs
+
+    #   Bad channels
+    _write_bad_channels(fid, info["bads"], ch_names_mapping=ch_names_mapping)
 
     #   CTF compensation info
     comps = info["comps"]
@@ -3680,9 +3784,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         for field in keep_fields:
             _check_option("keep_his", field, valid_fields)
 
-    default_anon_dos = datetime.datetime(
-        2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=datetime.UTC)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_sex = 0

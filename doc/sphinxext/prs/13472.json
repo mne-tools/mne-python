@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "b1fb8933a2ba62028b1dac3ae8bc24da0220d00e",
+  "authors": [
+    {
+      "n": "Erica R Peterson",
+      "e": "38704848+nordme@users.noreply.github.com",
+      "l": "nordme"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_3d.py": {
+      "a": 301,
+      "d": 222
+    }
+  }
+}

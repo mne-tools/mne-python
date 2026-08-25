@@ -5,6 +5,10 @@ To add a package to the list:
 1. Add it to the MNE-installers if possible, and it will automatically appear.
 2. If it's on PyPI and not in the MNE-installers, add it to the PYPI_PACKAGES set.
 3. If it's not on PyPI, add it to the MANUAL_PACKAGES dictionary.
+
+If PyPI or manual, also add package name to `related_software.txt` or
+`related_software_nodeps.txt` so that it's installed at doc-build time (for package
+metadata querying).
 """
 
 # Authors: The MNE-Python contributors.
@@ -25,19 +29,19 @@ from mne_doc_utils import sphinx_logger
 from sphinx.errors import ExtensionError
 from sphinx.util.display import status_iterator
 
-# If a package is in MNE-Installers (preferred method), no need to add it here.
-# But still add it to doc/sphinxext/related_software.txt!
+# 1. If a package is in MNE-Installers (preferred method), no need to add it here.
+#    But still add it to doc/sphinxext/related_software.txt!
 
-# If it's available on PyPI, add it to this set:
+# 2. If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
     "cross-domain-saliency-maps",
     "meggie",
     "niseq",
     "sesameeg",
-    "mne-kit-gui",  # moved to its own env in the installers
+    "zuna",
 }
 
-# If it's not available on PyPI, add it to this dict:
+# 3. If it's not available on PyPI, add it to this dict:
 MANUAL_PACKAGES = {
     # TODO: These packages are not pip-installable as of 2025/11/19, so we have to
     # manually populate them -- should open issues on their package repos.
@@ -57,19 +61,6 @@ MANUAL_PACKAGES = {
     "surfa": {
         "Home-page": "https://github.com/freesurfer/surfa",
         "Summary": "Utilities for medical image and surface processing.",
-    },
-    # This package does not provide wheels, so don't force CircleCI to build it.
-    # If it eventually provides binary wheels we could add it to
-    # `tools/circleci_dependencies.sh` and remove from here.
-    # https://github.com/Eelbrain/Eelbrain/issues/130
-    "eelbrain": {
-        "Home-page": "https://eelbrain.readthedocs.io/en/stable/",
-        "Summary": "Open-source Python toolkit for MEG and EEG data analysis.",
-    },
-    # TODO: these do not set a valid homepage or documentation page on PyPI
-    "mffpy": {
-        "Home-page": "https://github.com/BEL-Public/mffpy",
-        "Summary": "Reader and Writer for Philips' MFF file format.",
     },
     # not on PyPI
     "conpy": {
@@ -221,7 +212,7 @@ class RelatedSoftwareDirective(Directive):
         return [my_list]
 
 
-def setup(app):
+def setup(app):  # noqa: D103
     app.add_directive("related-software", RelatedSoftwareDirective)
     # Run it as soon as this is added as a Sphinx extension so that any errors
     # / new packages are reported early. The next call in run() will be cached.

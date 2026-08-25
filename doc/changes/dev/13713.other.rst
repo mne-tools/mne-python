@@ -1,1 +1,0 @@
-Extended support for visualising cross-spectral densities in :func:`mne.viz.plot_csd` and :meth:`mne.time_frequency.CrossSpectralDensity.plot` to all types of :term:`data channels`, by :newcontrib:`Aniket Singh Yadav`.

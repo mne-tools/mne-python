@@ -31,15 +31,15 @@ from mne import (
 )
 from mne.channels import make_dig_montage
 from mne.datasets import testing
-from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
-from mne.utils import check_version
+from mne.utils import catch_logging, check_version
 from mne.viz import ui_events
-from mne.viz._brain import Brain, _BrainScraper, _LayeredMesh, _LinkViewer
+from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
+from mne.viz._brain._brain import _auto_scalar_bar_fmt
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
 
@@ -51,6 +51,7 @@ fname_raw_testing = sample_dir / "sample_audvis_trunc_raw.fif"
 fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
 fname_stc = sample_dir / "sample_audvis_trunc-meg"
 fname_label = sample_dir / "labels" / "Vis-lh.label"
+fname_label2 = sample_dir / "labels" / "Vis-rh.label"
 fname_cov = sample_dir / "sample_audvis_trunc-cov.fif"
 fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
 fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
@@ -89,6 +90,10 @@ class TstVTKPicker:
         """Return the picked mesh."""
         return self.mesh
 
+    def GetMapper(self):
+        """Return the picked mapper."""
+        return None
+
     def GetPickPosition(self):
         """Return the picked position."""
         if self.hemi == "vol":
@@ -118,19 +123,16 @@ class TstVTKPicker:
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-# TODO: allow_unclosed for macOS here as the conda and M1 builds show some
-# windows stay open afterward
-@pytest.mark.allow_unclosed
 def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
-    mesh = _LayeredMesh(
+    mesh = LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
     )
     assert not mesh._is_mapped
-    mesh.map()
+    mesh._map()
     assert mesh._is_mapped
     assert mesh._current_colors is None
     assert mesh._cached_colors is None
@@ -394,6 +396,49 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                 vertices=hemi_vertices,
             )
     assert len(brain._actors["data"]) == 4
+    assert not brain._scalar_bar.GetTitle()
+    assert brain._scalar_bar.GetLabelFormat() == _auto_scalar_bar_fmt([fmin, fmax])
+    # exercise the public LayeredMesh API via Brain.layered_meshes
+    assert "lh" in brain.layered_meshes
+    lm = brain.layered_meshes["lh"]
+    assert isinstance(lm, LayeredMesh)
+    lm.update_overlay(name="data", rng=[fmin, fmax])
+    lm.update()
+    with pytest.raises(ValueError, match="must have shape"):
+        lm.update_overlay(name="data", scalars=np.ones(1))
+    # remove_existing=False keeps the old overlay and adds a new one alongside
+    assert list(brain._all_data.keys()) == ["data"]
+    assert "data" in lm._overlays
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert "data" in brain._all_data and "overlay2" in brain._all_data
+    assert "data" in lm._overlays and "overlay2" in lm._overlays
+    assert brain._active_data_key == "overlay2"
+    assert brain._all_data["overlay2"]["colorbar_fmt"] is None
+    brain.add_data(
+        hemi_data,
+        fmin=fmin,
+        hemi="lh",
+        fmax=fmax,
+        colormap="Blues",
+        vertices=hemi_vertices,
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay3",
+        remove_existing=False,
+        colorbar_kwargs=dict(fmt="%.1f"),
+    )
+    assert brain._all_data["overlay3"]["colorbar_fmt"] == "%.1f"
     brain.remove_data()
     assert "data" not in brain._actors
     assert "time_change" not in ui_events._get_event_channel(brain)
@@ -407,7 +452,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.0, color="green")
     assert isinstance(brain.labels[label.hemi], list)
-    overlays = brain._layered_meshes[label.hemi]._overlays
+    overlays = brain.layered_meshes[label.hemi]._overlays
     assert "unnamed0" in overlays
     assert np.allclose(
         overlays["unnamed0"]._colormap[0], [0, 0, 0, 0]
@@ -543,14 +588,66 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
     brain.close()
 
-    # add annotation
+
+@testing.requires_testing_data
+def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
+    """Test live cortex alpha/colormap, surf switching, and silhouette line width."""
+    brain = _create_testing_brain(hemi="lh", show_traces=0.5, initial_time=0)
+
+    brain.set_cortex_alpha(0.5)
+    assert brain._alpha == 0.5
+
+    mesh = brain.layered_meshes["lh"]
+    old_colors = mesh._current_colors.copy()
+    brain.set_cortex_colormap("bone")
+    assert brain._cortex_preset == "bone"
+    assert not np.allclose(mesh._current_colors, old_colors)
+
+    old_coords = brain.geo["lh"].coords.copy()
+    sphere = next(iter(brain._picked_points.values()))[0]
+    vertex_id = sphere["vertex_id"]
+    old_center = np.array(sphere["mesh"].center)
+
+    brain.set_surf("white")
+    assert brain._surf == "white"
+    assert not np.allclose(brain.geo["lh"].coords, old_coords)
+    assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
+    new_center = np.array(sphere["mesh"].center)
+    assert not np.allclose(new_center, old_center)
+    assert_allclose(new_center, brain.geo["lh"].coords[vertex_id])
+
+    brain.set_surf("white")  # no-op, same surf
+    assert brain._surf == "white"
+
+    assert not brain.silhouette
+    brain.set_silhouette_line_width(3.0)
+    assert brain.silhouette
+    actors = brain._silhouette_actors
+    assert len(actors) > 0
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(0.0)
+    assert not brain.silhouette
+    assert all(not a.GetVisibility() for a in actors)
+
+    brain.set_silhouette_line_width(5.0)
+    assert brain._silhouette_actors is actors
+    assert all(a.GetVisibility() for a in actors)
+
+    brain.close()
+
+
+def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc, qtbot):
+    """Test add_annotation."""
     annots = [
         "aparc",
         subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
+        [read_label(fname_label, "fsaverage"), read_label(fname_label2, "fsaverage")],
     ]
-    borders = [True, 2]
-    alphas = [1, 0.5]
-    colors = [None, "r"]
+    borders = [True, 1, 2]
+    alphas = [1, 0.5, 0]
+    colors = [None, "r", "b"]
+    size = (100, 100)
     brain = Brain(
         subject="fsaverage",
         hemi="both",
@@ -558,28 +655,143 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         surf="inflated",
         subjects_dir=subjects_dir,
     )
-    with pytest.raises(ValueError, match="does not exist"):
+    with pytest.raises(FileNotFoundError, match="does not exist"):
         brain.add_annotation("foo")
     brain.add_annotation(annots[1])
     brain.close()
+
     brain = Brain(
         subject="fsaverage",
-        hemi=hemi,
-        size=size,
+        hemi="lh",
+        size=(300, 300),
         surf="inflated",
         subjects_dir=subjects_dir,
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
-        brain.add_annotation(str(a), b, p, color=color)
+        brain.add_annotation(a, b, p, color=color)
+
+    # hover the annotation through the real event chain (Qt mouse move ->
+    # VTK MouseMoveEvent -> observer -> vtkCellPicker -> caption); the hover
+    # observer reads the most recently added annotation, so add it last
+    brain.add_annotation(annots[1], hover=True)
+    from qtpy.QtCore import QPoint
+
+    # MNE_3D_BACKEND_TESTING hides all actors, but VTK only picks visible ones
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    brain.show_view("lateral")
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    # hover the vertex closest to the camera (cannot be occluded)
+    _, point = _closest_vertex_point(brain, widget)
+    caption = brain._annots["lh"][-1]["caption"]
+    assert not caption.GetVisibility()
+    with catch_logging(verbose="debug") as log:
+        _send_mouse_move(widget, point)
+    assert "Hovering label" in log.getvalue()
+    assert caption.GetVisibility()
+    names = {label.name for label in brain._annots["lh"][-1]["labels"]}
+    assert caption.GetCaption() in names
+    with catch_logging(verbose="debug") as log:
+        _send_mouse_move(widget, point)
+    assert "Same label hovered" in log.getvalue()
+    with catch_logging(verbose="debug") as log:
+        _send_mouse_move(widget, QPoint(1, 1))  # background corner
+    assert "No mesh picked, hiding" in log.getvalue()
+    assert not caption.GetVisibility()
     brain.close()
 
 
-# TODO: Figure out why brain_gc is problematic here on PyQt5
-@pytest.mark.allow_unclosed
 @testing.requires_testing_data
-@pytest.mark.parametrize(
-    "sensor_colors, sensor_scales, expectation",
-    [
+def test_scalar_bar_ticks_title_and_hover(
+    renderer_interactive_pyvistaqt, brain_gc, qtbot
+):
+    """Test scalar bar tick marks, title truncation, and hover info toggle."""
+    long_title = "a" * 40
+    brain = _create_testing_brain(
+        hemi="lh",
+        show_traces=False,
+        add_data_kwargs=dict(colorbar_kwargs=dict(title=long_title)),
+    )
+    n_labels = brain._scalar_bar.GetNumberOfLabels()
+    ticks = brain._scalar_bar_ticks
+    assert ticks.GetNumberOfLabels() == n_labels
+    assert ticks.GetTickVisibility()
+    assert not ticks.GetLabelVisibility()
+    title = brain._scalar_bar.GetTitle()
+    assert title.endswith("…")
+    assert len(title) <= 20
+
+    assert brain._show_hover_info is False
+    from qtpy.QtCore import QPoint, Qt
+    from qtpy.QtTest import QTest
+
+    # MNE_3D_BACKEND_TESTING hides all actors, but VTK only picks visible ones
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    brain.show_view("lateral")
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    vertex_id, point = _closest_vertex_point(brain, widget)
+    _send_mouse_move(widget, point)
+    assert not brain._hover_caption.GetVisibility()  # toggle is off
+
+    QTest.keyClick(widget, Qt.Key_V)  # the hover-info toggle shortcut
+    assert brain._show_hover_info is True
+    _send_mouse_move(widget, point)
+    assert brain._hover_caption.GetVisibility()
+    assert "vertex" in brain._hover_caption.GetCaption()
+    _send_mouse_move(widget, QPoint(1, 1))  # background corner hides it
+    assert not brain._hover_caption.GetVisibility()
+
+    QTest.keyClick(widget, Qt.Key_V)
+    assert brain._show_hover_info is False
+    assert not brain._hover_caption.GetVisibility()
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_add_sensors_scales(renderer_interactive_pyvistaqt):
+    """Test sensor_scales parameter."""
+    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
+    hemi = "lh"
+    surf = "white"
+    cortex = "low_contrast"
+    title = "test"
+    size = (300, 300)
+
+    brain = Brain(
+        hemi=hemi,
+        surf=surf,
+        size=size,
+        title=title,
+        cortex=cortex,
+        units="m",
+        silhouette=dict(decimate="oct6"),
+        **kwargs,
+    )
+
+    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
+    pos = (
+        np.array(
+            [
+                [25.85, 9.04, -5.38],
+                [33.56, 9.04, -5.63],
+                [40.44, 9.04, -5.06],
+                [46.75, 9.04, -6.78],
+                [-30.08, 9.04, 28.23],
+                [-32.95, 9.04, 37.99],
+            ]
+        )
+        / 1000
+    )
+    proj_info.set_montage(
+        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
+    )
+
+    for sensor_colors, sensor_scales, expectation in [
         (
             {"seeg": ["k"] * 5},
             {"seeg": [2] * 6},
@@ -630,57 +842,14 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
             {"seeg": [2] * 6},
             nullcontext(),
         ),
-    ],
-)
-def test_add_sensors_scales(
-    renderer_interactive_pyvistaqt,
-    sensor_colors,
-    sensor_scales,
-    expectation,
-):
-    """Test sensor_scales parameter."""
-    kwargs = dict(subject=subject, subjects_dir=subjects_dir)
-    hemi = "lh"
-    surf = "white"
-    cortex = "low_contrast"
-    title = "test"
-    size = (300, 300)
-
-    brain = Brain(
-        hemi=hemi,
-        surf=surf,
-        size=size,
-        title=title,
-        cortex=cortex,
-        units="m",
-        silhouette=dict(decimate=0.95),
-        **kwargs,
-    )
-
-    proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
-    pos = (
-        np.array(
-            [
-                [25.85, 9.04, -5.38],
-                [33.56, 9.04, -5.63],
-                [40.44, 9.04, -5.06],
-                [46.75, 9.04, -6.78],
-                [-30.08, 9.04, 28.23],
-                [-32.95, 9.04, 37.99],
-            ]
-        )
-        / 1000
-    )
-    proj_info.set_montage(
-        make_dig_montage(ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame="head")
-    )
-    with expectation:
-        brain.add_sensors(
-            proj_info,
-            trans=fname_trans,
-            sensor_colors=sensor_colors,
-            sensor_scales=sensor_scales,
-        )
+    ]:
+        with expectation:
+            brain.add_sensors(
+                proj_info,
+                trans=fname_trans,
+                sensor_colors=sensor_colors,
+                sensor_scales=sensor_scales,
+            )
     brain.close()
 
 
@@ -847,10 +1016,10 @@ def tiny(tmp_path):
     subject_dir = tmp_path / subject
     (subject_dir / "surf").mkdir()
     surf_dir = subject_dir / "surf"
-    rng = np.random.RandomState(0)
-    rr = rng.randn(4, 3)
+    rng = np.random.default_rng(0)
+    rr = rng.standard_normal((4, 3))
     tris = np.array([[0, 1, 2], [2, 1, 3]])
-    curv = rng.randn(len(rr))
+    curv = rng.standard_normal(len(rr))
     with open(surf_dir / "lh.curv", "wb") as fid:
         fid.write(np.array([255, 255, 255], dtype=np.uint8))
         fid.write(np.array([len(rr), 0, 1], dtype=">i4"))
@@ -858,7 +1027,7 @@ def tiny(tmp_path):
     write_surface(surf_dir / "lh.white", rr, tris)
     write_surface(surf_dir / "rh.white", rr, tris)  # needed for vertex tc
     vertices = [np.arange(len(rr)), []]
-    data = rng.randn(len(rr), 10)
+    data = rng.standard_normal((len(rr), 10))
     stc = SourceEstimate(data, vertices, 0, 1, subject)
     brain = stc.plot(subjects_dir=tmp_path, hemi="lh", surface="white", size=_TINY_SIZE)
     # in principle this should be sufficient:
@@ -890,12 +1059,12 @@ def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
 def _assert_brain_range(brain, rng):
     __tracebackhide__ = True
     assert brain._cmap_range == rng, "brain._cmap_range == rng"
-    for hemi, layerer in brain._layered_meshes.items():
+    for hemi, layerer in brain.layered_meshes.items():
         for key, mesh in layerer._overlays.items():
             if key == "curv":
                 continue
             assert mesh._rng == rng, (
-                f"_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
+                f"layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}"
             )
 
 
@@ -909,10 +1078,17 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
         _create_testing_brain(
             hemi="lh", surf="white", src="volume", volume_options={"foo": "bar"}
         )
+    with pytest.raises(ValueError, match="Invalid value for"):
+        _create_testing_brain(
+            hemi="lh",
+            surf="white",
+            src="volume",
+            volume_options={"interpolation": "bar"},
+        )
     brain = _create_testing_brain(
         hemi="both",
         show_traces=False,
-        brain_kwargs=dict(silhouette=dict(decimate=0.95)),
+        brain_kwargs=dict(silhouette=dict(decimate="ico5")),
     )
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
@@ -971,9 +1147,13 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.reset()
 
     assert brain.help_canvas is not None
-    assert not brain.help_canvas.canvas.isVisible()
+    assert not brain.help_canvas.isVisible()
     brain.help()
-    assert brain.help_canvas.canvas.isVisible()
+    assert brain.help_canvas.isVisible()
+    brain.help_canvas.hide()
+    assert not brain.help_canvas.isVisible()
+    brain.status_msg.widget.mousePressEvent(None)
+    assert brain.help_canvas.isVisible()
 
     # screenshot
     # Need to turn the interface back on otherwise the window is too wide
@@ -988,26 +1168,57 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
 
 
 @testing.requires_testing_data
+def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the Overlay dropdown widget shown when multiple overlays are active."""
+    brain = _create_testing_brain(hemi="lh", show_traces=False)
+
+    # with a single overlay the selector widget should exist but be hidden
+    assert "data_key" in brain.widgets
+    assert not brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "data"
+
+    # add a second overlay — widget should become visible and list both keys
+    stc = read_source_estimate(fname_stc)
+    hemi_data = stc.data[: len(stc.vertices[0]), 0]
+    brain.add_data(
+        hemi_data,
+        fmin=stc.data.min(),
+        fmax=stc.data.max(),
+        hemi="lh",
+        colormap="Blues",
+        vertices=stc.vertices[0],
+        smoothing_steps="nearest",
+        colorbar=False,
+        key="overlay2",
+        remove_existing=False,
+    )
+    assert brain.widgets["data_key"].is_visible()
+    assert brain._active_data_key == "overlay2"
+
+    # switching the dropdown updates the active key and refreshes sliders
+    brain.widgets["data_key"].set_value("data")
+    assert brain._active_data_key == "data"
+
+    brain.widgets["data_key"].set_value("overlay2")
+    assert brain._active_data_key == "overlay2"
+
+    brain.close()
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize(
-    "hemi",
+    "hemi, src",
     [
-        "lh",
-        pytest.param("rh", marks=pytest.mark.slowtest),
-        pytest.param("split", marks=pytest.mark.slowtest),
-        pytest.param("both", marks=pytest.mark.slowtest),
+        ("lh", "surface"),
+        pytest.param("rh", "surface", marks=pytest.mark.slowtest),
+        pytest.param("split", "surface", marks=pytest.mark.slowtest),
+        pytest.param("both", "surface", marks=pytest.mark.slowtest),
+        pytest.param("lh", "vector", marks=pytest.mark.slowtest),
+        pytest.param("rh", "volume", marks=pytest.mark.slowtest),
+        pytest.param("both", "mixed", marks=pytest.mark.slowtest),
     ],
 )
-@pytest.mark.parametrize(
-    "src",
-    [
-        "surface",
-        pytest.param("vector", marks=pytest.mark.slowtest),
-        pytest.param("volume", marks=pytest.mark.slowtest),
-        pytest.param("mixed", marks=pytest.mark.slowtest),
-    ],
-)
-@pytest.mark.slowtest
-def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain_gc):
+def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc):
     """Test brain traces."""
     hemi_str = list()
     if src in ("surface", "vector", "mixed"):
@@ -1021,7 +1232,8 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         surf="white",
         src=src,
         show_traces="label",
-        volume_options=None,  # for speed, don't upsample
+        # for speed, don't upsample
+        volume_options=dict(resolution=None, interpolation="nearest"),
         n_time=5,
         initial_time=0,
     )
@@ -1033,12 +1245,12 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         brain.widgets["extract_mode"].set_value("max")
 
         # test picking a cell at random
-        rng = np.random.RandomState(0)
+        rng = np.random.default_rng(0)
         for idx, current_hemi in enumerate(hemi_str):
             if current_hemi == "vol":
                 continue
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
-            cell_id = rng.randint(0, current_mesh.n_cells)
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
+            cell_id = rng.integers(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
             assert len(brain._picked_patches[current_hemi]) == 0
             brain._on_pick(test_picker, None)
@@ -1061,26 +1273,29 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         assert "extract_mode" not in brain.widgets
     brain.close()
 
-    # test colormap
-    if src != "vector":
-        brain = _create_testing_brain(
-            hemi=hemi,
-            surf="white",
-            src=src,
-            show_traces=0.5,
-            initial_time=0,
-            volume_options=None,  # for speed, don't upsample
-            n_time=1 if src == "mixed" else 5,
-            diverging=True,
-            add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
-        )
-        # mne_analyze should be chosen
-        ctab = brain._data["ctable"]
-        assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
-        assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
-        assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
-        brain.close()
 
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "hemi, src",
+    [
+        ("lh", "surface"),
+        pytest.param("rh", "surface", marks=pytest.mark.slowtest),
+        pytest.param("split", "surface", marks=pytest.mark.slowtest),
+        pytest.param("both", "surface", marks=pytest.mark.slowtest),
+        pytest.param("lh", "vector", marks=pytest.mark.slowtest),
+        pytest.param("rh", "volume", marks=pytest.mark.slowtest),
+        pytest.param("both", "mixed", marks=pytest.mark.slowtest),
+    ],
+)
+def test_brain_traces_vertex(
+    renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain_gc
+):
+    """Test brain traces vertex mode."""
+    hemi_str = list()
+    if src in ("surface", "vector", "mixed"):
+        hemi_str.extend([hemi] if hemi in ("lh", "rh") else ["lh", "rh"])
+    if src in ("mixed", "volume"):
+        hemi_str.extend(["vol"])
     # vertex traces
     brain = _create_testing_brain(
         hemi=hemi,
@@ -1100,7 +1315,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
     # add foci should work for 'lh', 'rh' and 'vol'
     for current_hemi in hemi_str:
         brain.add_foci([[0, 0, 0]], hemi=current_hemi)
-        assert_array_equal(brain._data[current_hemi]["foci"], [[0, 0, 0]])
+        assert_array_equal(brain._foci_data[current_hemi]["foci"], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1129,17 +1344,17 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         assert len(picked_points[key]) == 0
 
     # test picking a cell at random
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     for idx, current_hemi in enumerate(hemi_str):
         assert len(spheres) == 0
         if current_hemi == "vol":
             current_mesh = brain._data["vol"]["grid"]
             vertices = brain._data["vol"]["vertices"]
-            values = current_mesh.cell_data["values"][vertices]
+            values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._layered_meshes[current_hemi]._polydata
-            cell_id = rng.randint(0, current_mesh.n_cells)
+            current_mesh = brain.layered_meshes[current_hemi]._polydata
+            cell_id = rng.integers(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None
         test_picker = TstVTKPicker(current_mesh, cell_id, current_hemi, brain)
@@ -1184,6 +1399,16 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path, brain
         spheres = sum(brain._picked_points.values(), list())
         assert len(spheres) < old_len
 
+    if src == "vector":
+        glyph_dataset = brain._data["lh"]["glyph_dataset"]
+        vertices = brain._data["lh"]["vertices"]
+        old_points = np.array(glyph_dataset.points)
+        with pytest.warns(RuntimeWarning, match="Foci and label"):
+            brain.set_surf("inflated")
+        new_points = np.array(glyph_dataset.points)
+        assert not np.allclose(old_points, new_points)
+        assert_allclose(new_points, np.array(brain.geo["lh"].coords)[vertices])
+
     screenshot = brain.screenshot()
     screenshot_all = brain.screenshot(time_viewer=True)
     assert screenshot.shape[0] < screenshot_all.shape[0]
@@ -1225,6 +1450,242 @@ something
         assert img.shape[0] > screenshot.shape[0]  # larger height
         assert_allclose(img.shape[1], screenshot_all.shape[1], atol=1)
         assert_allclose(img.shape[0], screenshot_all.shape[0], atol=1)
+
+
+def _send_mouse_move(widget, point, buttons=None):
+    """Deliver a synthetic Qt mouse move (QTest.mouseMove warps the real cursor)."""
+    from qtpy.QtCore import QEvent, QPointF, Qt
+    from qtpy.QtGui import QMouseEvent
+    from qtpy.QtWidgets import QApplication
+
+    event = QMouseEvent(
+        QEvent.Type.MouseMove,
+        QPointF(point),
+        QPointF(widget.mapToGlobal(point)),
+        QPointF(widget.mapToGlobal(point)),
+        Qt.NoButton,
+        Qt.NoButton if buttons is None else buttons,
+        Qt.NoModifier,
+    )
+    QApplication.sendEvent(widget, event)
+    QApplication.processEvents()
+
+
+def _closest_vertex_point(brain, widget, hemi="lh"):
+    """Return (vertex_id, widget point) of the mesh vertex nearest the camera."""
+    rr = brain.layered_meshes[hemi]._polydata.points
+    cam = np.array(brain.plotter.renderer.GetActiveCamera().GetPosition())
+    vertex_id = int(np.argmin(np.linalg.norm(rr - cam, axis=1)))
+    return vertex_id, _world_to_widget_point(brain, widget, rr[vertex_id])
+
+
+def _world_to_widget_point(brain, widget, target):
+    """Project a world coordinate to a Qt widget-local click position."""
+    from qtpy.QtCore import QPoint
+
+    ren = brain.plotter.renderer
+    ren.SetWorldPoint(*target, 1.0)
+    ren.WorldToDisplay()
+    x, y, _ = ren.GetDisplayPoint()
+    # Invert the Qt -> VTK event mapping, (x * scale, (height - y - 1) * scale).
+    # Derive the per-axis scale from the render-window size (which QVTK sets to
+    # round(scale * widget size)) rather than using devicePixelRatioF, which
+    # can disagree with it on unusual HiDPI setups (e.g., macOS Intel CI).
+    rw_w, rw_h = brain.plotter.render_window.GetSize()
+    sx = rw_w / widget.width()
+    sy = rw_h / widget.height()
+    return QPoint(round(x / sx), round(widget.height() - 1 - y / sy))
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("src", ["surface", "volume"])
+def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, src):
+    """Test that clicking on the brain like a user adds and removes traces.
+
+    Unlike the TstVTKPicker-based tests, this exercises the full event chain
+    (Qt click -> VTK interactor -> FindPokedRenderer -> vtkCellPicker.Pick ->
+    Brain._on_pick -> vertex glyph and trace), which broke silently when
+    PyVista started giving the mapper an internal copy of the brain polydata.
+    The surface case uses full-resolution data, whose lack of a smoothing
+    matrix used to make _on_pick raise inside the VTK observer.
+    """
+    from qtpy.QtCore import Qt
+    from qtpy.QtTest import QTest
+
+    # MNE_3D_BACKEND_TESTING hides all actors (so cameras never see any
+    # bounds), but VTK only picks visible props, so show the cortex/volume
+    # again and then fix the camera before clicking
+    if src == "surface":
+        hemi = "lh"
+        # size: the time-viewer traces canvas and dock eat into the window,
+        # and a roomy 3D viewport keeps the click targets many pixels big
+        brain = Brain(
+            "fsaverage", hemi=hemi, surf="inflated", size=600, subjects_dir=subjects_dir
+        )
+        n_verts = len(brain.geo[hemi].coords)
+        brain.add_data(
+            np.random.default_rng(0).random((n_verts, 2)),
+            fmin=0.0,
+            fmid=0.5,
+            fmax=1.0,
+            vertices=np.arange(n_verts),
+            time=np.array([0.0, 1.0]),
+            colormap="hot",
+        )
+        brain.setup_time_viewer(show_traces=True)
+        assert brain.act_data_smooth[hemi][1] is None  # full-res data
+        for mesh in brain.layered_meshes.values():
+            mesh._actor.SetVisibility(True)
+        brain.show_view("lateral")
+    else:
+        hemi = "vol"
+        brain = _create_testing_brain(
+            hemi="rh",
+            src="volume",
+            show_traces=0.5,
+            initial_time=0,
+            volume_options=None,  # for speed, don't upsample
+        )
+        brain._data[hemi]["grid_volume_pos"].SetVisibility(True)
+        brain.plotter.reset_camera()
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    (peak_key,) = brain._picked_points  # the auto-picked peak vertex
+    assert peak_key[0] == hemi
+    if src == "surface":
+        # the middle of the view, which the lateral view fills with brain
+        point = widget.rect().center()
+    else:
+        # aim at the source point farthest from the peak so the click adds a
+        # new vertex instead of hitting the already-picked one
+        vertices = brain._data[hemi]["vertices"]
+        coords = brain._data[hemi]["grid_coords"][vertices]
+        peak_pos = brain._data[hemi]["grid_coords"][peak_key[1]]
+        target = coords[np.argmax(np.linalg.norm(coords - peak_pos, axis=1))]
+        point = _world_to_widget_point(brain, widget, target)
+    events = list()
+    ui_events.subscribe(brain, "vertex_select", lambda event: events.append(event))
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(events) == 1
+    assert events[0].hemi == hemi
+    # regressions: source_id must be a scalar, not the masked array (vol), and
+    # must come through despite the missing smooth_mat (full-res surface)
+    assert isinstance(events[0].source_id, int | np.integer)
+    assert len(brain._picked_points) == 2
+    # clicking the new sphere removes it again; the sphere can be around a
+    # single pixel at the default zoom (and projection rounding differs
+    # across HiDPI setups), so zoom in on it first to make it unmissable
+    new_key = next(key for key in brain._picked_points if key != peak_key)
+    for sphere in sum(brain._picked_points.values(), list()):
+        sphere["actor"].SetVisibility(True)
+    center = np.array(brain._picked_points[new_key][0]["actor"].GetCenter())
+    brain._renderer.set_camera(focalpoint=center, distance=40.0)
+    brain._renderer._process_events()
+    point = _world_to_widget_point(brain, widget, center)
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert list(brain._picked_points) == [peak_key]
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtbot):
+    """Test label-mode picking, drag suppression, and shortcuts via Qt events.
+
+    Covers the real event chain for traces_mode="label" (click toggles a
+    label patch), the keyboard shortcuts registered with add_key_event, and
+    that a press-move-release drag rotates the camera instead of picking
+    (the _mouse_no_mvt suppression).
+    """
+    from qtpy.QtCore import QPoint, Qt
+    from qtpy.QtTest import QTest
+
+    brain = _create_testing_brain(
+        hemi="lh", surf="white", show_traces="label", initial_time=0
+    )
+    assert brain.traces_mode == "label"
+    # MNE_3D_BACKEND_TESTING hides all actors, but VTK only picks visible ones
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    brain.show_view("lateral")
+    with qtbot.waitExposed(brain.plotter.app_window):
+        brain.show()
+    widget = brain.plotter.interactor
+    _, point = _closest_vertex_point(brain, widget)
+    assert len(brain._picked_patches["lh"]) == 0
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(brain._picked_patches["lh"]) == 1
+    # clicking the same label again removes it
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(brain._picked_patches["lh"]) == 0
+    # the clear-glyphs shortcut clears a picked label
+    QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+    assert len(brain._picked_patches["lh"]) == 1
+    QTest.keyClick(widget, Qt.Key_C)
+    assert len(brain._picked_patches["lh"]) == 0
+    # auto-scaling and restore shortcuts
+    fmax = brain._data["fmax"]
+    QTest.keyClick(widget, Qt.Key_S)
+    assert brain._data["fmax"] != fmax
+    QTest.keyClick(widget, Qt.Key_R)
+    assert brain._data["fmax"] == fmax
+    # arrow keys rotate the camera
+    azimuth = brain._renderer.get_camera(rigid=brain._rigid)[2]
+    QTest.keyClick(widget, Qt.Key_Left)
+    azimuth_moved = brain._renderer.get_camera(rigid=brain._rigid)[2]
+    assert not np.isclose(azimuth_moved, azimuth, atol=1)
+    # dragging (press, move, release) rotates the camera instead of picking
+    _, point = _closest_vertex_point(brain, widget)
+    QTest.mousePress(widget, Qt.LeftButton, Qt.NoModifier, point)
+    for offset in range(5, 30, 5):
+        _send_mouse_move(widget, point + QPoint(offset, 0), buttons=Qt.LeftButton)
+    QTest.mouseRelease(widget, Qt.LeftButton, Qt.NoModifier, point + QPoint(25, 0))
+    assert len(brain._picked_patches["lh"]) == 0  # suppressed by _mouse_no_mvt
+    azimuth_dragged = brain._renderer.get_camera(rigid=brain._rigid)[2]
+    assert not np.isclose(azimuth_dragged, azimuth_moved, atol=1)  # but rotated
+    brain.close()
+
+
+@pytest.mark.parametrize("src", ("surface", "volume"))
+def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc, src):
+    """Test colormap selection."""
+    brain = _create_testing_brain(
+        hemi="lh",
+        surf="white",
+        src=src,
+        show_traces=0.5,
+        initial_time=0,
+        n_time=5,
+        diverging=True,
+        volume_options=dict(resolution=None),  # for speed, don't upsample
+        add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
+    )
+    # mne_analyze should be chosen
+    ctab = brain._data["ctable"]
+    assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
+    assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
+    assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
+    if src == "volume":
+        # A divergent MIP is one volume with the colors baked into the data, not
+        # a MIP plus a MinIP: VTK does no depth intermixing between volume
+        # actors, so a pair of them composites in the order they were added and
+        # the negative half would hide the positive half from every angle.
+        vol = brain._data["vol"]
+        assert vol["grid_volume_neg"] is None
+        grid = vol["grid"]
+        values = np.asarray(grid.point_data["values"])
+        rgba = np.asarray(grid.point_data["rgba"])
+        # component 3 is the magnitude that the projection maximizes over, so
+        # the larger |value| wins regardless of which one is nearer the camera
+        fmax = brain._cmap_range[1]
+        want = np.clip(np.abs(values) / fmax * 255, 0, 255)
+        assert_allclose(rgba[:, 3], want, atol=1)
+        # components 0-2 are literal color: warm for positive, cool for negative
+        assert values.min() < 0 < values.max()
+        pos, neg = rgba[np.argmax(values)], rgba[np.argmin(values)]
+        assert pos[0] > pos[2]  # yellow end
+        assert neg[2] > neg[0]  # cyan end
+    brain.close()
 
 
 # TODO: don't skip on Windows, see
@@ -1411,6 +1872,15 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
+def test_auto_scalar_bar_fmt():
+    """Test the automatic scalar bar tick-label format."""
+    assert _auto_scalar_bar_fmt([0, 1]) == "%.3g"
+    assert _auto_scalar_bar_fmt([-5, 5]) == "%.3g"
+    assert _auto_scalar_bar_fmt([0, 0]) == "%.3g"
+    assert _auto_scalar_bar_fmt([0, 4.2e-10]) == "%.2e"
+    assert _auto_scalar_bar_fmt([-1e6, 1e6]) == "%.2e"
+
+
 def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     """Test responding to Brain related UI events."""
     brain = _create_testing_brain(hemi="lh", show_traces="vertex")
@@ -1438,6 +1908,35 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     )
     # Should remain unchanged.
     assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+
+    # Test effect of vertex selection publishing.
+    events = list()
+    ui_events.subscribe(brain, "vertex_select", lambda event: events.append(event))
+
+    mesh = brain.layered_meshes["lh"]._polydata
+    faces = brain.geo["lh"].faces
+    vertices = brain._data["lh"]["vertices"]
+    smooth_mat = brain.act_data_smooth["lh"][1]
+
+    # each for existing and missing source vertex cases
+    for is_source in (True, False):
+        mask = np.isin(faces[:, 0], vertices)
+        # select first vertex satisfying the condition
+        cell_id = np.where(mask if is_source else ~mask)[0][0]
+        vertex_id = faces[cell_id, 0]
+        # make the selection
+        n_events = len(events)
+        brain._on_pick(TstVTKPicker(mesh, cell_id, "lh", brain), None)
+        assert len(events) == n_events + 1
+        event = events[-1]
+        assert event.vertex_id == vertex_id
+        row = smooth_mat[vertex_id, :]
+        if is_source:
+            assert event.source_id == row.argmax()
+            assert vertices[event.source_id] == event.vertex_id
+        else:
+            assert row.sum() == 0
+            assert event.source_id is None
 
     brain.close()
 
@@ -1485,15 +1984,15 @@ def _create_testing_brain(
     assert sample_src.kind == src
 
     # dense version
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices = [s["vertno"] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros(n_verts * n_time)
     stc_size = stc_data.size
-    stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = rng.rand(
+    stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = rng.random(
         stc_data.size // 20
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     if diverging:
         stc_data -= 0.5
     stc = klass(stc_data, vertices, 1, 1)
@@ -1511,17 +2010,17 @@ def _create_testing_brain(
         colormap="auto",
         clim=clim,
         src=sample_src,
+        smoothing_steps=0,
         **kwargs,
     )
     return brain_data
 
 
-# TODO: allow_unclosed for macOS here as the conda build shows some
-# windows stay open afterward
-@pytest.mark.allow_unclosed
 def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     """Test mapping foci to the surface."""
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo["lh"].coords[:2] + 0.01
     tiny_brain.add_foci(foci_coords, map_surface="white")
-    assert_array_equal(tiny_brain._data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2])
+    assert_array_equal(
+        tiny_brain._foci_data["lh"]["foci"], tiny_brain.geo["lh"].coords[:2]
+    )

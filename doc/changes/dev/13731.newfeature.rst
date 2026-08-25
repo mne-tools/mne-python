@@ -1,0 +1,1 @@
+Speed up :func:`mne.stats.spatio_temporal_cluster_1samp_test` and related permutation cluster functions via precomputed sum-of-squares for sign-flip t-tests and SciPy connected-components clustering (~5x), by :newcontrib:`Sharif Haason`.

@@ -1,0 +1,1 @@
+Added public :class:`mne.viz.LayeredMesh` class (previously private ``_LayeredMesh``) with a ``smooth_mat`` attribute for efficient real-time source-space data streaming. Added ``Brain.layered_meshes`` attribute to access meshes after plotting, and a ``key`` parameter to :meth:`mne.viz.Brain.add_data` for named overlays, by :newcontrib:`Payam Sadeghi-Shabestari`.

@@ -1,0 +1,1 @@
+Add support for automatic ``cross_talk`` and ``fine_calibration`` adjustments in :func:`mne.preprocessing.maxwell_filter` when these are stored in :class:`mne.Info` during acquisition (e.g., by newer MEGIN acquisition software), by `Eric Larson`_.

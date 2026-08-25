@@ -1,0 +1,107 @@
+name: Scheduled updates
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '0 0 * * 1'  # At 00:00 every Monday
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Enable ssh debugging'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  update:
+    permissions:
+      contents: write
+      pull-requests: write
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: spec_zero
+            name: Update dependency specifiers
+            title: 'MAINT: Update dependency specifiers'
+            body: '*Adjustments may need to be made to shims in `mne/fixes.py` and elsewhere in this or another PR. `make -C tools/dev dep` is a good starting point for finding potential updates.*'
+            label: ''  # this one writes doc/changes/dev/dependency.rst itself
+          - id: prek_auto_update
+            name: Update pre-commit hooks
+            title: 'MAINT: Update pre-commit hook versions'
+            body: '*Created by `prek auto-update`. The updated hooks were then run over the whole repo, so any reformatting they now do is included here.*'
+            label: 'no-changelog-entry-needed'
+    env:
+      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: true
+      - name: Get commit message
+        run: echo "COMMIT_MESSAGE=$(git show -s --format=%s ${{ github.sha }})" | tee -a ${GITHUB_ENV}
+      - name: Triage SSH
+        run: |
+          if [[ "${{ inputs.ssh }}" == "true" ]] || [[ "$COMMIT_MESSAGE" == *"[actions ssh]"* ]]; then
+            echo "ENABLE_SSH=true" | tee -a $GITHUB_ENV
+          else
+            echo "ENABLE_SSH=false" | tee -a $GITHUB_ENV
+          fi
+      - name: Setup Remote SSH Connection
+        if: env.ENABLE_SSH == 'true'
+        uses: Warpbuilds/action-debugger@v1.3
+        timeout-minutes: 10
+        with:
+          detached: true
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: ">=0.9"
+          activate-environment: true
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv pip install -e . packaging requests tomlkit prek
+      - name: Update tracked dependencies
+        if: matrix.id == 'spec_zero'
+        run: python ./tools/dev/spec_zero_update_versions.py
+      - name: Update pre-commit hook versions
+        if: matrix.id == 'prek_auto_update'
+        run: prek auto-update
+      - name: check if files changed
+        run: |
+          git diff && git status --porcelain
+          if [[ $(git status --porcelain) ]]; then
+            echo "dirty=true" >> $GITHUB_OUTPUT
+          fi
+        id: status
+      - uses: j178/prek-action@v3.0.0
+        if: steps.status.outputs.dirty == 'true'
+      - name: Create PR
+        env:
+          BRANCH: ${{ matrix.id }}
+          TITLE: ${{ matrix.title }}
+          BODY: ${{ matrix.body }}
+          LABEL: ${{ matrix.label }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -xeo pipefail
+          git diff
+          git config --global user.email "50266005+mne-bot@users.noreply.github.com"
+          git config --global user.name "mne[bot]"
+          git checkout -b "$BRANCH"
+          git add -A  # doc/changes/dev/dependency.rst is a new file, the others are changed
+          git commit -m "mne[bot]: ${TITLE#MAINT: }"
+          git push origin "$BRANCH"
+          printf '%s\n\n%s\n' \
+            "Created by the \`$BRANCH\` job of this [GitHub Action run]($RUN_URL)." \
+            "$BODY" > "$RUNNER_TEMP/pr_body.md"
+          LABEL_ARGS=()
+          if [[ -n "$LABEL" ]]; then
+            LABEL_ARGS=(--label "$LABEL")
+          fi
+          PR_NUM=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr_body.md" "${LABEL_ARGS[@]}")
+          echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
+        if: steps.status.outputs.dirty == 'true' && (success() || failure())

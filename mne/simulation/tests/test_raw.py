@@ -54,7 +54,7 @@ from mne.simulation.source import SourceSimulator
 from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.tests.test_chpi import _assert_quats
-from mne.transforms import _affine_to_quat
+from mne.transforms import Transform, _affine_to_quat
 from mne.utils import catch_logging
 
 raw_fname_short = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
@@ -95,14 +95,14 @@ def test_iterable():
     trans = None
     sphere = make_sphere_model(head_radius=None, info=raw.info)
     tstep = 1.0 / raw.info["sfreq"]
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices = [np.array([1])]
-    data = rng.randn(1, 2)
+    data = rng.standard_normal((1, 2))
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
     with pytest.raises(ValueError, match="at least three time points"):
         simulate_raw(raw.info, stc, trans, src, sphere, None)
-    data = rng.randn(1, 1000)
+    data = rng.standard_normal((1, 1000))
     n_events = (len(raw.times) - 1) // 1000 + 1
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
@@ -176,7 +176,7 @@ def test_iterable():
 
     # Forward omission
     vertices = [np.array([0, 1])]
-    data = rng.randn(2, 1000)
+    data = rng.standard_normal((2, 1000))
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices[0], np.ndarray)
     # XXX eventually we should support filtering based on sphere radius, too,
@@ -501,6 +501,25 @@ def test_simulate_round_trip(raw_data):
         simulate_raw(raw.info, stc, None, None, None, forward=fwd)
 
 
+def test_simulate_eeg_only(raw_data):
+    """Test simulate_raw with EEG data only."""
+    # gh-13604
+    raw, src, stc, trans, sphere = raw_data
+    raw = raw.pick("eeg")
+    assert raw.info["dev_head_t"] is not None
+    with raw.info._unlock():
+        raw.info["dev_head_t"] = None
+    fwd = make_forward_solution(raw.info, trans, src, sphere)
+    assert fwd["info"]["dev_head_t"] is None
+    # forward with identity dev_head_t (old style) but EEG-only data
+    raw_sim = simulate_raw(raw.info, stc, None, None, None, forward=fwd)
+    fwd["info"]["dev_head_t"] = Transform("meg", "head")
+    raw_sim_2 = simulate_raw(raw.info, stc, None, None, None, forward=fwd)
+    assert raw_sim.info["dev_head_t"] is None
+    assert raw_sim_2.info["dev_head_t"] is None
+    assert_allclose(raw_sim[:][0], raw_sim_2[:][0])
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
@@ -553,7 +572,7 @@ def test_simulate_raw_chpi():
     # test localization based on cHPI information
     chpi_amplitudes = compute_chpi_amplitudes(raw, t_step_min=10.0)
     coil_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
-    quats_sim = compute_head_pos(raw_chpi.info, coil_locs)
+    quats_sim = compute_head_pos(raw_chpi.info, coil_locs, weighted=False)
     quats = read_head_pos(pos_fname)
     _assert_quats(
         quats, quats_sim, dist_tol=5e-3, angle_tol=3.5, vel_atol=0.03

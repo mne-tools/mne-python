@@ -4,7 +4,6 @@
 
 import numpy as np
 from numpy.polynomial.polynomial import Polynomial
-from scipy.stats import pearsonr
 
 from ..io import BaseRaw
 from ..utils import _validate_type, logger, verbose, warn
@@ -53,6 +52,8 @@ def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
 
     .. versionadded:: 0.22
     """
+    from scipy.stats import pearsonr
+
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(other, BaseRaw, "other")
     t_raw = np.array(t_raw, float)

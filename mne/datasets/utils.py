@@ -136,7 +136,7 @@ def _get_path(path, key, name):
     if not path.is_dir():
         logger.info(f"Creating {path}")
         try:
-            path.mkdir()
+            path.mkdir(exist_ok=True)  # exist_ok for parallel calls
         except OSError:
             raise OSError(
                 "User does not have write permissions "
@@ -346,7 +346,7 @@ def _download_all_example_data(verbose=True):
         "refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink "
         "erp_core brainstorm.bst_raw brainstorm.bst_auditory "
         "brainstorm.bst_resting brainstorm.bst_phantom_ctf "
-        "brainstorm.bst_phantom_elekta phantom_kernel"
+        "brainstorm.bst_phantom_elekta phantom_kernel visual_92_categories"
     ).split():
         mod = importlib.import_module(f"mne.datasets.{kind}")
         data_path_func = getattr(mod, "data_path")

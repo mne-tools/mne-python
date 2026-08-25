@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import check_random_state, logger, verbose
+from ..utils import _check_if_nan, check_random_state, logger, verbose
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -45,7 +45,7 @@ def permutation_t_test(
         permutations are tested. It's the exact test, that
         can be untractable when the number of samples is big (e.g. > 20).
         If n_permutations >= 2**n_samples then the exact test is performed.
-    tail : -1 or 0 or 1 (default = 0)
+    tail : -1 | 0 | 1
         If tail is 1, the alternative hypothesis is that the
         mean of the data is greater than 0 (upper tailed test).  If tail is 0,
         the alternative hypothesis is that the mean of the data is different
@@ -77,6 +77,7 @@ def permutation_t_test(
     """
     from .cluster_level import _get_1samp_orders
 
+    _check_if_nan(X, msg="in the data array for permutations testing")
     n_samples, n_tests = X.shape
     X2 = np.mean(X**2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)

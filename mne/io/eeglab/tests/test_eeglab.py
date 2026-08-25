@@ -4,7 +4,6 @@
 
 import os
 import shutil
-import time
 from copy import deepcopy
 
 import numpy as np
@@ -279,6 +278,7 @@ def test_io_set_raw_more(tmp_path):
 
     # test reading file with one channel
     one_chan_fname = tmp_path / "test_one_channel.set"
+    rng = np.random.default_rng(0)
     io.savemat(
         one_chan_fname,
         {
@@ -286,7 +286,7 @@ def test_io_set_raw_more(tmp_path):
                 "trials": eeg.trials,
                 "srate": eeg.srate,
                 "nbchan": 1,
-                "data": np.random.random((1, 3)),
+                "data": rng.random((1, 3)),
                 "epoch": eeg.epoch,
                 "event": eeg.epoch,
                 "chanlocs": {"labels": "E1", "Y": -6.6069, "X": 6.3023, "Z": -2.9423},
@@ -326,7 +326,7 @@ def test_io_set_raw_more(tmp_path):
                 "trials": eeg.trials,
                 "srate": eeg.srate,
                 "nbchan": 3,
-                "data": np.random.random((3, 2)),
+                "data": rng.random((3, 2)),
                 "epoch": eeg.epoch,
                 "event": eeg.epoch,
                 "chanlocs": nopos_chanlocs,
@@ -392,6 +392,45 @@ def test_io_set_epochs_events(tmp_path):
     epochs = read_epochs_eeglab(epochs_fname_mat, out_fname, event_id)
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat, None, event_id)
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat, epochs.events, None)
+
+
+@pytest.mark.parametrize("include_event_fields", (True, False))
+def test_io_set_epochs_without_events(tmp_path, include_event_fields):
+    """Read epoched EEGLAB files that have no event information."""
+    n_epochs, n_channels, n_times = 3, 2, 20
+    data = np.arange(n_channels * n_times * n_epochs, dtype=float).reshape(
+        n_channels, n_times, n_epochs
+    )
+    fname = tmp_path / "no-events.set"
+    eeg = {
+        "trials": n_epochs,
+        "nbchan": n_channels,
+        "pnts": n_times,
+        "srate": 100.0,
+        "xmin": -0.1,
+        "xmax": 0.09,
+        "data": data,
+        "chanlocs": np.array(
+            [{"labels": "EEG 001"}, {"labels": "EEG 002"}], dtype=object
+        ),
+    }
+    if include_event_fields:
+        eeg.update(epoch=np.array([], dtype=object), event=np.array([], dtype=object))
+    io.savemat(fname, {"EEG": eeg}, appendmat=False)
+
+    with pytest.warns(RuntimeWarning, match="contains no event information"):
+        epochs = read_epochs_eeglab(fname)
+
+    expected_events = np.column_stack(
+        (
+            np.arange(n_epochs),
+            np.zeros(n_epochs, dtype=int),
+            np.ones(n_epochs, dtype=int),
+        )
+    )
+    assert epochs.event_id == {"unknown": 1}
+    assert_array_equal(epochs.events, expected_events)
+    assert_allclose(epochs.get_data(copy=False), data.transpose(2, 0, 1) * 1e-6)
 
 
 @testing.requires_testing_data
@@ -747,7 +786,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
     sfreq = raw.info["sfreq"]
     ch_names = raw.ch_names
     anno = [
-        raw.annotations.description,
+        raw.annotations.description.tolist(),
         raw.annotations.onset,
         raw.annotations.duration,
     ]
@@ -766,26 +805,6 @@ def test_eeglab_drop_nan_annotations(tmp_path):
 
     with pytest.warns(RuntimeWarning, match="1 .* have an onset that is NaN.*"):
         raw = read_raw_eeglab(file_path, preload=True)
-
-
-@pytest.mark.flaky
-@testing.requires_testing_data
-@pytest.mark.timeout(10)
-@pytest.mark.slowtest  # has the advantage of not running on macOS where it errs a lot
-def test_io_set_preload_false_is_faster():
-    """Using preload=False should skip the expensive data read branch."""
-    # warm start
-    read_raw_eeglab(raw_fname_mat, preload=False)
-
-    durations = {}
-    for preload in (True, False):
-        start = time.perf_counter()
-        _ = read_raw_eeglab(raw_fname_mat, preload=preload)
-        durations[preload] = time.perf_counter() - start
-
-    # preload=True should not be faster than preload=False (timings may vary
-    # across systems, so avoid strict thresholds)
-    assert durations[True] > durations[False]
 
 
 @testing.requires_testing_data
