@@ -12,9 +12,9 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import read_meas_info
 from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
-from ..._fiff.tag import _call_dict, read_tag
+from ..._fiff.tag import _call_dict, _simple_dict, read_tag
 from ..._fiff.tree import dir_tree_find
-from ..._fiff.utils import _mult_cal_one
+from ..._fiff.utils import _memmap_for, _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
@@ -39,6 +39,40 @@ from ..base import (
 
 
 @fill_doc
+def _fif_mm_plan(bounds, ents, entry_span, nchan, file_mapping, start, stop):
+    """Plan byte-offset reads covering [start, stop) from a FIF memory map.
+
+    Returns a list of ``(dtype, byte_offset, n_bytes, n_samples)`` read tuples,
+    one per touched buffer entry, or None when the fast path does not apply: a
+    touched entry is missing (gaps are zero-filled by the legacy loop), holds a
+    non-simple tag type, or has a declared size inconsistent with ``nchan``
+    samples.
+    """
+    read_plan = []
+    for ei in entry_span:
+        entry = ents[ei]
+        if entry is None or entry.type not in _simple_dict:
+            return None
+        dtype = np.dtype(_simple_dict[entry.type])
+        n_entry_samples = bounds[ei + 1] - bounds[ei]
+        n_bytes_per_sample = dtype.itemsize * nchan
+        if getattr(entry, "size", None) != (n_entry_samples * n_bytes_per_sample):
+            return None
+        # samples of this entry that fall inside [start, stop)
+        first_pick = max(start - bounds[ei], 0)
+        last_pick = min(n_entry_samples, stop - bounds[ei])
+        n_samples = last_pick - first_pick
+        if n_samples <= 0:
+            continue
+        # payload starts 16 bytes into the tag (header is four uint32: kind,
+        # type, size, next -- see _read_tag_header and Tag.next_pos)
+        byte_offset = entry.pos + 16 + first_pick * n_bytes_per_sample
+        read_plan.append(
+            (dtype, byte_offset, n_samples * n_bytes_per_sample, n_samples)
+        )
+    return read_plan
+
+
 class Raw(BaseRaw):
     """Raw data in FIF format.
 
@@ -401,15 +435,61 @@ class Raw(BaseRaw):
         return dtype
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a segment of data from a file."""
+        """Read a segment of data from a file.
+
+        Writes ``data`` (shape ``(len(idx), stop - start)``) for samples
+        ``[start, stop)``, rows following ``idx`` order. Two equivalent
+        implementations: a memory-map fast path for simple uncompressed tags
+        (see the comment block below), and the legacy buffered loop.
+        """
         n_bad = 0
-        with _fiff_get_fid(self._raw_extras[fi]["filename"]) as fid:
-            bounds = self._raw_extras[fi]["bounds"]
-            ents = self._raw_extras[fi]["ent"]
-            nchan = self._raw_extras[fi]["orig_nchan"]
-            use = (stop > bounds[:-1]) & (start < bounds[1:])
+        bounds = self._raw_extras[fi]["bounds"]
+        ents = self._raw_extras[fi]["ent"]
+        nchan = self._raw_extras[fi]["orig_nchan"]
+        fname = self._raw_extras[fi]["filename"]
+        # Entries overlapping [start, stop) via binary search on sorted bounds
+        # (O(log n) instead of a mask over every entry; matters for long
+        # recordings with thousands of buffer entries).
+        # indices of buffer entries overlapping [start, stop)
+        entry_span = range(
+            max(np.searchsorted(bounds, start, side="right") - 1, 0),
+            min(np.searchsorted(bounds, stop, side="left"), len(bounds) - 1),
+        )
+
+        # Fast path: serve [start, stop) from one persistent memory map of
+        # the file; see _fif_mm_plan() for eligibility and fallbacks.
+        fname = self._raw_extras[fi]["filename"]
+        file_mapping = (
+            _memmap_for(self._raw_extras[fi], fname)
+            if isinstance(fname, Path) and fname.suffixes[-1] != ".gz"
+            else None
+        )
+        read_plan = (
+            _fif_mm_plan(bounds, ents, entry_span, nchan, file_mapping, start, stop)
+            if file_mapping is not None
+            else None
+        )
+        if read_plan is not None:
+            col_start = 0
+            for dtype, byte_offset, n_bytes, n_samples in read_plan:
+                values = np.frombuffer(
+                    file_mapping[byte_offset : byte_offset + n_bytes],
+                    dtype=dtype,
+                    count=n_samples * nchan,
+                ).reshape(n_samples, nchan)
+                _mult_cal_one(
+                    data[:, col_start : col_start + n_samples],
+                    values.T,
+                    idx,
+                    cals,
+                    mult,
+                )
+                col_start += n_samples
+            return
+
+        with _fiff_get_fid(fname) as fid:
             offset = 0
-            for ei in np.where(use)[0]:
+            for ei in entry_span:
                 first = bounds[ei]
                 last = bounds[ei + 1]
                 nsamp = last - first
