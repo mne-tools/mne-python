@@ -1,0 +1,46 @@
+name: Build JupyterLite
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - jupyterlite-gh-actions
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build JupyterLite Site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install JupyterLite & Build Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyterlite-core jupyterlite-pyodide-kernel build jupyter-server
+
+      - name: Build MNE-Python Wheel
+        run: |
+          python -m build --wheel
+          mkdir -p lite-wheels
+          cp dist/*.whl lite-wheels/
+
+      - name: Build JupyterLite Site
+        # We pass the local wheel to JupyterLite so the browser environment uses the exact code from this branch!
+        run: |
+          jupyter lite build --contents examples/ --output-dir dist_lite/ --piplite-wheel lite-wheels/*.whl
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jupyterlite-build
+          path: dist_lite/
