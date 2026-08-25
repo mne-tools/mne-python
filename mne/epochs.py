@@ -786,9 +786,13 @@ class BaseEpochs(
 
         .. versionadded:: 0.10.0
         """
+        return self._load_data()
+
+    def _load_data(self, *, force_projector=False):
+        """Load data, optionally forcing application of ``_projector``."""
         if self.preload:
             return self
-        self._data = self._get_data()
+        self._data = self._get_data(_force_projector=force_projector)
         self.preload = True
         self._do_baseline = False
         self._decim_slice = slice(None, None, None)
@@ -1390,7 +1394,6 @@ class BaseEpochs(
         annotation_colors: dict | None = None,
         figure_class: type | None = None,
     ) -> "Figure | MNEQtBrowser":
-
         from .viz import plot_epochs
 
         return plot_epochs(
@@ -1443,7 +1446,6 @@ class BaseEpochs(
         select: bool = False,
         show: bool = True,
     ) -> "Figure":
-
         from .viz import plot_topo_image_epochs
 
         return plot_topo_image_epochs(
@@ -1589,7 +1591,6 @@ class BaseEpochs(
         title: str | None = None,
         clear: bool = False,
     ) -> "list[Figure]":
-
         from .viz import plot_epochs_image
 
         return plot_epochs_image(
@@ -1695,13 +1696,13 @@ class BaseEpochs(
         """Get a given epoch from disk."""
         raise NotImplementedError
 
-    def _project_epoch(self, epoch):
+    def _project_epoch(self, epoch, *, force_projector=False):
         """Process a raw epoch based on the delayed param."""
         # whenever requested, the first epoch is being projected.
         if (epoch is None) or isinstance(epoch, str):
             # can happen if t < 0 or reject based on annotations
             return epoch
-        proj = self._do_delayed_proj or self.proj
+        proj = force_projector or self._do_delayed_proj or self.proj
         if self._projector is not None and proj is True:
             epoch = np.dot(self._projector, epoch)
         return epoch
@@ -1727,6 +1728,7 @@ class BaseEpochs(
         tmax=None,
         copy=False,
         on_empty="warn",
+        _force_projector=False,
         verbose=None,
     ):
         """Load all data, dropping bad epochs along the way.
@@ -1839,7 +1841,9 @@ class BaseEpochs(
                 if self._do_delayed_proj:
                     epoch_out = epoch_noproj
                 else:
-                    epoch_out = self._project_epoch(epoch_noproj)
+                    epoch_out = self._project_epoch(
+                        epoch_noproj, force_projector=_force_projector
+                    )
                 if ii == 0:
                     data = np.empty(
                         (n_events, len(self.ch_names), len(self.times)),
@@ -1860,7 +1864,9 @@ class BaseEpochs(
                     assert self._data is not None
                     if self._do_delayed_proj:
                         epoch_noproj = self._data[idx]
-                        epoch = self._project_epoch(epoch_noproj)
+                        epoch = self._project_epoch(
+                            epoch_noproj, force_projector=_force_projector
+                        )
                     else:
                         epoch_noproj = None
                         epoch = self._data[idx]
@@ -1869,7 +1875,9 @@ class BaseEpochs(
                     epoch_noproj = self._detrend_offset_decim(
                         epoch_noproj, detrend_picks
                     )
-                    epoch = self._project_epoch(epoch_noproj)
+                    epoch = self._project_epoch(
+                        epoch_noproj, force_projector=_force_projector
+                    )
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
                 is_good, bad_tuple = self._is_good_epoch(epoch, verbose=verbose)

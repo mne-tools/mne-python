@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import re
+import warnings
 from copy import deepcopy
 from itertools import count
 
@@ -274,12 +275,15 @@ class ProjMixin:
         return self
 
     @verbose
-    def apply_proj(self, verbose=None):
+    def apply_proj(self, verbose=None, *, projs=None):
         """Apply the signal space projection (SSP) operators to the data.
 
         Parameters
         ----------
         %(verbose)s
+        projs : Projection | list of Projection | None
+            The projectors to apply. All projectors must already be present in
+            ``self.info["projs"]``. If ``None``, all projectors are applied.
 
         Returns
         -------
@@ -310,41 +314,63 @@ class ProjMixin:
         from ..evoked import Evoked
         from ..io import BaseRaw
 
-        if self.info["projs"] is None or len(self.info["projs"]) == 0:
-            logger.info(
-                "No projector specified for this dataset. "
-                "Please consider the method self.add_proj."
-            )
-            return self
+        force_projector = projs is not None
+        if force_projector:
+            if isinstance(projs, Projection):
+                projs = [projs]
+            projs = _check_projs(projs)
+            if len(projs) == 0:
+                return self
+            projector, info = _setup_proj_selection(deepcopy(self.info), projs)
+            if projector is None:
+                logger.info("The selected projections do not apply. Doing nothing.")
+                return self
+        else:
+            if self.info["projs"] is None or len(self.info["projs"]) == 0:
+                logger.info(
+                    "No projector specified for this dataset. "
+                    "Please consider the method self.add_proj."
+                )
+                return self
 
-        # Exit delayed mode if you apply proj
-        if isinstance(self, BaseEpochs) and self._do_delayed_proj:
+            # Exit delayed mode if you apply proj
+            if isinstance(self, BaseEpochs) and self._do_delayed_proj:
+                logger.info("Leaving delayed SSP mode.")
+                self._do_delayed_proj = False
+
+            if all(p["active"] for p in self.info["projs"]):
+                logger.info(
+                    "Projections have already been applied. "
+                    "Setting proj attribute to True."
+                )
+                return self
+
+            projector, info = setup_proj(
+                deepcopy(self.info), add_eeg_ref=False, activate=True
+            )
+            # let's not raise a RuntimeError here, otherwise interactive plotting
+            if projector is None:  # won't be fun.
+                logger.info("The projections don't apply to these data. Doing nothing.")
+                return self
+
+        if force_projector and isinstance(self, BaseEpochs) and self._do_delayed_proj:
             logger.info("Leaving delayed SSP mode.")
             self._do_delayed_proj = False
-
-        if all(p["active"] for p in self.info["projs"]):
-            logger.info(
-                "Projections have already been applied. Setting proj attribute to True."
-            )
-            return self
-
-        _projector, info = setup_proj(
-            deepcopy(self.info), add_eeg_ref=False, activate=True
-        )
-        # let's not raise a RuntimeError here, otherwise interactive plotting
-        if _projector is None:  # won't be fun.
-            logger.info("The projections don't apply to these data. Doing nothing.")
-            return self
-        self._projector, self.info = _projector, info
+        self._projector, self.info = projector, info
         if isinstance(self, BaseRaw | Evoked):
             if self.preload:
                 self._data = np.dot(self._projector, self._data)
         else:  # BaseEpochs
             if self.preload:
                 for ii, e in enumerate(self._data):
-                    self._data[ii] = self._project_epoch(e)
+                    self._data[ii] = self._project_epoch(
+                        e, force_projector=force_projector
+                    )
             else:
-                self.load_data()  # will automatically apply
+                if force_projector:
+                    self._load_data(force_projector=True)
+                else:
+                    self.load_data()  # will automatically apply
         logger.info("SSP projectors applied...")
         return self
 
@@ -1161,6 +1187,50 @@ def setup_proj(
         with info._unlock():
             info["projs"] = activate_proj(info["projs"], copy=False)
 
+    return projector, info
+
+
+def _setup_proj_selection(info, projs):
+    """Set up selected attached projectors while preserving active projectors."""
+    selected = []
+    for pi, proj in enumerate(projs):
+        matches = [
+            ii
+            for ii, attached in enumerate(info["projs"])
+            if _proj_equal(proj, attached, check_active=False)
+        ]
+        if len(matches) == 0:
+            raise ValueError(
+                f"projs[{pi}] does not match any projector in self.info['projs']"
+            )
+        if len(matches) > 1:
+            raise ValueError(
+                f"projs[{pi}] matches multiple projectors in self.info['projs']"
+            )
+        if matches[0] not in selected:
+            selected.append(matches[0])
+
+    selected = sorted(ii for ii in selected if not info["projs"][ii]["active"])
+    if len(selected) == 0:
+        return None, info
+
+    selected_projs = [info["projs"][ii] for ii in selected]
+    active = [ii for ii, proj in enumerate(info["projs"]) if proj["active"]]
+    projector, nproj, _ = make_projector(selected_projs, info["ch_names"], info["bads"])
+    if nproj == 0:
+        return None, info
+
+    if active:
+        joint = set(active + selected)
+        joint_projs = [proj for ii, proj in enumerate(info["projs"]) if ii in joint]
+        # The selected-only construction above emitted any relevant warnings.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            projector, nproj, _ = make_projector(
+                joint_projs, info["ch_names"], info["bads"]
+            )
+    logger.info(f"Created an SSP operator (subspace dimension = {nproj})")
+    activate_proj(selected_projs, copy=False)
     return projector, info
 
 
