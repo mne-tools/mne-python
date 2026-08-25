@@ -512,33 +512,36 @@ docdict["baseline_evoked"] = f"""{_baseline_rescale_base}
 
 """
 _baseline_mode_desc = """\
-        Perform baseline correction by:
+    Perform baseline correction by:
 
-        - subtracting the mean of baseline values ('mean')
-        - dividing by the mean of baseline values ('ratio')
-        - dividing by the mean of baseline values and taking the log
-          ('logratio')
-        - dividing by the mean of baseline values, taking the log and then
-          subtracting the mean (:footcite:`KinleyEtAl2026`) 
+    ``"mean"``
+      Subtracting the mean of baseline values
+    ``"ratio"``
+      Dividing by the mean of baseline values
+    ``"logratio"``
+      Dividing by the mean of baseline values and taking the log
+    ``"meanlogratio"``
+      Dividing by the mean of baseline values, taking the log and then
+      subtracting the mean (:footcite:`KinleyEtAl2026`)
 
-          .. note:: this baseline mode has not been tested at the source-level!          
-        - subtracting the mean of baseline values followed by dividing by
-          the mean of baseline values ('percent')
-        - subtracting the mean of baseline values and dividing by the
-          standard deviation of baseline values ('zscore')
-        - dividing by the mean of baseline values, taking the log, and
-          dividing by the standard deviation of log baseline values
-          ('zlogratio')
+      .. note:: this baseline mode has not been tested at the source-level!
+    ``"percent"``
+      Subtracting the mean of baseline values followed by dividing by
+      the mean of baseline values
+    ``"zscore"``
+      Subtracting the mean of baseline values and dividing by the
+      standard deviation of baseline values
+    ``"zlogratio"``
+      Dividing by the mean of baseline values, taking the log, and
+      dividing by the standard deviation of log baseline values
 """
 
-docdict["baseline_mode"] = f"""
-    mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio' 
-    {_baseline_mode_desc}
-"""  # noqa: E501
-docdict["mn_baseline_mode"] = f"""
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio' 
-    {_baseline_mode_desc}
-"""  # noqa: E501
+docdict["baseline_mode"] = f"""\
+mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
+docdict["baseline_mode_mn"] = f"""\
+baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
 
 docdict["baseline_report"] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**

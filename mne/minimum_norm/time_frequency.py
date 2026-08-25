@@ -220,7 +220,7 @@ def source_band_induced_power(
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
         all the time interval is used.
-    %(mn_baseline_mode)s
+    %(baseline_mode_mn)s
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
@@ -244,6 +244,10 @@ def source_band_induced_power(
         (n_vertices, n_frequencies, n_samples) if label=None or label=label.
         For lists of one or more labels, the induced power estimate has shape
         (n_labels, n_frequencies, n_samples).
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
 
@@ -634,7 +638,7 @@ def source_induced_power(
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    %(mn_baseline_mode)s
+    %(baseline_mode_mn)s
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
@@ -664,6 +668,10 @@ def source_induced_power(
     plv : array
         The phase-locking value array with shape (n_sources, n_freqs,
         n_samples). Only returned if ``return_plv=True``.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])

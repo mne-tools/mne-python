@@ -244,70 +244,80 @@ itc.plot_topo(title="Inter-Trial coherence", vmin=0.0, vmax=1.0, cmap="Reds")
 #     # power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 #
 #
-# .. note::
-#       Applying a baseline correction to time-frequency results can help
-#       express post-stimulus oscillatory activity relative to a reference period.
-#       It facilitates interpreting brain activity evoked or induced by stimuli, and
-#       reduce the influence of baseline power (e.g. the 1/f temporal structure).
-#       However, baseline correction is not a noise removal procedure and its
-#       interpretation depends on assumptions about how baseline (~resting-state)
-#       activity combines with post-stimulus activity (e.g. additively or multiplicatively).
-#       Thus, your choice of baseline should be theory- and experiment-driven.
-#       The baseline should be free of systematic anticipatory, preparatory, or
-#       sequential effects if it is intended to represent a neutral reference.
-#       Temporal leakage from the time–frequency transform must also be considered:
-#       activity after stimulus onset can contaminate estimates immediately
-#       preceding the stimulus, so the baseline should end sufficiently early.
+# Baseline correction considerations
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Applying a baseline correction to time-frequency results can help
+# express post-stimulus oscillatory activity relative to a reference period.
+# It facilitates interpreting brain activity evoked or induced by stimuli, and
+# reduce the influence of baseline power (e.g. the 1/f temporal structure).
+# However, baseline correction is not a noise removal procedure and its
+# interpretation depends on assumptions about how baseline (~resting-state)
+# activity combines with post-stimulus activity (e.g. additively or multiplicatively).
+# Thus, your choice of baseline should be theory- and experiment-driven.
+# The baseline should be free of systematic anticipatory, preparatory, or
+# sequential effects if it is intended to represent a neutral reference.
+# Temporal leakage from the time–frequency transform must also be considered:
+# activity after stimulus onset can contaminate estimates immediately
+# preceding the stimulus, so the baseline should end sufficiently early.
 #
-#       commented::
-#       # MNE-Python provides seven baseline modes: "mean", "ratio", "logratio",
-#       # "meanlogratio", "percent", "zscore", "zlogratio"
+# MNE-Python provides multiple baseline modes
 #
-#       “mean”: subtracts the mean baseline power. It is simple and remains in
-#       the original power units, making it appropriate when an additive change
-#       from baseline is of interest. However, values remain frequency- and
-#       sensor-dependent, so magnitudes are not directly comparable across
-#       frequencies or sensor types.
+# ``“mean”``
+#   Subtracts the mean baseline power. It is simple and remains in
+#   the original power units, making it appropriate when an additive change
+#   from baseline is of interest. However, values remain frequency- and
+#   sensor-dependent, so magnitudes are not directly comparable across
+#   frequencies or sensor types.
 #
-#       “ratio”: expresses power relative to baseline. It is intuitive because values
-#       indicate relative power (e.g., 1.2 means 20% above baseline), but the resulting
-#       distribution is typically positively skewed, which can be problematic for
-#       parametric statistical analyses (Grandchamp & Delorme 2011).
+# ``“ratio”``
+#   Expresses power relative to baseline. It is intuitive because values
+#   indicate relative power (e.g., 1.2 means 20% above baseline), but the resulting
+#   distribution is typically positively skewed, which can be problematic for
+#   parametric statistical analyses (Grandchamp & Delorme 2011).
 #
-#       “logratio”: expresses relative power on a log scale (dB). The log transformation
-#       reduces skewness and make the increase or decrease more symmetric, while providing
-#       a conveneient scale for comparing relative changes. However, Kinley et al. (2026)
-#       show that this conventional approach introduces a negative bias, which can make
-#       unchanged power appear to decrease and understimate genuine increases. Note that
-#       single-trial correction (on ``EpochsTFR``) is more affected by the logratio bias
-#       than correction of trial-averaged data (``AverageTFR``), because the bias scales
-#       with the variance of the quantity being corrected.
+# ``“logratio”``
+#   Expresses relative power on a log scale (dB). The log transformation
+#   reduces skewness and make the increase or decrease more symmetric, while providing
+#   a conveneient scale for comparing relative changes. However,
+#   Kinley et al. (2006; :footcite:`KinleyEtAl2026`)
+#   show that this conventional approach introduces a negative bias, which can make
+#   unchanged power appear to decrease and understimate genuine increases. Note that
+#   single-trial correction (on ``EpochsTFR``) is more affected by the logratio bias
+#   than correction of trial-averaged data (``AverageTFR``), because the bias scales
+#   with the variance of the quantity being corrected.
 #
-#       #meanlogratio”: provides a logarithmic (dB) interpretation but avoids its negative
-#       bias by averaging the log-transformed baseline rather than first averaging baseline power.
-#       It retains the reduced skewness of the logarithmic transformation and ensures that
-#       the baseline is zero on average. It is therefore preferable to logratio when a
-#       multiplicative model and a logarithmic representation are desired (Kinley et al. 2026).
+# ``"meanlogratio”``
+#   Provides a logarithmic (dB) interpretation but avoids its negative bias by averaging
+#   the log-transformed baseline rather than first averaging baseline power. It retains
+#   the reduced skewness of the logarithmic transformation and ensures that the baseline
+#   is zero on average. It is therefore preferable to logratio when a multiplicative
+#   model and a logarithmic representation are desired (Kinley et al. 2026).
 #
-#       "percent”: expresses the percentage change from baseline, making the magnitude
-#       of relative changes readily interpretable. Like ratio, it is asymmetric and
-#       typically positively skewed; this can be particularly problematic when normalization
-#       is performed at the single-trial level.
+# ``"percent”``
+#   Expresses the percentage change from baseline, making the magnitude
+#   of relative changes readily interpretable. Like ratio, it is asymmetric and
+#   typically positively skewed; this can be particularly problematic when normalization
+#   is performed at the single-trial level.
 #
-#       “zscore”: expresses changes relative to the variability of the baseline, in
-#       units of baseline standard deviations. This can facilitate comparison across
-#       frequencies or sensors with different baseline variability, but the resulting
-#       values depend on the baseline variance and therefore do not directly represent
-#       absolute or proportional power changes.
+# ``"zscore”``
+#   Expresses changes relative to the variability of the baseline, in
+#   units of baseline standard deviations. This can facilitate comparison across
+#   frequencies or sensors with different baseline variability, but the resulting
+#   values depend on the baseline variance and therefore do not directly represent
+#   absolute or proportional power changes.
 #
-#       “zlogratio”: combines the logarithmic relative-power transformation with
-#       normalization by baseline variability. It is useful when the question concerns
-#       how large a relative power change is with respect to baseline variability, but
-#       shares the interpretational dependence on baseline variance of zscore.
-
+# ``"zlogratio”``
+#   Combines the logarithmic relative-power transformation with
+#   normalization by baseline variability. It is useful when the question concerns
+#   how large a relative power change is with respect to baseline variability, but
+#   shares the interpretational dependence on baseline variance of zscore.
 #
 # Exercise
 # --------
 #
 #    - Visualize the inter-trial coherence values as topomaps as done with
 #      power.
+#
+# References
+# ----------
+# .. footbibliography::

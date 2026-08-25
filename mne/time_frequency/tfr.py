@@ -1794,7 +1794,6 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
             How baseline is computed is determined by the ``mode`` parameter.
         %(baseline_mode)s
-
         %(verbose)s
 
         Returns
