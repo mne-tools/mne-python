@@ -57,6 +57,12 @@ def test_3d_functions(renderer):
     )
     renderer.set_3d_title(figure=fig, title="foo")
     renderer.backend._take_3d_screenshot(figure=fig)
+    assert len(fig.plotter.renderer.actors) > 0
+    renderer.clear_3d_figure(fig)
+    assert len(fig.plotter.renderer.actors) == 0
+    # the (empty) figure can be reused
+    renderer.backend._Renderer(fig=fig).sphere(np.array([0.0, 0.0, 0.0]), "w", 1.0)
+    assert len(fig.plotter.renderer.actors) > 0
     renderer.close_3d_figure(fig)
     renderer.close_all_3d_figures()
 
