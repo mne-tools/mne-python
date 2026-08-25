@@ -462,7 +462,7 @@ def test_pca(n_components, whiten):
     X = np.random.default_rng(0).standard_normal((n_samples, n_dim))
     X[:, -1] = np.mean(X[:, :-1], axis=-1)  # true X dim is ndim - 1
     X_orig = X.copy()
-    pca_skl = PCA(n_components, whiten=whiten, svd_solver="full")
+    pca_skl = PCA(n_components, whiten=whiten, svd_solver="full", random_state=0)
     pca_mne = _PCA(n_components, whiten=whiten)
     X_skl = pca_skl.fit_transform(X)
     assert_array_equal(X, X_orig)

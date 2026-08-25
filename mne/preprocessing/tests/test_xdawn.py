@@ -372,13 +372,13 @@ def test_xdawn_decoding_performance():
         Xdawn(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(solver="liblinear"),
+        LogisticRegression(solver="liblinear", random_state=0),
     )
     xdawn_trans_pipe = make_pipeline(
         XdawnTransformer(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(solver="liblinear"),
+        LogisticRegression(solver="liblinear", random_state=0),
     )
 
     cv = KFold(n_splits=3, shuffle=False)

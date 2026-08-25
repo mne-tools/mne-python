@@ -316,13 +316,6 @@ legacy_rng_methods = {
     "seed": "a local default_rng",
     "tomaxint": "integers",
 }
-sklearn_rng_estimators = {
-    "FastICA",
-    "FactorAnalysis",
-    "LogisticRegression",
-    "MultiTaskLasso",
-    "PCA",
-}
 
 
 def _is_np_random(node):
@@ -337,6 +330,14 @@ def _is_np_random(node):
 
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
+    from sklearn.utils.discovery import all_estimators
+
+    rng_names = {"random_state", "rng", "seed"}
+    rng_callables = {
+        name
+        for name, estimator in all_estimators()
+        if rng_names & inspect.signature(estimator).parameters.keys()
+    }
     root = pyproject_path.parent  # only available in a dev/editable checkout
     bad = []
     for sub in ("mne", "examples", "tutorials"):
@@ -359,14 +360,13 @@ def test_no_global_rng():
                     and not _is_np_random(node.func.value)
                 ):
                     bad.append(f"{rel}:{node.lineno}: legacy .{node.func.attr}()")
-                elif "/tests/" not in rel and isinstance(node, ast.Call):
+                elif isinstance(node, ast.Call):
                     name = getattr(node.func, "id", None) or getattr(
                         node.func, "attr", None
                     )
-                    if name in sklearn_rng_estimators and not any(
-                        kw.arg == "random_state" for kw in node.keywords
-                    ):
-                        bad.append(f"{rel}:{node.lineno}: {name}() needs random_state")
+                    supplied = rng_names & {kw.arg for kw in node.keywords}
+                    if name in rng_callables and len(supplied) != 1:
+                        bad.append(f"{rel}:{node.lineno}: {name}() needs one RNG")
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)
