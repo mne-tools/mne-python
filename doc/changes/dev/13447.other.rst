@@ -1,0 +1,1 @@
+Improve the error message raised by :func:`mne.viz.plot_topomap` when mixed 10–20 EEG electrode naming conventions are detected, by :newcontrib:`Aasma Gupta`.
