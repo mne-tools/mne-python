@@ -3057,6 +3057,14 @@ def label_adjacency(labels, src):
     label_adjacency : scipy.sparse.coo_matrix
         A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
         otherwise.
+
+    See Also
+    --------
+    volume_label_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.13
     """
     from scipy.sparse import coo_matrix
 
@@ -3109,6 +3117,14 @@ def volume_label_adjacency(src, subject, subjects_dir, aseg="auto", labels=None)
         otherwise.
     labels : list of str
         The names of the labels which contain at least one source point.
+
+    See Also
+    --------
+    label_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.13
     """
     from scipy import sparse
 
