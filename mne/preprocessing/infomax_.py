@@ -26,7 +26,6 @@ def infomax(
     kurt_size=6000,
     ext_blocks=1,
     max_iter=200,
-    random_state=None,
     blowup=1e4,
     blowup_fac=0.5,
     n_small_angle=20,
@@ -35,6 +34,7 @@ def infomax(
     return_n_iter=False,
     *,
     rng=None,
+    random_state=None,
 ):
     """Run (extended) Infomax ICA decomposition on raw data.
 
@@ -82,7 +82,6 @@ def infomax(
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    %(random_state_rng)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.
@@ -103,6 +102,7 @@ def infomax(
         Whether to return the number of iterations performed. Defaults to
         False.
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------

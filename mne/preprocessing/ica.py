@@ -247,8 +247,8 @@ class ICA(ContainsMixin):
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
-    %(random_state_rng)s
     %(rng)s
+    %(random_state_rng)s
     method : 'fastica' | 'infomax' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
@@ -441,8 +441,8 @@ class ICA(ContainsMixin):
         n_components=None,
         *,
         noise_cov=None,
-        random_state=None,
         rng=None,
+        random_state=None,
         method="fastica",
         fit_params=None,
         max_iter="auto",

@@ -365,10 +365,10 @@ def mixed_norm(
     rank=None,
     pick_ori=None,
     sure_alpha_grid="auto",
-    random_state=None,
     verbose=None,
     *,
     rng=None,
+    random_state=None,
 ):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
@@ -435,12 +435,12 @@ def mixed_norm(
         grid is directly specified. Ignored if alpha is not "sure".
 
         .. versionadded:: 0.24
+    %(verbose)s
+    %(rng)s
     %(random_state_rng)s
         Used for the random delta and epsilon in the SURE computation.
 
         .. versionadded:: 0.24
-    %(verbose)s
-    %(rng)s
 
     Returns
     -------

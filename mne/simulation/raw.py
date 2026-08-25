@@ -394,10 +394,10 @@ def add_eog(
     head_pos=None,
     interp="cos2",
     n_jobs=None,
-    random_state=None,
     verbose=None,
     *,
     rng=None,
+    random_state=None,
 ):
     """Add blink noise to raw data.
 
@@ -408,11 +408,11 @@ def add_eog(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
+    %(verbose)s
+    %(rng)s
     %(random_state_rng)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
-    %(verbose)s
-    %(rng)s
 
     Returns
     -------
@@ -458,10 +458,10 @@ def add_ecg(
     head_pos=None,
     interp="cos2",
     n_jobs=None,
-    random_state=None,
     verbose=None,
     *,
     rng=None,
+    random_state=None,
 ):
     """Add ECG noise to raw data.
 
@@ -472,11 +472,11 @@ def add_ecg(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
+    %(verbose)s
+    %(rng)s
     %(random_state_rng)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
-    %(verbose)s
-    %(rng)s
 
     Returns
     -------

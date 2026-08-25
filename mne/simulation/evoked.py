@@ -32,11 +32,11 @@ def simulate_evoked(
     cov=None,
     nave=30,
     iir_filter=None,
-    random_state=None,
     use_cps=True,
     verbose=None,
     *,
     rng=None,
+    random_state=None,
 ):
     """Generate noisy evoked data.
 
@@ -61,12 +61,12 @@ def simulate_evoked(
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    %(random_state_rng)s
     %(use_cps)s
 
         .. versionadded:: 0.15
     %(verbose)s
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -111,7 +111,7 @@ def _simulate_noise_evoked(evoked, cov, iir_filter, rng):
 
 @_legacy_rng("random_state")
 @verbose
-def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rng=None):
+def add_noise(inst, cov, iir_filter=None, verbose=None, *, rng=None, random_state=None):
     """Create noise as a multivariate Gaussian.
 
     The spatial covariance of the noise is given from the cov matrix.
@@ -124,9 +124,9 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None, *, rn
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    %(random_state_rng)s
     %(verbose)s
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------

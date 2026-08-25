@@ -65,14 +65,12 @@ def test_check_rng():
         _check_rng("foo")
 
 
-@pytest.mark.parametrize(
-    "legacy_name, legacy_args", (("random_state", (0,)), ("seed", (None, 0)))
-)
-def test_legacy_rng_decorator(legacy_name, legacy_args):
+@pytest.mark.parametrize("legacy_name", ("random_state", "seed"))
+def test_legacy_rng_decorator(legacy_name):
     """Test that the transition decorator normalizes and logs."""
 
     @_legacy_rng(legacy_name)
-    def _func(random_state=None, seed=None, *, rng=None):
+    def _func(*, rng=None, random_state=None, seed=None):
         return rng
 
     # no argument: a fresh generator is created
@@ -86,10 +84,7 @@ def test_legacy_rng_decorator(legacy_name, legacy_args):
         assert isinstance(_func(**{legacy_name: 0}), np.random.RandomState)
     assert f"Use rng= instead of {legacy_name}=" in log.getvalue()
     assert isinstance(_func(**{legacy_name: None}), np.random.mtrand.RandomState)
-    # supplying both is an error; positional legacy arguments are supported
-    assert isinstance(_func(*legacy_args), np.random.RandomState)
-    with pytest.raises(TypeError, match="Specify only one"):
-        _func(*legacy_args, rng=0)
+    # supplying both is an error
     with pytest.raises(TypeError, match="Specify only one"):
         _func(**{legacy_name: 0}, rng=0)
 

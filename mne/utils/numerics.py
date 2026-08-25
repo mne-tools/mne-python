@@ -267,7 +267,7 @@ def compute_corr(x, y):
 
 @_legacy_rng("random_state")
 @fill_doc
-def random_permutation(n_samples, random_state=None, *, rng=None):
+def random_permutation(n_samples, *, rng=None, random_state=None):
     """Emulate the randperm matlab function.
 
     It returns a vector containing a random permutation of the
@@ -289,8 +289,8 @@ def random_permutation(n_samples, random_state=None, *, rng=None):
     n_samples : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
-    %(random_state_rng)s
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------

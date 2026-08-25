@@ -25,13 +25,13 @@ from ..utils import (
 def select_source_in_label(
     src,
     label,
-    random_state=None,
     location="random",
     subject=None,
     subjects_dir=None,
     surf="sphere",
     *,
     rng=None,
+    random_state=None,
 ):
     """Select source positions using a label.
 
@@ -41,7 +41,6 @@ def select_source_in_label(
         The source space.
     label : Label
         The label.
-    %(random_state_rng)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass` (restricting to vertices
@@ -65,6 +64,7 @@ def select_source_in_label(
 
         .. versionadded:: 0.13
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -114,13 +114,13 @@ def simulate_sparse_stc(
     times,
     data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
     labels=None,
-    random_state=None,
     location="random",
     subject=None,
     subjects_dir=None,
     surf="sphere",
     *,
     rng=None,
+    random_state=None,
 ):
     """Generate sparse (n_dipoles) sources time courses from data_fun.
 
@@ -144,7 +144,6 @@ def simulate_sparse_stc(
         the same length containing the time courses.
     labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    %(random_state_rng)s
     location : str
         The label location to choose. Can be ``'random'`` (default) or
         ``'center'`` to use :func:`mne.Label.center_of_mass`. Note that for
@@ -167,6 +166,7 @@ def simulate_sparse_stc(
 
         .. versionadded:: 0.13
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------

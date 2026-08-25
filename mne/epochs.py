@@ -2496,8 +2496,8 @@ class BaseEpochs(
         event_ids: list | dict | None = None,
         method: Literal["truncate", "mintime", "random"] = "mintime",
         *,
-        random_state: int | RandomState | None = None,
         rng=None,
+        random_state: int | RandomState | None = None,
     ) -> tuple:
         """Equalize the number of trials in each condition.
 
@@ -2539,9 +2539,9 @@ class BaseEpochs(
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
         %(equalize_events_method)s
-        %(random_state_rng)s
-            Used only if ``method='random'``.
         %(rng)s
+            Used only if ``method='random'``.
+        %(random_state_rng)s
             Used only if ``method='random'``.
 
         Returns
@@ -4026,8 +4026,8 @@ def equalize_epoch_counts(
     epochs_list: list,
     method: Literal["truncate", "mintime", "random"] = "mintime",
     *,
-    random_state: int | RandomState | None = None,
     rng=None,
+    random_state: int | RandomState | None = None,
 ) -> None:
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
 
@@ -4036,9 +4036,9 @@ def equalize_epoch_counts(
     epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
-    %(random_state_rng)s
-        Used only if ``method='random'``.
     %(rng)s
+        Used only if ``method='random'``.
+    %(random_state_rng)s
         Used only if ``method='random'``.
 
     Notes
@@ -4675,15 +4675,15 @@ class EpochsFIF(BaseEpochs):
 
 @_legacy_rng("random_state")
 @fill_doc
-def bootstrap(epochs, random_state=None, *, rng=None):
+def bootstrap(epochs, *, rng=None, random_state=None):
     """Compute epochs selected by bootstrapping.
 
     Parameters
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    %(random_state_rng)s
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------

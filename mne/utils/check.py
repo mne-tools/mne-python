@@ -252,32 +252,15 @@ def _legacy_rng(legacy_name):
     """
 
     def decorator(function):
-        parameters = signature(function).parameters
-        positional = [
-            name
-            for name, parameter in parameters.items()
-            if parameter.kind
-            in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
-        ]
-        legacy_position = (
-            positional.index(legacy_name) if legacy_name in positional else None
-        )
-
         @wraps(function)
         def _legacy_rng_wrapper(*args, **kwargs):
-            if legacy_position is not None and len(args) > legacy_position:
-                if legacy_name in kwargs:
-                    return function(*args, **kwargs)
-                value = args[legacy_position]
-            elif legacy_name in kwargs:
-                value = kwargs[legacy_name]
-            else:
+            if legacy_name not in kwargs:
                 kwargs["rng"] = _check_rng(kwargs.get("rng"))
                 return function(*args, **kwargs)
             if "rng" in kwargs:
                 raise TypeError(f"Specify only one of rng or {legacy_name}")
             logger.info(f"Use rng= instead of {legacy_name}= in new code")
-            kwargs["rng"] = check_random_state(value)
+            kwargs["rng"] = check_random_state(kwargs[legacy_name])
             return function(*args, **kwargs)
 
         return _legacy_rng_wrapper

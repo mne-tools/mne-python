@@ -217,7 +217,7 @@ def test_random_permutation():
     n_samples = 10
     # matlab output when we execute rng(42), randperm(10)
     assert_array_equal(
-        random_permutation(n_samples, 42),
+        random_permutation(n_samples, random_state=42),
         np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2]) - 1,
     )
     # an integer ``rng`` seed is reproducible while a Generator instance advances

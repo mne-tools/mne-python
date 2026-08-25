@@ -34,10 +34,10 @@ def permutation_t_test(
     n_permutations=10000,
     tail=0,
     n_jobs=None,
-    seed=None,
     verbose=None,
     *,
     rng=None,
+    seed=None,
 ):
     """One sample/paired sample permutation test based on a t-statistic.
 
@@ -66,9 +66,9 @@ def permutation_t_test(
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
     %(n_jobs)s
-    %(seed_rng)s
     %(verbose)s
     %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -126,9 +126,9 @@ def bootstrap_confidence_interval(
     ci=0.95,
     n_bootstraps=2000,
     stat_fun="mean",
-    random_state=None,
     *,
     rng=None,
+    random_state=None,
 ):
     """Get confidence intervals from non-parametric bootstrap.
 
@@ -142,8 +142,8 @@ def bootstrap_confidence_interval(
         Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along ``axis=0``.
-    %(random_state_rng)s
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------

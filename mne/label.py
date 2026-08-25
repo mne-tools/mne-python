@@ -2003,9 +2003,9 @@ def random_parcellation(
     hemi,
     subjects_dir=None,
     surface="white",
-    random_state=None,
     *,
     rng=None,
+    random_state=None,
 ):
     """Generate random cortex parcellation by growing labels.
 
@@ -2024,8 +2024,8 @@ def random_parcellation(
         parcels per hemisphere.
     %(subjects_dir)s
     %(surface)s
-    %(random_state_rng)s
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -2952,10 +2952,10 @@ def select_sources(
     grow_outside=True,
     subjects_dir=None,
     name=None,
-    random_state=None,
     surf="white",
     *,
     rng=None,
+    random_state=None,
 ):
     """Select sources from a label.
 
@@ -2979,10 +2979,10 @@ def select_sources(
     %(subjects_dir)s
     name : None | str
         Assign name to the new label.
-    %(random_state_rng)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
     %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
