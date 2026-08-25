@@ -328,16 +328,45 @@ def _is_np_random(node):
     )
 
 
+def _sklearn_callables(tree):
+    """Resolve sklearn imports for signature inspection."""
+    callables = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module
+            and node.module.startswith("sklearn")
+        ):
+            module = importlib.import_module(node.module)
+            callables.update(
+                (alias.asname or alias.name, getattr(module, alias.name))
+                for alias in node.names
+            )
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.startswith("sklearn"):
+                    callables[alias.asname or alias.name] = importlib.import_module(
+                        alias.name
+                    )
+    return callables
+
+
+def _rng_parameters(callable_, node):
+    """Get RNG parameters from a callable, if inspectable."""
+    try:
+        parameters = inspect.signature(callable_).parameters
+    except (TypeError, ValueError):
+        return set()
+    shuffle = next((kw.value for kw in node.keywords if kw.arg == "shuffle"), None)
+    if "shuffle" in parameters and (
+        shuffle is None or isinstance(shuffle, ast.Constant) and not shuffle.value
+    ):
+        return set()
+    return {"random_state", "rng", "seed"} & parameters.keys()
+
+
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
-    from sklearn.utils.discovery import all_estimators
-
-    rng_names = {"random_state", "rng", "seed"}
-    rng_callables = {
-        name
-        for name, estimator in all_estimators()
-        if rng_names & inspect.signature(estimator).parameters.keys()
-    }
     root = pyproject_path.parent  # only available in a dev/editable checkout
     bad = []
     for sub in ("mne", "examples", "tutorials"):
@@ -346,7 +375,9 @@ def test_no_global_rng():
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
-            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
+            tree = ast.parse(path.read_text("utf-8"))
+            callables = _sklearn_callables(tree)
+            for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Attribute)
                     and node.attr not in global_rng_ok
@@ -364,8 +395,14 @@ def test_no_global_rng():
                     name = getattr(node.func, "id", None) or getattr(
                         node.func, "attr", None
                     )
-                    supplied = rng_names & {kw.arg for kw in node.keywords}
-                    if name in rng_callables and len(supplied) != 1:
+                    callable_ = callables.get(name)
+                    if isinstance(node.func, ast.Attribute):
+                        module = callables.get(getattr(node.func.value, "id", None))
+                        if module is not None:
+                            callable_ = getattr(module, node.func.attr, None)
+                    parameters = _rng_parameters(callable_, node)
+                    supplied = parameters & {kw.arg for kw in node.keywords}
+                    if parameters and len(supplied) != 1:
                         bad.append(f"{rel}:{node.lineno}: {name}() needs one RNG")
     if bad:
         raise AssertionError(
