@@ -10,7 +10,6 @@ import numpy as np
 
 from ...io.eyelink._utils import _parse_calibration
 from ...utils import _check_fname, _validate_type, fill_doc, logger
-from ...viz.utils import plt_show
 
 
 @fill_doc
@@ -135,6 +134,8 @@ class Calibration(dict):
         """
         import matplotlib.pyplot as plt
 
+        from ...viz.utils import plt_show
+
         msg = "positions and gaze keys must both be 2D numpy arrays."
         assert isinstance(self["positions"], np.ndarray), msg
         assert isinstance(self["gaze"], np.ndarray), msg
@@ -222,5 +223,8 @@ def read_eyelink_calibration(
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
     logger.info(f"Reading calibration data from {fname}")
-    lines = fname.read_text(encoding="ASCII").splitlines()
+    # ASCII is a subset of UTF-8 for the eyetracking/calibration data itself, but
+    # "MSG" lines may contain non-ASCII characters (e.g. UTF-8 text in user
+    # messages), so decode as UTF-8 to avoid a UnicodeDecodeError. See #14000.
+    lines = fname.read_text(encoding="utf-8").splitlines()
     return _parse_calibration(lines, screen_size, screen_distance, screen_resolution)

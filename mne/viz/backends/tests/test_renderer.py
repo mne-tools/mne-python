@@ -8,7 +8,10 @@ import sys
 
 import numpy as np
 import pytest
+from matplotlib.font_manager import findfont
+from numpy.testing import assert_allclose
 
+from mne.transforms import quat_to_rot, rot_to_quat
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
@@ -55,6 +58,12 @@ def test_3d_functions(renderer):
     )
     renderer.set_3d_title(figure=fig, title="foo")
     renderer.backend._take_3d_screenshot(figure=fig)
+    assert len(fig.plotter.renderer.actors) > 0
+    renderer.clear_3d_figure(fig)
+    assert len(fig.plotter.renderer.actors) == 0
+    # the (empty) figure can be reused
+    renderer.backend._Renderer(fig=fig).sphere(np.array([0.0, 0.0, 0.0]), "w", 1.0)
+    assert len(fig.plotter.renderer.actors) > 0
     renderer.close_3d_figure(fig)
     renderer.close_all_3d_figures()
 
@@ -149,6 +158,33 @@ def test_3d_backend(renderer):
     with pytest.raises(ValueError, match="Invalid value"):
         rend.quiver3d(mode="foo", **kwargs)
 
+    # use instanced_mesh
+    # VTK must interpret our wxyz quaternions with the same convention as
+    # quat_to_rot, otherwise instanced sensors render with wrong rotations
+    from vtkmodules.vtkCommonCore import vtkMath
+
+    from mne.viz.backends._pyvista import _quat_to_vtk_wxyz
+
+    quat = np.array([0.1, -0.2, 0.3])
+    mat = [[0.0] * 3 for _ in range(3)]
+    vtkMath.QuaternionToMatrix3x3(_quat_to_vtk_wxyz(quat[np.newaxis])[0], mat)
+    assert_allclose(mat, quat_to_rot(quat), atol=1e-12)
+
+    inst_positions = np.array([[0.0, 0.0, 0.0], [tet_size, 0.0, 0.0]])
+    inst_quats = np.array([rot_to_quat(np.eye(3)), rot_to_quat(np.eye(3))])
+    inst_colors = np.array([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]])
+    _, inst_cloud = rend.instanced_mesh(
+        rr=sph_center * sph_scale,
+        tris=tet_indices,
+        positions=inst_positions,
+        quats=inst_quats,
+        colors=inst_colors,
+    )
+    # colors can be updated in place (e.g. for future sensor
+    # highlighting/hover) without rebuilding the actor or its geometry
+    inst_cloud.point_data["colors"][0] = [0, 0, 255, 255]
+    inst_cloud.Modified()
+
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]), destination=np.array([[0, 1, 0]]))
     _, tube = rend.tube(
@@ -167,6 +203,14 @@ def test_3d_backend(renderer):
         text=txt_text,
         size=txt_size,
         justification="right",
+    )
+    # test font_file passthrough with a real font from matplotlib
+    font_path = findfont("serif")
+    rend.text2d(
+        x_window=txt_x + 0.1,
+        y_window=txt_y + 0.1,
+        text="font test",
+        font_file=font_path,
     )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(
@@ -218,22 +262,35 @@ def test_set_3d_backend_bad(monkeypatch, tmp_path):
 def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     """Test that warnings are emitted for old Mesa."""
     fig = renderer_pyvistaqt.create_3d_figure((800, 600))
-    from mne.viz.backends._pyvista import _is_osmesa
+    from mne.viz.backends import _pyvista
 
     plotter = fig.plotter
     pre = "OpenGL renderer string: "
     good = f"{pre}OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n"  # noqa
     bad = f"{pre}OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n"  # noqa
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
     monkeypatch.setenv("MNE_IS_OSMESA", "false")
-    assert _is_osmesa(plotter)
+
+    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
+    assert _pyvista._is_osmesa(plotter)
     monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
+    monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):
-        assert _is_osmesa(plotter)
-    non = f"{pre}OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n"
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: non)
-    assert not _is_osmesa(plotter)
-    non = f"{pre}OpenGL 4.5 (Core Profile) Mesa 24.2.3-1ubuntu1 via NVE6\n"
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: non)
-    assert not _is_osmesa(plotter)
+        assert _pyvista._is_osmesa(plotter)
+    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
+    monkeypatch.setattr(
+        plotter.ren_win,
+        "ReportCapabilities",
+        lambda: f"{pre}OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n",
+    )
+    monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
+    assert not _pyvista._is_osmesa(plotter)
+    monkeypatch.setattr(
+        plotter.ren_win,
+        "ReportCapabilities",
+        lambda: f"{pre}OpenGL 4.5 (Core Profile) Mesa 24.2.3-1ubuntu1 via NVE6\n",
+    )
+    monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
+    assert not _pyvista._is_osmesa(plotter)

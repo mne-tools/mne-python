@@ -1,16 +1,45 @@
 """Create code credit RST file.
 
 Run ./tools/dev/update_credit_json.py first to get the latest PR JSON files.
+
+Contributor names are resolved from the PR JSON files in this order:
+
+1. ``.mailmap`` (authoritative): the author email is looked up and the mailmap
+   name wins. Entries whose name intentionally fails our heuristics (single
+   word, abbreviation, ALL-CAPS) carry a trailing ``# credit: name-ok``
+   comment (valid mailmap syntax, and robust to the line-sorting pre-commit
+   hook).
+2. GitHub-derived names stored in the JSON files, when they look like real
+   two-part names.
+
+Anything else is reported as a ready-to-paste ``.mailmap`` suggestion, or
+appended to ``.mailmap`` automatically when running with ``--fix-mailmap``
+(what the monthly credit GitHub Action does). In that mode, the name from the
+PR's changelog ``:newcontrib:`` entry is preferred when one exists, since new
+contributors pick that name themselves.
+
+Every credited name is shown as a link to that person, so it also needs an
+entry in doc/changes/names.inc (the same links changelogs use). ``--fix-mailmap``
+adds one pointing at the contributor's GitHub profile where we know it;
+anything left over is an error, since the badge would have nowhere to point.
+
+Two names that look like the same person are also an error: it usually means an
+address is missing from .mailmap, so someone is credited twice under slightly
+different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import glob
+import argparse
+import dataclasses
+import difflib
+import fnmatch
 import json
-import pathlib
+import os
 import re
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
@@ -18,7 +47,7 @@ import numpy as np
 import sphinx.util.logging
 
 import mne
-from mne.utils import logger, verbose
+from mne.utils import _replace_md5, logger, verbose
 
 sphinx_logger = sphinx.util.logging.getLogger("mne")
 
@@ -26,98 +55,225 @@ repo_root = Path(__file__).parents[2]
 doc_root = repo_root / "doc"
 data_dir = doc_root / "sphinxext"
 
-# TODO: For contributor names there are three sources of potential truth:
-#
-# 1. names.inc
-# 2. GitHub profile names (that we pull dynamically here)
-# 3. commit history / .mailmap.
-#
-# All three names can mismatch. Currently we try to defer to names.inc since this
-# is assumed to have been chosen the most consciously/intentionally by contributors.
-# Though it is possible that people can change their preferred names as well, so
-# preferring GitHub profile info (when complete!) is probably preferable.
-
-# Allowed singletons
-single_names = """
-btkcodedev buildqa sviter Akshay user27182 Mojackhak mne[bot] varshaa-1616
-""".strip().split()
-# Surnames where we have more than one distinct contributor:
-name_counts = dict(
-    Bailey=2,
-    Das=2,
-    Drew=2,
-    Jin=2,
-    Li=2,
-    Peterson=2,
-    Wong=2,
-    Zhang=3,
+PR_URL = "https://github.com/mne-tools/mne-python/pull/{pr}"
+NAME_OK_MARKER = "# credit: name-ok"
+# Substrings (in name or email) identifying non-human authors we never credit
+BOTS = (
+    "[bot]",
+    "mne-bot@users.noreply",
+    "pre-commit-ci@users.noreply",
+    "copilot@github.com",
+    "noreply@anthropic.com",
+    "Lumberbot",
+    "Deleted user",
 )
-# Exceptions, e.g., abbrevitaions in first/last name or all-caps
-exceptions = [
-    "Natneal B",
-    "T. Wang",
-    "Ziyi ZENG",
-]
-# Manual renames
-manual_renames = {
-    "akshay0724": "Akshay",  # 4046, TODO: Check singleton
-    "alexandra.corneyllie": "Alexandra Corneyllie",  # 7600
-    "alexandra": "Alexandra Corneyllie",  # 7600
-    "Aniket": "Aniket Singh Yadav",  # 13672
-    "AnneSo": "Anne-Sophie Dubarry",  # 4910
-    "Basile": "Basile Pinsard",  # 1791
-    "Bru": "Bruno Aristimunha",  # 13489
-    "ChristinaZhao": "Christina Zhao",  # 9075
-    "Drew, J.": "Jordan Drew",  # 10861
-    "enzo": "Enzo Altamiranda",  # 11351
-    "Emma": "Emma Zhang",  # 13486
-    "Frostime": "Yiping Zuo",  # 11773
-    "FT": "Tamas Fehervari",  # 13408
-    "Gennadiy": "Gennadiy Belonosov",  # 11720
-    "Genuster": "Gennadiy Belonosov",  # 12936
-    "GreasyCat": "Rongfei Jin",  # 13113
-    "Hamid": "Hamid Maymandi",  # 10849
-    "jwelzel": "Julius Welzel",  # 11118
-    "Katia": "Katia Al-Amir",  # 13225
-    "Martin": "Martin Billinger",  # 8099, TODO: Check
-    "Mats": "Mats van Es",  # 11068
-    "Michael": "Michael Krause",  # 3304
-    "Naveen": "Naveen Srinivasan",  # 10787
-    "NoahMarkowitz": "Noah Markowitz",  # 12669
-    "PAB": "Pierre-Antoine Bannier",  # 9430
-    "Rob Luke": "Robert Luke",
-    "Sena": "Sena Er",  # 11029
-    "TzionaN": "Tziona NessAiver",  # 10953
-    "Valerii": "Valerii Chirkov",  # 9043
-    "Wei": "Wei Xu",  # 13218
-    "Zhenya": "Evgenii Kalenkovich",  # 6310, TODO: Check
-}
+# Pairs of similar-looking names that really are different contributors, so the
+# duplicate check below leaves them alone. Keep them sorted within each pair.
+DISTINCT_NAMES = set()
 
 
-def _good_name(name):
-    if name is None:
+def _reference_key(name):
+    """Normalize a name the way docutils normalizes reST reference names."""
+    return re.sub(r"\s+", " ", name).strip().lower()
+
+
+def _fold(name):
+    """Strip accents and case so "Victor Férat" and "Victor Ferat" compare equal."""
+    decomposed = unicodedata.normalize("NFKD", _reference_key(name))
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
+def _similar_names(names):
+    """Find pairs of credited names that look like the same person.
+
+    One person credited under two spellings means an email is missing from
+    .mailmap: whoever it is should be routed to a single preferred name there.
+    Genuinely distinct people whose names happen to look alike go in
+    DISTINCT_NAMES.
+    """
+    problems = []
+    names = sorted(names)
+    for ii, one in enumerate(names):
+        for other in names[ii + 1 :]:
+            if tuple(sorted((one, other))) in DISTINCT_NAMES:
+                continue
+            first, second = _fold(one).split(), _fold(other).split()
+            why = None
+            if first == second:  # differ only by accents or case
+                why = "differ only in accents or capitalization"
+            elif set(first) <= set(second) or set(second) <= set(first):
+                why = "one is the other plus a middle name, initial, or suffix"
+            elif first[-1] == second[-1] and (  # same surname, shortened first name
+                first[0].startswith(second[0]) or second[0].startswith(first[0])
+            ):
+                why = "one first name is a shortening of the other"
+            if why is None:  # catch-all for typos and spelling variants
+                ratio = difflib.SequenceMatcher(None, _fold(one), _fold(other)).ratio()
+                if ratio > 0.9:
+                    why = "the names are nearly identical"
+            if why is not None:
+                problems.append(
+                    f"{one!r} and {other!r} may be the same person ({why}). If so, "
+                    "add the missing address to .mailmap so both map to one name; "
+                    "if not, add the pair to DISTINCT_NAMES in credit_tools.py"
+                )
+    return problems
+
+
+def _github_login(author):
+    """Get an author's GitHub login, from the JSON or their noreply address."""
+    if author.get("l"):
+        return author["l"]
+    # e.g. "12345678+octocat@users.noreply.github.com"
+    match = re.match(r"^\d+\+(.+)@users\.noreply\.github\.com$", author.get("e") or "")
+    return match.group(1) if match else None
+
+
+def _is_bot(name, email):
+    return any(bot in (name or "") or bot in (email or "") for bot in BOTS)
+
+
+def _good_name(name, *, name_ok=frozenset()):
+    """Heuristically decide if a name looks like a real, full human name."""
+    if name is None or not name.strip() or name != name.strip():
         return False
-    assert isinstance(name, str), type(name)
-    if name == "mne[bot]":
+    if name in name_ok:
         return True
-    if not name.strip():
+    if " " not in name:  # at least two parts
         return False
-    if " " not in name and name not in single_names:  # at least two parts
+    first, last = name.split()[0], name.split()[-1]
+    if "." in first or "." in last:  # abbreviations like "T. Wang"
         return False
-    if name not in exceptions and "." in name.split()[0] or "." in name.split()[-1]:
+    if first == first.upper() or last == last.upper():  # KING instead of King
         return False
-    if " " in name and name not in exceptions:
-        first = name.split()[0]
-        last = name.split()[-1]
-        if first == first.upper() or last == last.upper():  # e.g., KING instead of King
-            return False
     return True
 
 
-@verbose
-def generate_credit_rst(app=None, *, verbose=False):
-    """Get the credit RST."""
-    sphinx_logger.info("Creating code credit RST inclusion file")
+def _normalize_name(name):
+    """Fix simple fixable problems (whitespace, first/last name capitalization).
+
+    Only single-case first/last names are touched, so mixed case like "McCloy"
+    and particles like the "van" in "Mats van Es" are left alone. A contributor
+    who prefers e.g. an all-lowercase name can always be pinned in .mailmap,
+    which wins over anything derived here.
+    """
+    parts = name.strip().split()
+    if len(parts) >= 2:
+        for idx in (0, -1):  # e.g., KING or king instead of King
+            part = parts[idx]
+            if len(part) > 1 and part in (part.upper(), part.lower()):
+                parts[idx] = part.capitalize()
+    return " ".join(parts)
+
+
+@dataclasses.dataclass
+class _Mailmap:
+    """Parsed .mailmap: email→name mapping plus name-ok annotations."""
+
+    names: dict  # email (canonical or alias) -> canonical name
+    name_ok: set  # names exempt from _good_name heuristics
+    problems: list  # malformed/inconsistent lines (fatal)
+
+
+def _load_mailmap():
+    names, name_ok, problems = dict(), set(), list()
+    for number, line in enumerate(
+        (repo_root / ".mailmap").read_text("utf-8").splitlines(), 1
+    ):
+        entry, _, comment = line.strip().partition("#")
+        entry = entry.strip()
+        if not entry:
+            continue
+        match = re.match("^([^<]+) <([^<>]+)>", entry)
+        if match is None:
+            problems.append(f".mailmap:{number}: cannot parse {entry!r}")
+            continue
+        name = match.group(1).strip()
+        if comment.strip().startswith(NAME_OK_MARKER.lstrip("# ")):
+            name_ok.add(name)
+        elif not _good_name(name):
+            problems.append(
+                f".mailmap:{number}: name {name!r} looks incomplete; fix it or "
+                f"append a trailing {NAME_OK_MARKER!r} comment to the line"
+            )
+        for email in re.findall("<([^<>]+)>", entry):
+            if names.setdefault(email, name) != name:
+                problems.append(
+                    f".mailmap:{number}: {email} maps to both "
+                    f"{names[email]!r} and {name!r}"
+                )
+    return _Mailmap(names=names, name_ok=name_ok, problems=problems)
+
+
+@dataclasses.dataclass
+class _Unresolved:
+    """An author we could not resolve to a good name."""
+
+    pr: str
+    name: str | None
+    email: str | None
+    login: str | None
+    sha: str | None = None  # merge commit, for fetching the changelog fragment
+    changelog_files: tuple = ()  # this PR's doc/changes/dev(el)/*.rst fragments
+
+    @property
+    def best_name(self):
+        return _normalize_name(self.name or "") or self.login or "FIXME"
+
+    @property
+    def mailmap_entry(self):
+        """Ready-to-paste .mailmap line.
+
+        Annotated when the name fails our heuristics: per our policy the GitHub
+        profile name is acceptable as-is, and the annotation just records where
+        it came from. Names taken from a changelog ``:newcontrib:`` entry
+        usually pass the heuristics and so get a plain entry.
+        """
+        assert self.email is not None
+        entry = f"{self.best_name} <{self.email}>"
+        if not _good_name(self.best_name):
+            entry += f" {NAME_OK_MARKER} (auto-added, see {PR_URL.format(pr=self.pr)})"
+        return entry
+
+
+def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins):
+    """Resolve one PR JSON author dict to a display name (or None to skip)."""
+    name, email, login = author.get("n"), author.get("e"), author.get("l")
+    if _is_bot(name, email):
+        return None
+    resolved = mailmap.names.get(email)
+    if resolved is not None:
+        logins.setdefault(resolved, _github_login(author))
+        return resolved
+    # GitHub-derived fallback; first good name seen for an email wins so that
+    # later profile-name tweaks don't split one person into two entries
+    if email in fallback_names:
+        return fallback_names[email]
+    candidate = _normalize_name(name) if name else None
+    if candidate is not None and _good_name(candidate):
+        if email is not None:
+            fallback_names[email] = candidate
+        logins.setdefault(candidate, _github_login(author))
+        return candidate
+    key = email or f"{name} #{pr}"
+    if key not in unresolved:
+        unresolved[key] = _Unresolved(
+            pr=pr,
+            name=name,
+            email=email,
+            login=login,
+            sha=data.get("merge_commit_sha"),
+            changelog_files=tuple(
+                file
+                for file in data["changes"]
+                if re.match(r"doc/changes/dev(el)?/\d+\.[a-z]+\.rst$", file)
+            ),
+        )
+    return None
+
+
+def _load_pr_ignores():
+    """PR numbers whose (huge, automated) diffs we don't credit."""
     ignores = [
         int(ignore.split("#", maxsplit=1)[1].strip().split()[0][:-1])
         for ignore in (repo_root / ".git-blame-ignore-revs")
@@ -125,189 +281,330 @@ def generate_credit_rst(app=None, *, verbose=False):
         .splitlines()
         if not ignore.strip().startswith("#") and ignore.strip()
     ]
-    ignores = {str(ig): [] for ig in ignores}
+    return {str(ig): [] for ig in ignores}
 
-    # Use mailmap to help translate emails to names
-    mailmap = dict()
-    # mapping from email to name
-    name_map: dict[str, str] = dict()
-    for line in (repo_root / ".mailmap").read_text("utf-8").splitlines():
-        name = re.match("^([^<]+) <([^<>]+)>", line.strip()).group(1)
-        assert _good_name(name), repr(name)
-        emails = list(re.findall("<([^<>]+)>", line.strip()))
-        assert len(emails) > 0
-        new = emails[0]
-        if new in name_map:
-            assert name_map[new] == name
-        else:
-            name_map[new] = name
-        if len(emails) == 1:
-            continue
-        for old in emails[1:]:
-            if old in mailmap:
-                assert new == mailmap[old]  # can be different names
-            else:
-                mailmap[old] = new
-            if old in name_map:
-                assert name_map[old] == name
-            else:
-                name_map[old] = name
 
-    unknown_emails: set[str] = set()
+def _load_pr_stats(mailmap):
+    """Aggregate per-file line-change stats for every author of every PR."""
+    ignores = _load_pr_ignores()
+    fallback_names = dict()  # email -> good GitHub-derived name
+    unresolved = dict()  # email (or name#pr) -> _Unresolved
+    logins = dict()  # credited name -> GitHub login (None if unknown)
+    # (name, pr) -> total change count, used for logging the biggest PRs
+    commits = defaultdict(int)
+    # filename -> name -> [additions, deletions]
+    stats = defaultdict(lambda: defaultdict(lambda: np.zeros(2, int)))
 
-    # dict with (name, commit) keys, values are int change counts
-    # ("commits" is really "PRs" for Python mode)
-    commits: dict[tuple[str], int] = defaultdict(lambda: 0)
-
-    # dict with filename keys, values are dicts with name keys and +/- ndarrays
-    stats: dict[str, dict[str, np.ndarray]] = defaultdict(
-        lambda: defaultdict(
-            lambda: np.zeros(2, int),
-        ),
-    )
-
-    bad_commits = set()
-    expected_bad_names = dict()
-
-    for fname in sorted(glob.glob(str(data_dir / "prs" / "*.json"))):
-        commit = Path(fname).stem  # PR number is in the filename
-        data = json.loads(Path(fname).read_text("utf-8"))
-        del fname
-        assert data != {}
-        authors = data["authors"]
-        for author in authors:
-            if (
-                author["e"] is not None
-                and author["e"] not in name_map
-                and _good_name(author["n"])
-            ):
-                name_map[author["e"]] = author["n"]
+    for fname in sorted((data_dir / "prs").glob("*.json"), key=lambda p: int(p.stem)):
+        pr = fname.stem
+        data = json.loads(fname.read_text("utf-8"))
+        assert data != {}, fname
+        names = [
+            _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
+            for author in data["authors"]
+        ]
+        # dedup, keeping author order (so ties in the output sort stay stable)
+        names = [name for name in dict.fromkeys(names) if name is not None]
         for file, counts in data["changes"].items():
-            if commit in ignores:
-                ignores[commit].append([file, commit])
+            if pr in ignores:
+                ignores[pr].append(file)
                 continue
             p, m = counts["a"], counts["d"]
-            used_authors = set()
-            for author in authors:
-                if author["e"] is not None:
-                    if author["e"] not in name_map:
-                        unknown_emails.add(
-                            f"{author['e'].ljust(29)} "
-                            "https://github.com/mne-tools/mne-python/pull/"
-                            f"{commit}/files"
-                        )
-                        continue
-                    name = name_map[author["e"]]
-                else:
-                    name = author["n"]
-                    if name in manual_renames:
-                        assert _good_name(manual_renames[name]), (
-                            f"Bad manual rename: {name}"
-                        )
-                        name = manual_renames[name]
-                    if " " in name:
-                        first, last = name.rsplit(" ", maxsplit=1)
-                        if last == last.upper() and len(last) > 1:
-                            last = last.capitalize()
-                        if first == first.upper() and len(first) > 1:
-                            first = first.capitalize()
-                        name = f"{first} {last}"
-                        assert not first.upper() == first, f"Bad {name=} from {commit}"
-                    assert _good_name(name), f"Bad {name=} from {commit}"
-                    if "King" in name:
-                        assert name == "Jean-Rémi King", name
-
-                if name is None:
-                    bad_commits.add(commit)
-                    continue
-                if name in used_authors:
-                    continue
-                if not _good_name(name) and name not in expected_bad_names:
-                    expected_bad_names[name] = f"{name} from #{commit}"
-                    if author["e"]:
-                        expected_bad_names[name] += f" email {author['e']}"
-                assert name.strip(), repr(name)
-                used_authors.add(name)
-                # treat moves and permission changes like a single-line change
-                if p == m == 0:
-                    p = 1
-                commits[(name, commit)] += p + m
+            # treat moves and permission changes like a single-line change
+            if p == m == 0:
+                p = 1
+            for name in names:
+                commits[(name, pr)] += p + m
                 stats[file][name] += [p, m]
-    if bad_commits:
+    return stats, commits, ignores, unresolved, logins
+
+
+def _load_names_inc():
+    """Map contributor names to their doc/changes/names.inc link.
+
+    Keys are normalized the way docutils normalizes reST reference names, i.e.
+    case-insensitively and with collapsed whitespace.
+    """
+    return {
+        _reference_key(name): url
+        for name, url in re.findall(
+            r"^\.\. _(.+?):\s+(\S+)\s*$",
+            (doc_root / "changes" / "names.inc").read_text("utf-8"),
+            re.M,
+        )
+    }
+
+
+def _check_names_inc(names, urls):
+    """List credited names that have no doc/changes/names.inc link."""
+    return sorted(name for name in names if _reference_key(name) not in urls)
+
+
+def _append_names_inc_anchors(anchors):
+    """Insert anchors into names.inc, sorted the way our pre-commit hook sorts."""
+    path = doc_root / "changes" / "names.inc"
+    lines = path.read_text("utf-8").splitlines() + list(anchors)
+    lines.sort(key=_fold)
+    path.write_text("\n".join(lines) + "\n", "utf-8")
+
+
+def _append_mailmap_entries(entries):
+    """Insert entries into .mailmap, sorted the way our pre-commit hook sorts."""
+    path = repo_root / ".mailmap"
+    lines = path.read_text("utf-8").splitlines() + list(entries)
+    lines.sort(key=_fold)
+    path.write_text("\n".join(lines) + "\n", "utf-8")
+
+
+def _report_problems(mailmap, unresolved):
+    """Turn all collected problems into a single actionable error message."""
+    parts = []
+    if mailmap.problems:
+        parts.append("Problems in .mailmap:\n" + "\n".join(mailmap.problems))
+    no_email = [un for un in unresolved.values() if un.email is None]
+    if no_email:
+        parts.append(
+            "Authors with no usable name and no email; fix the JSON by hand or "
+            "remove it:\n"
+            + "\n".join(f"{un.name!r} in prs/{un.pr}.json" for un in no_email)
+        )
+    fixable = [un for un in unresolved.values() if un.email is not None]
+    if fixable:
+        parts.append(
+            "Unresolved contributor names. Add the entries below to .mailmap\n"
+            "(fixing the names if you can figure them out from the PRs), or run\n"
+            "`python doc/sphinxext/credit_tools.py --fix-mailmap` to do it for "
+            "you:\n\n" + "\n".join(un.mailmap_entry for un in fixable)
+        )
+    return "\n\n".join(parts)
+
+
+@verbose
+def generate_credit_rst(
+    app=None, *, fix_mailmap=False, report_file=None, verbose=False
+):
+    """Get the credit RST."""
+    sphinx_logger.info("Creating code credit RST inclusion file")
+    mailmap = _load_mailmap()
+    stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
+    added = [un for un in unresolved.values() if un.email is not None]
+    if fix_mailmap and added and not mailmap.problems:
+        _apply_newcontrib_names(added)
+        _append_mailmap_entries(un.mailmap_entry for un in added)
+        sphinx_logger.info(f"Added {len(added)} entries to .mailmap")
+        mailmap = _load_mailmap()  # second pass with the appended entries
+        stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
+    else:
+        added = []
+    problems = _report_problems(mailmap, unresolved)
+    if problems:
+        raise RuntimeError(problems)
+
+    all_names = {name for these in stats.values() for name in these}
+    duplicates = _similar_names(all_names)
+    if duplicates:
         raise RuntimeError(
-            "Run:\nrm "
-            + " ".join(f"{bad}.json" for bad in sorted(bad_commits, key=int))
+            f"{len(duplicates)} possible duplicate contributor(s):\n"
+            + "\n".join(duplicates)
         )
 
-    # Check for duplicate names based on last name, and also singleton names.
-    last_map = defaultdict(lambda: set())
-    bad_names = set()
-    for these_stats in stats.values():
-        for name in these_stats:
-            assert name == name.strip(), f"Un-stripped name: {repr(name)}"
-            last = name.split()[-1]
-            first = name.split()[0]
-            last_map[last].add(name)
-            name_where = expected_bad_names.get(name, name)
-            if last == name and name not in single_names:
-                bad_names.add(f"Singleton:    {name_where}")
-            if "." in last or "." in first and name not in exceptions:
-                bad_names.add(f"Abbreviation: {name_where}")
-    bad_names = sorted(bad_names)
-    for last, names in last_map.items():
-        if len(names) > name_counts.get(last, 1):
-            bad_names.append(f"Duplicates:    {sorted(names)}")
-    if bad_names:
-        what = (
-            "Unexpected possible duplicates or bad names found, "
-            f"consider modifying {'/'.join(Path(__file__).parts[-3:])}:\n"
+    # Every credited name is shown as a link on the credit page, so it needs an
+    # entry in names.inc. In --fix-mailmap mode add the ones we can derive from
+    # the contributor's GitHub login, so the monthly update stays green.
+    urls = _load_names_inc()
+    missing_anchors = _check_names_inc(all_names, urls)
+    anchors_added = []
+    if fix_mailmap and missing_anchors:
+        anchors_added = [
+            f".. _{name}: https://github.com/{logins[name]}"
+            for name in missing_anchors
+            if logins.get(name)
+        ]
+        if anchors_added:
+            _append_names_inc_anchors(anchors_added)
+            sphinx_logger.info(f"Added {len(anchors_added)} entries to names.inc")
+            urls = _load_names_inc()
+            missing_anchors = _check_names_inc(all_names, urls)
+    if missing_anchors:
+        raise RuntimeError(
+            f"{len(missing_anchors)} credited name(s) have no link in "
+            "doc/changes/names.inc, which the code credit page needs to link "
+            "their badge. Add a line for each of them (the file is sorted "
+            "alphabetically, ignoring case), or run\n"
+            "`python doc/sphinxext/credit_tools.py --fix-mailmap` to fill in "
+            "the ones whose GitHub profile we know:\n"
+            + "\n".join(f".. _{name}: https://..." for name in missing_anchors)
         )
-        raise RuntimeError(what + "\n".join(bad_names))
-
-    unknown_emails = set(
-        email
-        for email in unknown_emails
-        if "autofix-ci[bot]" not in email
-        and "pre-commit-ci[bot]" not in email
-        and "dependabot[bot]" not in email
-        and "github-actions[bot]" not in email
-        and "50266005+mne-bot" not in email
-    )
-    what = "Unknown emails, consider adding to .mailmap:\n"
-    assert len(unknown_emails) == 0, what + "\n".join(sorted(unknown_emails))
+    if report_file is not None:
+        _write_report(report_file, added, anchors_added)
 
     logger.info("Biggest included commits/PRs:")
-    commits = dict(
-        (k, commits[k])
-        for k in sorted(commits, key=lambda k_: commits[k_], reverse=True)
-    )
-    for ni, name in enumerate(commits, 1):
-        if ni > 10:
-            break
-        logger.info(f"{str(name[1]).ljust(5)} @ {commits[name]:5d} by {name[0]}")
+    biggest = sorted(commits, key=lambda key: commits[key], reverse=True)
+    for name, pr in biggest[:10]:
+        logger.info(f"{pr.ljust(5)} @ {commits[(name, pr)]:5d} by {name}")
 
     logger.info("\nIgnored commits:")
-    # Report the ignores
-    for commit in ignores:  # should have found one of each
-        logger.info(f"ignored {len(ignores[commit]):3d} files for {commit}")
-        assert len(ignores[commit]) >= 1, (ignores[commit], commit)
-    globs = dict()
+    for pr, files in ignores.items():  # should have found one of each
+        logger.info(f"ignored {len(files):3d} files for {pr}")
+        assert len(files) >= 1, (pr, files)
 
-    # This is the mapping from changed filename globs to module names on the website.
-    # We need to include aliases for old stuff. Anything we want to exclude we put in
-    # "null" with a higher priority (i.e., in dict first):
-    link_overrides = dict()  # overrides for links
-    for key in """
-        *.qrc *.png *.svg *.ico *.elc *.sfp *.lout *.lay *.csd *.txt
-        mne/_version.py mne/externals/* */__init__.py* */resources.py paper.bib
-        mne/html/*.css mne/html/*.js mne/io/bti/tests/data/* */SHA1SUMS *__init__py
-        AUTHORS.rst CITATION.cff CONTRIBUTING.rst codemeta.json mne/tests/*.* jr-tools
-        */whats_new.rst */latest.inc */dev.rst */changelog.rst */manual/* doc/*.json
-        logo/LICENSE doc/credit.rst
-    """.strip().split():
-        globs[key] = "null"
-    # Now onto the actual module organization
-    root_path = pathlib.Path(mne.__file__).parent
+    mod_stats, link_overrides, mod_file_map = _aggregate_module_stats(stats)
+    _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls)
+
+
+def _apply_newcontrib_names(unresolved):
+    """Take unresolved contributors' names from their changelog fragments.
+
+    New contributors typically add a towncrier fragment crediting themselves
+    with a ``:newcontrib:`` role (see the contributing guide); that name is
+    deliberately chosen, so prefer it over the GitHub profile name. Only
+    applied when the PR has exactly one unresolved author and its fragment
+    names exactly one new contributor, to avoid misattribution.
+    """
+    by_pr = defaultdict(list)
+    for un in unresolved:
+        by_pr[un.pr].append(un)
+    todo = [
+        uns[0]
+        for uns in by_pr.values()
+        if len(uns) == 1 and uns[0].sha and uns[0].changelog_files
+    ]
+    if not todo:
+        return
+    try:
+        import github  # not a doc dependency, only needed in --fix-mailmap mode
+
+        token = os.environ.get("GITHUB_TOKEN")
+        auth = github.Auth.Token(token) if token else None
+        with github.Github(auth=auth) as gh:
+            repo = gh.get_repo("mne-tools/mne-python")
+            for un in todo:
+                for path in un.changelog_files:
+                    try:
+                        text = repo.get_contents(path, ref=un.sha).decoded_content
+                    except Exception:
+                        continue
+                    names = re.findall(r":newcontrib:`([^`]+)`", text.decode())
+                    if len(set(names)) == 1:
+                        un.name = names[0]
+                        break
+    except Exception:
+        pass  # best-effort only; the GitHub profile name is still used
+
+
+def _github_website(login):
+    """Best-effort fetch of a GitHub profile's website URL (for the PR body)."""
+    if login is None:
+        return None
+    try:
+        import github  # not a doc dependency, only needed in --report mode
+
+        token = os.environ.get("GITHUB_TOKEN")
+        auth = github.Auth.Token(token) if token else None
+        with github.Github(auth=auth) as gh:
+            website = (gh.get_user(login).blog or "").strip()
+    except Exception:
+        return None
+    if website and not website.startswith("http"):
+        website = f"https://{website}"
+    return website or None
+
+
+def _write_report(report_file, added, anchors_added):
+    """Write a Markdown summary for the credit GitHub Action's PR body."""
+    lines = ["## Contributor name resolution", ""]
+    if added:
+        lines += [
+            f"{len(added)} new contributor(s) were added to `.mailmap`, named "
+            "from their changelog `:newcontrib:` entry where available and "
+            "otherwise from their GitHub profile as-is. To improve a name, "
+            "check the links below and edit `.mailmap`:",
+            "",
+        ]
+        for un in added:
+            links = [f"[#{un.pr}]({PR_URL.format(pr=un.pr)})"]
+            if un.login is not None:
+                links.append(f"[profile](https://github.com/{un.login})")
+            website = _github_website(un.login)
+            if website is not None:
+                links.append(f"[website]({website})")
+            lines.append(f"- `{un.mailmap_entry}` — {', '.join(links)}")
+    else:
+        lines += ["All contributor names resolved cleanly."]
+    if anchors_added:
+        lines += [
+            "",
+            f"{len(anchors_added)} link(s) were added to `doc/changes/names.inc` "
+            "from the contributor's GitHub profile. Changelogs link to these, "
+            "as do the badges on the code credit page, so adjust any that "
+            "should point somewhere else:",
+            "",
+            "```",
+            *anchors_added,
+            "```",
+        ]
+    Path(report_file).write_text("\n".join(lines) + "\n", "utf-8")
+
+
+# Changed files matching these globs get no credit (moves, autogenerated, etc.)
+_NULL_GLOBS = """
+    *.qrc *.png *.svg *.ico *.elc *.sfp *.lout *.lay *.csd *.txt
+    mne/_version.py mne/externals/* */__init__.py* */resources.py paper.bib
+    mne/html/*.css mne/html/*.js mne/io/bti/tests/data/* */SHA1SUMS *__init__py
+    AUTHORS.rst CITATION.cff CONTRIBUTING.rst codemeta.json mne/tests/*.* jr-tools
+    */whats_new.rst */latest.inc */dev.rst */changelog.rst */manual/* doc/*.json
+    logo/LICENSE doc/credit.rst
+"""
+# Aliases for old/moved file locations and misc remaps, applied after the scan
+# of the current mne/ layout (assigning to the same glob overrides the scan).
+# The "doc" entry must precede "maintenance" so doc/*.yml etc. count as doc.
+_ALIAS_GLOBS = {
+    "mne.preprocessing": "mne/artifacts/*.py mne/csp.py",
+    "mne.io": "mne/pick.py mne/constants.py mne/info.py mne/fiff/*.* mne/_fiff/*.* "
+    "mne/raw.py mne/testing.py mne/_hdf5.py mne/compensator.py",
+    "mne.transforms": "mne/transforms/*.py mne/_freesurfer.py",
+    "mne.inverse_sparse": "mne/mixed_norm/*.py mne/sparse_learning/*.py",
+    "mne.commands": "mne/__main__.py bin/*",
+    "mne.surface": "mne/morph_map.py",
+    "mne.epochs": "mne/baseline.py",
+    "mne.utils": "mne/parallel.py mne/rank.py mne/misc.py mne/data/*.* "
+    "mne/defaults.py mne/fixes.py mne/icons/*.* mne/icons.*",
+    "mne.filter": "mne/_ola.py mne/cuda.py",
+    "mne.channels": "mne/*digitization/*.py mne/layouts/*.py mne/montages/*.py "
+    "mne/selection.py",
+    "mne.bem": "mne/bem_surfaces.py",
+    "mne.coreg": "mne/coreg/*.py",
+    "mne.minimum_norm": "mne/inverse.py",
+    "mne.source_estimate": "mne/stc.py",
+    "mne.viz": "mne/surfer.py",
+    "mne.time_frequency": "mne/tfr.py",
+    "mne.report": "mne/html_templates/*.*",
+    "mne-connectivity (moved)": "mne/connectivity/*.py",
+    "mne-realtime (moved)": "mne/realtime/*.py",
+    "doc": "doc/* doc/*.py doc/*.rst",
+    "examples": "examples/*.py examples/*.rst",
+    "tutorials": "tutorials/*.py tutorials/*.rst",
+    "maintenance": ".circleci/* tools/* *.yml *.md setup.* MANIFEST.in Makefile "
+    "README.rst flow_diagram.py *.toml debian/* logo/*.py *.git* "
+    ".pre-commit-config.yaml .mailmap .coveragerc make/*",
+}
+_LINK_OVERRIDES = {  # website links that aren't just module paths in this repo
+    "mne-connectivity (moved)": "mne-tools/mne-connectivity",
+    "mne-realtime (moved)": "mne-tools/mne-realtime",
+    "maintenance": "mne-tools/mne-python",
+}
+
+
+def _build_globs():
+    """Map changed-filename globs to module names shown on the website.
+
+    The first fnmatch wins, so order is: uncredited ("null") patterns, then the
+    scan of the current mne/ layout, then _ALIAS_GLOBS.
+    """
+    globs = {key: "null" for key in _NULL_GLOBS.split()}
+    # These must beat the mne/ scan patterns below
+    globs["mne/io/edf/_open.py"] = globs["mne/_edf/open.py"] = "mne.io"
+    root_path = Path(mne.__file__).parent
     mod_file_map = dict()
     for file in root_path.iterdir():
         rel = file.relative_to(root_path).with_suffix("")
@@ -323,78 +620,55 @@ def generate_credit_rst(app=None, *, verbose=False):
             else:
                 globs[key] = mod
                 mod_file_map[mod] = key
-    globs["mne/artifacts/*.py"] = "mne.preprocessing"
-    for key in """
-        pick.py constants.py info.py fiff/*.* _fiff/*.* raw.py testing.py _hdf5.py
-        compensator.py
-    """.strip().split():
-        globs[f"mne/{key}"] = "mne.io"
-    for key in ("mne/transforms/*.py", "mne/_freesurfer.py"):
-        globs[key] = "mne.transforms"
-    globs["mne/mixed_norm/*.py"] = "mne.inverse_sparse"
-    globs["mne/__main__.py"] = "mne.commands"
-    globs["bin/*"] = "mne.commands"
-    globs["mne/morph_map.py"] = "mne.surface"
-    globs["mne/baseline.py"] = "mne.epochs"
-    for key in """
-        parallel.py rank.py misc.py data/*.* defaults.py fixes.py icons/*.* icons.*
-    """.strip().split():
-        globs[f"mne/{key}"] = "mne.utils"
-    for key in ("mne/_ola.py", "mne/cuda.py"):
-        globs[key] = "mne.filter"
-    for key in """
-        *digitization/*.py layouts/*.py montages/*.py selection.py
-    """.strip().split():
-        globs[f"mne/{key}"] = "mne.channels"
-    globs["mne/sparse_learning/*.py"] = "mne.inverse_sparse"
-    globs["mne/csp.py"] = "mne.preprocessing"
-    globs["mne/bem_surfaces.py"] = "mne.bem"
-    globs["mne/coreg/*.py"] = "mne.coreg"
-    globs["mne/inverse.py"] = "mne.minimum_norm"
-    globs["mne/stc.py"] = "mne.source_estimate"
-    globs["mne/surfer.py"] = "mne.viz"
-    globs["mne/tfr.py"] = "mne.time_frequency"
-    globs["mne/connectivity/*.py"] = "mne-connectivity (moved)"
-    link_overrides["mne-connectivity (moved)"] = "mne-tools/mne-connectivity"
-    globs["mne/realtime/*.py"] = "mne-realtime (moved)"
-    link_overrides["mne-realtime (moved)"] = "mne-tools/mne-realtime"
-    globs["mne/html_templates/*.*"] = "mne.report"
-    globs[".circleci/*"] = "maintenance"
-    link_overrides["maintenance"] = "mne-tools/mne-python"
-    globs["tools/*"] = "maintenance"
-    globs["doc/*"] = "doc"
-    for key in ("*.py", "*.rst"):
-        for mod in ("examples", "tutorials", "doc"):
-            globs[f"{mod}/{key}"] = mod
-    for key in """
-        *.yml *.md setup.* MANIFEST.in Makefile README.rst flow_diagram.py *.toml
-        debian/* logo/*.py *.git* .pre-commit-config.yaml .mailmap .coveragerc make/*
-    """.strip().split():
-        globs[key] = "maintenance"
+    for mod, patterns in _ALIAS_GLOBS.items():
+        for pattern in patterns.split():
+            globs[pattern] = mod
+    return globs, _LINK_OVERRIDES, mod_file_map
 
+
+def _aggregate_module_stats(stats):
+    """Roll per-file stats up to per-module stats using the glob mapping."""
+    globs, link_overrides, mod_file_map = _build_globs()
     mod_stats = defaultdict(lambda: defaultdict(lambda: np.zeros(2, int)))
     other_files = set()
+    private_mods = set()
     total_lines = np.zeros(2, int)
     for fname, counts in stats.items():
         for pattern, mod in globs.items():
-            if glob.fnmatch.fnmatch(fname, pattern):
+            if fnmatch.fnmatch(fname, pattern):
                 break
         else:
             other_files.add(fname)
             mod = "other"
-        for e, pm in counts.items():
-            if mod == "mne._fiff":
-                raise RuntimeError
-            # sanity check a bit
-            if mod != "null" and (".png" in fname or "/manual/" in fname):
-                raise RuntimeError(f"Unexpected {mod} {fname}")
-            mod_stats[mod][e] += pm
-            mod_stats["mne"][e] += pm
+        # A private (_-prefixed) submodule needs a remap to a public module
+        if mod.startswith("mne.") and mod.split(".")[-1].startswith("_"):
+            private_mods.add(f"{mod} (from {fname})")
+            continue
+        # sanity check a bit
+        if mod != "null" and (".png" in fname or "/manual/" in fname):
+            raise RuntimeError(f"Unexpected {mod} {fname}")
+        for name, pm in counts.items():
+            mod_stats[mod][name] += pm
+            mod_stats["mne"][name] += pm
             total_lines += pm
     mod_stats.pop("null")  # stuff we shouldn't give credit for
-    mod_stats = dict(
-        (k, mod_stats[k])
-        for k in sorted(
+    problems = []
+    if private_mods:
+        problems.append(
+            "Private submodule(s) found in credit page; update _build_globs() in "
+            "credit_tools.py to remap them to a public module:\n"
+            + "\n".join(sorted(private_mods))
+        )
+    if other_files:
+        problems.append(
+            f"{len(other_files)} file(s) not matched by any glob; update "
+            "_build_globs() in credit_tools.py:\n" + "\n".join(sorted(other_files))
+        )
+    if problems:
+        raise RuntimeError("\n\n".join(problems))
+    mod_stats = {
+        mod: mod_stats[mod]
+        for mod in sorted(
             mod_stats,
             key=lambda x: (
                 not x.startswith("mne"),
@@ -402,16 +676,33 @@ def generate_credit_rst(app=None, *, verbose=False):
                 x.replace("-", "."),
             ),
         )
-    )  # sort modules alphabetically
-    other_files = sorted(other_files)
-    if len(other_files):
-        raise RuntimeError(
-            f"{len(other_files)} misc file(s) found:\n" + "\n".join(other_files)
-        )
+    }  # sort modules alphabetically
     logger.info(f"\nTotal line change count: {list(map(int, total_lines))}")
+    return mod_stats, link_overrides, mod_file_map
 
-    # sphinx-design badges that we use for contributors
+
+def _abbreviate_count(count):
+    """Format a count as a max-3-char abbreviation like 123, 1.2k, 123k, 12m."""
+    # Round to two digits, e.g. 12340 -> 12000, 12560 -> 13000
+    rounded = int(float(f"{count:.2g}"))
+    assert rounded > 0, f"Got zero lines changed ({count})"
+    for prefix in ("", "k", "m", "g"):
+        if rounded >= 1000:
+            rounded = rounded / 1000
+        else:
+            if rounded >= 10 or prefix == "":  # keep single digit as 1 not 1.0
+                out = f"{int(round(rounded))}"
+            else:
+                out = f"{rounded:.1f}"
+            return out + prefix
+    raise RuntimeError(f"Too many digits in {count}")
+
+
+def _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls):
+    # sphinx-design badges that we use for contributors; the linked variants
+    # point at each contributor's doc/changes/names.inc link
     BADGE_KINDS = ["bdg-info-line", "bdg"]
+    LINK_BADGE_KINDS = ["bdg-link-info-line", "bdg-link"]
     content = f"""\
 .. THIS FILE IS AUTO-GENERATED BY {Path(__file__).stem} AND WILL BE OVERWRITTEN
 
@@ -425,6 +716,13 @@ def generate_credit_rst(app=None, *, verbose=False):
    /* Limit max card height */
    div.sd-card-body {{
      max-height: 15em;
+   }}
+   /* Each card is itself a link, laid over its body by an absolutely
+      positioned ::after; lift the contributor badges above it so they keep
+      linking to the contributor rather than to the card target */
+   div.sd-card-body a.sd-badge {{
+     position: relative;
+     z-index: 2;
    }}
    </style>
 
@@ -461,13 +759,13 @@ contributions by submodule as well below.
    :gutter: 1
 
 """
-        # if there are 10 this is 100, if there are 100 this is 100
-        these_stats = dict((k, v.sum()) for k, v in counts.items())
+        these_stats = {name: pm.sum() for name, pm in counts.items()}
         these_stats = dict(
-            (k, these_stats[k])
-            for k in sorted(these_stats, key=lambda x: these_stats[x], reverse=True)
+            sorted(these_stats.items(), key=lambda kv: kv[1], reverse=True)
         )
-        if mod in link_overrides:
+        if mi == 0:
+            link = "https://github.com/mne-tools/mne-python/graphs/contributors"
+        elif mod in link_overrides:
             link = f"https://github.com/{link_overrides[mod]}"
         else:
             kind = "blame" if mod in mod_file_map else "tree"
@@ -476,52 +774,44 @@ contributions by submodule as well below.
         assert "moved" not in link, (mod, link)
         # Use badges because they flow nicely, inside a grid to make it more compact
         stat_lines = []
-        for ki, (k, v) in enumerate(these_stats.items()):
-            # Round to two digits, e.g. 12340 -> 12000, 12560 -> 13000
-            v_round = int(float(f"{v:.2g}"))
-            assert v_round > 0, f"Got zero lines changed for {k} in {mod}: {v_round}"
-            # And then write as a max-3-char human-readable abbreviation like
-            # 123, 1.2k, 123k, 12m, etc.
-            for prefix in ("", "k", "m", "g"):
-                if v_round >= 1000:
-                    v_round = v_round / 1000
-                else:
-                    if v_round >= 10 or prefix == "":  # keep single digit as 1 not 1.0
-                        v_round = f"{int(round(v_round))}"
-                    else:
-                        v_round = f"{v_round:.1f}"
-                    v_round += prefix
-                    break
-            else:
-                raise RuntimeError(f"Too many digits in {v}")
+        for ki, (name, count) in enumerate(these_stats.items()):
+            # if there are 10 this is 100, if there are 100 this is 100
             idx = 0 if ki < (len(these_stats) - 1) // 10 + 1 else 1
-            if any(b in k for b in ("[bot]", "Lumberbot", "Deleted user")):
-                continue
-            assert _good_name(k)
-            stat_lines.append(f":{BADGE_KINDS[idx]}:`{k} ({v_round})`")
+            url = urls[_reference_key(name)]
+            stat_lines.append(
+                f":{LINK_BADGE_KINDS[idx]}:"
+                f"`{name} ({_abbreviate_count(count)}) <{url}>`"
+            )
         stat_lines = f"\n{indent}".join(stat_lines)
-        if mi == 0:
-            content += f"""
+        directive = ".. card::" if mi == 0 else "   .. grid-item-card::"
+        content += f"""
 
-.. card:: {mod}
-   :class-card: overflow-auto
-   :link: https://github.com/mne-tools/mne-python/graphs/contributors
-
-{indent}{stat_lines}
-
-"""
-        else:
-            content += f"""
-
-   .. grid-item-card:: {mod}
-      :class-card: overflow-auto
-      :link: {link}
+{directive} {mod}
+{indent}:class-card: overflow-auto
+{indent}:link: {link}
 
 {indent}{stat_lines}
 
 """
-    (doc_root / "code_credit.inc").write_text(content, encoding="utf-8")
+    out_fname = doc_root / "credits" / "code_credit.inc.new"
+    out_fname.write_text(content, encoding="utf-8")
+    _replace_md5(str(out_fname))
 
 
 if __name__ == "__main__":
-    generate_credit_rst(verbose=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--fix-mailmap",
+        action="store_true",
+        help="append .mailmap entries for unresolved contributors instead of failing",
+    )
+    parser.add_argument(
+        "--report",
+        type=Path,
+        metavar="FILE",
+        help="write a Markdown summary suitable for a PR body",
+    )
+    args = parser.parse_args()
+    generate_credit_rst(
+        fix_mailmap=args.fix_mailmap, report_file=args.report, verbose=True
+    )

@@ -6,6 +6,7 @@
 
 import inspect
 import os
+import shutil
 import sys
 import tempfile
 import traceback
@@ -72,16 +73,14 @@ def requires_openmeeg_mark():
     """Mark pytest tests that require OpenMEEG."""
     import pytest
 
-    return pytest.mark.skipif(
-        not check_version("openmeeg", "2.5.6"), reason="Requires OpenMEEG >= 2.5.6"
-    )
+    return pytest.mark.skipif(not check_version("openmeeg"), reason="Requires OpenMEEG")
 
 
 def requires_freesurfer(arg):
-    """Require Freesurfer."""
+    """Require FreeSurfer."""
     import pytest
 
-    reason = "Requires Freesurfer"
+    reason = "Requires FreeSurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
@@ -96,7 +95,7 @@ def requires_freesurfer(arg):
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires FreeSurfer")(
             arg
         )
 
@@ -146,7 +145,7 @@ def has_mne_c():
 
 
 def has_freesurfer():
-    """Check for Freesurfer."""
+    """Check for FreeSurfer."""
     return "FREESURFER_HOME" in os.environ
 
 
@@ -385,16 +384,6 @@ def _click_ch_name(fig, ch_index=0, button=1):
     _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)
 
 
-def _get_suptitle(fig):
-    """Get fig suptitle (shim for matplotlib < 3.8.0)."""
-    # TODO: obsolete when minimum MPL version is 3.8
-    if check_version("matplotlib", "3.8"):
-        return fig.get_suptitle()
-    else:
-        # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
-        return fig.texts[0].get_text()
-
-
 def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
     __tracebackhide__ = True
 
@@ -417,3 +406,45 @@ def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
         f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
     )
     assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"
+
+
+def _chmod_rw_R(path):
+    assert os.path.isdir(path), f"Expected a directory, got {path}"
+    os.chmod(path, 0o700 | os.stat(path).st_mode)
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            this_name = os.path.join(root, name)
+            os.chmod(this_name, 0o600 | os.stat(this_name).st_mode)
+        for name in dirs:
+            this_name = os.path.join(root, name)
+            os.chmod(this_name, 0o770 | os.stat(this_name).st_mode)
+
+
+def copytree_rw(src, dst):
+    """Copy a directory tree and make it read/write."""
+    assert os.path.isdir(src), f"Expected a directory, got {src}"
+    shutil.copytree(src, dst)
+    _chmod_rw_R(dst)
+    return dst
+
+
+_vtk_object_base = None
+
+
+def _is_vtk(obj):
+    """Check if an object is a VTK object worth leak-checking (for refleak).
+
+    An ``isinstance`` check, not a class-name-prefix one: VTK >= 9.6
+    instantiates pythonic override subclasses whose names lack the ``vtk``
+    prefix (``PolyData``, ``VTKAOSArray_vtkFloatArray``, ...), and pyvista
+    wrapper subclasses count as VTK objects too. Requires ``vtkmodules``.
+    """
+    global _vtk_object_base
+    if _vtk_object_base is None:
+        from vtkmodules.vtkCommonCore import vtkObjectBase
+
+        _vtk_object_base = vtkObjectBase
+    # vtkBuffer_IhE (vtkBuffer<unsigned char>) instances are known to linger
+    return (
+        isinstance(obj, _vtk_object_base) and obj.__class__.__name__ != "vtkBuffer_IhE"
+    )

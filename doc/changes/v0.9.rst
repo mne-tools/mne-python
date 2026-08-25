@@ -8,7 +8,7 @@ Changelog
 
 - Add support for mayavi figures in ``add_section`` method in Report by `Mainak Jas`_
 
-- Add extract volumes of interest from freesurfer segmentation and setup as volume source space by `Alan Leggitt`_
+- Add extract volumes of interest from FreeSurfer segmentation and setup as volume source space by `Alan Leggitt`_
 
 - Add support to combine source spaces of different types by `Alan Leggitt`_
 
@@ -237,3 +237,5 @@ The committer list for this release is the following (preceded by number of comm
 *   1  Romain Trachel
 *   1  mads jensen
 *   1  sviter
+
+.. include:: names.inc

@@ -5,6 +5,7 @@
 import copy
 import os.path as op
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -17,7 +18,6 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
-from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,
@@ -28,6 +28,7 @@ from ...utils import (
     verbose,
     warn,
 )
+from ...utils._typing import FileLike, Self
 from ..base import (
     BaseRaw,
     _check_maxshield,
@@ -53,7 +54,7 @@ class Raw(BaseRaw):
 
         .. versionchanged:: 0.18
            Support for file-like objects.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
@@ -91,11 +92,11 @@ class Raw(BaseRaw):
     @verbose
     def __init__(
         self,
-        fname,
-        allow_maxshield=False,
-        preload=False,
-        on_split_missing="raise",
-        verbose=None,
+        fname: Path | str | FileLike | None,
+        allow_maxshield: bool | str = False,
+        preload: bool | str = False,
+        on_split_missing: str = "raise",
+        verbose: bool | str | int | None = None,
     ):
         raws = []
         do_check_ext = not _file_like(fname)
@@ -335,7 +336,9 @@ class Raw(BaseRaw):
 
         # reformat raw_extras to be a dict of list/ndarray rather than
         # list of dict (faster access)
-        raw_extras = {key: [r[key] for r in raw_extras] for key in raw_extras[0]}
+        raw_extras: dict[str, Any] = {
+            key: [r[key] for r in raw_extras] for key in raw_extras[0]
+        }
         for key in raw_extras:
             if key != "ent":  # dict or None
                 raw_extras[key] = np.array(raw_extras[key], int)
@@ -424,12 +427,11 @@ class Raw(BaseRaw):
                 # already (cutting out some of read_tag) ...
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
-                try:
-                    one = _reshape_view(one, (nsamp, nchan))
-                except AttributeError:  # one is None
+                if one is None:
                     n_bad += picksamp
                 else:
                     # ... then pick samples we want
+                    one = one.reshape((nsamp, nchan), copy=False)
                     if first_pick != 0 or last_pick != nsamp:
                         one = one[first_pick:last_pick]
                     _mult_cal_one(
@@ -446,7 +448,7 @@ class Raw(BaseRaw):
                 )
             assert offset == stop - start
 
-    def fix_mag_coil_types(self):
+    def fix_mag_coil_types(self) -> Self:
         """Fix Elekta magnetometer coil types.
 
         Returns
@@ -498,7 +500,11 @@ def _check_entry(first, nent):
 
 @fill_doc
 def read_raw_fif(
-    fname, allow_maxshield=False, preload=False, on_split_missing="raise", verbose=None
+    fname: Path | str | FileLike,
+    allow_maxshield: bool | str = False,
+    preload: bool | str = False,
+    on_split_missing: str = "raise",
+    verbose: bool | str | int | None = None,
 ) -> Raw:
     """Reader function for Raw FIF data.
 
@@ -513,7 +519,7 @@ def read_raw_fif(
 
         .. versionchanged:: 0.18
            Support for file-like objects.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using

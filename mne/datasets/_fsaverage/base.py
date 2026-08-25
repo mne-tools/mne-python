@@ -36,7 +36,7 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     -----
     This function is designed to provide
 
-    1. All modern (Freesurfer 6) fsaverage subject files
+    1. All modern (FreeSurfer 6) fsaverage subject files
     2. All MNE fsaverage parcellations
     3. fsaverage head surface, fiducials, head<->MRI trans, 1- and 3-layer
        BEMs (and surfaces)

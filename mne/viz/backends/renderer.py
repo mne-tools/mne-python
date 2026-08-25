@@ -202,7 +202,7 @@ def _get_3d_backend():
 
 
 @contextmanager
-def use_3d_backend(backend_name):
+def use_3d_backend(backend_name):  # numpydoc ignore=YD01
     """Create a 3d visualization context using the designated backend.
 
     See :func:`mne.viz.set_3d_backend` for more details on the available
@@ -380,6 +380,29 @@ def create_3d_figure(
         return renderer
 
 
+def clear_3d_figure(figure):
+    """Remove all actors from the given scene.
+
+    The scene itself is kept open, so it can be reused for another plot. This is
+    much cheaper than closing the scene and creating a new one, and it keeps
+    memory usage constant when many scenes are plotted in a loop.
+
+    Parameters
+    ----------
+    figure : object
+        The scene which needs to be cleared.
+
+    See Also
+    --------
+    mne.viz.close_3d_figure
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+    backend._clear_3d_figure(figure)
+
+
 def close_3d_figure(figure):
     """Close the given scene.
 
@@ -387,6 +410,10 @@ def close_3d_figure(figure):
     ----------
     figure : object
         The scene which needs to be closed.
+
+    See Also
+    --------
+    mne.viz.clear_3d_figure
     """
     backend._close_3d_figure(figure)
 
@@ -450,7 +477,7 @@ class _TimeInteraction:
                 TimeChange(time=np.interp(time_index, np.arange(len(times)), times)),
             )
 
-        layout = self._dock_add_group_box("")
+        layout = self._dock_add_group_box("Playback", collapse=False)
         self._widgets["time_slider"] = self._dock_add_slider(
             name="Time (s)",
             value=np.interp(current_time_func(), times, np.arange(len(times))),

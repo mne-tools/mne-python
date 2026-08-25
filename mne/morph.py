@@ -7,9 +7,8 @@ import os.path as op
 import warnings
 
 import numpy as np
-from scipy import sparse
 
-from .fixes import _eye_array, _get_img_fdata, _reshape_view
+from .fixes import _get_img_fdata
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -29,8 +28,8 @@ from .utils import (
     _ensure_int,
     _import_h5io_funcs,
     _import_nibabel,
+    _soft_import,
     _validate_type,
-    check_version,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -38,9 +37,7 @@ from .utils import (
     verbose,
     warn,
 )
-from .utils import (
-    warn as warn_,
-)
+from .utils import warn as warn_
 
 
 @verbose
@@ -210,7 +207,7 @@ def compute_source_morph(
     vertices_to_surf, vertices_to_vol = list(), list()
 
     if kind in ("volume", "mixed"):
-        _check_dep(nibabel="2.1.0", dipy="0.10.1")
+        _check_dep()
         nib = _import_nibabel("work with a volume source space")
 
         logger.info("Volume source space(s) present...")
@@ -292,8 +289,11 @@ def compute_source_morph(
             assert morph_mat.shape[0] == n_verts
 
     vertices_to = vertices_to_surf + vertices_to_vol
+
     if src_to is not None:
         assert len(vertices_to) == len(src_to)
+        # set spacing to None when src_to is provided
+        spacing = None
     morph = SourceMorph(
         subject_from,
         subject_to,
@@ -521,8 +521,8 @@ class SourceMorph:
         mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
@@ -604,6 +604,7 @@ class SourceMorph:
 
     def _morph_vols(self, vols, mesg, subselect=True):
         from dipy.align.reslice import reslice
+        from scipy import sparse
 
         interp = self.src_data["interpolator"].tocsc()[
             :, np.concatenate(self._vol_vertices_from)
@@ -886,16 +887,12 @@ def read_source_morph(fname):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
-def _check_dep(nibabel="2.1.0", dipy="0.10.1"):
+def _check_dep(nibabel=True, dipy=True):
     """Check dependencies."""
-    for lib, ver in zip(["nibabel", "dipy"], [nibabel, dipy]):
-        passed = True if not ver else check_version(lib, ver)
-
-        if not passed:
-            raise ImportError(
-                f"{lib} {ver} or higher must be correctly "
-                "installed and accessible from Python"
-            )
+    if nibabel:
+        _import_nibabel("morph source estimates")
+    if dipy:
+        _soft_import("dipy", "volumetric source morphing")
 
 
 def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
@@ -903,7 +900,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     assert isinstance(stc, _BaseVolSourceEstimate)  # should be guaranteed
     if stc._data_ndim == 3:
         stc = stc.magnitude()
-    _check_dep(nibabel="2.1.0", dipy=False)
+    _check_dep(dipy=False)
 
     NiftiImage, NiftiHeader = _triage_output(output)
 
@@ -1035,7 +1032,7 @@ def _triage_output(output):
 
 def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     """Interpolate source estimate data to MRI."""
-    _check_dep(nibabel="2.1.0", dipy=False)
+    _check_dep(dipy=False)
     NiftiImage, NiftiHeader = _triage_output(output)
     _validate_type(stc, _BaseVolSourceEstimate, "stc", "volume source estimate")
     assert morph.kind in ("volume", "mixed")
@@ -1047,7 +1044,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         mri_resolution = (float(mri_resolution),) * 3
 
     if isinstance(mri_resolution, tuple):
-        _check_dep(nibabel=False, dipy="0.10.1")  # nibabel was already checked
+        _check_dep(nibabel=False)  # nibabel was already checked
         from dipy.align.reslice import reslice
 
         voxel_size = mri_resolution
@@ -1180,6 +1177,8 @@ def _compute_morph_matrix(
     xhemi=False,
 ):
     """Compute morph matrix."""
+    from scipy import sparse
+
     logger.info("Computing morph matrix...")
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -1222,13 +1221,15 @@ def _compute_morph_matrix(
 
 
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
+    from scipy import sparse
+
     _validate_type(smooth, (str, None, "int-like"), "smoothing steps")
     if len(vertices_from) == 0:
         return sparse.csr_array((len(vertices_to), 0))
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e += _eye_array(n_vertices, format="csr")
+    e += sparse.eye_array(n_vertices, format="csr")
     if isinstance(smooth, str):
         _check_option("smooth", smooth, ("nearest",), extra=" when used as a string.")
         mm = _surf_nearest(vertices_from, e).tocsr()
@@ -1335,6 +1336,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
 @_custom_lru_cache(20)
 def _surf_nearest(vertices, adj_mat):
     # Vertices can be out of order, so sort them to start ...
+    from scipy import sparse
+
     order = np.argsort(vertices)
     vertices = vertices[order]
     # work around https://github.com/scipy/scipy/issues/20904
@@ -1372,12 +1375,14 @@ def _csr_row_norm(data, row_norm):
 def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
+    from scipy import sparse
+
     assert isinstance(e, sparse.csr_array)
     n_tot = e.shape[0]
     assert e.shape == (n_tot, n_tot)
     # our output matrix starts out as a smaller matrix, and will gradually
     # increase in size
-    data = _eye_array(len(idx_from), format="csr")
+    data = sparse.eye_array(len(idx_from), format="csr")
     _validate_type(smooth, ("int-like", str, None), "smoothing steps")
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, "smoothing steps")
@@ -1556,7 +1561,7 @@ def _apply_morph_data(morph, stc_from):
         data[to_sl] = morph.morph_mat @ data_from[from_sl]
     assert to_used.all()
     assert from_used.all()
-    data = _reshape_view(data, (data.shape[0],) + stc_from.data.shape[1:])
+    data = data.reshape((data.shape[0],) + stc_from.data.shape[1:], copy=False)
     klass = stc_from.__class__
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep, morph.subject_to)
     return stc_to

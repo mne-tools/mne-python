@@ -8,19 +8,20 @@ import warnings
 from collections import Counter, OrderedDict, UserDict, UserList
 from collections.abc import Iterable
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
-from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import (
-    _safe_name_list,
+    _safe_read_name_list,
+    _safe_write_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -67,7 +68,9 @@ class _AnnotationsExtrasDict(UserDict):
     strings, integers, floats, or None.
     """
 
-    def __setitem__(self, key: str, value: str | int | float | None) -> None:
+    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
+        self, key: str, value: str | int | float | None
+    ) -> None:
         _validate_type(key, str, "key")
         if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
@@ -112,7 +115,7 @@ class _AnnotationsExtrasList(UserList):
             initlist = [self._validate_value(v) for v in initlist]
         super().__init__(initlist)
 
-    def __setitem__(  # type: ignore[override]
+    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
         self,
         key: int | slice,
         value,
@@ -158,48 +161,76 @@ def _validate_extras(extras, length: int):
     return _AnnotationsExtrasList(extras or [None] * length)
 
 
-def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
-    onset = np.atleast_1d(np.array(onset, dtype=float))
-    if onset.ndim != 1:
+def _ensure_1d(arr, *, dtype, name):
+    arr = np.atleast_1d(np.array(arr, dtype=dtype))
+    if arr.ndim != 1:
         raise ValueError(
-            f"Onset must be a one dimensional array, got {onset.ndim} (shape "
-            f"{onset.shape})."
+            f"{name} must be a one dimensional array, got {arr.ndim} (shape "
+            f"{arr.shape})."
         )
-    duration = np.array(duration, dtype=float)
-    if duration.ndim == 0 or duration.shape == (1,):
-        duration = np.repeat(duration, len(onset))
-    if duration.ndim != 1:
+    return arr
+
+
+def _check_length(arr, n, *, name):
+    if len(arr) != n:
         raise ValueError(
-            f"Duration must be a one dimensional array, got {duration.ndim}."
+            f"Length of {name} ({len(arr)}) must match the length of "
+            f"existing annotations ({n})."
         )
 
-    description = np.array(description, dtype=str)
-    if description.ndim == 0 or description.shape == (1,):
-        description = np.repeat(description, len(onset))
-    if description.ndim != 1:
-        raise ValueError(
-            f"Description must be a one dimensional array, got {description.ndim}."
-        )
-    _safe_name_list(description, "write", "description")
 
-    # ch_names: convert to ndarray of tuples
+def _check_onset(onset, n=None):
+    """Convert and validate onset to a 1D float array."""
+    onset = _ensure_1d(onset, dtype=float, name="onset")
+    if n is not None:
+        _check_length(onset, n, name="onset")
+    return onset
+
+
+def _check_duration(duration, n):
+    """Convert and validate duration to a 1D float array of length n."""
+    duration = _ensure_1d(duration, dtype=float, name="duration")
+    if duration.shape == (1,):
+        duration = np.repeat(duration, n)
+    _check_length(duration, n, name="duration")
+    return duration
+
+
+def _check_description(description, n):
+    """Convert and validate description to a 1D str array of length n."""
+    description = _ensure_1d(
+        description, dtype=np.dtypes.StringDType, name="description"
+    )
+    if description.shape == (1,):
+        description = np.repeat(description, n)
+    _check_length(description, n, name="description")
+    # ↓ just ensures no "{COLON}" present in any descriptions;
+    # ↓ `.tolist()` is done for typing purposes
+    _safe_write_name_list(description.tolist(), "description")
+    return description
+
+
+def _check_ch_names_annot(ch_names, n):
+    """Convert and validate ch_names to an ndarray of tuples of length n."""
     _validate_type(ch_names, (None, tuple, list, np.ndarray), "ch_names")
     if ch_names is None:
-        ch_names = [()] * len(onset)
+        ch_names = [()] * n
     ch_names = list(ch_names)
+    _check_length(ch_names, n, name="ch_names")
     for ai, ch in enumerate(ch_names):
         _validate_type(ch, (list, tuple, np.ndarray), f"ch_names[{ai}]")
         ch_names[ai] = tuple(ch)
         for ci, name in enumerate(ch_names[ai]):
             _validate_type(name, str, f"ch_names[{ai}][{ci}]")
-    ch_names = _ndarray_ch_names(ch_names)
+    return _ndarray_ch_names(ch_names)
 
-    if not (len(onset) == len(duration) == len(description) == len(ch_names)):
-        raise ValueError(
-            "Onset, duration, description, and ch_names must be "
-            f"equal in sizes, got {len(onset)}, {len(duration)}, "
-            f"{len(description)}, and {len(ch_names)}."
-        )
+
+def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
+    onset = _check_onset(onset)
+    n = len(onset)
+    duration = _check_duration(duration, n)
+    description = _check_description(description, n)
+    ch_names = _check_ch_names_annot(ch_names, n)
 
     extras = _validate_extras(extras, len(onset))
     return onset, duration, description, ch_names, extras
@@ -398,7 +429,7 @@ class Annotations:
             try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
                 if _handle_meas_date(0) == datetime.strptime(
                     orig_time, "%Y-%m-%d %H:%M:%S"
-                ).replace(tzinfo=timezone.utc):
+                ).replace(tzinfo=UTC):
                     pass
             except ValueError:  # error if incorrect datetime format AND not the default
                 warn(
@@ -408,7 +439,7 @@ class Annotations:
                     f"' '. Got: {orig_time}. Defaulting `orig_time` to None.",
                     RuntimeWarning,
                 )
-        self.onset, self.duration, self.description, self.ch_names, self._extras = (
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
             _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
         self._sort()  # ensure we're sorted
@@ -417,6 +448,98 @@ class Annotations:
     def orig_time(self):
         """The time base of the Annotations."""
         return self._orig_time
+
+    @property
+    def onset(self):
+        """Onset of each annotation (in seconds).
+
+        Returns
+        -------
+        onset : array of shape (n_annotations,)
+            The onset of each annotation in seconds from the start of
+            the recording.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._onset
+
+    @onset.setter
+    def onset(self, onset):
+        onset = _check_onset(onset, n=len(self._onset))
+        self._onset = onset
+
+    @property
+    def duration(self):
+        """Duration of each annotation (in seconds).
+
+        Returns
+        -------
+        duration : array of shape (n_annotations,)
+            The duration of each annotation in seconds.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        n = len(self._duration)
+        duration = _check_duration(duration, n)
+        self._duration = duration
+
+    @property
+    def description(self):
+        """Description of each annotation.
+
+        Returns
+        -------
+        description : array of shape (n_annotations,)
+            A string description for each annotation (e.g., event
+            label or condition name). The array uses NumPy's variable-width
+            :obj:`~numpy.dtypes.StringDType`, so assigning a longer string into an
+            existing entry does not truncate it.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        """
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        n = len(self._description)
+        description = _check_description(description, n)
+        self._description = description
+
+    @property
+    def ch_names(self):
+        """Channel names associated with each annotation.
+
+        Returns
+        -------
+        ch_names : list of tuple
+            Channel names associated with each annotation.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._ch_names
+
+    @ch_names.setter
+    def ch_names(self, ch_names):
+        n = len(self._ch_names)
+        ch_names = _check_ch_names_annot(ch_names, n)
+        self._ch_names = ch_names
 
     @property
     def extras(self):
@@ -472,7 +595,18 @@ class Annotations:
         return len(self.duration)
 
     def __add__(self, other):
-        """Add (concatencate) two Annotation objects."""
+        """Add (concatenate) two Annotations objects.
+
+        Parameters
+        ----------
+        other : instance of Annotations
+            The annotations to append. Must have the same ``orig_time``.
+
+        Returns
+        -------
+        annotations : instance of Annotations
+            A new instance containing the annotations of both objects.
+        """
         out = self.copy()
         out += other
         return out
@@ -501,7 +635,14 @@ class Annotations:
         )
 
     def __iter__(self):
-        """Iterate over the annotations."""
+        """Iterate over the annotations.
+
+        Yields
+        ------
+        annotation : OrderedDict
+            The keys are ``onset``, ``duration``, ``description``,
+            ``orig_time``, and (if any are set) ``ch_names`` and ``extras``.
+        """
         # Figure this out once ahead of time for consistency and speed (for
         # thousands of annotations)
         with_ch_names = self._any_ch_names()
@@ -509,8 +650,28 @@ class Annotations:
             yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying numpy structure."""
-        if isinstance(key, int_like):
+        """Propagate indexing and slicing to the underlying numpy structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of Annotations
+            A single annotation (as a dict) if ``key`` is an integer, otherwise
+            a new :class:`~mne.Annotations` instance with the selected
+            annotations.
+        """
+        if isinstance(key, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             out_keys = ("onset", "duration", "description", "orig_time")
             out_vals = (
                 self.onset[key],
@@ -573,11 +734,15 @@ class Annotations:
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
-        self.onset = np.append(self.onset, onset)
-        self.duration = np.append(self.duration, duration)
-        self.description = np.append(self.description, description)
-        self.ch_names = np.append(self.ch_names, ch_names)
-        self.extras.extend(extras)
+        # Write directly to private attributes to avoid triggering the public
+        # setter validation, which would raise an error due to temporary length
+        # mismatches while fields are being extended one at a time.
+        # The data is already validated by _check_o_d_s_c_e above.
+        self._onset = np.append(self._onset, onset)
+        self._duration = np.append(self._duration, duration)
+        self._description = np.append(self._description, description)
+        self._ch_names = np.append(self._ch_names, ch_names)
+        self._extras.extend(extras)
         self._sort()
         return self
 
@@ -591,6 +756,19 @@ class Annotations:
         """
         return deepcopy(self)
 
+    def __getstate__(self):
+        """Get the state for pickling and copying."""
+        state = self.__dict__.copy()
+        # Store the descriptions as a list: copy.deepcopy of a StringDType array
+        # TODO VERSION: segfaults on NumPy < 2.2.5 (numpy/numpy#28609)
+        state["_description"] = self._description.tolist()
+        return state
+
+    def __setstate__(self, state):
+        """Set the state from pickling and copying."""
+        self.__dict__.update(state)
+        self._description = np.array(self._description, dtype=np.dtypes.StringDType)
+
     def delete(self, idx):
         """Remove an annotation. Operates inplace.
 
@@ -600,11 +778,11 @@ class Annotations:
             Index of the annotation to remove. Can be array-like to
             remove multiple indices.
         """
-        self.onset = np.delete(self.onset, idx)
-        self.duration = np.delete(self.duration, idx)
-        self.description = np.delete(self.description, idx)
-        self.ch_names = np.delete(self.ch_names, idx)
-        if isinstance(idx, int_like):
+        self._onset = np.delete(self._onset, idx)
+        self._duration = np.delete(self._duration, idx)
+        self._description = np.delete(self._description, idx)
+        self._ch_names = np.delete(self._ch_names, idx)
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.extras[idx]
         elif len(idx) > 0:
             # convert slice-like idx to ints, and delete list items in reverse order
@@ -740,11 +918,11 @@ class Annotations:
         # the onset-then-duration hierarchy
         vals = sorted(zip(self.onset, self.duration, range(len(self))))
         order = list(list(zip(*vals))[-1]) if len(vals) else []
-        self.onset = self.onset[order]
-        self.duration = self.duration[order]
-        self.description = self.description[order]
-        self.ch_names = self.ch_names[order]
-        self.extras = [self.extras[i] for i in order]
+        self._onset = self._onset[order]
+        self._duration = self._duration[order]
+        self._description = self._description[order]
+        self._ch_names = self._ch_names[order]
+        self._extras = [self._extras[i] for i in order]
         return order
 
     def _get_crop_lims(self, tmin, tmax, use_orig_time):
@@ -848,12 +1026,12 @@ class Annotations:
                 ch_names.append(ch)
                 extras.append(extra)
         logger.debug(f"Cropping complete (kept {len(onsets)})")
-        self.onset = np.array(onsets, float)
-        self.duration = np.array(durations, float)
-        assert (self.duration >= 0).all()
-        self.description = np.array(descriptions, dtype=str)
-        self.ch_names = _ndarray_ch_names(ch_names)
-        self.extras = extras
+        self._onset = np.array(onsets, float)
+        self._duration = np.array(durations, float)
+        assert (self._duration >= 0).all()
+        self._description = np.array(descriptions, dtype=np.dtypes.StringDType)
+        self._ch_names = _ndarray_ch_names(ch_names)
+        self._extras = extras
 
         if emit_warning:
             omitted = np.array(out_of_bounds).sum()
@@ -942,7 +1120,10 @@ class Annotations:
             valid_key_source="data",
             key_description="Annotation description(s)",
         )
-        self.description = np.array([str(mapping.get(d, d)) for d in self.description])
+        self.description = np.array(
+            [str(mapping.get(d, d)) for d in self.description],
+            dtype=np.dtypes.StringDType,
+        )
         return self
 
 
@@ -1131,7 +1312,27 @@ class HEDAnnotations(Annotations):
         return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying structure."""
+        """Propagate indexing and slicing to the underlying structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of HEDAnnotations
+            A single annotation (as a dict, including ``hed_string``) if
+            ``key`` is an integer, otherwise a new
+            :class:`~mne.HEDAnnotations` instance with the selected annotations.
+        """
         result = super().__getitem__(
             key, with_ch_names=with_ch_names, with_extras=with_extras
         )
@@ -1158,7 +1359,7 @@ class HEDAnnotations(Annotations):
             _orig_time=self._orig_time,
             onset=self.onset,
             duration=self.duration,
-            description=self.description,
+            description=self.description.tolist(),  # see Annotations.__getstate__
             ch_names=self.ch_names,
             _extras=self.extras,
             hed_string=list(self.hed_string),
@@ -1168,11 +1369,15 @@ class HEDAnnotations(Annotations):
     def __setstate__(self, state):
         """Unpack from serialized format."""
         self._orig_time = state["_orig_time"]
-        self.onset = state["onset"]
-        self.duration = state["duration"]
-        self.description = state["description"]
-        self.ch_names = state["ch_names"]
-        self.extras = state.get("_extras", [None] * len(self.onset))
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
+            _check_o_d_s_c_e(
+                state["onset"],
+                state["duration"],
+                state["description"],
+                state["ch_names"],
+                state.get("_extras", None),
+            )
+        )
         self._hed_version = state["_hed_version"]
         self.hed_string = _HEDStrings(
             state["hed_string"], hed_version=self._hed_version
@@ -1211,6 +1416,7 @@ class HEDAnnotations(Annotations):
             onset, duration, description, ch_names, extras
         )
         hed_string = self._check_hed_strings(hed_string, len(onset))
+
         hed_objs = [
             self.hed_string._validate_hed_string(v, self.hed_string._schema)
             for v in hed_string
@@ -1229,7 +1435,6 @@ class HEDAnnotations(Annotations):
     def __iadd__(self, other):
         """Add (concatenate) two HEDAnnotations objects in-place."""
         if not isinstance(other, type(self)):
-            # Convert self to plain Annotations, preserving HED in extras
             extras = _hed_extras_from_hed_annotations(self)
             result = Annotations(
                 onset=self.onset,
@@ -1267,7 +1472,7 @@ class HEDAnnotations(Annotations):
             indices.
         """
         super().delete(idx)
-        if isinstance(idx, int_like):
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.hed_string._objs[idx]
             del self.hed_string[idx]
         else:
@@ -1365,6 +1570,14 @@ class HEDAnnotations(Annotations):
 class EpochAnnotationsMixin:
     """Mixin class for Annotations in Epochs."""
 
+    # Attributes provided by the host class (BaseEpochs), declared here so the
+    # mixin methods type-check.
+    info: Info
+    events: np.ndarray
+    times: np.ndarray
+    _raw_sfreq: float
+    _annotations: Annotations | None
+
     @property
     def annotations(self):  # noqa: D102
         return self._annotations
@@ -1453,6 +1666,7 @@ class EpochAnnotationsMixin:
         # check if annotations exist
         if self.annotations is None:
             return epoch_annot_list
+        assert self._annotations is not None
 
         # when each epoch and annotation starts/stops
         # no need to account for first_samp here...
@@ -1554,8 +1768,8 @@ class EpochAnnotationsMixin:
             return self
 
         # get existing metadata DataFrame or instantiate an empty one
-        if self._metadata is not None:
-            metadata = self._metadata
+        if self._metadata is not None:  # ty: ignore[unresolved-attribute]  # host pandas attr
+            metadata = self._metadata  # ty: ignore[unresolved-attribute]  # host pandas attr
         else:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
@@ -1616,7 +1830,10 @@ def _combine_annotations(
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
     ch_names = np.concatenate([one.ch_names, two.ch_names])
-    return Annotations(onset, duration, description, one.orig_time, ch_names)
+    extras = one.extras + two.extras
+    return Annotations(
+        onset, duration, description, one.orig_time, ch_names, extras=extras
+    )
 
 
 def _handle_meas_date(meas_date):
@@ -1635,7 +1852,7 @@ def _handle_meas_date(meas_date):
         except ValueError:
             meas_date = None
         else:
-            meas_date = meas_date.replace(tzinfo=timezone.utc)
+            meas_date = meas_date.replace(tzinfo=UTC)
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
@@ -1738,7 +1955,7 @@ def _write_annotations_csv(fname, annot):
     annot = annot.to_data_frame()
     if "ch_names" in annot:
         annot["ch_names"] = [
-            _safe_name_list(ch, "write", name=f'annot["ch_names"][{ci}')
+            _safe_write_name_list(ch, name=f'annot["ch_names"][{ci}')
             for ci, ch in enumerate(annot["ch_names"])
         ]
     extras_columns = set(annot.columns) - {
@@ -1769,7 +1986,7 @@ def _write_annotations_txt(fname, annot):
         content += ", ch_names"
         data.append(
             [
-                _safe_name_list(ch, "write", f"annot.ch_names[{ci}]")
+                _safe_write_name_list(ch, name=f"annot.ch_names[{ci}]")
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
@@ -1785,7 +2002,7 @@ def _write_annotations_txt(fname, annot):
                 )
             data.append([val if val is not None else "" for val in values])
     content += "\n"
-    data = np.array(data, dtype=str).T
+    data = np.array(data, dtype=np.dtypes.StringDType).T
     assert data.ndim == 2
     assert data.shape[0] == len(annot.onset)
     assert data.shape[1] == n_cols
@@ -1796,7 +2013,12 @@ def _write_annotations_txt(fname, annot):
 
 @fill_doc
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
+    fname,
+    sfreq="auto",
+    uint16_codec=None,
+    encoding="utf8",
+    ignore_marker_types=False,
+    data_format="auto",
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1830,6 +2052,8 @@ def read_annotations(
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
         descriptions). Defaults to ``False``.
+    data_format : str
+        Only used by CNT files, see :func:`mne.io.read_raw_cnt` for details.
 
     Returns
     -------
@@ -1874,6 +2098,7 @@ def read_annotations(
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
         ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".cnt": {"data_format": data_format},
         ".dat": {"sfreq": sfreq},
         ".cdt": {"sfreq": sfreq},
         ".cef": {"sfreq": sfreq},
@@ -1944,10 +2169,7 @@ def _read_annotations_csv(fname):
     description = df["description"].values
     ch_names = None
     if "ch_names" in df.columns:
-        ch_names = [
-            _safe_name_list(val, "read", "annotation channel name")
-            for val in df["ch_names"].values
-        ]
+        ch_names = [_safe_read_name_list(val) for val in df["ch_names"].values]
     extra_columns = list(
         df.columns.difference(["onset", "duration", "description", "ch_names"])
     )
@@ -1978,6 +2200,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
+    from scipy.io import loadmat
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
@@ -2096,8 +2319,8 @@ def _read_annotations_txt(fname):
     desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     if ch_names is not None:
         ch_names = [
-            _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
-            for ci, ch in enumerate(ch_names)
+            _safe_read_name_list(ch.decode().strip())
+            for ci, ch in enumerate(np.atleast_1d(ch_names))
         ]
 
     annotations = Annotations(
@@ -2132,13 +2355,13 @@ def _read_annotations_fif(fid, tree):
                 duration = tag.data
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
-                description = _safe_name_list(tag.data, "read", "description")
+                description = _safe_read_name_list(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:
-                    orig_time = float(orig_time)  # old way
+                    orig_time = float(tag.data)  # old way
                 except TypeError:
-                    orig_time = tuple(orig_time)  # new way
+                    orig_time = tuple(tag.data)  # new way
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
             elif kind == FIFF.FIFF_FREE_LIST:

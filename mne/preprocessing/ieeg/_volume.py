@@ -157,7 +157,7 @@ def make_montage_volume(
     Returns
     -------
     elec_image : nibabel.spatialimages.SpatialImage
-        An image in Freesurfer surface RAS space with voxel values
+        An image in FreeSurfer surface RAS space with voxel values
         corresponding to the index of the channel. The background
         is 0s and this index starts at 1.
     """

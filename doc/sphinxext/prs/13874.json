@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "3455d64a9da204c6220e10c8026d90c6c1a01c6a",
+  "authors": [
+    {
+      "n": "Ayushi Satodiya",
+      "e": "ayushisatodiya2411@gmail.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13874.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 13,
+      "d": 1
+    }
+  }
+}

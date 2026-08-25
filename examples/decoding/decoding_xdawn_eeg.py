@@ -72,7 +72,7 @@ epochs = Epochs(
 
 # Create classification pipeline
 kwargs = dict()
-if check_version("sklearn", "1.8"):
+if check_version("sklearn", "1.8"):  # TODO VERSION remove on sklearn 1.8+
     kwargs["l1_ratio"] = 1
 else:
     kwargs["penalty"] = "l1"

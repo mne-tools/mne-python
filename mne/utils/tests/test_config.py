@@ -2,12 +2,15 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import importlib.metadata
 import json
 import os
 import platform
 import random
 import re
 import time
+import tomllib
+import urllib.request
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -114,16 +117,38 @@ def test_sys_info_basic():
     assert "numpy" in out
     # replace all in-line whitespace with single space
     out = "\n".join(" ".join(o.split()) for o in out.splitlines())
-    assert "? GiB" not in out
+    assert "?" not in out
     if platform.system() == "Darwin":
         assert "Platform macOS-" in out
     elif platform.system() == "Linux":
         assert "Platform Linux" in out
 
 
+def test_sys_info_windowing_system(monkeypatch):
+    """Test that sys_info reports the windowing system on Linux."""
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    for var in ("XDG_SESSION_TYPE", "WAYLAND_DISPLAY", "DISPLAY"):
+        monkeypatch.delenv(var, raising=False)
+
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    line = out.getvalue().splitlines()[0]
+    assert line.startswith("Platform")
+    assert "(" not in line
+
+    monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    assert "(Wayland)" in out.getvalue().splitlines()[0]
+
+    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
+    out = ClosingStringIO()
+    sys_info(fid=out, check_version=False)
+    assert "(X11)" in out.getvalue().splitlines()[0]
+
+
 def test_sys_info_complete():
     """Test that sys_info is sufficiently complete."""
-    tomllib = pytest.importorskip("tomllib")  # python 3.11+
     pyproject = Path(__file__).parents[3] / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("Does not appear to be a dev installation")
@@ -133,12 +158,21 @@ def test_sys_info_complete():
     pyproject = tomllib.loads(pyproject.read_text("utf-8"))
     deps = [
         dep
-        for dep in pyproject["dependency-groups"]["test_extra"]
+        for dep in (
+            pyproject["dependency-groups"]["test"]
+            + pyproject["dependency-groups"]["test_extra"]
+            + pyproject["dependency-groups"]["test_extra_ft"]
+        )
         if not isinstance(dep, dict)
     ]
+    missing = []
     for dep in deps:
         dep = dep.split("[")[0].split(">")[0].strip()
-        assert f" {dep}" in out, f"Missing in dev config: {dep}"
+        if f" {dep}" not in out:
+            missing.append(dep)
+    if missing:
+        missing_str = "\n".join(missing)
+        raise AssertionError(f"Missing in dev config:\n{missing_str}")
 
 
 def test_sys_info_qt_browser():
@@ -184,7 +218,7 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
 def test_sys_info_check_outdated(monkeypatch):
     """Test sys info checking."""
     # Old (actually ping GitHub)
-    monkeypatch.setattr(mne, "__version__", "0.1")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "0.1.0")
     out = ClosingStringIO()
     sys_info(fid=out, check_version=10)
     out = out.getvalue()
@@ -208,7 +242,7 @@ def test_sys_info_check_other(monkeypatch):
     # SSL error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="SSL: CERT"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="SSL: CERT"))
         sys_info(fid=out)
     out = out.getvalue()
     assert re.match(".*unable to check.*SSL.*", out, re.DOTALL) is not None
@@ -216,7 +250,7 @@ def test_sys_info_check_other(monkeypatch):
     # Other error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="foo bar"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="foo bar"))
         sys_info(fid=out)
     out = out.getvalue()
     match = re.match(".*unable to .*unknown error: .*foo bar.*", out, re.DOTALL)
@@ -228,14 +262,14 @@ def test_sys_info_check_other(monkeypatch):
         "_get_latest_version",
         lambda timeout: "1.5.1",
     )
-    monkeypatch.setattr(mne, "__version__", "1.5.1")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "1.5.1")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
     assert " 1.5.1 (latest release)" in out
 
     # Development version
-    monkeypatch.setattr(mne, "__version__", "1.6.dev0")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "1.6.0.dev0")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()

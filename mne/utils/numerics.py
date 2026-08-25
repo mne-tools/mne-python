@@ -11,25 +11,21 @@ import os
 import shutil
 import sys
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO, StringIO
 from math import ceil, sqrt
 from pathlib import Path
 
 import numpy as np
-from scipy import sparse
 
 from ..fixes import (
     _infer_dimension_,
     _safe_svd,
-    has_numba,
-    jit,
     stable_cumsum,
     svd_flip,
 )
 from ._logging import logger, verbose, warn
 from .check import (
-    _check_pandas_installed,
     _ensure_int,
     _validate_type,
     check_random_state,
@@ -409,6 +405,7 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     hash_ : str
         The hexadecimal digest of the hash.
     """
+    # hashlib.file_digest could replace this loop, but it has no public block size arg
     hasher = _empty_hash(kind=hash_type)
     with open(fname, "rb") as fid:
         while True:
@@ -640,6 +637,8 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
+
     if h is None:
         h = _empty_hash()
     if hasattr(x, "keys"):
@@ -658,7 +657,12 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode("utf-8"))
         h.update(str(x.dtype).encode("utf-8"))
-        h.update(x.tobytes())
+        if x.dtype.kind == "T":
+            # variable-width strings store a pointer to the heap, so tobytes() does
+            # not contain the actual string data
+            h.update(repr(x.tolist()).encode("utf-8"))
+        else:
+            h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):
@@ -732,6 +736,8 @@ def object_size(x, memo=None):
 
 
 def _is_sparse_cs(x):
+    from scipy import sparse
+
     return isinstance(
         x, sparse.csr_matrix | sparse.csc_matrix | sparse.csr_array | sparse.csc_array
     )
@@ -777,7 +783,8 @@ def object_diff(a, b, pre="", *, allclose=False):
     diffs : str
         A string representation of the differences.
     """
-    pd = _check_pandas_installed(strict=False)
+    from scipy import sparse
+
     out = ""
     if type(a) is not type(b):
         # Deal with NamedInt and NamedFloat
@@ -838,7 +845,11 @@ def object_diff(a, b, pre="", *, allclose=False):
             c.eliminate_zeros()
             if c.nnz > 0:
                 out += pre + (f" sparse matrix a and b differ on {c.nnz} elements")
-    elif pd and isinstance(a, pd.DataFrame):
+    elif (pd := sys.modules.get("pandas")) is not None and isinstance(a, pd.DataFrame):
+        # Detect a DataFrame via sys.modules rather than importing pandas: if
+        # ``a`` is a DataFrame then pandas is necessarily already imported. This
+        # avoids a (sometimes very slow) first-time ``import pandas`` on the hot
+        # object_diff path when no DataFrame is present.
         try:
             pd.testing.assert_frame_equal(a, b)
         except AssertionError:
@@ -979,7 +990,7 @@ def _julian_to_date(jd):
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
     # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
-    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=UTC)
 
     dt = timedelta(days=(jd - jd_t0))
     return (datetime_t0 + dt).date()
@@ -1011,11 +1022,7 @@ def _date_to_julian(jd_date):
 
 
 def _check_dt(dt):
-    if (
-        not isinstance(dt, datetime)
-        or dt.tzinfo is None
-        or dt.tzinfo is not timezone.utc
-    ):
+    if not isinstance(dt, datetime) or dt.tzinfo is None or dt.tzinfo is not UTC:
         raise ValueError(f"Date must be datetime object in UTC: {repr(dt)}")
 
 
@@ -1031,7 +1038,7 @@ def _stamp_to_dt(utc_stamp):
     stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return datetime.fromtimestamp(0, tz=timezone.utc) + timedelta(
+    return datetime.fromtimestamp(0, tz=UTC) + timedelta(
         seconds=stamp[0], microseconds=stamp[1]
     )
 
@@ -1079,17 +1086,15 @@ def _arange_div_fallback(n, d):
     return x
 
 
-if has_numba:
+_arange_div_impl = None
 
-    @jit(fastmath=False)
-    def _arange_div(n, d):
-        out = np.empty(n, np.float64)
-        for i in range(n):
-            out[i] = i / d
-        return out
 
-else:  # pragma: no cover
-    _arange_div = _arange_div_fallback
+def _arange_div(n, d):
+    """Compute ``np.arange(n) / d``, deferring the numba import to first use."""
+    global _arange_div_impl
+    if _arange_div_impl is None:
+        from ._numerics_numba import _arange_div as _arange_div_impl
+    return _arange_div_impl(n, d)
 
 
 _LRU_CACHES = dict()

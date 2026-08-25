@@ -4,11 +4,13 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import sys
+from typing import IO, Self
 
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing import TypeVar
+# A Matplotlib color: a named/hex string, or an RGB(A) tuple of floats. This is
+# the runtime meaning of the ``color`` numpydoc pseudo-type.
+Color = str | tuple
+# An open file-like object (a readable/writable stream) rather than a path; the
+# runtime meaning of the ``file-like`` numpydoc pseudo-type.
+FileLike = IO
 
-    Self = TypeVar("Self")
+__all__ = ["Color", "FileLike", "Self"]

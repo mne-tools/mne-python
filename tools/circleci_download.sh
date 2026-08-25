@@ -5,7 +5,7 @@ export MNE_TQDM=off
 echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
 echo "export MNE_DOC_BUILD_N_JOBS=1" >> $BASH_ENV
 
-if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]] || [[ "$CIRCLE_BRANCH" == "maint/"* ]]; then
+if { [[ "$CIRCLE_BRANCH" == "main" ]] || [[ $(cat gitlog.txt) == *"[circle full]"* ]] || [[ "$CIRCLE_BRANCH" == "maint/"* ]] ; } && [[ "$CIRCLE_PROJECT_USERNAME" == "mne-tools" ]]; then
     echo "Doing a full build";
     echo html-memory > build.txt;
     echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
@@ -119,6 +119,9 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kit.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.phantom_kit.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*visual_92_categories.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.visual_92_categories.data_path(update_path=True))";
             fi;
         fi;
     done;

@@ -1,0 +1,1 @@
+Fixed a bug in :func:`mne.stats.spatio_temporal_cluster_1samp_test` and related spatio-temporal permutation cluster functions where, in rare cases, clusters that should have been joined by a chain of spatial and temporal adjacency steps were incorrectly reported as separate clusters, by `Sharif Haason`_.

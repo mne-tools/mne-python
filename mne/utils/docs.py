@@ -9,8 +9,9 @@ import os
 import os.path as op
 import re
 import sys
-import webbrowser
 from copy import deepcopy
+from functools import partial
+from importlib import import_module
 
 from decorator import FunctionMaker
 
@@ -68,25 +69,20 @@ tfr_arithmetics_return_template = """
 Returns
 -------
 tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
-    {}
-"""
+    {}"""
 
-tfr_add_sub_template = """
-Parameters
+tfr_add_sub_template = """Parameters
 ----------
 other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
     The TFR instance to {}. Must have the same type as ``self``, and matching
     ``.times`` and ``.freqs`` attributes.
-
 {}
 """
 
-tfr_mul_truediv_template = """
-Parameters
+tfr_mul_truediv_template = """Parameters
 ----------
 num : int | float
     The number to {} by.
-
 {}
 """
 
@@ -320,7 +316,7 @@ docdict["aseg"] = """
 aseg : str
     The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
     if available and ``wmparc`` if not. This may be any anatomical
-    segmentation file in the mri subdirectory of the Freesurfer subject
+    segmentation file in the mri subdirectory of the FreeSurfer subject
     directory.
 
     .. versionchanged:: 1.8
@@ -358,7 +354,7 @@ average : str | None
 """
 
 docdict["average_tfr"] = """
-average : bool, default True
+average : bool
     If ``False`` return an `EpochsTFR` containing separate TFRs for each
     epoch. If ``True`` return an `AverageTFR` containing the average of all
     TFRs across epochs.
@@ -575,6 +571,45 @@ update : bool
     Force an update of the plot. Defaults to True.
 """
 
+docdict["brainvision_overrides"] = """
+overrides : dict | None
+    Optional overrides for values parsed from the ``.vhdr`` header. Used to
+    read non-spec-compliant files where the header contradicts the actual
+    layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+    ``"data_fname"`` (path-like)
+        Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+        the directory of ``vhdr_fname``.
+    ``"marker_fname"`` (path-like or ``False``)
+        Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+        reading.
+    ``"n_channels"`` (int)
+        Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+        this is the user-facing count.
+    ``"sfreq"`` (float)
+        Overrides the sampling frequency.
+    ``"ch_names"`` (list[str])
+        Replaces names from ``[Channel Infos]``. Length must equal
+        ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+        accepted; the synthetic AHDR name is appended automatically).
+    ``"units_fallback"`` (str, e.g. ``"µV"``)
+        Recovers an incomplete ``[Channel Infos]`` section by filling missing
+        entries with ``resolution=1.0`` and this unit; missing names become
+        ``"Ch<N>"``.
+    ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+        Replaces ``[Common Infos] DataOrientation=``.
+    ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+        Replaces ``[Common Infos] DataFormat=``.
+    ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+        Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+        effective ``DataFormat`` is ``"BINARY"``.
+
+    Each applied override is logged at INFO level. Unknown keys raise
+    ``ValueError``.
+
+    .. versionadded:: 1.13
+"""
+
 docdict["browser"] = """
 fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
     Browser instance.
@@ -605,10 +640,16 @@ by_event_type : bool
 # C
 
 docdict["calibration_maxwell_cal"] = """
-calibration : str | None
-    Path to the ``'.dat'`` file with fine calibration coefficients.
-    File can have 1D or 3D gradiometer imbalance correction.
-    This file is machine/site-specific.
+calibration : path-like | bool | None
+    Path to the .dat file with fine calibration information.
+    If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
+    If ``False``, no calibration will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control calibration using
+       ``info["fine_calibration"]``, and ``None`` now uses ``info["fine_calibration"]``
+       if available.
 """
 
 docdict["cbar_fmt_topomap"] = """\
@@ -678,6 +719,10 @@ ch_type : list of str | str
     .. versionadded:: 0.19
     .. versionchanged:: 1.2
        ``list-of-str`` is now supported with ``projection=True``.
+    .. versionchanged:: 1.13
+       ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+       now applies a per-channel-type reference by default (set ``joint=True``
+       for the previous union-of-types behavior).
 """
 
 _ch_type_topomap_base = """\
@@ -760,7 +805,7 @@ clim : str | dict
 """
 
 _cmap_template = """
-cmap : matplotlib colormap | str{allowed}
+cmap : str | matplotlib.colors.Colormap{allowed}
         The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must be a
         valid Matplotlib colormap name. Default is {default}.
 """
@@ -772,7 +817,7 @@ docdict["cmap_tfr_plot_topo"] = _cmap_template.format(
     allowed="", default='``"RdBu_r"``'
 )
 docdict["cmap_topomap"] = """\
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
     interactive mode the colors are adjustable by clicking and dragging the
@@ -789,7 +834,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 """
 
 docdict["cmap_topomap_simple"] = """
-cmap : matplotlib colormap | None
+cmap : str | matplotlib.colors.Colormap | None
     Colormap to use. If None, 'Reds' is used for all positive data,
     otherwise defaults to 'RdBu_r'.
 """
@@ -835,10 +880,10 @@ colorbar : bool
 """
 
 docdict["colormap"] = """
-colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-    Name of colormap to use or a custom look up table. If array, must
-    be (n x 3) or (n x 4) array for with RGB or RGBA values between
-    0 and 255.
+colormap : str | matplotlib.colors.Colormap
+    Name of colormap to use or a custom Matplotlib colormap instance. If passing
+    a custom colormap, it must be an instance of :class:`matplotlib.colors.Colormap`
+    (e.g., :class:`matplotlib.colors.ListedColormap`).
 """
 
 _combine_template = """
@@ -1005,8 +1050,16 @@ docdict["create_eog_epochs"] = """This function will:
 """
 
 docdict["cross_talk_maxwell"] = """
-cross_talk : str | None
+cross_talk : path-like | bool | None
     Path to the FIF file with cross-talk correction information.
+    If ``None``, will use the ``info["cross_talk"]`` entry if present.
+    If ``True``, this entry must be present in the info and will be used.
+    If ``False``, no cross-talk correction will be applied.
+
+    .. versionchanged:: 1.13
+       Support for ``bool`` to explicitly control cross-talk correction using
+       ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+       if available.
 """
 
 # %%
@@ -1113,13 +1166,10 @@ docdict["depth"] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use None is equivalent to 0, meaning no depth weighting is performed.
+    to use. None is equivalent to 0, meaning no depth weighting is performed.
     It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
-    defaults). This is effectively ignored when ``method='eLORETA'``.
-
-    .. versionchanged:: 0.20
-       Depth bias ignored for ``method='eLORETA'``.
+    defaults).
 """
 
 docdict["destination_maxwell_dest"] = """
@@ -1592,23 +1642,23 @@ extrapolate : str
 """
 
 docdict["eyelink_apply_offsets"] = """
-apply_offsets : bool (default False)
+apply_offsets : bool
     Adjusts the onset time of the :class:`~mne.Annotations` created from Eyelink
     experiment messages, if offset values exist in the ASCII file. If False, any
     offset-like values will be prepended to the annotation description.
 """
 
 docdict["eyelink_create_annotations"] = """
-create_annotations : bool | list (default True)
-    Whether to create :class:`~mne.Annotations` from occular events
+create_annotations : bool | list
+    Whether to create :class:`~mne.Annotations` from ocular events
     (blinks, fixations, saccades) and experiment messages. If a list, must
     contain one or more of ``['fixations', 'saccades',' blinks', messages']``.
-    If True, creates :class:`~mne.Annotations` for both occular events and
+    If True, creates :class:`~mne.Annotations` for both ocular events and
     experiment messages.
 """
 
 docdict["eyelink_find_overlaps"] = """
-find_overlaps : bool (default False)
+find_overlaps : bool
     Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
     saccades) if their start times and their stop times are both not
     separated by more than overlap_threshold.
@@ -1619,7 +1669,7 @@ fname : path-like
     Path to the eyelink file (``.asc``)."""
 
 docdict["eyelink_overlap_threshold"] = """
-overlap_threshold : float (default 0.05)
+overlap_threshold : float
     Time in seconds. Threshold of allowable time-gap between both the start and
     stop times of the left and right eyes. If the gap is larger than the threshold,
     the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
@@ -1667,6 +1717,14 @@ fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background. Defaults to black.
 """
 
+docdict["figure_class"] = """
+figure_class : class
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
+    to pass a subclass in order to customize the plot. This parameter requires
+    cooperation from the backend, and is currently only supported by the
+    ``matplotlib`` backend.
+"""
+
 docdict["filter_length"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
@@ -1693,25 +1751,23 @@ docdict["filter_length_notch"] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
 
-    * **'auto' (default)**: The filter length is chosen based
-      on the size of the transition regions (6.6 times the reciprocal
-      of the shortest transition band for fir_window='hamming'
-      and fir_design="firwin2", and half that for "firwin").
-    * **str**: A human-readable time in
-      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-      converted to that number of samples if ``phase="zero"``, or
-      the shortest power-of-two length at least that duration for
-      ``phase="zero-double"``.
-    * **int**: Specified length in samples. For fir_design="firwin",
-      this should not be used.
+    ``"auto"`` (default)
+        The filter length is chosen based on the size of the transition regions (6.6
+        times the reciprocal of the shortest transition band for
+        ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+        ``fir_design="firwin"``).
+    str
+        A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or ``"5500ms"``)
+        will be converted to that number of samples if ``phase="zero"``, or the shortest
+        power-of-two length at least that duration for ``phase="zero-double"``.
+    int
+        Specified length in samples. For ``fir_design="firwin"``, this should not be
+        used.
 
-    When ``method=='spectrum_fit'``, this sets the effective window duration
-    over which fits are computed. See :func:`mne.filter.create_filter`
-    for options. Longer window lengths will give more stable frequency
-    estimates, but require (potentially much) more processing and are not able
-    to adapt as well to non-stationarities.
-
-    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
+    When ``method=="spectrum_fit"``, this sets the effective window duration over which
+    fits are computed. Longer window lengths will give more stable frequency estimates,
+    but require (potentially much) more processing and are not able to adapt as well to
+    non-stationarities. The default ``"auto"`` corresponds to ``"10s"``.
 """
 
 docdict["fir_design"] = """
@@ -1880,6 +1936,11 @@ fun : callable
 docdict["fun_applyfun"] = applyfun_fun_base.format(
     " if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise"
 )
+docdict["fun_applyfun_epochs"] = applyfun_fun_base.format(
+    " if ``channel_wise=True`` (because it will apply to 1-D"
+    " slices along the times axis) and"
+    " ``(n_epochs, len(picks), n_times)`` otherwise"
+)
 docdict["fun_applyfun_evoked"] = applyfun_fun_base.format(
     " because it will apply channel-wise"
 )
@@ -2047,7 +2108,7 @@ Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
 or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 
->>> mon = mne.channels.make_standard_montage('standard_1020')
+>>> mon = mne.channels.make_standard_montage('spherical_1005')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
 >>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
@@ -2266,11 +2327,16 @@ item : int | slice | array-like | str
 
 docdict["joint_set_eeg_reference"] = """
 joint : bool
-    How to handle list-of-str ``ch_type``. If False (default), one projector
-    is created per channel type. If True, one projector is created across
-    all channel types. This is only used when ``projection=True``.
+    How to handle list-of-str ``ch_type``. If False (default), the reference is
+    computed per channel type (one projector per type when ``projection=True``;
+    one average reference subtracted per type when ``projection=False`` and
+    ``ref_channels="average"``). If True, a single reference is computed across
+    all listed channel types.
 
     .. versionadded:: 1.2
+    .. versionchanged:: 1.13
+       Now also applies when ``projection=False``. Previously, the
+       ``projection=False`` path silently behaved as if ``joint=True``.
 """
 
 # %%
@@ -2505,6 +2571,13 @@ docdict["mask_evoked_topomap"] = _mask_base.format(
     example=" (useful for, e.g. marking which channels at which times a "
     "statistical test of the data reaches significance)",
 )
+docdict["mask_label_params_topomap"] = """
+mask_label_params : dict | None
+    Additional plotting parameters for significant sensor labels.
+    Default (None) equals::
+
+        dict(fontsize='medium', fontweight='bold')
+"""
 docdict["mask_params_topomap"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -2723,7 +2796,7 @@ mode : str
 """
 
 docdict["mode_pctf"] = """
-mode : None | 'mean' | 'max' | 'svd'
+mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     Compute summary of PSFs/CTFs across all indices specified in 'idx'.
     Can be:
 
@@ -2734,6 +2807,9 @@ mode : None | 'mean' | 'max' | 'svd'
       n_comp largest PSFs/CTFs.
     * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
       n_comp first SVD components.
+    * 'maxval' : PSFs/CTFs with maximum absolute value across vertices.
+      Returns the n_comp largest PSFs/CTFs.
+    * 'sum' : Sum of PSFs/CTFs across vertices.
 """
 
 docdict["mode_tfr_plot"] = """
@@ -3151,6 +3227,15 @@ on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} channels have missing coordinates.
 
     .. versionadded:: 0.20.1
+"""
+
+docdict["on_outside_epochs"] = """
+on_outside : 'warn' | 'raise' | 'ignore'
+    What to do if an event falls outside the range of the data, such that the
+    corresponding epoch cannot be created. Can be ``'warn'`` (default) to emit a
+    warning, ``'raise'`` to raise an error, or ``'ignore'`` to do nothing.
+
+    .. versionadded:: 1.13
 """
 
 docdict["on_rank_mismatch"] = """
@@ -3596,7 +3681,7 @@ precompute : bool | str
 """
 
 docdict["preload"] = """
-preload : bool or str (default False)
+preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
@@ -3604,7 +3689,7 @@ preload : bool or str (default False)
     on the hard drive (slower, requires less memory)."""
 
 docdict["preload_concatenate"] = """
-preload : bool, str, or None (default None)
+preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
     large amount of memory). If preload is a string, preload is the
@@ -3788,9 +3873,21 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict["regularize_maxwell_reg"] = """
 regularize : str | None
-    Basis regularization type, must be ``"in"`` or None.
-    ``"in"`` is the same algorithm as the ``-regularize in`` option in
-    MaxFilter™.
+    Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+    Both ``"in"`` options use the same information-theoretic component ordering
+    as the ``-regularize in`` option in MaxFilter™, and differ only in where
+    the total-information curve is cut:
+
+    ``"in"`` (default)
+      Keeps the components giving at least 98% of the peak total information. The curve
+      can be quite flat, so this errs on the side of including rather than excluding
+      components. This is the criterion MaxFilter™ 3.0 uses.
+    ``"in_argmax"``
+      Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+      Use this to match MaxFilter™ 2.2 output more closely; it generally excludes more
+      components than ``"in"``.
+
+      .. versionadded:: 1.13
 """
 
 
@@ -4103,6 +4200,13 @@ Some common referencing schemes and the corresponding value for the
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
     automatically excluded if they are properly set in ``info['bads']``.
 
+.. note::
+    When performing average referencing in sensor-space analyses, the original reference
+    electrode should be present as a zero-filled channel. If it is not, this must first
+    be added using :func:`~mne.add_reference_channels`, before calling
+    :func:`~mne.set_eeg_reference`. This is necessary to avoid biasing the reference
+    :footcite:`KimEtAl2023`.
+
 - A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
     will act as the new reference, for example ``ref_channels=['Cz']``.
@@ -4155,7 +4259,13 @@ shape : tuple of int
 
 docdict["show"] = """\
 show : bool
-    Show the figure if ``True``.
+    Show the figure if ``True``. When shown, blocking follows
+    :func:`matplotlib.pyplot.show`: the call blocks until the window is closed unless
+    Matplotlib's interactive mode is on (enabled with :func:`matplotlib.pyplot.ion` or
+    IPython's ``%%matplotlib`` magic command), in which case it returns immediately.
+    Interactive mode is off by default, so a plain script or REPL blocks. Pass
+    ``show=False`` to build several figures and display them together with a single
+    :func:`matplotlib.pyplot.show` call.
 """
 
 docdict["show_names_topomap"] = """
@@ -4195,6 +4305,17 @@ show_traces : bool | str | float
     equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
+"""
+
+docdict["show_zero_line"] = """
+show_zero_line : bool
+    Whether to show the zero line for each channel trace when the plot is
+    initialized. The line always marks the true zero of the channel, even
+    if the currently-visible window's mean has been subtracted for display
+    (see ``remove_dc``). Can be toggled after initialization by pressing
+    :kbd:`0` while the plot window is focused. Default is ``False``.
+
+    .. versionadded:: 1.13
 """
 
 docdict["size_topomap"] = """
@@ -4332,6 +4453,12 @@ volume_options : float | dict | None
         will use ``0.25 * surface_alpha``.
     - ``'silhouette_linewidth'`` : float
         The line width to use for the silhouette. Default is 2.
+    - ``'interpolation'`` : str
+        The interpolation method to use for resampling the volume source space
+        to the specified resolution (and for sampling in the volume rendering).
+        Can be "linear" (default) or "nearest".
+
+        .. versionadded:: 1.13
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
@@ -4573,7 +4700,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    Only supported by the ``'qt'`` backend.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
+    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
+    stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
@@ -5228,18 +5357,30 @@ def copy_doc(source):
     >>> print(B.m1.__doc__)
     Docstring for m1
     this gets appended
+    <BLANKLINE>
     """
+    if isinstance(source, str):
+        # "meth:mne.time_frequency.tfr.BaseTFR.plot" -- copying from a lazily
+        # documented method has to stay lazy too, otherwise reading source.__doc__
+        # here would import the plotting module at class definition time
+        _check_lazy_doc_source(source, "meth")
+        return partial(_LazyMethodDoc, source=source)
 
     def wrapper(func):
-        if source.__doc__ is None or len(source.__doc__) == 0:
-            raise ValueError("Cannot copy docstring: docstring was empty.")
-        doc = source.__doc__
-        if func.__doc__ is not None:
-            doc += f"\n{inspect.cleandoc(func.__doc__)}"
-        func.__doc__ = doc
+        _copy_doc(source, func)
         return func
 
     return wrapper
+
+
+def _copy_doc(source, func):
+    """Prepend ``source``'s docstring to ``func``'s."""
+    if source.__doc__ is None or len(source.__doc__) == 0:
+        raise ValueError("Cannot copy docstring: docstring was empty.")
+    doc = source.__doc__
+    if func.__doc__ is not None:
+        doc += f"\n{inspect.cleandoc(func.__doc__)}\n"
+    func.__doc__ = doc
 
 
 def copy_function_doc_to_method_doc(source):
@@ -5313,81 +5454,141 @@ def copy_function_doc_to_method_doc(source):
     Notes
     -----
     .. versionadded:: 0.13.0
+    <BLANKLINE>
     """  # noqa: D410, D411, D214, D215
+    if isinstance(source, str):
+        # "func:mne.viz.plot_evoked", resolved on first lookup -- see _LazyMethodDoc
+        _check_lazy_doc_source(source, "func")
+        return partial(_LazyMethodDoc, source=source)
 
     def wrapper(func):
-        # Work with cleandoc'ed sources (py3.13-compat)
-        doc = inspect.cleandoc(source.__doc__).split("\n")
-        if func.__doc__ is not None:
-            func_doc = inspect.cleandoc(func.__doc__)
-            if func_doc[:2] == ".\n":
-                func_doc = func_doc[2:]
-            func_doc = f"\n{func_doc}"
-        else:
-            func_doc = ""
-
-        if len(doc) == 1:
-            func.__doc__ = f"{doc[0]}{func_doc}"
-            return func
-
-        # Find parameter block
-        for line, text in enumerate(doc[:-2]):
-            if text.strip() == "Parameters" and doc[line + 1].strip() == "----------":
-                parameter_block = line
-                break
-        else:
-            # No parameter block found
-            raise ValueError(
-                "Cannot copy function docstring: no parameter "
-                "block found. To simply copy the docstring, use "
-                "the @copy_doc decorator instead."
-            )
-
-        # Find first parameter
-        for line, text in enumerate(doc[parameter_block:], parameter_block):
-            if ":" in text:
-                first_parameter = line
-                parameter_indentation = len(text) - len(text.lstrip(" "))
-                break
-        else:
-            raise ValueError(
-                "Cannot copy function docstring: no parameters "
-                "found. To simply copy the docstring, use the "
-                "@copy_doc decorator instead."
-            )
-
-        # Find end of first parameter
-        for line, text in enumerate(doc[first_parameter + 1 :], first_parameter + 1):
-            # Ignore empty lines
-            if len(text.strip()) == 0:
-                continue
-
-            line_indentation = len(text) - len(text.lstrip(" "))
-            if line_indentation <= parameter_indentation:
-                # Reach end of first parameter
-                first_parameter_end = line
-
-                # Of only one parameter is defined, remove the Parameters
-                # heading as well
-                if ":" not in text:
-                    first_parameter = parameter_block
-
-                break
-        else:
-            # End of docstring reached
-            first_parameter_end = line + 1
-            first_parameter = parameter_block
-
-        # Copy the docstring, but remove the first parameter
-        doc = (
-            "\n".join(doc[:first_parameter])
-            + "\n"
-            + "\n".join(doc[first_parameter_end:])
-        )
-        func.__doc__ = f"{doc}{func_doc}"
+        _copy_function_doc(source, func)
         return func
 
     return wrapper
+
+
+def _check_lazy_doc_source(source, kind):
+    """Check a lazy docstring source like ``"func:mne.viz.plot_evoked"``."""
+    got = source.partition(":")[0]
+    if got != kind or source.count(":") != 1:
+        raise ValueError(
+            f'Lazy docstring source must look like "{kind}:some.dotted.path", got '
+            f"{source!r}"
+        )
+
+
+class _LazyMethodDoc:
+    """Copy ``source``'s docstring onto ``func`` the first time it is looked up.
+
+    ``source`` is a dotted path like ``"mne.viz.plot_evoked"``; resolving it eagerly
+    is what forces core modules (mne.evoked, mne.cov, mne.time_frequency.tfr) to
+    import mne.viz -- and therefore matplotlib -- at class-definition time.
+
+    Must be the outermost decorator, since what it returns is a descriptor rather
+    than a function.
+    """
+
+    def __init__(self, func, *, source):
+        self._func = func
+        self._source = source  # dotted path, or the _LazyMethodDoc to extend
+        self._materialized = False
+        # keep introspection working before the docstring is materialized
+        self.__name__ = func.__name__
+        self.__qualname__ = func.__qualname__
+        self.__module__ = func.__module__
+        self.__wrapped__ = func
+
+    def __set_name__(self, owner, name):
+        self._owner = owner
+        self._name = name
+        if self._materialized:  # an outer decorator already read __doc__
+            setattr(owner, name, self._func)
+
+    def _materialize(self):
+        if self._materialized:
+            return self._func
+        kind, _, path = self._source.partition(":")
+        module_name, _, attr = path.rpartition(".")
+        if kind == "func":
+            _copy_function_doc(getattr(import_module(module_name), attr), self._func)
+        else:  # "meth": look the parent up in the class __dict__ rather than with
+            # getattr, so that a lazily documented parent is not materialized (and
+            # its plotting module imported) just to be read here
+            module_name, _, cls_name = module_name.rpartition(".")
+            parent = vars(getattr(import_module(module_name), cls_name))[attr]
+            if isinstance(parent, _LazyMethodDoc):
+                parent = parent._materialize()
+            _copy_doc(parent, self._func)
+        self._materialized = True
+        # swap ourselves out so later lookups have no descriptor overhead; _owner is
+        # unset if the docstring is read from inside the class body (e.g. by an outer
+        # @verbose), in which case there is nothing to replace yet
+        if getattr(self, "_owner", None) is not None:
+            setattr(self._owner, self._name, self._func)
+        return self._func
+
+    @property
+    def __doc__(self):
+        return self._materialize().__doc__
+
+    def __get__(self, obj, objtype=None):
+        return self._materialize().__get__(obj, objtype)
+
+
+def _first_parameter_span(doc):
+    """Get the (start, stop) line span of the first entry of a Parameters block.
+
+    If the block holds a single parameter, the span covers the heading and its
+    underline too, so that removing it does not leave an empty section behind.
+    """
+    head = next(
+        (
+            ii
+            for ii, (this, next_) in enumerate(zip(doc, doc[1:]))
+            if this.strip() == "Parameters" and next_.strip() == "----------"
+        ),
+        None,
+    )
+    if head is None:
+        raise ValueError(
+            "Cannot copy function docstring: no parameter block found. To simply "
+            "copy the docstring, use the @copy_doc decorator instead."
+        )
+    first = next((ii for ii in range(head, len(doc)) if ":" in doc[ii]), None)
+    if first is None:
+        raise ValueError(
+            "Cannot copy function docstring: no parameters found. To simply copy "
+            "the docstring, use the @copy_doc decorator instead."
+        )
+    indent = len(doc[first]) - len(doc[first].lstrip(" "))
+    for stop in range(first + 1, len(doc)):
+        text = doc[stop]
+        if not text.strip():  # blank lines belong to the parameter
+            continue
+        if len(text) - len(text.lstrip(" ")) <= indent:
+            # dedented again, so the first parameter ends here; if what follows is
+            # not another parameter it was the only one, so drop the heading as well
+            return (first if ":" in text else head), stop
+    return head, len(doc)  # the first parameter runs to the end
+
+
+def _copy_function_doc(source, func):
+    """Prepend ``source``'s docstring to ``func``'s, dropping the first parameter."""
+    # Work with cleandoc'ed sources (py3.13-compat)
+    doc = inspect.cleandoc(source.__doc__).split("\n")
+    func_doc = ""
+    if func.__doc__ is not None:
+        func_doc = "\n" + inspect.cleandoc(func.__doc__).removeprefix(".\n")
+
+    if len(doc) == 1:  # a one-line source has no parameters to drop
+        func.__doc__ = doc[0] + func_doc
+        return
+
+    start, stop = _first_parameter_span(doc)
+    func.__doc__ = "\n".join(doc[:start]) + "\n" + "\n".join(doc[stop:]) + func_doc
+    if not func.__doc__.endswith("\n\n"):
+        func.__doc__ += "\n"
 
 
 def linkcode_resolve(domain, info):
@@ -5493,6 +5694,8 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config("MNE_DOCS_VERSION", "stable")
     _check_option("version", version, ["stable", "dev"])
+    import webbrowser
+
     webbrowser.open_new_tab(f"https://mne.tools/{version}/{kind}")
 
 
@@ -5646,7 +5849,7 @@ def _docformat(docstring, docdict=None, funcname=None):
     ----------
     docstring : string
         docstring from function, possibly with dict formatting strings
-    docdict : dict, optional
+    docdict : dict | None
         dictionary with keys that match the dict formatting strings
         and values that are docstring fragments to be inserted.  The
         indentation of the inserted docstrings is set to match the

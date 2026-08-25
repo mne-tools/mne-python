@@ -9,10 +9,16 @@ import numpy as np
 
 from .._fiff.meas_info import Info
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..utils import _check_option, _validate_type, fill_doc, legacy
+from ..utils import (
+    _check_option,
+    _validate_type,
+    fill_doc,
+    legacy,
+    verbose,
+)
 from ._covs_ged import _csp_estimate, _spoc_estimate
 from ._mod_ged import _csp_mod, _spoc_mod
-from .base import _GEDTransformer
+from .base import _GEDTransformer, _read_ged
 from .spatial_filter import get_spatial_filter_from_estimator
 
 
@@ -28,28 +34,28 @@ class CSP(_GEDTransformer):
 
     Parameters
     ----------
-    n_components : int (default 4)
+    n_components : int
         The number of components to decompose M/EEG signals. This number should
         be set by cross-validation.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow regularization
         for covariance estimation. If float (between 0 and 1), shrinkage is
         used. For str values, ``reg`` will be passed as ``method`` to
         :func:`mne.compute_covariance`.
-    log : None | bool (default None)
+    log : None | bool
         If ``transform_into`` equals ``'average_power'`` and ``log`` is None or
         True, then apply a log transform to standardize features, else features
         are z-scored. If ``transform_into`` is ``'csp_space'``, ``log`` must be
         None.
-    cov_est : 'concat' | 'epoch' (default 'concat')
+    cov_est : 'concat' | 'epoch'
         If ``'concat'``, covariance matrices are estimated on concatenated
         epochs for each class. If ``'epoch'``, covariance matrices are
         estimated on each epoch separately and then averaged over each class.
-    transform_into : 'average_power' | 'csp_space' (default 'average_power')
+    transform_into : 'average_power' | 'csp_space'
         If 'average_power' then ``self.transform`` will return the average
         power of each spatial filter. If ``'csp_space'``, ``self.transform``
         will return the data in CSP space.
-    norm_trace : bool (default False)
+    norm_trace : bool
         Normalize class covariance by its trace. Trace normalization is a step
         of the original CSP algorithm :footcite:`KolesEtAl1990` to eliminate
         magnitude variations in the EEG between individuals. It is not applied
@@ -83,7 +89,7 @@ class CSP(_GEDTransformer):
     %(rank_none)s
 
         .. versionadded:: 0.17
-    component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
+    component_order : 'mutual_info' | 'alternate'
         If ``'mutual_info'`` order components by decreasing mutual information
         (in the two-class case this uses a simplification which orders
         components by decreasing absolute deviation of the eigenvalues from 0.5
@@ -160,12 +166,42 @@ class CSP(_GEDTransformer):
             R_func=sum,
         )
 
+    _save_fname_type = "csp"
+
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
         tags.target_tags.required = True
         tags.target_tags.multi_output = True
         return tags
+
+    _required_state_keys = (
+        "component_order",
+        "cov_est",
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "norm_trace",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
+    )
+
+    def _restore_callables(self):
+        """Restore CSP-specific callables after loading state."""
+        self.cov_callable = partial(
+            _csp_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            cov_est=self.cov_est,
+            info=self.info,
+            rank=self.rank,
+            norm_trace=self.norm_trace,
+        )
+        self.mod_ged_callable = partial(_csp_mod, evecs_order=self.component_order)
+        self.R_func = sum
 
     def _validate_params(self, *, y):
         _validate_type(self.n_components, int, "n_components")
@@ -334,6 +370,7 @@ class CSP(_GEDTransformer):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -373,6 +410,9 @@ class CSP(_GEDTransformer):
         %(show_names_topomap)s
         %(mask_patterns_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -417,6 +457,7 @@ class CSP(_GEDTransformer):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -451,6 +492,7 @@ class CSP(_GEDTransformer):
         show_names=False,
         mask=None,
         mask_params=None,
+        mask_label_params=None,
         contours=6,
         outlines="head",
         sphere=None,
@@ -490,6 +532,9 @@ class CSP(_GEDTransformer):
         %(show_names_topomap)s
         %(mask_patterns_topomap)s
         %(mask_params_topomap)s
+        %(mask_label_params_topomap)s
+
+            .. versionadded:: 1.13
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -534,6 +579,7 @@ class CSP(_GEDTransformer):
             show_names=show_names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             outlines=outlines,
             sphere=sphere,
@@ -565,9 +611,9 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     ----------
     X : ndarray, shape (n_epochs, n_channels, n_channels)
         A set of covariance matrices to diagonalize.
-    eps : float, default 1e-6
+    eps : float
         The tolerance for stopping criterion.
-    max_iter : int, default 1000
+    max_iter : int
         The maximum number of iteration to reach convergence.
 
     Returns
@@ -659,13 +705,13 @@ class SPoC(CSP):
     ----------
     n_components : int
         The number of components to decompose M/EEG signals.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).
         For str options, ``reg`` will be passed to ``method`` to
         :func:`mne.compute_covariance`.
-    log : None | bool (default None)
+    log : None | bool
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
@@ -766,11 +812,36 @@ class SPoC(CSP):
         delattr(self, "cov_est")
         delattr(self, "norm_trace")
 
+    _save_fname_type = "spoc"
+
     def __sklearn_tags__(self):
         """Tag the transformer."""
         tags = super().__sklearn_tags__()
         tags.target_tags.multi_output = False
         return tags
+
+    _required_state_keys = (
+        "cov_method_params",
+        "info",
+        "log",
+        "n_components",
+        "rank",
+        "reg",
+        "restr_type",
+        "transform_into",
+    )
+
+    def _restore_callables(self):
+        """Restore SPoC-specific callables after loading state."""
+        self.cov_callable = partial(
+            _spoc_estimate,
+            reg=self.reg,
+            cov_method_params=self.cov_method_params,
+            info=self.info,
+            rank=self.rank,
+        )
+        self.mod_ged_callable = _spoc_mod
+        self.R_func = None
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
@@ -848,3 +919,57 @@ class SPoC(CSP):
         """
         # use parent TransformerMixin method but with custom docstring
         return super().fit_transform(X, y=y, **fit_params)
+
+
+@verbose
+def read_csp(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.CSP` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a CSP file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    csp : instance of :class:`~mne.decoding.CSP`
+        The loaded CSP object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.CSP.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, CSP, verbose=verbose)
+
+
+@verbose
+def read_spoc(fname, *, verbose=None):
+    """Load a saved :class:`mne.decoding.SPoC` object from disk.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a SPoC file in HDF5 format, which should end with ``.h5`` or
+        ``.hdf5``.
+    %(verbose)s
+
+    Returns
+    -------
+    spoc : instance of :class:`~mne.decoding.SPoC`
+        The loaded SPoC object with all fitted attributes restored.
+
+    See Also
+    --------
+    mne.decoding.SPoC.save
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+    """
+    return _read_ged(fname, SPoC, verbose=verbose)

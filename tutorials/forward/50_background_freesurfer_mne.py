@@ -38,7 +38,7 @@ from mne.transforms import apply_trans
 # Let's start out by looking at the ``sample`` subject MRI. Following standard
 # FreeSurfer convention, we look at :file:`T1.mgz`, which gets created from the
 # original MRI :file:`sample/mri/orig/001.mgz` when you run the FreeSurfer
-# command recon-all_.
+# command `recon-all <https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all>`__.
 # Here we use :mod:`nibabel` to load the T1 image, and the resulting object's
 # :meth:`~nibabel.spatialimages.SpatialImage.orthoview` method to view it.
 
@@ -227,7 +227,7 @@ imshow_mri(data, t1, vox, dict(MRI=xyz_mri), "MRI slice")
 
 fiducials = mne.coreg.get_mni_fiducials(subject, subjects_dir=subjects_dir)
 nasion_mri = [d for d in fiducials if d["ident"] == FIFF.FIFFV_POINT_NASION][0]
-print(nasion_mri)  # note it's in Freesurfer MRI coords
+print(nasion_mri)  # note it's in FreeSurfer MRI coords
 
 # %%
 # When we print the nasion, it displays as a ``DigPoint`` and shows its

@@ -1,0 +1,1 @@
+Fixed bug where :func:`mne.sys_info` would silently change the active Matplotlib backend (e.g. when ``ipympl`` is installed) as an import-time side effect, by `Stefan Appelhoff`_.

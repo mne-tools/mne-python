@@ -78,18 +78,18 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
         data (=X).
     """
     # Define Y latent factors
-    np.random.seed(0)
-    cov_Y = np.eye(n_targets) * 10 + np.random.rand(n_targets, n_targets)
+    rng = np.random.default_rng(0)
+    cov_Y = np.eye(n_targets) * 10 + rng.random((n_targets, n_targets))
     cov_Y = (cov_Y + cov_Y.T) / 2.0
-    mean_Y = np.random.rand(n_targets)
-    Y = np.random.multivariate_normal(mean_Y, cov_Y, size=n_samples)
+    mean_Y = rng.random(n_targets)
+    Y = rng.multivariate_normal(mean_Y, cov_Y, size=n_samples)
 
     # The Forward model
-    A = np.random.randn(n_features, n_targets)
+    A = rng.standard_normal((n_features, n_targets))
 
     X = Y.dot(A.T)
-    X += np.random.randn(n_samples, n_features)  # add noise
-    X += np.random.rand(n_features)  # Put an offset
+    X += rng.standard_normal((n_samples, n_features))  # add noise
+    X += rng.random(n_features)  # Put an offset
     if n_targets == 1:
         Y = Y[:, 0]
 
@@ -180,7 +180,7 @@ def test_get_coef():
         assert_equal(invs, list())
 
     # II. Test get coef for classification/regression estimators and pipelines
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     for clf in (
         lm_regression,
         lm_gs_classification,
@@ -191,7 +191,7 @@ def test_get_coef():
         # according to the type of estimator.
         if is_classifier(clf):
             n, n_features = 1000, 3
-            X = rng.rand(n, n_features)
+            X = rng.random((n, n_features))
             y = np.arange(n) % 2
         else:
             X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
@@ -473,16 +473,16 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     clf = LinearModel()
     n, n_features = 20, 3
-    X = rng.rand(n, n_features)
+    X = rng.random((n, n_features))
     y = np.arange(n) % 2
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
     with pytest.raises(ValueError):
-        wrong_X = rng.rand(n, n_features, 99)
+        wrong_X = rng.random((n, n_features, 99))
         clf.fit(wrong_X, y)
 
     # check fit_transform call
@@ -508,12 +508,12 @@ def test_linearmodel():
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
     with pytest.raises(ValueError):
-        wrong_X = rng.rand(n, n_features, 99)
+        wrong_X = rng.random((n, n_features, 99))
         clf.fit(wrong_X, y)
 
     # check continuous target fit in standard linear model with GridSearchCV
     n_targets = 1
-    Y = rng.rand(n, n_targets)
+    Y = rng.random((n, n_targets))
     clf = LinearModel(
         GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=None)
     )
@@ -521,18 +521,18 @@ def test_linearmodel():
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
     with pytest.raises(ValueError):
-        wrong_y = rng.rand(n, n_features, 99)
+        wrong_y = rng.random((n, n_features, 99))
         clf.fit(X, wrong_y)
 
     # check multi-target fit in standard linear model
     n_targets = 5
-    Y = rng.rand(n, n_targets)
+    Y = rng.random((n, n_targets))
     clf = LinearModel(LinearRegression())
     clf.fit(X, Y)
     assert_equal(clf.filters_.shape, (n_targets, n_features))
     assert_equal(clf.patterns_.shape, (n_targets, n_features))
     with pytest.raises(ValueError):
-        wrong_y = rng.rand(n, n_features, 99)
+        wrong_y = rng.random((n, n_features, 99))
         clf.fit(X, wrong_y)
 
 
@@ -541,7 +541,8 @@ def test_cross_val_multiscore():
     logreg = LogisticRegression(solver="liblinear", random_state=0)
 
     # compare to cross-val-score
-    X = np.random.rand(20, 3)
+    rng = np.random.default_rng(0)
+    X = rng.random((20, 3))
     y = np.arange(20) % 2
     cv = KFold(2, random_state=0, shuffle=True)
     clf = logreg
@@ -550,7 +551,7 @@ def test_cross_val_multiscore():
     )
 
     # Test with search light
-    X = np.random.rand(20, 4, 3)
+    X = rng.random((20, 4, 3))
     y = np.arange(20) % 2
     clf = SlidingEstimator(logreg, scoring="accuracy")
     scores_acc = cross_val_multiscore(clf, X, y, cv=cv)
@@ -580,7 +581,7 @@ def test_cross_val_multiscore():
     # indirectly test that cross_val_multiscore rightly detects the type of
     # estimator and generates a StratifiedKFold for classiers and a KFold
     # otherwise
-    X = np.random.randn(1000, 3)
+    X = rng.standard_normal((1000, 3))
     y = np.ones(1000, dtype=int)
     y[::2] = 0
     clf = logreg

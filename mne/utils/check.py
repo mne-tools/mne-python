@@ -83,7 +83,9 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
     Parameters
     ----------
     library : str
-        The library name to import. Must have a ``__version__`` property.
+        The library name to import. Should have a ``__version__`` property;
+        if absent and ``min_version`` is specified, the version check will
+        fail.
     min_version : str
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
@@ -120,11 +122,14 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
         check_version = min_version and min_version != "0.0"
         get_version = check_version or return_version
         if get_version:
-            version = library.__version__
-            if strip:
+            try:
+                version = library.__version__
+            except AttributeError:
+                version = None
+            if version is not None and strip:
                 version = _strip_dev(version)
         if check_version:
-            if _compare_version(version, "<", min_version):
+            if version is None or _compare_version(version, "<", min_version):
                 ok = False
     out = (ok, version) if return_version else ok
     return out
@@ -577,6 +582,9 @@ _multi = {
     "array-like": (list, tuple, set, np.ndarray),
     "sparse": (_Sparse(),),
 }
+# Precomputed for isinstance() -- `list | tuple` rebuilds a UnionType on every
+# call (~11x slower), which matters in hot validation paths.
+_list_or_tuple = (list, tuple)
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""):
@@ -605,7 +613,18 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     elif types == "info":
         from .._fiff.meas_info import Info as types
 
-    if not isinstance(types, list | tuple):
+    # Fast path for the common single-type / single-string-spec calls: avoids
+    # rebuilding `check_types` (and the `list | tuple` union) on every call.
+    # `_validate_type` is one of the hottest functions in MNE (e.g. it runs per
+    # channel inside Info._check_consistency). Only returns early on success;
+    # failures fall through to the general path below to build the error message.
+    if isinstance(types, type):
+        if isinstance(item, types):
+            return
+    elif isinstance(types, str) and isinstance(item, _multi[types]):
+        return
+
+    if not isinstance(types, _list_or_tuple):
         types = [types]
 
     check_types = sum(
@@ -699,10 +718,14 @@ def _path_like(item):
         return False
 
 
-def _check_if_nan(data, msg=" to be plotted"):
+def _check_if_nan(data, on_nan="error", msg=" to be plotted"):
     """Raise if any of the values are NaN."""
+    _check_option("on_nan", on_nan, ("error", "warn"))
     if not np.isfinite(data).all():
-        raise ValueError(f"Some of the values {msg} are NaN.")
+        if on_nan == "error":
+            raise ValueError(f"Some of the values {msg} are NaN.")
+        elif on_nan == "warn":
+            warn(f"Some of the values {msg} are NaN")
 
 
 @verbose
