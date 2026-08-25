@@ -590,36 +590,12 @@ class RawGDF(BaseRaw):
         )
 
 
-_decode_int24 = None
-
-
-def _get_int24_decoder():
-    """Return the numba int24 decoder if available, else False."""
-    global _decode_int24
-    if _decode_int24 is None:
-        dec = False
-        try:
-            from mne._numba import has_numba
-
-            # only use the jitted decoder when numba is actually enabled,
-            # otherwise the decorated function would run as slow pure Python
-            if has_numba:
-                from mne.io.edf._bdf_numba import decode_int24 as dec
-        except Exception:
-            dec = False
-        _decode_int24 = dec
-    return _decode_int24
-
-
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     assert dtype is not None
     # BDF
     if subtype == "bdf":
         ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
-        dec = _get_int24_decoder()
-        if dec is not False:
-            return dec(ch_data.reshape(-1, 3))
         ch_data = ch_data.reshape(-1, 3).astype(INT32)
         ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
         # 24th bit determines the sign
@@ -634,6 +610,8 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
+    from scipy.interpolate import interp1d
+
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]
@@ -661,190 +639,6 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
     # Let's do ~10 MB chunks:
     n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
-
-    # Fast path: uniform sampling rate among all requested channels, no
-    # annotations (TAL) channel and no stim-channel special casing. This is
-    # the common case for large DL corpora; it replaces the per-channel
-    # Python loop with a handful of vectorized operations.
-    # The vectorized path removes per-channel Python overhead, which dominates
-    # small reads (deep-learning window access); for very large outputs the
-    # legacy loop's cache-friendly working set is slightly faster, so gate on
-    # decoded size.
-    _fast_path_output_limit = int(32e6)
-    uni_mask = [n_samps[ci] == buf_len for ci in read_sel]
-    slow_ii = [ii for ii, u in enumerate(uni_mask) if not u]
-    if (
-        subtype in ("edf", "bdf")
-        and len(tal_idx) == 0
-        and all(uni_mask)  # mixed-sfreq partial decode is future work
-        and (stop - start) * len(idx_arr) * 8 <= _fast_path_output_limit
-    ):
-        with _gdf_edf_get_fid(filenames, buffering=0) as fid:
-            start_offset = (
-                data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
-            )
-            k = len(idx_arr)
-            uni_list = [ii for ii in range(k) if uni_mask[ii]]
-            sel_uni = [read_sel[ii] for ii in uni_list]
-            idx_arr_uni = idx_arr[uni_list]
-            k_u = len(uni_list)
-            channel_calibration = cal[idx_arr][:, np.newaxis, np.newaxis]
-            channel_offset = offsets[idx_arr][:, np.newaxis, np.newaxis]
-            channel_gain = gains[idx_arr][:, np.newaxis, np.newaxis]
-            uniform_calibration = cal[idx_arr_uni][:, np.newaxis, np.newaxis]
-            uniform_offset = offsets[idx_arr_uni][:, np.newaxis, np.newaxis]
-            uniform_gain = gains[idx_arr_uni][:, np.newaxis, np.newaxis]
-            channel_offset = offsets[idx_arr][:, np.newaxis, np.newaxis]
-            channel_gain = gains[idx_arr][:, np.newaxis, np.newaxis]
-            # With no projector/compensation and unit cals (always true for
-            # EDF/BDF), decoded samples can go straight into the output.
-            write_direct = (
-                mult is None and bool(np.all(cals == 1)) and not slow_ii
-            )
-            ones = None if write_direct else np.zeros(
-                (len(orig_sel), data.shape[-1]), dtype=data.dtype
-            )
-            dec = _get_window_decoder()
-            dec_into = None
-            if dec is not False and k_u:
-                from ._edf_numba import decode_window_into
-
-                dec_into = decode_window_into
-                cal_1d = uniform_calibration.ravel()
-                off_1d = uniform_offset.ravel()
-                gain_1d = uniform_gain.ravel()
-            # Uniform stim channels can stay on the fast path: legacy applies
-            # a truncating bitmask (float -> int cast, mask 2**17-1) AFTER
-            # calibration, which we replicate per row below.
-            stim_rows = [
-                ii
-                for ii, orig in enumerate(idx_arr)
-                if int(orig) in stim_channel_idxs and uni_mask[ii]
-            ]
-            pos = 0
-            for ai in range(0, len(r_lims), n_per):
-                block_offset = ai * ch_offsets[-1] * dtype_byte
-                n_read = min(len(r_lims) - ai, n_per)
-                fid.seek(start_offset + block_offset, 0)
-                many_chunk = _read_ch(
-                    fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
-                )
-                record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
-                r_sidx = r_lims[ai][0]
-                r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
-                # gather this call's channels as a strided view
-                # (k, n_read, buf_len), each row one requested channel;
-                # when all channels are requested this is a zero-copy
-                # transpose
-                if not slow_ii and k == len(n_samps):
-                    view = record_grid.transpose(1, 0, 2)
-                elif slow_ii:
-                    view = record_grid[:, sel_uni, :].transpose(1, 0, 2)
-                else:
-                    view = record_grid[:, read_sel, :].transpose(1, 0, 2)
-                # digital -> physical, preserving the legacy op order;
-                # when possible decode straight into the destination slice so
-                # the block never round-trips through a temporary
-                width = r_eidx - r_sidx
-                if dec_into is not None and write_direct:
-                    if not view.dtype.isnative:
-                        # numba only types native byteorder; real-world EDF is
-                        # big-endian, so swap into a native copy per chunk
-                        view = view.astype(view.dtype.newbyteorder("="))
-                    dst_full = (
-                        data[:, pos : pos + width]
-                        if write_direct
-                        else ones[idx_arr_uni, pos : pos + width]
-                    )
-                    dec_into(dst_full, view, cal_1d, off_1d, gain_1d,
-                             r_sidx, width)
-                    block = None  # values already in place
-                elif ones is None:
-                    # no kernel and direct write: decode to a temp then copy
-                    # once into the destination slice
-                    one = np.empty((k, n_read, buf_len), dtype=np.float64)
-                    np.multiply(view, channel_calibration, out=one)
-                    one += channel_offset
-                    one *= channel_gain
-                    dst_full = data[:, pos : pos + width]
-                    dst_full[...] = one.reshape(k, -1)[:, r_sidx:r_eidx]
-                    block = None  # values already in place
-                else:
-                    one = np.empty((k, n_read, buf_len), dtype=np.float64)
-                    np.multiply(view, channel_calibration, out=one)
-                    one += channel_offset
-                    one *= channel_gain
-                    block = one.reshape(k, -1)[:, r_sidx:r_eidx]
-                if stim_rows:
-                    for ii in stim_rows:
-                        src_row = block[ii] if block is not None else dst_full[ii]
-                        row_i = src_row.astype(int)
-                        np.bitwise_and(row_i, 2**17 - 1, out=row_i)
-                        if block is not None:
-                            block[ii] = row_i
-                        else:
-                            dst_full[ii] = row_i
-                if block is not None:
-                    if write_direct:
-                        data[:, pos : pos + width] = block
-                    elif slow_ii:
-                        ones[idx_arr_uni, pos : pos + width] = block
-                    else:
-                        ones[idx_arr, pos : pos + width] = block
-                # legacy per-channel treatment for non-uniform rows: their
-                # columns live inside the same records we just read
-                for ii in slow_ii:
-                    ci = read_sel[ii]
-                    orig_idx = idx_arr[ii]
-                    ch_data = many_chunk[
-                        :, ch_offsets[ci] : ch_offsets[ci + 1]
-                    ].copy()
-                    o_i = orig_idx
-                    ch_data = ch_data * cal[o_i]
-                    ch_data += offsets[o_i]
-                    ch_data *= gains[o_i]
-                    if int(orig_idx) in stim_channel_idxs:
-                        from scipy.interpolate import interp1d
-
-                        s_n = n_samps[ci]
-                        oldg = np.linspace(0, 1, s_n + 1, True)
-                        newg = np.linspace(0, 1, buf_len, False)
-                        ch_data = np.append(
-                            ch_data, np.zeros((len(ch_data), 1)), -1
-                        )
-                        ch_data = interp1d(oldg, ch_data, kind="zero", axis=-1)(
-                            newg
-                        )
-                    one_i = ch_data.ravel()[r_sidx:r_eidx]
-                    w0 = pos - width  # first output column of this chunk
-                    ones[o_i, w0 : w0 + len(one_i)] = one_i
-                pos += width
-            if slow_ii:
-                smp_exp = data.shape[-1]
-                resampled = False
-                for ii in slow_ii:
-                    row = int(idx_arr[ii])
-                    ci = read_sel[ii]
-                    if n_samps[ci] != buf_len and width != smp_exp:
-                        resampled = True
-                        ones[row, :] = resample(
-                            ones[row, :width].astype(np.float64),
-                            smp_exp,
-                            width,
-                            npad=0,
-                            axis=-1,
-                        )
-                if resampled and raw_extras["nsamples"] != (stop - start):
-                    warn(
-                        "Loading an EDF with mixed sampling frequencies and "
-                        "preload=False will result in edge artifacts. "
-                        "It is recommended to use preload=True."
-                        "See also "
-                        "https://github.com/mne-tools/mne-python/issues/10635"
-                    )
-            if not write_direct:
-                _mult_cal_one(data[:, :], ones, idx, cals, mult)
-        return tal_data
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -889,8 +683,6 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 if n_samps[ci] != buf_len:
                     if orig_idx in stim_channel_idxs:
                         # Stim channel will be interpolated
-                        from scipy.interpolate import interp1d
-
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
                         ch_data = np.append(ch_data, np.zeros((len(ch_data), 1)), -1)
@@ -2569,22 +2361,3 @@ def _get_annotations_gdf(edf_info, sfreq):
         desc = events[2]
 
     return onset, duration, desc
-
-
-_decode_window = None
-
-
-def _get_window_decoder():
-    """Return the numba fused window decoder if available, else False."""
-    global _decode_window
-    if _decode_window is None:
-        dec = False
-        try:
-            from mne._numba import has_numba
-
-            if has_numba:
-                from mne.io.edf._edf_numba import decode_window as dec
-        except Exception:
-            dec = False
-        _decode_window = dec
-    return _decode_window

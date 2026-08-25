@@ -67,7 +67,7 @@ stc = simulate_sparse_stc(
     fwd["src"],
     n_dipoles=2,
     times=times,
-    random_state=42,
+    rng=239,
     labels=labels,
     data_fun=data_fun,
 )

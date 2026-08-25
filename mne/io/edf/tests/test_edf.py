@@ -8,7 +8,6 @@ from functools import partial
 from io import BytesIO
 from pathlib import Path
 
-import mne
 import numpy as np
 import pytest
 from numpy.testing import (
@@ -1263,15 +1262,3 @@ def test_edf_read_from_file_like():
         ]
 
         assert raw.ch_names == channels
-
-
-
-def requires_edfio(func):
-    import pytest
-
-    return pytest.mark.skipif(
-        __import__("importlib.util", fromlist=["util"]).find_spec("edfio") is None,
-        reason="Requires edfio",
-    )(func)
-
-

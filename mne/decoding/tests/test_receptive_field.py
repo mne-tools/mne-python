@@ -99,7 +99,7 @@ def test_rank_deficiency():
     y = np.apply_along_axis(np.convolve, 0, eeg, win, mode="same")
     y += rng.normal(scale=100, size=y.shape)
 
-    for est in (Ridge(reg), reg):
+    for est in (Ridge(reg, random_state=0), reg):
         rf = ReceptiveField(tmin, tmax, fs, estimator=est, patterns=True)
         rf.fit(eeg, y)
         pred = rf.predict(eeg)
@@ -179,7 +179,7 @@ def test_time_delay():
 def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
     # Make sure estimator pulling works
-    mod = Ridge()
+    mod = Ridge(random_state=0)
     rng = np.random.default_rng(1337)
 
     # Test the receptive field model
@@ -401,7 +401,13 @@ def test_receptive_field_1d(n_jobs):
                     fit_intercept=False,
                     n_jobs=n_jobs,
                 )
-                for estimator in (Ridge(alpha=0.0), Ridge(alpha=0.1), 0.0, 0.1, lap):
+                for estimator in (
+                    Ridge(alpha=0.0, random_state=0),
+                    Ridge(alpha=0.1, random_state=0),
+                    0.0,
+                    0.1,
+                    lap,
+                ):
                     for offset in (-100, 0, 100):
                         model = ReceptiveField(
                             smin, smax, 1.0, estimator=estimator, n_jobs=n_jobs
@@ -456,7 +462,8 @@ def test_receptive_field_nd(n_jobs):
         smin, smax, 1.0, 0.1, n_jobs=n_jobs, edge_correction=False
     )
     for estimator, atol in zip(
-        (Ridge(alpha=0.0), 0.0, 0.01, tdr_l, tdr_nc), (1e-3, 1e-3, 1e-3, 5e-3, 5e-2)
+        (Ridge(alpha=0.0, random_state=0), 0.0, 0.01, tdr_l, tdr_nc),
+        (1e-3, 1e-3, 1e-3, 5e-3, 5e-2),
     ):
         model = ReceptiveField(smin, smax, 1.0, estimator=estimator)
         model.fit(x, y)
@@ -480,9 +487,9 @@ def test_receptive_field_nd(n_jobs):
     tdr = TimeDelayingRidge(smin, smax, 1.0, 0.0, n_jobs=n_jobs)
     tdr_no = TimeDelayingRidge(smin, smax, 1.0, 0.0, fit_intercept=False, n_jobs=n_jobs)
     for estimator in (
-        Ridge(alpha=0.0),
+        Ridge(alpha=0.0, random_state=0),
         tdr,
-        Ridge(alpha=0.0, fit_intercept=False),
+        Ridge(alpha=0.0, fit_intercept=False, random_state=0),
         tdr_no,
     ):
         # first with no intercept in the data
@@ -558,7 +565,7 @@ def test_inverse_coef():
     # Check coefficient dims, for all estimator types
     X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
     tdr = TimeDelayingRidge(tmin, tmax, 1.0, 0.1, "laplacian")
-    for estimator in (0.0, 0.01, Ridge(alpha=0.0), tdr):
+    for estimator in (0.0, 0.01, Ridge(alpha=0.0, random_state=0), tdr):
         rf = ReceptiveField(tmin, tmax, 1.0, estimator=estimator, patterns=True)
         rf.fit(X, y)
         inv_rf = ReceptiveField(tmin, tmax, 1.0, estimator=estimator, patterns=True)
@@ -581,7 +588,7 @@ def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
     n_feats, n_targets, n_samples = 5, 60, 50
     X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
-    for estimator in (0.0, Ridge(alpha=0.0)):
+    for estimator in (0.0, Ridge(alpha=0.0, random_state=0)):
         rf = ReceptiveField(tmin, tmax, 1.0, estimator=estimator)
         with pytest.warns(
             (RuntimeWarning, UserWarning), match="[Singular|scipy.linalg.solve]"
@@ -605,7 +612,9 @@ def test_tdr_sklearn_compliance(estimator, check):
 
 
 @pytest.mark.filterwarnings("ignore:.*invalid value encountered in subtract.*:")
-@parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
+@parametrize_with_checks(
+    [ReceptiveField(-1, 2, 1.0, estimator=Ridge(random_state=0), patterns=True)]
+)
 def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
     pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+

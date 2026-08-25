@@ -65,6 +65,7 @@ __getattr__
 
 # Backward compat or rarely used
 RawFIF
+select_source_in_label
 estimate_head_mri_t
 plot_epochs_psd_topomap
 plot_epochs_psd
@@ -131,6 +132,9 @@ _._plotter
 _.set_fmax
 _.set_fmid
 _.set_fmin
+_._set_trace_visible
+_._set_trace_highlight
+_._trace_display_label
 _.EnterEvent
 _.MouseMoveEvent
 _.LeaveEvent

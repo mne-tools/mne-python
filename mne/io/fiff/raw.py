@@ -9,11 +9,10 @@ from typing import Any
 
 import numpy as np
 
-from ..._fiff._mmap_cache import get_u8_memmap
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import read_meas_info
 from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
-from ..._fiff.tag import _call_dict, _simple_dict, read_tag
+from ..._fiff.tag import _call_dict, read_tag
 from ..._fiff.tree import dir_tree_find
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
@@ -404,84 +403,13 @@ class Raw(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
         n_bad = 0
-        bounds = self._raw_extras[fi]["bounds"]
-        ents = self._raw_extras[fi]["ent"]
-        nchan = self._raw_extras[fi]["orig_nchan"]
-        fname = self._raw_extras[fi]["filename"]
-        # Entries overlapping [start, stop) via binary search on sorted bounds
-        # (O(log n) instead of a mask over every entry; matters for long
-        # recordings with thousands of buffer entries).
-        eis = range(
-            max(np.searchsorted(bounds, start, side="right") - 1, 0),
-            min(np.searchsorted(bounds, stop, side="left"), len(bounds) - 1),
-        )
-
-        # Fast path: read tag payloads directly through a PID-keyed memory map,
-        # skipping per-call open/seek/read syscalls. Only taken for uncompressed
-        # real files whose touched tags are simple numeric types with the
-        # expected sizes; everything else falls back to the legacy loop below.
-        mm = None
-        if (
-            isinstance(fname, Path)
-            and len(fname.suffixes) > 0
-            and fname.suffixes[-1] != ".gz"
-        ):
-            mm = get_u8_memmap(fname)
-        if mm is not None:
-            for ei in eis:
-                ent = ents[ei]
-                if ent is None or ent.type not in _simple_dict:
-                    mm = None
-                    break
-                nsamp_ei = bounds[ei + 1] - bounds[ei]
-                itemsize = np.dtype(_simple_dict[ent.type]).itemsize
-                if getattr(ent, "size", None) != nsamp_ei * nchan * itemsize:
-                    mm = None
-                    break
-        if mm is not None:
+        with _fiff_get_fid(self._raw_extras[fi]["filename"]) as fid:
+            bounds = self._raw_extras[fi]["bounds"]
+            ents = self._raw_extras[fi]["ent"]
+            nchan = self._raw_extras[fi]["orig_nchan"]
+            use = (stop > bounds[:-1]) & (start < bounds[1:])
             offset = 0
-            for ei in eis:
-                first = bounds[ei]
-                last = bounds[ei + 1]
-                nsamp = last - first
-                ent = ents[ei]
-                first_pick = max(start - first, 0)
-                last_pick = min(nsamp, stop - first)
-                picksamp = last_pick - first_pick
-                this_start = offset
-                offset += picksamp
-                this_stop = offset
-                if ent is None:
-                    continue  # gaps were zero-initialized by the caller
-                dtype_s = _simple_dict[ent.type]
-                itemsize = np.dtype(dtype_s).itemsize
-                nbytes = picksamp * nchan * itemsize
-                base = ent.pos + 16 + first_pick * nchan * itemsize
-                one = np.frombuffer(
-                    mm[base : base + nbytes], dtype=dtype_s, count=picksamp * nchan
-                )
-                if one.size != picksamp * nchan:
-                    n_bad += picksamp
-                    continue
-                one = one.reshape(picksamp, nchan)
-                _mult_cal_one(
-                    data[:, this_start:this_stop],
-                    one.T,
-                    idx,
-                    cals,
-                    mult,
-                )
-            if n_bad:
-                warn(
-                    f"FIF raw buffer could not be read, acquisition error "
-                    f"likely: {n_bad} samples set to zero"
-                )
-            assert offset == stop - start
-            return
-
-        with _fiff_get_fid(fname) as fid:
-            offset = 0
-            for ei in eis:
+            for ei in np.where(use)[0]:
                 first = bounds[ei]
                 last = bounds[ei + 1]
                 nsamp = last - first
