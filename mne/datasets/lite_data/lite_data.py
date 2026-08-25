@@ -10,11 +10,6 @@ the browser, taken from ``sample``, ``kiloword``, ``erp_core``, ``mtrf`` and
 datasets. It extracts to ``MNE-lite-data/`` with each file under its original
 dataset folder (``MNE-sample-data/``, ``MNE-kiloword-data/``, ...), so paths
 match.
-
-Those datasets ship as separate multi-GB archives, so without this the
-documentation build would download several gigabytes to serve a handful of
-files.
-
 The ``somato`` dataset is not included, so the somatosensory tutorials and
 examples do not run in the browser.
 """
