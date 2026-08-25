@@ -1,12 +1,12 @@
 """
 .. _tut-new-cluster-test-api-ftest-spatiotemporal:
 
-=====================================================================
+===========================================================================
 New cluster test API: spatiotemporal permutation F-test on full sensor data
-=====================================================================
+===========================================================================
 
 This tutorial reproduces :ref:`tut-cluster-spatiotemporal-sensor` using the
-new :func:`~mne.stats.cluster_level.cluster_test` API instead of
+new :func:`~mne.stats.cluster_test` API instead of
 :func:`~mne.stats.spatio_temporal_cluster_test`. It tests for differential
 evoked responses in at least one of four conditions using a permutation
 clustering test, with the FieldTrip neighbor templates used to determine
@@ -42,8 +42,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import mne
 from mne.channels import find_ch_adjacency
 from mne.datasets import sample
-from mne.stats import combine_adjacency
-from mne.stats.cluster_level import cluster_test
+from mne.stats import cluster_test, combine_adjacency
 from mne.viz import plot_compare_evokeds
 
 # %%
@@ -90,7 +89,7 @@ epochs.equalize_event_counts(event_id)
 # ----------------------------------------------------
 # We use one row per condition, each holding the full :class:`~mne.Epochs`
 # subset for that condition. With 4 groups (and no ``within_id``),
-# :func:`~mne.stats.cluster_level.cluster_test` performs a 1-way F-test,
+# :func:`~mne.stats.cluster_test` performs a 1-way F-test,
 # equivalent to what :func:`~mne.stats.spatio_temporal_cluster_test` did by
 # default in the original tutorial.
 df = pd.DataFrame(
@@ -168,7 +167,7 @@ cluster_result = cluster_test(
 # here (this only differs for 3D, time-frequency data -- see below and
 # :ref:`tut-new-cluster-test-api-1samp-tfr`). Since the 4 conditions here
 # aren't organized as paired lists of per-subject evokeds,
-# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_sensor`
+# :meth:`~mne.stats.ClusterResult.plot_cluster_time_sensor`
 # doesn't apply (it assumes exactly 2 such conditions); instead we adapt the
 # manual plotting code from the original tutorial almost unchanged.
 
@@ -310,7 +309,7 @@ cluster_result_tfr = cluster_test(
 
 # %%
 # Finally, we can plot our results using
-# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`. By
+# :meth:`~mne.stats.ClusterResult.plot_cluster_time_frequency`. By
 # default (``cluster_idx=0``) it shows the largest significant cluster (an
 # F-statistic is non-negative, so ranking by cluster mass here simply means
 # ranking by size): a topomap of the statistic averaged over that cluster's

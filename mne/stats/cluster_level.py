@@ -1805,37 +1805,28 @@ def cluster_test(
         effect.
     within_id : None | str
         Name of column in ``df`` to use in identifying within-group contrasts.
-        If ``within_id`` is not None, a paired t-test will be performed against zero
-        (using mne.stats.ttest_1samp_no_p). ``within_id`` to match a variable in ``df``,
-        e.g. "subject_index". Currently, within tests are only supported for 1 or 2
-        levels of the independent variable (specified in the formula). If the
-        independent variable has 1 level per participant, the data will be treated as
-        already subtracted (e.g., condition A - condition B). If the independent
-        variable has 2 levels, the data will be subtracted for each participant (e.g.,
-        condition A - condition B). If ``within_id`` is ``None``, will perform a
-        between-group test (using mne.stats.f_oneway). This works for 2 levels or more.
-        This test is only valid if the samples from the groups do not overlap, i.e. the
-        data come from different participants. Specifying as ``within_id`` a variable
-        in df that has more than 2 levels, or one that is not in df, will result in an
-        error.
 
-        If ``within_id`` is not ``None``, ``within_id`` must match a variable
-        in ``df``, e.g. ``"subject_index"``, and a paired t-test will be performed
-        against zero (using :func:`mne.stats.ttest_1samp_no_p`_). If the independent
-        variable has 1 level per participant, the data will be treated as
-        already subtracted (e.g., condition A - condition B). If the independent
-        variable has 2 levels, the data will be subtracted for each participant (e.g.,
-        condition A - condition B). Specifying as ``within_id`` a variable in ``df``
-        that has more than 2 levels, or one that is not in ``df``, will result in an
-        error.
+        - If ``within_id`` is not ``None``:
+            ``within_id`` must match a column name in ``df``, e.g. ``"subject_index"``,
+            and a paired t-test will be performed against zero
+            (using :func:`mne.stats.ttest_1samp_no_p`). If the independent
+            variable has 1 level per participant, the data will be treated as
+            already subtracted (e.g., condition A - condition B). If the independent
+            variable has 2 levels, the data will be subtracted for each participant
+            (e.g., condition A - condition B). Specifying as ``within_id`` a column in
+            ``df`` that has more than 2 levels
+            (i.e. ``df[within_id].nunique() > 2``), or one that is not in
+            ``df.columns``, will result in an error.
 
-        If ``within_id`` is ``None``, will perform a between-group test
-        (using :func:`mne.stats.f_oneway`; This works for 2 levels or more).
+        - If ``within_id`` is ``None``:
+            Will perform a between-group test (using :func:`mne.stats.f_oneway`; This
+            works for 2 levels or more).
 
-        This parameter is required if ``formula``'s right-hand side is an interaction
-        term (e.g. ``"data ~ a:b"``), in which case each combination of ``within_id``
-        and the factors must appear exactly once (a fully balanced repeated-measures
-        design).
+        - This parameter is required if:
+            ``formula``'s right-hand side is an interaction term (e.g.
+            ``"data ~ a:b"``), in which case each combination of ``within_id`` and the
+            factors must appear exactly once (a fully balanced repeated-measures
+            design).
     %(stat_fun_clust_both)s
     %(tail_clust)s
     %(threshold_clust_both)s

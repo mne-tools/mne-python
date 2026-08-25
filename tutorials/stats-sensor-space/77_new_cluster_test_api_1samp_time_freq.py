@@ -1,12 +1,12 @@
 """
 .. _tut-new-cluster-test-api-1samp-tfr:
 
-=====================================================================
+======================================================================
 New cluster test API: 1-sample cluster statistic on single trial power
-=====================================================================
+======================================================================
 
 This tutorial reproduces :ref:`tut-cluster-one-samp-tfr` using the new
-:func:`~mne.stats.cluster_level.cluster_test` API instead of
+:func:`~mne.stats.cluster_test` API instead of
 :func:`~mne.stats.permutation_cluster_1samp_test`. It estimates significant
 clusters in time-frequency power estimates using a non-parametric permutation
 procedure.
@@ -17,10 +17,10 @@ The procedure consists of:
   - computing single trial power estimates
   - baseline correcting the power estimates (power ratios)
   - building a :class:`pandas.DataFrame` with one row holding all epochs
-  - running :func:`~mne.stats.cluster_level.cluster_test` to see if the ratio
+  - running :func:`~mne.stats.cluster_test` to see if the ratio
     deviates from 1
   - plotting the resulting cluster with
-    :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`
+    :meth:`~mne.stats.ClusterResult.plot_cluster_time_frequency`
 
 Here, the unit of observation is epochs from a specific study subject.
 However, the same logic applies when the unit of observation is a number of
@@ -45,7 +45,7 @@ import scipy.stats
 
 import mne
 from mne.datasets import sample
-from mne.stats.cluster_level import cluster_test
+from mne.stats import cluster_test
 
 # %%
 # Set parameters
@@ -118,7 +118,7 @@ tfr_epochs.crop(-0.1, 0.4)
 # -------------------------------
 # To perform a cluster-based permutation test, we need a suitable definition
 # for the adjacency of sensors, time points, and frequency bins. Just like
-# with the old API, :func:`~mne.stats.cluster_level.cluster_test` does not
+# with the old API, :func:`~mne.stats.cluster_test` does not
 # build this adjacency for us -- we compute the sensor adjacency, then
 # combine it with a "lattice" adjacency for the time-frequency plane
 # ourselves, exactly like in :ref:`tut-cluster-one-samp-tfr`.
@@ -154,7 +154,7 @@ assert (
 # no real "condition" to compare against. We represent this by putting *all*
 # epochs into a single :class:`~mne.time_frequency.EpochsTFR` in one row, with
 # a placeholder, single-valued "group" column. When the independent variable
-# has only one unique value, :func:`~mne.stats.cluster_level.cluster_test`
+# has only one unique value, :func:`~mne.stats.cluster_test`
 # recognizes this as a 1-sample design and runs a paired t-test against zero,
 # exactly like :func:`~mne.stats.permutation_cluster_1samp_test` did above.
 df = pd.DataFrame(dict(power=[tfr_epochs], group=["induced"]))
@@ -191,7 +191,7 @@ cluster_result = cluster_test(
 # View time-frequency plots
 # -------------------------
 # We now visualize the most significant cluster using
-# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`. By
+# :meth:`~mne.stats.ClusterResult.plot_cluster_time_frequency`. By
 # default (``cluster_idx=0``) this shows the cluster with the largest *mass*
 # (the sum of the observed statistic within the cluster -- the same quantity
 # used internally to compute the cluster p-values), not necessarily the one

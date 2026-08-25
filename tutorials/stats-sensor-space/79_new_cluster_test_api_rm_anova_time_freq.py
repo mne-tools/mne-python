@@ -1,19 +1,19 @@
 """
 .. _tut-new-cluster-test-api-rm-anova-tfr:
 
-=========================================================================
+=====================================================================
 New cluster test API: mass-univariate two-way repeated measures ANOVA
-=========================================================================
+=====================================================================
 
 This tutorial reproduces :ref:`tut-timefreq-twoway-anova` using the new
-:func:`~mne.stats.cluster_level.cluster_test` API instead of
+:func:`~mne.stats.cluster_test` API instead of
 :func:`~mne.stats.permutation_cluster_test` with a hand-rolled ``stat_fun``.
 As in the original tutorial, the model assumes two fully crossed factors --
 perceptual modality (auditory vs. visual) and location of stimulus
 presentation (left vs. right) -- and single trials are used as replications
 ("subjects") while iterating over time-frequency bins for a single channel.
 
-:func:`~mne.stats.cluster_level.cluster_test` supports this design directly:
+:func:`~mne.stats.cluster_test` supports this design directly:
 a formula naming a single interaction term, e.g. ``"power ~ modality:location"``,
 combined with ``within_id`` naming the replication/subject column, dispatches
 internally to :func:`~mne.stats.f_mway_rm` with the correct ``factor_levels``
@@ -35,8 +35,7 @@ import pandas as pd
 
 import mne
 from mne.datasets import sample
-from mne.stats import f_mway_rm, f_threshold_mway_rm, fdr_correction
-from mne.stats.cluster_level import cluster_test
+from mne.stats import cluster_test, f_mway_rm, f_threshold_mway_rm, fdr_correction
 from mne.time_frequency import AverageTFRArray
 
 # %%
@@ -166,7 +165,7 @@ for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
 #
 # Now we restrict the analysis to the interaction effect and correct for
 # multiple comparisons using a cluster-based permutation test, via the new
-# :func:`~mne.stats.cluster_level.cluster_test` API.
+# :func:`~mne.stats.cluster_test` API.
 #
 # Build a dataframe with one row per single trial: the trial's time-frequency
 # power (as an :class:`~mne.time_frequency.AverageTFRArray`, since each row

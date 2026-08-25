@@ -1,12 +1,12 @@
 """
 .. _tut-new-cluster-test-api-between-tfr:
 
-============================================================================
+===========================================================================
 New cluster test API: between-conditions cluster statistic on single trials
-============================================================================
+===========================================================================
 
 This tutorial reproduces :ref:`tut-cluster-tfr` using the new
-:func:`~mne.stats.cluster_level.cluster_test` API instead of
+:func:`~mne.stats.cluster_test` API instead of
 :func:`~mne.stats.permutation_cluster_test`. It compares clusters in
 time-frequency power estimates between two conditions using a non-parametric
 permutation procedure.
@@ -17,7 +17,7 @@ The procedure consists of:
   - computing single trial power estimates
   - baseline correcting the power estimates (power ratios)
   - building a :class:`pandas.DataFrame` with one row per condition, and
-    running :func:`~mne.stats.cluster_level.cluster_test` to see if the power
+    running :func:`~mne.stats.cluster_test` to see if the power
     estimates are significantly different between conditions
 """
 # Authors: The MNE-Python contributors.
@@ -33,7 +33,7 @@ import pandas as pd
 
 import mne
 from mne.datasets import sample
-from mne.stats.cluster_level import cluster_test
+from mne.stats import cluster_test
 
 # %%
 # Set parameters
@@ -116,7 +116,7 @@ tfr_epochs_2.apply_baseline(mode="ratio", baseline=(None, 0))
 # We use one row per condition, each holding the full (multi-epoch)
 # :class:`~mne.time_frequency.EpochsTFR` object for that condition. Because
 # there is no ``within_id`` and there are exactly 2 groups,
-# :func:`~mne.stats.cluster_level.cluster_test` performs an unpaired test,
+# :func:`~mne.stats.cluster_test` performs an unpaired test,
 # equivalent to the 1-way ANOVA (F-test) that
 # :func:`~mne.stats.permutation_cluster_test` performs by default.
 df = pd.DataFrame(
@@ -142,9 +142,9 @@ cluster_result = cluster_test(
 # View time-frequency plots
 # -------------------------
 # The single channel we picked doesn't lend itself well to
-# :meth:`~mne.stats.cluster_level.ClusterResult.plot_cluster_time_frequency`
+# :meth:`~mne.stats.ClusterResult.plot_cluster_time_frequency`
 # (which shows a topomap of the cluster's spatial extent), so here we build a
-# plot directly from :class:`~mne.stats.cluster_level.ClusterResult`'s raw
+# plot directly from :class:`~mne.stats.ClusterResult`'s raw
 # attributes, just like the original tutorial did with the plain arrays
 # returned by :func:`~mne.stats.permutation_cluster_test`. The main
 # difference is dimension order: ``cluster_result.stat_obs`` has shape
