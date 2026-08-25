@@ -88,8 +88,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
             # (was three passes plus a full float64 temporary).
             # Benchmark (128 ch x 1024 samples): ~85 -> ~30 us per call
             # on BrainVision/FIF window reads.
-            np.multiply(one[idx], cals.reshape(-1, 1), out=data_view,
-                        casting="unsafe")
+            np.multiply(one[idx], cals.reshape(-1, 1), out=data_view, casting="unsafe")
         else:
             one = np.asarray(one, dtype=data_view.dtype)
             np.take(one, idx, axis=0, out=data_view)
