@@ -1100,48 +1100,6 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     return stat_fun, threshold
 
 
-def _permutation_cluster_test_normalized(
-    X,
-    threshold,
-    n_permutations,
-    tail,
-    stat_fun,
-    adjacency,
-    n_jobs,
-    rng,
-    max_step,
-    exclude,
-    step_down_p,
-    t_power,
-    out_type,
-    check_disjoint,
-    buffer_size,
-    *,
-    kind,
-):
-    """Run a cluster test with an already-normalized random generator."""
-    stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, kind)
-    if kind == "within":
-        X = [X]
-    return _permutation_cluster_test(
-        X=X,
-        threshold=threshold,
-        n_permutations=n_permutations,
-        tail=tail,
-        stat_fun=stat_fun,
-        adjacency=adjacency,
-        n_jobs=n_jobs,
-        rng=rng,
-        max_step=max_step,
-        exclude=exclude,
-        step_down_p=step_down_p,
-        t_power=t_power,
-        out_type=out_type,
-        check_disjoint=check_disjoint,
-        buffer_size=buffer_size,
-    )
-
-
 @_legacy_rng("seed")
 @verbose
 def permutation_cluster_test(
@@ -1224,23 +1182,23 @@ def permutation_cluster_test(
     ----------
     .. footbibliography::
     """
-    return _permutation_cluster_test_normalized(
-        X,
-        threshold,
-        n_permutations,
-        tail,
-        stat_fun,
-        adjacency,
-        n_jobs,
-        rng,
-        max_step,
-        exclude,
-        step_down_p,
-        t_power,
-        out_type,
-        check_disjoint,
-        buffer_size,
-        kind="between",
+    stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, "between")
+    return _permutation_cluster_test(
+        X=X,
+        threshold=threshold,
+        n_permutations=n_permutations,
+        tail=tail,
+        stat_fun=stat_fun,
+        adjacency=adjacency,
+        n_jobs=n_jobs,
+        rng=rng,
+        max_step=max_step,
+        exclude=exclude,
+        step_down_p=step_down_p,
+        t_power=t_power,
+        out_type=out_type,
+        check_disjoint=check_disjoint,
+        buffer_size=buffer_size,
     )
 
 
@@ -1338,23 +1296,23 @@ def permutation_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    return _permutation_cluster_test_normalized(
-        X,
-        threshold,
-        n_permutations,
-        tail,
-        stat_fun,
-        adjacency,
-        n_jobs,
-        rng,
-        max_step,
-        exclude,
-        step_down_p,
-        t_power,
-        out_type,
-        check_disjoint,
-        buffer_size,
-        kind="within",
+    stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
+    return _permutation_cluster_test(
+        X=[X],
+        threshold=threshold,
+        n_permutations=n_permutations,
+        tail=tail,
+        stat_fun=stat_fun,
+        adjacency=adjacency,
+        n_jobs=n_jobs,
+        rng=rng,
+        max_step=max_step,
+        exclude=exclude,
+        step_down_p=step_down_p,
+        t_power=t_power,
+        out_type=out_type,
+        check_disjoint=check_disjoint,
+        buffer_size=buffer_size,
     )
 
 
@@ -1440,23 +1398,22 @@ def spatio_temporal_cluster_1samp_test(
         )
     else:
         exclude = None
-    return _permutation_cluster_test_normalized(
+    return permutation_cluster_1samp_test(
         X,
-        threshold,
-        n_permutations,
-        tail,
-        stat_fun,
-        adjacency,
-        n_jobs,
-        rng,
-        max_step,
-        exclude,
-        step_down_p,
-        t_power,
-        out_type,
-        check_disjoint,
-        buffer_size,
-        kind="within",
+        threshold=threshold,
+        stat_fun=stat_fun,
+        tail=tail,
+        n_permutations=n_permutations,
+        adjacency=adjacency,
+        n_jobs=n_jobs,
+        rng=rng,
+        max_step=max_step,
+        exclude=exclude,
+        step_down_p=step_down_p,
+        t_power=t_power,
+        out_type=out_type,
+        check_disjoint=check_disjoint,
+        buffer_size=buffer_size,
     )
 
 
@@ -1544,23 +1501,22 @@ def spatio_temporal_cluster_test(
         )
     else:
         exclude = None
-    return _permutation_cluster_test_normalized(
+    return permutation_cluster_test(
         X,
-        threshold,
-        n_permutations,
-        tail,
-        stat_fun,
-        adjacency,
-        n_jobs,
-        rng,
-        max_step,
-        exclude,
-        step_down_p,
-        t_power,
-        out_type,
-        check_disjoint,
-        buffer_size,
-        kind="between",
+        threshold=threshold,
+        stat_fun=stat_fun,
+        tail=tail,
+        n_permutations=n_permutations,
+        adjacency=adjacency,
+        n_jobs=n_jobs,
+        rng=rng,
+        max_step=max_step,
+        exclude=exclude,
+        step_down_p=step_down_p,
+        t_power=t_power,
+        out_type=out_type,
+        check_disjoint=check_disjoint,
+        buffer_size=buffer_size,
     )
 
 

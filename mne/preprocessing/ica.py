@@ -89,7 +89,7 @@ from .bads import _find_outliers
 from .ctps_ import ctps
 from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
 from .eog import _find_eog_events, _get_eog_channel_index
-from .infomax_ import _infomax
+from .infomax_ import infomax
 
 __all__ = (
     "ICA",
@@ -990,7 +990,7 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
-            unmixing_matrix, n_iter = _infomax(
+            unmixing_matrix, n_iter = infomax(
                 data[:, sel],
                 rng=_check_rng(rng),
                 return_n_iter=True,

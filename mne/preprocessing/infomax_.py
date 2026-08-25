@@ -11,8 +11,9 @@ from ..utils import _legacy_rng, logger, verbose
 from ..utils.numerics import _random_permutation
 
 
+@_legacy_rng("random_state")
 @verbose
-def _infomax(
+def infomax(
     data,
     weights=None,
     l_rate=None,
@@ -25,6 +26,7 @@ def _infomax(
     kurt_size=6000,
     ext_blocks=1,
     max_iter=200,
+    random_state=None,
     blowup=1e4,
     blowup_fac=0.5,
     n_small_angle=20,
@@ -32,7 +34,7 @@ def _infomax(
     verbose=None,
     return_n_iter=False,
     *,
-    rng,
+    rng=None,
 ):
     """Run (extended) Infomax ICA decomposition on raw data.
 
@@ -335,54 +337,3 @@ def _infomax(
         return weights.T, step
     else:
         return weights.T
-
-
-def infomax(
-    data,
-    weights=None,
-    l_rate=None,
-    block=None,
-    w_change=1e-12,
-    anneal_deg=60.0,
-    anneal_step=0.9,
-    extended=True,
-    n_subgauss=1,
-    kurt_size=6000,
-    ext_blocks=1,
-    max_iter=200,
-    random_state=None,
-    blowup=1e4,
-    blowup_fac=0.5,
-    n_small_angle=20,
-    use_bias=True,
-    verbose=None,
-    return_n_iter=False,
-    *,
-    rng=None,
-):
-    """Run (extended) Infomax ICA decomposition on raw data."""
-    return _infomax(
-        data,
-        weights=weights,
-        l_rate=l_rate,
-        block=block,
-        w_change=w_change,
-        anneal_deg=anneal_deg,
-        anneal_step=anneal_step,
-        extended=extended,
-        n_subgauss=n_subgauss,
-        kurt_size=kurt_size,
-        ext_blocks=ext_blocks,
-        max_iter=max_iter,
-        blowup=blowup,
-        blowup_fac=blowup_fac,
-        n_small_angle=n_small_angle,
-        use_bias=use_bias,
-        verbose=verbose,
-        return_n_iter=return_n_iter,
-        rng=rng,
-    )
-
-
-infomax.__doc__ = _infomax.__doc__
-infomax = _legacy_rng("random_state")(verbose(infomax))
