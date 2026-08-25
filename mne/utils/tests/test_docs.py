@@ -2,7 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import inspect
 import webbrowser
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,11 +13,15 @@ from mne import grade_to_tris, open_docs
 from mne.utils import (
     catch_logging,
     copy_doc,
+    copy_doc_static,
     copy_function_doc_to_method_doc,
+    copy_function_doc_to_method_doc_static,
     deprecated,
     deprecated_alias,
+    fill_doc_static,
     legacy,
     linkcode_resolve,
+    verbose_static,
 )
 
 
@@ -98,6 +105,50 @@ def test_deprecated_and_legacy(msg, func, klass):
     assert msg.upper() in klass.bad.__doc__
     assert msg.upper() in _klass.bad.__doc__
     assert msg.upper() in func.__doc__
+
+
+def test_static_doc_markers():
+    """Test that the static docstring decorators leave docstrings untouched."""
+
+    @verbose_static("picks_all")
+    def func(verbose=None):
+        """Do a thing.
+
+        Parameters
+        ----------
+        verbose : bool | str | int | None
+            Control verbosity.
+        """
+        from mne.utils import logger
+
+        logger.info("static hello")
+
+    # the docstring is exactly what was written (modulo compile-time dedenting)
+    assert func.__doc__.splitlines()[0] == "Do a thing."
+    assert "Control verbosity." in func.__doc__
+    assert func._static_doc_keys == ("verbose", "picks_all")
+    with catch_logging() as log:
+        func(verbose=True)
+    assert "static hello" in log.getvalue()
+    with catch_logging() as log:
+        func(verbose=False)
+    assert log.getvalue() == ""
+
+    @fill_doc_static("picks_all")
+    def filled():
+        """Unchanged %(picks_all)s."""
+
+    assert filled.__doc__ == "Unchanged %(picks_all)s."
+    assert filled._static_doc_keys == ("picks_all",)
+
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_raw")
+    def copied():
+        """Unchanged."""
+
+    assert copied.__doc__ == "Unchanged."
+    assert copied._static_doc_copy == "func:mne.viz.plot_raw"
+    with pytest.raises(ValueError, match="must look like"):
+        copy_doc_static("func:mne.viz.plot_raw")
 
 
 def test_copy_doc():
@@ -258,3 +309,237 @@ def test_linkcode_resolve():
         "py", dict(module="mne", fullname="datasets.sample.data_path")
     )
     assert "/mne/datasets/sample/sample.py" + ex in url
+
+
+def _load_hook():
+    import importlib.util
+
+    import mne
+
+    path = Path(mne.__file__).parents[1] / "tools" / "hooks" / "check_static_docs.py"
+    if not path.is_file():
+        pytest.skip("not running from a source checkout")
+    spec = importlib.util.spec_from_file_location("check_static_docs", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_HOOK_DOCDICT = {
+    "alpha": "\nalpha : int\n    The alpha. It is shared.\n",
+    "notes_shared": "\nFirst shared paragraph.\nLine two.\n\nSecond paragraph.\n",
+    "verbose": "\nverbose : bool | str | int | None\n    Control verbosity.\n",
+}
+_HOOK_MODULE = '''\
+from mne.utils import fill_doc_static, verbose_static
+from mne.utils import copy_function_doc_to_method_doc_static
+
+
+@verbose_static()
+def func(alpha, verbose=None):
+    """Do a thing.
+
+    Parameters
+    ----------
+    %(alpha)s
+    %(verbose)s
+
+    Notes
+    -----
+    %(notes_shared)s
+    This line is specific to func.
+    """
+
+
+class Klass:
+    @copy_function_doc_to_method_doc_static("func:mne.baseline.rescale")
+    def rescale(self, times, baseline, mode="mean", copy=True, picks=None):
+        pass
+'''
+
+
+def test_check_static_docs(tmp_path, monkeypatch):
+    """Test the static docstring pre-commit hook."""
+    hook = _load_hook()
+    docs_py = tmp_path / "docs.py"
+    docs_py.write_text(
+        "docdict = {}\n"
+        + "".join(f'docdict["{k}"] = """{v}"""\n' for k, v in _HOOK_DOCDICT.items())
+    )
+    monkeypatch.setattr(hook, "docdict", dict(_HOOK_DOCDICT))
+    monkeypatch.setattr(hook, "DOCS_PY", docs_py)
+    monkeypatch.setattr(hook, "_old_docdict", lambda: dict(_HOOK_DOCDICT))
+    path = tmp_path / "mod.py"
+    path.write_text(_HOOK_MODULE)
+
+    # 1. migration: placeholders are expanded and keys added to the decorator
+    assert hook.process_file(path, True, {}) == []
+    assert hook.process_file(path, False, {}) == []  # now in sync
+    source = path.read_text()
+    assert '@verbose_static("alpha", "notes_shared")' in source
+    assert "    alpha : int\n        The alpha. It is shared.\n" in source
+    assert "    Second paragraph.\n    This line is specific to func.\n" in source
+    # the copied docstring was inserted (first parameter dropped)
+    assert '"""Rescale (baseline correct) data.' in source
+    assert "    data : array" not in source and "    times : 1D array" in source
+
+    # 2. forward sync: docdict changed, the docstring (and only the shared part)
+    #    is updated
+    hook.docdict["alpha"] = "\nalpha : int\n    The alpha. It changed.\n"
+    hook.docdict["notes_shared"] = "\nFirst shared paragraph, edited.\n\nSecond.\n"
+    errors = hook.process_file(path, False, {})
+    assert len(errors) == 1 and "out of sync" in errors[0]
+    assert hook.process_file(path, True, {}) == []
+    source = path.read_text()
+    assert "It changed." in source and "It is shared." not in source
+    assert "    Second.\n    This line is specific to func.\n" in source
+
+    # 3. reverse sync: docdict unchanged since HEAD but a docstring copy edited
+    monkeypatch.setattr(hook, "_old_docdict", lambda: dict(hook.docdict))
+    path.write_text(path.read_text().replace("Control verbosity.", "Be loud."))
+    reverse = {}
+    assert hook.process_file(path, False, reverse) == []
+    assert reverse == {"verbose": ["verbose : bool | str | int | None", "    Be loud."]}
+    written, errors = hook._write_docdict_entries(reverse)
+    assert written == ["verbose"] and errors == []
+    want = 'docdict["verbose"] = """\nverbose : bool | str | int | None\n    Be loud.'
+    assert want + '\n"""' in docs_py.read_text()
+    # a templated entry cannot be written back
+    docs_py.write_text(
+        docs_py.read_text().replace(
+            'docdict["alpha"] = """', 'docdict["alpha"] = "" + """'
+        )
+    )
+    _, errors = hook._write_docdict_entries({"alpha": ["alpha : int", "    x"]})
+    assert len(errors) == 1 and "by hand" in errors[0]
+
+    # 4. site-specific text after a shared block: the previous version of the
+    #    docstring (git HEAD) tells the two apart even when the shared part
+    #    changes length
+    own = "    This line is specific to func."
+    source = path.read_text()
+    assert "    Second.\n" + own in source
+    # pretend the current file is what git HEAD has
+    monkeypatch.setattr(hook, "REPO", tmp_path)
+    monkeypatch.setattr(
+        hook.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(stdout=source)
+    )
+    hook._old_bodies.cache_clear()
+    # (a) a line added right after the shared text is shared (pushed to docdict)
+    path.write_text(source.replace("    Second.\n", "    Second.\n    Third.\n"))
+    reverse = {}
+    assert hook.process_file(path, False, reverse) == []
+    want = ["First shared paragraph, edited.", "", "Second.", "Third."]
+    assert reverse["notes_shared"] == want
+    # (b) ... unless it starts with a blank line, the site-specific convention
+    alpha = "    alpha : int\n        The alpha. It changed.\n"
+    assert alpha in source
+    path.write_text(source.replace(alpha, alpha + "\n        .. versionadded:: 1.0\n"))
+    reverse = {}
+    assert hook.process_file(path, False, reverse) == [] and reverse == {}
+    path.write_text(source.replace(alpha, alpha + "        More alpha.\n"))
+    reverse = {}
+    assert hook.process_file(path, False, reverse) == []
+    assert reverse == {
+        "alpha": ["alpha : int", "    The alpha. It changed.", "    More alpha."]
+    }
+    # (c) a line removed from the shared text does not swallow the site's own line
+    path.write_text(source.replace("    Second.\n", ""))
+    reverse = {}
+    assert hook.process_file(path, False, reverse) == []
+    assert reverse["notes_shared"] == ["First shared paragraph, edited."]
+    assert own in path.read_text()
+    # (d) editing the site-specific text alone is not a shared edit
+    path.write_text(source.replace(own, "    Specific, edited."))
+    reverse = {}
+    assert hook.process_file(path, False, reverse) == [] and reverse == {}
+    # (e) editing both is refused rather than guessed
+    path.write_text(source.replace("    Second.\n", "").replace(own, "    Both."))
+    errors = hook.process_file(path, False, {})
+    assert len(errors) == 1 and "both the shared text" in errors[0]
+    # (f) forward sync keeps the site's own text when docdict grows
+    path.write_text(source)
+    snapshot = dict(hook.docdict)
+    monkeypatch.setattr(hook, "_old_docdict", lambda: snapshot)
+    hook.docdict["notes_shared"] = "\nFirst shared paragraph, edited.\n\nSecond.\nMore."
+    assert hook.process_file(path, True, {}) == []
+    assert "    Second.\n    More.\n" + own in path.read_text()
+
+    # 5. the E501 suppression comment follows the need for it
+    source = path.read_text()
+    assert '"""  # noqa: E501' in source  # the copied rescale docstring is wide
+    stale = source.replace(
+        '    """\n\n\nclass Klass', '    """  # noqa: E501\n\n\nclass Klass'
+    )
+    assert stale != source
+    path.write_text(stale)
+    errors = hook.process_file(path, False, {})
+    assert len(errors) == 1 and "no longer needs" in errors[0]
+    assert hook.process_file(path, True, {}) == []
+    assert path.read_text() == source
+
+    # 6. a block whose anchor (first line) is gone is an error, not a silent pass
+    path.write_text(path.read_text().replace("First shared paragraph, edited.", "?"))
+    errors = hook.process_file(path, False, {})
+    assert len(errors) == 1 and "could not find" in errors[0]
+
+
+_PARA_TWO = "\nPara one line A.\nPara one line B.\n\nPara two.\n"
+_PARA_ONE = "\nPara one collapsed.\n"
+_PARA_THREE = _PARA_TWO + "\nPara three added.\n"
+_PARA_FIRST = "\nPara one line A.\nPara one line B.\n"
+
+
+def _para_module(note):
+    body = note.strip("\n").replace("\n", "\n    ")
+    return f'''from mne.utils import fill_doc_static
+@fill_doc_static("note")
+def f():
+    """Do.
+
+    Notes
+    -----
+    {body}
+
+    This paragraph is unrelated local text.
+    """
+'''
+
+
+@pytest.mark.parametrize(
+    "docdict_now, module_now, n_errors, reverse_keys",
+    [
+        (_PARA_ONE, _PARA_TWO, 0, []),  # collapsed in docdict, first line new
+        (_PARA_FIRST, _PARA_TWO, 0, []),  # collapsed in docdict, first para kept
+        (_PARA_THREE, _PARA_TWO, 0, []),  # expanded in docdict
+        (_PARA_TWO, _PARA_ONE, 1, []),  # collapsed locally, first line new: error
+        (_PARA_TWO, _PARA_FIRST, 0, ["note"]),  # collapsed locally, first para kept
+        (_PARA_TWO, _PARA_TWO, 0, []),  # untouched
+    ],
+)
+def test_check_static_docs_paragraph_count(
+    tmp_path, monkeypatch, docdict_now, module_now, n_errors, reverse_keys
+):
+    """Test shared blocks growing or shrinking by whole paragraphs."""
+    hook = _load_hook()
+    head_module = _para_module(_PARA_TWO)
+    path = tmp_path / "mod.py"
+    path.write_text(_para_module(module_now))
+    monkeypatch.setattr(hook, "docdict", {"note": docdict_now})
+    monkeypatch.setattr(hook, "DOCS_PY", tmp_path / "docs.py")
+    monkeypatch.setattr(hook, "_old_docdict", lambda: {"note": _PARA_TWO})
+    monkeypatch.setattr(hook, "REPO", tmp_path)
+    monkeypatch.setattr(
+        hook.subprocess, "run", lambda *a, **k: SimpleNamespace(stdout=head_module)
+    )
+    hook._old_bodies.cache_clear()
+    reverse = {}
+    errors = hook.process_file(path, True, reverse)
+    assert len(errors) == n_errors, errors
+    assert list(reverse) == reverse_keys
+    body = path.read_text()
+    # the docstring's own local paragraph is never swallowed or dropped
+    assert "This paragraph is unrelated local text." in body
+    assert "unrelated local text" not in str(reverse)
+    if not n_errors and not reverse_keys:  # forward: docstring matches docdict
+        assert docdict_now.strip("\n") in inspect.cleandoc(body.split('"""')[1]), body

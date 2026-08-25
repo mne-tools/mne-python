@@ -65,6 +65,7 @@ from .utils import (
     repr_html,
     sizeof_fmt,
     verbose,
+    verbose_static,
     warn,
 )
 from .utils._typing import Color, Self
@@ -446,7 +447,14 @@ class Evoked(
         """
         write_evokeds(fname, self, overwrite=overwrite)
 
-    @verbose
+    @verbose_static(
+        "export_fmt_support_evoked",
+        "export_warning",
+        "fname_export_params",
+        "export_fmt_params_evoked",
+        "overwrite",
+        "export_warning_note_evoked",
+    )
     def export(
         self,
         fname: str,
@@ -457,22 +465,41 @@ class Evoked(
     ) -> None:
         """Export Evoked to external formats.
 
-        %(export_fmt_support_evoked)s
+        Supported formats:
 
-        %(export_warning)s
+        - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+        .. warning::
+            Since we are exporting to external formats, there's no guarantee that all
+            the info will be preserved in the external format. See Notes for details.
 
         Parameters
         ----------
-        %(fname_export_params)s
-        %(export_fmt_params_evoked)s
-        %(overwrite)s
-        %(verbose)s
+        fname : str
+            Name of the output file.
+        fmt : 'auto' | 'mff'
+            Format of the export. Defaults to ``'auto'``, which will infer the format
+            from the filename extension. See supported formats above for more
+            information.
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
         .. versionadded:: 1.1
 
-        %(export_warning_note_evoked)s
+        Export to external format may not preserve all the information from the
+        instance. To save in native MNE format (``.fif``) without information loss,
+        use :meth:`mne.Evoked.save` instead.
+        Export does not apply projector(s). Unapplied projector(s) will be lost.
+        Consider applying projector(s) before exporting with
+        :meth:`mne.Evoked.apply_proj`.
         """
         from .export import export_evokeds
 

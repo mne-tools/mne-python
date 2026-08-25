@@ -44,7 +44,8 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
     merged = " ".join(
         line.strip() for line in docstring.rsplit("\n", maxsplit=maxsplit)
     )
-    reflowed = "\n    ".join(re.findall(rf".{{1,{width}}}(?:\s+|$)", merged))
+    chunks = re.findall(rf".{{1,{width}}}(?:\s+|$)", merged)
+    reflowed = "\n    ".join(chunk.rstrip() for chunk in chunks)
     if has_first_line:
         reflowed = reflowed.replace("\n    \n", "\n", 1)
     return reflowed
@@ -1719,10 +1720,10 @@ fig_facecolor : str | tuple
 
 docdict["figure_class"] = """
 figure_class : class
-    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
-    to pass a subclass in order to customize the plot. This parameter requires
-    cooperation from the backend, and is currently only supported by the
-    ``matplotlib`` backend.
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically
+    used to pass a subclass in order to customize the plot. This parameter
+    requires cooperation from the backend, and is currently only supported by
+    the ``matplotlib`` backend.
 """
 
 docdict["filter_length"] = """
@@ -4407,8 +4408,8 @@ sphere : float | array-like of float | instance of ConductorModel | str | list o
 
 docdict["splash"] = """
 splash : bool
-    If True (default), a splash screen is shown during the application startup. Only
-    applicable to the ``qt`` backend.
+    If True (default), a splash screen is shown during the application
+    startup. Only applicable to the ``qt`` backend.
 """
 
 docdict["split_naming"] = """
@@ -4689,9 +4690,9 @@ theme : str | path-like
     custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
     `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
     `darkdetect <https://github.com/albertosottile/darkdetect>`__,
-    respectively, are required.\
+    respectively, are required.
     If None (default), the config option {config_option} will be used,
-    defaulting to "auto" if it's not found.\
+    defaulting to "auto" if it's not found.
 """
 
 docdict["theme_3d"] = """
@@ -4700,9 +4701,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
-    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
-    stylesheet is also accepted.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``, and
+    ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a
+    custom stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
@@ -5316,6 +5317,87 @@ def fill_doc(f):
         funcname = docstring.split("\n")[0] if funcname is None else funcname
         raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
     return f
+
+
+def fill_doc_static(*keys):
+    """Mark a docstring as containing statically expanded docdict entries.
+
+    Unlike :func:`fill_doc`, this does not touch ``__doc__`` at import time, so
+    static analysis tools (IDEs, language servers) see the complete docstring.
+    The docstring must contain the expanded text of ``docdict[key]`` for every
+    ``key``; ``tools/hooks/check_static_docs.py`` (run via pre-commit) verifies
+    this and can rewrite the docstring with ``--fix`` when ``docdict`` changes.
+    Edits to shared text must be made in ``docdict``, not in the docstring.
+
+    Parameters
+    ----------
+    *keys : str
+        The ``docdict`` keys whose expanded text this docstring contains.
+
+    Returns
+    -------
+    dec : callable
+        The decorator, which returns its argument unchanged apart from a
+        ``_static_doc_keys`` attribute.
+    """
+
+    def dec(f):
+        f._static_doc_keys = tuple(keys)
+        return f
+
+    return dec
+
+
+def copy_doc_static(source):
+    """Mark a docstring as a static copy of another (see :func:`copy_doc`).
+
+    Parameters
+    ----------
+    source : str
+        The source, as ``"meth:mne.time_frequency.tfr.BaseTFR.plot"``. The
+        docstring must already contain its (cleaned) docstring, followed by any
+        text of its own; ``tools/hooks/check_static_docs.py`` enforces this.
+
+    Returns
+    -------
+    dec : callable
+        The decorator, which returns its argument unchanged apart from a
+        ``_static_doc_copy`` attribute.
+    """
+    _check_lazy_doc_source(source, "meth")
+
+    def dec(f):
+        f._static_doc_copy = source
+        return f
+
+    return dec
+
+
+def copy_function_doc_to_method_doc_static(source):
+    """Mark a method docstring as a static copy of a function's docstring.
+
+    See :func:`copy_function_doc_to_method_doc` for the transformation applied.
+
+    Parameters
+    ----------
+    source : str
+        The source function, as ``"func:mne.viz.plot_raw"``. The docstring must
+        already contain its transformed docstring, followed by any text of its
+        own; ``tools/hooks/check_static_docs.py`` enforces this.
+
+    Returns
+    -------
+    dec : callable
+        The decorator, which returns its argument unchanged apart from a
+        ``_static_doc_copy`` attribute.
+    """
+    _check_lazy_doc_source(source, "func")
+
+    def dec(f):
+        f._static_doc_copy = source
+        return f
+
+    return dec
 
 
 ##############################################################################

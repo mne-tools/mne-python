@@ -71,6 +71,7 @@ from .utils import (
     fill_doc,
     logger,
     verbose,
+    verbose_static,
     warn,
 )
 
@@ -2277,7 +2278,7 @@ def _regularized_covariance(
     return cov
 
 
-@verbose
+@verbose_static("info", "picks_good_data_noref", "rank_none", "on_rank_mismatch")
 def compute_whitener(
     noise_cov,
     info=None,
@@ -2296,10 +2297,63 @@ def compute_whitener(
     ----------
     noise_cov : Covariance
         The noise covariance.
-    %(info)s Can be None if ``noise_cov`` has already been
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the sensors and methods of measurement.
+        Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
-    %(picks_good_data_noref)s
-    %(rank_none)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    rank : None | 'info' | 'full' | dict
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. When a noise covariance
+        is used for whitening, this should reflect the rank of that covariance,
+        otherwise amplification of noise components can occur in whitening (e.g.,
+        often during source localization).
+
+        :data:`python:None`
+            The rank will be estimated from the data after proper scaling of
+            different channel types.
+        ``'info'``
+            The rank is inferred from ``info``. If data have been processed
+            with Maxwell filtering, the Maxwell filtering header is used.
+            Otherwise, the channel counts themselves are used.
+            In both cases, the number of projectors is subtracted from
+            the (effective) number of channels in the data.
+            For example, if Maxwell filtering reduces the rank to 68, with
+            two projectors the returned value will be 66.
+        ``'full'``
+            The rank is assumed to be full, i.e. equal to the
+            number of good channels. If a `~mne.Covariance` is passed, this can
+            make sense if it has been (possibly improperly) regularized without
+            taking into account the true data rank.
+        :class:`dict`
+            Calculate the rank only for a subset of channel types, and explicitly
+            specify the rank for the remaining channel types. This can be
+            extremely useful if you already **know** the rank of (part of) your
+            data, for instance in case you have calculated it earlier.
+
+            This parameter must be a dictionary whose **keys** correspond to
+            channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+            ``'eeg'``), and whose **values** are integers representing the
+            respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+            a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+            respectively.
+
+            The ranks for all channel types present in the data, but
+            **not** specified in the dictionary will be estimated empirically.
+            That is, if you passed a dataset containing magnetometer, gradiometer,
+            and EEG data together with the dictionary from the previous example,
+            only the gradiometer rank would be determined, while the specified
+            magnetometer and EEG ranks would be taken for granted.
+
+        The default is ``None``.
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -2326,8 +2380,18 @@ def compute_whitener(
         .. versionadded:: 0.18
     return_colorer : bool
         If True, return the colorer as well.
-    %(on_rank_mismatch)s
-    %(verbose)s
+    on_rank_mismatch : str
+        If an explicit MEG value is passed, what to do when it does not match
+        an empirically computed rank (only used for covariances).
+        Can be 'raise' to raise an error, 'warn' (default) to emit a warning, or
+        'ignore' to ignore.
+
+        .. versionadded:: 0.23
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
