@@ -1070,9 +1070,12 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update_volume_rgba(self, grid, ctable, rng):
         _update_volume_rgba(grid, ctable, rng)
 
-    def _sphere(self, center, color, radius):
+    def _sphere(self, center, color, radius, *, resolution=8):
         mesh = pyvista.Sphere(
-            radius=radius, center=center, theta_resolution=8, phi_resolution=8
+            radius=radius,
+            center=center,
+            theta_resolution=resolution,
+            phi_resolution=resolution,
         )
         actor = _add_mesh(self.plotter, mesh=mesh, color=color)
         return actor, mesh

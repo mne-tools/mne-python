@@ -66,6 +66,7 @@ __getattr__
 
 # Backward compat or rarely used
 RawFIF
+select_source_in_label
 estimate_head_mri_t
 plot_epochs_psd_topomap
 plot_epochs_psd

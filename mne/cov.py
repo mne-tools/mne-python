@@ -1524,12 +1524,12 @@ def _auto_low_rank_model(
         iter_n_components = np.arange(5, data.shape[1], 5)
     from sklearn.decomposition import PCA, FactorAnalysis
 
+    random_state = method_params.pop("random_state", 0)
     if mode == "factor_analysis":
-        est = FactorAnalysis
+        est = FactorAnalysis(random_state=random_state, **method_params)
     else:
         assert mode == "pca"
-        est = PCA
-    est = est(**method_params)
+        est = PCA(random_state=random_state, **method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)
