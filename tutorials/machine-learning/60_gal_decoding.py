@@ -1,39 +1,31 @@
 """
 .. _tut-gal-decoding:
 
-=============================================
-Generalizing decoding across time and sensors
-=============================================
+=====================================================
+Generalizing sensor-space decoding across locations
+=====================================================
 
-Generalization is defined by the axis that is sliced into tasks. With epoched
-data of shape ``trials x sensors x time``,
-:class:`mne.decoding.GeneralizingEstimator` can ask either whether a decoder
-generalizes across time or whether it generalizes across sensors:
+The :ref:`temporal generalization example <tut-mvpa>` evaluates a decoder
+estimated at one time point at every other time point. Its matrix shows whether
+a multichannel activity pattern remains decodable over time.
 
-.. list-table:: Two complementary slices of the same epochs
-   :header-rows: 1
+The same operation can be applied across locations. Generalization Across
+Location (GAL) uses the time course at one sensor as the feature vector, fits a
+decoder at that sensor, and tests it at every other sensor. The matrix then
+shows where a decodable temporal pattern transfers across the sensor array.
 
-   * - Question
-     - Task axis
-     - Features within each task
-   * - :ref:`Temporal generalization <tut-mvpa>`
-     - Time
-     - Sensors
-   * - Sensor generalization (this tutorial)
-     - Sensors
-     - Time samples
+For epochs with shape ``trials x sensors x time``, temporal generalization uses
+time as the task axis and sensors as features. GAL reverses those roles: sensor
+locations are tasks and time samples are features. Both analyses use
+:class:`mne.decoding.GeneralizingEstimator`.
 
-Both analyses fit a classifier at every training slice and test it at every
-other slice. The resulting matrix has training slices as rows and test slices
-as columns.
+This tutorial applies GAL to face and non-face trials from MNE's
+``visual_92_categories`` dataset. It applies the sensor-generalization
+construction described in the `Time-GAL paper <https://doi.org/10.1002/hbm.70152>`_.
+The paper describes this location-to-location classifier as a backward model.
 
-This tutorial uses face versus non-face trials from MNE's
-``visual_92_categories`` dataset. The `Time-GAL paper
-<https://doi.org/10.1002/hbm.70152>`_ uses the same sensor-generalization
-idea, but the name is not essential to the analysis.
-
-An off-diagonal sensor-generalization score measures transfer of decodable
-information. It is not an anatomical or directed-connectivity estimate.
+An off-diagonal score measures transfer of decodable information. It does not
+estimate anatomical or directed connectivity.
 """
 
 # Authors: The MNE-Python contributors.
@@ -55,12 +47,6 @@ import mne
 from mne.datasets import visual_92_categories
 from mne.decoding import GeneralizingEstimator
 from mne.io import concatenate_raws, read_raw_fif
-
-# %%
-# Choose the sensor-generalization slice
-# --------------------------------------
-# MNE stores the data as ``trials x sensors x time``. Setting ``axis=1`` makes
-# sensors the task axis and leaves time samples as features.
 
 # %%
 # Load the visual-object dataset
@@ -92,10 +78,10 @@ events = mne.find_events(raw, min_duration=0.002)
 events = events[events[:, 2] <= len(conditions)]
 
 # %%
-# The contrast supplies labels, and the time window supplies features
-# --------------------------------------------------------------------
-# We use 32 posterior magnetometers to keep the example quick. The classifier
-# receives each trial's 50 to 300 ms waveform. Baseline correction precedes the
+# Prepare face and non-face epochs
+# --------------------------------
+# We use 32 posterior magnetometers to keep the example quick. Each trial
+# contributes its 50 to 300 ms waveform. Baseline correction precedes the
 # crop.
 
 mag_picks = mne.pick_types(raw.info, meg="mag")
@@ -121,10 +107,10 @@ print(
 )
 
 # %%
-# Inspect the condition waveforms before decoding
-# ------------------------------------------------
-# The averages are a diagnostic view of the feature window. The estimator later
-# fits a separate model at every sensor.
+# Inspect the sensor and time dimensions
+# --------------------------------------
+# The averages are a diagnostic view of the feature window. The estimator fits
+# separate models at every sensor.
 
 fig, ax = plt.subplots(layout="constrained")
 time_mask = (epochs.times >= 0.05) & (epochs.times <= 0.30)
@@ -143,11 +129,10 @@ ax.set(
 ax.legend()
 
 # %%
-# Inspect the sensor-level contrast
-# ---------------------------------
-# The measured face-minus-non-face field is shown at three times in the
-# decoding window. It describes the evoked response, not decoder weights or
-# sources.
+# The condition contrast is spatially structured
+# ----------------------------------------------
+# These maps show the face-minus-non-face field at three times in the decoding
+# window. They describe evoked responses, not decoder weights or sources.
 
 face_minus_non_face = mne.combine_evoked(
     [epochs[y].average(), epochs[~y].average()], weights=[1, -1]
@@ -168,11 +153,11 @@ fig = face_minus_non_face.plot_topomap(
 )
 
 # %%
-# Describe the condition effect separately from the classifier
-# -------------------------------------------------------------
-# The paper places a forward temporal pattern beside its matrix. Here it is the
-# Pearson correlation between the binary face label and each sensor's trial
-# signal. It is calculated independently of the classifier.
+# The temporal pattern is described independently of decoding
+# ------------------------------------------------------------
+# The Time-GAL paper pairs this backward model with a correlation matrix.
+# Here, Pearson correlation between the binary face label and each sensor's
+# trial signal describes when the condition effect occurs.
 
 X_centered = X - X.mean(axis=0)
 y_centered = y - y.mean()
@@ -199,10 +184,14 @@ ax.set(
 fig.colorbar(image, ax=ax, label="Pearson r")
 
 # %%
-# Fit one waveform decoder per sensor
-# -----------------------------------
-# ``GeneralizingEstimator(axis=1)`` takes sensors as tasks, leaving time as
-# features. We use linear discriminant analysis, as in the paper.
+# Generalize waveform decoders across sensors
+# --------------------------------------------
+# :class:`~mne.decoding.GeneralizingEstimator` treats the final dimension as
+# the task axis by default. ``axis=1`` selects sensors instead. The data remain
+# ordered as ``trials x sensors x time``: each model is trained on one sensor's
+# time samples and scored on every sensor's time samples.
+#
+# We use linear discriminant analysis, as in the paper.
 
 sensor_gen = GeneralizingEstimator(
     LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto"),
@@ -213,10 +202,10 @@ sensor_gen = GeneralizingEstimator(
 )
 
 # %%
-# The split determines the claim
-# -------------------------------
+# Score held-out trials
+# ---------------------
 # The five stratified folds hold out trials from this participant. A group
-# analysis would instead hold out participants.
+# analysis should hold out participants.
 
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 scores = []
@@ -232,11 +221,12 @@ print(
 )
 
 # %%
-# Read the sensor-generalization matrix
-# -------------------------------------
+# A matrix summarizes location-to-location transfer
+# --------------------------------------------------
 # Rows identify training sensors and columns identify test sensors. The
-# diagonal is within-sensor decoding. Interpret the 32 x 32 matrix as a whole;
-# a single cell is not a group-level inference.
+# diagonal is within-sensor decoding. Off-diagonal cells test the temporal
+# pattern learned at one location at another location. A single cell is not a
+# group-level inference.
 
 limit = np.max(np.abs(mean_scores - 0.5))
 fig, ax = plt.subplots(layout="constrained")
