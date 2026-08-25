@@ -1,9 +1,9 @@
 """
 .. _tut-gal-decoding:
 
-====================================================
-Generalizing motor-imagery decoding across locations
-====================================================
+===============================================
+Generalizing face decoding across EEG locations
+===============================================
 
 The :ref:`temporal generalization example <tut-mvpa>` evaluates a decoder
 estimated at one time point at every other time point. Its matrix shows whether
@@ -19,14 +19,16 @@ time as the task axis and sensors as features. GAL reverses those roles: sensor
 locations are tasks and time samples are features. Both analyses use
 :class:`mne.decoding.GeneralizingEstimator`.
 
-This tutorial uses the hand and foot motor-imagery runs from the EEGBCI dataset,
-as in the :ref:`ERDS example <ex-tfr-erds>`. It applies the
-sensor-generalization construction described in the `Time-GAL paper
-<https://doi.org/10.1002/hbm.70152>`_. The paper describes this
-location-to-location classifier as a backward model.
+This tutorial uses the N170 face-perception task from the ERP CORE dataset. We
+contrast faces with scrambled faces and use every scalp electrode. This visual
+ERP gives the sensor-by-sensor analysis a more interpretable structure than the
+motor-imagery data used in the temporal-generalization tutorial.
 
-An off-diagonal score measures transfer of decodable information. It does not
-estimate anatomical or directed connectivity.
+The sensor-generalization construction follows the `Time-GAL paper
+<https://doi.org/10.1002/hbm.70152>`_, which describes the location-to-location
+classifier as a backward model. An off-diagonal score measures transfer of
+decodable information; it does not estimate anatomical or directed
+connectivity.
 """
 
 # Authors: The MNE-Python contributors.
@@ -34,11 +36,16 @@ estimate anatomical or directed connectivity.
 # Copyright the MNE-Python contributors.
 
 # %%
-# Download motor-imagery EEG data
-# --------------------------------
+# Download one ERP CORE N170 recording
+# ------------------------------------
+# ERP CORE is available from NEMAR as a BIDS dataset. We download only the
+# N170 recording from participant 1 (about 94 MB), rather than the complete
+# multi-participant archive. The recording contains 80 face and 80 scrambled
+# face trials.
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pooch
 from mne_connectivity.viz import plot_connectivity_circle
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
@@ -47,56 +54,89 @@ from sklearn.preprocessing import StandardScaler
 
 import mne
 from mne.channels import make_standard_montage
-from mne.datasets import eegbci
 from mne.decoding import GeneralizingEstimator, SlidingEstimator, cross_val_multiscore
-from mne.io import concatenate_raws, read_raw_edf
+from mne.io import read_raw_eeglab
+
+data_dir = mne.datasets.default_path() / "ERP-CORE-N170" / "sub-001" / "eeg"
+data_dir.mkdir(parents=True, exist_ok=True)
+urls = {
+    "sub-001_task-N170_eeg.fdt": (
+        "https://data.nemar.org/nm000132/v1.1.1/sub-001/eeg/sub-001_task-N170_eeg.fdt",
+        "sha256:08406f3c6b4a869dc8f67c9acc233a91993bae1b04b7dee5bc0521677ed8949b",
+    ),
+    "sub-001_task-N170_eeg.set": (
+        "https://data.nemar.org/nm000132/v1.1.1/sub-001/eeg/sub-001_task-N170_eeg.set",
+        "sha256:9c53dbdc3b469934a5eb6e9f01e59090dd47aeb495b8f21ceca03670991e5b11",
+    ),
+    "sub-001_task-N170_events.tsv": (
+        "https://raw.githubusercontent.com/nemarDatasets/nm000132/v1.1.1/"
+        "sub-001/eeg/sub-001_task-N170_events.tsv",
+        "sha256:07c87e728d097b0deb05b17d77bbdbd22ef58105111b0b56e659a767b9421e34",
+    ),
+}
+for fname, (url, known_hash) in urls.items():
+    pooch.retrieve(url=url, known_hash=known_hash, path=data_dir, fname=fname)
+
+raw = read_raw_eeglab(data_dir / "sub-001_task-N170_eeg.set", preload=True)
 
 # %%
-# The ERDS example uses runs 6, 10, and 14 from participant 1. These runs
-# contain imagined hand and foot movements. We retain the complete EEG array:
-# each electrode is a possible training and test location.
+# Prepare the epochs
+# ------------------
+# The EEGLAB recording labels the three ocular channels as EEG. Mark them as
+# EOG before re-referencing. We use the standard 10-20 positions associated
+# with the recorded cap labels for consistent sensor-space plots. All 30 scalp
+# electrodes enter the analysis; ``picks=\"eeg\"`` below removes only EOG.
 
-raw_fnames = eegbci.load_data(subjects=1, runs=(6, 10, 14))
-raw = concatenate_raws([read_raw_edf(fname, preload=True) for fname in raw_fnames])
-eegbci.standardize(raw)
-raw.set_montage(make_standard_montage("spherical_1005"))
-raw.annotations.rename(dict(T1="hands", T2="feet"))
-raw.filter(7.0, 30.0, fir_design="firwin", skip_by_annotation="edge")
+raw.set_channel_types(
+    {name: "eog" for name in ("HEOG_left", "HEOG_right", "VEOG_lower")}
+)
+raw.set_montage(make_standard_montage("colin27_1020"), match_case=False)
+raw.filter(0.1, 30.0, fir_design="firwin")
 raw.set_eeg_reference(projection=True).apply_proj()
-raw = mne.preprocessing.compute_current_source_density(raw)
 
-# %%
-# Prepare hand and foot motor-imagery epochs
-# -------------------------------------------
-# The surface Laplacian is a reference-free current-source-density (CSD)
-# transform. It suppresses broad, volume-conducted activity and sharpens local
-# sensor patterns, which can make the mu- and beta-band ERD/ERS contrast easier
-# to see. For GAL, the 1 to 3 s waveform becomes the feature vector at each
-# location.
-
-event_id = dict(hands=2, feet=3)
+events_tsv = np.genfromtxt(
+    data_dir / "sub-001_task-N170_events.tsv",
+    delimiter="\t",
+    names=True,
+    dtype=None,
+    encoding="utf-8",
+)
+is_target_trial = (events_tsv["trial_type"] == "stimulus") & np.isin(
+    events_tsv["event_type"], ("face", "scrambled_face")
+)
+events_tsv = events_tsv[is_target_trial]
+event_id = dict(face=1, scrambled_face=2)
+events = np.column_stack(
+    (
+        events_tsv["sample"],
+        np.zeros(len(events_tsv), dtype=int),
+        np.where(events_tsv["event_type"] == "face", 1, 2),
+    )
+).astype(int)
 epochs = mne.Epochs(
     raw,
+    events,
     event_id=event_id,
-    tmin=-1,
-    tmax=4,
-    baseline=None,
-    proj=True,
+    tmin=-0.2,
+    tmax=0.6,
+    baseline=(None, 0),
+    picks="eeg",
     preload=True,
     verbose=False,
 )
-X = epochs.copy().crop(1, 3).get_data()
-y = epochs.events[:, 2] == event_id["hands"]
+feature_epochs = epochs.copy().crop(0.05, 0.25)
+X = feature_epochs.get_data()
+y = epochs.events[:, 2] == event_id["face"]
 print(
     "Sensor-generalization input: "
-    f"{X.shape[0]} trials, {X.shape[1]} sensors, {X.shape[2]} times"
+    f"{X.shape[0]} trials, {X.shape[1]} scalp sensors, {X.shape[2]} times"
 )
 
 # %%
 # Classical time-resolved decoding uses sensors as features
 # ---------------------------------------------------------
 # This is the temporal slice from the :ref:`temporal generalization example
-# <tut-mvpa>`: a model is fitted at every time point using the full EEG array
+# <tut-mvpa>`: a model is fitted at every time point using the full scalp array
 # as features. GAL below swaps these two roles.
 
 classifier = make_pipeline(
@@ -107,10 +147,10 @@ time_decoder = SlidingEstimator(classifier, scoring="roc_auc", n_jobs=1, verbose
 time_scores = cross_val_multiscore(time_decoder, X, y, cv=cv, n_jobs=1).mean(axis=0)
 
 fig, ax = plt.subplots(layout="constrained")
-ax.plot(np.linspace(1, 3, len(time_scores)), time_scores)
+ax.plot(feature_epochs.times, time_scores)
 ax.axhline(0.5, color="k", linestyle=":", linewidth=1)
 ax.set(
-    title="Time-resolved decoding: hands versus feet",
+    title="Time-resolved decoding: face versus scrambled face",
     xlabel="Time (s)",
     ylabel="Cross-validated AUC",
 )
@@ -118,35 +158,36 @@ ax.set(
 # %%
 # Inspect the condition waveforms
 # -------------------------------
-# The averages are a diagnostic view of the 1 to 3 s feature window. GAL fits
-# separate models at every sensor. C3 is used only as a familiar central-site
+# The averages are a diagnostic view of the feature window. GAL fits separate
+# models at every scalp electrode. PO8 is used only as a familiar posterior-site
 # illustration; it is not selected for the analysis.
 
 fig, ax = plt.subplots(layout="constrained")
-time_mask = (epochs.times >= 1) & (epochs.times <= 3)
-for selection, label in ((y, "Hands"), (~y, "Feet")):
+time_mask = (epochs.times >= 0.05) & (epochs.times <= 0.25)
+for selection, label in ((y, "Face"), (~y, "Scrambled face")):
     ax.plot(
         epochs.times[time_mask],
-        epochs.get_data()[selection, epochs.ch_names.index("C3")][:, time_mask].mean(
+        epochs.get_data()[selection, epochs.ch_names.index("PO8")][:, time_mask].mean(
             axis=0
         ),
         label=label,
     )
 ax.axvline(0, color="k", linestyle=":", linewidth=1)
 ax.set(
-    title="Motor-imagery averages at C3",
+    title="Face-perception averages at PO8",
     xlabel="Time (s)",
-    ylabel="CSD (V/m²)",
+    ylabel="Voltage (V)",
 )
 ax.legend()
 
 # %%
-# The condition contrast is spatially structured
-# ----------------------------------------------
-# These maps show the hand-minus-foot voltage at three times in the decoding
-# window. They describe evoked responses, not decoder weights or sources.
+# The face contrast is spatially structured
+# ------------------------------------------
+# These maps show the face-minus-scrambled-face voltage at three times in the
+# decoding window. They describe condition averages, not decoder weights or
+# sources.
 
-hands_minus_feet = mne.combine_evoked(
+face_minus_scrambled = mne.combine_evoked(
     [epochs[y].average(), epochs[~y].average()], weights=[1, -1]
 )
 fig, axes = plt.subplots(
@@ -156,9 +197,9 @@ fig, axes = plt.subplots(
     layout="constrained",
     gridspec_kw={"width_ratios": [1, 1, 1, 0.06]},
 )
-fig = hands_minus_feet.plot_topomap(
-    times=[1.2, 1.8, 2.5],
-    ch_type="csd",
+fig = face_minus_scrambled.plot_topomap(
+    times=[0.12, 0.17, 0.22],
+    ch_type="eeg",
     time_unit="s",
     axes=axes,
     show=False,
@@ -168,7 +209,7 @@ fig = hands_minus_feet.plot_topomap(
 # The temporal pattern is described independently of decoding
 # ------------------------------------------------------------
 # The Time-GAL paper pairs this backward model with a correlation matrix.
-# Here, Pearson correlation between the binary hand-imagery label and each sensor's
+# Here, Pearson correlation between the binary face label and each sensor's
 # trial signal describes when the condition effect occurs.
 
 X_centered = X - X.mean(axis=0)
@@ -183,7 +224,12 @@ image = ax.imshow(
     label_signal_correlation,
     aspect="auto",
     cmap="RdBu_r",
-    extent=(1, 3, -0.5, len(epochs.ch_names) - 0.5),
+    extent=(
+        feature_epochs.times[0],
+        feature_epochs.times[-1],
+        -0.5,
+        len(epochs.ch_names) - 0.5,
+    ),
     origin="lower",
     vmin=-corr_limit,
     vmax=corr_limit,
@@ -191,7 +237,7 @@ image = ax.imshow(
 ax.set(
     title="Label--signal correlation (descriptive temporal pattern)",
     xlabel="Time (s)",
-    ylabel="EEG sensor",
+    ylabel="Scalp sensor",
 )
 fig.colorbar(image, ax=ax, label="Pearson r")
 
@@ -202,8 +248,6 @@ fig.colorbar(image, ax=ax, label="Pearson r")
 # the task axis by default. ``axis=1`` selects sensors instead. The data remain
 # ordered as ``trials x sensors x time``: each model is trained on one sensor's
 # time samples and scored on every sensor's time samples.
-#
-# The same logistic-regression pipeline is used for both slices.
 
 sensor_gen = GeneralizingEstimator(
     classifier,
@@ -235,8 +279,9 @@ print(
 # --------------------------------------------------
 # Rows identify training sensors and columns identify test sensors. The
 # diagonal is within-sensor decoding. Off-diagonal cells test the temporal
-# pattern learned at one location at another location. A single cell is not a
-# group-level inference.
+# pattern learned at one location at another location. Below-chance transfer
+# can occur when the two locations carry opposite-polarity patterns. A single
+# participant's matrix is not a group-level inference.
 
 limit = np.max(np.abs(mean_scores - 0.5))
 fig, ax = plt.subplots(layout="constrained")
@@ -249,11 +294,11 @@ image = ax.imshow(
     interpolation="nearest",
 )
 ax.set(
-    title="Sensor generalization: hands versus feet",
+    title="Sensor generalization: face versus scrambled face",
     xlabel="Test sensor",
     ylabel="Training sensor",
 )
-sensor_tick_labels = np.array(("C3", "Cz", "C4"))
+sensor_tick_labels = np.array(("PO7", "O1", "Oz", "PO8", "O2"))
 sensor_ticks = np.array([epochs.ch_names.index(name) for name in sensor_tick_labels])
 ax.set_xticks(sensor_ticks, sensor_tick_labels, rotation=45, ha="right")
 ax.set_yticks(sensor_ticks, sensor_tick_labels)
@@ -262,7 +307,7 @@ fig.colorbar(image, ax=ax, label="Cross-validated AUC")
 # %%
 # Summarize the strongest cross-sensor effects
 # ---------------------------------------------
-# ``mne-connectivity`` draws the three largest, symmetrised off-diagonal effects.
+# ``mne-connectivity`` draws the largest, symmetrised off-diagonal effects.
 # This is a display of sensor-generalization scores, not a physical-connectivity
 # graph.
 
@@ -272,7 +317,7 @@ np.fill_diagonal(cross_sensor_effects, 0)
 fig, _ = plot_connectivity_circle(
     cross_sensor_effects,
     node_names=epochs.ch_names,
-    n_lines=3,
+    n_lines=8,
     colormap="RdBu_r",
     title="Largest cross-decoding effects",
     show=False,
