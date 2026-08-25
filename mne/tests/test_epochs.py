@@ -5372,7 +5372,7 @@ def test_mask_epochs_per_channel():
     # test wrong shape of rejection mask
     bad_mask = np.zeros((n_epochs, n_channels - 1), dtype=bool)
     with pytest.raises(ValueError, match="reject_mask must have shape"):
-        ep.mark_bad_epochs_by_channel(bad_mask)
+        ep.mask_epochs_per_channel(bad_mask)
 
 
 def test_epochs_warn_out_of_bounds_events():
