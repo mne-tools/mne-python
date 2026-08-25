@@ -2,22 +2,24 @@
 .. _tut-gal-decoding:
 
 =====================================================
-Generalizing sensor-space decoding across locations
+Generalization across locations (GAL): Measuring cross-decodability between brain areas
 =====================================================
 
 The :ref:`temporal generalization example <tut-mvpa>` evaluates a decoder
 estimated at one time point at every other time point. Its matrix shows whether
 a multichannel activity pattern remains decodable over time.
 
-The same operation can be applied across locations. Generalization Across
-Location (GAL) uses the time course at one sensor as the feature vector, fits a
+The same operation can be applied across space or locations. Generalization Across
+Location (GAL) uses the time course at one sensor (or ROI) as the feature vector, fits a
 decoder at that sensor, and tests it at every other sensor. The matrix then
 shows where a decodable temporal pattern transfers across the sensor array.
 
 For epochs with shape ``trials x sensors x time``, temporal generalization uses
-time as the task axis and sensors as features. GAL reverses those roles: sensor
-locations are tasks and time samples are features. Both analyses use
-:class:`mne.decoding.GeneralizingEstimator`.
+time as the iteration axis and sensors as features. GAL reverses those roles: sensor
+locations are the iteration dimension and time samples are features. Both analyses use
+:class:`mne.decoding.GeneralizingEstimator`. Importantly, such function uses by the default 
+the last dimension (time) as iteration dimension. To change this behavior, here we set the parameter axis = 1 (sensors) to 
+iterate in such dimension.
 
 This tutorial applies GAL to face and non-face trials from MNE's
 ``visual_92_categories`` dataset. It applies the sensor-generalization
