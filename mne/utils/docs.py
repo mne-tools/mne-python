@@ -1380,6 +1380,19 @@ method : ``'truncate'`` | ``'mintime'`` | ``'random'``
     .. versionadded:: 1.8
 """
 
+docdict["erp_evoked_start_stop"] = """
+start, stop : float
+    Start and end time of the ERP computation window in seconds. Defaults to
+    ``None`` and ``None``, which corresponds to the entire Evoked object.
+"""
+
+docdict["erp_strict"] = """
+strict : bool
+    If True, raise an error if values are all positive when detecting
+    a minimum (mode='neg'), or all negative when detecting a maximum
+    (mode='pos'). Defaults to True.
+"""
+
 docdict["estimate_plot_psd"] = """\
 estimate : str, {'power', 'amplitude'}
     Can be "power" for power spectral density (PSD; default), "amplitude" for
