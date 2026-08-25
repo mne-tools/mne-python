@@ -2709,6 +2709,10 @@ def _plot_stc(
     }
     if brain_kwargs is not None:
         kwargs.update(brain_kwargs)
+    # The window is shown at the end instead (unless the caller opted out entirely
+    # with ``brain_kwargs=dict(show=False)``, e.g. to embed the plot in a larger
+    # GUI whose window it shows itself, like mne.gui.dipolefit).
+    show = kwargs.get("show", True)
     kwargs["show"] = False
     kwargs["view_layout"] = view_layout
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -2771,7 +2775,7 @@ def _plot_stc(
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer, show_traces=show_traces)
-    else:
+    elif show:
         brain.show()
 
     return brain

@@ -227,11 +227,17 @@ def test_plot_evoked_field(renderer):
         maps,
         time_viewer=True,
         contour_line_width=2,
+        contour_line_opacity=0.5,
         background="white",
         foreground="black",
     )
     assert fig._contour_line_width == 2
     assert fig._widgets["contour_line_width"].get_value() == 2
+    assert fig._contour_line_opacity == 0.5
+    assert fig._widgets["contour_line_opacity"].get_value() == 0.5
+    fig.set_contour_line_opacity(0.8)
+    assert fig._contour_line_opacity == 0.8
+    assert fig._widgets["contour_line_opacity"].get_value() == 0.8
     fig._rescale()
     fig.set_time(0.05)
     assert fig._current_time == 0.05

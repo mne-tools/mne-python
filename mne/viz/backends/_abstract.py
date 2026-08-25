@@ -1124,7 +1124,16 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         pass
 
     @abstractmethod
@@ -1156,11 +1165,15 @@ class _AbstractDock(ABC):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+    ):
         pass
 
     @abstractmethod
@@ -1368,6 +1381,14 @@ class _AbstractWdgt(ABC):
 
     @abstractmethod
     def set_style(self, style):
+        pass
+
+    def set_hover_callbacks(self, enter, leave):
+        """Call ``enter``/``leave`` when the pointer enters/leaves the widget.
+
+        Hovering is a pointer-only affordance, so backends that have no notion of it
+        (e.g. notebooks) simply do nothing here.
+        """
         pass
 
     @abstractmethod
@@ -1640,6 +1661,34 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_new_cursor(self, name):
         pass
+
+    def _window_set_enabled(self, enabled):
+        """Enable or disable user interaction with the whole window.
+
+        Blocking input is a pointer/keyboard affordance, so backends that have no
+        notion of it (e.g. notebooks) simply do nothing here.
+        """
+        pass
+
+    def _window_settle_layouts(self):
+        """Recompute all pending widget layouts of the window, synchronously.
+
+        Qt lays widgets out lazily, when the posted ``LayoutRequest`` events are
+        delivered. Calling this before showing a freshly-built window makes it appear
+        fully composed, instead of visibly assembling on screen. Backends without
+        lazy layouts (e.g. notebooks) do nothing here.
+        """
+        pass
+
+    def _window_defer(self, callback):
+        """Run ``callback`` from the event loop instead of the current call stack.
+
+        Use this to run a slow operation triggered by a widget *after* that widget has
+        finished reacting to the interaction (e.g. a combo box closing its popup) — the
+        callback runs the next time events are processed. Backends without an event
+        loop run the callback immediately.
+        """
+        callback()
 
     @abstractmethod
     def _window_ensure_minimum_sizes(self):
