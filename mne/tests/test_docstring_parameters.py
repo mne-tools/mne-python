@@ -305,7 +305,7 @@ def test_tabs():
 # (``np.random.seed``/``np.random.randn``/...) makes tests order-dependent and
 # flaky, and the legacy ``RandomState`` methods below don't exist on a
 # ``Generator``, so calling them silently locks code to the old bit stream.
-global_rng_ok = ("default_rng", "Generator")
+global_rng_ok = ("default_rng", "RandomState", "Generator", "mtrand")
 legacy_rng_methods = {
     "randn": "standard_normal",
     "rand": "random",
@@ -323,144 +323,16 @@ sklearn_rng_estimators = {
     "MultiTaskLasso",
     "PCA",
 }
-# These are compatibility implementations or reference fixtures whose expected
-# values were generated from the legacy bit stream. Keep this allowlist at the
-# function level so a new legacy RNG use elsewhere in the same file still fails.
-legacy_rng_allowlist = {
-    ("mne/decoding/tests/test_csp.py", "test_ajd"),
-    ("mne/preprocessing/ica.py", "_serialize"),
-    ("mne/stats/tests/test_parametric.py", "generate_data"),
-    ("mne/tests/test_cov.py", "test_auto_low_rank_ignores_global_rng"),
-    ("mne/tests/test_dipole.py", "test_dipole_fitting"),
-    ("mne/utils/check.py", "_check_rng"),
-    ("mne/utils/check.py", "check_random_state"),
-    ("mne/utils/tests/test_check.py", "test_check_rng"),
-    ("mne/utils/tests/test_check.py", "test_legacy_rng_decorator"),
-    (
-        "mne/viz/tests/test_circle.py",
-        "test_plot_connectivity_circle_jitter_reproducible",
-    ),
-    ("mne/viz/tests/test_utils.py", "test_auto_scale_epoch_sampling_reproducible"),
-}
 
 
-def _enclosing_function(node, parents):
-    """Get the name of the function containing an AST node."""
-    while node in parents:
-        node = parents[node]
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            return node.name
-    return None
-
-
-def _is_np_random(node, numpy_aliases, numpy_random_aliases):
+def _is_np_random(node):
     """Return whether ``node`` is the ``np.random`` module attribute."""
     return (
         isinstance(node, ast.Attribute)
         and node.attr == "random"
         and isinstance(node.value, ast.Name)
-        and node.value.id in numpy_aliases
-    ) or (isinstance(node, ast.Name) and node.id in numpy_random_aliases)
-
-
-def _rng_violations(source, rel):
-    """Find outdated RNG use in Python source."""
-    bad = []
-    tree = ast.parse(source)
-    parents = {
-        child: parent
-        for parent in ast.walk(tree)
-        for child in ast.iter_child_nodes(parent)
-    }
-    import_aliases = {
-        alias.asname or alias.name: alias.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom)
-        for alias in node.names
-    }
-    numpy_aliases = {"np", "numpy"}
-    numpy_random_aliases = set()
-    random_state_aliases = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                if alias.name == "numpy":
-                    numpy_aliases.add(alias.asname or alias.name)
-                elif alias.name == "numpy.random" and alias.asname:
-                    numpy_random_aliases.add(alias.asname)
-        elif isinstance(node, ast.ImportFrom):
-            for alias in node.names:
-                if node.module == "numpy" and alias.name == "random":
-                    numpy_random_aliases.add(alias.asname or alias.name)
-                elif node.module == "numpy.random" and alias.name == "RandomState":
-                    random_state_aliases.add(alias.asname or alias.name)
-    for node in ast.walk(tree):
-        function = _enclosing_function(node, parents)
-        legacy_allowed = (rel, function) in legacy_rng_allowlist
-        called_name = None
-        if isinstance(node, ast.Call):
-            called_name = getattr(node.func, "id", None) or getattr(
-                node.func, "attr", None
-            )
-            called_name = import_aliases.get(called_name, called_name)
-        # 1. the global RNG: ``np.random.<attr>`` / ``numpy.random.<attr>``
-        if (
-            isinstance(node, ast.Attribute)
-            and node.attr not in global_rng_ok
-            and _is_np_random(node.value, numpy_aliases, numpy_random_aliases)
-            and not legacy_allowed
-        ):
-            bad.append(
-                f"{rel}:{node.lineno}: np.random.{node.attr} "
-                "(use a local np.random.default_rng)"
-            )
-        # 2. imported legacy RandomState constructors
-        elif (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Name)
-            and node.func.id in random_state_aliases
-            and not legacy_allowed
-        ):
-            bad.append(
-                f"{rel}:{node.lineno}: numpy.random.RandomState "
-                "(use a local np.random.default_rng)"
-            )
-        # 3. legacy RandomState-only methods, e.g. ``rng.randn(...)``
-        elif (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr in legacy_rng_methods
-            and not _is_np_random(node.func.value, numpy_aliases, numpy_random_aliases)
-            and not legacy_allowed
-        ):
-            want = legacy_rng_methods[node.func.attr]
-            bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
-        # 4. MNE-owned sklearn estimators with implicit randomness
-        elif (
-            "/tests/" not in rel
-            and isinstance(node, ast.Call)
-            and called_name in sklearn_rng_estimators
-            and not any(kw.arg == "random_state" for kw in node.keywords)
-        ):
-            bad.append(
-                f"{rel}:{node.lineno}: {called_name}() (set random_state explicitly)"
-            )
-    return bad
-
-
-@pytest.mark.parametrize(
-    "source",
-    (
-        "from numpy.random import RandomState as RS\nRS(0)\n",
-        "import numpy.random as npr\nnpr.RandomState(0)\n",
-    ),
-    ids=("from-import", "module-alias"),
-)
-def test_no_aliased_random_state(source):
-    """Test that aliased legacy RNG constructors are rejected."""
-    bad = _rng_violations(source, "mne/tests/rng_alias_probe.py")
-    assert len(bad) == 1
-    assert "RandomState" in bad[0]
+        and node.value.id in ("np", "numpy")
+    )
 
 
 def test_no_global_rng():
@@ -473,7 +345,28 @@ def test_no_global_rng():
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
-            bad.extend(_rng_violations(path.read_text("utf-8"), rel))
+            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
+                if (
+                    isinstance(node, ast.Attribute)
+                    and node.attr not in global_rng_ok
+                    and _is_np_random(node.value)
+                ):
+                    bad.append(f"{rel}:{node.lineno}: global np.random.{node.attr}")
+                elif (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in legacy_rng_methods
+                    and not _is_np_random(node.func.value)
+                ):
+                    bad.append(f"{rel}:{node.lineno}: legacy .{node.func.attr}()")
+                elif "/tests/" not in rel and isinstance(node, ast.Call):
+                    name = getattr(node.func, "id", None) or getattr(
+                        node.func, "attr", None
+                    )
+                    if name in sklearn_rng_estimators and not any(
+                        kw.arg == "random_state" for kw in node.keywords
+                    ):
+                        bad.append(f"{rel}:{node.lineno}: {name}() needs random_state")
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)

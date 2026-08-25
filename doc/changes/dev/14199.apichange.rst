@@ -1,1 +1,1 @@
-Add ``rng`` parameters backed by :class:`numpy.random.Generator` to APIs that use randomness. The existing ``seed`` and ``random_state`` parameters remain supported, but new code should prefer ``rng`` (:gh:`9233` by `Bruno Aristimunha`_).
+Add ``rng`` parameters to APIs that use randomness, while retaining ``seed`` and ``random_state`` for compatibility (:gh:`9233` by `Bruno Aristimunha`_).
