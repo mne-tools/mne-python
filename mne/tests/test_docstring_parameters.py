@@ -16,7 +16,7 @@ from pkgutil import walk_packages
 import pytest
 
 import mne
-from mne.utils import _pl, _record_warnings
+from mne.utils import _pl, _record_warnings, _soft_import
 from mne.utils._typing import Color, FileLike
 from mne.utils.docs import _doc_special_members
 
@@ -368,6 +368,7 @@ def _rng_parameters(callable_, node):
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
+    sklearn = _soft_import("sklearn", "checking RNG parameters", strict=False)
     bad = []
     for sub in ("mne", "examples", "tutorials"):
         base = root / sub
@@ -376,7 +377,7 @@ def test_no_global_rng():
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
             tree = ast.parse(path.read_text("utf-8"))
-            callables = _sklearn_callables(tree)
+            callables = _sklearn_callables(tree) if sklearn else {}
             for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Attribute)
