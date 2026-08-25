@@ -1759,7 +1759,7 @@ def cluster_test(
 
     Parameters
     ----------
-    df : pd.DataFrame
+    df : pandas.DataFrame
         Dataframe containing the data, dependent and independent variables.
     formula : str
         Wilkinson notation formula for design matrix. The names of the dependent
