@@ -5322,7 +5322,7 @@ def test_mask_epochs_per_channel():
 
     # should throw an error
     with pytest.raises(ValueError, match="must be preloaded"):
-        ep.mark_bad_epochs_by_channel(reject_mask_dummy)
+        ep.mask_epochs_per_channel(reject_mask_dummy)
 
     # load data
     ep.load_data()
