@@ -1809,7 +1809,7 @@ def cluster_test(
 
     Returns
     -------
-    ClusterResult
+    mne.stats.ClusterResult
         Object containing the results of the cluster permutation test.
 
     Notes
