@@ -136,7 +136,7 @@ df = pd.DataFrame(
 formula = "evoked ~ condition"
 
 # run the new cluster test API and return the new cluster_result object
-cluster_result = mne.stats.cluster_level.cluster_test(
+cluster_result = mne.stats.cluster_test(
     df=df, formula=formula, within_id="subject_index"
 )
 # TODO: add n_permutations to cluster_result

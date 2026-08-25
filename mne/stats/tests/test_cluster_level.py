@@ -24,11 +24,10 @@ from mne import (
     VolSourceEstimate,
     create_info,
 )
-from mne.stats import combine_adjacency, ttest_ind_no_p
+from mne.stats import cluster_test, combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
     _find_clusters,
     _TTestReordered,
-    cluster_test,
     f_oneway,
     permutation_cluster_1samp_test,
     permutation_cluster_test,

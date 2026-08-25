@@ -1757,6 +1757,8 @@ def cluster_test(
 ):
     """Run a cluster permutation test from a DataFrame and a formula.
 
+    Requires the Pandas and Formulaic Python packages to be installed.
+
     Parameters
     ----------
     df : pd.DataFrame

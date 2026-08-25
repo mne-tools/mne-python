@@ -4,6 +4,7 @@ __all__ = [
     "_st_mask_from_s_inds",
     "bonferroni_correction",
     "bootstrap_confidence_interval",
+    "cluster_test",
     "combine_adjacency",
     "erp",
     "f_mway_rm",
@@ -25,6 +26,7 @@ from . import erp
 from ._adjacency import combine_adjacency
 from .cluster_level import (
     _st_mask_from_s_inds,
+    cluster_test,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
     spatio_temporal_cluster_1samp_test,
