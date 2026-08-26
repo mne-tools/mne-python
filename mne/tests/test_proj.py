@@ -156,6 +156,13 @@ def test_apply_proj_selection(kind, selected_idx):
         assert_allclose(got.get_data()[..., :3, :], data[..., :3, :])
     else:
         assert_allclose(got.get_data()[..., 3:, :], data[..., 3:, :])
+    if kind == "evoked" and selected_idx == (0,):
+        expected = inst.copy().del_proj()
+        expected.add_proj(projs[0], verbose=False).apply_proj(verbose=False)
+        expected.add_proj(projs[1:], verbose=False)
+        assert_allclose(got._data, expected._data)
+        assert_allclose(got._projector, expected._projector)
+        assert got.info["projs"] == expected.info["projs"]
 
 
 def test_apply_proj_selection_invalid():
