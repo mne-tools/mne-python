@@ -239,6 +239,7 @@ class Evoked(
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
         units: str | dict | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
@@ -248,6 +249,9 @@ class Evoked(
         Parameters
         ----------
         %(picks_all)s
+        %(exclude_spectrum_get_data)s
+
+            .. versionadded:: 1.13
         %(units)s
         tmin : float | None
             Start time of data to get in seconds.
@@ -266,7 +270,7 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
