@@ -111,3 +111,4 @@ doc/jupyterlite_contents/*
 doc/lite_extra/
 
 /.claude/
+uv.lock

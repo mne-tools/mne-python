@@ -638,7 +638,6 @@ class Brain:
         for hemi in ("lh", "rh"):
             for ri, ci, v in self._iter_views(hemi):
                 self.show_view(view=v, row=ri, col=ci)
-        self._renderer._process_events()
 
         self._renderer._update()
         # finally, show the MplCanvas
@@ -1043,7 +1042,7 @@ class Brain:
             fmid=self._data["fmid"],
             fmax=self._data["fmax"],
         )
-        self._renderer._process_events()
+        self._renderer._update()
 
     def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
@@ -1596,7 +1595,7 @@ class Brain:
                 if "current_time" in self.widgets:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
-        self._renderer._process_events()
+        self._renderer._update()
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -1617,7 +1616,7 @@ class Brain:
                         self.widgets[entry_key].set_value(val * self._data["fscale"])
         # Update the render.
         self._update_colormap_range(**lims)
-        self._renderer._process_events()
+        self._renderer._update()
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
@@ -3850,7 +3849,6 @@ class Brain:
                     self._set_camera(**view_params, align=align)
         if update:
             self._renderer._update()
-            self._renderer._process_events()
 
     def _set_camera(
         self,
