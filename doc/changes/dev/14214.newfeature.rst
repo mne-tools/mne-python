@@ -1,1 +1,0 @@
-Speed up eligible EDF window reads with a pure-NumPy record-stride decoder, by `Bruno Aristimunha`_.
