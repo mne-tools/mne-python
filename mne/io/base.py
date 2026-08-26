@@ -633,9 +633,10 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
-        t = self.times
+        n_times = self.n_times
+        last_time = (n_times - 1) / self.info["sfreq"]
         logger.info(
-            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
+            f"Reading 0 ... {n_times - 1}  =  {0.0:9.3f} ... {last_time:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
@@ -793,17 +794,16 @@ class BaseRaw(
                     "of the raw object."
                 )
 
-            delta = 1.0 / self.info["sfreq"]
+            sfreq = self.info["sfreq"]
+            annotation_end = (self.n_times - 1) / sfreq + 1.0 / sfreq
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
-                new_annotations.crop(
-                    0, self.times[-1] + delta, emit_warning=emit_warning
-                )
+                new_annotations.crop(0, annotation_end, emit_warning=emit_warning)
                 new_annotations.onset += self._first_time
             else:
                 tmin = meas_date + timedelta(0, self._first_time)
-                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
+                tmax = tmin + timedelta(seconds=annotation_end)
                 new_annotations.crop(tmin=tmin, tmax=tmax, emit_warning=emit_warning)
                 new_annotations.onset -= (
                     meas_date - new_annotations.orig_time
