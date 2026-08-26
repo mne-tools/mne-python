@@ -1037,12 +1037,16 @@ JUPYTERLITE_EXCLUDE = (
     "examples/visualization/onionskin.py",
     "examples/preprocessing/muscle_ica.py",
     "examples/preprocessing/eeg_bridging.py",
-    # Both Report tutorials build their figures by screenshotting a 3D scene
-    # (Report._itv calls backend._take_3d_screenshot), and vtk.js cannot hand a
-    # framebuffer back to Python, so those sections would embed blank images.
+    # These read a 3D scene back as pixels, and vtk.js cannot hand a
+    # framebuffer back to Python. Both Report tutorials build their figures by
+    # screenshotting (Report._itv calls backend._take_3d_screenshot), and
     # 70_report additionally round-trips a report through HDF5.
     "tutorials/intro/70_report.py",
     "tutorials/preprocessing/14_quality_control_report.py",
+    # 10_publication_figure is about cropping the white margins off
+    # brain.screenshot(), so without a real screenshot there is no tutorial
+    # left; browser brain.screenshot() raises rather than return a blank image.
+    "tutorials/visualization/10_publication_figure.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
