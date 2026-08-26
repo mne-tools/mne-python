@@ -9,6 +9,12 @@
 # it as a real file instead of a string.
 # ruff: noqa: E402, F704, I001
 
+# Naming: everything this cell defines lands in the notebook's own namespace,
+# so anything it invents is _-prefixed and cannot shadow a variable the
+# tutorial goes on to use. Module imports are left plain: a tutorial importing
+# the same module binds the same object, so there is nothing to protect.
+# `mne_data_path` is the deliberate exception, since a reader may want it.
+
 # --- JupyterLite setup cell -------------------------------------------------
 # 💡 This cell is automatically added to the start of each notebook.
 # It installs MNE and patches the browser environment for Pyodide.
@@ -54,15 +60,18 @@ if "multiprocessing" not in sys.modules:
     sys.modules["multiprocessing.util"] = m.util
     sys.modules["multiprocessing.pool"] = m.pool
 
-# Patch requests so pooch can fetch files already on /drive/mne_data.
-# open_url works for both text and binary in Pyodide >= 0.21.
+# Route requests through pyodide.http so the downloads that still go through
+# pooch work in the browser. The one that matters is fetch_infant_template
+# (25_automated_coreg), which reaches pooch.retrieve -> pooch.HTTPDownloader
+# -> requests, and whose files live on github.com rather than OSF. open_url
+# handles both text and binary in Pyodide >= 0.21.
 import requests
 import pyodide
 
-orig_send = requests.Session.send
+_orig_send = requests.Session.send
 
 
-def pyodide_send(self, request, **kwargs):
+def _pyodide_send(self, request, **kwargs):
     try:
         buf = pyodide.http.open_url(request.url)
         content = buf.getvalue() if hasattr(buf, "getvalue") else buf.read()
@@ -70,7 +79,7 @@ def pyodide_send(self, request, **kwargs):
             content = content.encode("utf-8")
     except Exception as e:
         print(f"open_url failed for {request.url}: {e}")
-        return orig_send(self, request, **kwargs)
+        return _orig_send(self, request, **kwargs)
     response = requests.Response()
     response.status_code = 200
     response.url = request.url
@@ -78,7 +87,7 @@ def pyodide_send(self, request, **kwargs):
     return response
 
 
-requests.Session.send = pyodide_send
+requests.Session.send = _pyodide_send
 
 # /drive/ in Pyodide requires Cross-Origin-Isolation headers
 # (COOP/COEP) which many static servers (e.g. CircleCI artifacts)
@@ -88,13 +97,13 @@ requests.Session.send = pyodide_send
 # Pyodide may run in a web worker (no `window`); `location` exists
 # in both the main thread and workers, so use it to find the docs
 # root by splitting on '/lite/'.
-import pyodide.http as _phttp
-import js as _js
+import pyodide.http
+import js
 
 try:
-    _page = str(_js.location.href)
+    _page = str(js.location.href)
 except Exception:
-    _page = str(_js.window.location.href)
+    _page = str(js.window.location.href)
 _base = _page.split("/lite/")[0] + "/mne_data/"
 mne_data_path = "/tmp/mne_data"
 _sample_dir = mne_data_path + "/MNE-sample-data"
@@ -132,7 +141,7 @@ for _f in _sample_files:
         continue
     _url = _base + "MNE-sample-data/" + _f
     try:
-        _r = await _phttp.pyfetch(_url)
+        _r = await pyodide.http.pyfetch(_url)
         if _r.status != 200:
             print(f"  HTTP {_r.status} for {_url}")
             continue
@@ -149,15 +158,17 @@ os.makedirs(mne_data_path, exist_ok=True)
 os.environ["MNE_DATA"] = mne_data_path
 os.environ["MNE_DATASETS_SAMPLE_PATH"] = mne_data_path
 
-# Block pooch from attempting large OSF downloads in the browser.
-# The required files are either pre-injected or unavailable.
+# Turn an OSF download into a readable error rather than an opaque CORS or
+# out-of-memory failure. This covers Pooch.fetch, which is the path
+# mne/datasets/_fetch.py uses for every packaged dataset; the handful of
+# callers that use pooch.retrieve directly all point at other hosts.
 import pooch
 from urllib.parse import urlparse
 
-orig_pooch_fetch = pooch.Pooch.fetch
+_orig_pooch_fetch = pooch.Pooch.fetch
 
 
-def pyodide_pooch_fetch(self, fname, processor=None, downloader=None):
+def _pyodide_pooch_fetch(self, fname, processor=None, downloader=None):
     url = self.get_url(fname)
     # Compare the host rather than searching the whole URL: "osf.io" can turn
     # up legitimately elsewhere in one (a query string, a path), and a
@@ -170,10 +181,10 @@ def pyodide_pooch_fetch(self, fname, processor=None, downloader=None):
             "dataset downloads. Open this notebook from mne.tools "
             "where sample data is pre-bundled, or run it locally."
         )
-    return orig_pooch_fetch(self, fname, processor=processor, downloader=downloader)
+    return _orig_pooch_fetch(self, fname, processor=processor, downloader=downloader)
 
 
-pooch.Pooch.fetch = pyodide_pooch_fetch
+pooch.Pooch.fetch = _pyodide_pooch_fetch
 
 # Import MNE and finalize setup.
 import mne
@@ -185,21 +196,22 @@ if not os.path.exists(_cfg):
     with open(_cfg, "w") as _f:
         _f.write("{}")
 mne.set_config("MNE_DATA", mne_data_path)
-for ds in ["SAMPLE", "TESTING", "SSVEP", "EEGBCI", "SOMATO", "BRAINSTORM"]:
-    mne.set_config(f"MNE_DATASETS_{ds}_PATH", mne_data_path)
+for _ds in ["SAMPLE", "TESTING", "SSVEP", "EEGBCI", "SOMATO", "BRAINSTORM"]:
+    mne.set_config(f"MNE_DATASETS_{_ds}_PATH", mne_data_path)
+del _ds
 
 # Bypass pooch's archive check: data_path() normally looks for the
 # .tar.gz archive, not just the extracted folder. Return the folder
 # directly so pooch never tries to download from OSF. Return a Path
 # (not a str) since tutorials use the / operator on the result.
-from pathlib import Path as _Path
+from pathlib import Path
 
-_mne_data_root = _Path(mne_data_path)
+_mne_data_root = Path(mne_data_path)
 
 
-def _lite_data_path(_rel):
-    """Return ``_rel`` resolved under the data root, as a POSIX string."""
-    return (_mne_data_root / _rel).as_posix()
+def _lite_data_path(rel):
+    """Return ``rel`` resolved under the data root."""
+    return _mne_data_root / rel
 
 
 def _lite_rel_to_data(fname):
@@ -208,16 +220,16 @@ def _lite_rel_to_data(fname):
     Replaces the ``startswith(mne_data_path + "/")`` plus manual slicing this
     file used to repeat at every reader shim.
     """
-    _p = _Path(str(fname))
+    _p = Path(str(fname))
     if _p == _mne_data_root or not _p.is_relative_to(_mne_data_root):
         return None
     return _p.relative_to(_mne_data_root).as_posix()
 
 
-_sample_path = _Path(_sample_dir)
+_sample_path = Path(_sample_dir)
 
 
-def _lite_sample_data_path(*_a, **_kw):
+def _lite_sample_data_path(*args, **kwargs):
     return _sample_path
 
 
@@ -231,36 +243,35 @@ mne.datasets.sample.data_path = _lite_sample_data_path
 # notebook's setup. Pyodide runs in a web worker here, where a
 # synchronous XHR may set responseType='arraybuffer', letting a sync
 # data_path() read binary.
-def _lite_fetch_rel(_rel):
-    _dst = _lite_data_path(_rel)
-    if not os.path.exists(_dst):
+def _lite_fetch_rel(rel):
+    _dst = _lite_data_path(rel)
+    if not _dst.exists():
         from js import XMLHttpRequest
 
         _xhr = XMLHttpRequest.new()
-        _xhr.open("GET", _base + _rel, False)
+        _xhr.open("GET", _base + rel, False)
         _xhr.responseType = "arraybuffer"
         _xhr.send()
         if _xhr.status != 200:
-            raise FileNotFoundError(f"Could not fetch {_rel} (HTTP {_xhr.status})")
-        os.makedirs(os.path.dirname(_dst), exist_ok=True)
-        with open(_dst, "wb") as _fh:
-            _fh.write(bytes(_xhr.response.to_py()))
+            raise FileNotFoundError(f"Could not fetch {rel} (HTTP {_xhr.status})")
+        _dst.parent.mkdir(parents=True, exist_ok=True)
+        _dst.write_bytes(bytes(_xhr.response.to_py()))
     return _dst
 
 
 def _lite_lazy_fetch(_folder, _fname):
     _lite_fetch_rel(_folder + "/" + _fname)
-    return _Path(_lite_data_path(_folder))
+    return _lite_data_path(_folder)
 
 
-def _lite_kiloword_data_path(*_a, **_kw):
+def _lite_kiloword_data_path(*args, **kwargs):
     return _lite_lazy_fetch("MNE-kiloword-data", "kword_metadata-epo.fif")
 
 
 mne.datasets.kiloword.data_path = _lite_kiloword_data_path
 
 
-def _lite_erp_core_data_path(*_a, **_kw):
+def _lite_erp_core_data_path(*args, **kwargs):
     return _lite_lazy_fetch(
         "MNE-ERP-CORE-data", "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
     )
@@ -269,7 +280,7 @@ def _lite_erp_core_data_path(*_a, **_kw):
 mne.datasets.erp_core.data_path = _lite_erp_core_data_path
 
 
-def _lite_mtrf_data_path(*_a, **_kw):
+def _lite_mtrf_data_path(*args, **kwargs):
     return _lite_lazy_fetch("mTRF_1.5", "speech_data.mat")
 
 
@@ -279,8 +290,8 @@ mne.datasets.mtrf.data_path = _lite_mtrf_data_path
 # testing hands back the folder and lets the shimmed readers pull
 # individual files, so a notebook that wants the EEGLAB recording does
 # not also drag down the 39 MB movement raw.
-def _lite_testing_data_path(*_a, **_kw):
-    return _Path(_lite_data_path("MNE-testing-data"))
+def _lite_testing_data_path(*args, **kwargs):
+    return _lite_data_path("MNE-testing-data")
 
 
 mne.datasets.testing.data_path = _lite_testing_data_path
@@ -290,8 +301,8 @@ mne.datasets.testing.data_path = _lite_testing_data_path
 # files those examples read are served, and the shimmed readers below
 # pull them individually.
 def _lite_folder_data_path(_folder):
-    def _data_path(*_a, **_kw):
-        return _Path(_lite_data_path(_folder))
+    def _data_path(*args, **kwargs):
+        return _lite_data_path(_folder)
 
     return _data_path
 
@@ -308,7 +319,7 @@ for _ds, _folder in (
     getattr(mne.datasets, _ds).data_path = _lite_folder_data_path(_folder)
 
 
-def _lite_eegbci_load_data(subject, runs, *_a, **_kw):
+def _lite_eegbci_load_data(subject, runs, *args, **kwargs):
     _runs = [runs] if isinstance(runs, (int, float)) else list(runs)
     _subjects = list(subject) if isinstance(subject, (list, tuple)) else [subject]
     _out = []
@@ -318,7 +329,7 @@ def _lite_eegbci_load_data(subject, runs, *_a, **_kw):
                 "MNE-eegbci-data/files/eegmmidb/1.0.0/"
                 f"S{int(_s):03d}/S{int(_s):03d}R{int(_r):02d}.edf"
             )
-            _out.append(_Path(_lite_fetch_rel(_rel)))
+            _out.append(_lite_fetch_rel(_rel))
     return _out
 
 
@@ -338,38 +349,44 @@ def _lite_fetch_if_under_mne_data(fname):
     return fname
 
 
-# Reader overrides, tier one.
+# Reader overrides.
 #
-# Nothing is on disk here. The data is served over HTTP next to the docs,
-# and MNE readers validate their filename through _check_fname(must_exist=
-# True) before opening it, so the file has to be in the virtual filesystem
-# by the time the real reader is called. Each reader is therefore wrapped:
-# fetch first at the path the caller asked for, then hand straight over to
-# the original.
+# Nothing is on disk here. The data is served over HTTP next to the docs, so
+# a file has to be in the virtual filesystem by the time a reader opens it.
 #
-# It has to be per reader rather than one hook on mne.io.read_raw, because
-# the tutorials call the specific readers (read_raw_fif, read_epochs,
-# read_forward_solution, ...) directly and never go through the generic one.
+# There IS one general hook: nearly every MNE reader validates its filename
+# through _check_fname(must_exist=True) first, so patching that one function
+# (further down) covers read_info, read_evokeds, read_cov, read_label and the
+# rest with no wrapper each. Three kinds of caller escape it, and those are
+# what the wrappers below are for:
 #
-# Most of them only need that fetch, so they are driven by the table further
-# below: _mods is where the name is bound (some are exported twice, publicly
-# and on a private alias), _name is the function and _arg is the keyword its
-# filename arrives under when it is not passed positionally. Tier two, the
-# readers needing more than a single fetch -- a .stc stem that means two
-# files, a directory, a sibling -- keep their own hand-written shim below.
-def _lite_wrap_reader(_mods, _name, _arg):
-    _orig = getattr(_mods[0], _name)
+#   1. one filename that means several files. read_raw_brainvision is handed
+#      only the .vhdr, opens it, reads the names of its .eeg and .vmrk out of
+#      it, and opens those -- by which point we are inside the reader and it
+#      is too late to fetch. Same shape for EEGLAB (.set + .fdt), a .stc stem
+#      (lh + rh) and the formats that are a directory rather than a file.
+#   2. code that probes instead of opening. _get_head_surface calls
+#      os.path.exists before any reader runs, so a fetch-on-open hook never
+#      fires for it.
+#   3. readers that open their file without validating it first.
+#
+# The ones in group 3 need nothing but the fetch, so they are driven by the
+# table further down rather than a shim each.
+#
+# `module` is where the name is bound, `name` is the function and `arg` is the
+# keyword its filename arrives under when it is not passed positionally.
+def _lite_wrap_reader(module, name, arg):
+    orig = getattr(module, name)
 
-    def _wrapped(*_a, **_kw):
-        if _a:
-            _a = (_lite_fetch_if_under_mne_data(_a[0]),) + _a[1:]
-        elif _arg in _kw:
+    def wrapped(*args, **kwargs):
+        if args:
+            args = (_lite_fetch_if_under_mne_data(args[0]),) + args[1:]
+        elif arg in kwargs:
             # positionally, as the hand-written shims did
-            _a = (_lite_fetch_if_under_mne_data(_kw.pop(_arg)),)
-        return _orig(*_a, **_kw)
+            args = (_lite_fetch_if_under_mne_data(kwargs.pop(arg)),)
+        return orig(*args, **kwargs)
 
-    for _m in _mods:
-        setattr(_m, _name, _wrapped)
+    setattr(module, name, wrapped)
 
 
 # Lazily fetch the heavy sample raw / source-space files only when a
@@ -380,21 +397,21 @@ def _lite_wrap_reader(_mods, _name, _arg):
 # function covers read_info, read_evokeds, read_cov, read_label and the
 # rest without a wrapper each. Failures stay silent here so MNE still
 # raises its own, clearer error for a file that genuinely is missing.
-import mne.utils.check as _mne_check
+import mne.utils.check as mne_check
 
-_orig_check_fname = _mne_check._check_fname
+_orig_check_fname = mne_check._check_fname
 
 
-def _lite_check_fname(fname, overwrite=False, must_exist=False, *_a, **_kw):
+def _lite_check_fname(fname, overwrite=False, must_exist=False, *args, **kwargs):
     if must_exist:
         try:
             _lite_fetch_if_under_mne_data(fname)
         except Exception:
             pass
-    return _orig_check_fname(fname, overwrite, must_exist, *_a, **_kw)
+    return _orig_check_fname(fname, overwrite, must_exist, *args, **kwargs)
 
 
-_mne_check._check_fname = _lite_check_fname
+mne_check._check_fname = _lite_check_fname
 # modules that imported it before now hold their own reference; ones
 # loaded later (mne lazy-loads most of itself) pick up the patch
 for _m in list(sys.modules.values()):
@@ -403,13 +420,14 @@ for _m in list(sys.modules.values()):
         and getattr(_m, "_check_fname", None) is _orig_check_fname
     ):
         _m._check_fname = _lite_check_fname
-# read_label, read_epochs and read_raw_edf open their file directly
-# rather than validating it first, so the hook above never sees them
-# an EEGLAB .set keeps its samples in a sibling .fdt, so fetch both
+# Below are the readers the _check_fname hook cannot serve on its own,
+# because one filename implies more than one file.
+#
+# An EEGLAB .set keeps its samples in a sibling .fdt, so fetch both.
 _orig_read_raw_eeglab = mne.io.read_raw_eeglab
 
 
-def _lite_read_raw_eeglab(input_fname, *_a, **_kw):
+def _lite_read_raw_eeglab(input_fname, *args, **kwargs):
     _p = str(input_fname)
     if _lite_rel_to_data(_p) is not None:
         for _cand in (_p, _p[:-4] + ".fdt"):
@@ -417,7 +435,7 @@ def _lite_read_raw_eeglab(input_fname, *_a, **_kw):
                 _lite_fetch_rel(_lite_rel_to_data(_cand))
             except Exception:
                 pass
-    return _orig_read_raw_eeglab(input_fname, *_a, **_kw)
+    return _orig_read_raw_eeglab(input_fname, *args, **kwargs)
 
 
 mne.io.read_raw_eeglab = _lite_read_raw_eeglab
@@ -440,14 +458,14 @@ def _lite_fetch_dir(_rel):
 
 
 def _lite_dir_reader(_orig):
-    def _read(fname, *_a, **_kw):
+    def _read(fname, *args, **kwargs):
         _p = str(fname)
         if _lite_rel_to_data(_p) is not None:
             try:
                 _lite_fetch_dir(_lite_rel_to_data(_p))
             except Exception as _e:
                 print("[JupyterLite] could not fetch " + _p + ": " + repr(_e))
-        return _orig(fname, *_a, **_kw)
+        return _orig(fname, *args, **kwargs)
 
     return _read
 
@@ -457,21 +475,21 @@ mne.io.read_raw_egi = _lite_dir_reader(mne.io.read_raw_egi)
 # the logging tutorial reads a KIT file from inside the installed
 # package; the wheel excludes mne/**/tests, so stage the served copy
 # into the path the tutorial builds rather than editing the tutorial
-import shutil as _shutil
+import shutil
 
 _orig_read_raw_kit = mne.io.read_raw_kit
 
 
-def _lite_read_raw_kit(input_fname, *_a, **_kw):
+def _lite_read_raw_kit(input_fname, *args, **kwargs):
     _p = str(input_fname)
     if _p.endswith("test.sqd") and not os.path.exists(_p):
         try:
             _staged = _lite_fetch_rel("MNE-kit-testdata/test.sqd")
             os.makedirs(os.path.dirname(_p), exist_ok=True)
-            _shutil.copyfile(_staged, _p)
+            shutil.copyfile(_staged, _p)
         except Exception as _e:
             print("[JupyterLite] could not stage test.sqd: " + repr(_e))
-    return _orig_read_raw_kit(input_fname, *_a, **_kw)
+    return _orig_read_raw_kit(input_fname, *args, **kwargs)
 
 
 mne.io.read_raw_kit = _lite_read_raw_kit
@@ -479,7 +497,7 @@ mne.io.read_raw_kit = _lite_read_raw_kit
 _orig_read_raw_brainvision = mne.io.read_raw_brainvision
 
 
-def _lite_read_raw_brainvision(vhdr_fname, *_a, **_kw):
+def _lite_read_raw_brainvision(vhdr_fname, *args, **kwargs):
     _p = str(vhdr_fname)
     if _lite_rel_to_data(_p) is not None:
         _stem = _p[:-5] if _p.endswith(".vhdr") else _p
@@ -488,7 +506,7 @@ def _lite_read_raw_brainvision(vhdr_fname, *_a, **_kw):
                 _lite_fetch_rel(_lite_rel_to_data(_cand))
             except Exception:
                 pass
-    return _orig_read_raw_brainvision(vhdr_fname, *_a, **_kw)
+    return _orig_read_raw_brainvision(vhdr_fname, *args, **kwargs)
 
 
 mne.io.read_raw_brainvision = _lite_read_raw_brainvision
@@ -496,58 +514,54 @@ mne.io.read_raw_brainvision = _lite_read_raw_brainvision
 # the heatmap example draws its stimulus straight through pyplot, and
 # read_xdf goes through pyxdf -- neither is an MNE reader, so shim the
 # two entry points as well
-import matplotlib.pyplot as _plt
+import matplotlib.pyplot as plt
 
-_orig_imread = _plt.imread
-
-
-def _lite_imread(fname, *_a, **_kw):
-    return _orig_imread(_lite_fetch_if_under_mne_data(fname), *_a, **_kw)
+_orig_imread = plt.imread
 
 
-_plt.imread = _lite_imread
+def _lite_imread(fname, *args, **kwargs):
+    return _orig_imread(_lite_fetch_if_under_mne_data(fname), *args, **kwargs)
+
+
+plt.imread = _lite_imread
 try:
     import pyxdf as _pyxdf
 
     _orig_load_xdf = _pyxdf.load_xdf
 
-    def _lite_load_xdf(fname, *_a, **_kw):
-        return _orig_load_xdf(_lite_fetch_if_under_mne_data(fname), *_a, **_kw)
+    def _lite_load_xdf(fname, *args, **kwargs):
+        return _orig_load_xdf(_lite_fetch_if_under_mne_data(fname), *args, **kwargs)
 
     _pyxdf.load_xdf = _lite_load_xdf
 except Exception:
     pass
 # The tier-one table (see "Reader overrides" above for why this exists).
 # Each row is one reader that needs nothing but its file fetched first:
-#   _mods  where the name is bound, as a tuple because a couple of them
-#          are exported both publicly and on a private alias
-#   _name  the function to wrap on each of those modules
-#   _arg   the keyword its filename arrives under, for calls that pass it
-#          by name rather than positionally
-import mne.minimum_norm as _mne_minv
-import mne.chpi as _mne_chpi
-
-for _mods, _name, _arg in (
-    ((mne,), "read_forward_solution", "fname"),
-    ((_mne_minv, mne.minimum_norm), "read_inverse_operator", "fname"),
-    ((mne.io,), "read_raw_fif", "fname"),
-    ((mne.io,), "read_raw", "fname"),
-    ((mne,), "read_source_spaces", "fname"),
-    ((mne,), "read_label", "filename"),
-    ((mne,), "read_epochs", "fname"),
-    ((mne.io,), "read_raw_edf", "input_fname"),
-    ((mne,), "read_bem_solution", "fname"),
-    ((mne,), "read_events", "fname"),
-    ((mne.io,), "read_raw_eyelink", "fname"),
-    ((_mne_chpi, mne.chpi), "read_head_pos", "fname"),
+#   module  where the name is bound
+#   name    the function to wrap there
+#   arg     the keyword its filename arrives under, for calls that pass it
+#           by name rather than positionally
+for _module, _name, _arg in (
+    (mne, "read_forward_solution", "fname"),
+    (mne.minimum_norm, "read_inverse_operator", "fname"),
+    (mne.io, "read_raw_fif", "fname"),
+    (mne.io, "read_raw", "fname"),
+    (mne, "read_source_spaces", "fname"),
+    (mne, "read_label", "filename"),
+    (mne, "read_epochs", "fname"),
+    (mne.io, "read_raw_edf", "input_fname"),
+    (mne, "read_bem_solution", "fname"),
+    (mne, "read_events", "fname"),
+    (mne.io, "read_raw_eyelink", "fname"),
+    (mne.chpi, "read_head_pos", "fname"),
 ):
-    _lite_wrap_reader(_mods, _name, _arg)
+    _lite_wrap_reader(_module, _name, _arg)
 # read_source_estimate is handed the stem of a .stc pair, so fetch
 # both hemispheres before letting MNE resolve the name itself.
 _orig_read_source_estimate = mne.read_source_estimate
 
 
-def _lite_read_source_estimate(fname, *_a, **_kw):
+def _lite_read_source_estimate(fname, *args, **kwargs):
     _p = str(fname)
     if _lite_rel_to_data(_p) is not None:
         for _suf in ("", "-lh.stc", "-rh.stc"):
@@ -555,7 +569,7 @@ def _lite_read_source_estimate(fname, *_a, **_kw):
                 _lite_fetch_rel(_lite_rel_to_data(_p) + _suf)
             except Exception:
                 pass
-    return _orig_read_source_estimate(fname, *_a, **_kw)
+    return _orig_read_source_estimate(fname, *args, **kwargs)
 
 
 mne.read_source_estimate = _lite_read_source_estimate
@@ -564,9 +578,9 @@ mne.read_source_estimate = _lite_read_source_estimate
 # fires. Fetch the candidates first and let MNE choose as it normally
 # would. Several viz modules bind the name at import time, so rebind
 # it wherever the original landed instead of in one known place.
-import mne._freesurfer as _mne_fs
+import mne._freesurfer as mne_fs
 
-_orig_get_head_surface = _mne_fs._get_head_surface
+_orig_get_head_surface = mne_fs._get_head_surface
 
 
 def _lite_get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
@@ -587,7 +601,7 @@ def _lite_get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     return _orig_get_head_surface(surf, subject, subjects_dir, bem=bem, verbose=verbose)
 
 
-_mne_fs._get_head_surface = _lite_get_head_surface
+mne_fs._get_head_surface = _lite_get_head_surface
 # import the 3D module first so the sweep below is guaranteed to see
 # it; anything imported later picks the patched name up on its own.
 import mne.viz._3d  # noqa: F401
@@ -600,7 +614,7 @@ for _m in list(sys.modules.values()):
         _m._get_head_surface = _lite_get_head_surface
 # same story for the skull surfaces, which _check_fname insists
 # already exist on disk
-_orig_get_skull_surface = _mne_fs._get_skull_surface
+_orig_get_skull_surface = mne_fs._get_skull_surface
 
 
 def _lite_get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
@@ -622,7 +636,7 @@ def _lite_get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None)
     )
 
 
-_mne_fs._get_skull_surface = _lite_get_skull_surface
+mne_fs._get_skull_surface = _lite_get_skull_surface
 for _m in list(sys.modules.values()):
     if (
         getattr(_m, "__name__", "").startswith("mne")
@@ -633,9 +647,9 @@ for _m in list(sys.modules.values()):
 # one in mne/surface.py: it takes a list of candidate sources and
 # probes bem/ with os.path.exists and glob, raising if the directory
 # is absent, so the candidates have to land before it runs.
-import mne.surface as _mne_surface
+import mne.surface as mne_surface
 
-_orig_surface_head = _mne_surface._get_head_surface
+_orig_surface_head = mne_surface._get_head_surface
 
 
 def _lite_surface_head_surface(
@@ -655,14 +669,14 @@ def _lite_surface_head_surface(
     )
 
 
-_mne_surface._get_head_surface = _lite_surface_head_surface
+mne_surface._get_head_surface = _lite_surface_head_surface
 # plot_bem globs bem/*.surf and requires the bem directory to exist,
 # so pull its three contours (plus the MRI it draws them on) down
 # first; fetching creates the directory as a side effect.
 _orig_plot_bem = mne.viz.plot_bem
 
 
-def _lite_plot_bem(subject=None, subjects_dir=None, *_a, **_kw):
+def _lite_plot_bem(subject=None, subjects_dir=None, *args, **kwargs):
     _sd = str(subjects_dir) if subjects_dir is not None else ""
     if subject and _lite_rel_to_data(_sd) is not None:
         _rel = _lite_rel_to_data(_sd) + "/" + str(subject)
@@ -670,9 +684,9 @@ def _lite_plot_bem(subject=None, subjects_dir=None, *_a, **_kw):
             "bem/inner_skull.surf",
             "bem/outer_skull.surf",
             "bem/outer_skin.surf",
-            "mri/" + str(_kw.get("mri", "T1.mgz")),
+            "mri/" + str(kwargs.get("mri", "T1.mgz")),
         ]
-        _bs = _kw.get("brain_surfaces")
+        _bs = kwargs.get("brain_surfaces")
         if _bs is not None:
             _bs = [_bs] if isinstance(_bs, str) else list(_bs)
             for _b in _bs:
@@ -682,7 +696,7 @@ def _lite_plot_bem(subject=None, subjects_dir=None, *_a, **_kw):
                 _lite_fetch_rel(_rel + "/" + _c)
             except Exception:
                 pass
-    return _orig_plot_bem(subject, subjects_dir, *_a, **_kw)
+    return _orig_plot_bem(subject, subjects_dir, *args, **kwargs)
 
 
 mne.viz.plot_bem = _lite_plot_bem
@@ -698,7 +712,7 @@ try:
     from mne.utils import progressbar as _mpb
 
     _mpb._UpdateThread.start = lambda self: None
-    _mpb._UpdateThread.join = lambda self, *_a, **_kw: None
+    _mpb._UpdateThread.join = lambda self, *args, **kwargs: None
 except Exception:
     pass
 # tqdm also spawns its own monitor thread, which likewise can't start in
@@ -715,7 +729,6 @@ except Exception:
 import IPython
 
 IPython.get_ipython().run_line_magic("matplotlib", "inline")
-import matplotlib.pyplot as plt
 
 # Silence the spurious 'FigureCanvasAgg is non-interactive' warning
 # at its source. MNE's plt_show calls fig.show() (the inline backend
@@ -724,17 +737,17 @@ import matplotlib.pyplot as plt
 # `from .utils import plt_show` and hold their own reference. Every
 # path resolves fig.show on the class at call time, so a no-op here
 # silences it everywhere. Figures still render via the inline backend.
-import matplotlib.figure as _mfig
+import matplotlib.figure as mpl_figure
 
-_mfig.Figure.show = lambda self, *a, **k: None
+mpl_figure.Figure.show = lambda self, *a, **k: None
 import importlib
 
-viz_utils = importlib.import_module("mne.viz.utils")
+_viz_utils = importlib.import_module("mne.viz.utils")
 
 
 # Also display+close via IPython for paths that call plt_show
 # directly, so figures render exactly once.
-def pyodide_plt_show(show=True, fig=None, **kwargs):
+def _pyodide_plt_show(show=True, fig=None, **kwargs):
     if not show:
         return
     import IPython.display
@@ -744,4 +757,4 @@ def pyodide_plt_show(show=True, fig=None, **kwargs):
     plt.close(_f)
 
 
-viz_utils.plt_show = pyodide_plt_show
+_viz_utils.plt_show = _pyodide_plt_show

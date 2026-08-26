@@ -25,16 +25,16 @@
 # 'brain' whose methods (add_foci/add_text/show_view/...) are safe
 # no-ops, so tutorials that call brain.add_foci(...) after plot() work.
 class _LiteBrain:
-    def screenshot(self, *_a, **_kw):
+    def screenshot(self, *args, **kwargs):
         import numpy as _np
 
         return _np.zeros((2, 2, 3), dtype="uint8")
 
     def __getattr__(self, _name):
-        return lambda *_a, **_kw: None
+        return lambda *args, **kwargs: None
 
 
-def _lite_stc_plot(self, *_a, **_kw):
+def _lite_stc_plot(self, *args, **kwargs):
     try:
         import numpy as _np
         import nibabel as _nib
@@ -43,15 +43,16 @@ def _lite_stc_plot(self, *_a, **_kw):
         import pyvista_js as _pv
 
         _subj = (
-            _kw.get("subject")
-            or (_a[0] if _a and isinstance(_a[0], str) else None)
+            kwargs.get("subject")
+            or (args[0] if args and isinstance(args[0], str) else None)
             or "sample"
         )
-        _sdir = _kw.get("subjects_dir")
+        _sdir = kwargs.get("subjects_dir")
+        # kept as a str on both branches: it is concatenated below
         _sdir = (
             str(_sdir)
             if _sdir is not None
-            else _lite_data_path("MNE-sample-data/subjects")
+            else str(_lite_data_path("MNE-sample-data/subjects"))
         )
         # surfaces are fetched relative to the served mne_data root, so
         # derive that from subjects_dir rather than assuming sample --
@@ -61,7 +62,7 @@ def _lite_stc_plot(self, *_a, **_kw):
             if _lite_rel_to_data(_sdir) is not None
             else "MNE-sample-data/subjects"
         )
-        _init = _kw.get("initial_time", None)
+        _init = kwargs.get("initial_time", None)
         if _init is None:
             _ti = int(_np.argmax(_np.abs(self.data).mean(0)))
         else:
@@ -254,7 +255,7 @@ def _lite_plot_sparse_source_estimates(
     _ax.set_ylabel("Source amplitude (nAm)", fontsize=fontsize)
     if fig_name is not None:
         _ax.set_title(fig_name)
-    pyodide_plt_show(show)
+    _pyodide_plt_show(show)
     # --- glass brain + dipole markers ---------------------------------
     try:
         import pyvista_js as _pv
@@ -312,7 +313,7 @@ def _lite_plot_sparse_source_estimates(
 
 mne.viz.plot_sparse_source_estimates = _lite_plot_sparse_source_estimates
 
-# Each MNE plot is rendered once by pyodide_plt_show above (display()).
+# Each MNE plot is rendered once by _pyodide_plt_show above (display()).
 # When a plot call is also a cell's last expression, the method returns
 # the Figure, which Jupyter echoes a SECOND time as the Out[] result
 # (the duplicate seen below inline plots). Drop that redundant echo for
@@ -329,12 +330,12 @@ try:
         _lite_dh_call = _lite_dh.__call__
 
         def _lite_displayhook(self, result=None):
-            if isinstance(result, _mfig.Figure):
+            if isinstance(result, mpl_figure.Figure):
                 result = None
             elif (
                 isinstance(result, (list, tuple))
                 and result
-                and all(isinstance(_x, _mfig.Figure) for _x in result)
+                and all(isinstance(_x, mpl_figure.Figure) for _x in result)
             ):
                 result = None
             return _lite_dh_call(self, result)
