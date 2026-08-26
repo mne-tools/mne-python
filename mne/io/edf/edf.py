@@ -615,9 +615,9 @@ _EDF_STRIDE_MAX_EXTRA_BYTES = 64 * 1024**2
 def _read_uniform_segment(
     data, idx, start, stop, raw_extras, filenames, cals, mult
 ) -> bool:
-    """Read a uniformly sampled EDF or BDF segment."""
+    """Read a uniformly sampled EDF segment."""
     subtype = raw_extras["subtype"]
-    if subtype not in ("edf", "bdf") or not isinstance(filenames, str | Path):
+    if subtype != "edf" or not isinstance(filenames, str | Path):
         return False
     if len(raw_extras.get("tal_idx", ())) != 0:
         return False
@@ -655,8 +655,7 @@ def _read_uniform_segment(
     estimated_incremental_bytes = n_values * np.dtype(np.float64).itemsize
     physical_order = np.arange(len(n_samps))
     if not np.array_equal(read_sel, physical_order):
-        gather_bytes_per_value = 2 if subtype == "edf" else 4
-        estimated_incremental_bytes += n_values * gather_bytes_per_value
+        estimated_incremental_bytes += n_values * dtype_byte
     if any(orig_idx in stim_channel_idxs for orig_idx in idx_arr):
         estimated_incremental_bytes += max_records * buf_len * np.dtype(int).itemsize
     if estimated_incremental_bytes > _EDF_STRIDE_MAX_EXTRA_BYTES:

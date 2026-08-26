@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime
+import gc
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from functools import partial
@@ -116,22 +117,13 @@ def _assert_stride_falls_back(monkeypatch, read_data, *, expect_mult=False):
     assert_array_equal(got, want)
 
 
-@pytest.mark.parametrize(
-    "reader, source, suffix",
-    [
-        (read_raw_edf, edf_stim_channel_path, ".edf"),
-        (read_raw_bdf, bdf_path, ".bdf"),
-    ],
-)
 @pytest.mark.parametrize("pick_kind", ("all", "subset", "reversed", "permuted"))
 @pytest.mark.parametrize("window_kind", ("within", "boundary", "multiple"))
-def test_uniform_stride_decode(
-    reader, source, suffix, pick_kind, window_kind, monkeypatch, tmp_path
-):
+def test_uniform_stride_decode(pick_kind, window_kind, monkeypatch, tmp_path):
     """Test exact pure-NumPy stride decoding against legacy."""
-    repeated = tmp_path / f"uniform{suffix}"
-    _repeat_edf_records(source, repeated)
-    raw = reader(repeated, preload=False, verbose="error")
+    repeated = tmp_path / "uniform.edf"
+    _repeat_edf_records(edf_stim_channel_path, repeated)
+    raw = read_raw_edf(repeated, stim_channel=-1, preload=False, verbose="error")
     n_channels = len(raw.ch_names)
     buf_len = int(raw._raw_extras[0]["max_samp"])
     picks = {
@@ -148,23 +140,18 @@ def test_uniform_stride_decode(
     _assert_stride_matches_legacy(monkeypatch, raw, picks, start, stop)
 
 
-@pytest.mark.parametrize(
-    "reader, source, suffix",
-    (
-        (read_raw_edf, edf_stim_channel_path, ".edf"),
-        (read_raw_bdf, bdf_path, ".bdf"),
-    ),
-)
-def test_uniform_stride_multiple_chunks(reader, source, suffix, monkeypatch, tmp_path):
+def test_uniform_stride_multiple_chunks(monkeypatch, tmp_path):
     """Test reads that cross the internal record-chunk boundary."""
-    source_raw = reader(source, preload=False, verbose="error")
+    source_raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=False, verbose="error"
+    )
     extras = source_raw._raw_extras[0]
     record_nbytes = int(extras["n_samps"].sum() * extras["dtype_byte"])
     n_per = max(10 * 1024 * 1024 // record_nbytes, 1)
-    repeated = tmp_path / f"multiple_chunks{suffix}"
-    _repeat_edf_records(source, repeated, n_records=n_per + 2)
+    repeated = tmp_path / "multiple_chunks.edf"
+    _repeat_edf_records(edf_stim_channel_path, repeated, n_records=n_per + 2)
 
-    raw = reader(repeated, preload=False, verbose="error")
+    raw = read_raw_edf(repeated, stim_channel=-1, preload=False, verbose="error")
     buf_len = int(raw._raw_extras[0]["max_samp"])
     start = buf_len // 2
     stop = (n_per + 1) * buf_len + buf_len // 2
@@ -177,14 +164,16 @@ def test_uniform_stride_multiple_chunks(reader, source, suffix, monkeypatch, tmp
     _assert_stride_matches_legacy(monkeypatch, raw, picks, start, stop)
 
 
-@pytest.mark.parametrize(
-    "reader, fname", ((read_raw_edf, edf_stim_channel_path), (read_raw_bdf, bdf_path))
-)
-def test_uniform_stride_preload(reader, fname, monkeypatch):
+def test_uniform_stride_preload(monkeypatch):
     """Test that eligible initial eager decoding matches legacy."""
     helper = edf.edf._read_uniform_segment
     monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
-    want = reader(fname, preload=True, verbose="error").get_data()
+    want = read_raw_edf(
+        edf_stim_channel_path,
+        stim_channel=-1,
+        preload=True,
+        verbose="error",
+    ).get_data()
     used = []
 
     def _record_use(*args, **kwargs):
@@ -193,45 +182,40 @@ def test_uniform_stride_preload(reader, fname, monkeypatch):
         return result
 
     monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
-    got = reader(fname, preload=True, verbose="error").get_data()
+    got = read_raw_edf(
+        edf_stim_channel_path,
+        stim_channel=-1,
+        preload=True,
+        verbose="error",
+    ).get_data()
     assert used and all(used)
     assert_array_equal(got, want)
 
 
-@pytest.mark.parametrize(
-    "reader, fname, reader_kwargs",
-    (
-        pytest.param(
-            read_raw_edf,
-            edf_stim_channel_path,
-            {"stim_channel": -1},
-            id="edf",
-        ),
-        pytest.param(read_raw_bdf, bdf_path, {}, id="bdf"),
-    ),
-)
-def test_uniform_stride_stim_only(reader, fname, reader_kwargs, monkeypatch):
+def test_uniform_stride_stim_only(monkeypatch):
     """Test exact stim scaling and masking on the stride path."""
-    raw = reader(fname, preload=False, verbose="error", **reader_kwargs)
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=False, verbose="error"
+    )
     picks = pick_types(raw.info, meg=False, stim=True)
     assert len(picks) == 1
     assert raw.get_channel_types(picks=picks) == ["stim"]
     assert_array_equal(picks, raw._raw_extras[0]["stim_channel_idxs"])
-    if reader is read_raw_edf:
-        stim_idx = picks[0]
-        extras = raw._raw_extras[0]
-        assert extras["cal"][stim_idx] != 1.0
-        assert extras["offsets"][stim_idx] != 0.0
+    stim_idx = picks[0]
+    extras = raw._raw_extras[0]
+    assert extras["cal"][stim_idx] != 1.0
+    assert extras["offsets"][stim_idx] != 0.0
     want = _assert_stride_matches_legacy(monkeypatch, raw, picks, 100, 900)
     assert_array_equal(want, np.bitwise_and(want.astype(int), 2**17 - 1))
-    if reader is read_raw_edf:
-        assert_array_equal(np.unique(want), [0.0, 100.0])
+    assert_array_equal(np.unique(want), [0.0, 100.0])
 
 
 def test_uniform_stride_cals(monkeypatch):
     """Test non-unit Raw calibrations on the stride path."""
-    raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
-    picks = np.array([0, 17, 55])
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=False, verbose="error"
+    )
+    picks = np.array([0, 12, 23])
     raw._cals[picks] *= np.array([0.5, 2.0, 4.0])
     assert np.all(raw._cals[picks] != 1.0)
     _assert_stride_matches_legacy(monkeypatch, raw, picks, 100, 900)
@@ -239,13 +223,152 @@ def test_uniform_stride_cals(monkeypatch):
 
 def test_uniform_stride_excluded_physical_channel(monkeypatch):
     """Test logical picks after excluding a physical record row."""
-    raw = read_raw_bdf(bdf_path, exclude=["AF7"], preload=False, verbose="error")
+    raw = read_raw_edf(
+        edf_stim_channel_path,
+        exclude=["EEG Fp2"],
+        stim_channel=-1,
+        preload=False,
+        verbose="error",
+    )
     physical_sel = raw._raw_extras[0]["sel"]
-    assert raw.ch_names[1] == "AF3"
+    assert raw.ch_names[1] == "EEG F7"
     assert physical_sel[1] == 2
     assert not np.array_equal(physical_sel, np.arange(len(raw.ch_names)))
     picks = np.array([0, 1, len(raw.ch_names) - 1])
     _assert_stride_matches_legacy(monkeypatch, raw, picks, 100, 900)
+
+
+@pytest.mark.parametrize(
+    "mode, pick_kind",
+    (
+        pytest.param("lazy", "all", id="lazy-all"),
+        pytest.param("lazy", "subset", id="lazy-first-four"),
+        pytest.param("lazy", "reversed", id="lazy-reversed-all"),
+        pytest.param("lazy", "permuted", id="lazy-permuted"),
+        pytest.param("preload", "all", id="preload-true"),
+        pytest.param("path", "all", id="preload-path"),
+    ),
+)
+def test_uniform_stride_bdf_always_falls_back(mode, pick_kind, monkeypatch, tmp_path):
+    """Test that every BDF read mode and channel order uses legacy."""
+    helper = edf.edf._read_uniform_segment
+    used = []
+
+    def _record_use(*args, **kwargs):
+        result = helper(*args, **kwargs)
+        used.append(result)
+        return result
+
+    if mode == "lazy":
+        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+        n_channels = len(raw.ch_names)
+        all_picks = np.arange(n_channels)
+        picks = {
+            "all": all_picks,
+            "subset": np.arange(4),
+            "reversed": all_picks[::-1],
+            "permuted": np.array([n_channels - 1, 1, n_channels // 2, 0]),
+        }[pick_kind]
+        monkeypatch.setattr(
+            edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
+        )
+        want = raw.get_data(picks=picks, start=100, stop=900)
+        monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+        got = raw.get_data(picks=picks, start=100, stop=900)
+        raw.close()
+        assert_array_equal(got, want)
+    elif mode == "preload":
+        monkeypatch.setattr(
+            edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
+        )
+        want_raw = read_raw_bdf(bdf_path, preload=True, verbose="error")
+        want = want_raw.get_data()
+        monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+        got_raw = read_raw_bdf(bdf_path, preload=True, verbose="error")
+        got = got_raw.get_data()
+        want_raw.close()
+        got_raw.close()
+        assert_array_equal(got, want)
+    else:
+        assert mode == "path"
+        destination = tmp_path / "bdf-preload.dat"
+        forced_destination = tmp_path / "bdf-forced-preload.dat"
+        monkeypatch.setattr(
+            edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
+        )
+        want_raw = read_raw_bdf(bdf_path, preload=forced_destination, verbose="error")
+        want = want_raw.get_data()
+        assert forced_destination.is_file()
+        monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
+        got_raw = read_raw_bdf(bdf_path, preload=destination, verbose="error")
+        got = got_raw.get_data()
+        assert destination.is_file()
+        assert_array_equal(got, want)
+        want_raw.close()
+        got_raw.close()
+        assert forced_destination.is_file()
+        assert destination.is_file()
+        del want, got
+        del want_raw._data
+        del got_raw._data
+        del want_raw, got_raw
+        gc.collect()
+        assert forced_destination.is_file()
+        assert destination.is_file()
+        forced_destination.unlink()
+        destination.unlink()
+
+    assert used and not any(used)
+
+
+class _ExplodingIndex:
+    @property
+    def start(self):
+        raise AssertionError("index inspected")
+
+    def __array__(self, *args, **kwargs):
+        raise AssertionError("index converted")
+
+
+class _SentinelData:
+    def __init__(self):
+        self.mutated = False
+
+    @property
+    def nbytes(self):
+        raise AssertionError("data inspected")
+
+    def __setitem__(self, key, value):
+        self.mutated = True
+        raise AssertionError("data mutated")
+
+
+@pytest.mark.parametrize("subtype", ("bdf", "gdf"))
+def test_uniform_stride_rejects_non_edf_before_work(subtype, monkeypatch):
+    """Test that non-EDF formats are rejected before any work."""
+
+    def _explode(*args, **kwargs):
+        raise AssertionError("allocation or I/O attempted")
+
+    sentinel = np.empty(0)
+    sentinel.flags.writeable = False
+    data = _SentinelData()
+    for name in ("arange", "asarray", "unique", "empty", "zeros"):
+        monkeypatch.setattr(edf.edf.np, name, _explode)
+    monkeypatch.setattr(edf.edf, "_gdf_edf_get_fid", _explode)
+    monkeypatch.setattr(edf.edf, "_read_ch", _explode)
+    assert not edf.edf._read_uniform_segment(
+        data,
+        _ExplodingIndex(),
+        0,
+        1,
+        {"subtype": subtype},
+        Path("never-opened"),
+        sentinel,
+        None,
+    )
+    assert not data.mutated
+    assert sentinel.size == 0 and not sentinel.flags.writeable
 
 
 @pytest.mark.parametrize(
@@ -271,11 +394,19 @@ def test_uniform_stride_fallbacks(fallback_kind, monkeypatch):
 
     if fallback_kind == "file_like":
         helper = edf.edf._read_uniform_segment
-        blob = bdf_path.read_bytes()
+        blob = edf_stim_channel_path.read_bytes()
         monkeypatch.setattr(
             edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
         )
-        want = read_raw_bdf(BytesIO(blob), preload=True, verbose="error").get_data()
+        want_raw = read_raw_edf(
+            BytesIO(blob), stim_channel=-1, preload=True, verbose="error"
+        )
+        extras = want_raw._raw_extras[0]
+        assert extras["subtype"] == "edf"
+        assert want_raw.filenames == (None,)
+        assert len(extras["tal_idx"]) == 0
+        assert np.all(extras["n_samps"] == extras["max_samp"])
+        want = want_raw.get_data()
         used = []
 
         def _record_use(*args, **kwargs):
@@ -284,9 +415,14 @@ def test_uniform_stride_fallbacks(fallback_kind, monkeypatch):
             return result
 
         monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record_use)
-        got = read_raw_bdf(BytesIO(blob), preload=True, verbose="error").get_data()
+        got_raw = read_raw_edf(
+            BytesIO(blob), stim_channel=-1, preload=True, verbose="error"
+        )
+        got = got_raw.get_data()
         assert used and not any(used)
         assert_array_equal(got, want)
+        want_raw.close()
+        got_raw.close()
         return
 
     raw = None
@@ -297,6 +433,9 @@ def test_uniform_stride_fallbacks(fallback_kind, monkeypatch):
         raw = read_raw_edf(edf_uneven_path, preload=False, verbose="error")
         extras = raw._raw_extras[0]
         n_samps = extras["n_samps"]
+        assert extras["subtype"] == "edf"
+        assert isinstance(raw.filenames[0], Path)
+        assert len(extras["tal_idx"]) == 0
         assert np.unique(n_samps).size > 1
         high_rate_physical = np.flatnonzero(n_samps == extras["max_samp"])[0]
         picks = np.flatnonzero(extras["sel"] == high_rate_physical)
@@ -306,21 +445,67 @@ def test_uniform_stride_fallbacks(fallback_kind, monkeypatch):
         raw = read_raw_edf(edf_path, preload=False, verbose="error")
         extras = raw._raw_extras[0]
         picks = np.array([0, len(raw.ch_names) - 1])
+        assert extras["subtype"] == "edf"
+        assert isinstance(raw.filenames[0], Path)
         assert len(extras["tal_idx"]) > 0
-        assert np.all(extras["n_samps"][extras["sel"][picks]] == extras["max_samp"])
+        assert np.all(extras["n_samps"] == extras["max_samp"])
     elif fallback_kind == "projection":
-        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+        raw = read_raw_edf(
+            edf_stim_channel_path,
+            stim_channel=-1,
+            preload=False,
+            verbose="error",
+        )
+        extras = raw._raw_extras[0]
+        assert extras["subtype"] == "edf"
+        assert isinstance(raw.filenames[0], Path)
+        assert len(extras["tal_idx"]) == 0
+        assert np.all(extras["n_samps"] == extras["max_samp"])
         raw.set_eeg_reference(projection=True, verbose="error").apply_proj(
             verbose="error"
         )
         assert raw._projector is not None
         expect_mult = True
     elif fallback_kind in ("output_limit", "extra_limit"):
-        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+        raw = read_raw_edf(
+            edf_stim_channel_path,
+            stim_channel=-1,
+            preload=False,
+            verbose="error",
+        )
+        extras = raw._raw_extras[0]
+        assert extras["subtype"] == "edf"
+        assert isinstance(raw.filenames[0], Path)
+        assert len(extras["tal_idx"]) == 0
+        assert np.all(extras["n_samps"] == extras["max_samp"])
+        picks = np.array([0, 1])
+        output_nbytes = len(picks) * (stop - start) * 8
+        if fallback_kind == "output_limit":
+            assert output_nbytes > edf.edf._EDF_STRIDE_MAX_OUTPUT_BYTES == 0
+        else:
+            buf_len = int(extras["max_samp"])
+            _, r_lims, _ = _blk_read_lims(start, stop, buf_len)
+            n_per = max(
+                10 * 1024 * 1024 // (extras["n_samps"].sum() * extras["dtype_byte"]),
+                1,
+            )
+            n_values = len(picks) * min(len(r_lims), n_per) * buf_len
+            estimated_extra = 10 * n_values
+            assert estimated_extra > edf.edf._EDF_STRIDE_MAX_EXTRA_BYTES == 0
     else:
         assert fallback_kind == "duplicate_picks"
         helper = edf.edf._read_uniform_segment
-        raw = read_raw_bdf(bdf_path, preload=False, verbose="error")
+        raw = read_raw_edf(
+            edf_stim_channel_path,
+            stim_channel=-1,
+            preload=False,
+            verbose="error",
+        )
+        extras = raw._raw_extras[0]
+        assert extras["subtype"] == "edf"
+        assert isinstance(raw.filenames[0], Path)
+        assert len(extras["tal_idx"]) == 0
+        assert np.all(extras["n_samps"] == extras["max_samp"])
         picks = [2, 0, 2]
         monkeypatch.setattr(
             edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False
@@ -348,16 +533,102 @@ def test_uniform_stride_fallbacks(fallback_kind, monkeypatch):
     )
 
 
-@pytest.mark.parametrize(
-    "reader, source",
-    ((read_raw_edf, edf_stim_channel_path), (read_raw_bdf, bdf_path)),
-)
-def test_uniform_stride_concurrent(reader, source, monkeypatch):
+def _assert_uniform_limit_result(
+    monkeypatch, real_helper, *, output_limit, extra_limit, used
+):
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=False, verbose="error"
+    )
+    picks = np.array([0, 1])
+    start, stop = 100, 900
+    extras = raw._raw_extras[0]
+    assert extras["subtype"] == "edf"
+    assert len(extras["tal_idx"]) == 0
+    assert extras["max_samp"] == 1228
+    assert np.all(extras["n_samps"] == 1228)
+    read_sel = extras["sel"][picks]
+    _, r_lims, _ = _blk_read_lims(start, stop, 1228)
+    n_per = max(
+        10 * 1024 * 1024 // (extras["n_samps"].sum() * extras["dtype_byte"]),
+        1,
+    )
+    max_records = min(len(r_lims), n_per)
+    n_values = len(picks) * max_records * 1228
+    estimated_extra = 10 * n_values
+    assert not np.array_equal(read_sel, np.arange(len(extras["n_samps"])))
+    assert not any(idx in extras["stim_channel_idxs"] for idx in picks)
+    assert max_records == 1
+    assert estimated_extra == 24560
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
+    want = raw.get_data(picks=picks, start=start, stop=stop)
+    assert want.nbytes == 2 * 800 * 8 == 12800
+
+    calls = []
+
+    def _record(*args, **kwargs):
+        result = real_helper(*args, **kwargs)
+        calls.append(result)
+        return result
+
+    monkeypatch.setattr(edf.edf, "_EDF_STRIDE_MAX_OUTPUT_BYTES", output_limit)
+    monkeypatch.setattr(edf.edf, "_EDF_STRIDE_MAX_EXTRA_BYTES", extra_limit)
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record)
+    got = raw.get_data(picks=picks, start=start, stop=stop)
+    assert calls == [used]
+    assert_array_equal(got, want)
+
+
+def test_uniform_stride_output_limit_boundary(monkeypatch):
+    """Test that the output limit is inclusive."""
+    real_helper = edf.edf._read_uniform_segment
+    _assert_uniform_limit_result(
+        monkeypatch,
+        real_helper,
+        output_limit=12800,
+        extra_limit=24560,
+        used=True,
+    )
+    _assert_uniform_limit_result(
+        monkeypatch,
+        real_helper,
+        output_limit=12799,
+        extra_limit=24560,
+        used=False,
+    )
+
+
+def test_uniform_stride_extra_limit_boundary(monkeypatch):
+    """Test that the incremental-allocation limit is inclusive."""
+    real_helper = edf.edf._read_uniform_segment
+    _assert_uniform_limit_result(
+        monkeypatch,
+        real_helper,
+        output_limit=12800,
+        extra_limit=24560,
+        used=True,
+    )
+    _assert_uniform_limit_result(
+        monkeypatch,
+        real_helper,
+        output_limit=12800,
+        extra_limit=24559,
+        used=False,
+    )
+
+
+def test_uniform_stride_concurrent(monkeypatch):
     """Test that stride reads share no seekable file handle."""
-    raw = reader(source, preload=False, verbose="error")
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=False, verbose="error"
+    )
     helper = edf.edf._read_uniform_segment
     monkeypatch.setattr(edf.edf, "_read_uniform_segment", lambda *args, **kwargs: False)
-    reference = reader(source, preload=True, verbose="error").get_data()
+    reference = read_raw_edf(
+        edf_stim_channel_path,
+        stim_channel=-1,
+        preload=True,
+        verbose="error",
+    ).get_data()
     windows = [
         (start, min(start + 64, raw.n_times)) for start in range(0, raw.n_times, 31)
     ]
