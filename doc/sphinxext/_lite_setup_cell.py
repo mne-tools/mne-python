@@ -77,11 +77,13 @@ if "multiprocessing" not in sys.modules:
 
 # Route requests over the browser's own transport so the downloads that still
 # go through pooch work here. That path is pooch.retrieve ->
-# pooch.HTTPDownloader -> requests, used by the fetchers whose files live off
-# the docs site (fetch_fsaverage and friends) and so are not in the copy
-# html_extra_path serves. Most of their callers are on JUPYTERLITE_EXCLUDE
-# already; examples/visualization/montage.py is the one that still reaches
-# this, via fetch_fsaverage.
+# pooch.HTTPDownloader -> requests, taken by the fetchers whose files live off
+# the docs site (fetch_fsaverage, fetch_infant_template and the parcellation
+# ones) and so are not in the copy html_extra_path serves. Every notebook that
+# calls one is on JUPYTERLITE_EXCLUDE today, so nothing reaches this on the
+# badged pages; it stays because that list is the only thing keeping it that
+# way, and a notebook added to the gallery tomorrow would otherwise fail here
+# with a Pyodide socket error rather than a real HTTP one.
 #
 # XMLHttpRequest rather than pyodide.http.open_url, and the same blocking call
 # _lite_fetch_rel uses below: open_url reports no status, so a 404 page came
