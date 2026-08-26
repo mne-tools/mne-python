@@ -1832,7 +1832,7 @@ def cluster_test(
     %(threshold_clust_both)s
     %(n_permutations_clust_all)s
     %(adjacency_clust_both)s
-    max_step : int, optional
+    max_step : int
         Maximum distance between samples (time points). Default is 1.
     exclude : array-like of bool | None
         Mask to apply to the data to exclude certain points from clustering
