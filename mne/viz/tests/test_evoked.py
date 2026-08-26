@@ -29,7 +29,7 @@ from mne.io import read_raw_fif
 from mne.stats.parametric import _parametric_ci
 from mne.utils import _record_warnings, catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white, ui_events
-from mne.viz.utils import _fake_click, _get_cmap
+from mne.viz.utils import _fake_click, _fake_keypress, _get_cmap
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -141,6 +141,10 @@ def test_plot_evoked():
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], "data")
     _fake_click(fig, ax, [ax.get_xlim()[0], ax.get_ylim()[1]], "data")
+    # default Matplotlib keybindings (e.g. "q" to close) should still work
+    assert plt.fignum_exists(fig.number)
+    _fake_keypress(fig, "q")
+    assert not plt.fignum_exists(fig.number)
     # plot with bad channels excluded & spatial_colors & zorder
     evoked.plot(exclude="bads", time_unit="s")
 

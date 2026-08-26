@@ -2540,6 +2540,13 @@ class MNELineFigure(MNEFigure):
         for ix in range(n_axes):
             self.add_subplot(n_axes, 1, ix + 1)
 
+    def _keypress(self, event):
+        """Handle keypress events, keeping default Matplotlib keybindings."""
+        from matplotlib.backend_bases import key_press_handler
+
+        super()._keypress(event)
+        key_press_handler(event, self.canvas, self.canvas.toolbar)
+
 
 def _close_all():
     """Close all figures (only used in our tests)."""
@@ -2581,10 +2588,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
     # if picks is None, only show data channels
     allowed_ch_types = _DATA_CH_TYPES_SPLIT if picks is None else _VALID_CHANNEL_TYPES
     # figure out expected number of axes
-    try:
-        ch_types = np.array(inst.get_channel_types())
-    except AttributeError:
-        ch_types = np.array(inst.info.get_channel_types())
+    ch_types = np.array(inst.get_channel_types())
     if picks is not None:
         ch_types = ch_types[picks]
     n_axes = len(np.intersect1d(ch_types, allowed_ch_types))
