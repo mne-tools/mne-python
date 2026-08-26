@@ -148,7 +148,7 @@ cluster_result = cluster_test(
     threshold=f_thresh,
     tail=tail,
     adjacency=adjacency,
-    seed=0,
+    rng=0,
 )
 
 # %%
