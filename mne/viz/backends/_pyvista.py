@@ -261,6 +261,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._toggle_antialias()
         self._enable_depth_peeling()
         self._picker = vtkCellPicker()
+        # separate picker for hover: Pick() on _picker would fire its
+        # EndPickEvent observer and act like a click
+        self._hover_picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -288,7 +291,15 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def _update(self):
         for plotter in self._all_plotters:
+            # PyVistaQt resolves plotter.update() to QWidget.update(), which only
+            # schedules a repaint, and it makes Plotter.render() asynchronous (the
+            # synchronous one being _render()). So render synchronously to update the
+            # scene, schedule the repaint, then flush it: without the flush the paint
+            # is delivered whenever events happen to be processed next, which can be
+            # long after the scene has changed again.
+            getattr(plotter, "_render", plotter.render)()
             plotter.update()
+            _process_events(plotter)
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -332,7 +343,11 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.plotter.enable_rubber_band_2d_style()
         else:
             for renderer in self._all_renderers:
-                renderer.disable_parallel_projection()
+                # Only disable it if it is actually on: PyVista recomputes the camera
+                # position from parallel_scale here, which moves the camera even when
+                # parallel projection was never enabled in the first place
+                if renderer.parallel_projection:
+                    renderer.disable_parallel_projection()
             kwargs = dict()
             if interaction == "terrain":
                 kwargs["mouse_wheel_zooms"] = True
@@ -952,6 +967,14 @@ class _PyVistaRenderer(_AbstractRenderer):
         actor, _ = mesh_data
         self.plotter.remove_actor(actor)
 
+    def _remove_actors(self, actors, *, render=True):
+        # Work around PyVista sequential update bug with iterable until > 0.42.3 is
+        # req: https://github.com/pyvista/pyvista/pull/5046
+        if not isinstance(actors, list):
+            actors = [actors]
+        for actor in actors:
+            self.plotter.remove_actor(actor, render=render)
+
     @contextmanager
     def _disabled_interaction(self):
         if not self.plotter.renderer.GetInteractive():
@@ -983,6 +1006,17 @@ class _PyVistaRenderer(_AbstractRenderer):
         add_obs(vtkCommand.EndInteractionEvent, on_button_release)
         self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self._picker.SetVolumeOpacityIsovalue(0.0)
+
+    def _trigger_pick(self, x, y):
+        """Trigger a pick at the given 2D event position."""
+        self._picker.Pick(x, y, 0, self.figure.plotter.renderer)
+
+    def _add_redraw_callback(self, func, interval):
+        """Schedule a periodic callback on the plotter."""
+        self.plotter.add_callback(func, interval)
+
+    def _show_axes(self):
+        self.plotter.show_axes()
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
@@ -1036,9 +1070,12 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update_volume_rgba(self, grid, ctable, rng):
         _update_volume_rgba(grid, ctable, rng)
 
-    def _sphere(self, center, color, radius):
+    def _sphere(self, center, color, radius, *, resolution=8):
         mesh = pyvista.Sphere(
-            radius=radius, center=center, theta_resolution=8, phi_resolution=8
+            radius=radius,
+            center=center,
+            theta_resolution=resolution,
+            phi_resolution=resolution,
         )
         actor = _add_mesh(self.plotter, mesh=mesh, color=color)
         return actor, mesh
@@ -1381,6 +1418,11 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
 
 def _check_3d_figure(figure):
     _validate_type(figure, PyVistaFigure, "figure")
+
+
+def _clear_3d_figure(figure):
+    figure.plotter.clear()  # remove all actors, lights are restored on the next plot
+    _process_events(figure.plotter)
 
 
 def _close_3d_figure(figure):

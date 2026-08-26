@@ -1,0 +1,1 @@
+Add the :func:`mne.datasets.lite_data.data_path` fetcher for the curated data subset used by the JupyterLite browser documentation, by `Natneal B`_.
