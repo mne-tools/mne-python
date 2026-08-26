@@ -3095,7 +3095,8 @@ def label_adjacency(labels, src):
     )
 
 
-def volume_label_adjacency(src, subject, subjects_dir, aseg="auto", labels=None):
+@fill_doc
+def volume_label_adjacency(src, subject, subjects_dir, *, aseg="auto", labels=None):
     """Compute adjacency between volume labels.
 
     Two labels are considered adjacent if one of their voxels are adjacent in the

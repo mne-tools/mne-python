@@ -2448,11 +2448,11 @@ label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_
     Extracted time course for each label and source estimate.
 """
 docdict["labels_aseg"] = """
-    labels : list of str | None
-        Labeled regions of interest to plot. See :func:`mne.get_montage_volume_labels`
-        for one way to determine regions of interest. Regions can also be chosen from
-        the :term:`FreeSurfer LUT`. If ``None``, all labels that are defined in the
-        segmentation file are used.
+labels : list of str | None
+    Labeled regions of interest to plot. See :func:`mne.get_montage_volume_labels`
+    for one way to determine regions of interest. Regions can also be chosen from
+    the :term:`FreeSurfer LUT`. If ``None``, all labels that are defined in the
+    segmentation file are used.
 """
 docdict["labels_eltc"] = """
 labels : Label | BiHemiLabel | list | tuple | str
