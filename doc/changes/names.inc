@@ -8,6 +8,7 @@
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
 .. _Alan Leggitt: https://github.com/leggitta
+.. _Alejandro Santos Mayo: https://github.com/ASantosMayo
 .. _Alejandro Weinstein: http://ocam.cl
 .. _Alessandro Tonin: https://www.linkedin.com/in/alessandro-tonin-7892b046
 .. _Alex Ciok: https://github.com/alexCiok
