@@ -1,0 +1,1 @@
+3D plot windows (e.g., :meth:`mne.SourceEstimate.plot`) now follow light/dark mode switches of the operating system (macOS only for now) while they are open, by `Eric Larson`_.

@@ -552,7 +552,18 @@ class DigMontage:
         return deepcopy(self)
 
     def __add__(self, other):
-        """Add two DigMontages."""
+        """Add two DigMontages.
+
+        Parameters
+        ----------
+        other : instance of DigMontage
+            The montage to add.
+
+        Returns
+        -------
+        montage : instance of DigMontage
+            A new montage containing the points of both montages.
+        """
         out = self.copy()
         out += other
         return out

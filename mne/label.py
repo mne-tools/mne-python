@@ -41,8 +41,8 @@ from .utils import (
     _check_option,
     _check_subject,
     _import_nibabel,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -324,7 +324,19 @@ class Label:
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add Labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The union of the two labels (a :class:`~mne.BiHemiLabel` if the
+            hemispheres differ).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             return other + self
@@ -394,7 +406,18 @@ class Label:
         return label
 
     def __sub__(self, other):
-        """Subtract Labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label
+            The vertices of this label that are not in ``other``.
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             if self.hemi == "lh":
@@ -1046,7 +1069,18 @@ class BiHemiLabel:
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        """Add labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of BiHemiLabel
+            The union of the two labels.
+        """
         if isinstance(other, Label):
             if other.hemi == "lh":
                 lh = self.lh + other
@@ -1065,7 +1099,19 @@ class BiHemiLabel:
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
-        """Subtract labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The vertices of this label that are not in ``other`` (a
+            :class:`~mne.Label` if only one hemisphere remains).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, Label):
             if other.hemi == "lh":
@@ -1949,9 +1995,17 @@ def _grow_nonoverlapping_labels(
     return labels
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def random_parcellation(
-    subject, n_parcel, hemi, subjects_dir=None, surface="white", random_state=None
+    subject,
+    n_parcel,
+    hemi,
+    subjects_dir=None,
+    surface="white",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Generate random cortex parcellation by growing labels.
 
@@ -1970,7 +2024,8 @@ def random_parcellation(
         parcels per hemisphere.
     %(subjects_dir)s
     %(surface)s
-    %(random_state)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -1990,7 +2045,7 @@ def random_parcellation(
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, random_state)
+    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, rng)
 
     # add a unique color to each label
     colors = _n_colors(len(labels))
@@ -2000,12 +2055,9 @@ def random_parcellation(
     return labels
 
 
-def _cortex_parcellation(
-    subject, n_parcel, hemis, vertices_, graphs, random_state=None
-):
+def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs, rng):
     """Random cortex parcellation."""
     labels = []
-    rng = check_random_state(random_state)
     for hemi in set(hemis):
         parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
         graph = graphs[hemi]  # distance graph
@@ -2890,6 +2942,7 @@ def write_labels_to_annot(
         _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def select_sources(
     subject,
@@ -2899,8 +2952,10 @@ def select_sources(
     grow_outside=True,
     subjects_dir=None,
     name=None,
-    random_state=None,
     surf="white",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Select sources from a label.
 
@@ -2924,9 +2979,10 @@ def select_sources(
     %(subjects_dir)s
     name : None | str
         Assign name to the new label.
-    %(random_state)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -2964,7 +3020,6 @@ def select_sources(
                 subject, restrict_vertices=True, subjects_dir=subjects_dir, surf=surf
             )
         else:
-            rng = check_random_state(random_state)
             seed = rng.choice(label.vertices)
     else:
         seed = label.vertices[location]

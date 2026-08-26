@@ -1,5 +1,5 @@
 """
-.. _ex-rsa-noplot:
+.. _ex-rsa:
 
 ====================================
 Representational Similarity Analysis
@@ -17,8 +17,9 @@ a list of 92 images). Subjects were presented with images of human, animal
 and inanimate objects :footcite:`CichyEtAl2014`. Here we use the 24 unique
 images of faces and body parts.
 
-.. note:: this example will download a very large (~6GB) file, so we will not
-          build the images below.
+.. note:: This example requires the ~6 GB
+          :func:`~mne.datasets.visual_92_categories.data_path` dataset, so it can take
+          a while to run the first time.
 """
 
 # Authors: Jean-Rémi King <jeanremi.king@gmail.com>
@@ -34,7 +35,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pandas import read_csv
 from sklearn.linear_model import LogisticRegression
-from sklearn.manifold import MDS
+from sklearn.manifold import smacof
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.multiclass import OneVsRestClassifier
@@ -124,13 +125,13 @@ epochs["not-face"].average().plot()
 # to focus the classifier on the time interval with best SNR.
 clf = make_pipeline(
     StandardScaler(),
-    OneVsRestClassifier(LogisticRegression(C=1)),
+    OneVsRestClassifier(LogisticRegression(C=1, random_state=79)),
 )
-X = epochs.copy().crop(0.05, 0.3).get_data().mean(axis=2)
+X = epochs.get_data(tmin=0.05, tmax=0.3).mean(axis=2)
 y = epochs.events[:, 2]
 
 classes = set(y)
-cv = StratifiedKFold(n_splits=5, random_state=0, shuffle=True)
+cv = StratifiedKFold(n_splits=5, random_state=83, shuffle=True)
 
 # Compute confusion matrix for each cross-validation fold
 y_pred = np.zeros((len(y), len(classes)))
@@ -150,6 +151,8 @@ for ii, train_class in enumerate(classes):
 
 ##############################################################################
 # Plot
+
+# sphinx_gallery_thumbnail_number = 3
 labels = [""] * 5 + ["face"] + [""] * 11 + ["bodypart"] + [""] * 6
 fig, ax = plt.subplots(1, layout="constrained")
 im = ax.matshow(confusion, cmap="RdBu_r", clim=[0.3, 0.7])
@@ -167,9 +170,10 @@ plt.show()
 # summarized with dimensionality reduction using multi-dimensional scaling [1].
 # See how the face samples cluster together.
 fig, ax = plt.subplots(1, layout="constrained")
-mds = MDS(2, random_state=0, dissimilarity="precomputed")
 chance = 0.5
-summary = mds.fit_transform(chance - confusion)
+# TODO VERSION: this is MDS(2, n_init=4, init='random', metric='precomputed'),
+# but that spelling requires scikit-learn >= 1.8
+summary, _ = smacof(chance - confusion, n_components=2, n_init=4, random_state=89)
 cmap = plt.colormaps["rainbow"]
 colors = ["r", "b"]
 names = list(conds["condition"].values)

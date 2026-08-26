@@ -1249,7 +1249,6 @@ class AcqParserFIF:
                 manual for details. Currently the class does not offer any
                 facility for computing subaverages, but it can be done manually
                 by the user after collecting the epochs.
-
         """
         if isinstance(item, str):
             item = [item]
