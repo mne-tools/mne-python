@@ -361,7 +361,6 @@ def _assert_no_instances(cls, when=""):
     from refleak.testing import assert_no_instances
 
     __tracebackhide__ = True
-
     assert_no_instances(cls, when=when)
 
 
