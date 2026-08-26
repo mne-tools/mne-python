@@ -287,16 +287,9 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update(self):
         for plotter in self._all_plotters:
             # PyVistaQt resolves plotter.update() to QWidget.update(), which only
-            # schedules a repaint, and it makes Plotter.render() asynchronous (the
-            # synchronous one being _render()). So render synchronously to update the
-            # scene, schedule the repaint, then flush it: without the flush the paint
-            # is delivered whenever events happen to be processed next, which can be
-            # long after the scene has changed again.
-            # getattr(plotter, "_render", plotter.render)()
-            # plotter.update()
-            # _process_events(plotter)
-
-            # Try just rendering asynchronously as QT intended. See what breaks.
+            # schedules a repaint, and it makes Plotter.render() asynchronous. This is
+            # probably fine for most cases. If you want to synchronously, i.e. wait
+            # until it has actually gone through, use Plotter._render().
             plotter.render()
 
     def _index_to_loc(self, idx):
@@ -1395,7 +1388,6 @@ def _set_3d_view(
 
     if update:
         figure.plotter.update()
-        _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
@@ -1407,7 +1399,6 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
         name="title",
     )
     figure.plotter.update()
-    _process_events(figure.plotter)
     return handle
 
 
@@ -1417,7 +1408,7 @@ def _check_3d_figure(figure):
 
 def _clear_3d_figure(figure):
     figure.plotter.clear()  # remove all actors, lights are restored on the next plot
-    _process_events(figure.plotter)
+    figure.plotter.update()
 
 
 def _close_3d_figure(figure):
@@ -1429,7 +1420,6 @@ def _close_3d_figure(figure):
     # free memory and deregister from the scraper
     plotter.deep_clean()  # remove internal references
     _ALL_PLOTTERS.pop(plotter._id_name, None)
-    _process_events(plotter)
 
 
 def _take_3d_screenshot(figure, mode="rgb", filename=None):
