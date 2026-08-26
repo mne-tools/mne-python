@@ -52,6 +52,7 @@ from mne.viz import (
     plot_sparse_source_estimates,
     set_3d_view,
     snapshot_brain_montage,
+    ui_events,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
@@ -219,21 +220,45 @@ def test_plot_evoked_field(renderer):
         )
         renderer.backend._close_all()
 
-    # Test some methods
-    fig = evoked.plot_field(maps, time_viewer=True)
-    assert isinstance(fig, EvokedField)
+    # Test some methods. Not all parameters are exposed through `plot_field`, so
+    # construct the `EvokedField` object directly.
+    fig = EvokedField(
+        evoked,
+        maps,
+        time_viewer=True,
+        contour_line_width=2,
+        background="white",
+        foreground="black",
+    )
+    assert fig._contour_line_width == 2
+    assert fig._widgets["contour_line_width"].get_value() == 2
     fig._rescale()
     fig.set_time(0.05)
     assert fig._current_time == 0.05
     fig.set_contours(10)
     assert fig._n_contours == 10
     assert fig._widgets["contours"].get_value() == 10
+    fig.set_contour_line_width(3)
+    assert fig._contour_line_width == 3
+    assert fig._widgets["contour_line_width"].get_value() == 3
     fig.set_vmax(2e-12, kind="meg")
     assert fig._surf_maps[1]["contours"][-1] == 2e-12
     assert (
         fig._widgets["vmax_slider_meg"].get_value()
         == DEFAULTS["scalings"]["grad"] * 2e-12
     )
+
+    # The contours (and their line width) can also be set through a UI event.
+    contours = [-2e-12, 0, 2e-12]
+    ui_events.publish(
+        fig, ui_events.Contours("field_strength_meg", contours, line_width=4)
+    )
+    assert fig._n_contours == 3
+    assert fig._contour_line_width == 4
+    ui_events.publish(
+        fig, ui_events.Contours("field_strength_meg", contours, line_width=None)
+    )
+    assert fig._contour_line_width == 4  # line_width=None keeps the current value
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
