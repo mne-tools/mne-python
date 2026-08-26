@@ -3,7 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 
@@ -87,7 +89,13 @@ nsx_header_dict = {
 
 @fill_doc
 def read_raw_nsx(
-    input_fname, stim_channel=True, eog=None, misc=None, preload=False, *, verbose=None
+    input_fname: Path | str,
+    stim_channel: str | int | list | Literal["auto"] | bool = True,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    preload: bool | str = False,
+    *,
+    verbose: bool | str | int | None = None,
 ) -> "RawNSX":
     """Reader function for NSx (Blackrock Microsystems) files.
 
@@ -113,7 +121,7 @@ def read_raw_nsx(
 
     Returns
     -------
-    raw : instance of RawEDF
+    raw : instance of RawNSX
         The raw instance.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -283,7 +291,7 @@ def _read_header(fname):
                 "millisecond",
             )
         ],
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
     basic_header["meas_date"] = time_origin
     return basic_header
@@ -436,7 +444,7 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
 
     orig_format = ORIG_FORMAT
 
-    raw_extras = {
+    raw_extras: dict[str, Any] = {
         key: [r[key] for r in nsx_info["data_header"]]
         for key in nsx_info["data_header"][0]
     }

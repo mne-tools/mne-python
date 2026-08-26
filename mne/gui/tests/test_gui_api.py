@@ -31,7 +31,8 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
         mne.viz.set_3d_backend("notebook")
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
 
-    # theme
+    # theme -- an explicit theme= takes precedence over the MNE_3D_OPTION_THEME that
+    # the options_3d fixture pins to "light", so the bad path is used and warns
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         renderer._window_set_theme("/does/not/exist")
@@ -52,6 +53,14 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
         central_layout = renderer._layout_create(orientation="grid")
         renderer._layout_add_widget(central_layout, widget, row=0, col=0)
         renderer._window_initialize(window=window, central_layout=central_layout)
+
+        # an OS light/dark mode switch re-applies the theme (gh-9182)
+        from qtpy.QtCore import QEvent
+        from qtpy.QtGui import QIcon
+
+        QIcon.setThemeName("bogus")
+        window.event(QEvent(QEvent.PaletteChange))
+        assert QIcon.themeName() in ("dark", "light")
 
     from unittest.mock import Mock
 

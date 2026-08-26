@@ -26,7 +26,7 @@ Changelog
 
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
 
-- Add command :ref:`mne setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
+- Add command :ref:`mne setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Férat`_.
 
 - Add command :ref:`mne sys_info` to print system information by `Eric Larson`_
 
@@ -78,7 +78,7 @@ Changelog
 
 - Improved :func:`mne.viz.plot_events` to always show event counts by `Eric Larson`_
 
-- Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
+- Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `José C. García Alanis`_
 
 - Add support for ``reduce_rank=True`` for vector beamformers by `Eric Larson`_
 
@@ -94,9 +94,9 @@ Changelog
 
 - :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
 
-- Add command :ref:`mne setup_forward_model` to quickly create a BEM model for a subject by `Victor Ferat`_.
+- Add command :ref:`mne setup_forward_model` to quickly create a BEM model for a subject by `Victor Férat`_.
 
-- Add command :ref:`mne prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
+- Add command :ref:`mne prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Férat`_.
 
 - Add support for reading ``.bdip`` Xfit binary dipole fit files in :func:`mne.read_dipole` by `Eric Larson`_
 
@@ -248,7 +248,7 @@ Bug
 
 - Fix ``info['sfreq']`` when decimating in :func:`mne.time_frequency.tfr_multitaper` and :func:`mne.time_frequency.tfr_morlet` and make sure an error is raised when exceed Nyquist frequency by `Adonay Nunes`_
 
-- Fix bug in EDF(+) loading, filter values ignored by insufficient regex, by `Demetres Kostas`_
+- Fix bug in EDF(+) loading, filter values ignored by insufficient regex, by `Darlene Heliokinde`_
 
 - Fix missing scaling of tolerance parameter in :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.mixed_norm`, by `Mathurin Massias`_
 
@@ -360,7 +360,7 @@ People who contributed to this release  (in alphabetical order):
 * Alexandre Gramfort
 * Ariel Rokem
 * Britta Westner
-* Carlos de la Torre
+* Carlos de la Torre-Ortiz
 * Christian Brodbeck
 * Christian O'Reilly
 * Chun-Hui Li
@@ -405,3 +405,5 @@ People who contributed to this release  (in alphabetical order):
 * Thomas Hartmann
 * Victor Férat
 * Yu-Han Luo
+
+.. include:: names.inc

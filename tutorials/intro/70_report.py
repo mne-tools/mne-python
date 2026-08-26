@@ -46,12 +46,13 @@ subjects_dir = data_path / "subjects"
 # You may also use the :meth:`~mne.Report.parse_folder` method to select
 # particular files to include in the report. But more on that later.
 #
-# .. sidebar: Viewing the report
+# .. sidebar:: Viewing the report
 #
 #    On successful creation of the report, the :meth:`~mne.Report.save` method
 #    will open the HTML in a new tab in your browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
-#
+
+# %%
 # Adding `~mne.io.Raw` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -192,6 +193,7 @@ ecg_evoked = mne.Epochs(
     tmin=-0.5,
     tmax=0.5,
     baseline=(None, None),
+    on_outside="ignore",
 ).average()
 report.img_max_width = None  # do not constrain image width
 report.add_projs(
@@ -244,6 +246,7 @@ del raw_full, events, ecg_evoked
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
     fit_params=dict(tol=0.01),  # assume very early on that ICA has converged
+    rng=97,
 )
 
 ica.fit(inst=raw)

@@ -9,7 +9,13 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_if_nan, check_random_state, logger, verbose
+from ..utils import (
+    _check_if_nan,
+    _legacy_rng,
+    fill_doc,
+    logger,
+    verbose,
+)
 
 
 def _max_stat(X, X2, perms, dof_scaling):
@@ -21,9 +27,17 @@ def _max_stat(X, X2, perms, dof_scaling):
     return max_abs
 
 
+@_legacy_rng("seed")
 @verbose
 def permutation_t_test(
-    X, n_permutations=10000, tail=0, n_jobs=None, seed=None, verbose=None
+    X,
+    n_permutations=10000,
+    tail=0,
+    n_jobs=None,
+    verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """One sample/paired sample permutation test based on a t-statistic.
 
@@ -45,15 +59,16 @@ def permutation_t_test(
         permutations are tested. It's the exact test, that
         can be untractable when the number of samples is big (e.g. > 20).
         If n_permutations >= 2**n_samples then the exact test is performed.
-    tail : -1 or 0 or 1 (default = 0)
+    tail : -1 | 0 | 1
         If tail is 1, the alternative hypothesis is that the
         mean of the data is greater than 0 (upper tailed test).  If tail is 0,
         the alternative hypothesis is that the mean of the data is different
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
     %(n_jobs)s
-    %(seed)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -68,8 +83,8 @@ def permutation_t_test(
     Notes
     -----
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
-    ``n_permutations`` and ``seed`` will be ignored since an exact test
-    (full permutation test) will be performed.
+    ``n_permutations``, ``seed``, and ``rng`` will be ignored since an exact
+    test (full permutation test) will be performed.
 
     References
     ----------
@@ -84,7 +99,6 @@ def permutation_t_test(
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
     std0 = np.sqrt(X2 - mu0**2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
-    rng = check_random_state(seed)
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
     logger.info(f"Permuting {len(orders)} times{extra}...")
@@ -105,8 +119,16 @@ def permutation_t_test(
     return T_obs, p_values, H0
 
 
+@_legacy_rng("random_state")
+@fill_doc
 def bootstrap_confidence_interval(
-    arr, ci=0.95, n_bootstraps=2000, stat_fun="mean", random_state=None
+    arr,
+    ci=0.95,
+    n_bootstraps=2000,
+    stat_fun="mean",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Get confidence intervals from non-parametric bootstrap.
 
@@ -120,8 +142,8 @@ def bootstrap_confidence_interval(
         Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along ``axis=0``.
-    random_state : int | float | array_like | None
-        The seed at which to initialize the bootstrap.
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -143,7 +165,6 @@ def bootstrap_confidence_interval(
         raise ValueError("stat_fun must be 'mean', 'median' or callable.")
     n_trials = arr.shape[0]
     indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
-    rng = check_random_state(random_state)
     boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, (1 - ((1 - ci) / 2)) * 100)
@@ -151,11 +172,11 @@ def bootstrap_confidence_interval(
     return np.array([ci_low, ci_up])
 
 
-def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, random_state=None):
+def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, rng=None):
     """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
         return bootstrap_confidence_interval(
-            arr, ci=ci, n_bootstraps=n_bootstraps, random_state=random_state
+            arr, ci=ci, n_bootstraps=n_bootstraps, rng=rng
         )
     else:
         from .parametric import _parametric_ci

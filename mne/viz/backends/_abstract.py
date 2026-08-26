@@ -344,6 +344,7 @@ class _AbstractRenderer(ABC):
         colormap="RdBu",
         normalized_colormap=False,
         reverse_lut=False,
+        opacity=None,
     ):
         """Add tube in the scene.
 
@@ -369,12 +370,12 @@ class _AbstractRenderer(ABC):
             If None, the max of the data will be used.
         colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
-        opacity : float
-            The opacity of the tube(s).
-        backface_culling : bool
-            If True, enable backface culling on the tube(s).
+        normalized_colormap : bool
+            Specify if the values of the colormap are between 0 and 1.
         reverse_lut : bool
             If True, reverse the lookup table.
+        opacity : float | None
+            The opacity of the tube(s). If None, the renderer default is used.
 
         Returns
         -------
@@ -619,6 +620,13 @@ class _AbstractRenderer(ABC):
             The number of labels to display on the scalar bar.
         bgcolor : tuple | str
             The color of the background when there is transparency.
+
+        Returns
+        -------
+        actor
+            The scalar bar actor.
+        tick_actor
+            The actor drawing tick marks along the scalar bar.
         """
         pass
 
@@ -739,14 +747,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _get_tooltip(self):
-        pass
-
-    @abstractmethod
-    def _set_tooltip(self, tooltip: str):
-        pass
-
-    @abstractmethod
     def _add_keypress(self, callback):
         pass
 
@@ -756,10 +756,6 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def _set_focus(self):
-        pass
-
-    @abstractmethod
-    def _set_layout(self, layout):
         pass
 
     @abstractmethod
@@ -799,10 +795,6 @@ class _AbstractButton(_AbstractWidget):
     def _click(self):
         pass
 
-    @abstractmethod
-    def _set_icon(self, icon):
-        pass
-
 
 class _AbstractSlider(_AbstractWidget):
     @classmethod
@@ -816,10 +808,6 @@ class _AbstractSlider(_AbstractWidget):
 
     @abstractmethod
     def _get_value(self):
-        pass
-
-    @abstractmethod
-    def _set_range(self, rng):
         pass
 
 
@@ -985,10 +973,6 @@ class _AbstractBoxLayout(ABC):
     def _add_widget(self, widget):
         pass
 
-    @abstractmethod
-    def _add_stretch(self, amount=1):
-        pass
-
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
     @abstractmethod
@@ -1021,31 +1005,7 @@ class _AbstractAppWindow(ABC):
         pass
 
     @abstractmethod
-    def _get_dpi(self):
-        pass
-
-    @abstractmethod
     def _get_size(self):
-        pass
-
-    @abstractmethod
-    def _get_cursor(self):
-        pass
-
-    @abstractmethod
-    def _set_cursor(self, cursor):
-        pass
-
-    @abstractmethod
-    def _new_cursor(self, name):
-        pass
-
-    @abstractmethod
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    @abstractmethod
-    def _close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -1277,7 +1237,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         pass
 
     @abstractmethod
@@ -1475,16 +1435,38 @@ class _AbstractMplCanvas(ABC):
 
     def set_color(self, bg_color, fg_color):
         """Set the widget colors."""
+        from matplotlib.ticker import AutoMinorLocator
+
         self.axes.set_facecolor(bg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
+        self.axes.spines["top"].set_visible(False)
+        self.axes.spines["right"].set_visible(False)
+        for side in ("bottom", "left"):
+            spine = self.axes.spines[side]
+            spine.set_color(fg_color)
+            spine.set_linewidth(2.0)
+
         self.axes.xaxis.label.set_color(fg_color)
         self.axes.yaxis.label.set_color(fg_color)
-        self.axes.spines["top"].set_color(fg_color)
-        self.axes.spines["bottom"].set_color(fg_color)
-        self.axes.spines["left"].set_color(fg_color)
-        self.axes.spines["right"].set_color(fg_color)
-        self.axes.tick_params(axis="x", colors=fg_color)
-        self.axes.tick_params(axis="y", colors=fg_color)
-        self.fig.patch.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_fontsize(14)
+        self.axes.yaxis.label.set_fontsize(14)
+
+        self.axes.tick_params(
+            axis="both",
+            colors=fg_color,
+            labelsize=13,
+            length=6,
+            width=1.5,
+            direction="out",
+        )
+
+        self.axes.xaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.yaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.tick_params(which="minor", length=3, width=1.0, colors=fg_color)
+        self.axes.grid(which="major", color=fg_color, alpha=0.18, linewidth=0.9)
+        self.axes.grid(which="minor", color=fg_color, alpha=0.08, linewidth=0.6)
+        self.axes.set_axisbelow(True)
 
     def show(self):
         """Show the canvas."""
@@ -1511,22 +1493,64 @@ class _AbstractMplCanvas(ABC):
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
+    _legend_in_figure = True
+
     def __init__(self, brain, width, height, dpi):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
     def update_plot(self):
         """Update the plot."""
-        leg = self.axes.legend(
-            prop={"family": "monospace", "size": "small"},
-            framealpha=0.5,
-            handlelength=1.0,
-            facecolor=self.brain._bg_color,
-        )
-        for text in leg.get_texts():
-            text.set_color(self.brain._fg_color)
+        if self._legend_in_figure:
+            leg = self.axes.legend(
+                prop={"family": "monospace", "size": "small"},
+                framealpha=0.5,
+                handlelength=1.0,
+                facecolor=self.brain._bg_color,
+            )
+            for text in leg.get_texts():
+                text.set_color(self.brain._fg_color)
+        self.sync_traces()
         super().update_plot()
+
+    def sync_traces(self):
+        """Refresh a native trace-list widget; no-op unless a backend provides one."""
+
+    def set_trace_visible(self, line, visible):
+        """Toggle one trace's visibility, in the plot and on its 3D glyph."""
+        line.set_visible(visible)
+        self.brain._set_trace_visible(line, visible)
+        self.update_plot()
+
+    def set_trace_highlight(self, line):
+        """Highlight one trace (or none), dimming the plot's other traces."""
+        if line is not None and not line.get_visible():
+            line = None
+        if line is self._hovered_line:
+            return
+        time_line = getattr(self.brain, "time_line", None)
+        origlines = [
+            origline
+            for origline in self.axes.get_lines()
+            if origline is not time_line and origline.get_visible()
+        ]
+        if self._hovered_line is None and line is not None:
+            self._trace_base_alpha = {
+                origline: origline.get_alpha() for origline in origlines
+            }
+        self._hovered_line = line
+        for origline in origlines:
+            if line is None:
+                origline.set_alpha(self._trace_base_alpha.get(origline))
+            else:
+                origline.set_alpha(1.0 if origline is line else 0.25)
+        if line is None:
+            self._trace_base_alpha = {}
+        self.canvas.draw_idle()
+        self.brain._set_trace_highlight(line)
 
     def on_button_press(self, event):
         """Handle button presses."""
@@ -1541,6 +1565,8 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Clear internal variables."""
         super().clear()
         self.brain = None
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
 
 class _AbstractWindow(ABC):
@@ -1582,6 +1608,15 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_get_simple_canvas(self, width, height, dpi):
+        pass
+
+    @abstractmethod
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        """Return a widget listing ``(key, description)`` pairs.
+
+        ``pairs`` are keyboard shortcuts; ``mouse_pairs``, if given, are
+        ``(action, description)`` pairs shown in a separate section.
+        """
         pass
 
     @abstractmethod

@@ -18,6 +18,9 @@ from scipy import linalg, sparse, stats
 from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
+    _find_clusters,
+    _labels_to_clusters,
+    _TTestReordered,
     f_oneway,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
@@ -36,12 +39,12 @@ def _get_conditions():
     n_time_1 = 20
     n_time_2 = 13
     normfactor = np.hanning(20).sum()
-    rng = np.random.RandomState(42)
-    condition1_1d = rng.randn(n_time_1, n_space) * noise_level
+    rng = np.random.default_rng(42)
+    condition1_1d = rng.normal(scale=noise_level, size=(n_time_1, n_space))
     for c in condition1_1d:
         c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
-    condition2_1d = rng.randn(n_time_2, n_space) * noise_level
+    condition2_1d = rng.normal(scale=noise_level, size=(n_time_2, n_space))
     for c in condition2_1d:
         c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
@@ -57,23 +60,25 @@ def _get_conditions():
 def test_thresholds(numba_conditional):
     """Test automatic threshold calculations."""
     # within subjects
-    rng = np.random.RandomState(0)
-    X = rng.randn(10, 1, 1) + 0.08
+    # seed chosen so both the 1-sample and between-subjects data are only
+    # marginally significant (0.03 < p < 0.05), as the asserts below require
+    rng = np.random.default_rng(426)
+    X = rng.normal(loc=0.08, size=(10, 1, 1))
     want_thresh = -stats.t.ppf(0.025, len(X) - 1)
     assert 0.03 < stats.ttest_1samp(X[:, 0, 0], 0)[1] < 0.05
     my_fun = partial(ttest_1samp_no_p)
     with catch_logging() as log:
         with pytest.warns(RuntimeWarning, match="threshold is only valid"):
             out = permutation_cluster_1samp_test(
-                X, stat_fun=my_fun, seed=0, verbose=True, out_type="mask"
+                X, stat_fun=my_fun, rng=0, verbose=True, out_type="mask"
             )
     log = log.getvalue()
     assert str(want_thresh)[:6] in log
     assert len(out[1]) == 1  # 1 cluster
-    assert_allclose(out[2], 0.033203, atol=1e-6)
+    assert_allclose(out[2], 0.046875, atol=1e-6)
     # between subjects
-    Y = rng.randn(10, 1, 1)
-    Z = rng.randn(10, 1, 1) - 0.7
+    Y = rng.standard_normal((10, 1, 1))
+    Z = rng.normal(loc=-0.7, size=(10, 1, 1))
     X = [X, Y, Z]
     want_thresh = stats.f.ppf(1.0 - 0.05, 2, sum(len(a) for a in X) - len(X))
     p = stats.f_oneway(*X)[1]
@@ -82,12 +87,12 @@ def test_thresholds(numba_conditional):
     with catch_logging() as log:
         with pytest.warns(RuntimeWarning, match="threshold is only valid"):
             out = permutation_cluster_test(
-                X, tail=1, stat_fun=my_fun, seed=0, verbose=True, out_type="mask"
+                X, tail=1, stat_fun=my_fun, rng=0, verbose=True, out_type="mask"
             )
     log = log.getvalue()
     assert str(want_thresh)[:6] in log
     assert len(out[1]) == 1  # 1 cluster
-    assert_allclose(out[2], 0.041992, atol=1e-6)
+    assert_allclose(out[2], 0.03515625, atol=1e-6)
     with pytest.warns(RuntimeWarning, match='Ignoring argument "tail"'):
         permutation_cluster_test(X, tail=0, out_type="mask")
 
@@ -99,7 +104,7 @@ def test_thresholds(numba_conditional):
         pytest.warns(RuntimeWarning, match="invalid value"),
     ):  # NumPy
         out = permutation_cluster_1samp_test(
-            X, seed=0, threshold=dict(start=0, step=0.1), out_type="mask"
+            X, rng=0, threshold=dict(start=0, step=0.1), out_type="mask"
         )
     assert (out[2] < 0.05).any()
     assert not (out[2] < 0.05).all()
@@ -108,7 +113,7 @@ def test_thresholds(numba_conditional):
         with np.errstate(invalid="ignore"):
             permutation_cluster_1samp_test(
                 X,
-                seed=0,
+                rng=0,
                 threshold=dict(start=0, step=0.1),
                 buffer_size=None,
                 out_type="mask",
@@ -120,8 +125,9 @@ def test_cache_dir(tmp_path, numba_conditional):
     tempdir = str(tmp_path)
     orig_dir = os.getenv("MNE_CACHE_DIR", None)
     orig_size = os.getenv("MNE_MEMMAP_MIN_SIZE", None)
-    rng = np.random.RandomState(0)
-    X = rng.randn(9, 2, 10)
+    # seed chosen so clusters are actually found
+    rng = np.random.default_rng(4)
+    X = rng.standard_normal((9, 2, 10))
     try:
         os.environ["MNE_MEMMAP_MIN_SIZE"] = "1K"
         os.environ["MNE_CACHE_DIR"] = tempdir
@@ -132,7 +138,7 @@ def test_cache_dir(tmp_path, numba_conditional):
                 buffer_size=None,
                 n_jobs=2,
                 n_permutations=1,
-                seed=0,
+                rng=0,
                 stat_fun=ttest_1samp_no_p,
                 verbose=False,
                 out_type="mask",
@@ -147,7 +153,7 @@ def test_cache_dir(tmp_path, numba_conditional):
                 buffer_size=10,
                 n_jobs=2,
                 n_permutations=1,
-                seed=random_state,
+                rng=random_state,
                 stat_fun=stat_fun,
                 verbose=False,
                 out_type="mask",
@@ -165,12 +171,12 @@ def test_cache_dir(tmp_path, numba_conditional):
 
 def test_permutation_large_n_samples(numba_conditional):
     """Test that non-replacement works with large N."""
-    X = np.random.RandomState(0).randn(72, 1) + 1
+    X = np.random.default_rng(0).normal(loc=1, size=(72, 1))
     for n_samples in (11, 72):
         tails = (0, 1) if n_samples <= 20 else (0,)
         for tail in tails:
             H0 = permutation_cluster_1samp_test(
-                X[:n_samples], threshold=1e-4, tail=tail, out_type="mask"
+                X[:n_samples], threshold=1e-4, tail=tail, rng=0, out_type="mask"
             )[-1]
             assert H0.shape == (1024,)
             assert len(np.unique(H0)) >= 1024 - (H0 == 0).sum()
@@ -178,9 +184,10 @@ def test_permutation_large_n_samples(numba_conditional):
 
 def test_permutation_step_down_p(numba_conditional):
     """Test cluster level permutations with step_down_p."""
-    rng = np.random.RandomState(0)
+    # seed chosen so step-down yields the improvement asserted below
+    rng = np.random.default_rng(11)
     # subjects, time points, spatial points
-    X = rng.randn(9, 2, 10)
+    X = rng.standard_normal((9, 2, 10))
     # add some significant points
     X[:, 0:2, 0:2] += 2  # span two time points and two spatial points
     X[:, 1, 5:9] += 0.5  # span four time points with 4x smaller amplitude
@@ -215,7 +222,7 @@ def test_cluster_permutation_test(numba_conditional):
             [condition1, condition2],
             n_permutations=100,
             tail=1,
-            seed=1,
+            rng=1,
             buffer_size=None,
             out_type="mask",
         )
@@ -229,7 +236,7 @@ def test_cluster_permutation_test(numba_conditional):
             [condition1, condition2],
             n_permutations=100,
             tail=1,
-            seed=1,
+            rng=1,
             n_jobs=2,
             buffer_size=buffer_size,
             out_type="mask",
@@ -262,7 +269,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
             condition1,
             n_permutations=100,
             tail=0,
-            seed=1,
+            rng=1,
             out_type="mask",
             buffer_size=None,
         )
@@ -275,7 +282,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
             n_permutations=100,
             tail=1,
             threshold=1.67,
-            seed=1,
+            rng=1,
             stat_fun=stat_fun,
             out_type="mask",
             buffer_size=None,
@@ -286,7 +293,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
             n_permutations=100,
             tail=-1,
             threshold=-1.67,
-            seed=1,
+            rng=1,
             stat_fun=stat_fun,
             buffer_size=None,
             out_type="mask",
@@ -308,7 +315,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
                 tail=-1,
                 out_type="mask",
                 threshold=-1.67,
-                seed=1,
+                rng=1,
                 n_jobs=2,
                 stat_fun=stat_fun,
                 buffer_size=buffer_size,
@@ -341,7 +348,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
     n_pts = condition1_1d.shape[1]
     # we don't care about p-values in any of these, so do fewer permutations
     args = dict(
-        seed=None,
+        rng=None,
         max_step=1,
         exclude=None,
         out_type="mask",
@@ -543,7 +550,7 @@ def test_permutation_cluster_signs(threshold, kind):
         assert kind == "ind"
         func = permutation_cluster_test
         stat_fun = ttest_ind_no_p
-        use_X = [X, np.random.RandomState(0).randn(*X.shape) * 0.1]
+        use_X = [X, np.random.default_rng(0).normal(scale=0.1, size=X.shape)]
     tobs, clu, clu_pvalues, _ = func(
         use_X,
         n_permutations=n_permutations,
@@ -571,11 +578,11 @@ def test_permutation_adjacency_equiv(numba_conditional):
     pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     # subjects, time points, spatial points
     n_time = 2
     n_space = 4
-    X = rng.randn(6, n_time, n_space)
+    X = rng.standard_normal((6, n_time, n_space))
     # add some significant points
     X[:, :, 0:2] += 10  # span two time points and two spatial points
     X[:, 1, 3] += 20  # span one time point
@@ -604,7 +611,7 @@ def test_permutation_adjacency_equiv(numba_conditional):
             n_jobs=2,
             max_step=max_step,
             stat_fun=stat_fun,
-            seed=0,
+            rng=0,
             out_type="mask",
         )
         # make sure our output datatype is correct
@@ -645,6 +652,105 @@ def test_permutation_adjacency_equiv(numba_conditional):
         assert_array_equal(stat_map, this_stat_map)
 
 
+def test_spatio_temporal_cluster_chain_merge():
+    """Test that a chain of spatio-temporal merges combines into one cluster."""
+    # Regression test: joining these active points into one cluster requires
+    # a chain of 3 merges alternating between spatial and temporal adjacency
+    # (t0's {2, 3, 4} - t1's {4} - t0's {0} - t1's {0, 1, 5}); that chain used
+    # to get broken, incorrectly splitting off {(1, 2)} as its own cluster.
+    # seed chosen to produce the cluster-merge chain described above
+    rng = np.random.default_rng(1)
+    n_subjects, n_times, n_space = 3, 2, 6
+    X = rng.normal(scale=0.01, size=(n_subjects, n_times, n_space))
+    active = [(0, 0), (0, 2), (0, 3), (0, 4), (1, 0), (1, 1), (1, 2), (1, 4), (1, 5)]
+    for t, s in active:
+        X[:, t, s] += 10
+    # path graph: 0-1-5-4-3-2
+    row = np.array([0, 1, 2, 3, 4])
+    col = np.array([1, 5, 3, 4, 5])
+    adjacency = sparse.coo_array((np.ones(5), (row, col)), shape=(n_space, n_space))
+
+    _, clusters, cluster_pv, _ = permutation_cluster_1samp_test(
+        X,
+        threshold=5.0,
+        tail=1,
+        adjacency=adjacency,
+        max_step=1,
+        n_permutations=20,
+        out_type="indices",
+        rng=0,
+        verbose=False,
+    )
+    assert len(clusters) == 1
+    t_idx, s_idx = clusters[0]
+    assert_equal(sorted(zip(t_idx.tolist(), s_idx.tolist())), active)
+    assert_allclose(cluster_pv, [1 / 4])
+
+
+def test_ttest_reordered():
+    """Test that _TTestReordered matches ttest_1samp_no_p under sign flips."""
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((9, 5))
+    X_orig = X.copy()
+    stat_fun = _TTestReordered(X)
+    for _ in range(5):
+        signs = rng.choice([-1, 1], size=9)
+        want = ttest_1samp_no_p(X * signs[:, None])
+        assert_allclose(stat_fun(X * signs[:, None]), want)
+        # from_signs should match, and must not mutate X
+        assert_allclose(stat_fun.from_signs(signs.astype(float), X), want)
+        assert_array_equal(X, X_orig)
+    # degenerate (zero-variance) columns should give 0, not nan/inf
+    X_deg = np.ones((9, 1))
+    assert_allclose(_TTestReordered(X_deg)(X_deg), 0.0)
+
+
+@pytest.mark.parametrize("t_power", (1, 2))
+@pytest.mark.parametrize("kind", ("no_adjacency", "global", "spatio_temporal"))
+def test_find_clusters_sums_only(kind, t_power):
+    """Test that sums_only=True matches the full-clusters path."""
+    rng = np.random.default_rng(0)
+    n_space = 8
+    kwargs = dict(threshold=0.0, tail=0, t_power=t_power)
+    if kind == "spatio_temporal":
+        x = rng.standard_normal(3 * n_space)  # 3 timepoints
+        row, col = np.array([0, 1, 2, 3, 4]), np.array([1, 5, 3, 4, 5])
+        adj = sparse.coo_array((np.ones(5), (row, col)), shape=(n_space, n_space))
+        # spatio-temporal adjacency is always CSR (see _setup_adjacency)
+        kwargs["adjacency"] = (adj + adj.transpose()).tocsr()
+    elif kind == "global":
+        x = rng.standard_normal(n_space)
+        row, col = np.arange(n_space - 1), np.arange(1, n_space)
+        kwargs["adjacency"] = sparse.coo_array(
+            (np.ones(n_space - 1), (row, col)), shape=(n_space, n_space)
+        )
+    else:
+        x = rng.standard_normal(n_space)
+        kwargs["adjacency"] = False
+
+    clusters, sums_full = _find_clusters(x, **kwargs)
+    assert clusters is not None
+    clusters_none, sums_only = _find_clusters(x, sums_only=True, **kwargs)
+    assert clusters_none is None
+    assert_allclose(sorted(sums_only), sorted(sums_full))
+
+
+def test_labels_to_clusters():
+    """Test grouping of active indices by component label."""
+    rng = np.random.default_rng(0)
+    active = np.sort(rng.choice(500, 200, replace=False))
+    labels = rng.integers(0, 30, size=200)
+    got = _labels_to_clusters(active, labels)
+    want = [active[labels == label] for label in np.unique(labels)]
+    assert len(got) == len(want) == len(np.unique(labels))
+    for a, b in zip(got, want):
+        assert_array_equal(a, b)
+    # a single cluster
+    got = _labels_to_clusters(active, np.zeros(200, int))
+    assert len(got) == 1
+    assert_array_equal(got[0], active)
+
+
 def test_spatio_temporal_cluster_adjacency(numba_conditional):
     """Test spatio-temporal cluster permutations."""
     pytest.importorskip("sklearn")
@@ -652,11 +758,15 @@ def test_spatio_temporal_cluster_adjacency(numba_conditional):
 
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
 
-    rng = np.random.RandomState(0)
-    noise1_2d = rng.randn(condition1_2d.shape[0], condition1_2d.shape[1], 10)
+    rng = np.random.default_rng(0)
+    noise1_2d = rng.standard_normal(
+        (condition1_2d.shape[0], condition1_2d.shape[1], 10)
+    )
     data1_2d = np.transpose(np.dstack((condition1_2d, noise1_2d)), [0, 2, 1])
 
-    noise2_d2 = rng.randn(condition2_2d.shape[0], condition2_2d.shape[1], 10)
+    noise2_d2 = rng.standard_normal(
+        (condition2_2d.shape[0], condition2_2d.shape[1], 10)
+    )
     data2_2d = np.transpose(np.dstack((condition2_2d, noise2_d2)), [0, 2, 1])
 
     adj = grid_to_graph(data1_2d.shape[-1], 1)
@@ -667,7 +777,7 @@ def test_spatio_temporal_cluster_adjacency(numba_conditional):
         adjacency=adj,
         n_permutations=50,
         tail=1,
-        seed=1,
+        rng=1,
         threshold=threshold,
         buffer_size=None,
     )
@@ -677,7 +787,7 @@ def test_spatio_temporal_cluster_adjacency(numba_conditional):
         [data1_2d, data2_2d],
         n_permutations=50,
         tail=1,
-        seed=1,
+        rng=1,
         threshold=threshold,
         n_jobs=2,
         buffer_size=buffer_size,
@@ -690,7 +800,7 @@ def test_spatio_temporal_cluster_adjacency(numba_conditional):
         [data1_2d, data2_2d],
         n_permutations=50,
         tail=1,
-        seed=1,
+        rng=1,
         threshold=threshold,
         n_jobs=2,
         buffer_size=None,
@@ -744,8 +854,9 @@ def test_summarize_clusters(kind):
         src = src_surf + src_vol
         klass = MixedSourceEstimate
     n_vertices = sum(len(s["vertno"]) for s in src)
+    rng = np.random.default_rng(0)
     clu = (
-        np.random.random([1, n_vertices]),
+        rng.random([1, n_vertices]),
         [(np.array([0]), np.array([0, 2, 4]))],
         np.array([0.02, 0.1]),
         np.array([12, -14, 30]),
@@ -768,23 +879,23 @@ def test_summarize_clusters(kind):
 
 def test_permutation_test_H0(numba_conditional):
     """Test that H0 is populated properly during testing."""
-    rng = np.random.RandomState(0)
-    data = rng.rand(7, 10, 1) - 0.5
+    rng = np.random.default_rng(0)
+    data = rng.random((7, 10, 1)) - 0.5
     with pytest.warns(RuntimeWarning, match="No clusters found"):
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-            data, threshold=100, n_permutations=1024, seed=rng
+            data, threshold=100, n_permutations=1024, rng=rng
         )
     assert_equal(len(h0), 0)
 
     for n_permutations in (1024, 65, 64, 63):
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-            data, threshold=0.1, n_permutations=n_permutations, seed=rng
+            data, threshold=0.1, n_permutations=n_permutations, rng=rng
         )
         assert_equal(len(h0), min(n_permutations, 64))
         assert isinstance(clust[0], tuple)  # sets of indices
     for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-            data, threshold=thresh, seed=rng, tail=tail, out_type="mask"
+            data, threshold=thresh, rng=rng, tail=tail, out_type="mask"
         )
         assert isinstance(clust[0], np.ndarray)  # bool mask
         # same as "128 if tail else 64"
@@ -793,8 +904,8 @@ def test_permutation_test_H0(numba_conditional):
 
 def test_tfce_thresholds(numba_conditional):
     """Test TFCE thresholds."""
-    rng = np.random.RandomState(0)
-    data = rng.randn(7, 10, 1) - 0.5
+    rng = np.random.default_rng(0)
+    data = rng.normal(loc=-0.5, size=(7, 10, 1))
 
     # if tail==-1, step must also be negative
     with pytest.raises(ValueError, match="must be < 0 for tail == -1"):
@@ -823,9 +934,9 @@ def test_tfce_thresholds(numba_conditional):
 @pytest.mark.parametrize("threshold", (None, dict(start=0, step=0.1)))
 def test_output_equiv(shape, out_type, adjacency, threshold):
     """Test equivalence of output types."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     n_subjects = 10
-    data = rng.randn(n_subjects, *shape)
+    data = rng.standard_normal((n_subjects, *shape))
     data -= data.mean(axis=0, keepdims=True)
     data[:, 2:4] += 2
     data[:, 6:9] += 2

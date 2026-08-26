@@ -13,7 +13,7 @@ https://pygithub.readthedocs.io/
 import os
 import pprint
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from github import Auth, Github
 from github.Commit import Commit
@@ -30,9 +30,7 @@ teams = org.get_teams()
 team_names = [team.name for team in teams]
 team = teams[team_names.index("MNE-Python Maintainers")]
 members = list(team.get_members())
-when = (datetime.now().astimezone(timezone.utc) - timedelta(days=daysback)).replace(
-    tzinfo=None
-)
+when = (datetime.now().astimezone(UTC) - timedelta(days=daysback)).replace(tzinfo=None)
 events = {
     user.login: Counter(Total=0, Commit=0, IssueComment=0, PullRequestComment=0)
     for user in members

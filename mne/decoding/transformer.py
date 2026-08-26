@@ -17,7 +17,6 @@ from .._fiff.pick import (
 from ..cov import _check_scalings_user
 from ..epochs import BaseEpochs
 from ..filter import filter_data
-from ..fixes import _reshape_view
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, check_version, fill_doc
 from ._fixes import validate_data
@@ -119,7 +118,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
     if return_result:
-        X = _reshape_view(X, (orig_shape[0], orig_shape[2], orig_shape[1]))
+        X = X.reshape((orig_shape[0], orig_shape[2], orig_shape[1]), copy=False)
         X = X.transpose(0, 2, 1)
         return X
 
@@ -138,7 +137,7 @@ class Scaler(MNETransformerMixin, BaseEstimator):
     Parameters
     ----------
     %(info)s Only necessary if ``scalings`` is a dict or None.
-    scalings : dict, str, default None
+    scalings : dict | str | None
         Scaling method to be applied to data channel wise.
 
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,
@@ -152,10 +151,10 @@ class Scaler(MNETransformerMixin, BaseEstimator):
           :class:`sklearn.preprocessing.StandardScaler`
           is used.
 
-    with_mean : bool, default True
+    with_mean : bool
         If True, center the data using mean (or median) before scaling.
         Ignored for channel-type scaling.
-    with_std : bool, default True
+    with_std : bool
         If True, scale the data to unit variance (``scalings='mean'``),
         quantile range (``scalings='median``), or using channel type
         if ``scalings`` is a dict or None).
@@ -308,7 +307,9 @@ class Vectorizer(MNETransformerMixin, BaseEstimator):
     >>> from sklearn.linear_model import LogisticRegression
     >>> from sklearn.pipeline import make_pipeline
     >>> from sklearn.preprocessing import StandardScaler
-    >>> clf = make_pipeline(Vectorizer(), StandardScaler(), LogisticRegression())
+    >>> clf = make_pipeline(
+    ...     Vectorizer(), StandardScaler(), LogisticRegression(random_state=0)
+    ... )
     """
 
     def fit(self, X, y=None):
@@ -654,7 +655,7 @@ class UnsupervisedSpatialFilter(MNETransformerMixin, BaseEstimator):
     ----------
     estimator : instance of sklearn.base.BaseEstimator
         Estimator using some decomposition algorithm.
-    average : bool, default False
+    average : bool
         If True, the estimator is fitted on the average across samples
         (e.g. epochs).
     """
@@ -797,9 +798,9 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    sfreq : float, default 1.0
+    sfreq : float
         Sampling frequency in Hz.
-    filter_length : str | int, default 'auto'
+    filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
             * int: specified length in samples.
@@ -828,17 +829,17 @@ class TemporalFilter(MNETransformerMixin, BaseEstimator):
             min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
 
         Only used for ``method='fir'``.
-    n_jobs : int | str, default 1
+    n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
-    method : str, default 'fir'
+    method : str
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict | None, default None
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    fir_window : str, default 'hamming'
+    fir_window : str
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     fir_design : str

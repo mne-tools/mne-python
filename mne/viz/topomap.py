@@ -13,14 +13,6 @@ from numbers import Integral
 import matplotlib.artist
 import matplotlib.patches
 import numpy as np
-from scipy.interpolate import (
-    CloughTocher2DInterpolator,
-    LinearNDInterpolator,
-    NearestNDInterpolator,
-)
-from scipy.sparse import csr_array
-from scipy.spatial import Delaunay, Voronoi
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, _simplify_info
@@ -70,6 +62,7 @@ from .utils import (
     _prepare_trellis,
     _process_times,
     _set_3d_axes_equal,
+    _set_window_title,
     _setup_cmap,
     _setup_vmin_vmax,
     _validate_if_list_of_axes,
@@ -201,6 +194,8 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 def _find_overlaps(info, ch_type, sphere, modality="fnirs"):
     """Find overlapping channels."""
+    from scipy.spatial.distance import pdist, squareform
+
     from ..channels.layout import _find_topomap_coords
 
     if modality == "fnirs":
@@ -843,6 +838,8 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additional interpolation points."""
+    from scipy.spatial import Delaunay
+
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -980,6 +977,12 @@ class _GridData:
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
         # in principle this works in N dimensions, not just 2
+        from scipy.interpolate import (
+            CloughTocher2DInterpolator,
+            LinearNDInterpolator,
+            NearestNDInterpolator,
+        )
+
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ("numeric", str), "border")
 
@@ -1091,6 +1094,7 @@ def plot_topomap(
     names=None,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -1123,6 +1127,9 @@ def plot_topomap(
     %(names_topomap)s
     %(mask_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -1191,6 +1198,7 @@ def plot_topomap(
         names=names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         outlines=outlines,
         contours=contours,
         image_interp=image_interp,
@@ -1252,6 +1260,8 @@ _VORONOI_CIRCLE_RES = 100
 def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
     """Make a Voronoi diagram on a topomap."""
     # we need an image axis object so first empty image to plot over
+    from scipy.spatial import Voronoi
+
     im = ax.imshow(
         np.zeros((res, res)) * np.nan,
         cmap=cmap,
@@ -1348,6 +1358,7 @@ def _plot_topomap(
     names=None,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -1460,6 +1471,8 @@ def _plot_topomap(
     if "zorder" not in mask_params:
         mask_params["zorder"] = _TOPOMAP_ZORDER["sensors"]
 
+    mask_label_params = _handle_default("mask_label_params", mask_label_params)
+
     # find mask limits and setup interpolation
     extent, Xi, Yi, interp = _setup_interp(
         pos, res, image_interp, extrapolate, outlines, border
@@ -1541,14 +1554,18 @@ def _plot_topomap(
         _draw_outlines(axes, outlines)
 
     if names is not None and sensors:
-        for _pos, _name in zip(pos, names):
+        for i, (_pos, _name) in enumerate(zip(pos, names)):
+            if mask is None or not mask[i]:
+                kwargs = dict(size="x-small")
+            else:  # mask[i]
+                kwargs = mask_label_params
             axes.text(
                 _pos[0],
                 _pos[1],
                 _name,
                 horizontalalignment="center",
                 verticalalignment="center",
-                size="x-small",
+                **kwargs,
             )
 
     if onselect is not None:
@@ -1743,8 +1760,10 @@ def plot_ica_components(
         with the number of subplots per figure controlled by ``nrows`` and
         ``ncols``.
     title : str | None
-        The title of the generated figure. If ``None`` (default) and
-        ``axes=None``, a default title of "ICA Components" will be used.
+        The window title of the generated figure. If ``None`` (default) and
+        ``axes=None``, a default title of "Independent Components" will be used.
+        If ``axes=None`` and the components shown in a given figure form a
+        contiguous range, that range is appended to the title.
     %(nrows_ncols_ica_components)s
 
         .. versionadded:: 1.3
@@ -1836,13 +1855,23 @@ def plot_ica_components(
         n_group_axes = 2 if use_opm_orientation_groups else 1
 
         if title is None:
-            title = "ICA components"
+            title = "Independent Components"
         user_passed_axes = _axes is not None
         if not user_passed_axes:
             fig, _axes, _, _ = _prepare_trellis(
                 len(data) * n_group_axes, ncols=ncols, nrows=nrows
             )
-            fig.suptitle(title)
+            picks_arr = np.asarray(picks)
+            if picks_arr.size and np.array_equal(
+                picks_arr, np.arange(picks_arr[0], picks_arr[-1] + 1)
+            ):
+                if picks_arr.size == 1:
+                    window_title = f"{title} ({picks_arr[0]})"
+                else:
+                    window_title = f"{title} ({picks_arr[0]}-{picks_arr[-1]})"
+            else:
+                window_title = title
+            _set_window_title(fig, window_title)
         else:
             _axes = [_axes] if isinstance(_axes, Axes) else _axes
             if len(_axes) != len(data) * n_group_axes:
@@ -1882,7 +1911,9 @@ def plot_ica_components(
                 plot_title = comp_title
                 if group_label is not None:
                     plot_title += f" [{group_label}]"
-                subplot_titles.append(ax.set_title(plot_title, fontsize=12, **kwargs))
+                subplot_titles.append(
+                    ax.set_title(plot_title, fontsize=12, pad=0, **kwargs)
+                )
                 _vlim = _setup_vmin_vmax(group_data[:, 0], *vlim, norm=group_norm)
                 group_cmap = _setup_cmap(cmap, n_axes=len(picks), norm=group_norm)
                 im = plot_topomap(
@@ -2001,6 +2032,7 @@ def plot_tfr_topomap(
     show_names=False,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -2033,24 +2065,14 @@ def plot_tfr_topomap(
         "b (s)". If a is None the beginning of the data is used and if b is
         None then b is set to the end of the interval. If baseline is equal to
         (None, None) the whole time interval is used.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
-        Perform baseline correction by
-
-          - subtracting the mean baseline power ('mean')
-          - dividing by the mean baseline power ('ratio')
-          - dividing by the mean baseline power and taking the log ('logratio')
-          - subtracting the mean baseline power followed by dividing by the
-            mean baseline power ('percent')
-          - subtracting the mean baseline power and dividing by the standard
-            deviation of the baseline power ('zscore')
-          - dividing by the mean baseline power, taking the log, and dividing
-            by the standard deviation of the baseline power ('zlogratio')
-
-        If None no baseline correction is applied.
+    %(baseline_mode)s
     %(sensors_topomap)s
     %(show_names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -2084,6 +2106,10 @@ def plot_tfr_topomap(
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     import matplotlib.pyplot as plt
 
@@ -2177,6 +2203,7 @@ def plot_tfr_topomap(
         names=names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         contours=contours,
         outlines=outlines,
         sphere=sphere,
@@ -2229,6 +2256,7 @@ def plot_evoked_topomap(
     show_names=False,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -2272,6 +2300,9 @@ def plot_evoked_topomap(
     %(show_names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -2361,6 +2392,7 @@ def plot_evoked_topomap(
         show_names=show_names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         contours=contours,
         outlines=outlines,
         sphere=sphere,
@@ -2383,7 +2415,7 @@ def plot_evoked_topomap(
         interactive_colorbar=True,
         single_time_point=False,
     )
-    plt_show(show, block=False)
+    plt_show(show)
     if axes is not None:
         fig.canvas.draw()
     return fig
@@ -2401,6 +2433,7 @@ def _plot_evoked_topomap(
     show_names,
     mask,
     mask_params,
+    mask_label_params,
     contours,
     outlines,
     sphere,
@@ -2443,6 +2476,7 @@ def _plot_evoked_topomap(
     del time_unit
     # mask_params defaults
     mask_params = _handle_default("mask_params", mask_params)
+    mask_label_params = _handle_default("mask_label_params", mask_label_params)
     mask_params["markersize"] *= size / 2.0
     mask_params["markeredgewidth"] *= size / 2.0
     # setup various parameters, and prepare outlines
@@ -2669,6 +2703,7 @@ def _plot_evoked_topomap(
         res=res,
         cnorm=cnorm,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         outlines=outlines,
         image_interp=image_interp,
         show=False,
@@ -2912,6 +2947,7 @@ def _plot_topomap_multi_cbar(
     names,
     mask,
     mask_params,
+    mask_label_params,
     contours,
     image_interp,
     extrapolate,
@@ -2941,6 +2977,7 @@ def _plot_topomap_multi_cbar(
         names=names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         contours=contours,
         outlines=outlines,
         sphere=sphere,
@@ -2986,6 +3023,7 @@ def plot_epochs_psd_topomap(
     names=None,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=0,
     outlines="head",
     sphere=None,
@@ -3032,6 +3070,9 @@ def plot_epochs_psd_topomap(
     %(names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -3097,6 +3138,7 @@ def plot_psds_topomap(
     names=None,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=0,
     outlines="head",
     sphere=None,
@@ -3132,6 +3174,9 @@ def plot_psds_topomap(
     %(names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -3261,6 +3306,7 @@ def plot_psds_topomap(
             names=names,
             mask=mask,
             mask_params=mask_params,
+            mask_label_params=mask_label_params,
             contours=contours,
             image_interp=image_interp,
             extrapolate=extrapolate,
@@ -3469,6 +3515,7 @@ def _topomap_animation(
     show_names,
     mask,
     mask_params,
+    mask_label_params,
     contours,
     outlines,
     sphere,
@@ -3553,6 +3600,7 @@ def _topomap_animation(
         show_names=show_names,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         contours=contours,
         outlines=outlines,
         sphere=sphere,
@@ -3801,6 +3849,7 @@ def plot_arrowmap(
     show_names=False,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     outlines="head",
     contours=6,
     image_interp=_INTERPOLATION_DEFAULT,
@@ -3831,7 +3880,7 @@ def plot_arrowmap(
     info_to : instance of Info | None
         The measurement info to interpolate to. If None, it is assumed
         to be the same as info_from.
-    scale : float, default 3e-10
+    scale : float
         To scale the arrows.
     %(vlim_plot_topomap)s
 
@@ -3847,6 +3896,9 @@ def plot_arrowmap(
         If ``True``, a list of names must be provided (see ``names`` keyword).
     %(mask_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(outlines_topomap)s
     %(contours_topomap)s
     %(image_interp_topomap)s
@@ -3946,6 +3998,7 @@ def plot_arrowmap(
         res=res,
         mask=mask,
         mask_params=mask_params,
+        mask_label_params=mask_label_params,
         outlines=outlines,
         contours=contours,
         image_interp=image_interp,
@@ -4087,6 +4140,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     """
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from scipy.sparse import csr_array
 
     _validate_type(info, Info, "info")
     _validate_type(adjacency, (np.ndarray, csr_array), "adjacency")
@@ -4273,6 +4327,7 @@ def plot_regression_weights(
     show_names=False,
     mask=None,
     mask_params=None,
+    mask_label_params=None,
     contours=6,
     outlines="head",
     sphere=None,
@@ -4301,6 +4356,9 @@ def plot_regression_weights(
     %(show_names_topomap)s
     %(mask_topomap)s
     %(mask_params_topomap)s
+    %(mask_label_params_topomap)s
+
+        .. versionadded:: 1.13
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
@@ -4415,6 +4473,7 @@ def plot_regression_weights(
                 names=names,
                 mask=mask,
                 mask_params=mask_params,
+                mask_label_params=mask_label_params,
                 contours=contours,
                 image_interp=image_interp,
                 extrapolate=extrapolate,

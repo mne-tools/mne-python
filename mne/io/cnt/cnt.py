@@ -4,6 +4,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from pathlib import Path
+from typing import Literal
+
 import numpy as np
 
 from ..._fiff._digitization import _make_dig_points
@@ -167,18 +170,18 @@ def _read_annotations_cnt(fname, *, data_format, verbose=None):
 
 @verbose
 def read_raw_cnt(
-    input_fname,
-    eog=(),
-    misc=(),
-    ecg=(),
-    emg=(),
+    input_fname: Path | str,
+    eog: list | tuple | Literal["auto", "header"] = (),
+    misc: list | tuple = (),
+    ecg: list | tuple | Literal["auto"] = (),
+    emg: list | tuple = (),
     *,
-    data_format="auto",
-    date_format="mm/dd/yy",
-    recompute_n_samples=None,
-    header="auto",
-    preload=False,
-    verbose=None,
+    data_format: Literal["auto", "int16", "int32"] = "auto",
+    date_format: Literal["mm/dd/yy", "dd/mm/yy"] = "mm/dd/yy",
+    recompute_n_samples: bool | None = None,
+    header: Literal["auto", "new", "old"] = "auto",
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawCNT":
     """Read CNT data as raw object.
 
@@ -249,7 +252,7 @@ def read_raw_cnt(
 
     Returns
     -------
-    raw : instance of RawCNT.
+    raw : instance of RawCNT
         The raw data.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -634,6 +637,7 @@ class RawCNT(BaseRaw):
                     )
                     block[:f_channels, block_slice] = row
                 if "stim_channel" in self._raw_extras[fi]:
+                    assert stim_ch is not None
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
                     block[-1] = stim_ch[_data_start:_data_stop]

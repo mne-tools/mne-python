@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime
+import gc
 import os
 import pathlib
 import pickle
@@ -315,7 +316,8 @@ def test_multiple_files(tmp_path):
     )
     _compare_combo(raw, raw_combo, times, n_times)
     raw_combo = concatenate_raws(
-        [read_raw_fif(f) for f in [fif_fname, fif_fname]], preload="memmap8.dat"
+        [read_raw_fif(f) for f in [fif_fname, fif_fname]],
+        preload=tmp_path / "memmap8.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
     assert raw[:, :][0].shape[1] * 2 == raw_combo0[:, :][0].shape[1]
@@ -349,13 +351,13 @@ def test_multiple_files(tmp_path):
 
     raw_combo = concatenate_raws(
         [read_raw_fif(fif_fname, preload=False), read_raw_fif(fif_fname, preload=True)],
-        preload="memmap3.dat",
+        preload=tmp_path / "memmap3.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
 
     raw_combo = concatenate_raws(
         [read_raw_fif(fif_fname, preload=True), read_raw_fif(fif_fname, preload=True)],
-        preload="memmap4.dat",
+        preload=tmp_path / "memmap4.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
 
@@ -364,7 +366,7 @@ def test_multiple_files(tmp_path):
             read_raw_fif(fif_fname, preload=False),
             read_raw_fif(fif_fname, preload=False),
         ],
-        preload="memmap5.dat",
+        preload=tmp_path / "memmap5.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
 
@@ -409,7 +411,7 @@ def test_concatenate_raws(on_mismatch):
 
 def _create_toy_data(n_channels=3, sfreq=250, seed=None):
     rng = np.random.default_rng(seed)
-    data = rng.standard_normal(size=(n_channels, 50 * sfreq)) * 5e-6
+    data = rng.normal(scale=5e-6, size=(n_channels, 50 * sfreq))
     info = create_info(n_channels, sfreq, "eeg")
     return RawArray(data, info)
 
@@ -494,7 +496,8 @@ def test_concatenate_raws_different_subtypes(tmp_path):
     ch_names = ["EEG 001", "EEG 002"]
     ch_types = ["eeg"] * 2
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-    data = np.random.randn(len(ch_names), 1000)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 1000))
 
     raw_array = RawArray(data, info)
     raw_array.save(tmp_path / "temp_raw.fif", overwrite=True)
@@ -797,7 +800,7 @@ def test_load_bad_channels(tmp_path):
 @testing.requires_testing_data
 def test_io_raw(tmp_path):
     """Test IO for raw data (Neuromag)."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     # test unicode io
     for chars in ["äöé", "a"]:
         with read_raw_fif(fif_fname) as r:
@@ -814,7 +817,7 @@ def test_io_raw(tmp_path):
     raw = read_raw_fif(fif_fname).crop(0, 3.5)
     raw.load_data()
     # put in some data that we know the values of
-    data = rng.randn(raw._data.shape[0], raw._data.shape[1])
+    data = rng.standard_normal((raw._data.shape[0], raw._data.shape[1]))
     raw._data[:, :] = data
     # save it somewhere
     fname = tmp_path / "test_copy_raw.fif"
@@ -934,11 +937,11 @@ def test_io_raw_additional(fname_in, fname_out, tmp_path):
 @pytest.mark.parametrize("dtype", ("complex128", "complex64"))
 def test_io_complex(tmp_path, dtype):
     """Test IO with complex data types."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     n_ch = 5
     raw = read_raw_fif(fif_fname).crop(0, 1).pick(np.arange(n_ch)).load_data()
     data_orig = raw.get_data()
-    imag_rand = np.array(1j * rng.randn(n_ch, len(raw.times)), dtype=dtype)
+    imag_rand = np.array(1j * rng.standard_normal((n_ch, len(raw.times))), dtype=dtype)
     raw_cp = raw.copy()
     raw_cp._data = np.array(raw_cp._data, dtype)
     raw_cp._data += imag_rand
@@ -956,9 +959,9 @@ def test_io_complex(tmp_path, dtype):
 
 
 @testing.requires_testing_data
-def test_getitem():
+def test_getitem(tmp_path):
     """Test getitem/indexing of Raw."""
-    for preload in [False, True, "memmap1.dat"]:
+    for preload in [False, True, tmp_path / "memmap1.dat"]:
         raw = read_raw_fif(fif_fname, preload=preload)
         data, times = raw[0, :]
         data1, times1 = raw[0]
@@ -1077,16 +1080,18 @@ def test_proj(tmp_path):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("preload", [False, True, "memmap2.dat"])
+@pytest.mark.parametrize("preload", [False, True, "memmap"])
 def test_preload_modify(preload, tmp_path):
     """Test preloading and modifying data."""
-    rng = np.random.RandomState(0)
+    if preload == "memmap":
+        preload = tmp_path / "memmap2.dat"
+    rng = np.random.default_rng(0)
     raw = read_raw_fif(fif_fname, preload=preload)
 
     nsamp = raw.last_samp - raw.first_samp + 1
     picks = pick_types(raw.info, meg="grad", exclude="bads")
 
-    data = rng.randn(len(picks), nsamp // 2)
+    data = rng.standard_normal((len(picks), nsamp // 2))
 
     try:
         raw[picks, : nsamp // 2] = data
@@ -1192,8 +1197,9 @@ def test_filter():
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
     # filter should set the "lowpass" and "highpass" parameters
+    rng = np.random.default_rng(0)
     raw = RawArray(
-        np.random.randn(3, 1000), create_info(3, 1000.0, ["eeg"] * 2 + ["stim"])
+        rng.standard_normal((3, 1000)), create_info(3, 1000.0, ["eeg"] * 2 + ["stim"])
     )
     with raw.info._unlock():
         raw.info["lowpass"] = raw.info["highpass"] = None
@@ -1506,7 +1512,8 @@ def test_resample(tmp_path, preload, n, npad, method):
     assert raw_resampled is raw
 
     # resample should still work even when no stim channel is present
-    raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ["eeg"]))
+    rng = np.random.default_rng(0)
+    raw = RawArray(rng.standard_normal((1, 100)), create_info(1, 100, ["eeg"]))
     with raw.info._unlock():
         raw.info["lowpass"] = 50.0
     raw.resample(10, **kwargs)
@@ -1639,7 +1646,7 @@ def test_to_data_frame_time_format(time_format):
 
 def test_add_channels():
     """Test raw splitting / re-appending channel types."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
     assert raw._orig_units == {}
     raw_nopre = read_raw_fif(test_fif_fname, preload=False)
@@ -1663,7 +1670,7 @@ def test_add_channels():
     raw_arr_info = create_info(["1", "2"], raw_meg.info["sfreq"], "eeg")
     assert raw_arr_info["dev_head_t"] is None
     orig_head_t = Transform("meg", "head")
-    raw_arr = rng.randn(2, raw_eeg.n_times)
+    raw_arr = rng.standard_normal((2, raw_eeg.n_times))
     raw_arr = RawArray(raw_arr, raw_arr_info)
     # This should error because of conflicts in Info
     raw_arr.info["dev_head_t"] = orig_head_t
@@ -2027,6 +2034,9 @@ def test_memmap(tmp_path):
     raw_0._data[:] = 0.0
     assert not raw_0._data.any()
     assert raw_1._data[:1, 3:5].all()
+    del raw_0, raw_1
+    gc.collect()
+    assert Path(memmaps[3]).is_file()
     # other things like drop_channels and crop work but do not use memmapping,
     # eventually we might want to add support for some of these as users
     # require them.

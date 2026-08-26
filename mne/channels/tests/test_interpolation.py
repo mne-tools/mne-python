@@ -273,7 +273,7 @@ def _this_interpol(inst, ref_meg=False):
 def test_interpolate_meg_ctf():
     """Test interpolation of MEG channels from CTF system."""
     thresh = 0.85
-    tol = 0.05  # assert the new interpol correlates at least .05 "better"
+    tol = 0.03  # assert the new interpol correlates at least .03 "better"
     bad = "MLC22-2622"  # select a good channel to test the interpolation
 
     raw = read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs

@@ -3,8 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+from typing import Any, Final
 
-DEFAULTS = dict(
+DEFAULTS: dict[str, Any] = dict(
     color=dict(
         mag="darkblue",
         grad="b",
@@ -252,6 +253,10 @@ DEFAULTS = dict(
         markeredgewidth=1,
         markersize=4,
     ),
+    mask_label_params=dict(
+        fontsize="medium",  # respects theme
+        fontweight="bold",
+    ),
     coreg=dict(
         mri_fid_opacity=1.0,
         dig_fid_opacity=1.0,
@@ -400,6 +405,9 @@ def _handle_default(k, v=None):
 
 
 HEAD_SIZE_DEFAULT = 0.095  # in [m]
-_BORDER_DEFAULT = "mean"
-_INTERPOLATION_DEFAULT = "cubic"
-_EXTRAPOLATE_DEFAULT = "auto"
+# default clipping for Raw.plot; it lives here rather than in mne.viz.raw so
+# that mne.io.base can use it as a default argument without importing mne.viz
+_RAW_CLIP_DEF: Final = 3
+_BORDER_DEFAULT: Final = "mean"
+_INTERPOLATION_DEFAULT: Final = "cubic"
+_EXTRAPOLATE_DEFAULT: Final = "auto"

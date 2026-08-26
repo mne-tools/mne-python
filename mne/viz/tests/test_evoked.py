@@ -28,8 +28,8 @@ from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.stats.parametric import _parametric_ci
 from mne.utils import _record_warnings, catch_logging
-from mne.viz import plot_compare_evokeds, plot_evoked_white
-from mne.viz.utils import _fake_click, _get_cmap
+from mne.viz import plot_compare_evokeds, plot_evoked_white, ui_events
+from mne.viz.utils import _fake_click, _fake_keypress, _get_cmap
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 evoked_fname = base_dir / "test-ave.fif"
@@ -126,6 +126,7 @@ def test_plot_evoked():
     fig = evoked.plot(
         proj=True, hline=[1], exclude=[], window_title="foo", time_unit="s"
     )
+    assert fig.__class__.__name__ == "MNELineFigure"
     amplitudes = _get_amplitudes(fig)
     assert len(amplitudes) == len(default_picks)
     assert evoked.proj is False
@@ -140,6 +141,10 @@ def test_plot_evoked():
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], "data")
     _fake_click(fig, ax, [ax.get_xlim()[0], ax.get_ylim()[1]], "data")
+    # default Matplotlib keybindings (e.g. "q" to close) should still work
+    assert plt.fignum_exists(fig.number)
+    _fake_keypress(fig, "q")
+    assert not plt.fignum_exists(fig.number)
     # plot with bad channels excluded & spatial_colors & zorder
     evoked.plot(exclude="bads", time_unit="s")
 
@@ -228,6 +233,55 @@ def test_plot_evoked():
     fig = evoked.plot(time_unit="s", spatial_colors=True)
     line_clr = [x.get_color() for x in fig.axes[0].get_lines()]
     assert not np.all(np.isnan(line_clr) & (line_clr == 0))
+
+    # test hover and click functions
+    epochs = _get_epochs()
+    evoked = epochs.average()
+    fig = evoked.plot(picks="mag")
+    ax = fig.axes[0]
+
+    # test hover
+    # check cursorline is created on hover
+    assert not hasattr(ax, "_cursorline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="motion")
+    assert hasattr(ax, "_cursorline")
+    assert_allclose(ax._cursorline.get_xdata()[0], 0.0, atol=1e-8)
+    # check if text of channel name is displayed due to hover
+    text = ax.texts[0]
+    assert text.get_alpha() == 0.0
+    trace = ax.get_lines()[0]  # pick the first trace (MEG 0111)
+    x = trace.get_xdata()
+    y = trace.get_ydata()
+    i = len(x) // 2
+    _fake_click(fig, ax, (x[i], y[i]), xform="data", kind="motion")
+    assert text.get_alpha() == 1.0
+
+    # test click
+    assert not hasattr(ax, "_selectline")
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
+    assert hasattr(ax, "_selectline")
+    assert_allclose(ax._selectline.get_xdata()[0], 0.0, atol=1e-8)
+
+    _fake_click(fig, ax, (0.6, 0.5), kind="press")
+    assert ax._selectline.get_xdata()[0] > 0.0
+
+    plt.close("all")
+
+
+def test_plot_evoked_timechange():
+    """Test that time change events are properly handled in plot_evoked."""
+    epochs = _get_epochs()
+    evoked = epochs.average()
+    fig = evoked.plot(picks="mag")
+    ax = fig.axes[0]
+
+    _fake_click(fig, ax, (0.5, 0.5), kind="press")
+    assert_allclose(ax._selectline.get_xdata()[0], 0.0, atol=1e-8)
+
+    ui_events.publish(fig, ui_events.TimeChange(time=0.1))
+    assert_allclose(ax._selectline.get_xdata()[0], 0.1, atol=1e-8)
+
+    plt.close("all")
 
 
 def test_constrained_layout():

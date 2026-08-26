@@ -4,10 +4,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import gc
 import math
-import os
 import re
-from contextlib import redirect_stdout
+from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
 from pathlib import Path
@@ -121,7 +121,7 @@ def _test_raw_reader(
         Test _init_kwargs support.
     boundary_decimal : int
         Number of decimals up to which the boundary should match.
-    **kwargs :
+    **kwargs : dict
         Arguments for the reader. Note: Do not use preload as kwarg.
         Use ``test_preloading`` instead.
 
@@ -131,7 +131,7 @@ def _test_raw_reader(
         A preloaded Raw object.
     """
     tempdir = _TempDir()
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     montage = None
     if "montage" in kwargs:
         montage = kwargs["montage"]
@@ -480,12 +480,8 @@ def _test_raw_reader(
             dirname = op.dirname(this_fname)
             these_kwargs[key] = op.basename(this_fname)
             these_kwargs["preload"] = False
-            orig_dir = os.getcwd()
-            try:
-                os.chdir(dirname)
+            with chdir(dirname):
                 raw_chdir = reader(**these_kwargs)
-            finally:
-                os.chdir(orig_dir)
             raw_chdir.load_data()
 
     # make sure that cropping works (with first_samp shift)
@@ -843,16 +839,62 @@ def _read_raw_arange(preload=False, verbose=None):
     return _RawArange(preload, verbose)
 
 
-def test_load_data_memmap(tmp_path):
-    """Test loading raw data into a memmap via load_data."""
-    raw = _read_raw_arange(preload=False)
-    memmap_fname = tmp_path / "raw-load-data-memmap.dat"
-    raw.load_data(memmap=memmap_fname)
+@pytest.mark.parametrize("method", ("constructor", "load_data"))
+def test_preload_memmap_ownership(method, tmp_path):
+    """Test that a caller owns an explicit preload memmap path."""
+    memmap_fname = tmp_path / f"raw-{method}-memmap.dat"
+    memmap_fname.write_bytes(b"stale" * 20_000)
+    if method == "constructor":
+        raw = _read_raw_arange(preload=memmap_fname)
+    else:
+        raw = _read_raw_arange(preload=False)
+        raw.load_data(memmap=memmap_fname)
 
     assert raw.preload
     assert isinstance(raw._data, np.memmap)
     assert Path(raw._data.filename) == memmap_fname
-    assert_array_equal(raw._data[:, 0], np.arange(1, 9))
+    assert memmap_fname.stat().st_size == raw._data.nbytes
+    assert_array_equal(raw.get_data()[:, 0], np.arange(1, 9))
+    raw.close()
+    assert_array_equal(raw.get_data()[:, 0], np.arange(1, 9))
+    del raw
+    gc.collect()
+
+    assert memmap_fname.is_file()
+    data = np.memmap(memmap_fname, dtype=np.float64, mode="r", shape=(8, 1000))
+    assert_array_equal(data[:, 0], np.arange(1, 9))
+    del data
+    replacement = tmp_path / "replacement.dat"
+    replacement.write_bytes(b"replacement")
+    replacement.replace(memmap_fname)
+    assert memmap_fname.read_bytes() == b"replacement"
+
+
+def test_append_memmap_ownership(tmp_path):
+    """Test ownership of a caller-named concatenation memmap."""
+    memmap_fname = tmp_path / "raw-append-memmap.dat"
+    raw = _read_raw_arange()
+    other = _read_raw_arange()
+    raw.append(other, preload=memmap_fname)
+    assert isinstance(raw._data, np.memmap)
+    expected = np.repeat(np.arange(1, 9)[:, np.newaxis], 2, axis=1)
+    assert_array_equal(raw.get_data()[:, [0, -1]], expected)
+    copied = raw.copy()
+    assert_array_equal(copied.get_data(), raw.get_data())
+    del copied, other, raw
+    gc.collect()
+    assert memmap_fname.is_file()
+
+
+def test_raw_array_memmap_ownership(tmp_path):
+    """Test ownership of a memmap supplied directly to RawArray."""
+    memmap_fname = tmp_path / "raw-array-memmap.dat"
+    source = np.memmap(memmap_fname, dtype=np.float64, mode="w+", shape=(2, 10))
+    source[:] = np.arange(20).reshape(2, 10)
+    raw = RawArray(source, create_info(2, 10.0), copy=None)
+    del source, raw
+    gc.collect()
+    assert memmap_fname.is_file()
 
 
 def test_test_raw_reader():
@@ -1068,7 +1110,8 @@ def test_resamp_noop():
 
 def test_concatenate_raw_dev_head_t():
     """Test concatenating raws with dev-head-t including nans."""
-    data = np.random.randn(3, 10)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((3, 10))
     info = create_info(3, 1000.0, ["mag", "grad", "grad"])
     raw = RawArray(data, info)
     raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))

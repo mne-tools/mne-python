@@ -3,8 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -24,7 +25,11 @@ def _ensure_path(fname):
 
 @fill_doc
 def read_raw_nihon(
-    fname, preload=False, *, encoding="utf-8", verbose=None
+    fname: Path | str,
+    preload: bool = False,
+    *,
+    encoding: str = "utf-8",
+    verbose: bool | str | int | None = None,
 ) -> "RawNihon":
     """Reader for an Nihon Kohden EEG file.
 
@@ -86,7 +91,7 @@ def _read_nihon_metadata(fname):
         fid.seek(0x40)
         meas_str = np.fromfile(fid, "|S14", 1).astype("U14")[0]
         meas_date = datetime.strptime(meas_str, "%Y%m%d%H%M%S")
-        meas_date = meas_date.replace(tzinfo=timezone.utc)
+        meas_date = meas_date.replace(tzinfo=UTC)
         metadata["meas_date"] = meas_date
 
     return metadata
@@ -178,7 +183,7 @@ def _read_nihon_header(fname):
     # Read the Nihon Kohden EEG file header
     fname = _ensure_path(fname)
     _chan_labels = _read_21e_file(fname)
-    header = {}
+    header: dict[str, Any] = {}
     logger.info(f"Reading header from {fname}")
     with open(fname) as fid:
         version = np.fromfile(fid, "|S16", 1).astype("U16")[0]
@@ -266,7 +271,7 @@ def _read_nihon_header(fname):
             "I dont know how to read more than one "
             "control block for this type of file :("
         )
-    if header["controlblocks"][0]["n_datablocks"] > 1:
+    if header["controlblocks"][0]["n_datablocks"] > 1:  # ty: ignore[unsupported-operator]
         # Multiple blocks, check that they all have the same kind of data
         datablocks = header["controlblocks"][0]["datablocks"]
         block_0 = datablocks[0]

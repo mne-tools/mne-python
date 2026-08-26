@@ -11,7 +11,6 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
-from scipy.optimize import fmin_cobyla
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
@@ -52,8 +51,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz import plot_dipole_amplitudes, plot_dipole_locations
-from .viz.evoked import _plot_evoked
 
 
 @fill_doc
@@ -269,8 +266,8 @@ class Dipole(TimeMixin):
         """
         return deepcopy(self)
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_dipole_locations")
     @verbose
-    @copy_function_doc_to_method_doc(plot_dipole_locations)
     def plot_locations(
         self,
         trans,
@@ -294,6 +291,8 @@ class Dipole(TimeMixin):
         width=None,
         verbose=None,
     ):
+        from .viz import plot_dipole_locations
+
         return plot_dipole_locations(
             self,
             trans,
@@ -425,6 +424,8 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
+        from .viz import plot_dipole_amplitudes
+
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
@@ -623,6 +624,8 @@ class DipoleFixed(ExtendedTimeMixin):
         fig : instance of matplotlib.figure.Figure
             The figure containing the time courses.
         """
+        from .viz.evoked import _plot_evoked
+
         return _plot_evoked(
             self,
             picks=None,
@@ -1065,6 +1068,8 @@ def _fit_dipoles(
     rhoend,
 ):
     """Fit a single dipole to the given whitened, projected data."""
+    from scipy.optimize import fmin_cobyla
+
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(
@@ -1354,10 +1359,14 @@ def _fit_dipole(
     )
 
     # Tested minimizers:
-    #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
+    #    Simplex, BFGS, CG, COBYLA, COBYQA, L-BFGS-B, Powell, SLSQP, TNC
     # Several were similar, but COBYLA won for having a handy constraint
     # function we can use to ensure we stay inside the inner skull /
-    # smallest sphere
+    # smallest sphere. COBYQA needs ~10x more constraint evaluations, and the
+    # inner-skull constraint is a surface search rather than a cheap formula
+    # rhobeg (initial trust-region radius) is a few times the 2 cm guess grid so the fit
+    # can leave a poorly chosen grid cell. rhoend (final radius, the ``tol`` argument)
+    # sets the position resolution; loosening it to 1e-4 already shifts fits by ~2 mm
     rd_final = fmin_cobyla(
         fun, x0, (constraint,), consargs=(), rhobeg=5e-2, rhoend=rhoend, disp=False
     )

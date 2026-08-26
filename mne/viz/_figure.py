@@ -10,6 +10,7 @@ import re
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
+from contextvars import copy_context
 from copy import deepcopy
 from itertools import cycle
 
@@ -18,7 +19,6 @@ import numpy as np
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
 from ..defaults import _handle_default
 from ..filter import _iir_filter, _overlap_add_filter
-from ..fixes import _compare_version
 from ..utils import (
     _check_option,
     _get_stim_channel,
@@ -56,6 +56,7 @@ class BrowserBase(ABC):
         from ..preprocessing import ICA
 
         self.backend_name = None
+        self._close_context = copy_context()
 
         self._data = None
         self._times = None
@@ -478,7 +479,7 @@ class BrowserBase(ABC):
         epoch_nums = self.mne.inst.selection
         return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
 
-    def _redraw(self, update_data=True, annotations=False):
+    def _redraw(self, update_data=True, annotations=False, *, skip_hscroll=False):
         """Redraws backend if necessary."""
         if update_data:
             self._update_data()
@@ -486,10 +487,17 @@ class BrowserBase(ABC):
         self._draw_traces()
 
         if annotations and not self.mne.is_epochs:
-            self._draw_annotations()
+            self._draw_annotations(skip_hscroll=skip_hscroll)
 
     def _close(self, event=None):
         """Handle close events (via keypress or window [x])."""
+        # As specified by PEP 567: https://peps.python.org/pep-0567/#asyncio
+        # we explicitly retain the python Context used to create the figure
+        # in order to route stdout on close within IPykernel. See gh #14077
+        self._close_context.run(self._close_impl, event)
+
+    def _close_impl(self, event=None):
+        """Handle close events in the context that created the browser."""
         from matplotlib.pyplot import close
 
         logger.debug(f"Closing {self.mne.instance_type} browser...")
@@ -738,32 +746,7 @@ def _get_browser(show, block, **kwargs):
     if kwargs.get("overview_mode", None) is None:
         kwargs["overview_mode"] = get_config("MNE_BROWSER_OVERVIEW_MODE", "channels")
 
-    # Initialize browser backend
-    backend_name = get_browser_backend()
-    # Check mne-qt-browser compatibility
-    if backend_name == "qt":
-        import mne_qt_browser
-
-        from ..epochs import BaseEpochs
-
-        is_ica = kwargs.get("ica", False)
-        is_epochs = isinstance(kwargs.get("inst", False), BaseEpochs)
-        not_compat = _compare_version(mne_qt_browser.__version__, "<", "0.2.0")
-        inst_str = "ICA" if is_ica else "Epochs"
-        if not_compat and (is_ica or is_epochs):
-            logger.info(
-                f'You set the browser-backend to "qt" but your'
-                f" current version {mne_qt_browser.__version__}"
-                f" of mne-qt-browser is too low for {inst_str}."
-                f"Update with pip or conda."
-                f"Defaults to matplotlib."
-            )
-            with use_browser_backend("matplotlib"):
-                # Initialize Browser
-                fig = backend._init_browser(**kwargs)
-                _show_browser(show=show, block=block, fig=fig)
-                return fig
-
+    get_browser_backend()  # sets the module-level `backend` used just below
     # Initialize Browser
     fig = backend._init_browser(**kwargs)
     _show_browser(show=show, block=block, fig=fig)

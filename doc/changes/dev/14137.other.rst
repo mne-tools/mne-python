@@ -1,0 +1,4 @@
+Speed up :func:`mne.io.read_raw_egi` for MFF files by preserving the ``idx`` slice in
+``_read_segment_file``, avoiding a costly ``np.take`` copy on large data buffers
+(~60% reduction in read time for large recordings with ``preload=True``).
+By `Pragnya Khandelwal`_ (:gh:`14137`).

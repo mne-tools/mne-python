@@ -1,0 +1,56 @@
+{
+  "merge_commit_sha": "dc9a315ffcf1d8d0ea883e05866b863287fe6f66",
+  "authors": [
+    {
+      "n": "Cedric Conday",
+      "e": "277679649+CedricConday@users.noreply.github.com",
+      "l": "CedricConday"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "CedricConday",
+      "e": "cedric@conday.digital"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14004.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/simulation/simulated_raw_data_using_subject_anatomy.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 9,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

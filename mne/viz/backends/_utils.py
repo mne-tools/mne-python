@@ -4,21 +4,22 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc
+import contextlib
 import functools
 import os
 import platform
 import signal
+import socket
 import sys
-from colorsys import rgb_to_hls
 from contextlib import contextmanager
 from ctypes import c_char_p, c_void_p, cdll
 from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _compare_version, _reshape_view
+from ...fixes import _compare_version
 from ...utils import _check_qt_version, _validate_type, logger, warn
-from ..utils import _get_cmap
+from ..utils import _get_cmap, _is_dark
 
 VALID_BROWSE_BACKENDS = (
     "qt",
@@ -92,8 +93,33 @@ def _qt_init_icons():
     return str(_ICONS_PATH)
 
 
+@functools.lru_cache(1)
+def _splash_class():
+    """Get a QSplashScreen subclass that does not stall for a second on show.
+
+    Qt 6's QSplashScreen hangs for 1s no matter what as of 6.11, so work around it.
+    """
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QSplashScreen, QWidget
+
+    class _Splash(QSplashScreen):
+        def event(self, e):
+            if e.type() == QEvent.Show:
+                return QWidget.event(self, e)
+            return super().event(e)
+
+    return _Splash
+
+
 @contextmanager
 def _qt_disable_paint(widget):
+    if hasattr(widget, "paintGL"):
+        # QOpenGLWidget-based interactor (PyVistaQt >= 0.13): paintEvent drives
+        # the GL compositing of the whole window there, and suppressing it
+        # while the window is first shown leaves the entire window blank on
+        # macOS until a resize forces a fresh frame
+        yield
+        return
     paintEvent = widget.paintEvent
     widget.paintEvent = lambda *args, **kwargs: None
     try:
@@ -130,7 +156,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """
     from qtpy.QtCore import Qt
     from qtpy.QtGui import QGuiApplication, QIcon, QPixmap
-    from qtpy.QtWidgets import QApplication, QSplashScreen
+    from qtpy.QtWidgets import QApplication
 
     app_name = "MNE-Python"
     organization_name = "MNE"
@@ -199,7 +225,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         args = (pixmap,)
         if _should_raise_window():
             args += (Qt.WindowStaysOnTopHint,)
-        qsplash = QSplashScreen(*args)
+        qsplash = _splash_class()(*args)
         qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
@@ -258,6 +284,79 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+@contextmanager
+def _allow_qt_interrupt(loop):
+    """Let SIGINT out of a Qt event loop, which otherwise never lets Python run.
+
+    Adapted from Matplotlib: a socketpair registered as the signal wakeup fd makes Qt
+    wake up on delivery, and running any Python at all (the notifier callback) is what
+    lets the interpreter reach the handler.
+    """
+    from qtpy.QtCore import QSocketNotifier
+
+    old_handler = signal.getsignal(signal.SIGINT)
+    if old_handler in (None, signal.SIG_IGN, signal.SIG_DFL):
+        yield  # a non-Python handler owns SIGINT; don't get in its way
+        return
+    wsock, rsock = socket.socketpair()
+    wsock.setblocking(False)
+    rsock.setblocking(False)
+    old_wakeup_fd = signal.set_wakeup_fd(wsock.fileno())
+    notifier = QSocketNotifier(rsock.fileno(), QSocketNotifier.Type.Read)
+
+    def _drain():
+        with contextlib.suppress(BlockingIOError):
+            rsock.recv(1)  # re-arm the notifier, which the wakeup write triggered
+
+    notifier.activated.connect(_drain)
+    handler_args = []
+    signal.signal(signal.SIGINT, lambda *args: (handler_args.append(args), loop.quit()))
+    try:
+        yield
+    finally:
+        notifier.setEnabled(False)
+        signal.set_wakeup_fd(old_wakeup_fd)
+        signal.signal(signal.SIGINT, old_handler)
+        wsock.close()
+        rsock.close()
+        # Hand the signal to whoever owned it (a notebook kernel, IPython, plain
+        # Python) with the frame it arrived on, so it is reported their way
+        if handler_args:
+            old_handler(*handler_args[0])
+
+
+def _qt_block(window):
+    """Block until ``window`` is closed, keeping it interactive.
+
+    Unlike :func:`_qt_app_exec` this runs a nested loop instead of the application's
+    own, so it neither quits the app nor stops an event loop something else owns (a
+    notebook kernel, an IDE), and it returns when this window closes rather than when
+    the last one does.
+    """
+    from qtpy.QtCore import QEvent, QEventLoop, QObject
+
+    if not window.isVisible():
+        return
+
+    loop = QEventLoop()
+
+    class _CloseWatcher(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Close:
+                loop.quit()
+            return False
+
+    watcher = _CloseWatcher()
+    window.installEventFilter(watcher)
+    window.destroyed.connect(loop.quit)  # closed without a Close event
+    try:
+        with _allow_qt_interrupt(loop):
+            loop.exec()
+    finally:
+        with contextlib.suppress(RuntimeError):  # window may already be deleted
+            window.removeEventFilter(watcher)
+
+
 def _qt_detect_theme():
     try:
         import darkdetect
@@ -298,21 +397,12 @@ def _qt_get_stylesheet(theme):
                 "pip install qdarkstyle\n"
             )
         else:
-            if api in ("PySide6", "PyQt6") and _compare_version(
-                qdarkstyle.__version__, "<", "3.2.3"
-            ):
-                warn(
-                    f"Setting theme={repr(theme)} is not supported for {api} in "
-                    f"qdarkstyle {qdarkstyle.__version__}, it will be ignored. "
-                    "Consider upgrading qdarkstyle to >=3.2.3."
+            stylesheet = qdarkstyle.load_stylesheet(
+                getattr(
+                    getattr(qdarkstyle, theme).palette,
+                    f"{theme.capitalize()}Palette",
                 )
-            else:
-                stylesheet = qdarkstyle.load_stylesheet(
-                    getattr(
-                        getattr(qdarkstyle, theme).palette,
-                        f"{theme.capitalize()}Palette",
-                    )
-                )
+            )
         return stylesheet
     else:
         try:
@@ -341,10 +431,9 @@ def _qt_raise_window(widget):
 
 
 def _qt_is_dark(widget):
-    # Ideally this would use CIELab, but this should be good enough
     win = widget.window()
     bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
-    return rgb_to_hls(*bgcolor)[1] < 0.5
+    return _is_dark(bgcolor, name="bgcolor")
 
 
 def _pixmap_to_ndarray(pixmap):
@@ -357,7 +446,7 @@ def _pixmap_to_ndarray(pixmap):
     if hasattr(ptr, "setsize"):  # PyQt
         ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
-    data = _reshape_view(data, (img.height(), img.width(), 4))
+    data = data.reshape((img.height(), img.width(), 4), copy=False)
     return data / 255.0
 
 

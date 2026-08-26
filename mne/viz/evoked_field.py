@@ -11,7 +11,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from .._fiff.pick import pick_types
 from ..defaults import DEFAULTS
@@ -230,7 +229,7 @@ class EvokedField:
                     current_time_func=current_time_func,
                     times=evoked.times,
                 )
-            if not self._in_brain_figure or "time_slider" not in fig.widgets:
+
                 # Draw the time label
                 self._time_label = time_label
                 if time_label is not None:
@@ -252,6 +251,8 @@ class EvokedField:
 
     def _prepare_surf_map(self, surf_map, color, alpha):
         """Compute all the data required to render a fieldlines map."""
+        from scipy.interpolate import interp1d
+
         if surf_map["kind"] == "eeg":
             pick = pick_types(self._evoked.info, meg=False, eeg=True)
         else:
@@ -372,7 +373,7 @@ class EvokedField:
                 x_window=0.01, y_window=0.01, text=time_label
             )
 
-        self._renderer.plotter.update()
+        self._renderer._update()
 
     def _configure_dock(self):
         """Configure the widgets shown in the dock on the left."""
@@ -382,7 +383,7 @@ class EvokedField:
             r._dock_initialize()
 
         # Fieldline configuration
-        layout = r._dock_add_group_box("Fieldlines")
+        layout = r._dock_add_group_box("Fieldlines", collapse=True)
 
         r._dock_add_label(value="max value", align=True, layout=layout)
 
