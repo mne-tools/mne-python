@@ -1721,9 +1721,9 @@ class BaseEpochs(
         self,
         out=True,
         picks=None,
-        exclude="bads",
         item=None,
         *,
+        exclude=(),
         units=None,
         tmin=None,
         tmax=None,
@@ -1739,11 +1739,11 @@ class BaseEpochs(
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
         %(picks_all)s
-        %(exclude_spectrum_get_data)s
-
-                    .. versionadded:: 1.13
         item : slice | array-like | str | list | None
             See docstring of get_data method.
+        %(exclude_spectrum_get_data)s
+
+                            .. versionadded:: 1.13
         %(units)s
         tmin : int | float | None
             Start time of data to get in seconds.
@@ -1991,12 +1991,12 @@ class BaseEpochs(
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
-        exclude: list[str] | Literal["bads"] = "bads",
         item: slice | np.ndarray | str | list | None = None,
         units: str | dict | None = None,
         tmin: int | float | None = None,
         tmax: int | float | None = None,
         *,
+        exclude: list[str] | Literal["bads"] | tuple = (),
         copy: bool = True,
         verbose: bool | str | int | None = None,
     ) -> np.ndarray:
@@ -2005,9 +2005,7 @@ class BaseEpochs(
         Parameters
         ----------
         %(picks_all)s
-        %(exclude_spectrum_get_data)s
 
-            .. versionadded:: 1.13
         item : slice | array-like | str | list | None
             The items to get. See :meth:`mne.Epochs.__getitem__` for
             a description of valid options. This can be substantially faster
@@ -2027,6 +2025,10 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+
+        %(exclude_spectrum_get_data)s
+
+            .. versionadded:: 1.13
         copy : bool
             Whether to return a copy of the object's data, or (if possible) a view.
             See :ref:`the NumPy docs <numpy:basics.copies-and-views>` for an

@@ -239,24 +239,24 @@ class Evoked(
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
-        exclude: list[str] | Literal["bads"] = "bads",
         units: str | dict | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
+        exclude: list[str] | Literal["bads"] | tuple = (),
     ) -> np.ndarray:
         """Get evoked data as 2D array.
 
         Parameters
         ----------
         %(picks_all)s
-        %(exclude_spectrum_get_data)s
-
-            .. versionadded:: 1.13
         %(units)s
         tmin : float | None
             Start time of data to get in seconds.
         tmax : float | None
             End time of data to get in seconds.
+        %(exclude_spectrum_get_data)s
+
+            .. versionadded:: 1.13
 
         Returns
         -------

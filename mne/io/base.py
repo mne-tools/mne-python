@@ -944,13 +944,13 @@ class BaseRaw(
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
-        exclude: list[str] | Literal["bads"] = "bads",
         start: int = 0,
         stop: int | None = None,
         reject_by_annotation: Literal["omit", "NaN"] | None = None,
         return_times: bool = False,
         units: str | dict | None = None,
         *,
+        exclude: list[str] | Literal["bads"] | tuple = (),
         tmin: int | float | None = None,
         tmax: int | float | None = None,
         verbose: bool | str | int | None = None,
@@ -960,9 +960,6 @@ class BaseRaw(
         Parameters
         ----------
         %(picks_all)s
-        %(exclude_spectrum_get_data)s
-
-            .. versionadded:: 1.13
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
@@ -975,6 +972,9 @@ class BaseRaw(
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
+        %(exclude_spectrum_get_data)s
+
+                    .. versionadded:: 1.13
         tmin : int | float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
             ignored if the ``start`` parameter is bigger than 0.
