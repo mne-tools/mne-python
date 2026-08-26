@@ -7,9 +7,7 @@ from copy import deepcopy
 from math import log
 
 import numpy as np
-from scipy.sparse import issparse
 
-from . import viz
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import _read_bad_channels, _write_bad_channels, create_info
 from ._fiff.pick import (
@@ -275,7 +273,18 @@ class Covariance(dict):
         return s
 
     def __add__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom."""
+        """Add Covariance taking into account number of degrees of freedom.
+
+        Parameters
+        ----------
+        cov : instance of Covariance
+            The covariance to add.
+
+        Returns
+        -------
+        cov : instance of Covariance
+            A new covariance, weighted by the degrees of freedom of each input.
+        """
         _check_covs_algebra(self, cov)
         this_cov = cov.copy()
         this_cov["data"] = (
@@ -299,8 +308,8 @@ class Covariance(dict):
 
         return self
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_cov")
     @verbose
-    @copy_function_doc_to_method_doc(viz.plot_cov)
     def plot(
         self,
         info,
@@ -311,6 +320,8 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
+        from . import viz
+
         return viz.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
@@ -1513,12 +1524,12 @@ def _auto_low_rank_model(
         iter_n_components = np.arange(5, data.shape[1], 5)
     from sklearn.decomposition import PCA, FactorAnalysis
 
+    random_state = method_params.pop("random_state", 0)
     if mode == "factor_analysis":
-        est = FactorAnalysis
+        est = FactorAnalysis(random_state=random_state, **method_params)
     else:
         assert mode == "pca"
-        est = PCA
-    est = est(**method_params)
+        est = PCA(random_state=random_state, **method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)
@@ -2441,6 +2452,8 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy.sparse import issparse
+
     from ._fiff.write import _safe_read_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)

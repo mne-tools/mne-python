@@ -10,19 +10,18 @@ from functools import lru_cache, partial
 from math import gcd
 
 import numpy as np
-from scipy import fft, signal
-from scipy.stats import f as fstat
 
 from ._fiff.pick import _picks_to_idx
 from ._ola import _COLA
 from .cuda import (
+    _cuda_hilbert,
     _fft_multiply_repeated,
     _fft_resample,
     _setup_cuda_fft_multiply_repeated,
     _setup_cuda_fft_resample,
+    _setup_cuda_hilbert,
     _smart_pad,
 )
-from .fixes import _reshape_view
 from .parallel import parallel_func
 from .utils import (
     _check_option,
@@ -349,7 +348,7 @@ def _overlap_add_filter(
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
 
-    x = _reshape_view(x, orig_shape)
+    x = x.reshape(orig_shape, copy=False)
     return x
 
 
@@ -387,6 +386,8 @@ def _1d_overlap_filter(x, n_h, n_edge, phase, cuda_dict, pad, n_fft):
 
 def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency."""
+    from scipy import signal
+
     _, filt_resp = signal.freqz(h.ravel(), worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp[np.where(gain == 1)] = 0
@@ -404,7 +405,7 @@ def _prep_for_filtering(x, copy, picks=None):
     orig_shape = x.shape
     x = np.atleast_2d(x)
     picks = _picks_to_idx(x.shape[-2], picks)
-    x = _reshape_view(x, (np.prod(x.shape[:-1]), x.shape[-1]))
+    x = x.reshape((np.prod(x.shape[:-1]), x.shape[-1]), copy=False)
     if len(orig_shape) == 3:
         n_epochs, n_channels, n_times = orig_shape
         offset = np.repeat(np.arange(0, n_channels * n_epochs, n_channels), len(picks))
@@ -420,6 +421,8 @@ def _prep_for_filtering(x, copy, picks=None):
 
 def _firwin_design(N, freq, gain, window, sfreq):
     """Construct a FIR filter using firwin."""
+    from scipy import signal
+
     assert freq[0] == 0
     assert len(freq) > 1
     assert len(freq) == len(gain)
@@ -473,6 +476,8 @@ def _construct_fir_filter(
 
     If x is multi-dimensional, this operates along the last dimension.
     """
+    from scipy import signal
+
     assert freq[0] == 0
     if fir_design == "firwin2":
         fir_design = signal.firwin2
@@ -525,6 +530,8 @@ def _check_zero_phase_length(N, phase, gain_nyq=0):
 
 def _check_coefficients(system):
     """Check for filter stability."""
+    from scipy import signal
+
     if isinstance(system, tuple):
         z, p, k = signal.tf2zpk(*system)
     else:  # sos
@@ -555,6 +562,8 @@ def _picks_chunks(picks, n_times, max_size=2**22):
 def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
     """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
+    from scipy import signal
+
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if phase in ("zero", "zero-double"):
         padlen = min(iir_params["padlen"], x.shape[-1] - 1)
@@ -593,7 +602,7 @@ def _iir_filter(x, iir_params, picks, n_jobs, copy, phase="zero"):
         data_new = parallel(p_fun(x=x[chunk]) for chunk in chunks)
         for chunk, this_data in zip(chunks, data_new):
             x[chunk] = this_data
-    x = _reshape_view(x, orig_shape)
+    x = x.reshape(orig_shape, copy=False)
     return x
 
 
@@ -613,6 +622,8 @@ def estimate_ringing_samples(system, max_try=100000):
     n : int
         The approximate ringing.
     """
+    from scipy import signal
+
     if isinstance(system, tuple):  # TF
         kind = "ba"
         b, a = system
@@ -792,6 +803,8 @@ def construct_iir_filter(
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
+    from scipy import signal
+
     known_filters = (
         "bessel",
         "butter",
@@ -1604,6 +1617,8 @@ def notch_filter(
 
 @lru_cache
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
+    from scipy.stats import f as fstat
+
     from .time_frequency.multitaper import _compute_mt_params
 
     # figure out what tapers to use
@@ -1676,7 +1691,7 @@ def _mt_spectrum_proc(
     )
     logger.info(f"{kind} notch frequencies (Hz):\n{found_freqs}")
 
-    x = _reshape_view(x, orig_shape)
+    x = x.reshape(orig_shape, copy=False)
     return x
 
 
@@ -1911,6 +1926,8 @@ def resample(
 
 
 def _prep_polyphase(ratio, x_len, final_len, window):
+    from scipy import signal
+
     if isinstance(window, str) and window == "auto":
         window = ("kaiser", 5.0)  # SciPy default
     up = final_len
@@ -1929,6 +1946,8 @@ def _prep_polyphase(ratio, x_len, final_len, window):
 
 
 def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
+    from scipy import signal
+
     if pad == "auto":
         pad = "reflect"
     kwargs = dict(padtype=pad, window=window, up=up, down=down)
@@ -1944,6 +1963,8 @@ def _resample_polyphase(x, *, up, down, pad, window, n_jobs):
 
 
 def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
+    from scipy import fft, signal
+
     x_len = x_flat.shape[-1]
     pad = "reflect_limited" if pad == "auto" else pad
     if (isinstance(window, str) and window == "auto") or window is None:
@@ -2071,13 +2092,15 @@ def detrend(x, order=1, axis=-1):
     --------
     As in :func:`scipy.signal.detrend`::
 
-        >>> randgen = np.random.RandomState(9)
+        >>> rng = np.random.default_rng(11)
         >>> npoints = int(1e3)
-        >>> noise = randgen.randn(npoints)
+        >>> noise = rng.standard_normal(npoints)
         >>> x = 3 + 2*np.linspace(0, 1, npoints) + noise
         >>> bool((detrend(x) - noise).max() < 0.01)
         True
     """
+    from scipy import signal
+
     if axis > len(x.shape):
         raise ValueError(f"x does not have {axis} axes")
     if order == 0:
@@ -2435,6 +2458,8 @@ class FilterMixin:
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from scipy import signal
+
         from .source_estimate import _BaseSourceEstimate
 
         _check_preload(self, "inst.savgol_filter")
@@ -2695,7 +2720,10 @@ class FilterMixin:
         envelope : bool
             Compute the envelope signal of each channel/vertex. Default False.
             See Notes.
-        %(n_jobs)s
+        %(n_jobs_cuda)s
+
+            .. versionchanged:: 1.13
+               Added support for CUDA.
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
@@ -2720,13 +2748,13 @@ class FilterMixin:
         channels/vertices defined in ``picks`` is computed, resulting in the envelope
         signal.
 
-        .. warning: Do not use ``envelope=True`` if you intend to compute
-                    an inverse solution from the raw data. If you want to
-                    compute the envelope in source space, use
-                    ``envelope=False`` and compute the envelope after the
-                    inverse solution has been obtained.
+        .. warning::
+            Do not use ``envelope=True`` if you intend to compute an inverse solution
+            from the raw data. If you want to compute the envelope in source space, use
+            ``envelope=False`` and compute the envelope after the inverse solution has
+            been obtained.
 
-        If envelope=False, more memory is required since the original raw data
+        If ``envelope=False``, more memory is required since the original raw data
         as well as the analytic signal have temporarily to be stored in memory.
         If n_jobs > 1, more memory is required as ``len(picks) * n_times``
         additional time points need to be temporarily stored in memory.
@@ -2780,17 +2808,22 @@ class FilterMixin:
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        n_jobs, cuda_multiplier = _setup_cuda_hilbert(n_jobs, n_fft)
+        if cuda_multiplier is None:
+            hilbert_fun = _my_hilbert
+        else:
+            hilbert_fun = partial(_cuda_hilbert, multiplier=cuda_multiplier)
         parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
                 self._data[..., idx, :] = _check_fun(
-                    _my_hilbert, data_in[..., idx, :], *args, **kwargs
+                    hilbert_fun, data_in[..., idx, :], *args, **kwargs
                 )
         else:
             # use parallel function
             data_picks_new = parallel(
-                p_fun(_my_hilbert, data_in[..., p, :], *args, **kwargs) for p in picks
+                p_fun(hilbert_fun, data_in[..., p, :], *args, **kwargs) for p in picks
             )
             for pp, p in enumerate(picks):
                 self._data[..., p, :] = data_picks_new[pp]
@@ -2827,6 +2860,8 @@ def _my_hilbert(x, n_fft=None, envelope=False):
     out : array, shape (n_times)
         The hilbert transform of the signal, or the envelope.
     """
+    from scipy import signal
+
     n_x = x.shape[-1]
     out = signal.hilbert(x, N=n_fft, axis=-1)[..., :n_x]
     if envelope:
@@ -2875,6 +2910,8 @@ def design_mne_c_filter(
     4197 frequencies are directly constructed, with zeroes in the stop-band
     and ones in the passband, with squared cosine ramps in between.
     """
+    from scipy import fft
+
     n_freqs = (4096 + 2 * 2048) // 2 + 1
     freq_resp = np.ones(n_freqs)
     l_freq = 0 if l_freq is None else float(l_freq)
@@ -2975,4 +3012,4 @@ def _iir_pad_apply_unpad(x, *, func, padlen, padtype, **kwargs):
     x_out = x_ext[..., padlen : x_ext.shape[-1] - padlen]
     if x_out.shape != x.shape:  # unpadding leaves a view that cannot be reshaped
         x_out = np.ascontiguousarray(x_out)
-    return _reshape_view(x_out, x.shape)
+    return x_out.reshape(x.shape, copy=False)

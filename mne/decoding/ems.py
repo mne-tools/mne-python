@@ -60,7 +60,7 @@ class EMS(MNETransformerMixin, BaseEstimator):
     def fit(self, X, y):
         """Fit the spatial filters.
 
-        .. note : EMS is fitted on data normalized by channel type before the
+        .. note:: EMS is fitted on data normalized by channel type before the
                   fitting of the spatial filters.
 
         Parameters
@@ -116,15 +116,15 @@ def compute_ems(
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
-    .. note : The present function applies a leave-one-out cross-validation,
+    .. note:: The present function applies a leave-one-out cross-validation,
               following Schurger et al's paper. However, we recommend using
               a stratified k-fold cross-validation. Indeed, leave-one-out tends
               to overfit and cannot be used to estimate the variance of the
               prediction within a given fold.
 
-    .. note : Because of the leave-one-out, this function needs an equal
+    .. note:: Because of the leave-one-out, this function needs an equal
               number of epochs in each of the two conditions.
 
     Parameters

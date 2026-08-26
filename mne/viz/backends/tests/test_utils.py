@@ -2,6 +2,13 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
+
 import numpy as np
 import pytest
 
@@ -9,8 +16,11 @@ from mne import create_info
 from mne.io import RawArray
 from mne.viz.backends._utils import (
     _check_color,
+    _display_is_valid,
     _get_colormap_from_array,
+    _init_mne_qtapp,
     _pixmap_to_ndarray,
+    _qt_block,
     _qt_is_dark,
 )
 from mne.viz.utils import _is_dark
@@ -80,3 +90,58 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
 
     for widget in (fig.mne.toolbar, fig.statusBar()):
         _assert_correct_darkness(widget, is_dark)
+
+
+def test_qt_block(qtbot):
+    """Test that _qt_block waits for its own window and nothing else."""
+    pytest.importorskip("qtpy")  # pytest-qt can be installed without a Qt binding
+    from qtpy.QtCore import QTimer
+    from qtpy.QtWidgets import QWidget
+
+    win, other = QWidget(), QWidget()
+    for widget in (win, other):
+        qtbot.addWidget(widget)
+        widget.show()
+    QTimer.singleShot(300, win.close)
+    t0 = time.time()
+    _qt_block(win)
+    elapsed = time.time() - t0
+    assert 0.1 < elapsed < 10, elapsed
+    assert not win.isVisible()
+    assert other.isVisible()  # blocking is per-window, not until the last one closes
+    _qt_block(win)  # a closed window returns immediately rather than hanging
+    other.close()
+
+
+# Adapted from Matplotlib's test_backends_interactive.py::test_sigint: the scenario runs
+# in a subprocess because an in-process SIGINT fights pytest's own handling, and because
+# a loop that fails to wake up hangs until the subprocess timeout, not the whole suite.
+def _sigint_impl():
+    from qtpy.QtWidgets import QWidget
+
+    app = _init_mne_qtapp()  # keep a reference, PyQt6 garbage collects it otherwise
+    win = QWidget()
+    win.show()
+    # A Qt event loop keeps the interpreter from running, so this only arrives if
+    # _qt_block wakes Qt up on delivery
+    threading.Timer(1.0, lambda: os.kill(os.getpid(), signal.SIGINT)).start()
+    try:
+        _qt_block(win)
+    except KeyboardInterrupt:
+        print(f"SUCCESS still_open={win.isVisible()}", flush=True)
+    app.closeAllWindows()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Cannot send SIGINT on Windows")
+def test_qt_block_sigint():
+    """Test that a blocked window can be interrupted."""
+    pytest.importorskip("qtpy")
+    if not _display_is_valid():
+        pytest.skip("Requires a valid display")
+    # pytest imports this file as a top-level module, so name the installed path
+    code = "from mne.viz.backends.tests.test_utils import _sigint_impl; _sigint_impl()"
+    # A hang here means the signal never reached Python, which is the bug this guards
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, timeout=60
+    )
+    assert "SUCCESS still_open=True" in proc.stdout, (proc.stdout, proc.stderr)

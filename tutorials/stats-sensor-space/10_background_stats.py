@@ -232,7 +232,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # .. warning:: In the case of a true one-sample t-test, i.e. analyzing a single
 #              condition rather than the difference between two conditions,
 #              it is not clear where/how exchangeability applies; see
-#              `this FieldTrip discussion <ft_exch_>`_.
+#              `this FieldTrip discussion <https://mailman.science.ru.nl/pipermail/fieldtrip/2008-October/001794.html>`__.
 #
 # In the case where ``n_permutations`` is large enough (or "all") so
 # that the complete set of unique resampling exchanges can be done
@@ -251,7 +251,7 @@ ts.append(np.zeros(width * width))
 ps.append(np.zeros(width * width))
 mccs.append(False)
 for ii in range(n_src):
-    t, p = permutation_t_test(X[:, [ii]], verbose=False, seed=0)[:2]
+    t, p = permutation_t_test(X[:, [ii]], verbose=False, rng=47)[:2]
     ts[-1][ii], ps[-1][ii] = t[0], p[0]
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
@@ -263,7 +263,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # :math:`40 \cdot 40 = 1600` tests being performed. If we use a threshold
 # p < 0.05 for each individual test, we would expect many voxels to be declared
 # significant even if there were no true effect. In other words, we would make
-# many **type I errors** (adapted from `here <errors_>`_):
+# many **type I errors** (adapted from `here <https://en.wikipedia.org/w/index.php?title=Type_I_and_type_II_errors#Table_of_error_types>`__):
 #
 # .. rst-class:: skinnytable
 #
@@ -303,13 +303,13 @@ fig.show()
 # To combat this problem, several methods exist. Typically these
 # provide control over either one of the following two measures:
 #
-# 1. `Familywise error rate (FWER) <fwer_>`_
+# 1. `Familywise error rate (FWER) <https://en.wikipedia.org/wiki/Family-wise_error_rate>`__
 #      The probability of making one or more type I errors:
 #
 #      .. math::
 #        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 \mid H_0)
 #
-# 2. `False discovery rate (FDR) <fdr_>`_
+# 2. `False discovery rate (FDR) <https://en.wikipedia.org/wiki/False_discovery_rate>`__
 #      The expected proportion of rejected null hypotheses that are
 #      actually true:
 #
@@ -370,7 +370,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    of processed neuroimaging data).
 
 titles.append(r"$\mathbf{Perm_{max}}$")
-out = permutation_t_test(X, verbose=False, seed=0)[:2]
+out = permutation_t_test(X, verbose=False, rng=53)[:2]
 ts.append(out[0])
 ps.append(out[1])
 mccs.append(True)
@@ -431,7 +431,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #
 #     For a nice description of how to compute the effect size obtained
 #     in a cluster test, see this
-#     `FieldTrip mailing list discussion <ft_cluster_effect_size_>`_.
+#     `FieldTrip mailing list discussion <https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/011773.html>`__.
 #
 # However, there is a drawback. If a cluster significantly deviates from
 # the null, no further inference on the cluster (e.g., peak location) can be
@@ -509,7 +509,7 @@ t_thresh = stats.distributions.t.ppf(1 - alpha / 2, df=df)
 # run the cluster test
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
     X,
-    seed=0,
+    rng=59,
     n_jobs=None,
     threshold=t_thresh,
     adjacency=None,
@@ -535,7 +535,7 @@ titles.append(r"$\mathbf{C_{hat}}$")
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
 t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
     X,
-    seed=0,
+    rng=61,
     n_jobs=None,
     threshold=t_thresh,
     adjacency=None,
@@ -579,7 +579,7 @@ titles.append(r"$\mathbf{C_{TFCE}}$")
 threshold_tfce = dict(start=0, step=0.2)
 t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
     X,
-    seed=0,
+    rng=67,
     n_jobs=None,
     threshold=threshold_tfce,
     adjacency=None,
@@ -596,7 +596,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 titles.append(r"$\mathbf{C_{hat,TFCE}}$")
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
     X,
-    seed=0,
+    rng=71,
     n_jobs=None,
     threshold=threshold_tfce,
     adjacency=None,

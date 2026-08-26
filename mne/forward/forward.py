@@ -16,7 +16,6 @@ from pathlib import Path
 from time import time
 
 import numpy as np
-from scipy import sparse
 
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
@@ -48,7 +47,6 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _reshape_view
 from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label
@@ -162,7 +160,13 @@ class Forward(dict):
     """
 
     def copy(self):
-        """Copy the Forward instance."""
+        """Copy the Forward instance.
+
+        Returns
+        -------
+        fwd : instance of Forward
+            The copied forward solution.
+        """
         return Forward(deepcopy(self))
 
     @verbose
@@ -294,6 +298,8 @@ def _block_diag(A, n):
     bd : scipy.sparse.csc_array
         The block diagonal matrix
     """
+    from scipy import sparse
+
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError("sparse reversal not implemented yet")
     ma, na = A.shape
@@ -739,6 +745,8 @@ def convert_forward_solution(
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
+
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -1429,13 +1437,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G = _reshape_view(G, (G.shape[0], -1, 3))
+        G = G.reshape((G.shape[0], -1, 3), copy=False)
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G = _reshape_view(G, (G.shape[0], -1))
+        G = G.reshape((G.shape[0], -1), copy=False)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:

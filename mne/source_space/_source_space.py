@@ -11,9 +11,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.sparse import csr_array, triu
-from scipy.sparse.csgraph import dijkstra
-from scipy.spatial.distance import cdist
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info
@@ -41,7 +38,7 @@ from .._freesurfer import (
     read_freesurfer_lut,
 )
 from ..bem import ConductorModel, read_bem_surfaces
-from ..fixes import _get_img_fdata, _reshape_view
+from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
@@ -91,7 +88,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz import plot_alignment
 
 _src_kind_dict = {
     "vol": "volume",
@@ -333,6 +329,7 @@ class SourceSpaces(list):
         trans=None,
         *,
         fig=None,
+        set_view=True,
         verbose=None,
     ):
         """Plot the source space.
@@ -367,6 +364,12 @@ class SourceSpaces(list):
             If ``None``, creates a new 600x600 pixel figure with black background.
 
             .. versionadded:: 1.10
+        set_view : bool
+            If True (default), set the view of the figure to a default one. Can be
+            set to False to keep the view a figure passed via ``fig`` already has,
+            which is useful when reusing a single figure for multiple plots.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -374,6 +377,8 @@ class SourceSpaces(list):
         fig : instance of Figure3D
             The figure.
         """
+        from ..viz import plot_alignment
+
         surfaces = list()
         bem = None
 
@@ -437,11 +442,24 @@ class SourceSpaces(list):
             bem=bem,
             src=self,
             fig=fig,
+            set_view=set_view,
         )
 
-    def __getitem__(self, *args, **kwargs):
-        """Get an item."""
-        out = super().__getitem__(*args, **kwargs)
+    def __getitem__(self, key):
+        """Get one or more source spaces.
+
+        Parameters
+        ----------
+        key : int | slice
+            The source space(s) to get.
+
+        Returns
+        -------
+        src : dict | instance of SourceSpaces
+            A single source space if ``key`` is an integer, otherwise a new
+            :class:`~mne.SourceSpaces` instance.
+        """
+        out = super().__getitem__(key)
         if isinstance(out, list):
             out = SourceSpaces(out)
         return out
@@ -476,7 +494,18 @@ class SourceSpaces(list):
         return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
-        """Combine source spaces."""
+        """Combine source spaces.
+
+        Parameters
+        ----------
+        other : instance of SourceSpaces
+            The source spaces to append.
+
+        Returns
+        -------
+        src : instance of SourceSpaces
+            A new instance containing the source spaces of both objects.
+        """
         out = self.copy()
         out += other
         return SourceSpaces(out)
@@ -1337,6 +1366,8 @@ def _write_source_spaces(fid, src):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
+    from scipy.sparse import csr_array, triu
+
     if this["type"] == "surf":
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
     elif this["type"] == "vol":
@@ -2315,7 +2346,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh = _reshape_view(neigh, old_shape)
+        neigh = neigh.reshape(old_shape, copy=False)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
@@ -2353,6 +2384,8 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
+    from scipy.sparse import csr_array
+
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
@@ -2415,6 +2448,8 @@ def _add_interpolator(sp):
 
 def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
+    from scipy.sparse import csr_array
+
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
     trans = np.array(trans, np.float64)  # to -> from
@@ -2730,6 +2765,9 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse import csr_array
+    from scipy.sparse.csgraph import dijkstra
+
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2799,6 +2837,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
 
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
+    from scipy.sparse.csgraph import dijkstra
+
     func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
@@ -3117,6 +3157,7 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_array_less,
         assert_equal,
     )
+    from scipy.spatial.distance import cdist
 
     if mode != "exact" and "approx" not in mode:  # 'nointerp' can be appended
         raise RuntimeError(f"unknown mode {mode}")
@@ -3271,6 +3312,8 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
         The Euclidean distances of source space vertices with respect to
         sensors.
     """
+    from scipy.spatial.distance import cdist
+
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), "info")
 

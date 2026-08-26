@@ -6,11 +6,12 @@ import math
 
 import numpy as np
 from scipy.special import expit
-from scipy.stats import kurtosis
 
-from ..utils import check_random_state, logger, random_permutation, verbose
+from ..utils import _legacy_rng, logger, verbose
+from ..utils.numerics import _random_permutation
 
 
+@_legacy_rng("random_state")
 @verbose
 def infomax(
     data,
@@ -25,13 +26,15 @@ def infomax(
     kurt_size=6000,
     ext_blocks=1,
     max_iter=200,
-    random_state=None,
     blowup=1e4,
     blowup_fac=0.5,
     n_small_angle=20,
     use_bias=True,
     verbose=None,
     return_n_iter=False,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Run (extended) Infomax ICA decomposition on raw data.
 
@@ -79,7 +82,6 @@ def infomax(
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    %(random_state)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.
@@ -99,6 +101,8 @@ def infomax(
     return_n_iter : bool
         Whether to return the number of iterations performed. Defaults to
         False.
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -116,7 +120,7 @@ def infomax(
            analysis using an extended infomax algorithm for mixed subgaussian
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
-    rng = check_random_state(random_state)
+    from scipy.stats import kurtosis
 
     # define some default parameters
     max_weight = 1e8
@@ -181,7 +185,7 @@ def infomax(
     olddelta, oldchange = 1.0, 0.0
     while step < max_iter:
         # shuffle data at each step
-        permute = random_permutation(n_samples, rng)
+        permute = _random_permutation(n_samples, rng)
 
         # ICA training block
         # loop across block samples
