@@ -462,3 +462,62 @@ def test_dipolefit_gui_scraper(
     scraper.close_preserved()
     assert scraper._preserved_guis == []
     assert g._renderer.plotter._closed
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_dipolefit_rapid_time_changes(
+    sample_evoked, surf_maps_eeg_meg, renderer_interactive_pyvistaqt
+):
+    """Test that rapid time changes leave all linked views at the same time."""
+    from qtpy.QtCore import QEvent, QObject
+    from qtpy.QtWidgets import QApplication
+
+    from mne.gui import dipolefit
+
+    # Same stc-aligned configuration as test_dipolefit_stc.
+    evoked = sample_evoked
+    stc = mne.read_source_estimate(fname_stc)
+    evoked = evoked.crop(0, 0.245).decimate(3, verbose="error")
+    with evoked.info._unlock():
+        evoked.info["sfreq"] = 100
+    evoked._set_times(stc.times)
+    g = dipolefit(
+        evoked,
+        stc=stc,
+        trans=fname_trans,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        surf_maps=surf_maps_eeg_meg,
+        show_sensors=False,
+        baseline=(0, 0),
+    )
+
+    class _QueuedTimeChange(QEvent):
+        def __init__(self, time):
+            super().__init__(QEvent.Type.User)
+            self.time = time
+
+    class _Publisher(QObject):
+        """Publish a TimeChange per Qt event, like rapid moves of the time slider."""
+
+        def customEvent(self, event):
+            # Publish on the brain figure so that the brain's handler (which
+            # processes pending Qt events, and thereby the next queued
+            # publication) runs before the other subscribers do.
+            ui_events.publish(g._stc_brain, ui_events.TimeChange(time=event.time))
+
+    # Queue up the publications as pending Qt events, then deliver them all, as
+    # happens when the time slider is scrolled faster than the views can redraw.
+    times = evoked.times[[10, 11, 12, 13]]
+    app = QApplication.instance()
+    publisher = _Publisher()
+    for time in times:
+        app.postEvent(publisher, _QueuedTimeChange(time))
+    g._renderer._process_events()
+
+    # Every view must end up at the last published time.
+    assert g._stc_brain._current_time == times[-1]  # brain data + time line
+    assert g._fig._current_time == times[-1]  # field lines
+    assert g._current_time == times[-1]  # dipole arrows
+    g.close()
