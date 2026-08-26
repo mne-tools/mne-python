@@ -298,6 +298,28 @@ def test_generalization_light(metadata_routing):
     assert_array_equal(y_preds[0], y_preds[1])
 
 
+@pytest.mark.parametrize("estimator_class", [SlidingEstimator, GeneralizingEstimator])
+def test_search_light_axis(estimator_class):
+    """Test selecting a non-final task axis."""
+    X, y = make_data()
+    X = X[:20, :3, :4]
+    X_moved = np.moveaxis(X, 1, -1)
+    base_estimator = LogisticRegression(solver="liblinear", random_state=0)
+    reference = estimator_class(base_estimator).fit(X_moved, y[:20])
+    estimator = estimator_class(base_estimator, axis=1).fit(X, y[:20])
+
+    if estimator_class is GeneralizingEstimator:
+        X = X[:, :2]
+        X_moved = X_moved[..., :2]
+    for method in ("transform", "predict", "predict_proba", "decision_function"):
+        assert_allclose(
+            getattr(estimator, method)(X), getattr(reference, method)(X_moved)
+        )
+    assert_allclose(estimator.score(X, y[:20]), reference.score(X_moved, y[:20]))
+    with pytest.raises(ValueError, match="sample axis"):
+        estimator_class(base_estimator, axis=0).fit(X, y[:20])
+
+
 @pytest.mark.parametrize(
     "scoring, est_name, method",
     [

@@ -431,6 +431,12 @@ docdict["axes_tfr_plot"] = _axes_list.format(
     ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
 
+docdict["axis"] = """
+axis : int
+    Axis of the input data along which independent estimators are fitted.
+    The default ``-1`` uses the final axis.
+"""
+
 docdict["axis_facecolor"] = """\
 axis_facecolor : str | tuple
     A matplotlib-compatible color to use for the axis background.
