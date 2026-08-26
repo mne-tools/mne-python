@@ -191,6 +191,7 @@ class RawBrainVision(BaseRaw):
                 mult,
                 dtype=dtype,
                 n_channels=n_data_ch,
+                max_block_bytes=8 * 1024**2,
             )
         else:
             offsets = self._raw_extras[fi]["offsets"]
