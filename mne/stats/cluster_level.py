@@ -24,6 +24,7 @@ from ..utils import (
     GetEpochsMixin,
     ProgressBar,
     _check_option,
+    _check_rng,
     _legacy_rng,
     _pl,
     _soft_import,
@@ -1809,7 +1810,7 @@ def cluster_test(
     t_power: float = 1.0,
     check_disjoint: bool = False,
     out_type: Literal["indices", "mask"] = "indices",
-    seed: None | int | np.random.RandomState = None,
+    rng: None | int | np.random.RandomState = None,
     buffer_size: int | None = None,
     n_jobs: int = 1,
     verbose=None,
@@ -1870,7 +1871,7 @@ def cluster_test(
         sets before clustering. This may lead to faster clustering, especially if
         the "time" and/or "frequency" dimensions are large.
     %(out_type_clust)s
-    %(seed)s
+    %(rng)s
     buffer_size : int | None
         Block size to use when computing test statistics. This can significantly
         reduce memory usage when ``n_jobs > 1`` and memory sharing between
@@ -1892,6 +1893,8 @@ def cluster_test(
     # parse formula
     formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
     parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
+    rng = _check_rng(rng)
+
     formula = formulaic.Formula(formula, _parser=parser)
     # extract the dependent variable name
     dv_name = str(formula.lhs)
@@ -2034,7 +2037,7 @@ def cluster_test(
         out_type=out_type,
         check_disjoint=check_disjoint,
         buffer_size=buffer_size,  # block size for chunking the data
-        seed=seed,
+        rng=rng,
     )
 
     return ClusterResult(
