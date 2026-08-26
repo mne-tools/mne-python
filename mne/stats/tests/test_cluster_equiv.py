@@ -3,6 +3,7 @@
 Reference values were computed with FieldTrip (fieldtrip-20260812) in MATLAB R2026a:
 https://gist.github.com/larsoner/5c99b464bccf67f5641c1a2babc2c84e
 """
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
