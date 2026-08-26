@@ -18,7 +18,11 @@ from inspect import signature
 
 import numpy as np
 import pyvista
-from pyvista import Line, Plotter, PolyData, close_all  # noqa: F401  # re-exported
+from pyvista import (
+    Line,
+    PolyData,  # noqa: F401  # re-exported
+    close_all,
+)
 from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk
@@ -50,12 +54,7 @@ from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
 from ...fixes import _compare_version
 from ...surface import _vtk_smooth
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
-from ...utils import (
-    _check_option,
-    _require_version,
-    _validate_type,
-    warn,
-)
+from ...utils import _check_option, _require_version, _validate_type, warn
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
@@ -155,7 +154,6 @@ class PyVistaFigure(Figure3D):
         # TODO: This breaks trame "client" backend
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
-        _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
 
@@ -294,9 +292,12 @@ class _PyVistaRenderer(_AbstractRenderer):
             # scene, schedule the repaint, then flush it: without the flush the paint
             # is delivered whenever events happen to be processed next, which can be
             # long after the scene has changed again.
-            getattr(plotter, "_render", plotter.render)()
-            plotter.update()
-            _process_events(plotter)
+            # getattr(plotter, "_render", plotter.render)()
+            # plotter.update()
+            # _process_events(plotter)
+
+            # Try just rendering asynchronously as QT intended. See what breaks.
+            plotter.render()
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -990,9 +991,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         _hide_testing_actor(actor)
         return actor
 
-    def _process_events(self):
+    def _process_events(self, level=0):
         for plotter in self._all_plotters:
-            _process_events(plotter)
+            _process_events(plotter, level=level + 1)
 
     def _update_picking_callback(
         self, on_mouse_move, on_button_press, on_button_release, on_pick
@@ -1432,13 +1433,13 @@ def _close_3d_figure(figure):
 
 
 def _take_3d_screenshot(figure, mode="rgb", filename=None):
-    _process_events(figure.plotter)
+    figure.plotter._render()  # force the render to happen right now
     return figure.plotter.screenshot(
         transparent_background=(mode == "rgba"), filename=filename
     )
 
 
-def _process_events(plotter):
+def _process_events(plotter, level=0):
     if hasattr(plotter, "app"):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "constrained_layout")
