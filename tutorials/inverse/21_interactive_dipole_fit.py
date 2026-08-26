@@ -46,14 +46,14 @@ window, so you can follow along how its state evolves as we go.
 #
 #     mne.gui.dipolefit(evoked)
 #
-# In that case, the GUI shows the sensors, a spherical head model and the
-# electro-magnetic field recorded by the sensors, using an ad-hoc noise covariance
-# matrix. If we provide more information, we can create a more accurate head model that
-# provides better ECD fits and gives us more guidance for determining sources. On the
-# command line there are various options you can use to specify files containing the
-# covariance matrix, BEM model and MRI<->head transformation, see the output of ``mne
-# dipolefit --help``. In an interactive python console, we can provide the appropriate
-# MNE-Python objects when starting the GUI:
+# When only specifying an evoked object, the GUI shows the sensors, a spherical head
+# model and the electro-magnetic field recorded by the sensors, using an ad-hoc noise
+# covariance matrix. If we provide more information, we can create a more accurate head
+# model that provides better ECD fits and gives us more guidance for determining
+# sources. On the command line there are various options you can use to specify files
+# containing the covariance matrix, BEM model and MRI<->head transformation, see the
+# output of ``mne dipolefit --help``. In an interactive python console, we can provide
+# the appropriate MNE-Python objects when starting the GUI:
 
 import mne
 
