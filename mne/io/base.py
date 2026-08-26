@@ -1004,7 +1004,7 @@ class BaseRaw(
         _validate_type(
             stop, types=("int-like", None), item_name="stop", type_name="int, None"
         )
-        
+
         if picks is None:
             # Fast lane: picks=None resolves to arange directly.
             # Benchmark (300 s recording): stops a 600 KB time-axis
