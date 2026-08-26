@@ -916,7 +916,9 @@ def test_image_screenshot(
     """Test screenshot and image saving."""
     size = (300, 300)
     brain = _create_testing_brain(hemi="rh", show_traces=False, size=size)
-    azimuth, elevation = 180.0, 90.0
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    azimuth, elevation = 360.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
     brain.save_image(fname)
@@ -938,6 +940,17 @@ def test_image_screenshot(
     div = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.0, atol=15) else 1
     want_size[:2] /= div
     assert_allclose(img.shape, want_size, atol=15)
+
+    # Test whether the renderer has properly updated before the screenshot was taken.
+    brain.set_time(1)
+    img1 = brain.screenshot(mode="rgba")
+    brain.set_time(2)
+    img2 = brain.screenshot(mode="rgba")
+    brain.set_time(1)
+    img3 = brain.screenshot(mode="rgba")
+    assert not np.array_equal(img1, img2)
+    assert_array_equal(img1, img3)
+
     brain.close()
 
 
