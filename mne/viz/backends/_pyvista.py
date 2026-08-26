@@ -20,6 +20,7 @@ import numpy as np
 import pyvista
 from pyvista import (
     Line,
+    Plotter,  # noqa: F401  # re-exported
     PolyData,  # noqa: F401  # re-exported
     close_all,
 )
