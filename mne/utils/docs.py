@@ -3711,19 +3711,22 @@ docdict["preload"] = """
 preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory)."""
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use."""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory). If preload is
-    None, preload=True or False is inferred using the preload status
-    of the instances passed in.
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use. If preload is None, preload=True or False
+    is inferred using the preload status of the instances passed in.
 """
 
 docdict["proj_epochs"] = """
