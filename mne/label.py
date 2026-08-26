@@ -3087,7 +3087,7 @@ def label_adjacency(labels, src):
 
             # Get adjacent vertices if any.
             adj_verts = src_adjacency[label_src_ind[ind1], :][:, label_src_ind[ind2]]
-            if adj_verts.count_nonzero() > 0:
+            if adj_verts.any():
                 adjacent_label_inds.append((ind1, ind2))
     return coo_matrix(
         (np.ones(len(adjacent_label_inds)), tuple(zip(*adjacent_label_inds))),
@@ -3155,7 +3155,7 @@ def volume_label_adjacency(src, subject, subjects_dir, aseg="auto", labels=None)
         for ind2, verts2 in enumerate(label_verts):
             # Get adjacent vertices if any.
             adj_verts = src_adjacency[verts1, :][:, verts2]
-            if adj_verts.count_nonzero() > 0:
+            if adj_verts.any():
                 adjacent_label_inds.append((ind1, ind2))
 
     adj = sparse.coo_matrix(
