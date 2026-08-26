@@ -226,7 +226,7 @@ class Contours(UIEvent):
 
     kind: str
     contours: list[str]
-    line_width: float | None
+    line_width: float | None = None
 
 
 @dataclass
@@ -278,10 +278,10 @@ def _get_event_channel(fig):
 
     Returns
     -------
-    channel : dict[event -> list]
-        The event channel. An event channel is a list mapping string event
-        names to a list of callback representing all subscribers to the
-        channel.
+    channel : dict[event -> dict]
+        The event channel. An event channel is a dict mapping string event
+        names to a dict of callbacks (used as an ordered set) representing all
+        subscribers to the channel, in the order in which they subscribed.
     """
     import matplotlib
 
@@ -349,7 +349,7 @@ def publish(fig, event, *, verbose=None):
     logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
-            channel[event.name] = set()
+            channel[event.name] = dict()
         for callback in channel[event.name]:
             callback(event=event)
 
@@ -367,12 +367,18 @@ def subscribe(fig, event_name, callback, *, verbose=None):
     callback : callable
         The function that should be called whenever the event is published.
     %(verbose)s
+
+    Notes
+    -----
+    Subscribers are called in the order in which they subscribed when the event
+    is published.
     """
     channel = _get_event_channel(fig)
     logger.debug(f"Subscribing to channel {channel}")
     if event_name not in channel:
-        channel[event_name] = set()
-    channel[event_name].add(callback)
+        channel[event_name] = dict()
+    # use a dict as an ordered set: subscribers are called in subscription order
+    channel[event_name][callback] = None
 
 
 @verbose
@@ -418,7 +424,7 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
             # Unsubscribe specific callback function.
             subscribers = channel[event_name]
             if callback in subscribers:
-                subscribers.remove(callback)
+                del subscribers[callback]
             else:
                 warn(
                     f'Cannot unsubscribe {callback} from event "{event_name}" '

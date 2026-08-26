@@ -124,13 +124,10 @@ def run():
         stc = op.expanduser(stc)
 
     # Condition can be specified as integer index or string comment.
-    if options.condition is not None:
-        try:
-            condition = int(options.condition)
-        except ValueError:
-            condition = options.condition
-    else:
-        condition = None
+    try:
+        condition = int(options.condition)
+    except ValueError:
+        condition = options.condition
     evoked = mne.read_evokeds(args[0], condition=condition)
 
     # Parse the baseline time period

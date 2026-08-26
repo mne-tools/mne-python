@@ -10,7 +10,12 @@ import numpy as np
 import pyvista
 
 from .._fiff.pick import pick_types
-from ..bem import ConductorModel, _ensure_bem_surfaces, make_sphere_model
+from ..bem import (
+    ConductorModel,
+    _ensure_bem_surfaces,
+    make_sphere_model,
+    read_bem_solution,
+)
 from ..cov import _ensure_cov, make_ad_hoc_cov
 from ..dipole import Dipole, fit_dipole
 from ..evoked import Evoked
@@ -36,7 +41,7 @@ from ..utils import (
 from ..viz import EvokedField, create_3d_figure
 from ..viz._3d import _plot_head_surface, _plot_sensors_3d
 from ..viz.backends._utils import _qt_app_exec
-from ..viz.ui_events import ChannelsSelect, link, publish, subscribe
+from ..viz.ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from ..viz.utils import _get_color_list
 
 
@@ -53,8 +58,9 @@ class DipoleFitUI:
         Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
         default values for the diagonal elements (see Notes). If ``"baseline"``, the
         diagonal elements is estimated from the baseline period of the evoked data.
-    bem : instance of ConductorModel | None
-        Boundary element model to use in forward calculations. If ``None``, a spherical
+    bem : instance of ConductorModel | path-like | None
+        Boundary element model to use in forward calculations, or a path to the BEM
+        solution file (``"-bem-sol.fif"``) to read it from. If ``None``, a spherical
         model is used.
     initial_time : float | None
         Initial time point to show. If ``None``, the time point of the maximum field
@@ -115,12 +121,18 @@ class DipoleFitUI:
         verbose=None,
     ):
         _validate_type(evoked, Evoked, "evoked")
-        evoked.apply_baseline(baseline)
+        if baseline is not None:
+            evoked = evoked.copy().apply_baseline(baseline)
 
         if cov is None:
             logger.info("Using ad-hoc noise covariance.")
             cov = make_ad_hoc_cov(evoked.info)
         elif cov == "baseline":
+            if evoked.baseline is None:
+                raise ValueError(
+                    'cov="baseline" requires baseline-corrected data. Set the '
+                    "baseline parameter or baseline-correct the evoked data first."
+                )
             logger.info(
                 f"Estimating noise covariance from baseline ({evoked.baseline[0]:.3f} "
                 f"to {evoked.baseline[1]:.3f} seconds)."
@@ -133,9 +145,13 @@ class DipoleFitUI:
         else:
             cov = _ensure_cov(cov)
 
+        _validate_type(bem, ("path-like", ConductorModel, None), "bem")
         if bem is None:
             bem = make_sphere_model("auto", "auto", evoked.info)
-        bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel, None))
+        elif not isinstance(bem, ConductorModel):
+            # a path means a BEM solution file (cf. _make_forward._setup_bem)
+            bem = read_bem_solution(bem)
+        bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel,))
 
         if ch_type is not None:
             evoked = evoked.copy().pick(ch_type)
@@ -196,6 +212,7 @@ class DipoleFitUI:
         self._current_time = initial_time
         self._dipoles = dict()
         self._evoked = evoked
+        self._helmet_surf = None
         self._surf_maps = surf_maps
         self._fig_sensors = None
         self._multi_dipole_method = "Multi dipole (MNE)"
@@ -272,9 +289,10 @@ class DipoleFitUI:
         for surf_map in fig_ef._surf_maps:
             if surf_map["map_kind"] == "meg":
                 helmet_mesh = surf_map["mesh"]
-                helmet_mesh._polydata.compute_normals()  # needed later
                 helmet_mesh._actor.prop.culling = "back"
                 self._actors["helmet"] = helmet_mesh._actor
+                # needed later to draw the big arrows on the helmet
+                self._helmet_surf = surf_map["surf"]
                 # For MEG fieldlines, we want to occlude the ones not facing us,
                 # otherwise it's hard to interpret them. Since the "contours" object
                 # does not support backface culling, we create an opaque mesh to put in
@@ -287,7 +305,6 @@ class DipoleFitUI:
                 self._actors["occlusion_surf"] = occl_act
             elif surf_map["map_kind"] == "eeg":
                 head_mesh = surf_map["mesh"]
-                head_mesh._polydata.compute_normals()  # needed later
                 head_mesh._actor.prop.culling = "back"
                 self._actors["head"] = head_mesh._actor
 
@@ -378,7 +395,7 @@ class DipoleFitUI:
         # Right dock
         r._dock_initialize(name="Dipole fitting", area="right")
         r._dock_add_button("Sensor data", self._on_sensor_data)
-        r._dock_add_button("Fit dipole", self._on_fit_dipole)
+        r._dock_add_button("Fit dipole", self.fit_dipole)
         methods = ["Multi dipole (MNE)", "Single dipole"]
 
         @_auto_weakref
@@ -431,6 +448,20 @@ class DipoleFitUI:
             act.SetVisibility(show)
         self._renderer._update()
 
+    def set_time(self, time):
+        """Set the time point currently shown in the GUI.
+
+        This is the programmatic equivalent of dragging the time slider, and is also the
+        time at which :meth:`fit_dipole` will fit a dipole.
+
+        Parameters
+        ----------
+        time : float
+            The time to show, in seconds. Values outside the time range of the evoked
+            data are clipped to the nearest valid time.
+        """
+        publish(self._fig, TimeChange(time=float(time)))
+
     def _on_time_change(self, event):
         new_time = np.clip(event.time, self._evoked.times[0], self._evoked.times[-1])
         self._current_time = new_time
@@ -440,6 +471,8 @@ class DipoleFitUI:
             self._renderer._mplcanvas.update_plot()
         self._update_arrows()
 
+    # TODO: Need to expose a public method for opening the sensor-data window and for
+    # programmatically selecting the channels to fit dipoles to.
     def _on_sensor_data(self):
         """Show sensor data and allow sensor selection."""
         if self._fig_sensors is not None:
@@ -470,8 +503,15 @@ class DipoleFitUI:
                 cloud.point_data["colors"] = colors
         self._renderer._update()
 
-    def _on_fit_dipole(self):
-        """Fit a single dipole."""
+    def fit_dipole(self):
+        """Fit a single dipole and add it to the model.
+
+        This is the programmatic equivalent of pressing the "Fit dipole" button. The
+        dipole is fitted at the time currently shown in the GUI (see :meth:`set_time`),
+        using the sensors that are currently selected in the sensor data window (or all
+        sensors when no selection is active). The newly fitted dipole is appended to the
+        :attr:`dipoles` attribute.
+        """
         evoked_picked = self._evoked.copy()
         cov_picked = self._cov.copy()
         if self._fig_sensors is not None:
@@ -657,11 +697,8 @@ class DipoleFitUI:
 
         # Get the closest vertex (=point) of the helmet mesh
         dip_pos = apply_trans(self._head_mri_t, dip.pos[0])
-        helmet = self._actors["helmet"].GetMapper().GetInput()
-        if helmet.points is None:
-            raise ValueError("why is this happening?")
-        points = np.array(helmet.points.data)
-        normals = np.array(helmet.point_data.normals)
+        points = self._helmet_surf["rr"]
+        normals = self._helmet_surf["nn"]
         distances = ((points - dip_pos) * normals).sum(axis=1)
         closest_point = np.argmin(distances)
 
@@ -686,6 +723,9 @@ class DipoleFitUI:
             return
 
         if self._multi_dipole_method == "Multi dipole (MNE)":
+            # TODO: When two active dipoles have (nearly) identical positions, they
+            # collapse to a single point in the discrete source space below, which
+            # errors out. Ideal behavior unclear: merge them, or error informatively?
             this_src = setup_volume_source_space(
                 "sample",
                 pos=dict(
@@ -857,11 +897,14 @@ class DipoleFitUI:
             arrow_mesh.points += dip["helmet_pos"]
         self._renderer._update()
 
+    # TODO: Need to expose a public method for setting the multi-dipole method
     def _on_select_method(self, method):
         """Select the method to use for multi-dipole timecourse fitting."""
         self._multi_dipole_method = method
         self._fit_timecourses()
 
+    # TODO: Need to expose public methods for toggling, renaming, (un)fixing the
+    # orientation of, and deleting a dipole (probably addressed by name or index).
     def _on_dipole_toggle(self, active, dip_num):
         """Toggle a dipole on or off."""
         dipole = self._dipoles[dip_num]

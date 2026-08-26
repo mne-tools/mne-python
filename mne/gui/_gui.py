@@ -169,7 +169,7 @@ def coregistration(
 def dipolefit(
     evoked,
     *,
-    baseline=(None, 0),
+    baseline=None,
     cov=None,
     bem=None,
     initial_time=None,
@@ -194,13 +194,13 @@ def dipolefit(
     evoked : instance of Evoked | path-like | None
         Evoked data to show fieldmap of and fit dipoles to.
     %(baseline_evoked)s
-        Defaults to ``(None, 0)``, i.e. beginning of the the data until time point zero.
     cov : instance of Covariance | path-like | "baseline" | None
         Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
         default values for the diagonal elements (see Notes). If ``"baseline"``, the
         diagonal elements is estimated from the baseline period of the evoked data.
     bem : instance of ConductorModel | path-like | None
-        Boundary element model to use in forward calculations. If ``None``, a spherical
+        Boundary element model to use in forward calculations, or a path to the BEM
+        solution file (``"-bem-sol.fif"``) to read it from. If ``None``, a spherical
         model is used.
     initial_time : float | None
         Initial time point to show. If ``None``, the time point of the maximum field
@@ -346,11 +346,53 @@ def dipolefit(
     )
 
 
+def _gui_closed(gui):
+    """Check whether a GUI's 3D renderer has already been closed."""
+    if not hasattr(gui, "_renderer"):  # nothing to close
+        return False
+    try:
+        plotter = gui._renderer.plotter
+    except Exception:
+        return True
+    return bool(getattr(plotter, "_closed", False))
+
+
+def _close_gui(gui):
+    """Close a GUI, tolerating GUIs that are already (partially) closed."""
+    try:  # for compatibility with both GUIs, will be refactored
+        gui._renderer.close()  # TODO should be triggered by close
+    except Exception:
+        pass
+    gui.close()
+
+
 class _GUIScraper:
-    """Scrape GUI outputs."""
+    """Scrape GUI outputs.
+
+    By default a GUI is scraped once and then closed, so each GUI shows up as a single
+    image in the rendered example. An example can instead add a file-level
+
+    .. code-block:: python
+
+        # sphinx_gallery_preserve_gui = True
+
+    comment, in which case the GUI is scraped after *every* code block and left open, so
+    that successive code blocks can keep operating on it. The scraper then holds the
+    only strong reference to those GUIs, and ``close_preserved`` (called from the doc
+    build's ``reset_modules``) closes them once the example is done.
+    """
+
+    def __init__(self):
+        self._preserved_guis = list()
 
     def __repr__(self):
         return "<GUIScraper>"
+
+    def close_preserved(self):
+        """Close (and forget about) all GUIs preserved across code blocks."""
+        guis, self._preserved_guis = self._preserved_guis, list()
+        for gui in guis:
+            _close_gui(gui)
 
     def __call__(self, block, block_vars, gallery_conf):
         from ._coreg import CoregistrationUI
@@ -366,11 +408,18 @@ class _GUIScraper:
         from qtpy import QtGui
         from sphinx_gallery.scrapers import figure_rst
 
+        preserve = bool((block_vars.get("file_conf") or {}).get("preserve_gui", False))
         for gui in block_vars["example_globals"].values():
             if (
                 isinstance(gui, gui_classes)
-                and not getattr(gui, "_scraped", False)
                 and gallery_conf["builder_name"] == "html"
+                and (
+                    # A preserved GUI is scraped for every code block; any other one
+                    # only the first time we see it.
+                    not _gui_closed(gui)
+                    if preserve
+                    else not getattr(gui, "_scraped", False)
+                )
             ):
                 gui._scraped = True  # monkey-patch but it's easy enough
                 img_fname = next(block_vars["image_path_iterator"])
@@ -395,10 +444,19 @@ class _GUIScraper:
                     )
                 # https://doc.qt.io/qt-5/qpixmap.html#save
                 pixmap.save(img_fname)
-                try:  # for compatibility with both GUIs, will be refactored
-                    gui._renderer.close()  # TODO should be triggered by close
-                except Exception:
-                    pass
-                gui.close()
+                if preserve:
+                    # Keep it open (and alive) so the next code block can use it.
+                    if not any(gui is known for known in self._preserved_guis):
+                        self._preserved_guis.append(gui)
+                    if hasattr(gui, "_renderer"):
+                        # The PyVista scraper runs after us and screenshots *and then
+                        # closes* every plotter it knows about, which would take our GUI
+                        # down with it. Deregister ours from it, just like closing a
+                        # figure does (see _pyvista._close_3d_figure).
+                        from ..viz.backends._pyvista import _ALL_PLOTTERS
+
+                        _ALL_PLOTTERS.pop(plotter._id_name, None)
+                else:
+                    _close_gui(gui)
                 return figure_rst([img_fname], gallery_conf["src_dir"], "GUI")
         return ""
