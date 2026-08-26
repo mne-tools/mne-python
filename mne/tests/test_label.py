@@ -1364,10 +1364,7 @@ def test_label_adjacency():
         "cuneus-rh",
         "precuneus-lh",
     ]
-    adj = mne.label_adjacency(
-        [lab for lab in labels if lab.name in input_labels],
-        src
-    )
+    adj = mne.label_adjacency([lab for lab in labels if lab.name in input_labels], src)
     assert_equal(
         adj.toarray(),
         np.array(
