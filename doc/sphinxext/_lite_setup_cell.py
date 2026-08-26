@@ -37,8 +37,8 @@ import piplite
 
 # Use piplite (not micropip) so the locally-built development MNE wheel
 # bundled into the JupyterLite build is preferred over the older PyPI
-# release;
-# piplite checks the local index first and falls back to PyPI for deps.
+# release: piplite checks the local index first and falls back to PyPI
+# for dependencies.
 # keep_going=True so a dependency with no pure-Python wheel is reported
 # at the end rather than aborting the whole install on the first one.
 await piplite.install(
@@ -69,36 +69,40 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 if "multiprocessing" not in sys.modules:
-    m = MagicMock()
-    m.cpu_count.return_value = 1
-    sys.modules["multiprocessing"] = m
-    sys.modules["multiprocessing.util"] = m.util
-    sys.modules["multiprocessing.pool"] = m.pool
+    _mp = MagicMock()
+    _mp.cpu_count.return_value = 1
+    sys.modules["multiprocessing"] = _mp
+    sys.modules["multiprocessing.util"] = _mp.util
+    sys.modules["multiprocessing.pool"] = _mp.pool
 
-# Route requests through pyodide.http so the downloads that still go through
-# pooch work in the browser. The one that matters is fetch_infant_template
+# Route requests over the browser's own transport so the downloads that still
+# go through pooch work here. The one that matters is fetch_infant_template
 # (25_automated_coreg), which reaches pooch.retrieve -> pooch.HTTPDownloader
-# -> requests, and whose files live on github.com rather than OSF. open_url
-# handles both text and binary in Pyodide >= 0.21.
+# -> requests, and whose files live on github.com rather than OSF.
+#
+# XMLHttpRequest rather than pyodide.http.open_url, and the same blocking call
+# _lite_fetch_rel uses below: open_url reports no status, so a 404 page came
+# back looking like a successful 200 and pooch wrote the error page to disk,
+# only failing later on a confusing hash mismatch. XHR gives the real status,
+# which is what pooch's raise_for_status() needs. Nothing is caught here: the
+# browser is the only transport available, so a failure has no fallback worth
+# taking and the real error is more useful than a substituted one.
 import requests
-import pyodide
 
 _orig_send = requests.Session.send
 
 
 def _pyodide_send(self, request, **kwargs):
-    try:
-        buf = pyodide.http.open_url(request.url)
-        content = buf.getvalue() if hasattr(buf, "getvalue") else buf.read()
-        if isinstance(content, str):
-            content = content.encode("utf-8")
-    except Exception as e:
-        print(f"open_url failed for {request.url}: {e}")
-        return _orig_send(self, request, **kwargs)
+    from js import XMLHttpRequest
+
+    _xhr = XMLHttpRequest.new()
+    _xhr.open(request.method or "GET", request.url, False)
+    _xhr.responseType = "arraybuffer"
+    _xhr.send()
     response = requests.Response()
-    response.status_code = 200
+    response.status_code = _xhr.status
     response.url = request.url
-    response.raw = io.BytesIO(content)
+    response.raw = io.BytesIO(bytes(_xhr.response.to_py()))
     return response
 
 
@@ -727,13 +731,13 @@ import IPython
 
 IPython.get_ipython().run_line_magic("matplotlib", "inline")
 
-# Silence the spurious 'FigureCanvasAgg is non-interactive' warning
-# at its source. MNE's plt_show calls fig.show() (the inline backend
-# isn't detected as 'agg'), and the inline Agg canvas warns. Patching
-# viz.utils.plt_show is not enough: other modules did
-# `from .utils import plt_show` and hold their own reference. Every
-# path resolves fig.show on the class at call time, so a no-op here
-# silences it everywhere. Figures still render via the inline backend.
+# Silence the spurious 'FigureCanvasAgg is non-interactive' warning that the
+# inline Agg canvas raises from fig.show(). MNE's own plt_show no longer
+# triggers it (gh-14076 taught it to call plt.show() on inline backends), but
+# tutorials still call fig.show() directly -- 50_ssvep does it four times, and
+# 10_background_stats once -- and those warn. Every path resolves fig.show on
+# the class at call time, so a no-op here covers them all. Figures still
+# render via the inline backend.
 import matplotlib.figure as mpl_figure
 
 mpl_figure.Figure.show = lambda self, *a, **k: None

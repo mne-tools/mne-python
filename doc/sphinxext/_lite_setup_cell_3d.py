@@ -20,15 +20,51 @@
 # approximate MNE's Brain look with solid-colored meshes: a two-tone
 # curvature base (light gyri + dark sulci) plus many thin 'hot' bands
 # for the activation, on a black background with even scene lighting.
-# Static, one time point, no time slider yet. Fully guarded — any
-# failure prints a message so the notebook completes. Returns a stub
-# 'brain' whose methods (add_foci/add_text/show_view/...) are safe
-# no-ops, so tutorials that call brain.add_foci(...) after plot() work.
+# Static, one time point, no time slider yet.
+#
+# A failed render prints and lets the notebook carry on, which is the opposite
+# of how the data fetch in the base cell behaves. That is deliberate: a file
+# missing there means the docs build is broken and should say so, while this
+# whole shim stands in for a stack with no WebAssembly build at all, so failing
+# hard would take out every 3D notebook rather than report one bug.
+#
+# The stub 'brain' it returns makes the decorating calls (add_foci/add_text/
+# show_view/...) no-ops so the rest of the notebook still runs. screenshot() is
+# the one exception, and it raises: see below.
+# Say once per session that what the browser draws is not what the rendered
+# docs show, so a reader comparing the two is not left guessing. pyvista-js has
+# no scalar colormap, so activation arrives as discrete solid bands rather than
+# a continuous scale, there is no colorbar or time slider, and the hemispheres
+# are drawn side by side rather than in anatomical position.
+_lite_3d_noted = False
+
+
+def _lite_note_3d_approximation():
+    global _lite_3d_noted
+    if _lite_3d_noted:
+        return
+    _lite_3d_noted = True
+    print(
+        "[JupyterLite] 3D drawn with pyvista-js: activation is shown as solid "
+        "colour bands at a single time point, with the hemispheres side by "
+        "side and no colorbar. The figure in the rendered docs is MNE's full "
+        "Brain view and will not look the same."
+    )
+
+
 class _LiteBrain:
     def screenshot(self, *args, **kwargs):
-        import numpy as _np
-
-        return _np.zeros((2, 2, 3), dtype="uint8")
+        # No blank array here. vtk.js draws into a browser canvas that Python
+        # cannot read back, so there is no image to return, and handing back a
+        # blank one is worse than failing: 10_publication_figure crops its
+        # screenshot and shows before/after, so it would publish two black
+        # squares as though they were the real thing. A notebook that needs a
+        # screenshot belongs in JUPYTERLITE_EXCLUDE instead.
+        raise NotImplementedError(
+            "brain.screenshot() is not available in JupyterLite: the vtk.js "
+            "renderer draws to a browser canvas that Python cannot read back. "
+            "Run this notebook locally to capture the scene."
+        )
 
     def __getattr__(self, _name):
         return lambda *args, **kwargs: None
@@ -68,7 +104,17 @@ def _lite_stc_plot(self, *args, **kwargs):
         else:
             _ti = int(_np.argmin(_np.abs(self.times - _init)))
         _hot = _cmaps["hot"]
-        _N = 10
+        # Tuned against the inflated FreeSurfer surfaces MNE ships, whose
+        # coordinates are in mm.
+        _N = 10  # activation value bands
+        _BLOB_MM = 12.0  # colour a surface vertex from an active source within
+        # this radius, so a single-vertex source reads as a blob and not a dot
+        _HEMI_MM = 60.0  # push the hemispheres apart so they do not overlap
+        _LIFT = 0.02  # raise each band off the surface to avoid z-fighting
+        _HOT_LO, _HOT_HI = 0.25, 0.66  # slice of 'hot' to use; its ends are
+        # near-black and near-white, which read as background here
+        _SPARSE_P90 = 0.05  # below this fraction of the max the 90th pct means
+        _SPARSE_FLOOR = 0.4  # the data is sparse, so threshold on the max
 
         def _flat(_t):
             return _np.hstack(
@@ -124,9 +170,9 @@ def _lite_stc_plot(self, *args, **kwargs):
             if _act.any():
                 _atree = _KDTree(_rr[_vno][_act])
                 _ad, _ai = _atree.query(_rr)
-                _scal = _np.where(_ad <= 12.0, _sv[_act][_ai], 0.0)
+                _scal = _np.where(_ad <= _BLOB_MM, _sv[_act][_ai], 0.0)
             # offset hemispheres along x so they do not overlap
-            _off = -60.0 if _h == "lh" else 60.0
+            _off = -_HEMI_MM if _h == "lh" else _HEMI_MM
             _pts = _np.round(_rr, 2)
             _pts[:, 0] = _pts[:, 0] + _off
             _cen = _pts.mean(0)
@@ -151,7 +197,7 @@ def _lite_stc_plot(self, *args, **kwargs):
             # keep the background gray: for sparse point sources the
             # 90th pct is ~0 (most of the brain is zero), which would
             # paint everything, so fall back to a fraction of the max.
-            _fmin = _p90 if _p90 > _fmax * 0.05 else _fmax * 0.4
+            _fmin = _p90 if _p90 > _fmax * _SPARSE_P90 else _fmax * _SPARSE_FLOOR
             if _fmax > _fmin:
                 _edges = _np.linspace(_fmin, _fmax, _N + 1)
                 for _i in range(_N):
@@ -161,9 +207,9 @@ def _lite_stc_plot(self, *args, **kwargs):
                         _m = _fv >= _edges[_i]
                     if int(_m.sum()) == 0:
                         continue
-                    _rgb = _hot(0.25 + 0.41 * (_i / (_N - 1)))
+                    _rgb = _hot(_HOT_LO + (_HOT_HI - _HOT_LO) * (_i / (_N - 1)))
                     _col = (float(_rgb[0]), float(_rgb[1]), float(_rgb[2]))
-                    _s = _sub(_pts, _tris, _m, 0.02, _cen)
+                    _s = _sub(_pts, _tris, _m, _LIFT, _cen)
                     if _s is not None:
                         _plotter.add_mesh(
                             _pv.PolyData(points=_s[0], faces=_flat(_s[1])),
@@ -179,6 +225,7 @@ def _lite_stc_plot(self, *args, **kwargs):
         except Exception:
             pass
         _plotter.show()
+        _lite_note_3d_approximation()
     except Exception as _e:
         print("[JupyterLite] pyvista-js 3D render unavailable: " + repr(_e))
     return _LiteBrain()
@@ -307,6 +354,7 @@ def _lite_plot_sparse_source_estimates(
         except Exception:
             pass
         _plotter.show()
+        _lite_note_3d_approximation()
     except Exception as _e:
         print("[JupyterLite] pyvista-js glass brain unavailable: " + repr(_e))
 
@@ -355,16 +403,15 @@ except Exception:
 # unreleased; Pyodide bundles the released 3.6.0 wheel. DROP THIS PATCH
 # once threadpoolctl 3.7.0 is released and Pyodide bundles it.
 try:
-    import os as _os
-    import threadpoolctl as _tpc
+    import threadpoolctl
 
     def _find_libraries_pyodide(self):
         from pyodide_js._module import LDSO
 
         for _fp in LDSO.loadedLibsByName.as_py_json():
-            if _os.path.exists(_fp):
+            if Path(_fp).exists():
                 self._make_controller_from_path(_fp)
 
-    _tpc.ThreadpoolController._find_libraries_pyodide = _find_libraries_pyodide
+    threadpoolctl.ThreadpoolController._find_libraries_pyodide = _find_libraries_pyodide
 except Exception:
     pass
