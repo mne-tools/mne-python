@@ -2723,11 +2723,13 @@ def test_bootstrap():
         reject=reject,
         flat=flat,
     )
-    random_states = [0, np.random.default_rng(0)]
-    for random_state in random_states:
-        epochs2 = bootstrap(epochs, random_state=random_state)
+    rngs = [0, np.random.default_rng(0)]
+    for rng in rngs:
+        epochs2 = bootstrap(epochs, rng=rng)
         assert len(epochs2.events) == len(epochs.events)
         assert epochs._data.shape == epochs2._data.shape
+
+    bootstrap(epochs, random_state=0)
 
 
 def test_epochs_copy():
@@ -3865,6 +3867,17 @@ def test_concatenate_epochs():
     with pytest.warns(RuntimeWarning, match="not chronologically ordered"):
         concatenate_epochs([epochs, epochs2], add_offset=False)
     concatenate_epochs([epochs, epochs2], add_offset=True)
+
+
+def test_concatenate_epochs_cropped_baseline():
+    """Test concatenating epochs cropped after baseline correction."""
+    data = np.arange(21.0)[np.newaxis, np.newaxis]
+    epochs = EpochsArray(data, create_info(["x"], 10, "eeg"), tmin=-1)
+    epochs.apply_baseline((-1, 0)).crop(0, 1)
+    expected = epochs.get_data()
+    epochs_conc = concatenate_epochs([epochs])
+    assert epochs_conc.baseline == (-1.0, 0.0)
+    assert_allclose(epochs_conc.get_data(), expected)
 
 
 @pytest.mark.slowtest

@@ -8,7 +8,7 @@ import warnings
 
 import numpy as np
 
-from .fixes import _get_img_fdata, _reshape_view
+from .fixes import _get_img_fdata
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -37,9 +37,7 @@ from .utils import (
     verbose,
     warn,
 )
-from .utils import (
-    warn as warn_,
-)
+from .utils import warn as warn_
 
 
 @verbose
@@ -523,8 +521,8 @@ class SourceMorph:
         mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
@@ -1563,7 +1561,7 @@ def _apply_morph_data(morph, stc_from):
         data[to_sl] = morph.morph_mat @ data_from[from_sl]
     assert to_used.all()
     assert from_used.all()
-    data = _reshape_view(data, (data.shape[0],) + stc_from.data.shape[1:])
+    data = data.reshape((data.shape[0],) + stc_from.data.shape[1:], copy=False)
     klass = stc_from.__class__
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep, morph.subject_to)
     return stc_to

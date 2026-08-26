@@ -27,8 +27,8 @@ from ..fixes import (
 from ._logging import logger, verbose, warn
 from .check import (
     _ensure_int,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
 )
 from .docs import fill_doc
 from .misc import _empty_hash, _pl
@@ -265,8 +265,9 @@ def compute_corr(x, y):
     return (np.dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
 
 
+@_legacy_rng("random_state")
 @fill_doc
-def random_permutation(n_samples, random_state=None):
+def random_permutation(n_samples, *, rng=None, random_state=None):
     """Emulate the randperm matlab function.
 
     It returns a vector containing a random permutation of the
@@ -288,14 +289,19 @@ def random_permutation(n_samples, random_state=None):
     n_samples : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
-    %(random_state)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
     randperm : ndarray, int
         Randomly permuted sequence between 0 and n-1.
     """
-    rng = check_random_state(random_state)
+    return _random_permutation(n_samples, rng)
+
+
+def _random_permutation(n_samples, rng):
+    """Generate a MATLAB-compatible permutation with a normalized RNG."""
     # This can't just be rng.permutation(n_samples) because it's not identical
     # to what MATLAB produces
     idx = rng.uniform(size=n_samples)
@@ -657,7 +663,12 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode("utf-8"))
         h.update(str(x.dtype).encode("utf-8"))
-        h.update(x.tobytes())
+        if x.dtype.kind == "T":
+            # variable-width strings store a pointer to the heap, so tobytes() does
+            # not contain the actual string data
+            h.update(repr(x.tolist()).encode("utf-8"))
+        else:
+            h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):

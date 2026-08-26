@@ -1,0 +1,1 @@
+Fixed a bug where volumetric source estimates plotted with signed data and the default MIP mapping (``volume_options=dict(blending="mip")``) rendered the negative half on top of the positive half from every viewing angle, by `Eric Larson`_.

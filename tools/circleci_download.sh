@@ -110,6 +110,9 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
+                python -c "import mne; print(mne.datasets.erp_core.fetch_file('sub-001/eeg/sub-001_task-N170_eeg.fdt'))";
+                python -c "import mne; print(mne.datasets.erp_core.fetch_file('sub-001/eeg/sub-001_task-N170_eeg.set'))";
+                python -c "import mne; print(mne.datasets.erp_core.fetch_file('sub-001/eeg/sub-001_task-N170_events.tsv'))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*eyelink.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.eyelink.data_path(update_path=True))";
@@ -119,6 +122,9 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_kit.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.phantom_kit.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*visual_92_categories.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.visual_92_categories.data_path(update_path=True))";
             fi;
         fi;
     done;

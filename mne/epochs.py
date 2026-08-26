@@ -70,7 +70,7 @@ from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannel
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import Evoked, EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
-from .fixes import _reshape_view, rng_uniform
+from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
@@ -90,6 +90,7 @@ from .utils import (
     _convert_times,
     _ensure_events,
     _gen_events,
+    _legacy_rng,
     _on_missing,
     _path_like,
     _pl,
@@ -2488,12 +2489,14 @@ class BaseEpochs(
 
         export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
+    @_legacy_rng("random_state")
     @fill_doc
     def equalize_event_counts(
         self,
         event_ids: list | dict | None = None,
         method: Literal["truncate", "mintime", "random"] = "mintime",
         *,
+        rng=None,
         random_state: int | RandomState | None = None,
     ) -> tuple:
         """Equalize the number of trials in each condition.
@@ -2536,7 +2539,8 @@ class BaseEpochs(
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
         %(equalize_events_method)s
-        %(random_state)s Used only if ``method='random'``.
+        %(rng_method_random)s
+        %(random_state_rng_method_random)s
 
         Returns
         -------
@@ -2640,7 +2644,10 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(sample_nums, method, random_state)
+        legacy_seed = (
+            random_state if isinstance(random_state, int | np.integer) else None
+        )
+        indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -4011,11 +4018,13 @@ def combine_event_ids(
     return epochs
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def equalize_epoch_counts(
     epochs_list: list,
     method: Literal["truncate", "mintime", "random"] = "mintime",
     *,
+    rng=None,
     random_state: int | RandomState | None = None,
 ) -> None:
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
@@ -4025,7 +4034,8 @@ def equalize_epoch_counts(
     epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
-    %(random_state)s Used only if ``method='random'``.
+    %(rng_method_random)s
+    %(random_state_rng_method_random)s
 
     Notes
     -----
@@ -4052,12 +4062,13 @@ def equalize_epoch_counts(
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(sample_nums, method, random_state)
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
+    indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method, random_state):
+def _get_drop_indices(sample_nums, method, rng, *, legacy_seed=None):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
@@ -4070,9 +4081,14 @@ def _get_drop_indices(sample_nums, method, random_state):
             mask = np.ones(event.size, dtype=bool)
             mask[small_epoch_indices.size :] = False
         elif method == "random":
-            rng = check_random_state(random_state)
             mask = np.zeros(event.size, dtype=bool)
-            idx = rng.choice(
+            # Historically an integer seed was normalized inside this loop,
+            # restarting the same stream for every event list. Preserve that
+            # behavior only for the deprecated parameter; ``rng`` advances.
+            this_rng = (
+                check_random_state(legacy_seed) if legacy_seed is not None else rng
+            )
+            idx = this_rng.choice(
                 np.arange(event.size), size=small_epoch_indices.size, replace=False
             )
             mask[idx] = True
@@ -4648,20 +4664,22 @@ class EpochsFIF(BaseEpochs):
         else:
             data = data.astype(np.float64)
 
-        data = _reshape_view(data, raw.epoch_shape)
+        data = data.reshape(raw.epoch_shape, copy=False)
         data *= raw.cals
         return data
 
 
+@_legacy_rng("random_state")
 @fill_doc
-def bootstrap(epochs, random_state=None):
+def bootstrap(epochs, *, rng=None, random_state=None):
     """Compute epochs selected by bootstrapping.
 
     Parameters
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    %(random_state)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -4675,7 +4693,6 @@ def bootstrap(epochs, random_state=None):
             "in the constructor."
         )
 
-    rng = check_random_state(random_state)
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng_uniform(rng)(0, n_events, n_events)
@@ -4907,7 +4924,7 @@ def concatenate_epochs(
         events=events,
         event_id=event_id,
         tmin=tmin,
-        baseline=baseline,
+        baseline=None,
         selection=selection,
         drop_log=drop_log,
         proj=False,
@@ -4915,6 +4932,8 @@ def concatenate_epochs(
         metadata=metadata,
         raw_sfreq=raw_sfreq,
     )
+    # Don't reapply baseline correction. Restore the original baseline metadata.
+    out.baseline = baseline
     out.drop_bad()
     return out
 

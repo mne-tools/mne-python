@@ -273,7 +273,18 @@ class Covariance(dict):
         return s
 
     def __add__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom."""
+        """Add Covariance taking into account number of degrees of freedom.
+
+        Parameters
+        ----------
+        cov : instance of Covariance
+            The covariance to add.
+
+        Returns
+        -------
+        cov : instance of Covariance
+            A new covariance, weighted by the degrees of freedom of each input.
+        """
         _check_covs_algebra(self, cov)
         this_cov = cov.copy()
         this_cov["data"] = (
@@ -1513,12 +1524,12 @@ def _auto_low_rank_model(
         iter_n_components = np.arange(5, data.shape[1], 5)
     from sklearn.decomposition import PCA, FactorAnalysis
 
+    random_state = method_params.pop("random_state", 0)
     if mode == "factor_analysis":
-        est = FactorAnalysis
+        est = FactorAnalysis(random_state=random_state, **method_params)
     else:
         assert mode == "pca"
-        est = PCA
-    est = est(**method_params)
+        est = PCA(random_state=random_state, **method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)

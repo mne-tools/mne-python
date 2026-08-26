@@ -54,7 +54,12 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from credit_tools import generate_credit_rst  # noqa: E402
-from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
+from mne_doc_utils import (  # noqa: E402
+    check_links,
+    report_scraper,
+    reset_warnings,
+    sphinx_logger,
+)
 
 # -- Project information -----------------------------------------------------
 
@@ -1097,11 +1102,14 @@ for icon, classes in icon_class.items():
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
 
-.. include:: /links.inc
-.. include:: /changes/names.inc
-
 .. currentmodule:: mne
 """
+# NB: names.inc (~400 contributor-name targets) and links.inc are deliberately
+# NOT part of rst_prolog. Parsing them into every document is wasteful (and
+# Sphinx's ReorderConsecutiveTargetAndIndexNodes transform is quadratic in the
+# length of a consecutive run of targets, so names.inc alone cost over a minute
+# of build time this way). The pages that use these link targets include the
+# files explicitly instead.
 
 # -- Dependency info ----------------------------------------------------------
 
@@ -1361,6 +1369,7 @@ custom_redirects = {
     f"{ex}/{co}/sensor_connectivity": f"{mne_conn}/{ex}/sensor_connectivity",
     f"{ex}/{vi}/publication_figure": f"{tu}/{vi}/10_publication_figure",
     f"{ex}/{vi}/sensor_noise_level": f"{tu}/{pr}/50_artifact_correction_ssp",
+    f"{ex}/{vi}/montage_sgskip": f"{ex}/{vi}/montage",
 }
 
 # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
@@ -1517,6 +1526,7 @@ def setup(app):
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
+    app.connect("builder-inited", check_links, priority=5)
     app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)

@@ -40,6 +40,7 @@ set_channel_types_eyetrack
 _use_test_3d_backend
 verbose_debug
 metadata_routing
+Plotter
 
 # Decoding
 _.multi_class
@@ -65,6 +66,7 @@ __getattr__
 
 # Backward compat or rarely used
 RawFIF
+select_source_in_label
 estimate_head_mri_t
 plot_epochs_psd_topomap
 plot_epochs_psd
@@ -131,6 +133,9 @@ _._plotter
 _.set_fmax
 _.set_fmid
 _.set_fmin
+_._set_trace_visible
+_._set_trace_highlight
+_._trace_display_label
 _.EnterEvent
 _.MouseMoveEvent
 _.LeaveEvent
@@ -174,3 +179,10 @@ _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
 _show_help_fig
+
+# Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
+eventFilter
+_sigint_impl
+
+# Read by numpydoc's ClassDoc (also set in doc/conf.py)
+_.extra_public_methods

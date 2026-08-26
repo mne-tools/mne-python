@@ -472,3 +472,5 @@ People who contributed to this release in alphabetical order
 * Yu-Han Luo
 * chapochn
 * mshader
+
+.. include:: names.inc

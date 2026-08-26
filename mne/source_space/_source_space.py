@@ -38,7 +38,7 @@ from .._freesurfer import (
     read_freesurfer_lut,
 )
 from ..bem import ConductorModel, read_bem_surfaces
-from ..fixes import _get_img_fdata, _reshape_view
+from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
@@ -329,6 +329,7 @@ class SourceSpaces(list):
         trans=None,
         *,
         fig=None,
+        set_view=True,
         verbose=None,
     ):
         """Plot the source space.
@@ -363,6 +364,12 @@ class SourceSpaces(list):
             If ``None``, creates a new 600x600 pixel figure with black background.
 
             .. versionadded:: 1.10
+        set_view : bool
+            If True (default), set the view of the figure to a default one. Can be
+            set to False to keep the view a figure passed via ``fig`` already has,
+            which is useful when reusing a single figure for multiple plots.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -435,11 +442,24 @@ class SourceSpaces(list):
             bem=bem,
             src=self,
             fig=fig,
+            set_view=set_view,
         )
 
-    def __getitem__(self, *args, **kwargs):
-        """Get an item."""
-        out = super().__getitem__(*args, **kwargs)
+    def __getitem__(self, key):
+        """Get one or more source spaces.
+
+        Parameters
+        ----------
+        key : int | slice
+            The source space(s) to get.
+
+        Returns
+        -------
+        src : dict | instance of SourceSpaces
+            A single source space if ``key`` is an integer, otherwise a new
+            :class:`~mne.SourceSpaces` instance.
+        """
+        out = super().__getitem__(key)
         if isinstance(out, list):
             out = SourceSpaces(out)
         return out
@@ -474,7 +494,18 @@ class SourceSpaces(list):
         return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
-        """Combine source spaces."""
+        """Combine source spaces.
+
+        Parameters
+        ----------
+        other : instance of SourceSpaces
+            The source spaces to append.
+
+        Returns
+        -------
+        src : instance of SourceSpaces
+            A new instance containing the source spaces of both objects.
+        """
         out = self.copy()
         out += other
         return SourceSpaces(out)
@@ -2315,7 +2346,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh = _reshape_view(neigh, old_shape)
+        neigh = neigh.reshape(old_shape, copy=False)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]

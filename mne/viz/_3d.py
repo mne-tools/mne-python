@@ -526,6 +526,7 @@ def plot_alignment(
     *,
     sensor_scales=None,
     show_channel_names=False,
+    set_view=True,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -625,6 +626,12 @@ def plot_alignment(
         Default is False.
 
         .. versionadded:: 1.12
+    set_view : bool
+        If True (default), set the view of the figure to a default one. Can be set
+        to False to keep the view a figure passed via ``fig`` already has, which is
+        useful when reusing a single figure for multiple plots.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -981,10 +988,16 @@ def plot_alignment(
     if fwd is not None:
         _plot_forward(renderer, fwd, to_cf_t[_frame_to_str[fwd["coord_frame"]]])
 
-    renderer.set_camera(
-        azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
-    )
+    if set_view:
+        renderer.set_camera(
+            azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
+        )
     renderer.show()
+    if not set_view:
+        # Nothing moved the camera, so nothing marked the scene as needing a repaint,
+        # and show() does not repaint a window that is already up. Redraw it here so
+        # that what we just plotted is actually drawn.
+        renderer._update()
     return renderer.scene()
 
 
@@ -2598,8 +2611,8 @@ def plot_source_estimates(
                 title=title,
                 **kwargs,
             )
-        if block:
-            _qt_block(brain._renderer)
+        if block and brain._renderer._kind == "qt":
+            _qt_block(brain.plotter.app_window)
         return brain
 
 

@@ -26,7 +26,6 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
-from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
@@ -508,7 +507,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs = _reshape_view(imgs, (len(imgs), -1))
+    imgs = imgs.reshape((len(imgs), -1), copy=False)
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
@@ -958,9 +957,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     evoked = evokeds[0].pick("eeg").decimate(10, verbose="error")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
-        ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
-            inst=raw.copy().crop(tmax=1)
-        )
+        ica = ICA(n_components=3, max_iter=1, rng=42).fit(inst=raw.copy().crop(tmax=1))
     ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 

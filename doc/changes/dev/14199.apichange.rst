@@ -1,0 +1,1 @@
+Add ``rng`` parameters to APIs that use randomness, while retaining keyword-only ``seed`` and ``random_state`` for compatibility (:gh:`9233` by `Bruno Aristimunha`_).
