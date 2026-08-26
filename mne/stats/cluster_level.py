@@ -29,6 +29,7 @@ from ..utils import (
     _pl,
     _soft_import,
     _validate_type,
+    legacy,
     logger,
     split_list,
     verbose,
@@ -1164,6 +1165,7 @@ def _check_fun(
     return stat_fun, threshold
 
 
+@legacy(alt="mne.stats.cluster_test(...)")
 @_legacy_rng("seed")
 @verbose
 def permutation_cluster_test(
