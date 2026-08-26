@@ -944,6 +944,7 @@ class BaseRaw(
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
         start: int = 0,
         stop: int | None = None,
         reject_by_annotation: Literal["omit", "NaN"] | None = None,
@@ -959,6 +960,9 @@ class BaseRaw(
         Parameters
         ----------
         %(picks_all)s
+        %(exclude_spectrum_get_data)s
+
+            .. versionadded:: 1.13
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
@@ -1001,7 +1005,7 @@ class BaseRaw(
             stop, types=("int-like", None), item_name="stop", type_name="int, None"
         )
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         # Get channel factors for conversion into specified unit
         # (vector of ones if no conversion needed)
