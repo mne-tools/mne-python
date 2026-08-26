@@ -76,9 +76,12 @@ if "multiprocessing" not in sys.modules:
     sys.modules["multiprocessing.pool"] = _mp.pool
 
 # Route requests over the browser's own transport so the downloads that still
-# go through pooch work here. The one that matters is fetch_infant_template
-# (25_automated_coreg), which reaches pooch.retrieve -> pooch.HTTPDownloader
-# -> requests, and whose files live on github.com rather than OSF.
+# go through pooch work here. That path is pooch.retrieve ->
+# pooch.HTTPDownloader -> requests, used by the fetchers whose files live off
+# the docs site (fetch_fsaverage and friends) and so are not in the copy
+# html_extra_path serves. Most of their callers are on JUPYTERLITE_EXCLUDE
+# already; examples/visualization/montage.py is the one that still reaches
+# this, via fetch_fsaverage.
 #
 # XMLHttpRequest rather than pyodide.http.open_url, and the same blocking call
 # _lite_fetch_rel uses below: open_url reports no status, so a 404 page came
