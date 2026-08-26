@@ -2090,6 +2090,10 @@ class ClusterResult:
         statistic that is compared against the permutation distribution (``H0``)
         to obtain ``cluster_p_values``, so it is a natural way to rank clusters by
         how extreme they are, independent of the resulting p-value.
+
+    Notes
+    -----
+    .. versionadded:: 1.13
     """
 
     def __init__(
@@ -2296,7 +2300,7 @@ class ClusterResult:
         Returns
         -------
         fig : instance of Figure
-            The resulting figure object for the heatmap plot.
+            The resulting figure object for the plot.
 
         Notes
         -----
