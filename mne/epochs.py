@@ -1720,6 +1720,7 @@ class BaseEpochs(
         self,
         out=True,
         picks=None,
+        exclude="bads",
         item=None,
         *,
         units=None,
@@ -1737,6 +1738,9 @@ class BaseEpochs(
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
         %(picks_all)s
+        %(exclude_spectrum_get_data)s
+
+                    .. versionadded:: 1.13
         item : slice | array-like | str | list | None
             See docstring of get_data method.
         %(units)s
@@ -1805,7 +1809,7 @@ class BaseEpochs(
 
         orig_picks = picks
         if orig_picks is None:
-            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+            picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
         else:
             picks = _picks_to_idx(self.info, picks)
 
@@ -1986,6 +1990,7 @@ class BaseEpochs(
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
+        exclude: list[str] | Literal["bads"] = "bads",
         item: slice | np.ndarray | str | list | None = None,
         units: str | dict | None = None,
         tmin: int | float | None = None,
@@ -1999,6 +2004,9 @@ class BaseEpochs(
         Parameters
         ----------
         %(picks_all)s
+        %(exclude_spectrum_get_data)s
+
+            .. versionadded:: 1.13
         item : slice | array-like | str | list | None
             The items to get. See :meth:`mne.Epochs.__getitem__` for
             a description of valid options. This can be substantially faster
