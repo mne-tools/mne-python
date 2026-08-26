@@ -2058,6 +2058,10 @@ def _cluster_mass(stat_obs, cluster, t_power):
 class ClusterResult:
     """Object containing the results of the cluster permutation test.
 
+    .. note::
+       This class is not meant to be instantiated directly, but rather returned
+       by :func:`~mne.stats.cluster_test`.
+
     Parameters
     ----------
     stat_obs : np.ndarray
