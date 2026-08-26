@@ -2272,6 +2272,34 @@ class ClusterResult:
         """
         Plot one significant cluster's time-frequency extent and topomap.
 
+        Parameters
+        ----------
+        inst : EpochsTFR | AverageTFR
+            A representative time-frequency object, used only for its ``info``
+            (channel layout) and ``times``/``freqs`` axes.
+        cluster_idx : int
+            Index into the significant clusters (``cluster_p_values < p_accept``),
+            ordered by decreasing ``|cluster_masses|``. ``0`` (default) selects the
+            most extreme significant cluster.
+        p_accept : float
+            Clusters with ``cluster_p_values >= p_accept`` are not eligible for
+            selection via ``cluster_idx`` and are not shown in the spectrogram
+            overlay.
+        cmap_topo : matplotlib.colors.Colormap
+            Colormap to use for the topomap.
+        cmap_spectrogram : matplotlib.colors.Colormap | None
+            Colormap used to highlight significant clusters in the spectrogram
+            panel. If ``None`` (default), ``"RdBu_r"`` is used for a signed
+            statistic (e.g. a paired t-statistic) and ``"autumn"`` for a
+            non-negative one (e.g. an F-statistic).
+
+        Returns
+        -------
+        fig : instance of Figure
+            The resulting figure object for the heatmap plot.
+
+        Notes
+        -----
         For 3D (time x frequency x channel) clusters, i.e. results of a test run on
         time-frequency data (see :class:`~mne.time_frequency.EpochsTFR` /
         :class:`~mne.time_frequency.AverageTFR`). It is difficult to visualize such
@@ -2299,27 +2327,6 @@ class ClusterResult:
         into one value using RMS magnitude (MNE's standard way of visualizing
         planar gradiometer pairs), so it does not represent the sign of the
         effect there -- the spectrogram panel is the sign-accurate one.
-
-        Parameters
-        ----------
-        inst : EpochsTFR | AverageTFR
-            A representative time-frequency object, used only for its ``info``
-            (channel layout) and ``times``/``freqs`` axes.
-        cluster_idx : int
-            Index into the significant clusters (``cluster_p_values < p_accept``),
-            ordered by decreasing ``|cluster_masses|``. ``0`` (default) selects the
-            most extreme significant cluster.
-        p_accept : float
-            Clusters with ``cluster_p_values >= p_accept`` are not eligible for
-            selection via ``cluster_idx`` and are not shown in the spectrogram
-            overlay.
-        cmap_topo : matplotlib.colors.Colormap
-            Colormap to use for the topomap.
-        cmap_spectrogram : matplotlib.colors.Colormap | None
-            Colormap used to highlight significant clusters in the spectrogram
-            panel. If ``None`` (default), ``"RdBu_r"`` is used for a signed
-            statistic (e.g. a paired t-statistic) and ``"autumn"`` for a
-            non-negative one (e.g. an F-statistic).
         """
         if self.clusters and not isinstance(self.clusters[0], tuple):
             raise ValueError(
