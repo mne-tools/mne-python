@@ -2,7 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
 import shutil
 from collections import defaultdict
 from collections.abc import Callable, Sequence
@@ -140,11 +139,12 @@ class BaseRaw(
     preload : bool | str | ndarray
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory). If preload is an
-        ndarray, the data are taken from that array. If False, data are not
-        read until save.
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. If preload is an ndarray, the data are
+        taken from that array. If False, data are not read until save.
     first_samps : sequence
         Sequence of the first sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple.
@@ -602,8 +602,10 @@ class BaseRaw(
         Parameters
         ----------
         memmap : path-like | None
-            If not ``None``, preload data into a memory-mapped file at this
-            path. If ``None`` (default), preload data into RAM.
+            If not ``None``, preload data into a freshly created memory-mapped file
+            at this path. An existing file is overwritten. The caller owns the file
+            and is responsible for removing it after the Raw object is no longer in
+            use. If ``None`` (default), preload data into RAM.
 
             .. versionadded:: 1.13
         %(verbose)s
@@ -811,18 +813,6 @@ class BaseRaw(
             self._annotations = new_annotations
 
         return self
-
-    def __del__(self):  # noqa: D105
-        # remove file for memmap
-        fname = getattr(getattr(self, "_data", None), "filename", None)
-        if fname is not None:
-            # First, close the file out; happens automatically on del
-            del self._data
-            # Now file can be removed
-            try:
-                os.remove(fname)
-            except OSError:
-                pass  # ignore file that no longer exists
 
     def __enter__(self):
         """Entering with block."""
