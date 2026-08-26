@@ -5,6 +5,7 @@
 import os
 import shutil
 from copy import deepcopy
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -527,6 +528,58 @@ def test_eeglab_read_annotations():
     raw = read_raw_eeglab(raw_fname_event_duration, preload=True, montage_units="dm")
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
+
+
+@pytest.mark.parametrize(
+    "data_kind, preload_kind",
+    (
+        ("embedded", "ram"),
+        ("external", "lazy"),
+        ("external", "ram"),
+        ("external", "mmap"),
+    ),
+)
+def test_raw_eeglab_reuses_metadata_for_annotations(
+    tmp_path, monkeypatch, data_kind, preload_kind
+):
+    """Test that raw annotations reuse the already-loaded EEG structure."""
+    fname = tmp_path / "single-parse.set"
+    events = np.array(
+        [("first", 2.0, 2.0), ("second", 4.0, 4.0)],
+        dtype=[("type", "O"), ("latency", "f8"), ("duration", "f8")],
+    )
+    data = np.arange(10.0, dtype="<f4")[np.newaxis]
+    eeg = dict(
+        trials=1,
+        nbchan=1,
+        pnts=10,
+        srate=100.0,
+        data=data,
+        chanlocs=np.array([("EEG 001",)], dtype=[("labels", "S10")]),
+        event=events,
+    )
+    if data_kind == "external":
+        data_fname = fname.with_suffix(".fdt")
+        data.tofile(data_fname)
+        eeg["data"] = data_fname.name
+    io.savemat(fname, {"EEG": eeg}, appendmat=False)
+
+    check_load_mat = Mock(wraps=mne.io.eeglab.eeglab._check_load_mat)
+    monkeypatch.setattr(mne.io.eeglab.eeglab, "_check_load_mat", check_load_mat)
+    preload = {
+        "lazy": False,
+        "ram": True,
+        "mmap": str(tmp_path / "preload.dat"),
+    }[preload_kind]
+    raw = read_raw_eeglab(fname, preload=preload)
+
+    assert check_load_mat.call_count == 1
+    assert_array_equal(raw.annotations.description, ["first", "second"])
+    assert_allclose(raw.annotations.onset, [0.01, 0.03])
+    assert_allclose(raw.annotations.duration, [0.02, 0.04])
+    assert raw.preload is (preload_kind != "lazy")
+    if preload_kind == "mmap":
+        assert isinstance(raw._data, np.memmap)
 
 
 @testing.requires_testing_data
