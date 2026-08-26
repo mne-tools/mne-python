@@ -29,15 +29,15 @@ from mne import (
 )
 from mne._fiff._digitization import write_dig
 from mne._fiff.constants import FIFF
+from mne._fiff.tag import _loc_to_coil_trans
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
 from mne.defaults import DEFAULTS
-from mne.fixes import _reshape_view
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate
 from mne.source_space import read_source_spaces
-from mne.transforms import Transform
+from mne.transforms import Transform, _find_vector_rotation, quat_to_rot
 from mne.utils import _record_warnings, catch_logging
 from mne.viz import (
     Brain,
@@ -50,6 +50,7 @@ from mne.viz import (
     plot_head_positions,
     plot_source_estimates,
     plot_sparse_source_estimates,
+    set_3d_view,
     snapshot_brain_montage,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
@@ -138,7 +139,7 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
         np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"
@@ -535,6 +536,45 @@ def test_plot_alignment_meg(renderer, system):
     renderer.backend._close_all()
 
 
+def test_plot_alignment_meg_coil_orientation(renderer, monkeypatch):
+    """Test that MEG coils are drawn with the full loc rotation (incl. roll).
+
+    Planar gradiometers are not rotationally symmetric about the coil normal,
+    so the per-instance quaternion must encode the full rotation from
+    ``_loc_to_coil_trans``, not just the coil normal direction.
+    """
+    from mne.viz.backends._pyvista import _PyVistaRenderer
+
+    info = read_info(evoked_fname)
+    info = pick_info(info, pick_types(info, meg="grad")[:4])
+    calls = list()
+    orig = _PyVistaRenderer.instanced_mesh
+
+    def capture(self, *args, **kwargs):
+        calls.append((kwargs["positions"], kwargs["quats"]))
+        return orig(self, *args, **kwargs)
+
+    monkeypatch.setattr(_PyVistaRenderer, "instanced_mesh", capture)
+    plot_alignment(info, meg="sensors", coord_frame="meg")
+    # all four grads share one coil shape, so they form a single instanced
+    # actor whose instance order follows the channel order
+    assert len(calls) == 1
+    positions, quats = calls[0]
+    assert positions.shape == quats.shape == (4, 3)
+    for ch, position, quat in zip(info["chs"], positions, quats):
+        coil_trans = _loc_to_coil_trans(ch["loc"])
+        R_full = coil_trans[:3, :3]
+        # position is offset along ez by <= 2 mm for planar coil visibility
+        assert np.linalg.norm(position - coil_trans[:3, 3]) < 3e-3, ch["ch_name"]
+        assert_allclose(quat_to_rot(quat), R_full, atol=2e-2)
+        # make sure the check above pins the roll: a rotation that only aligns
+        # the coil normal (e.g., from _find_vector_rotation) must not pass
+        ez = R_full[:, 2] / np.linalg.norm(R_full[:, 2])
+        R_normal_only = _find_vector_rotation(np.array([0.0, 0.0, 1.0]), ez)
+        assert np.abs(R_normal_only - R_full).max() > 0.05, ch["ch_name"]
+    renderer.backend._close_all()
+
+
 @testing.requires_testing_data
 def test_plot_alignment_surf(renderer, evoked):
     """Test plotting of a surface."""
@@ -604,7 +644,14 @@ def test_plot_alignment_surf_errors(renderer, evoked):
 def test_plot_alignment_info(renderer, evoked):
     """Test plotting with info, but no trans, fwd, bem, or src."""
     info = evoked.info
-    plot_alignment(info)  # works: surfaces='auto' default
+    fig = plot_alignment(info)  # works: surfaces='auto' default
+    # set_view=False keeps the view of the figure it is given, True resets it
+    set_3d_view(fig, azimuth=11, elevation=22, distance=0.33)
+    pos = np.array(fig.plotter.camera.position, float)
+    plot_alignment(info, fig=fig, set_view=False)
+    assert_allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    plot_alignment(info, fig=fig)
+    assert not np.allclose(fig.plotter.camera.position, pos, atol=1e-4)
     # check error raised if incorrect info provided
     with pytest.raises(TypeError, match="instance of Info"):
         plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)
@@ -1050,7 +1097,7 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.random.default_rng(0).random(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
     # Test for simple use cases
@@ -1172,7 +1219,7 @@ def test_stc_mpl():
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.ones(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
     dep_match = "matplotlib 3D backend is deprecated"
     with pytest.warns(FutureWarning, match=dep_match):
@@ -1512,7 +1559,7 @@ def test_link_brains(renderer_interactive):
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
         np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"

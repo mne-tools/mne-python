@@ -7,7 +7,6 @@ from collections import Counter
 
 import numpy as np
 
-from ..fixes import _reshape_view
 from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
 from .constants import FIFF, _coord_frame_named
 from .tag import read_tag
@@ -336,7 +335,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
             f"Only single coordinate frame in dig is supported, got {dig_coord_frames}"
         )
     dig_ch_pos_location = np.array(dig_ch_pos_location)
-    dig_ch_pos_location = _reshape_view(dig_ch_pos_location, (-1, 3))
+    dig_ch_pos_location = dig_ch_pos_location.reshape((-1, 3), copy=False)
     return Bunch(
         nasion=fids.get("nasion", None),
         lpa=fids.get("lpa", None),

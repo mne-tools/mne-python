@@ -78,6 +78,7 @@ from ._abstract import (
 from ._pyvista import (
     Plotter,
     _check_3d_figure,  # noqa: F401
+    _clear_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
     _PyVistaRenderer,

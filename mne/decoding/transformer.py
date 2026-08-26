@@ -17,7 +17,6 @@ from .._fiff.pick import (
 from ..cov import _check_scalings_user
 from ..epochs import BaseEpochs
 from ..filter import filter_data
-from ..fixes import _reshape_view
 from ..time_frequency import psd_array_multitaper
 from ..utils import _check_option, _validate_type, check_version, fill_doc
 from ._fixes import validate_data
@@ -119,7 +118,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
     if return_result:
-        X = _reshape_view(X, (orig_shape[0], orig_shape[2], orig_shape[1]))
+        X = X.reshape((orig_shape[0], orig_shape[2], orig_shape[1]), copy=False)
         X = X.transpose(0, 2, 1)
         return X
 
@@ -308,7 +307,9 @@ class Vectorizer(MNETransformerMixin, BaseEstimator):
     >>> from sklearn.linear_model import LogisticRegression
     >>> from sklearn.pipeline import make_pipeline
     >>> from sklearn.preprocessing import StandardScaler
-    >>> clf = make_pipeline(Vectorizer(), StandardScaler(), LogisticRegression())
+    >>> clf = make_pipeline(
+    ...     Vectorizer(), StandardScaler(), LogisticRegression(random_state=0)
+    ... )
     """
 
     def fit(self, X, y=None):

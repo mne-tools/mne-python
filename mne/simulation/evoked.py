@@ -13,9 +13,17 @@ from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..forward import apply_forward
 from ..io import BaseRaw
-from ..utils import _check_preload, _validate_type, check_random_state, logger, verbose
+from ..utils import (
+    _check_preload,
+    _legacy_rng,
+    _validate_type,
+    check_random_state,
+    logger,
+    verbose,
+)
 
 
+@_legacy_rng("random_state")
 @verbose
 def simulate_evoked(
     fwd,
@@ -24,9 +32,11 @@ def simulate_evoked(
     cov=None,
     nave=30,
     iir_filter=None,
-    random_state=None,
     use_cps=True,
     verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Generate noisy evoked data.
 
@@ -51,11 +61,12 @@ def simulate_evoked(
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    %(random_state)s
     %(use_cps)s
 
         .. versionadded:: 0.15
     %(verbose)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -84,7 +95,7 @@ def simulate_evoked(
         return evoked
 
     if nave < np.inf:
-        noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
+        noise = _simulate_noise_evoked(evoked, cov, iir_filter, rng)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int64(nave)
     if cov.get("projs", None):
@@ -92,14 +103,15 @@ def simulate_evoked(
     return evoked
 
 
-def _simulate_noise_evoked(evoked, cov, iir_filter, random_state):
+def _simulate_noise_evoked(evoked, cov, iir_filter, rng):
     noise = evoked.copy()
     noise.data[:] = 0
-    return _add_noise(noise, cov, iir_filter, random_state, allow_subselection=False)
+    return _add_noise(noise, cov, iir_filter, rng, allow_subselection=False)
 
 
+@_legacy_rng("random_state")
 @verbose
-def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
+def add_noise(inst, cov, iir_filter=None, verbose=None, *, rng=None, random_state=None):
     """Create noise as a multivariate Gaussian.
 
     The spatial covariance of the noise is given from the cov matrix.
@@ -112,8 +124,9 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    %(random_state)s
     %(verbose)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -130,10 +143,13 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
     .. versionadded:: 0.18.0
     """
     # We always allow subselection here
-    return _add_noise(inst, cov, iir_filter, random_state)
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
+    return _add_noise(inst, cov, iir_filter, rng, legacy_seed=legacy_seed)
 
 
-def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
+def _add_noise(
+    inst, cov, iir_filter, rng, allow_subselection=True, *, legacy_seed=None
+):
     """Add noise, possibly with channel subselection."""
     _validate_type(cov, Covariance, "cov")
     _validate_type(
@@ -162,17 +178,17 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
 
         gen_picks = np.arange(info["nchan"])
     for epoch in data:
+        # An integer passed to the deprecated parameter historically restarted
+        # the same stream for each epoch. ``rng`` intentionally advances.
+        this_rng = check_random_state(legacy_seed) if legacy_seed is not None else rng
         epoch[picks] += _generate_noise(
-            info, cov, iir_filter, random_state, epoch.shape[1], picks=gen_picks
+            info, cov, iir_filter, this_rng, epoch.shape[1], picks=gen_picks
         )[0]
     return inst
 
 
-def _generate_noise(
-    info, cov, iir_filter, random_state, n_samples, zi=None, picks=None
-):
+def _generate_noise(info, cov, iir_filter, rng, n_samples, zi=None, picks=None):
     """Create spatially colored and temporally IIR-filtered noise."""
-    rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(
         cov, info, pca=True, return_colorer=True, picks=picks, verbose=False
     )

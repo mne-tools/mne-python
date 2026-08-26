@@ -261,6 +261,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._toggle_antialias()
         self._enable_depth_peeling()
         self._picker = vtkCellPicker()
+        # separate picker for hover: Pick() on _picker would fire its
+        # EndPickEvent observer and act like a click
+        self._hover_picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -288,7 +291,15 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def _update(self):
         for plotter in self._all_plotters:
+            # PyVistaQt resolves plotter.update() to QWidget.update(), which only
+            # schedules a repaint, and it makes Plotter.render() asynchronous (the
+            # synchronous one being _render()). So render synchronously to update the
+            # scene, schedule the repaint, then flush it: without the flush the paint
+            # is delivered whenever events happen to be processed next, which can be
+            # long after the scene has changed again.
+            getattr(plotter, "_render", plotter.render)()
             plotter.update()
+            _process_events(plotter)
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -332,7 +343,11 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.plotter.enable_rubber_band_2d_style()
         else:
             for renderer in self._all_renderers:
-                renderer.disable_parallel_projection()
+                # Only disable it if it is actually on: PyVista recomputes the camera
+                # position from parallel_scale here, which moves the camera even when
+                # parallel projection was never enabled in the first place
+                if renderer.parallel_projection:
+                    renderer.disable_parallel_projection()
             kwargs = dict()
             if interaction == "terrain":
                 kwargs["mouse_wheel_zooms"] = True
@@ -952,6 +967,14 @@ class _PyVistaRenderer(_AbstractRenderer):
         actor, _ = mesh_data
         self.plotter.remove_actor(actor)
 
+    def _remove_actors(self, actors, *, render=True):
+        # Work around PyVista sequential update bug with iterable until > 0.42.3 is
+        # req: https://github.com/pyvista/pyvista/pull/5046
+        if not isinstance(actors, list):
+            actors = [actors]
+        for actor in actors:
+            self.plotter.remove_actor(actor, render=render)
+
     @contextmanager
     def _disabled_interaction(self):
         if not self.plotter.renderer.GetInteractive():
@@ -984,6 +1007,17 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._picker.AddObserver(vtkCommand.EndPickEvent, on_pick)
         self._picker.SetVolumeOpacityIsovalue(0.0)
 
+    def _trigger_pick(self, x, y):
+        """Trigger a pick at the given 2D event position."""
+        self._picker.Pick(x, y, 0, self.figure.plotter.renderer)
+
+    def _add_redraw_callback(self, func, interval):
+        """Schedule a periodic callback on the plotter."""
+        self.plotter.add_callback(func, interval)
+
+    def _show_axes(self):
+        self.plotter.show_axes()
+
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
     ):
@@ -1003,16 +1037,28 @@ class _PyVistaRenderer(_AbstractRenderer):
                 scalar_bar.SetLabelFormat(fmt)
 
     def _set_volume_range(self, volume, ctable, alpha, scalar_bar, rng, fmt=None):
-        color_tf = vtkColorTransferFunction()
-        opacity_tf = vtkPiecewiseFunction()
-        for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
-            color_tf.AddRGBPoint(loc, *(color[:-1] / 255.0))
-            opacity_tf.AddPoint(loc, color[-1] * alpha / 255.0)
-        color_tf.ClampingOn()
-        opacity_tf.ClampingOn()
         prop = volume.GetProperty()
-        prop.SetColor(color_tf)
-        prop.SetScalarOpacity(opacity_tf)
+        if not prop.GetIndependentComponents():
+            # signed MIP: color is baked into the data, so re-bake it here and
+            # keep only magnitude -> opacity in a transfer function
+            opacity_tf = vtkPiecewiseFunction()
+            for loc, opacity in zip(*_volume_rgba_opacity(ctable, alpha)):
+                opacity_tf.AddPoint(float(loc), float(opacity))
+            opacity_tf.ClampingOn()
+            prop.SetScalarOpacity(opacity_tf)
+            grid = getattr(volume, "_mne_grid", None)
+            if grid is not None:
+                _update_volume_rgba(grid, ctable, rng)
+        else:
+            color_tf = vtkColorTransferFunction()
+            opacity_tf = vtkPiecewiseFunction()
+            for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
+                color_tf.AddRGBPoint(loc, *(color[:-1] / 255.0))
+                opacity_tf.AddPoint(loc, color[-1] * alpha / 255.0)
+            color_tf.ClampingOn()
+            opacity_tf.ClampingOn()
+            prop.SetColor(color_tf)
+            prop.SetScalarOpacity(opacity_tf)
         if scalar_bar is not None:
             lut = vtkLookupTable()
             lut.SetRange(*rng)
@@ -1021,9 +1067,15 @@ class _PyVistaRenderer(_AbstractRenderer):
             if fmt is not None:
                 scalar_bar.SetLabelFormat(fmt)
 
-    def _sphere(self, center, color, radius):
+    def _update_volume_rgba(self, grid, ctable, rng):
+        _update_volume_rgba(grid, ctable, rng)
+
+    def _sphere(self, center, color, radius, *, resolution=8):
         mesh = pyvista.Sphere(
-            radius=radius, center=center, theta_resolution=8, phi_resolution=8
+            radius=radius,
+            center=center,
+            theta_resolution=resolution,
+            phi_resolution=resolution,
         )
         actor = _add_mesh(self.plotter, mesh=mesh, color=color)
         return actor, mesh
@@ -1041,7 +1093,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         interpolation="linear",
     ):
         # Note: this method is used by mne-gui-addons, so we should be mindful of
-        # backwards compatibility when changing it.
+        # backwards compatibility when changing it. volume_neg is always None now.
 
         # Now we can actually construct the visualization
         grid = pyvista.ImageData(
@@ -1069,6 +1121,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         else:
             grid_mesh = None
 
+        # VTK composites overlapping volume actors in add order, not by depth,
+        # so do a divergent MIP in one volume with baked colors instead of two
+        signed_mip = center is not None and blending == "mip"
+        if signed_mip:
+            grid.point_data["rgba"] = np.zeros((grid.n_points, 4), np.uint8)
+            # the reslicer and mapper both act on the active scalars; "values"
+            # stays under its own name for picking
+            grid.point_data.active_scalars_name = "rgba"
+
         mapper = vtkSmartVolumeMapper()
         interp_map_meth = "SetInterpolationModeTo"
         interp_map_meth += dict(nearest="NearestNeighbor", linear="Linear")[
@@ -1076,6 +1137,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         ]
         interp_prop_meth = "SetInterpolationTypeTo"
         interp_prop_meth += dict(nearest="Nearest", linear="Linear")[interpolation]
+        # shading needs a gradient: VTK ignores it for MIP, and with nearest
+        # the gradient is a spike at each voxel face (bright lattice)
+        shade = blending == "composite" and interpolation == "linear"
         del interpolation
         if resolution is None:  # native
             mapper.SetScalarModeToUsePointData()
@@ -1097,25 +1161,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         dist = grid.length / np.mean(grid.dimensions)
         volume_pos_prop = volume_pos.GetProperty()
         volume_pos_prop.SetScalarOpacityUnitDistance(dist)
-        volume_pos_prop.ShadeOn()
+        volume_pos_prop.SetShade(shade)
         getattr(volume_pos_prop, interp_prop_meth)()
-        if center is not None and blending == "mip":
-            # We need to create a minimum intensity projection for the neg half
-            mapper_neg = vtkSmartVolumeMapper()
-            if resolution is None:  # native
-                mapper_neg.SetScalarModeToUsePointData()
-                mapper_neg.SetInputDataObject(grid)
-            else:
-                mapper_neg.SetInputConnection(upsampler.GetOutputPort())
-            mapper_neg.SetBlendModeToMinimumIntensity()
-            volume_neg = vtkVolume()
-            volume_neg.SetMapper(mapper_neg)
-            volume_neg_prop = volume_neg.GetProperty()
-            volume_neg_prop.SetScalarOpacityUnitDistance(dist)
-            volume_neg_prop.ShadeOn()
-            getattr(volume_neg_prop, interp_prop_meth)()
-        else:
-            volume_neg = None
+        if signed_mip:
+            # components 0-2 are color, component 3 is the maximized magnitude
+            volume_pos_prop.IndependentComponentsOff()
+            # stashed (not passed) so _set_volume_range() can re-bake without a
+            # signature change, which mne-gui-addons relies on
+            volume_pos._mne_grid = grid
+        volume_neg = None  # kept only for backward compatibility
         return grid, grid_mesh, volume_pos, volume_neg
 
     def _silhouette(self, mesh, color=None, line_width=None, alpha=None, decimate=None):
@@ -1141,6 +1195,48 @@ class _PyVistaRenderer(_AbstractRenderer):
             prop.SetLineWidth(line_width)
         _hide_testing_actor(actor)
         return actor
+
+
+def _bake_volume_rgba(values, ctable, rng):
+    """Encode signed scalars as dependent-component RGBA for a signed MIP.
+
+    VTK maximizes over component 3, so putting the magnitude there makes MIP a
+    maximum *absolute* intensity projection: largest ``|value|`` along the ray
+    wins, ties go to the nearest sample.
+    """
+    n_colors = len(ctable)
+    lo, hi = float(rng[0]), float(rng[1])
+    idx = np.clip((values - lo) / (hi - lo) * (n_colors - 1), 0, n_colors - 1)
+    rgba = ctable[idx.astype(np.int64)].copy()
+    # magnitude, not mapped opacity (saturates at fmax -> ties); from the table
+    # center, where a divergent colormap changes sign (`rng` may be asymmetric)
+    half = (n_colors - 1) / 2.0
+    rgba[:, 3] = np.round(np.abs(idx - half) / half * 255).astype(np.uint8)
+    return rgba
+
+
+def _update_volume_rgba(grid, ctable, rng):
+    """Re-bake the color array of a signed-MIP volume, if the grid has one."""
+    if "rgba" not in grid.point_data:
+        return
+    grid.point_data["rgba"][:] = _bake_volume_rgba(
+        np.asarray(grid.point_data["values"]), ctable, rng
+    )
+
+
+def _volume_rgba_opacity(ctable, alpha):
+    """Map magnitude (component 3, 0-255) to opacity using the colormap alpha."""
+    # magnitude is a distance from the table center, so walk outward both ways;
+    # halves agree for the center-symmetric tables calculate_lut() emits
+    n_colors = len(ctable)
+    half = (n_colors - 1) / 2.0
+    mag = np.arange(256)
+    offset = mag / 255.0 * half
+    opacity = np.maximum(
+        ctable[np.round(half + offset).astype(np.int64), 3],
+        ctable[np.round(half - offset).astype(np.int64), 3],
+    )
+    return mag, opacity * alpha / 255.0
 
 
 def _compute_normals(mesh):
@@ -1322,6 +1418,11 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
 
 def _check_3d_figure(figure):
     _validate_type(figure, PyVistaFigure, "figure")
+
+
+def _clear_3d_figure(figure):
+    figure.plotter.clear()  # remove all actors, lights are restored on the next plot
+    _process_events(figure.plotter)
 
 
 def _close_3d_figure(figure):
