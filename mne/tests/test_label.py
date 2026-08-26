@@ -20,6 +20,7 @@ from numpy.testing import (
 )
 from scipy import sparse
 
+import mne
 from mne import (
     grow_labels,
     labels_to_stc,
@@ -57,12 +58,16 @@ stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
 real_label_fname = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
 v1_label_fname = subjects_dir / "sample" / "label" / "lh.V1.label"
 
+fname_vsrc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+fname_src_fs = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+
 fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
 src_bad_fname = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 label_dir = subjects_dir / "sample" / "label" / "aparc"
 
 test_path = Path(__file__).parents[1] / "io" / "tests" / "data"
 label_fname = test_path / "test-lh.label"
+
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -1255,3 +1260,121 @@ def test_label_geometry(fname, area):
     )
     assert_array_less(inside_euc, inside_dist)
     assert_array_less(0.25 * inside_dist, inside_euc)
+
+
+@testing.requires_testing_data
+def test_volume_label_adjacency():
+    """Test label adjacency."""
+    pytest.importorskip("sklearn")
+    src = read_source_spaces(fname_vsrc)
+
+    # aseg=auto uses the aparc+aseg atlas, which does not exist in the testing datasets
+    adj, labels = mne.volume_label_adjacency(
+        src, subject="sample", subjects_dir=subjects_dir, aseg="aseg"
+    )
+    n_neighbors = adj.sum(axis=1)
+
+    assert_equal(len(labels), 46)  # default number of labels in aseg.mgz
+    assert_equal(adj.shape, (len(labels), len(labels)))
+
+    assert_equal(n_neighbors.min(), 0)
+    assert_equal(np.sum(n_neighbors == 0), 4)
+
+    # example: 'Left-Thalamus-Proper'
+    label_idx = 7
+    connected_labels_idx = adj.toarray()[label_idx, :]
+    connected_labels = np.array(labels)[np.where(connected_labels_idx == 1)[0]]
+
+    assert_equal(
+        np.sort(connected_labels).tolist(),
+        [
+            "3rd-Ventricle",
+            "Brain-Stem",
+            "CSF",
+            "Left-Accumbens-area",
+            "Left-Cerebral-Cortex",
+            "Left-Cerebral-White-Matter",
+            "Left-Hippocampus",
+            "Left-Lateral-Ventricle",
+            "Left-Thalamus-Proper",
+            "Left-VentralDC",
+            "Unknown",
+        ],
+    )
+
+    input_labels = [
+        "Left-Thalamus-Proper",
+        "Left-Hippocampus",
+        "Right-Hippocampus",
+    ]
+    adj, labels = mne.volume_label_adjacency(
+        src,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        aseg="aseg",
+        labels=input_labels,
+    )
+
+    assert_equal(
+        adj.toarray(),
+        np.array(
+            [
+                [1, 1, 0],
+                [1, 1, 0],
+                [0, 0, 1],
+            ]
+        ),
+    )
+
+    assert_equal(labels, input_labels)
+
+    with pytest.raises(FileNotFoundError):
+        mne.volume_label_adjacency(
+            src,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            aseg="my-aseg",
+            labels=input_labels,
+        )
+
+
+@testing.requires_testing_data
+def test_label_adjacency():
+    """Test label adjacency."""
+    pytest.importorskip("sklearn")
+    src = read_source_spaces(fname_src_fs)
+    mne.add_source_space_distances(src, dist_limit=0.01, n_jobs=-1)
+
+    labels = mne.read_labels_from_annot(
+        subject="fsaverage",
+        subjects_dir=subjects_dir,
+    )
+    adj = mne.label_adjacency(labels, src)
+
+    n_neighbors = adj.sum(axis=1)
+
+    assert_equal(len(labels), 69)  # default number of labels in aseg.mgz
+    assert_equal(adj.shape, (len(labels), len(labels)))
+
+    assert_equal(n_neighbors.min(), 0)
+    assert_equal(np.sum(n_neighbors == 0), 1)
+
+    input_labels = [
+        "cuneus-lh",
+        "cuneus-rh",
+        "precuneus-lh",
+    ]
+    adj = mne.label_adjacency(
+        [lab for lab in labels if lab.name in input_labels],
+        src
+    )
+    assert_equal(
+        adj.toarray(),
+        np.array(
+            [
+                [1, 0, 1],
+                [0, 1, 0],
+                [1, 0, 1],
+            ]
+        ),
+    )
