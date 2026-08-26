@@ -49,13 +49,13 @@ coverage
 htmlcov
 .cache/
 .pytest_cache/
-.worktrees/
 __pycache__/
 prof/
 mne/viz/_brain/tests/.ipynb_checkpoints
 
 dist/
 doc/_build/
+doc/pypi/
 doc/generated/
 doc/auto_examples/
 doc/auto_tutorials/

@@ -98,7 +98,7 @@ tfce = dict(start=0.4, step=0.4)  # ideally start and step would be smaller
 
 # Calculate statistical thresholds
 t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_test(
-    X, tfce, adjacency=adjacency, n_permutations=100, seed=0
+    X, tfce, adjacency=adjacency, n_permutations=100, rng=113
 )  # a more standard number would be 1000+
 significant_points = cluster_pv.reshape(t_obs.shape).T < 0.05
 print(str(significant_points.sum()) + " points selected by TFCE ...")

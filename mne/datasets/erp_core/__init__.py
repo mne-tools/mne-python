@@ -4,4 +4,4 @@
 
 """ERP-CORE EEG dataset."""
 
-from .erp_core import data_path, get_version
+from .erp_core import data_path, fetch_file, get_version

@@ -37,8 +37,8 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
     %(n_jobs)s
     %(position)s
     %(allow_2d)s
-    %(verbose)s
     %(axis)s
+    %(verbose)s
 
     Attributes
     ----------
@@ -54,8 +54,8 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         *,
         position=0,
         allow_2d=False,
-        verbose=None,
         axis=-1,
+        verbose=None,
     ):
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -291,7 +291,9 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     def _check_Xy(self, X, y=None, fit=False):
         """Aux. function to check input data."""
-        X = self._check_data(X, y=y, atleast_3d=False, fit=fit)
+        X = self._check_data(
+            X, y=y, atleast_3d=False, fit=False, check_n_features=False
+        )
         is_nd = X.ndim >= 3
         if not is_nd:
             err = None
@@ -303,11 +305,11 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 raise ValueError(f"X must have at least {err} dimensions.")
             X = X[..., np.newaxis]
 
-        # Move a requested task axis to the final dimension.
+        if self.axis in (0, -X.ndim):
+            raise ValueError("axis must not be the sample axis (0).")
         if self.axis != -1 and self.axis != (X.ndim - 1):
             X = np.moveaxis(X, self.axis, -1)
-        # --------------------------------
-
+        X = self._check_data(X, atleast_3d=False, fit=fit)
         return X, is_nd
 
     def score(self, X, y):
@@ -501,8 +503,8 @@ class GeneralizingEstimator(SlidingEstimator):
     %(n_jobs)s
     %(position)s
     %(allow_2d)s
-    %(verbose)s
     %(axis)s
+    %(verbose)s
     """
 
     def __repr__(self):  # noqa: D105
