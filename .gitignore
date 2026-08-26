@@ -104,3 +104,4 @@ venv/
 .ruff_cache/
 .ipynb_checkpoints/
 /.claude/
+uv.lock
