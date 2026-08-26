@@ -6,6 +6,8 @@
 
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
@@ -626,6 +628,8 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 
 _EDF_STRIDE_MAX_EXTRA_BYTES = 64 * 1024**2
+_EDF_FROMFILE_THREAD_MIN_BYTES = 64 * 1024**2
+_EDF_FROMFILE_WORKERS = 2
 
 
 def _calibrate_uniform_edf(data, source, cal, offsets, gains, cals):
@@ -711,7 +715,18 @@ def _read_uniform_segment(
     if estimated_incremental_bytes > _EDF_STRIDE_MAX_EXTRA_BYTES:
         return False
 
-    with _gdf_edf_get_fid(filenames, buffering=0) as fid:
+    threaded = (
+        subtype in ("edf", "bdf")
+        and direct_output
+        and data.nbytes >= _EDF_FROMFILE_THREAD_MIN_BYTES
+    )
+    worker_context = (
+        ThreadPoolExecutor(max_workers=_EDF_FROMFILE_WORKERS)
+        if threaded
+        else nullcontext()
+    )
+    with worker_context as executor, _gdf_edf_get_fid(filenames, buffering=0) as fid:
+        pending = []
         start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
         for ai in range(0, len(r_lims), n_per):
             block_offset = ai * ch_offsets[-1] * dtype_byte
@@ -735,14 +750,27 @@ def _read_uniform_segment(
                 assert r_sidx == 0 and r_eidx == n_read * buf_len
                 output = data[:, d_start:d_stop].reshape(view.shape)
                 assert np.shares_memory(output, data)
-                _calibrate_uniform_edf(
-                    output,
-                    view,
-                    cal,
-                    offsets,
-                    gains,
-                    None,
-                )
+                if executor is None:
+                    _calibrate_uniform_edf(
+                        output,
+                        view,
+                        cal,
+                        offsets,
+                        gains,
+                        None,
+                    )
+                else:
+                    pending.append(
+                        executor.submit(
+                            _calibrate_uniform_edf,
+                            output,
+                            view,
+                            cal,
+                            offsets,
+                            gains,
+                            None,
+                        )
+                    )
                 continue
             if (
                 n_read == 1
@@ -775,6 +803,8 @@ def _read_uniform_segment(
                 out=data[:, d_start:d_stop],
                 casting="unsafe",
             )
+        for future in pending:
+            future.result()
     return True
 
 

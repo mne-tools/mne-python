@@ -5,6 +5,7 @@
 import datetime
 import gc
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from functools import partial
@@ -198,6 +199,15 @@ def test_uniform_stride_aligned_memmap_direct_output(
     recorder = _StrideRecorder(helper)
     monkeypatch.setattr(edf.edf, "_read_uniform_segment", recorder)
     monkeypatch.setattr(edf.edf, "_EDF_STRIDE_MAX_EXTRA_BYTES", 0)
+    thread_ids = set()
+    calibrate = edf.edf._calibrate_uniform_edf
+
+    def _record_thread(*args):
+        thread_ids.add(threading.get_ident())
+        return calibrate(*args)
+
+    monkeypatch.setattr(edf.edf, "_EDF_FROMFILE_THREAD_MIN_BYTES", 0)
+    monkeypatch.setattr(edf.edf, "_calibrate_uniform_edf", _record_thread)
     mmap_path = tmp_path / "uniform.dat"
     got = reader(
         repeated,
@@ -208,6 +218,7 @@ def test_uniform_stride_aligned_memmap_direct_output(
     assert recorder.results == [True]
     assert isinstance(got._data, np.memmap)
     assert Path(got._data.filename) == mmap_path
+    assert threading.get_ident() not in thread_ids
     assert_array_equal(got._data.view(np.uint64), want.view(np.uint64))
     got._data._mmap.close()
     got._data = None
