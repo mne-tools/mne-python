@@ -8,6 +8,7 @@
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
 .. _Alan Leggitt: https://github.com/leggitta
+.. _Alejandro Santos Mayo: https://github.com/ASantosMayo
 .. _Alejandro Weinstein: http://ocam.cl
 .. _Alessandro Tonin: https://www.linkedin.com/in/alessandro-tonin-7892b046
 .. _Alex Ciok: https://github.com/alexCiok
@@ -49,6 +50,7 @@
 .. _Baris Talar: https://github.com/baris-talar
 .. _Basile Pinsard: https://github.com/bpinsard
 .. _Beige Jerry Jin: https://github.com/BeiGeJin
+.. _Beliz Sertcan Gökmen: https://github.com/BelizSertcan
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Ben Tang: https://github.com/bentang18
 .. _Benedikt Ehinger: https://www.benediktehinger.de
@@ -253,6 +255,7 @@
 .. _Lorenzo Alfine: https://github.com/lorrandal
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Louis Thibault: https://github.com/lthibault
+.. _Luca Kaemmer: https://github.com/Lucakaemmer
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 .. _Lukas Gemein: https://github.com/gemeinl
 .. _Lukas Hecker: https://github.com/LukeTheHecker
@@ -475,6 +478,7 @@
 .. _Victor Férat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
 .. _Vincent Gao: https://github.com/gaoflow
+.. _Virginie van Wassenhove: https://brainthemind.com/virginie-van-wassenhove
 .. _Wei Xu: https://github.com/psyxw
 .. _Will Turner: https://bootstrapbill.github.io
 .. _Wouter Kroot: https://github.com/WouterKroot

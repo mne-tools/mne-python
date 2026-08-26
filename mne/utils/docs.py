@@ -431,6 +431,12 @@ docdict["axes_tfr_plot"] = _axes_list.format(
     ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
 
+docdict["axis"] = """
+axis : int
+    Axis of the input data along which independent estimators are fitted.
+    The default ``-1`` uses the final axis.
+"""
+
 docdict["axis_facecolor"] = """\
 axis_facecolor : str | tuple
     A matplotlib-compatible color to use for the axis background.
@@ -511,6 +517,37 @@ docdict["baseline_evoked"] = f"""{_baseline_rescale_base}
     2. Subtract this mean from the **entire** ``Evoked``.
 
 """
+_baseline_mode_desc = """\
+    Perform baseline correction by:
+
+    ``"mean"``
+      Subtracting the mean of baseline values
+    ``"ratio"``
+      Dividing by the mean of baseline values
+    ``"logratio"``
+      Dividing by the mean of baseline values and taking the log
+    ``"meanlogratio"``
+      Dividing by the mean of baseline values, taking the log and then
+      subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+      .. note:: this baseline mode has not been tested at the source-level!
+    ``"percent"``
+      Subtracting the mean of baseline values followed by dividing by
+      the mean of baseline values
+    ``"zscore"``
+      Subtracting the mean of baseline values and dividing by the
+      standard deviation of baseline values
+    ``"zlogratio"``
+      Dividing by the mean of baseline values, taking the log, and
+      dividing by the standard deviation of log baseline values
+"""
+
+docdict["baseline_mode"] = f"""\
+mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
+docdict["baseline_mode_mn"] = f"""\
+baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
 
 docdict["baseline_report"] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**
@@ -1378,6 +1415,19 @@ method : ``'truncate'`` | ``'mintime'`` | ``'random'``
     list.
 
     .. versionadded:: 1.8
+"""
+
+docdict["erp_evoked_start_stop"] = """
+start, stop : float
+    Start and end time of the ERP computation window in seconds. Defaults to
+    ``None`` and ``None``, which corresponds to the entire Evoked object.
+"""
+
+docdict["erp_strict"] = """
+strict : bool
+    If True, raise an error if values are all positive when detecting
+    a minimum (mode='neg'), or all negative when detecting a maximum
+    (mode='pos'). Defaults to True.
 """
 
 docdict["estimate_plot_psd"] = """\
@@ -2818,23 +2868,6 @@ mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     * 'sum' : Sum of PSFs/CTFs across vertices.
 """
 
-docdict["mode_tfr_plot"] = """
-mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-    Perform baseline correction by
-
-    - subtracting the mean of baseline values ('mean') (default)
-    - dividing by the mean of baseline values ('ratio')
-    - dividing by the mean of baseline values and taking the log
-      ('logratio')
-    - subtracting the mean of baseline values followed by dividing by
-      the mean of baseline values ('percent')
-    - subtracting the mean of baseline values and dividing by the
-      standard deviation of baseline values ('zscore')
-    - dividing by the mean of baseline values, taking the log, and
-      dividing by the standard deviation of log baseline values
-      ('zlogratio')
-"""
-
 docdict["montage"] = """
 montage : None | str | DigMontage
     A montage containing channel positions. If a string or
@@ -3690,19 +3723,22 @@ docdict["preload"] = """
 preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory)."""
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use."""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory). If preload is
-    None, preload=True or False is inferred using the preload status
-    of the instances passed in.
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use. If preload is None, preload=True or False
+    is inferred using the preload status of the instances passed in.
 """
 
 docdict["proj_epochs"] = """
@@ -3766,12 +3802,21 @@ projs : bool | None
 docdict["random_state"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
 """
+
+docdict["random_state_rng"] = """
+random_state : None | int | instance of ~numpy.random.RandomState
+    Supported for compatibility. New code should use ``rng``. If ``None``,
+    NumPy's global :class:`~numpy.random.RandomState` is used.
+"""
+
+docdict["random_state_rng_method_random"] = (
+    docdict["random_state_rng"].rstrip("\n")
+    + "\n    Used only if ``method='random'``.\n"
+)
 
 _rank_base = """
 rank : None | 'info' | 'full' | dict
@@ -4040,6 +4085,28 @@ return_pca_vars : bool
     Default to False.
 """
 
+docdict["rng"] = """
+rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+    The random number generator (RNG). If ``None`` (default), a new
+    :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+    a :class:`numpy.random.Generator` for reproducible results, or a legacy
+    :class:`~numpy.random.RandomState` to control the random-number stream or
+    for interoperability with third-party code such as scikit-learn that does
+    not accept generators. An integer seed uses
+    :func:`numpy.random.default_rng` and therefore produces a different stream
+    than the same integer passed to a legacy ``random_state`` or ``seed``
+    parameter.
+
+    .. versionadded:: 1.13
+"""
+
+# The ``rng`` entry ends with a directive, so anything appended at the call site
+# would be swallowed by it; make the ``method='random'`` variant here instead.
+docdict["rng_method_random"] = docdict["rng"].replace(
+    "\n\n    .. versionadded",
+    "\n    Used only if ``method='random'``.\n\n    .. versionadded",
+)
+
 docdict["roll"] = """
 roll : float | None
     The roll of the camera rendering the view in degrees.
@@ -4133,12 +4200,12 @@ section : str | None
 docdict["seed"] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
 """
+
+docdict["seed_rng"] = docdict["random_state_rng"].replace("random_state", "seed")
 
 docdict["seeg"] = """
 seeg : bool

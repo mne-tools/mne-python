@@ -53,6 +53,10 @@ ERP-related statistics:
 .. autosummary::
    :toctree: ../generated/
 
+   erp.compute_area
+   erp.compute_frac_area_latency
+   erp.compute_frac_peak_latency
+   erp.compute_peak
    erp.compute_sme
 
 Compute ``adjacency`` matrices for cluster-level statistics:

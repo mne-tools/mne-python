@@ -307,7 +307,9 @@ class Vectorizer(MNETransformerMixin, BaseEstimator):
     >>> from sklearn.linear_model import LogisticRegression
     >>> from sklearn.pipeline import make_pipeline
     >>> from sklearn.preprocessing import StandardScaler
-    >>> clf = make_pipeline(Vectorizer(), StandardScaler(), LogisticRegression())
+    >>> clf = make_pipeline(
+    ...     Vectorizer(), StandardScaler(), LogisticRegression(random_state=0)
+    ... )
     """
 
     def fit(self, X, y=None):

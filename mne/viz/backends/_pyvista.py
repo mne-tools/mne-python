@@ -18,7 +18,12 @@ from inspect import signature
 
 import numpy as np
 import pyvista
-from pyvista import Line, Plotter, PolyData, close_all  # noqa: F401  # re-exported
+from pyvista import (
+    Line,
+    Plotter,  # noqa: F401  # re-exported
+    PolyData,  # noqa: F401  # re-exported
+    close_all,
+)
 from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk
@@ -50,12 +55,7 @@ from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
 from ...fixes import _compare_version
 from ...surface import _vtk_smooth
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
-from ...utils import (
-    _check_option,
-    _require_version,
-    _validate_type,
-    warn,
-)
+from ...utils import _check_option, _require_version, _validate_type, warn
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
@@ -155,7 +155,6 @@ class PyVistaFigure(Figure3D):
         # TODO: This breaks trame "client" backend
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
-        _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
 
@@ -261,6 +260,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._toggle_antialias()
         self._enable_depth_peeling()
         self._picker = vtkCellPicker()
+        # separate picker for hover: Pick() on _picker would fire its
+        # EndPickEvent observer and act like a click
+        self._hover_picker = vtkCellPicker()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -289,14 +291,10 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update(self):
         for plotter in self._all_plotters:
             # PyVistaQt resolves plotter.update() to QWidget.update(), which only
-            # schedules a repaint, and it makes Plotter.render() asynchronous (the
-            # synchronous one being _render()). So render synchronously to update the
-            # scene, schedule the repaint, then flush it: without the flush the paint
-            # is delivered whenever events happen to be processed next, which can be
-            # long after the scene has changed again.
-            getattr(plotter, "_render", plotter.render)()
-            plotter.update()
-            _process_events(plotter)
+            # schedules a repaint, and it makes Plotter.render() asynchronous. This is
+            # probably fine for most cases. If you want to synchronously, i.e. wait
+            # until it has actually gone through, use Plotter._render().
+            plotter.render()
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -990,9 +988,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         _hide_testing_actor(actor)
         return actor
 
-    def _process_events(self):
+    def _process_events(self, level=0):
         for plotter in self._all_plotters:
-            _process_events(plotter)
+            _process_events(plotter, level=level + 1)
 
     def _update_picking_callback(
         self, on_mouse_move, on_button_press, on_button_release, on_pick
@@ -1067,9 +1065,12 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update_volume_rgba(self, grid, ctable, rng):
         _update_volume_rgba(grid, ctable, rng)
 
-    def _sphere(self, center, color, radius):
+    def _sphere(self, center, color, radius, *, resolution=8):
         mesh = pyvista.Sphere(
-            radius=radius, center=center, theta_resolution=8, phi_resolution=8
+            radius=radius,
+            center=center,
+            theta_resolution=resolution,
+            phi_resolution=resolution,
         )
         actor = _add_mesh(self.plotter, mesh=mesh, color=color)
         return actor, mesh
@@ -1394,7 +1395,6 @@ def _set_3d_view(
 
     if update:
         figure.plotter.update()
-        _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
@@ -1406,7 +1406,6 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
         name="title",
     )
     figure.plotter.update()
-    _process_events(figure.plotter)
     return handle
 
 
@@ -1416,7 +1415,7 @@ def _check_3d_figure(figure):
 
 def _clear_3d_figure(figure):
     figure.plotter.clear()  # remove all actors, lights are restored on the next plot
-    _process_events(figure.plotter)
+    figure.plotter.update()
 
 
 def _close_3d_figure(figure):
@@ -1428,17 +1427,19 @@ def _close_3d_figure(figure):
     # free memory and deregister from the scraper
     plotter.deep_clean()  # remove internal references
     _ALL_PLOTTERS.pop(plotter._id_name, None)
-    _process_events(plotter)
 
 
 def _take_3d_screenshot(figure, mode="rgb", filename=None):
-    _process_events(figure.plotter)
+    # force the render to happen right now if it's an option (not available on
+    # notebooks)
+    meth = getattr(figure.plotter, "_render", figure.plotter.render)
+    meth()
     return figure.plotter.screenshot(
         transparent_background=(mode == "rgba"), filename=filename
     )
 
 
-def _process_events(plotter):
+def _process_events(plotter, level=0):
     if hasattr(plotter, "app"):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "constrained_layout")

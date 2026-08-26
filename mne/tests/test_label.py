@@ -1034,7 +1034,7 @@ def test_random_parcellation():
 
     # Parcellation
     labels = random_parcellation(
-        subject, n_parcel, hemi, subjects_dir, surface=surface, random_state=rng
+        subject, n_parcel, hemi, subjects_dir, surface=surface, rng=rng
     )
 
     # test number of labels
@@ -1216,6 +1216,14 @@ def test_select_sources():
     )
     assert label.name == "mne"
     assert label.hemi == "rh"
+
+
+def test_select_sources_rng_conflict_at_center():
+    """Test RNG spelling conflicts when random selection is inactive."""
+    with pytest.raises(TypeError, match="only one"):
+        select_sources(None, None, location="center", random_state=0, rng=1)
+    with pytest.raises(TypeError, match="only one"):
+        select_sources(None, None, location="center", random_state=None, rng=None)
 
 
 @testing.requires_testing_data

@@ -68,3 +68,10 @@ if [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
 	python -m pip install --pre --upgrade --only-binary=:all: "lxml>=7.0.0a3"
 	echo "::endgroup::"
 fi
+
+# TODO VERSION: remove once a pytest-xdist release includes the fix for the
+# loadscope scheduler deadlocking after a worker crash
+# (pytest-dev/pytest-xdist#1363)
+echo "::group::Installing pytest-xdist branch with worker-crash deadlock fix"
+python -m pip install --progress-bar off --upgrade "pytest-xdist @ git+https://github.com/larsoner/pytest-xdist@lock"
+echo "::endgroup::"
