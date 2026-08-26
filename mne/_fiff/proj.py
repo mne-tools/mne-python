@@ -561,7 +561,30 @@ class ProjMixin:
         )
         return fig
 
-    def _reconstruct_proj(self, *, projs=None, mode="accurate", origin="auto"):
+    def reconstruct_proj(self, *, projs=None, mode="accurate", origin="auto"):
+        """Apply SSP projectors and reconstruct the resulting signal in sensor space.
+
+        Operates in place.
+
+        Parameters
+        ----------
+        projs : Projection | list of Projection | None
+            The projector or projectors to apply before reconstruction. All
+            projectors must already be present in ``self.info["projs"]``. If
+            ``None``, all projectors attached to the instance are used.
+        mode : str
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used for reconstruction.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
+
+        Returns
+        -------
+        self : same type as the input data
+            The modified instance.
+        """
         from ..forward import _map_meg_or_eeg_channels
 
         if projs is None:

@@ -128,6 +128,87 @@ def _make_selection_instance(kind):
     return inst, projs
 
 
+def _get_reconstruction_evoked(raw_orig, events, picks):
+    """Get an Evoked instance for reconstruction tests."""
+    raw = raw_orig.copy()
+    raw.add_proj([], remove_existing=True)
+    epochs = Epochs(
+        raw,
+        events[:5],
+        1,
+        -0.1,
+        0.1,
+        picks=picks,
+        decim=10,
+        verbose="error",
+    )
+    epochs.info["bads"] = [epochs.ch_names[-5], epochs.ch_names[-1]]
+    epochs.info.normalize_proj()
+    return epochs.average()
+
+
+def test_reconstruct_proj(raw_orig, events):
+    """Test default and selected SSP projector reconstruction."""
+    cases = (
+        (
+            (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305),
+            (0.63, 0.65),
+            False,
+        ),
+        (np.arange(340, 360), (0.56, 0.57), True),
+        (np.arange(340, 360), (0.79, 0.81), False),
+    )
+    for picks, rlims, avg_proj in cases:
+        evoked = _get_reconstruction_evoked(raw_orig, events, picks)
+        if avg_proj:
+            evoked.set_eeg_reference(projection=True).apply_proj(verbose=False)
+        original = evoked.data.copy()
+        if not avg_proj:
+            assert_allclose(evoked.copy().reconstruct_proj().data, original)
+
+        proj = compute_proj_evoked(evoked.copy().crop(None, 0).apply_proj())
+        evoked.add_proj(proj, verbose=False)
+        projected = evoked.copy().apply_proj(verbose=False).data
+        reconstructed = evoked.copy().reconstruct_proj().data
+        norm = np.linalg.norm(original)
+        norm_proj = np.linalg.norm(projected)
+        norm_recon = np.linalg.norm(reconstructed)
+        r = np.dot(reconstructed.ravel(), original.ravel()) / (norm_recon * norm)
+        assert rlims[0] < r < rlims[1]
+        assert 1.05 * norm_proj < norm_recon
+        if not avg_proj:
+            assert norm_proj < norm * 0.9
+
+    evoked = _get_reconstruction_evoked(
+        raw_orig,
+        events,
+        (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305, 315, 316, 317, 318),
+    )
+    original = evoked.data.copy()
+    meg_proj = compute_proj_evoked(
+        evoked.copy().pick("meg"), n_grad=0, n_mag=1, n_eeg=0
+    )[0]
+    eeg_proj = compute_proj_evoked(
+        evoked.copy().pick("eeg"), n_grad=0, n_mag=0, n_eeg=1
+    )[0]
+    evoked.add_proj([meg_proj, eeg_proj], verbose=False)
+    meg_picks = pick_types(evoked.info, meg=True, eeg=False)
+    eeg_picks = pick_types(evoked.info, meg=False, eeg=True)
+    reconstructed_all = evoked.copy().reconstruct_proj().data
+    for selected, selected_picks, untouched_picks in (
+        (meg_proj, meg_picks, eeg_picks),
+        (eeg_proj, eeg_picks, meg_picks),
+    ):
+        reconstructed = evoked.copy().reconstruct_proj(projs=selected).data
+        assert_allclose(reconstructed[untouched_picks], original[untouched_picks])
+        assert_allclose(
+            reconstructed[selected_picks], reconstructed_all[selected_picks]
+        )
+        assert not np.array_equal(
+            reconstructed_all[untouched_picks], original[untouched_picks]
+        )
+
+
 @pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
 def test_apply_proj_default(kind):
     """Test that ``projs=None`` preserves legacy behavior."""

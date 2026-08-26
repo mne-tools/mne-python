@@ -2528,7 +2528,7 @@ def _plot_evoked_topomap(
     if proj is True and not evoked.proj:
         evoked.apply_proj()
     elif proj == "reconstruct":
-        evoked._reconstruct_proj()
+        evoked.reconstruct_proj()
 
     # remove compensation matrices (safe: only plotting & already made copy)
     with evoked.info._unlock():

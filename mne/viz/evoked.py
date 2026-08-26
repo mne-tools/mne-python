@@ -450,7 +450,7 @@ def _plot_evoked(
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if proj == "reconstruct":
-        evoked = evoked._reconstruct_proj()
+        evoked = evoked.reconstruct_proj()
 
     if plot_type == "butterfly":
         _plot_lines(
@@ -1961,7 +1961,7 @@ def plot_evoked_joint(
     if proj:
         evoked.apply_proj()
         if proj == "reconstruct":
-            evoked._reconstruct_proj()
+            evoked.reconstruct_proj()
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
     evoked.pick(picks, exclude=exclude)
     info = evoked.info
