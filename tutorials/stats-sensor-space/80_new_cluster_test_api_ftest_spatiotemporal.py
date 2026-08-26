@@ -304,7 +304,7 @@ cluster_result_tfr = cluster_test(
     threshold=tfr_threshold,
     tail=1,
     adjacency=tfr_adjacency,
-    seed=0,
+    rng=0,
 )
 
 # %%

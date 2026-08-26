@@ -183,7 +183,7 @@ cluster_result = cluster_test(
     tail=tail,
     adjacency=adjacency,
     n_permutations=n_permutations,
-    seed=0,
+    rng=0,
     verbose=True,
 )
 

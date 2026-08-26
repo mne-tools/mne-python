@@ -210,7 +210,7 @@ cluster_result = cluster_test(
     tail=tail,
     n_permutations=n_permutations,
     out_type="mask",
-    seed=0,
+    rng=0,
 )
 print(cluster_result.stat_name)  # "F-statistic (repeated-measures ANOVA)"
 

@@ -135,7 +135,7 @@ cluster_result = cluster_test(
     tail=0,
     n_permutations=100,
     out_type="mask",
-    seed=np.random.default_rng(seed=8675309),
+    rng=np.random.default_rng(seed=8675309),
 )
 
 # %%

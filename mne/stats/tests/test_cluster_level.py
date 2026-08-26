@@ -996,7 +996,7 @@ def test_cluster_test_one_sample():
     pytest.importorskip("formulaic")  # required for cluster_test API
     condition1_1d, _, _, _ = _get_conditions()
     df = pd.DataFrame(dict(data=[condition1_1d], group=["only"]))
-    kwargs = dict(n_permutations=100, tail=0, seed=1, buffer_size=None)
+    kwargs = dict(n_permutations=100, tail=0, rng=1, buffer_size=None)
     T_obs, clusters, cluster_pvals, H0 = permutation_cluster_1samp_test(
         condition1_1d, **kwargs
     )
@@ -1022,7 +1022,7 @@ def test_compare_old_and_new_cluster_api():
             condition=["a", "b"],
         )
     )
-    kwargs = dict(n_permutations=100, tail=1, seed=1, buffer_size=None, out_type="mask")
+    kwargs = dict(n_permutations=100, tail=1, rng=1, buffer_size=None, out_type="mask")
     F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
         [condition1_1d, condition2_1d], **kwargs
     )
@@ -1092,9 +1092,7 @@ def test_new_cluster_api(Inst):
 
     # run new clustering API
     df = pd.DataFrame(dict(data=insts, condition=conds))
-    kwargs = dict(
-        n_permutations=100, seed=42, tail=1, buffer_size=None, out_type="mask"
-    )
+    kwargs = dict(n_permutations=100, rng=42, tail=1, buffer_size=None, out_type="mask")
     result_new_api = cluster_test(df, "data~condition", **kwargs)
 
     # make sure channels are last dimension for old API
@@ -1156,7 +1154,7 @@ def test_cluster_test_rm_anova():
     kwargs = dict(
         n_permutations=100,
         tail=1,
-        seed=3,
+        rng=3,
         buffer_size=None,
         out_type="mask",
         threshold=f_thresh,
@@ -1254,7 +1252,7 @@ def test_cluster_test_plot_cluster_time_frequency():
         "data ~ condition",
         n_permutations=100,
         tail=1,
-        seed=1,
+        rng=1,
         buffer_size=None,
         out_type="indices",
     )
@@ -1293,7 +1291,7 @@ def test_cluster_test_plot_cluster_time_frequency_disjoint_clusters():
         )
     df = pd.DataFrame(rows)
     result = cluster_test(
-        df, "data ~ group", n_permutations=100, tail=0, seed=1, buffer_size=None
+        df, "data ~ group", n_permutations=100, tail=0, rng=1, buffer_size=None
     )
     signs = [np.sign(result.stat_obs[c].mean()) for c in result.clusters]
     assert 1 in signs and -1 in signs  # sanity check on the test setup itself
@@ -1413,7 +1411,7 @@ def test_cluster_test_plot_cluster_time_frequency_wrong_dim():
         "data ~ condition",
         n_permutations=100,
         tail=1,
-        seed=1,
+        rng=1,
         buffer_size=None,
         out_type="indices",
     )
