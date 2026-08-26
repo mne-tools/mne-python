@@ -862,12 +862,17 @@ def _permutation_cluster_test(
     out_type,
     check_disjoint,
     buffer_size,
+    within_subject=False,
 ):
     """Aux Function.
 
     Note. X is required to be a list. Depending on the length of X
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
+
+    ``within_subject=True`` restricts multi-group permutations to swapping each
+    subject's observations across the groups (repeated-measures designs); rows
+    of each element of X must then be aligned by subject.
     """
     _check_option("out_type", out_type, ["mask", "indices"])
     _check_option("tail", tail, [-1, 0, 1])
@@ -1007,7 +1012,28 @@ def _permutation_cluster_test(
         n_samples_per_condition = [x.shape[0] for x in X]
         splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
         slices = [slice(splits_idx[k], splits_idx[k + 1]) for k in range(len(X))]
-        orders = [rng.permutation(len(X_full)) for _ in range(n_permutations - 1)]
+        if within_subject:
+            # Repeated-measures design: permute each subject's observations
+            # only across the conditions (cells), never across subjects -- the
+            # exchangeability assumption for repeated measures (FieldTrip's
+            # depsamples* statistics permute the same way).
+            n_cells, n_subjects = len(X), len(X[0])
+            assert all(len(x) == n_subjects for x in X)  # checked by callers
+            # a random permutation of the cells per (permutation, subject)
+            cell_orders = np.argsort(
+                rng.uniform(size=(n_permutations - 1, n_subjects, n_cells)), axis=-1
+            )
+            # the row index of (cell j, subject s) in X_full is
+            # j * n_subjects + s, so position (j, s) draws from row
+            # (cell_orders[:, s, j], s):
+            orders = list(
+                (
+                    cell_orders.transpose(0, 2, 1) * n_subjects
+                    + np.arange(n_subjects)[np.newaxis, np.newaxis]
+                ).reshape(n_permutations - 1, -1)
+            )
+        else:
+            orders = [rng.permutation(len(X_full)) for _ in range(n_permutations - 1)]
     del rng
     parallel, my_do_perm_func, n_jobs = parallel_func(
         do_perm_func, n_jobs, verbose=False
@@ -1793,6 +1819,19 @@ def _validate_cluster_df(df: DataFrame, dv_name: str, iv_names: list[str]):
     return is_epo, is_tfr, is_arr
 
 
+# TODO: design/analysis features FieldTrip's cluster stats support that
+# cluster_test does not (yet):
+# - continuous predictors / regression & correlation designs
+#   (ft_statfun_indepsamplesregrT, _depsamplesregrT, _correlationT); the
+#   formula right-hand side currently must be categorical
+# - multivariate within-subject F across conditions
+#   (ft_statfun_depsamplesFmultivariate)
+# - activation-versus-baseline tests (ft_statfun_actvsblT)
+# - control variables / stratified or blocked resampling (cfg.cvar, cfg.wvar)
+# - requiring a minimum number of neighboring channels for cluster membership
+#   (cfg.minnbchan)
+# - the weighted cluster mass statistic (cfg.clusterstatistic='wcm');
+#   ``t_power`` covers maxsum (t_power=1) and maxsize (t_power=0) only
 @verbose
 def cluster_test(
     df: DataFrame,
@@ -1812,7 +1851,7 @@ def cluster_test(
     t_power: float = 1.0,
     check_disjoint: bool = False,
     out_type: Literal["indices", "mask"] = "indices",
-    rng: None | int | np.random.RandomState = None,
+    rng: None | int | np.random.Generator | np.random.RandomState = None,
     buffer_size: int | None = None,
     n_jobs: int = 1,
     verbose=None,
@@ -1835,16 +1874,17 @@ def cluster_test(
         Name of column in ``df`` to use in identifying within-group contrasts.
 
         - If ``within_id`` is not ``None``:
-            ``within_id`` must match a column name in ``df``, e.g. ``"subject_index"``,
-            and a paired t-test will be performed against zero
-            (using :func:`mne.stats.ttest_1samp_no_p`). If the independent
+            ``within_id`` must match a column name in ``df``, e.g. ``"subject_index"``
+            (a name not in ``df.columns`` will result in an error). If the independent
             variable has 1 level per participant, the data will be treated as
-            already subtracted (e.g., condition A - condition B). If the independent
+            already subtracted (e.g., condition A - condition B) and a paired t-test
+            against zero will be performed (using
+            :func:`mne.stats.ttest_1samp_no_p`). If the independent
             variable has 2 levels, the data will be subtracted for each participant
-            (e.g., condition A - condition B). Specifying as ``within_id`` a column in
-            ``df`` that has more than 2 levels
-            (i.e. ``df[within_id].nunique() > 2``), or one that is not in
-            ``df.columns``, will result in an error.
+            (e.g., condition A - condition B) first. If it has more than 2 levels,
+            a one-way repeated-measures ANOVA is performed (using
+            :func:`mne.stats.f_mway_rm`), with permutations swapping each
+            subject's observations across the levels (never across subjects).
 
         - If ``within_id`` is ``None``:
             Will perform a between-group test (using :func:`mne.stats.f_oneway`; This
@@ -1931,9 +1971,10 @@ def cluster_test(
             "replication."
         )
     # for within-subject designs, check that each subject has one observation per
-    # combination of factor(s) (2, for a simple paired test; more for an interaction)
+    # combination of factor(s) (2 for a simple paired test; more for a one-way
+    # repeated-measures ANOVA or an interaction)
     n_groups = df[factor_names].drop_duplicates().shape[0]
-    if within_id and (is_interaction or n_groups == 2):
+    if within_id and (is_interaction or n_groups >= 2):
         df = df.copy(deep=False)  # Don't mutate input dataframe row order!
         df.sort_values([*factor_names, within_id], inplace=True)
         counts = df[within_id].value_counts()
@@ -1974,6 +2015,12 @@ def cluster_test(
     elif len(X) == 1:
         kind = "within"  # single group -- e.g. already-subtracted paired data
         X = X[0]
+    elif within_id is not None and len(X) > 2:
+        # one within-subject factor with 3+ levels: one-way repeated-measures
+        # ANOVA (each subject contributes one observation per level)
+        kind = "within_rm"
+        factor_levels = [len(X)]
+        rm_effects = "A"
     elif len(X) > 2:
         kind = "between"
     elif (
@@ -2040,6 +2087,8 @@ def cluster_test(
         check_disjoint=check_disjoint,
         buffer_size=buffer_size,  # block size for chunking the data
         rng=rng,
+        # repeated-measures ANOVA: permute within subjects only
+        within_subject=kind == "within_rm",
     )
 
     return ClusterResult(

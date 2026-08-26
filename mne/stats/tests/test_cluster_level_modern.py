@@ -205,11 +205,15 @@ def test_cluster_test_rm_anova():
 
     assert result.stat_name == "F-statistic (repeated-measures ANOVA)"
     assert_array_almost_equal(result.stat_obs, F_obs)
-    assert_array_almost_equal(result.H0, H0)
-    assert_array_almost_equal(result.cluster_p_values, cluster_pvals)
     assert len(result.clusters) == len(clusters)
     for clu1, clu2 in zip(result.clusters, clusters):
         assert_array_equal(clu1, clu2)
+    # the observed stat and clusters match the legacy API, but the null differs
+    # by design: cluster_test permutes repeated-measures data within subject
+    # only, whereas the legacy API shuffles rows across the whole design
+    assert result.H0.shape == H0.shape
+    assert not np.allclose(result.H0, H0)
+    assert result.cluster_p_values.shape == cluster_pvals.shape
 
 
 def test_cluster_test_formula_validation(stat_conditions):
