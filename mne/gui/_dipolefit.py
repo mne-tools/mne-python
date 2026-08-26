@@ -359,10 +359,10 @@ class DipoleFitUI:
         r = self._renderer
 
         # Toggle buttons for various meshes
-        layout = r._dock_add_group_box("Meshes")
+        layout = r._dock_add_group_box("Meshes", collapse=True)
 
         @_auto_weakref
-        def _toggle_mesh(name, show=None):
+        def _toggle_mesh(_, name, show=None):
             self.toggle_mesh(name, show=show)
 
         for actor_name in self._actors:
@@ -391,7 +391,7 @@ class DipoleFitUI:
             rng=methods,
             callback=_on_select_method,
         )
-        self._dipole_box = r._dock_add_group_box(name="Dipoles")
+        self._dipole_box = r._dock_add_group_box(name="Dipoles", collapse=False)
 
         @_auto_weakref
         def _save(fname):
@@ -434,6 +434,7 @@ class DipoleFitUI:
     def _on_time_change(self, event):
         new_time = np.clip(event.time, self._evoked.times[0], self._evoked.times[-1])
         self._current_time = new_time
+        print("gui time change to", new_time)
         if self._time_line is not None:
             self._time_line.set_xdata([new_time])
             self._renderer._mplcanvas.update_plot()
