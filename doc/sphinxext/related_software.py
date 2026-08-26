@@ -69,6 +69,260 @@ MANUAL_PACKAGES = {
     },
 }
 
+
+# 4. Add a category to each package.
+# A package can belong to more than one category.
+
+CATEGORY_ORDER = [
+    "Data I/O and interoperability",
+    "Data organization and workflows",
+    "Preprocessing and artifact correction",
+    "Oscillations and time-frequency analysis",
+    "Connectivity and interactions",
+    "Source localization and neuroimaging",
+    "Statistics, machine learning and decoding",
+    "Microstates and neural states",
+    "fNIRS, sleep and physiological signals",
+    "Visualization, GUIs and real-time analysis",
+    "Other",
+]
+
+PACKAGE_CATEGORIES = {
+    # Data I/O and interoperability
+    # -------------------------------------------------------------------------
+    "antio": ["Data I/O and interoperability",],
+    "curryreader": ["Data I/O and interoperability",],
+    "edfio": ["Data I/O and interoperability",],
+    "eeg_positions": [
+        "Data I/O and interoperability",
+    ],
+    "eeglabio": [
+        "Data I/O and interoperability",
+    ],
+    "mffpy": [
+        "Data I/O and interoperability",
+    ],
+    "neo": [
+        "Data I/O and interoperability",
+    ],
+    "pybv": [
+        "Data I/O and interoperability",
+    ],
+    "pybvrf": [
+        "Data I/O and interoperability",
+    ],
+    "snirf": [
+        "Data I/O and interoperability",
+        "fNIRS, sleep and physiological signals",
+    ],
+    "wfdb": [
+        "Data I/O and interoperability",
+        "fNIRS, sleep and physiological signals",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Data organization and workflows
+    # -------------------------------------------------------------------------
+    "hedtools": [
+        "Data organization and workflows",
+    ],
+    "mne-bids": [
+        "Data organization and workflows",
+    ],
+    "mne-bids-pipeline": [
+        "Data organization and workflows",
+    ],
+    "mne-hcp": [
+        "Data organization and workflows",
+        "Source localization and neuroimaging",
+    ],
+    "openneuro-py": [
+        "Data organization and workflows",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Preprocessing and artifact correction
+    # -------------------------------------------------------------------------
+    "autoreject": [
+        "Preprocessing and artifact correction",
+    ],
+    "meegkit": [
+        "Preprocessing and artifact correction",
+    ],
+    "mne-denoise": [
+        "Preprocessing and artifact correction",
+    ],
+    "mne-faster": [
+        "Preprocessing and artifact correction",
+    ],
+    "mne-icalabel": [
+        "Preprocessing and artifact correction",
+    ],
+    "pyprep": [
+        "Preprocessing and artifact correction",
+    ],
+    "python-picard": [
+        "Preprocessing and artifact correction",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Oscillations and time-frequency analysis
+    # -------------------------------------------------------------------------
+    "bycycle": [
+        "Oscillations and time-frequency analysis",
+    ],
+    "emd": [
+        "Oscillations and time-frequency analysis",
+    ],
+    "fooof": [
+        "Oscillations and time-frequency analysis",
+    ],
+    "neurodsp": [
+        "Oscillations and time-frequency analysis",
+    ],
+    "nitime": [
+        "Oscillations and time-frequency analysis",
+    ],
+    "pactools": [
+        "Oscillations and time-frequency analysis",
+        "Connectivity and interactions",
+    ],
+    "pybispectra": [
+        "Oscillations and time-frequency analysis",
+        "Connectivity and interactions",
+    ],
+    "tensorpac": [
+        "Oscillations and time-frequency analysis",
+        "Connectivity and interactions",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Connectivity and interactions
+    # -------------------------------------------------------------------------
+    "conpy": [
+        "Connectivity and interactions",
+    ],
+    "mne-connectivity": [
+        "Connectivity and interactions",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Source localization and neuroimaging
+    # -------------------------------------------------------------------------
+    "best-python": [
+        "Source localization and neuroimaging",
+    ],
+    "dcm2niix": [
+        "Source localization and neuroimaging",
+    ],
+    "dipy": [
+        "Source localization and neuroimaging",
+    ],
+    "openmeeg": [
+        "Source localization and neuroimaging",
+    ],
+    "sesameeg": [
+        "Source localization and neuroimaging",
+    ],
+    "surfa": [
+        "Source localization and neuroimaging",
+    ],
+    "nilearn": [
+        "Source localization and neuroimaging",
+        "Statistics, machine learning and decoding",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Statistics, machine learning and decoding
+    # -------------------------------------------------------------------------
+    "alphacsc": [
+        "Statistics, machine learning and decoding",
+    ],
+    "cross-domain-saliency-maps": [
+        "Statistics, machine learning and decoding",
+    ],
+    "eelbrain": [
+        "Statistics, machine learning and decoding",
+    ],
+    "mne-ari": [
+        "Statistics, machine learning and decoding",
+    ],
+    "mne-features": [
+        "Statistics, machine learning and decoding",
+    ],
+    "mne-rsa": [
+        "Statistics, machine learning and decoding",
+    ],
+    "niseq": [
+        "Statistics, machine learning and decoding",
+    ],
+    "posthoc": [
+        "Statistics, machine learning and decoding",
+    ],
+    "pyriemann": [
+        "Statistics, machine learning and decoding",
+    ],
+    "rsatoolbox": [
+        "Statistics, machine learning and decoding",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Microstates and neural states
+    # -------------------------------------------------------------------------
+    "mne-microstates": [
+        "Microstates and neural states",
+    ],
+    "pycrostates": [
+        "Microstates and neural states",
+    ],
+
+    # -------------------------------------------------------------------------
+    # fNIRS, sleep and physiological signals
+    # -------------------------------------------------------------------------
+    "mne-nirs": [
+        "fNIRS, sleep and physiological signals",
+    ],
+    "neurokit2": [
+        "fNIRS, sleep and physiological signals",
+        "Preprocessing and artifact correction",
+    ],
+    "sleepecg": [
+        "fNIRS, sleep and physiological signals",
+    ],
+    "yasa": [
+        "fNIRS, sleep and physiological signals",
+    ],
+
+    # -------------------------------------------------------------------------
+    # Visualization, GUIs and real-time analysis
+    # -------------------------------------------------------------------------
+    "fsleyes": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "meggie": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "mne-gui-addons": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "mne-kit-gui": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "mne-lsl": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "mne-qt-browser": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "mne-videobrowser": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+    "mnelab": [
+        "Visualization, GUIs and real-time analysis",
+    ],
+}
+
+
 REQUIRE_INSTALLED = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
 REQUIRE_INSTALLED = REQUIRE_INSTALLED in ("true", "1")
 REQUIRE_METADATA = REQUIRE_INSTALLED
@@ -187,7 +441,46 @@ def _get_packages() -> dict[str, str]:
 
     return out
 
+def _get_categorized_packages(packages):
+    """Group packages by category while preserving package alphabetical order."""
+    categorized = {category: [] for category in CATEGORY_ORDER}
 
+    for package in sorted(packages, key=lambda x: x.lower()):
+        categories = PACKAGE_CATEGORIES.get(package)
+
+        if categories is None:
+            categories = ["Other"]
+
+        for category in categories:
+            if category not in CATEGORY_ORDER:
+                raise ExtensionError(
+                    f"{package}: unknown related software category "
+                    f"{repr(category)}"
+                )
+
+            categorized[category].append(package)
+
+    # Don't render empty categories.
+    return {
+        category: package_list
+        for category, package_list in categorized.items()
+        if package_list
+    }
+
+def _validate_package_categories(packages):
+    """Validate that package categorization is complete and consistent."""
+    unknown_packages = set(PACKAGE_CATEGORIES) - set(packages)
+
+    if unknown_packages:
+        raise ExtensionError(
+            "Related software categories contain packages that are not "
+            "in the related software list:\n"
+            + "\n".join(
+                f"- {package}"
+                for package in sorted(unknown_packages)
+            )
+        )
+    
 class RelatedSoftwareDirective(Directive):
     """Create a directive that inserts a bullet list of related software."""
 
@@ -210,6 +503,49 @@ class RelatedSoftwareDirective(Directive):
             item += para
             my_list.append(item)
         return [my_list]
+
+def run(self):
+        """Run the directive."""
+        packages = _get_packages()
+        _validate_package_categories(packages)
+        categorized_packages = _get_categorized_packages(packages)
+        content = []
+
+        for category, package_list in categorized_packages.items():
+            # Category heading
+            section_title = nodes.title(text=category)
+            content.append(section_title)
+
+            # Package list
+            my_list = nodes.bullet_list(bullet="*")
+
+            for package in package_list:
+                data = packages[package]
+                item = nodes.list_item()
+
+                if "description" not in data:
+                    para = nodes.paragraph(text=package)
+                else:
+                    para = nodes.paragraph(
+                        text=f": {data['description']}"
+                    )
+
+                    refnode = nodes.reference(
+                        "url",
+                        package,
+                        internal=False,
+                        refuri=data["url"],
+                    )
+
+                    para.insert(0, refnode)
+
+                item += para
+                my_list.append(item)
+
+            content.append(my_list)
+
+        return content
+
 
 
 def setup(app):  # noqa: D103
