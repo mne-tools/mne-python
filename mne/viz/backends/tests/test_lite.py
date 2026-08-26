@@ -22,6 +22,16 @@ _RR = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=float)
 _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 
+def _drawn(renderer):
+    """Return the geometry of the mesh the renderer drew last.
+
+    sphere() and the other instanced_mesh callers hand back the instance cloud
+    rather than the drawn geometry, matching _PyVistaRenderer, so read what
+    actually reached the plotter instead of the return value.
+    """
+    return renderer.plotter.actors[-1]["mesh"]
+
+
 def test_is_a_registered_backend(renderer_lite):
     """``set_3d_backend("jupyterlite_notebook")`` must hand out this renderer."""
     assert renderer_lite.get_3d_backend() == "jupyterlite_notebook"
@@ -159,8 +169,8 @@ def test_draws_every_primitive(renderer_lite):
     assert_allclose(np.asarray(mesh.points), _RR, atol=1e-6)
 
     # scale 0.1 means radius 0.05, centered where it was asked for
-    _, mesh = r.sphere(np.array([[1.0, 0, 0]]), "green", 0.1)
-    points = np.asarray(mesh.points)
+    r.sphere(np.array([[1.0, 0, 0]]), "green", 0.1)
+    points = np.asarray(_drawn(r).points)
     assert_allclose(points.mean(axis=0), [1, 0, 0], atol=1e-6)
     assert np.linalg.norm(points - [1, 0, 0], axis=1).max() == pytest.approx(0.05)
 
@@ -264,11 +274,13 @@ def test_sphere_radius_matches_pyvista(renderer_lite):
     and no caller in ``_3d.py`` passes ``radius`` to say otherwise.
     """
     r = renderer_lite._get_renderer(size=(200, 200))
-    _, mesh = r.sphere(np.zeros((1, 3)), "red", 0.01)
-    assert np.linalg.norm(np.asarray(mesh.points), axis=1).max() == pytest.approx(0.005)
+    r.sphere(np.zeros((1, 3)), "red", 0.01)
+    drawn = np.asarray(_drawn(r).points)
+    assert np.linalg.norm(drawn, axis=1).max() == pytest.approx(0.005)
     # an explicit radius is used as-is, again matching _pyvista.py
-    _, mesh = r.sphere(np.zeros((1, 3)), "red", 1.0, radius=0.02)
-    assert np.linalg.norm(np.asarray(mesh.points), axis=1).max() == pytest.approx(0.02)
+    r.sphere(np.zeros((1, 3)), "red", 1.0, radius=0.02)
+    drawn = np.asarray(_drawn(r).points)
+    assert np.linalg.norm(drawn, axis=1).max() == pytest.approx(0.02)
 
 
 def test_cylinder_center_is_turned_with_the_axis(renderer_lite):
@@ -290,31 +302,56 @@ def test_cylinder_center_is_turned_with_the_axis(renderer_lite):
 def test_instances_are_merged_per_color(renderer_lite):
     """``instanced_mesh`` draws one actor per distinct color, not one per instance.
 
-    One color hands back ``(actor, mesh)``, the way ``_PyVistaRenderer`` always
-    does; several hand back both lists, since vtk.js cannot color per instance
-    inside a single actor.
+    vtk.js cannot color per instance inside a single actor, so one color gives
+    one actor and several give the list of them. The second return value is the
+    instance cloud either way, matching ``_PyVistaRenderer``.
     """
     quats = np.tile([1.0, 0, 0, 0], (3, 1))
-    positions = np.zeros((3, 3))
+    positions = np.array([[0.0, 0, 0], [1.0, 0, 0], [2.0, 0, 0]])
 
-    # one color: a single actor, and the pair _PyVistaRenderer also hands back
+    # one color: a single actor
     r = renderer_lite._get_renderer(size=(200, 200))
     colors = np.tile([1.0, 0, 0], (3, 1))
-    actor, mesh = r.instanced_mesh(_RR, _TRIS, positions, quats, colors=colors)
+    actor, cloud = r.instanced_mesh(_RR, _TRIS, positions, quats, colors=colors)
     assert len(r.plotter.actors) == 1
-    assert not isinstance(actor, list) and not isinstance(mesh, list)
+    assert not isinstance(actor, list)
+    assert_allclose(np.asarray(cloud.points), positions, atol=1e-6)
 
-    # two colors: one actor each, and both lists come back
+    # two colors: one actor each, and the cloud is still a single object
     r = renderer_lite._get_renderer(size=(200, 200))
     colors = np.array([[1.0, 0, 0], [0, 1.0, 0], [1.0, 0, 0]])
-    actors, meshes = r.instanced_mesh(_RR, _TRIS, positions, quats, colors=colors)
+    actors, cloud = r.instanced_mesh(_RR, _TRIS, positions, quats, colors=colors)
     assert len(r.plotter.actors) == 2
-    assert len(actors) == len(meshes) == 2
+    assert len(actors) == 2
+    assert not isinstance(cloud, list)
+    assert_allclose(np.asarray(cloud.points), positions, atol=1e-6)
 
     # sphere routes through instanced_mesh with a single color, so it has to
     # keep handing back the pair its own callers unpack
-    actor, mesh = r.sphere(np.zeros((1, 3)), "red", 0.01)
-    assert not isinstance(actor, list) and not isinstance(mesh, list)
+    actor, cloud = r.sphere(np.zeros((1, 3)), "red", 0.01)
+    assert not isinstance(actor, list) and not isinstance(cloud, list)
+
+
+def test_instance_cloud_takes_channel_names(renderer_lite):
+    """mne/viz/_3d.py writes channel names onto the cloud (gh-13074).
+
+    _PyVistaRenderer hands back a PolyData whose ``field_data`` takes them; a
+    pyvista-js PolyData has no such attribute, so the renderer supplies one.
+    An empty ``positions`` must still give a cloud, since the caller assigns
+    without checking.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    positions = np.array([[0.0, 0, 0], [1.0, 0, 0]])
+    _, cloud = r.instanced_mesh(_RR, _TRIS, positions, colors=(1.0, 0, 0))
+    # one cloud point per instance, in order: _3d.py indexes the names against
+    # them, so a cloud that did not carry the positions would mislabel sensors
+    assert_allclose(np.asarray(cloud.points), positions, atol=1e-6)
+    cloud.field_data["ch_names"] = np.array(["MEG 0113", "MEG 0112"], dtype="U")
+    assert list(cloud.field_data["ch_names"]) == ["MEG 0113", "MEG 0112"]
+
+    actor, cloud = r.instanced_mesh(_RR, _TRIS, np.zeros((0, 3)))
+    assert actor is None
+    cloud.field_data["ch_names"] = np.array([], dtype="U")  # must not raise
 
 
 def test_draws_into_an_existing_figure(renderer_lite):

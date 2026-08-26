@@ -156,6 +156,22 @@ def _lite_get_view(plotter):
 _lite_live_plotters = []
 
 
+def _lite_instance_cloud(positions):
+    """Return the per-instance point cloud ``instanced_mesh`` hands back.
+
+    ``_PyVistaRenderer`` glyphs its template over a ``PolyData`` of the instance
+    positions and returns that object, and :mod:`mne.viz._3d` hangs channel
+    names off its ``field_data`` (gh-13074). vtk.js has no equivalent, and a
+    pyvista-js ``PolyData`` carries no ``field_data`` of its own, so build the
+    same cloud here and give it the mapping. Nothing in the browser reads it
+    back: the one reader is the dipole-fit GUI, which needs a picker vtk.js
+    does not provide.
+    """
+    cloud = pv.PolyData(points=np.asarray(positions, dtype=float).reshape(-1, 3))
+    cloud.field_data = dict()
+    return cloud
+
+
 def _lite_release_plotter(plotter):
     """Hand back a plotter's meshes, JS arrays and GPU buffers.
 
@@ -628,14 +644,18 @@ class _LiteRenderer(_AbstractRenderer):
         cylinders) point the way MNE intended rather than all along +x.
         pyvista-js has no per-vertex color, so instances are grouped by the
         color they asked for and each group becomes one mesh -- a handful of
-        actors for a sensor array instead of one per sensor. That means one
-        distinct color returns ``(actor, mesh)`` like ``_PyVistaRenderer``
-        does, and several return the lists of both.
+        actors for a sensor array instead of one per sensor. One distinct color
+        hands back that single actor, several hand back the list of them.
+
+        The second return value is the per-instance point cloud, always one
+        object whatever the colors did, because that is what
+        ``_PyVistaRenderer`` returns and what mne/viz/_3d.py writes channel
+        names onto.
         """
         positions = np.atleast_2d(np.asarray(positions, dtype=float))[:, :3]
         n_pos = len(positions)
         if not n_pos:
-            return None, None
+            return None, _lite_instance_cloud(positions)
         rots = None
         if quats is not None:
             rots = np.asarray(
@@ -651,7 +671,9 @@ class _LiteRenderer(_AbstractRenderer):
             groups = [(uniq[k], idx[inverse == k]) for k in range(len(uniq))]
         else:
             groups = [(colors, idx)]
-        actors, meshes = list(), list()
+        # only the actors are collected: _add already registers each mesh with
+        # the plotter, and the object callers want back is the instance cloud
+        actors = list()
         for color, sel in groups:
             group_scales = None
             if scales is not None:
@@ -661,15 +683,15 @@ class _LiteRenderer(_AbstractRenderer):
             points, faces = self._tile(
                 rr, tris, positions[sel], scales=group_scales, rots=group_rots
             )
-            actor, mesh = self._add(points, faces, color, opacity)
+            actor, _ = self._add(points, faces, color, opacity)
             actors.append(actor)
-            meshes.append(mesh)
         # one group is the common case and matches _PyVistaRenderer, which
-        # colors per instance inside a single actor; hand back the pair then,
-        # and the whole set when the colors had to be split across meshes
+        # colors per instance inside a single actor; hand that actor back on
+        # its own, and the whole set when the colors had to be split
+        cloud = _lite_instance_cloud(positions)
         if len(actors) == 1:
-            return actors[0], meshes[0]
-        return actors, meshes
+            return actors[0], cloud
+        return actors, cloud
 
     def text2d(
         self,
