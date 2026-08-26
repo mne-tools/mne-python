@@ -1430,7 +1430,10 @@ def _close_3d_figure(figure):
 
 
 def _take_3d_screenshot(figure, mode="rgb", filename=None):
-    figure.plotter._render()  # force the render to happen right now
+    # force the render to happen right now if it's an option (not available on
+    # notebooks)
+    meth = getattr(figure.plotter, "_render", figure.plotter.render)
+    meth()
     return figure.plotter.screenshot(
         transparent_background=(mode == "rgba"), filename=filename
     )
