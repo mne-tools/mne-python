@@ -17,8 +17,8 @@ shows where a decodable temporal pattern transfers across the sensor array.
 For epochs with shape ``trials x sensors x time``, temporal generalization uses
 time as the iteration axis and sensors as features. GAL reverses those roles: sensor
 locations are the iteration dimension and time samples are features. Both analyses use
-:class:`mne.decoding.GeneralizingEstimator`. Importantly, such function uses by the default 
-the last dimension (time) as iteration dimension. To change this behavior, here we set the parameter axis = 1 (sensors) to 
+:class:`mne.decoding.GeneralizingEstimator`. Importantly, such function uses by the default
+the last dimension (time) as iteration dimension. To change this behavior, here we set the parameter axis = 1 (sensors) to
 iterate in such dimension.
 
 This tutorial uses the N170 face-perception task from the ERP CORE dataset. We
