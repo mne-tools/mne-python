@@ -2585,10 +2585,16 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
     """Instantiate a new line figure."""
     from matplotlib.axes import Axes
 
+    from ..dipole import DipoleFixed
+
     # if picks is None, only show data channels
     allowed_ch_types = _DATA_CH_TYPES_SPLIT if picks is None else _VALID_CHANNEL_TYPES
     # figure out expected number of axes
-    ch_types = np.array(inst.get_channel_types())
+    # DipoleFixed has no get_channel_types() of its own (no ContainsMixin)
+    if isinstance(inst, DipoleFixed):
+        ch_types = np.array(inst.info.get_channel_types())
+    else:
+        ch_types = np.array(inst.get_channel_types())
     if picks is not None:
         ch_types = ch_types[picks]
     n_axes = len(np.intersect1d(ch_types, allowed_ch_types))
