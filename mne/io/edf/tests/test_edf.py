@@ -4,6 +4,8 @@
 
 import datetime
 import gc
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO
@@ -67,6 +69,234 @@ eog = ["REOG", "LEOG", "IEOG"]
 misc = ["EXG1", "EXG5", "EXG8", "M1", "M2"]
 
 
+def _repeat_edf_records(source, destination, n_records=6):
+    """Repeat a one-record EDF payload for boundary tests."""
+    blob = bytearray(source.read_bytes())
+    header_nbytes = int(blob[184:192])
+    assert int(blob[236:244]) == 1
+    blob[236:244] = f"{n_records:<8}".encode("ascii")
+    destination.write_bytes(blob[:header_nbytes] + blob[header_nbytes:] * n_records)
+
+
+def _disable_uniform_stride(*args, **kwargs):
+    return False
+
+
+def _get_data_window(raw, limits):
+    return raw.get_data(start=limits[0], stop=limits[1])
+
+
+class _StrideRecorder:
+    def __init__(self, helper):
+        self.helper = helper
+        self.results = []
+
+    def __call__(self, *args, **kwargs):
+        result = self.helper(*args, **kwargs)
+        self.results.append(result)
+        return result
+
+
+def _assert_uniform_stride_matches(monkeypatch, raw, picks, start, stop):
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
+    want = raw.get_data(picks=picks, start=start, stop=stop)
+    recorder = _StrideRecorder(helper)
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", recorder)
+    got = raw.get_data(picks=picks, start=start, stop=stop)
+    assert recorder.results == [True]
+    assert_array_equal(got, want)
+    return want
+
+
+@pytest.mark.parametrize("pick_kind", ("all", "subset", "reversed", "permuted"))
+@pytest.mark.parametrize("window_kind", ("within", "boundary", "multiple"))
+def test_uniform_stride_decode(pick_kind, window_kind, monkeypatch, tmp_path):
+    """Test exact uniform EDF stride decoding across picks and boundaries."""
+    repeated = tmp_path / "uniform.edf"
+    _repeat_edf_records(edf_stim_channel_path, repeated)
+    raw = read_raw_edf(repeated, stim_channel=-1, preload=False, verbose="error")
+    n_channels = len(raw.ch_names)
+    buffer_length = int(raw._raw_extras[0]["max_samp"])
+    picks = {
+        "all": np.arange(n_channels),
+        "subset": np.array([0, n_channels // 2, n_channels - 1]),
+        "reversed": np.arange(n_channels - 1, -1, -1),
+        "permuted": np.array([n_channels - 1, 1, n_channels // 2, 0]),
+    }[pick_kind]
+    start, stop = {
+        "within": (7, buffer_length - 5),
+        "boundary": (buffer_length - 7, buffer_length + 11),
+        "multiple": (buffer_length // 2, 4 * buffer_length + 13),
+    }[window_kind]
+    _assert_uniform_stride_matches(monkeypatch, raw, picks, start, stop)
+
+
+def test_uniform_stride_calibration_and_stim(monkeypatch):
+    """Test exact Raw calibration and stim masking on the stride path."""
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=False, verbose="error"
+    )
+    picks = np.array([0, 12, len(raw.ch_names) - 1])
+    raw._cals[picks] *= np.array([0.5, 2.0, 4.0])
+    want = _assert_uniform_stride_matches(monkeypatch, raw, picks, 100, 900)
+    stim = want[-1] / raw._cals[picks[-1]]
+    assert_array_equal(stim, np.bitwise_and(stim.astype(int), 2**17 - 1))
+
+
+@pytest.mark.parametrize("pick_kind", ("all", "subset", "reversed"))
+def test_uniform_stride_direct_calibration(pick_kind, monkeypatch, tmp_path):
+    """Test exact direct calibration for a single-record window."""
+    repeated = tmp_path / "uniform.edf"
+    _repeat_edf_records(edf_stim_channel_path, repeated)
+    raw = read_raw_edf(repeated, stim_channel=None, preload=False, verbose="error")
+    n_channels = len(raw.ch_names)
+    picks = {
+        "all": np.arange(n_channels),
+        "subset": np.array([0, n_channels // 2, n_channels - 1]),
+        "reversed": np.arange(n_channels - 1, -1, -1),
+    }[pick_kind]
+    raw._cals[picks] *= np.linspace(0.5, 2.0, len(picks))
+    buffer_length = int(raw._raw_extras[0]["max_samp"])
+    _assert_uniform_stride_matches(monkeypatch, raw, picks, 7, buffer_length - 5)
+
+
+@pytest.mark.parametrize("calibration", (1.0, 2.0))
+def test_uniform_stride_full_single_record_uses_buffer(monkeypatch, calibration):
+    """Test full single records retain buffered calibration."""
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=None, preload=False, verbose="error"
+    )
+    raw._cals *= calibration
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
+    want = raw.get_data()
+    calibration = _StrideRecorder(edf.edf._calibrate_uniform_edf)
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", helper)
+    monkeypatch.setattr(edf.edf, "_calibrate_uniform_edf", calibration)
+    got = raw.get_data()
+    assert calibration.results == []
+    assert_array_equal(got.view(np.uint64), want.view(np.uint64))
+
+
+@pytest.mark.parametrize(
+    "reader, source, extension",
+    ((read_raw_edf, edf_stim_channel_path, "edf"), (read_raw_bdf, bdf_path, "bdf")),
+    ids=("edf", "bdf"),
+)
+def test_uniform_stride_aligned_memmap_direct_output(
+    monkeypatch, tmp_path, reader, source, extension
+):
+    """Test an aligned full-record preload needs no float work buffer."""
+    repeated = tmp_path / f"uniform.{extension}"
+    _repeat_edf_records(source, repeated)
+    raw = reader(repeated, stim_channel=None, preload=False, verbose="error")
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
+    want = raw.get_data()
+
+    recorder = _StrideRecorder(helper)
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", recorder)
+    monkeypatch.setattr(edf.edf, "_EDF_STRIDE_MAX_EXTRA_BYTES", 0)
+    mmap_path = tmp_path / "uniform.dat"
+    got = reader(
+        repeated,
+        stim_channel=None,
+        preload=mmap_path,
+        verbose="error",
+    )
+    assert recorder.results == [True]
+    assert isinstance(got._data, np.memmap)
+    assert Path(got._data.filename) == mmap_path
+    assert_array_equal(got._data.view(np.uint64), want.view(np.uint64))
+    got._data._mmap.close()
+    got._data = None
+
+
+def test_uniform_calibration_identity_cals_bit_exact():
+    """Test omitting identity output calibrations preserves every bit."""
+    source = np.array(
+        [[np.iinfo(np.int16).min, -1, 0], [1, 17, np.iinfo(np.int16).max]],
+        dtype=np.int16,
+    )
+    cal = np.array([0.125, 0.3])
+    offsets = np.array([-0.0, 1.1])
+    gains = np.array([1e-6, -2.5])
+    want = np.empty(source.shape, dtype=np.float64)
+    np.multiply(source, cal[:, np.newaxis], out=want)
+    want += offsets[:, np.newaxis]
+    want *= gains[:, np.newaxis]
+    want *= np.ones((len(source), 1))
+    got = np.empty_like(want)
+    edf.edf._calibrate_uniform_edf(got, source, cal, offsets, gains, None)
+    assert_array_equal(got.view(np.uint64), want.view(np.uint64))
+
+
+@pytest.mark.parametrize("pick_kind", ("all", "subset", "reversed", "permuted"))
+@pytest.mark.parametrize("window_kind", ("within", "boundary", "multiple"))
+def test_uniform_stride_bdf(pick_kind, window_kind, monkeypatch, tmp_path):
+    """Test exact BDF stride decoding across picks and record boundaries."""
+    repeated = tmp_path / "uniform.bdf"
+    _repeat_edf_records(bdf_path, repeated)
+    raw = read_raw_bdf(repeated, preload=False, verbose="error")
+    n_channels = len(raw.ch_names)
+    buffer_length = int(raw._raw_extras[0]["max_samp"])
+    picks = {
+        "all": np.arange(n_channels),
+        "subset": np.array([0, n_channels // 2, n_channels - 1]),
+        "reversed": np.arange(n_channels - 1, -1, -1),
+        "permuted": np.array([n_channels - 1, 1, n_channels // 2, 0]),
+    }[pick_kind]
+    start, stop = {
+        "within": (7, buffer_length - 5),
+        "boundary": (buffer_length - 7, buffer_length + 11),
+        "multiple": (buffer_length // 2, 4 * buffer_length + 13),
+    }[window_kind]
+    _assert_uniform_stride_matches(monkeypatch, raw, picks, start, stop)
+
+
+@pytest.mark.parametrize("fallback_kind", ("mixed_rate", "tal", "projection", "memory"))
+def test_uniform_stride_edf_falls_back(fallback_kind, monkeypatch):
+    """Test EDF layouts requiring special handling retain legacy behavior."""
+    path = {
+        "mixed_rate": edf_uneven_path,
+        "tal": edf_path,
+        "projection": edf_stim_channel_path,
+        "memory": edf_stim_channel_path,
+    }[fallback_kind]
+    raw = read_raw_edf(path, preload=False, verbose="error")
+    if fallback_kind == "projection":
+        raw.set_eeg_reference(projection=True, verbose="error").apply_proj(
+            verbose="error"
+        )
+    elif fallback_kind == "memory":
+        monkeypatch.setattr(edf.edf, "_EDF_STRIDE_MAX_EXTRA_BYTES", 0)
+    picks = np.array([0])
+    helper = edf.edf._read_uniform_segment
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
+    want = raw.get_data(picks=picks, start=100, stop=900)
+    recorder = _StrideRecorder(helper)
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", recorder)
+    got = raw.get_data(picks=picks, start=100, stop=900)
+    assert recorder.results == [False]
+    assert_array_equal(got, want)
+
+
+def test_uniform_stride_concurrent(monkeypatch, tmp_path):
+    """Test concurrent stride reads do not share seekable file state."""
+    repeated = tmp_path / "concurrent.edf"
+    _repeat_edf_records(edf_stim_channel_path, repeated)
+    raw = read_raw_edf(repeated, stim_channel=-1, preload=False, verbose="error")
+    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
+    reference = raw.get_data()
+    monkeypatch.undo()
+    windows = [(start, start + 64) for start in range(0, raw.n_times - 64, 31)]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        got = list(pool.map(partial(_get_data_window, raw), windows * 4))
+    for data, (start, stop) in zip(got, windows * 4):
+        assert_array_equal(data, reference[:, start:stop])
+
+
 def test_orig_units():
     """Test exposure of original channel units."""
     raw = read_raw_edf(edf_path, preload=True)
@@ -89,6 +319,15 @@ def test_orig_units():
     assert set(raw_back._orig_units) == set(raw.ch_names)
     raw_back.reorder_channels(raw.ch_names[::-1])
     assert set(raw_back._orig_units) == set(raw.ch_names)
+
+
+def test_uniform_edf_does_not_import_interpolation(monkeypatch):
+    """Test uniform EDF decoding does not load interpolation support."""
+    monkeypatch.setitem(sys.modules, "scipy.interpolate", None)
+    raw = read_raw_edf(
+        edf_stim_channel_path, stim_channel=-1, preload=True, verbose="error"
+    )
+    assert raw.preload
 
 
 def test_units_params():
@@ -347,6 +586,55 @@ def test_duplicate_channel_labels_edf():
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
     assert raw.ch_names == EXPECTED_CHANNEL_NAMES
+
+
+@pytest.mark.parametrize(
+    "values",
+    (
+        np.array([], dtype=np.int32),
+        np.array([-(1 << 23), -1, 0, 1, (1 << 23) - 1], dtype=np.int32),
+        np.array([-(1 << 23)], dtype=np.int32),
+        np.array([-1, 1], dtype=np.int32),
+        np.random.default_rng(42).integers(
+            -(1 << 23), 1 << 23, size=1000, dtype=np.int32
+        ),
+    ),
+)
+@pytest.mark.parametrize("file_kind", ("buffer", "disk"))
+def test_read_ch_bdf_int24(tmp_path, values, file_kind):
+    """Test exact signed 24-bit BDF decoding, including buffer boundaries."""
+    unsigned = values.astype(np.int64) & ((1 << 24) - 1)
+    packed = np.column_stack((unsigned, unsigned >> 8, unsigned >> 16)).astype(np.uint8)
+    if file_kind == "buffer":
+        fid = BytesIO(packed.tobytes())
+    else:
+        fname = tmp_path / "samples.bdf"
+        fname.write_bytes(packed.tobytes())
+        fid = fname.open("rb")
+    with fid:
+        got = _read_ch(
+            fid,
+            subtype="bdf",
+            samp=len(values),
+            dtype_byte=3,
+            dtype=np.uint8,
+        )
+    assert_array_equal(got, values)
+
+
+@pytest.mark.parametrize("missing", (1, 2))
+@pytest.mark.parametrize("file_kind", ("buffer", "disk"))
+def test_read_ch_bdf_short_read(tmp_path, missing, file_kind):
+    """Test truncated signed 24-bit BDF data raises instead of mixing bytes."""
+    data = b"\x00" * (6 - missing)
+    if file_kind == "buffer":
+        fid = BytesIO(data)
+    else:
+        fname = tmp_path / "truncated.bdf"
+        fname.write_bytes(data)
+        fid = fname.open("rb")
+    with fid, pytest.raises(RuntimeError, match="requested BDF bytes"):
+        _read_ch(fid, subtype="bdf", samp=2, dtype_byte=3, dtype=np.uint8)
 
 
 def test_parse_annotation(tmp_path):

@@ -595,11 +595,28 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     assert dtype is not None
     # BDF
     if subtype == "bdf":
-        ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
-        ch_data = ch_data.reshape(-1, 3).astype(INT32)
-        ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
-        # 24th bit determines the sign
-        ch_data[ch_data >= (1 << 23)] -= 1 << 24
+        assert dtype_byte == 3
+        expected = samp * dtype_byte
+        try:
+            raw = read_from_file_or_buffer(fid, dtype=dtype, count=expected)
+        except ValueError as err:
+            raise RuntimeError(
+                f"Could not read {expected} requested BDF bytes"
+            ) from err
+        if raw.size != expected:
+            raise RuntimeError(
+                f"Only {raw.size} of {expected} requested BDF bytes could be read"
+            )
+        ch_data = np.empty(samp, dtype=INT32)
+        packed = np.ndarray(
+            (max(samp - 1, 0),), dtype="<u4", buffer=raw, strides=(dtype_byte,)
+        )
+        np.bitwise_and(packed, (1 << 24) - 1, out=ch_data[:-1])
+        if samp:
+            ch_data[-1] = int(raw[-3]) | int(raw[-2]) << 8 | int(raw[-1]) << 16
+        # Move the sign bit to bit 31, then arithmetically extend it.
+        ch_data <<= 8
+        ch_data >>= 8
 
     # GDF data and EDF data
     else:
@@ -608,9 +625,163 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
+_EDF_STRIDE_MAX_EXTRA_BYTES = 64 * 1024**2
+
+
+def _calibrate_uniform_edf(data, source, cal, offsets, gains, cals):
+    """Calibrate uniform EDF/BDF samples directly into their output buffer."""
+    broadcast_shape = (len(data),) + (1,) * (data.ndim - 1)
+    np.multiply(source, cal.reshape(broadcast_shape), out=data, casting="unsafe")
+    data += offsets.reshape(broadcast_shape)
+    data *= gains.reshape(broadcast_shape)
+    if cals is not None:
+        data *= cals.reshape(broadcast_shape)
+
+
+def _read_uniform_segment(
+    data, idx, start, stop, raw_extras, filenames, cals, mult
+) -> bool:
+    """Read a uniformly sampled EDF/BDF segment using NumPy strides."""
+    subtype = raw_extras["subtype"]
+    if subtype not in ("edf", "bdf") or not isinstance(filenames, str | Path):
+        return False
+    if len(raw_extras.get("tal_idx", ())) != 0:
+        return False
+
+    idx_is_slice = isinstance(idx, slice)
+    if idx_is_slice and idx.step not in (None, 1):
+        return False
+    idx_arr = np.arange(idx.start, idx.stop) if idx_is_slice else np.asarray(idx)
+    if len(idx_arr) == 0 or (
+        not idx_is_slice and len(np.unique(idx_arr)) != len(idx_arr)
+    ):
+        return False
+
+    stride_layout = raw_extras.get("stride_layout")
+    if stride_layout is None or mult is not None:
+        return False
+    n_samps = raw_extras["n_samps"]
+    buf_len = int(raw_extras["max_samp"])
+    ch_offsets, n_per, sel_in_physical_order = stride_layout
+
+    dtype = raw_extras["dtype_np"]
+    dtype_byte = raw_extras["dtype_byte"]
+    data_offset = raw_extras["data_offset"]
+    stim_channel_idxs = raw_extras["stim_channel_idxs"]
+    orig_sel = raw_extras["sel"]
+    cal = raw_extras["cal"]
+    offsets = raw_extras["offsets"]
+    gains = raw_extras["units"]
+    read_sel = orig_sel[idx_arr]
+    cal = cal[idx_arr, np.newaxis, np.newaxis]
+    offsets = offsets[idx_arr, np.newaxis, np.newaxis]
+    gains = gains[idx_arr, np.newaxis, np.newaxis]
+    stim_rows = (
+        np.flatnonzero(np.isin(idx_arr, stim_channel_idxs))
+        if len(stim_channel_idxs)
+        else ()
+    )
+
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    max_records = min(len(r_lims), n_per)
+    n_values = len(idx_arr) * max_records * buf_len
+    in_physical_order = (
+        sel_in_physical_order
+        and idx_is_slice
+        and idx.start == 0
+        and idx.stop == len(n_samps)
+    )
+    direct_output = (
+        in_physical_order
+        and not len(stim_rows)
+        and len(r_lims) > 1
+        and n_per > 1
+        and r_lims[0][0] == 0
+        and r_lims[-1][1] == buf_len
+    )
+    direct_output = direct_output and bool(np.all(cals == 1.0))
+    estimated_incremental_bytes = 0
+    if not direct_output:
+        estimated_incremental_bytes += n_values * np.dtype(np.float64).itemsize
+    if not in_physical_order:
+        decoded_itemsize = np.dtype(INT32).itemsize if subtype == "bdf" else dtype_byte
+        estimated_incremental_bytes += n_values * decoded_itemsize
+    if len(stim_rows):
+        estimated_incremental_bytes += max_records * buf_len * np.dtype(int).itemsize
+    if estimated_incremental_bytes > _EDF_STRIDE_MAX_EXTRA_BYTES:
+        return False
+
+    with _gdf_edf_get_fid(filenames, buffering=0) as fid:
+        start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
+        for ai in range(0, len(r_lims), n_per):
+            block_offset = ai * ch_offsets[-1] * dtype_byte
+            n_read = min(len(r_lims) - ai, n_per)
+            fid.seek(start_offset + block_offset, 0)
+            many_chunk = _read_ch(
+                fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
+            )
+            record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
+            if in_physical_order:
+                view = record_grid.transpose(1, 0, 2)
+            else:
+                view = record_grid[:, read_sel, :].transpose(1, 0, 2)
+
+            r_sidx = r_lims[ai][0]
+            r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+            d_start = d_lims[ai][0]
+            d_stop = d_lims[ai + n_read - 1][1]
+            assert d_stop - d_start == r_eidx - r_sidx
+            if direct_output and n_read > 1:
+                assert r_sidx == 0 and r_eidx == n_read * buf_len
+                output = data[:, d_start:d_stop].reshape(view.shape)
+                assert np.shares_memory(output, data)
+                _calibrate_uniform_edf(
+                    output,
+                    view,
+                    cal,
+                    offsets,
+                    gains,
+                    None,
+                )
+                continue
+            if (
+                n_read == 1
+                and not len(stim_rows)
+                and (r_sidx != 0 or r_eidx != buf_len)
+            ):
+                _calibrate_uniform_edf(
+                    data[:, d_start:d_stop],
+                    view[:, 0, r_sidx:r_eidx],
+                    cal[:, 0, 0],
+                    offsets[:, 0, 0],
+                    gains[:, 0, 0],
+                    cals,
+                )
+                continue
+
+            one = np.empty(view.shape, dtype=np.float64)
+            np.multiply(view, cal, out=one)
+            one += offsets
+            one *= gains
+            block = one.reshape(len(idx_arr), -1)[:, r_sidx:r_eidx]
+            for row in stim_rows:
+                stim = block[row].astype(int)
+                np.bitwise_and(stim, 2**17 - 1, out=stim)
+                block[row] = stim
+            assert d_stop - d_start == block.shape[1]
+            np.multiply(
+                block,
+                cals,
+                out=data[:, d_start:d_stop],
+                casting="unsafe",
+            )
+    return True
+
+
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
-    from scipy.interpolate import interp1d
+    if _read_uniform_segment(data, idx, start, stop, raw_extras, filenames, cals, mult):
+        return []
 
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
@@ -682,6 +853,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
                 if n_samps[ci] != buf_len:
                     if orig_idx in stim_channel_idxs:
+                        from scipy.interpolate import interp1d
+
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -910,6 +1083,23 @@ def _get_info(
         edf_info["max_samp"] = max_samp = n_samps[picks].max()
     else:
         edf_info["max_samp"] = max_samp = n_samps.max()
+    all_n_samps = edf_info["n_samps"]
+    edf_info["stride_layout"] = None
+    if (
+        edf_info["subtype"] in ("edf", "bdf")
+        and len(edf_info.get("tal_idx", ())) == 0
+        and np.all(all_n_samps == max_samp)
+    ):
+        ch_offsets = np.cumsum(np.concatenate([[0], all_n_samps]), dtype=np.int64)
+        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * edf_info["dtype_byte"]), 1)
+        sel_in_physical_order = np.array_equal(
+            edf_info["sel"], np.arange(len(all_n_samps))
+        )
+        edf_info["stride_layout"] = (
+            ch_offsets,
+            n_per,
+            sel_in_physical_order,
+        )
 
     # Info structure
     # -------------------------------------------------------------------------
