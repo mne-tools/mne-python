@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -19,11 +20,12 @@ from mne.stats import (
 from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
 from mne.utils import GetEpochsMixin
 
+pd = pytest.importorskip("pandas")
+pytest.importorskip("formulaic")  # required for cluster_test API
+
 
 def test_cluster_test_one_sample(stat_conditions):
     """Test cluster_test with a single-group (1-sample) design."""
-    pd = pytest.importorskip("pandas")
-    pytest.importorskip("formulaic")  # required for cluster_test API
     condition1_1d, _, _, _ = stat_conditions
     df = pd.DataFrame(dict(data=[condition1_1d], group=["only"]))
     kwargs = dict(n_permutations=100, tail=0, rng=1, buffer_size=None)
@@ -42,9 +44,6 @@ def test_cluster_test_one_sample(stat_conditions):
 
 def test_compare_old_and_new_cluster_api(stat_conditions):
     """Test for same results from old and new APIs."""
-    pd = pytest.importorskip("pandas")
-    pytest.importorskip("formulaic")
-
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = stat_conditions
     df_1d = pd.DataFrame(
         dict(
@@ -70,9 +69,6 @@ def test_compare_old_and_new_cluster_api(stat_conditions):
 @pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
 def test_new_cluster_api(Inst):
     """Test handling different MNE objects in the cluster API."""
-    pd = pytest.importorskip("pandas")
-    pytest.importorskip("formulaic")
-
     rng = np.random.default_rng(seed=8675309)
     is_epo = GetEpochsMixin in Inst.__mro__
     is_tfr = BaseTFR in Inst.__mro__
@@ -150,8 +146,6 @@ def test_new_cluster_api(Inst):
 @pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
 def test_cluster_test_rm_anova():
     """Test the interaction-formula (repeated-measures ANOVA) branch of cluster_test."""
-    pd = pytest.importorskip("pandas")
-
     rng = np.random.default_rng(seed=0)
     n_subjects, n_channels, n_times = 8, 3, 6
     info = create_info(n_channels, sfreq=100.0, ch_types="eeg")
@@ -220,8 +214,6 @@ def test_cluster_test_rm_anova():
 
 def test_cluster_test_formula_validation(stat_conditions):
     """Test that cluster_test raises clear errors for unsupported formulas."""
-    pd = pytest.importorskip("pandas")
-
     condition1_1d, condition2_1d, _, _ = stat_conditions
     df = pd.DataFrame(dict(data=[condition1_1d, condition2_1d], a=["x", "y"]))
     df["b"] = "z"
@@ -253,11 +245,6 @@ def test_cluster_test_formula_validation(stat_conditions):
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive.*:UserWarning")
 def test_cluster_test_plot_cluster_time_frequency():
     """Test ClusterResult.plot_cluster_time_frequency."""
-    import matplotlib.pyplot as plt
-
-    pd = pytest.importorskip("pandas")
-    pytest.importorskip("formulaic")
-
     rng = np.random.default_rng(seed=0)
     n_subjects, n_channels, n_freqs, n_times = 6, 4, 3, 5
     ch_names = ["Fz", "Cz", "Pz", "Oz"]
@@ -296,10 +283,6 @@ def test_cluster_test_plot_cluster_time_frequency():
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive.*:UserWarning")
 def test_cluster_test_plot_cluster_time_frequency_disjoint_clusters():
     """cluster_idx must select between clusters, ranked by mass not p-value."""
-    import matplotlib.pyplot as plt
-
-    pd = pytest.importorskip("pandas")
-
     rng = np.random.default_rng(seed=0)
     n_subjects, n_channels, n_freqs, n_times = 10, 4, 3, 6
     ch_names = ["Fz", "Cz", "Pz", "Oz"]
@@ -431,9 +414,6 @@ def test_cluster_test_plot_cluster_time_frequency_selection():
 
 def test_cluster_test_plot_cluster_time_frequency_wrong_dim(stat_conditions):
     """Test plot_cluster_time_frequency rejects 2D (time x channel) clusters."""
-    pd = pytest.importorskip("pandas")
-    pytest.importorskip("formulaic")
-
     condition1_1d, condition2_1d, _, _ = stat_conditions
     df = pd.DataFrame(dict(data=[condition1_1d, condition2_1d], condition=["a", "b"]))
     result = cluster_test(
