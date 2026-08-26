@@ -943,7 +943,7 @@ JUPYTERLITE_EXCLUDE = (
     # Tier 1, impossible: R runtime / compiled package / huge single dataset
     "examples/stats/r_interop.py",  # rpy2 -> needs the R runtime
     "examples/io/read_impedances.py",  # antio (compiled, not in Pyodide)
-    "examples/decoding/decoding_rsa_sgskip.py",  # visual_92_categories ~6 GB
+    "examples/decoding/decoding_rsa.py",  # visual_92_categories ~6 GB
     "examples/decoding/decoding_spoc_CMC.py",  # fieldtrip_cmc ~700 MB
     "examples/decoding/ssd_spatial_filters.py",  # fieldtrip_cmc ~700 MB
     # Tier 2: multi-GB datasets (brainstorm / spm_face / opm / hf_sef)
@@ -1006,7 +1006,7 @@ JUPYTERLITE_EXCLUDE = (
     # 187 MB and 360 MB on top of that.
     "examples/inverse/morph_volume_stc.py",
     "tutorials/inverse/50_beamformer_lcmv.py",
-    "examples/visualization/montage_sgskip.py",
+    "examples/visualization/montage.py",
     # same, plus fetch_infant_template downloads a second template
     "tutorials/forward/35_eeg_no_mri.py",
     # snapshot_brain_montage needs a real 3D window to read pixels back from
@@ -1048,6 +1048,12 @@ JUPYTERLITE_EXCLUDE = (
     # brain.screenshot(), so without a real screenshot there is no tutorial
     # left; browser brain.screenshot() raises rather than return a blank image.
     "tutorials/visualization/10_publication_figure.py",
+    # The whole page drives mne.gui.dipolefit and narrates one GUI window as
+    # its state evolves. The vtk.js renderer draws without a picker, so there
+    # is nothing for those clicks to hit; that is also why 20_source_alignment
+    # carries a cell note for mne.gui.coregistration. Here it is the entire
+    # tutorial rather than one cell, so it is excluded instead.
+    "tutorials/inverse/21_interactive_dipole_fit.py",
 )
 
 import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
