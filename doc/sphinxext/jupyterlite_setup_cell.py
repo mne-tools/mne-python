@@ -28,8 +28,9 @@ from pathlib import Path
 
 from jupyterlite_lite_renderer import LITE_RENDERER_CELL
 
-# Everything after the banner is what the notebook runs. The license header and
-# the ruff directives above it belong to the file, not to the cell.
+# Each source file read below is split at this banner: everything after it is
+# what the notebook runs, and what sits above it in that file (license header,
+# ruff directives, notes for whoever edits it) stays behind.
 _BANNER = "# --- JupyterLite setup cell"
 
 
