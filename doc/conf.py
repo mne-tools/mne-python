@@ -779,8 +779,8 @@ nitpick_ignore_regex = [
     (  # BaseRaw attributes are documented in Raw
         "py:obj",
         "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
-        "|compensation_grade|duration|filenames|first_samp|first_time"
-        "|last_samp|n_times|proj|times|tmax|tmin)",
+        "|compensation_grade|duration|durations|filenames|first_samp|first_time"
+        "|last_samp|n_times|proj|times|tmax|tmin|variable_duration)",
     ),
 ]
 suppress_warnings = [
