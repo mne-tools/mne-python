@@ -54,8 +54,6 @@ def set_cache_dir(cache_dir):
     -----
     Persistent decoded Raw entries are not automatically size-limited. They are
     stored below ``cache_dir`` in a versioned ``raw-preload`` directory.
-    The configured location is trusted and should only be writable by users who
-    are allowed to access its cached data.
     """
     if cache_dir is not None and not op.exists(cache_dir):
         raise OSError(f"Directory {cache_dir} does not exist")

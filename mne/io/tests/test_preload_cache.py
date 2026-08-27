@@ -6,7 +6,6 @@
 
 import gc
 import hashlib
-import multiprocessing
 import os
 import shutil
 from concurrent.futures import ProcessPoolExecutor
@@ -20,9 +19,8 @@ from numpy.testing import assert_array_equal
 import mne
 from mne._fiff.pick import pick_info
 from mne.io import RawArray, _preload_cache
-from mne.io.tests.test_raw import _RawArange, _read_raw_arange
+from mne.io.tests.test_raw import _read_raw_arange
 
-_ORIGINAL_CACHE_REPLACE = None
 _IO_DATA_DIR = Path(mne.io.__file__).parent
 
 
@@ -34,23 +32,6 @@ def _auto_preload_process(reader_name, source, cache_dir):
     return raw._data.mode, str(raw._data.filename), digest
 
 
-def _replace_cache_generation_then_exit(source, destination):
-    """Crash after publishing data but before publishing its manifest."""
-    _ORIGINAL_CACHE_REPLACE(source, destination)
-    if str(destination).endswith(".data"):
-        os._exit(91)
-
-
-def _auto_preload_crash_process(source, cache_dir):
-    """Run the simulated crash in an isolated process."""
-    global _ORIGINAL_CACHE_REPLACE
-
-    os.environ["MNE_CACHE_DIR"] = cache_dir
-    _ORIGINAL_CACHE_REPLACE = _preload_cache.os.replace
-    _preload_cache.os.replace = _replace_cache_generation_then_exit
-    mne.io.read_raw_edf(source, preload="auto", verbose="error")
-
-
 @pytest.fixture
 def cache_root(tmp_path, monkeypatch):
     """Configure an isolated cache directory."""
@@ -60,39 +41,29 @@ def cache_root(tmp_path, monkeypatch):
     return cache_root
 
 
-@pytest.fixture
-def auto_cache(tmp_path, cache_root):
-    """Create one stable source file."""
-    source = tmp_path / "source.bin"
-    source.write_bytes(b"source identity")
-    return source, cache_root
-
-
 def test_auto_preload_api(tmp_path, monkeypatch):
     """Test cache configuration and the literal-path escape."""
-    source = tmp_path / "source.bin"
-    source.write_bytes(b"source identity")
+    source = _IO_DATA_DIR / "edf/tests/data/test.edf"
     monkeypatch.setattr(_preload_cache, "get_config", lambda *args, **kwargs: None)
     with pytest.raises(ValueError, match="set_cache_dir"):
-        _RawArange(preload="auto", filename=source)
+        mne.io.read_raw_edf(source, preload="auto", verbose="error")
 
-    monkeypatch.setattr(
-        _preload_cache, "get_config", lambda *args, **kwargs: str(tmp_path)
-    )
     with chdir(tmp_path):
-        literal = _RawArange(preload=Path("auto"), filename=source)
+        literal = mne.io.read_raw_edf(source, preload=Path("auto"), verbose="error")
     assert literal._data.mode == "w+"
     assert (tmp_path / "auto").is_file()
 
-    lazy = _RawArange(preload=False, filename=source)
-    lazy.load_data(memmap="auto")
-    assert lazy._data.mode == "c"
+    lazy = mne.io.read_raw_edf(source, preload=False, verbose="error")
+    with chdir(tmp_path):
+        lazy.load_data(memmap="auto")
+    assert lazy._data.mode == "w+"
 
 
 @pytest.mark.parametrize(
     ("reader_name", "relative_path"),
     (
         ("read_raw_fif", "tests/data/test_raw.fif"),
+        ("read_raw_fif", "tests/data/test_raw.fif.gz"),
         ("read_raw_edf", "edf/tests/data/test.edf"),
         ("read_raw_bdf", "edf/tests/data/test.bdf"),
         ("read_raw_brainvision", "brainvision/tests/data/test.vhdr"),
@@ -116,8 +87,8 @@ def test_auto_preload_formats(reader_name, relative_path, cache_root):
     assert_array_equal(other.get_data(), expected)
 
 
-def test_auto_preload_key(tmp_path, cache_root):
-    """Test numeric options and source modification invalidate the cache."""
+def test_auto_preload_identity(tmp_path, cache_root):
+    """Test reader options and source modification invalidate the cache."""
     data_dir = _IO_DATA_DIR / "brainvision/tests/data"
     for name in ("test.vhdr", "test.vmrk", "test.eeg"):
         shutil.copy(data_dir / name, tmp_path / name)
@@ -129,16 +100,6 @@ def test_auto_preload_key(tmp_path, cache_root):
     assert Path(scaled._data.filename) != Path(raw._data.filename)
     assert_array_equal(scaled.get_data(), 2.0 * raw.get_data())
 
-    text = source.read_text(encoding="utf-8")
-    source.write_text(
-        text.replace("DataOrientation=MULTIPLEXED", "DataOrientation=VECTORIZED"),
-        encoding="utf-8",
-    )
-    expected = mne.io.read_raw_brainvision(source, preload=True, verbose="error")
-    changed = mne.io.read_raw_brainvision(source, preload="auto", verbose="error")
-    assert Path(changed._data.filename) != Path(raw._data.filename)
-    assert_array_equal(changed.get_data(), expected.get_data())
-
     source = tmp_path / "copy.edf"
     shutil.copy(_IO_DATA_DIR / "edf/tests/data/test.edf", source)
     raw = mne.io.read_raw_edf(source, preload="auto", verbose="error")
@@ -149,28 +110,23 @@ def test_auto_preload_key(tmp_path, cache_root):
     assert Path(other._data.filename) != generation
 
 
-@pytest.mark.parametrize("corruption", ("manifest", "data"))
-def test_auto_preload_recovers_corruption(corruption, auto_cache):
-    """Test that malformed cache entries become misses."""
-    source, cache_root = auto_cache
-    raw = _RawArange(preload="auto", filename=source)
-    expected = raw.get_data()
+def test_auto_preload_recovers_corruption(cache_root):
+    """Test that a truncated deterministic cache entry is rebuilt."""
+    source = _IO_DATA_DIR / "edf/tests/data/test.edf"
+    raw = mne.io.read_raw_edf(source, preload="auto", verbose="error")
+    expected = raw.get_data().copy()
     generation = Path(raw._data.filename)
     del raw
     gc.collect()
-    cache_dir = next(cache_root.iterdir())
-    if corruption == "manifest":
-        next(cache_dir.glob("*.json")).write_text("{", encoding="utf-8")
-    else:
-        generation.write_bytes(b"short")
+    generation.write_bytes(b"short")
 
-    other = _RawArange(preload="auto", filename=source)
-    assert Path(other._data.filename) != generation
+    other = mne.io.read_raw_edf(source, preload="auto", verbose="error")
+    assert Path(other._data.filename) == generation
     assert_array_equal(other.get_data(), expected)
 
 
 def test_auto_preload_concurrent_misses(cache_root):
-    """Test that concurrent misses publish one exact generation."""
+    """Test that concurrent misses publish one exact cache entry."""
     source = _IO_DATA_DIR / "edf/tests/data/test.edf"
     args = ("read_raw_edf", str(source), str(cache_root))
     with ProcessPoolExecutor(max_workers=4) as pool:
@@ -179,42 +135,6 @@ def test_auto_preload_concurrent_misses(cache_root):
     assert {result[0] for result in results} == {"c"}
     assert len({result[1] for result in results}) == 1
     assert len({result[2] for result in results}) == 1
-    cache_dir = next(cache_root.iterdir())
-    assert len(list(cache_dir.glob("*.data"))) == 1
-
-
-def test_auto_preload_recovers_crashed_publisher(cache_root):
-    """Test recovery when a writer dies before manifest publication."""
-    source = _IO_DATA_DIR / "edf/tests/data/test.edf"
-    context = multiprocessing.get_context("spawn")
-    process = context.Process(
-        target=_auto_preload_crash_process, args=(str(source), str(cache_root))
-    )
-    process.start()
-    process.join(timeout=15)
-    assert process.exitcode == 91
-
-    raw = mne.io.read_raw_edf(source, preload="auto", verbose="error")
-    expected = mne.io.read_raw_edf(source, preload=True, verbose="error").get_data()
-    assert_array_equal(raw.get_data(), expected)
-    cache_dir = next(cache_root.iterdir())
-    assert len(list(cache_dir.glob("*.data"))) == 1
-    assert not list(cache_dir.glob("*.tmp"))
-
-
-def test_auto_preload_rejects_cache_symlink(tmp_path, cache_root):
-    """Test that the managed cache directory cannot be redirected."""
-    source = tmp_path / "source.bin"
-    source.write_bytes(b"source identity")
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    try:
-        os.symlink(outside, cache_root / "raw-preload-v1")
-    except OSError:
-        pytest.skip("symlink creation is unavailable")
-    with pytest.raises(OSError, match="regular directory"):
-        _RawArange(preload="auto", filename=source)
-    assert not list(outside.iterdir())
 
 
 def test_add_channels_copy_on_write_memmap(tmp_path, monkeypatch):

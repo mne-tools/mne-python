@@ -145,12 +145,10 @@ class BaseRaw(
         drive (slower, requires less memory). An existing file is overwritten.
         The caller owns the file and is responsible for removing it after the
         Raw object is no longer in use. For supported file readers, the exact
-        string ``"auto"`` instead stores and reuses decoded data in the directory
-        configured by :func:`mne.set_cache_dir`. Cached data persist in a
-        versioned ``raw-preload`` directory and are mapped copy-on-write. Use
-        ``Path("auto")`` or ``"./auto"`` for a literal filename. If preload is
-        an ndarray, the data are taken from that array. If False, data are not
-        read until save.
+        string ``"auto"`` instead reuses decoded data below the directory
+        configured by :func:`mne.set_cache_dir`. Use ``Path("auto")`` for a
+        literal filename. If preload is an ndarray, the data are taken from that
+        array. If False, data are not read until save.
     first_samps : sequence
         Sequence of the first sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple.
@@ -600,22 +598,18 @@ class BaseRaw(
     def load_data(
         self,
         *,
-        memmap: Path | Literal["auto"] | str | None = None,
+        memmap: Path | str | None = None,
         verbose: bool | str | int | None = None,
     ) -> Self:
         """Load raw data.
 
         Parameters
         ----------
-        memmap : path-like | "auto" | None
-            If a path, preload data into a freshly created memory-mapped file at
-            this path. An existing file is overwritten. The caller owns the file
-            and is responsible for removing it after the Raw object is no longer
-            in use. For supported file readers, ``"auto"`` instead reuses the
-            persistent decoded-data cache configured by :func:`mne.set_cache_dir`.
-            Cache entries for superseded source identities remain in
-            a versioned ``raw-preload`` directory below the configured path.
-            If ``None`` (default), preload data into RAM.
+        memmap : path-like | None
+            If not ``None``, preload data into a freshly created memory-mapped file
+            at this path. An existing file is overwritten. The caller owns the file
+            and is responsible for removing it after the Raw object is no longer in
+            use. If ``None`` (default), preload data into RAM.
 
             .. versionadded:: 1.13
         %(verbose)s
@@ -635,6 +629,7 @@ class BaseRaw(
         if not self.preload:
             if memmap is not None:
                 _validate_type(memmap, "path-like", "memmap")
+                memmap = Path(memmap)
             self._preload_data(memmap if memmap is not None else True)
         return self
 
@@ -650,12 +645,9 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
-        # Avoid materializing ``self.times``; that scales with the recording
-        # length and can dominate a decoded-cache hit.
-        n_times = self.n_times
-        last_time = (n_times - 1) / self.info["sfreq"]
+        t = self.times
         logger.info(
-            f"Reading 0 ... {n_times - 1}  =  {0.0:9.3f} ... {last_time:9.3f} secs..."
+            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]

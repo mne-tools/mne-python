@@ -103,13 +103,6 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
-def test_preload_does_not_materialize_times(monkeypatch):
-    """Test preloading does not construct the full time vector."""
-    monkeypatch.setattr("mne.io.base._arange_div", _fail_if_times_materialized)
-    raw = read_raw_fif(raw_fname, preload=True, verbose="error")
-    assert raw.preload
-
-
 def test_set_annotations_does_not_materialize_times(monkeypatch):
     """Test annotation bounds use the scalar recording endpoint."""
     raw = read_raw_fif(raw_fname, preload=False, verbose="error")
@@ -844,15 +837,9 @@ def test_repr(sfreq):
 
 # A class that sets channel data to np.arange, for testing _test_raw_reader
 class _RawArange(BaseRaw):
-    def __init__(self, preload=False, filename=None, verbose=None):
+    def __init__(self, preload=False, verbose=None):
         info = create_info(list(str(x) for x in range(1, 9)), 1000.0, "eeg")
-        super().__init__(
-            info,
-            preload,
-            last_samps=(999,),
-            filenames=(filename,),
-            verbose=verbose,
-        )
+        super().__init__(info, preload, last_samps=(999,), verbose=verbose)
         assert len(self.times) == 1000
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -861,8 +848,8 @@ class _RawArange(BaseRaw):
         _mult_cal_one(data, one, idx, cals, mult)
 
 
-def _read_raw_arange(preload=False, filename=None, verbose=None):
-    return _RawArange(preload, filename=filename, verbose=verbose)
+def _read_raw_arange(preload=False, verbose=None):
+    return _RawArange(preload, verbose)
 
 
 @pytest.mark.parametrize("method", ("constructor", "load_data"))

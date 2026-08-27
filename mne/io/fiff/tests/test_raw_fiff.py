@@ -2129,16 +2129,6 @@ def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
         read_raw_fif(stream, preload="auto")
 
 
-def test_compressed_auto_preload_rejected(tmp_path, monkeypatch):
-    """Test that gzip FIF does not advertise ineffective decoded caching."""
-    monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
-    with pytest.raises(ValueError, match="uncompressed FIF"):
-        read_raw_fif(test_fif_gz_fname, preload="auto")
-    raw = read_raw_fif(test_fif_gz_fname, preload=False)
-    with pytest.raises(ValueError, match="uncompressed"):
-        raw.load_data(memmap="auto")
-
-
 def test_str_like():
     """Test handling with str-like objects."""
     fname = pathlib.Path(test_fif_fname)

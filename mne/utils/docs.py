@@ -3721,16 +3721,10 @@ preload : bool | str
     freshly created memory-mapped file used to store the data on the hard
     drive (slower, requires less memory). An existing file is overwritten.
     The caller owns the file and is responsible for removing it after the
-    Raw object is no longer in use. For uncompressed FIF, EDF/BDF, and
-    BrainVision readers, the exact string ``"auto"`` instead stores and reuses
-    decoded data in the directory configured by :func:`mne.set_cache_dir`.
-    Cached data persist in a versioned ``raw-preload`` directory below the
-    configured cache path and are mapped copy-on-write, so modifying the returned
-    Raw does not modify later reads. A cache miss performs the normal full decode.
-    Valid entries for historical source identities are retained without an
-    automatic size limit. The configured cache path is fixed to its physical
-    location. Use ``Path("auto")``,
-    ``"./auto"``, or an absolute path to create a file literally named ``auto``.
+    Raw object is no longer in use. For supported Raw readers, the exact string
+    ``"auto"`` instead reuses decoded data below the directory configured by
+    :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+    copy-on-write. Use ``Path("auto")`` for a literal filename.
 
     .. versionchanged:: 1.13
        Support for the ``"auto"`` decoded-data cache was added."""
