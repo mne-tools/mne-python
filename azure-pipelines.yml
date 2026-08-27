@@ -59,7 +59,7 @@ stages:
               key: minimal-cmds-1
               path: /home/vsts/minimal_cmds
             displayName: Cache minimal commands
-          - bash: ./tools/get_minimal_commands.sh
+          - bash: $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh
             displayName: Get minimal commands
           - task: UsePythonVersion@0
             inputs:
@@ -82,7 +82,7 @@ stages:
             displayName: Get testing version
           - task: Cache@2
             inputs:
-              key: $(testing_version)
+              key: mne_data-testing-$(testing_version)-misc-$(misc_version)
               path: /home/vsts/mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
@@ -133,7 +133,7 @@ stages:
             displayName: Get testing version
           - task: Cache@2
             inputs:
-              key: $(testing_version)
+              key: mne_data-testing-$(testing_version)-misc-$(misc_version)
               path: /home/vsts/mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
@@ -211,7 +211,7 @@ stages:
             displayName: Get testing version
           - task: Cache@2
             inputs:
-              key: $(testing_version)
+              key: mne_data-testing-$(testing_version)-misc-$(misc_version)
               path: C:\Users\VssAdministrator\mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
