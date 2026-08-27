@@ -28,7 +28,7 @@ Related software
   C++ and is primarily intended for embedded and real-time applications.
 
 Related Python packages
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including:
