@@ -1273,6 +1273,7 @@ def test_label_geometry(fname, area):
 @testing.requires_testing_data
 def test_volume_label_adjacency():
     """Test label adjacency."""
+    pytest.importorskip("nibabel")
     pytest.importorskip("sklearn")
     src = read_source_spaces(fname_vsrc)
 
@@ -1349,7 +1350,7 @@ def test_volume_label_adjacency():
 @testing.requires_testing_data
 def test_label_adjacency():
     """Test label adjacency."""
-    pytest.importorskip("sklearn")
+    pytest.importorskip("nibabel")
     src = read_source_spaces(fname_src_fs)
     mne.add_source_space_distances(src, dist_limit=0.01, n_jobs=-1)
 
