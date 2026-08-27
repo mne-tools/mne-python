@@ -220,7 +220,6 @@ class EvokedField:
         self._own_figure = fig is None
         if isinstance(fig, Brain):
             self._renderer = fig._renderer
-            self._in_brain_figure = True
             self._units = fig._units
             if _get_3d_backend() == "notebook":
                 raise NotImplementedError(
@@ -229,7 +228,6 @@ class EvokedField:
                 )
         else:
             self._renderer = _get_renderer(fig, bgcolor=background, size=(600, 600))
-            self._in_brain_figure = False
             self._units = "m"
 
         self.interaction = interaction
