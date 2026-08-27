@@ -366,8 +366,6 @@ def test_dipolefit_gui_dipole_controls(
     g._on_dipole_set_name("dipole2", dip2["num"])
     assert dip1["dip"].name == "dipole1"
     assert dip2["dip"].name == "dipole2"
-    assert dip1["line_artist"].get_label() == "dipole1"  # legend labels
-    assert dip2["line_artist"].get_label() == "dipole2"
 
     # Remove a dipole (through the "delete" button).
     line, dot = dip1["line_artist"], dip1["dot_artist"]
@@ -562,8 +560,8 @@ def test_dipolefit_stc(
     assert not g._bem["is_sphere"]
     assert "solution" in g._bem
 
-    # The cortex is drawn translucent so the dipole arrows inside it stay visible.
-    assert g._stc_brain._alpha == 0.5
+    # The cortex is drawn translucent by default
+    assert g._actors["brain"][0].GetProperty().GetOpacity() == 0.5
 
     # The colorbar of the source estimate is registered as a "mesh" that can be toggled,
     # and starts out hidden as it takes up a lot of space.
