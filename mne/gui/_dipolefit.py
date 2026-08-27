@@ -49,9 +49,8 @@ from ..viz.utils import _get_color_list, _is_dark
 _STATUS_IDLE = "Ready"
 # Meshes that start out hidden (everything not listed here starts out visible).
 _MESH_VISIBLE = dict(colorbar=False)
-# If any others are added here, the calls will need to be added to the correct places
-# as well
-_MESH_ALPHA = dict(brain=0.25)
+# Default alpha values for some of the meshes
+_MESH_ALPHA = dict(brain=0.5)
 # Meshes for which opacity cannot meaningfully be set (2D overlays).
 _MESH_NO_OPACITY = ("colorbar",)
 # Line width and marker size of the dipole traces, when not/when hovered.
@@ -388,7 +387,7 @@ class DipoleFitUI:
                 time_viewer=False,
                 initial_time=self._current_time,
                 time_label=None,  # the traces plot shows the current time
-                brain_kwargs=dict(units="m", show=False, alpha=0.5),
+                brain_kwargs=dict(units="m", show=False),
                 figure=fig_into,
                 # the GUI renders on a white figure, so the Brain (and hence its
                 # colorbar) needs to select a black foreground color
@@ -413,6 +412,12 @@ class DipoleFitUI:
             if len(colorbar) > 0:
                 self._actors["colorbar"] = colorbar
             fig_into = self._stc_brain  # plot into the brain instead
+
+            # Rendering the brain mesh in a translucent manner requires a higher setting
+            # for the depth peeling to prevent artifacts.
+            fig_into._renderer.plotter.enable_depth_peeling(
+                number_of_peels=6, occlusion_ratio=1e-7
+            )
 
         self._set_status("Plotting field lines...")
         fig_ef = EvokedField(
@@ -1097,16 +1102,14 @@ class DipoleFitUI:
                         linewidth=_TRACE_LINEWIDTH,
                         update=False,
                     )
-                    # Labels starting with "_" are hidden from the legend.
-                    (dip["dot_artist"],) = canvas.axes.plot(
+                    dip["dot_artist"] = canvas.axes.plot(
                         [fit_time],
                         [fit_value],
                         "o",
-                        label=f"_{dip['dip'].name} fit time",
                         color=dip["color"],
                         markersize=_TRACE_MARKERSIZE,
                         zorder=dip["line_artist"].get_zorder() + 1,
-                    )
+                    )[0]
                 ymin = min(ymin, 1.1 * dip["timecourse"].min() * 1e9)
                 ymax = max(ymax, 1.1 * dip["timecourse"].max() * 1e9)
             canvas.axes.set_ylim(ymin, ymax)
@@ -1123,7 +1126,7 @@ class DipoleFitUI:
             self._gof_ax.set_ylabel("GOF (%)", color="gray")
             self._gof_ax.tick_params(axis="y", colors="gray")
             self._gof_ax.spines["top"].set_visible(False)
-            self._gof_ax.spines["right"].set_visible(False)
+            self._gof_ax.spines["right"].set_visible(True)
             self._gof_ax.spines["bottom"].set_visible(False)
             self._gof_ax.spines["left"].set_visible(False)
             # Twin axes are drawn on top by default. Flip that around (the classic
@@ -1276,8 +1279,6 @@ class DipoleFitUI:
         dipole["active"] = active
         dipole["line_artist"].set_visible(active)
         dipole["dot_artist"].set_visible(active)
-        # Labels starting with "_" are hidden from the legend.
-        dipole["line_artist"].set_label(("" if active else "_") + dipole["dip"].name)
         dipole["brain_arrow_actor"].visibility = active
         dipole["helmet_arrow_actor"].visibility = active
         self._fit_timecourses()
@@ -1287,7 +1288,6 @@ class DipoleFitUI:
     def _on_dipole_set_name(self, name, dip_num):
         """Set the name of a dipole."""
         self._dipoles[dip_num]["dip"].name = name
-        self._dipoles[dip_num]["line_artist"].set_label(name)
         self._renderer._mplcanvas.update_plot()
 
     def _on_dipole_toggle_fix_orientation(self, fix, dip_num):
