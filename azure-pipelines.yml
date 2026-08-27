@@ -50,13 +50,14 @@ stages:
         steps:
           - bash: |
               set -xeo pipefail
-              git clone --depth 1 https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
+              # WIP: revert to --depth 1 https://github.com/mne-tools/mne-tools.git
+              git clone --depth 1 -b fix-dyld https://github.com/larsoner/mne-tools.git "$MNE_TOOLS_DIR"
             displayName: Clone mne-tools
           - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
           - task: Cache@2
             inputs:
-              key: minimal-cmds-1
+              key: '"minimal-cmds" | "$(Agent.OS)" | $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh'
               path: /home/vsts/minimal_cmds
             displayName: Cache minimal commands
           - bash: $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh
@@ -108,7 +109,8 @@ stages:
         steps:
           - bash: |
               set -xeo pipefail
-              git clone --depth 1 https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
+              # WIP: revert to --depth 1 https://github.com/mne-tools/mne-tools.git
+              git clone --depth 1 -b fix-dyld https://github.com/larsoner/mne-tools.git "$MNE_TOOLS_DIR"
             displayName: Clone mne-tools
           - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
@@ -166,6 +168,7 @@ stages:
         pool:
           vmImage: 'windows-latest'
         variables:
+          MNE_TOOLS_DIR: '$(Pipeline.Workspace)/mne-tools'
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
@@ -181,17 +184,83 @@ stages:
             3.14 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.14'
-              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires FreeSurfer|CUDA not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
             3.14 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.14'
-              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
         steps:
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(PYTHON_VERSION)
               architecture: 'x64'
               addToPath: true
+          - bash: |
+              set -xeo pipefail
+              # WIP: revert to --depth 1 https://github.com/mne-tools/mne-tools.git
+              git clone --depth 1 -b fix-dyld https://github.com/larsoner/mne-tools.git "$MNE_TOOLS_DIR"
+            displayName: Clone mne-tools
+          - task: Cache@2
+            inputs:
+              key: '"minimal-cmds" | "$(Agent.OS)" | $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh'
+              path: C:\Users\VssAdministrator\minimal_cmds
+            displayName: Cache minimal commands
+          # MNE_TOOLS_DIR is a Windows path and these steps run under Git Bash, hence
+          # cygpath; backticks rather than $(...) so Azure does not read it as a macro
+          - bash: |
+              set -eo pipefail
+              MNE_TOOLS_UNIX=`cygpath -u "$MNE_TOOLS_DIR"`
+              bash "$MNE_TOOLS_UNIX/tools/get_minimal_commands.sh"
+            displayName: Get minimal commands
+          # WIP diagnostics for gh-14230: mne_do_forward_solution fails to launch on
+          # Windows (WinError 2) while other MNE-C commands work. It is the only one
+          # invoked that ships both an .exe and an extensionless /bin/sh script, so
+          # this pins down whether that shadows the .exe. Never fails the job.
+          - script: |
+              echo ===== environment =====
+              echo MNE_ROOT=%MNE_ROOT%
+              echo FREESURFER_HOME=%FREESURFER_HOME%
+              echo PATHEXT=%PATHEXT%
+              echo PATH=%PATH%
+              echo ===== where (bare name, as CreateProcess resolves it) =====
+              where mne_do_forward_solution
+              where mne_do_forward_solution.exe
+              where mne_setup_source_space
+              where mne_volume_source_space
+              where mne_process_raw
+              echo ===== bin contents =====
+              dir /b "%MNE_ROOT%\bin"
+              echo ===== direct launch of the .exe (rules out a missing DLL) =====
+              "%MNE_ROOT%\bin\mne_do_forward_solution.exe" --version
+              echo ===== exit code %ERRORLEVEL% =====
+              exit /b 0
+            displayName: 'Diagnostics: MNE-C lookup (cmd)'
+            continueOnError: true
+          # Same question from Python, which is what actually fails: bare name vs
+          # explicit .exe vs a command that works, reporting the winerror for each.
+          - bash: |
+              python - <<'EOF'
+              import shutil, subprocess
+              for name in (
+                  "mne_do_forward_solution",
+                  "mne_do_forward_solution.exe",
+                  "mne_setup_source_space",
+                  "mne_volume_source_space",
+              ):
+                  print(f"{name}:")
+                  print(f"  shutil.which -> {shutil.which(name)!r}")
+                  try:
+                      p = subprocess.run(
+                          [name, "--version"], capture_output=True, text=True, timeout=60
+                      )
+                      print(f"  launched rc={p.returncode}")
+                      print(f"    stdout={p.stdout.strip()[:200]!r}")
+                      print(f"    stderr={p.stderr.strip()[:200]!r}")
+                  except OSError as exc:
+                      print(f"  OSError winerror={getattr(exc, 'winerror', None)} {exc}")
+              EOF
+            displayName: 'Diagnostics: MNE-C lookup (python)'
+            continueOnError: true
           - bash: |
               set -xeo pipefail
               git clone --depth 1 https://github.com/pyvista/setup-headless-display-action.git
