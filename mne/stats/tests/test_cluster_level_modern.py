@@ -241,3 +241,40 @@ def test_cluster_test_formula_validation(stat_conditions):
     df_unbalanced = pd.DataFrame(rows)
     with pytest.raises(ValueError, match="must have exactly"):
         cluster_test(df_unbalanced, "data ~ a:b", within_id="subject")
+
+
+@pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
+@pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
+@pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
+@pytest.mark.filterwarnings("ignore:No clusters found:RuntimeWarning")
+def test_cluster_test_reduce(stat_conditions):
+    """Reduce multiple observations for paired t-test."""
+    import mne
+
+    condition1_1d, _, _, _ = stat_conditions
+    # For this test we need equal sized arrays
+    condition2_1d = condition1_1d.copy()
+    np.random.shuffle(condition2_1d)
+
+    info = mne.create_info(
+        ch_names=[f"ch_{ii}" for ii in range(condition1_1d.shape[0])],
+        sfreq=10,
+        ch_types="eeg",
+    )
+    data = [mne.EvokedArray(arr, info) for arr in [condition1_1d, condition2_1d]]
+    df = pd.DataFrame(dict(data=data, a=["x", "y"]))
+    df["b"] = 1
+
+    df_2 = df.copy()
+    df_2["b"] = 2
+    df = pd.concat([df, df_2])
+    del df_2
+
+    df["c"] = "foo"
+
+    df_2 = df.copy()
+    df_2["c"] = "bar"
+    df = pd.concat([df, df_2])
+    del df_2
+    # This should not raise
+    cluster_test(df, formula="data ~ a", within_id="c")

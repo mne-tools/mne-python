@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
+from .. import combine_evoked
 from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..parallel import parallel_func
@@ -1935,6 +1936,7 @@ def cluster_test(
     parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
     rng = _check_rng(rng)
 
+    formula_str = formula
     formula = formulaic.Formula(formula, _parser=parser)
     # extract the dependent variable name
     dv_name = str(formula.lhs)
@@ -1976,13 +1978,26 @@ def cluster_test(
         df = df.copy(deep=False)  # Don't mutate input dataframe row order!
         df.sort_values([*factor_names, within_id], inplace=True)
         counts = df[within_id].value_counts()
-        if any(counts != n_groups):
-            raise ValueError(
-                f"for a within-subject test, each subject (column {within_id!r}) "
-                f"must have exactly {n_groups} observations, one per combination "
-                f"of {factor_names}."
-            )
 
+        iv_names = iv_name.split(":")
+        groups = df[[dv_name, *iv_names, within_id]].groupby([*iv_names, within_id])
+        elem = df[dv_name].iloc[0]
+        if isinstance(elem, Evoked):
+            reduce = set(df.columns) - set([*iv_names, within_id, dv_name])
+            if reduce:
+                logger.info(
+                    f"To test '{formula_str}', reducing along column(s): {reduce}"
+                )
+            func = {dv_name: lambda evs: combine_evoked(evs.tolist(), weights="nave")}
+            df = groups.agg(func).reset_index()
+
+        else:
+            if any(counts != n_groups):
+                raise ValueError(
+                    f"for a within-subject test, each subject (column {within_id!r}) "
+                    f"must have exactly {n_groups} observations, one per combination "
+                    f"of {factor_names}."
+                )
     # extract the data from the dataframe
     outer_func = np.concatenate if is_epo else np.array
     axes = (-3, -1) if is_tfr else (-2, -1)
