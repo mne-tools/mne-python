@@ -972,7 +972,12 @@ class BaseRaw(
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
-        %(exclude_spectrum_get_data)s
+        exclude : list[str] | Literal["bads"] | tuple = ()
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is not ``None``; it is ignored when ``picks=None`` (to be fixed in a
+            future release).
 
                     .. versionadded:: 1.13
         tmin : int | float | None
