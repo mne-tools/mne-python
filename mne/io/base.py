@@ -605,11 +605,14 @@ class BaseRaw(
 
         Parameters
         ----------
-        memmap : path-like | None
+        memmap : path-like | str | None
             If not ``None``, preload data into a freshly created memory-mapped file
             at this path. An existing file is overwritten. The caller owns the file
             and is responsible for removing it after the Raw object is no longer in
-            use. If ``None`` (default), preload data into RAM.
+            use. The exact string ``"auto"`` instead means the same as
+            ``preload="auto"``: reuse decoded data below the directory configured by
+            :func:`mne.set_cache_dir`. Use ``Path("auto")`` for a literal filename.
+            If ``None`` (default), preload data into RAM.
 
             .. versionadded:: 1.13
         %(verbose)s
@@ -627,7 +630,9 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
-            if memmap is not None:
+            if isinstance(memmap, str) and memmap == "auto":
+                pass  # sentinel, resolved in _preload_data
+            elif memmap is not None:
                 _validate_type(memmap, "path-like", "memmap")
                 memmap = Path(memmap)
             self._preload_data(memmap if memmap is not None else True)

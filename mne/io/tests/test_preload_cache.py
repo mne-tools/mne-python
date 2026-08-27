@@ -53,10 +53,10 @@ def test_auto_preload_api(tmp_path, monkeypatch):
     assert literal._data.mode == "w+"
     assert (tmp_path / "auto").is_file()
 
+    # load_data(memmap="auto") resolves the same sentinel as preload="auto"
     lazy = mne.io.read_raw_edf(source, preload=False, verbose="error")
-    with chdir(tmp_path):
+    with pytest.raises(ValueError, match="set_cache_dir"):
         lazy.load_data(memmap="auto")
-    assert lazy._data.mode == "w+"
 
 
 @pytest.mark.parametrize(

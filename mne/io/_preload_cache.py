@@ -12,10 +12,9 @@ from pathlib import Path
 import numpy as np
 
 from .. import __version__ as MNE_VERSION  # ty: ignore[unresolved-import]
-from ..utils import _soft_import, get_config, logger
+from ..utils import get_config, logger
 
 _RAW_PRELOAD_CACHE_VERSION = 1
-_RAW_PRELOAD_LOCK_TIMEOUT = 300.0
 
 
 def _raw_preload_cache_info(raw):
@@ -82,27 +81,29 @@ def _raw_preload_auto(raw):
         logger.info(f"Reusing decoded data from {path}")
         return data
 
-    # Importing filelock is measurable, so keep it off the cache-hit path.
-    filelock = _soft_import("filelock", "locking the decoded-data cache")
-    with filelock.FileLock(f"{path}.lock", timeout=_RAW_PRELOAD_LOCK_TIMEOUT):
-        data = _raw_preload_cache_read(path, shape, dtype)
-        if data is None:
-            logger.info(f"Creating decoded data cache in {path.parent}")
-            temporary = path.with_suffix(".tmp")
-            try:
-                temporary.unlink(missing_ok=True)
-                data = np.memmap(temporary, mode="w+", dtype=dtype, shape=shape)
-                try:
-                    raw._read_segment(data_buffer=data)
-                    data.flush()
-                finally:
-                    data._mmap.close()  # ty: ignore[unresolved-attribute]
-                if _raw_preload_cache_info(raw)[1] != sources:
-                    raise RuntimeError(
-                        "Source data changed while decoded cache was created; retry"
-                    )
-                os.replace(temporary, path)
-            finally:
-                temporary.unlink(missing_ok=True)
-            data = _raw_preload_cache_read(path, shape, dtype)
+    # The temporary is per-process and os.replace is atomic, so concurrent
+    # misses need no lock; they at worst decode the same entry twice.
+    logger.info(f"Creating decoded data cache in {path.parent}")
+    temporary = path.with_suffix(f".{os.getpid()}.tmp")
+    try:
+        data = np.memmap(temporary, mode="w+", dtype=dtype, shape=shape)
+        try:
+            raw._read_segment(data_buffer=data)
+            data.flush()
+        finally:
+            data._mmap.close()  # ty: ignore[unresolved-attribute]
+        if _raw_preload_cache_info(raw)[1] != sources:
+            raise RuntimeError(
+                "Source data changed while decoded cache was created; retry"
+            )
+        try:
+            os.replace(temporary, path)
+        except OSError:
+            # Windows refuses to replace an entry another process already mapped.
+            pass
+    finally:
+        temporary.unlink(missing_ok=True)
+    data = _raw_preload_cache_read(path, shape, dtype)
+    if data is None:
+        raise RuntimeError(f"Could not read back the decoded data cache at {path}")
     return data
