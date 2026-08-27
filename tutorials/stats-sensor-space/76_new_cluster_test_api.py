@@ -139,7 +139,6 @@ formula = "evoked ~ condition"
 cluster_result = mne.stats.cluster_test(
     df=df, formula=formula, within_id="subject_index"
 )
-# TODO: add n_permutations to cluster_result
 
 # print the lowest cluster p-value
 print(f"The lowest cluster p-value is: {cluster_result.cluster_p_values.min()}")

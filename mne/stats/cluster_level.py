@@ -2106,7 +2106,13 @@ def cluster_test(
     )
 
     return ClusterResult(
-        stat_obs, clusters, cluster_p_values, H0, stat_fun, t_power=t_power
+        stat_obs=stat_obs,
+        clusters=clusters,
+        cluster_p_values=cluster_p_values,
+        H0=H0,
+        stat_fun=stat_fun,
+        n_permutations=n_permutations,
+        t_power=t_power,
     )
 
 
@@ -2161,12 +2167,13 @@ class ClusterResult:
 
     def __init__(
         self,
+        *,
         stat_obs: np.typing.NDArray,
         clusters: list,
         cluster_p_values: np.typing.NDArray,
         H0: np.typing.NDArray,
         stat_fun: callable,
-        *,
+        n_permutations: int,
         t_power: float = 1.0,
     ):
         self.stat_obs = stat_obs
@@ -2178,6 +2185,7 @@ class ClusterResult:
         self.cluster_masses = np.array(
             [_cluster_mass(stat_obs, c, t_power) for c in clusters]
         )
+        self.n_permutations = n_permutations
 
         # unpaired t-test equivalent to f_oneway w/ 2 groups
         if stat_fun is f_oneway:
@@ -2188,3 +2196,9 @@ class ClusterResult:
             self.stat_name = "F-statistic (repeated-measures ANOVA)"
         else:
             self.stat_name = "test statistic"
+
+    def __repr__(self):  # noqa: D105
+        return (
+            f"<ClusterResult | p={self.cluster_p_values.min()}, "
+            f"{len(self.clusters)} clusters."
+        )
