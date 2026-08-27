@@ -12,9 +12,8 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
-from .. import combine_evoked
 from ..epochs import BaseEpochs
-from ..evoked import Evoked
+from ..evoked import Evoked, combine_evoked
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
