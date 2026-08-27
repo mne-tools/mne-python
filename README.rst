@@ -74,6 +74,7 @@ The minimum required dependencies to run MNE-Python are:
 
 - `Python <https://www.python.org>`__ ≥ 3.11
 - `decorator <https://pypi.org/project/decorator/>`__ ≥ 5.1
+- `filelock <https://github.com/tox-dev/py-filelock>`__ ≥ 3.18.0
 - `Jinja2 <https://jinja.palletsprojects.com/>`__ ≥ 3.1
 - `lazy-loader <https://pypi.org/project/lazy-loader/>`__ ≥ 0.3
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.9
