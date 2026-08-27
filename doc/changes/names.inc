@@ -364,6 +364,7 @@
 .. _Ram Pari: https://github.com/ramkpari
 .. _Ramiro Gatti: https://github.com/ragatti
 .. _ramonapariciog: https://github.com/ramonapariciog
+.. _Raphaël Bordas: https://github.com/raphbrd
 .. _Rasmus Aagaard: https://github.com/rasgaard
 .. _Rasmus Zetter: https://github.com/rzetter
 .. _Reza Nasri: https://github.com/rznas
