@@ -1741,7 +1741,7 @@ class BaseEpochs(
         %(picks_all)s
         item : slice | array-like | str | list | None
             See docstring of get_data method.
-        exclude : list[str] | Literal["bads"] | tuple = ()
+        exclude : list[str] | Literal["bads"]
             Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
             excluded; pass an empty list or tuple (the default) to include all
             channels. Note: ``exclude`` is currently only applied when ``picks``
@@ -2031,7 +2031,7 @@ class BaseEpochs(
 
             .. versionadded:: 0.24.0
 
-        exclude : list[str] | Literal["bads"] | tuple = ()
+        exclude : list[str] | Literal["bads"]
             Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
             excluded; pass an empty list or tuple (the default) to include all
             channels. Note: ``exclude`` is currently only applied when ``picks``
