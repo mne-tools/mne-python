@@ -1276,7 +1276,7 @@ class BaseEpochs(
             self._reject_time = slice(reject_imin, reject_imax)
 
     def _load_variable_from_raw(self):
-        """Read every epoch at its own length, mirroring ``drop_bad`` bookkeeping."""
+        """Read every epoch at its own length into a list, mirroring ``drop_bad``."""
         detrend_picks = self._detrend_picks
         drop_log = list(self.drop_log)
         good_idx, out = [], []
@@ -2686,8 +2686,8 @@ class BaseEpochs(
                 )
 
         sfreq = float(self.info["sfreq"])
-        # First pass: work out every selection while changing nothing, so that a
-        # window that misses one epoch leaves the object as it was.
+        # Work out every selection before changing anything, so a window that
+        # misses one epoch leaves the object as it was.
         masks = list()
         clamped_tmin = clamped_tmax = False
         for ii in range(len(self.events)):
