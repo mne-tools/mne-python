@@ -1929,6 +1929,8 @@ def cluster_test(
     Notes
     -----
     %(threshold_clust_t_or_f_notes)s
+
+    .. versionadded:: 1.13
     """
     # parse formula
     formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
