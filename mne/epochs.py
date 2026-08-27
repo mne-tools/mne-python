@@ -1978,6 +1978,19 @@ class BaseEpochs(
             flat = self.flat
         if any(isinstance(rej, str) and rej != "existing" for rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
+        if self._variable_duration and (reject or flat):
+            # the no-arg call has already short-circuited above, so reaching
+            # here means real thresholds; amplitude rejection would run per
+            # epoch, but it goes through `times` on the way and there is no
+            # ragged path for it yet
+            raise NotImplementedError(
+                "drop_bad() with reject or flat is not implemented for "
+                "variable-duration epochs. Amplitude rejection is per-trial "
+                "and could work here, but the preloaded path needs one shared "
+                "time axis, which these epochs do not have. Pass reject= to "
+                "Epochs() at construction instead, which does apply it per "
+                "epoch. See https://github.com/mne-tools/mne-python/issues/14206."
+            )
         self._reject_setup(reject, flat, allow_callable=True)
         self._get_data(out=False, verbose=verbose)
         return self
@@ -2855,8 +2868,8 @@ class BaseEpochs(
             self._tmax_per_epoch = None  # ty: ignore[invalid-assignment]
             start_idx, stop_idx = first_idx[0], first_idx[0] + lengths[0] - 1
         else:
-            start_idx = int(round(starts.min() * sfreq))
-            stop_idx = int(round(stops.max() * sfreq))
+            start_idx = int(round(float(np.min(starts)) * sfreq))
+            stop_idx = int(round(float(np.max(stops)) * sfreq))
         self._raw_times = np.arange(start_idx, stop_idx + 1) / sfreq
         self._set_times(self._raw_times)
 

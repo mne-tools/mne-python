@@ -277,6 +277,15 @@ class GetEpochsMixin:
             # an ndarray takes a slice or an index array equally well
             inst._tmin_per_epoch = inst._tmin_per_epoch[select]
             inst._tmax_per_epoch = inst._tmax_per_epoch[select]
+            # the union window is defined by those bounds, so it has to be
+            # re-derived here as `crop` does; otherwise `as_fixed` keeps
+            # padding out to epochs that are no longer present
+            if len(inst._tmin_per_epoch):
+                sfreq = float(inst.info["sfreq"])
+                start_idx = int(round(inst._tmin_per_epoch.min() * sfreq))
+                stop_idx = int(round(inst._tmax_per_epoch.max() * sfreq))
+                inst._raw_times = np.arange(start_idx, stop_idx + 1) / sfreq
+                inst._set_times(inst._raw_times)
         if drop_event_id:
             # update event id to reflect new content of inst
             inst.event_id = {

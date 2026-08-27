@@ -1133,15 +1133,9 @@ def plot_epochs(
     )
 
     if epochs._variable_duration:
-        from ._figure import get_browser_backend
+        from ._figure import _check_variable_duration_backend
 
-        backend_name = get_browser_backend()
-        if backend_name != "matplotlib":
-            raise NotImplementedError(
-                f"Browsing variable-duration epochs is not implemented for the "
-                f"{backend_name} backend yet, only for matplotlib. Select it "
-                'with mne.viz.set_browser_backend("matplotlib").'
-            )
+        _check_variable_duration_backend()
 
     fig = _get_browser(show=show, block=block, **params)
 

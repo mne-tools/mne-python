@@ -710,7 +710,11 @@ class BrowserBase(ABC):
         """Create peak-to-peak histogram of channel amplitudes."""
         epochs = self.mne.inst
         data = OrderedDict()
-        ptp = np.ptp(epochs.get_data(copy=False), axis=2)
+        # per epoch, so that variable-duration epochs (a list of arrays)
+        # work too; peak-to-peak is a per-trial reduction either way
+        ptp = np.array(
+            [np.ptp(epoch, axis=-1) for epoch in epochs.get_data(copy=False)]
+        )
         for ch_type in ("eeg", "mag", "grad"):
             if ch_type in epochs:
                 data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
@@ -806,6 +810,27 @@ def _load_backend(backend_name):
     logger.info(f"Using {backend_name} as 2D backend.")
 
     return backend
+
+
+def _check_variable_duration_backend():
+    """Raise unless the active browser backend can draw ragged epochs.
+
+    Matplotlib always can. The Qt backend gained the ability in
+    mne-qt-browser 0.8, which announces it with a module-level flag, so an
+    older one declines here rather than drawing a wrong picture from a
+    boundary model it does not know about.
+    """
+    backend_name = get_browser_backend()
+    if backend_name == "matplotlib":
+        return
+    module = _load_backend(backend_name)
+    if not getattr(module, "_SUPPORTS_VARIABLE_DURATION", False):
+        raise NotImplementedError(
+            f"Browsing variable-duration epochs is not implemented for the "
+            f"{backend_name} backend of this version, only for matplotlib. "
+            "Upgrade mne-qt-browser, or select matplotlib with "
+            'mne.viz.set_browser_backend("matplotlib").'
+        )
 
 
 def _get_browser(show, block, **kwargs):

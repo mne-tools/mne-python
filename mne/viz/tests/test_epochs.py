@@ -554,8 +554,6 @@ def variable_epochs():
 
 def test_plot_variable_duration_is_native(variable_epochs, browser_backend):
     """Test that browsing ragged epochs neither warns nor pads."""
-    if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
 
     def _boom(*args, **kwargs):
         raise AssertionError("plot() fell back to as_fixed() instead of browsing")
@@ -569,8 +567,6 @@ def test_plot_variable_duration_is_native(variable_epochs, browser_backend):
 
 def test_plot_variable_duration_boundaries(variable_epochs, browser_backend):
     """Test that the browser lays epochs end to end at their true lengths."""
-    if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
     fig = variable_epochs.plot(n_epochs=2)
     assert_allclose(fig.mne.boundary_times, _boundaries())
     assert_array_equal(fig.mne.boundary_samples, np.r_[0, np.cumsum(LENGTHS_VAR)])
@@ -583,8 +579,6 @@ def test_plot_variable_duration_window_spans_whole_epochs(
     variable_epochs, browser_backend
 ):
     """Test that n_epochs means epochs, not a representative duration."""
-    if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
     boundaries = _boundaries()
     for n_epochs in (1, 2, 3, 4):
         fig = variable_epochs.plot(n_epochs=n_epochs)
@@ -594,8 +588,6 @@ def test_plot_variable_duration_window_spans_whole_epochs(
 
 def test_plot_variable_duration_data_is_unpadded(variable_epochs, browser_backend):
     """Test that a view holds exactly the source samples, in order."""
-    if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
     fig = variable_epochs.plot(n_epochs=2)
     source = variable_epochs.get_data()
     for keys in ([], ["right"], ["right", "right"]):
@@ -616,8 +608,6 @@ def test_plot_variable_duration_data_is_unpadded(variable_epochs, browser_backen
 
 def test_plot_variable_duration_navigation(variable_epochs, browser_backend):
     """Test that arrow keys move by epochs and land on real boundaries."""
-    if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
     boundaries = _boundaries()
     fig = variable_epochs.plot(n_epochs=2)
     assert fig.mne.t_start == pytest.approx(boundaries[0])
@@ -642,8 +632,6 @@ def test_plot_variable_duration_navigation(variable_epochs, browser_backend):
 
 def test_plot_variable_duration_home_end(variable_epochs, browser_backend):
     """Test that home/end change the epoch count and recompute the duration."""
-    if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
     boundaries = _boundaries()
     fig = variable_epochs.plot(n_epochs=2)
     assert fig.mne.duration == pytest.approx(boundaries[2])
@@ -672,7 +660,7 @@ def test_plot_variable_duration_hscroll_patches(variable_epochs, browser_backend
 def test_plot_variable_duration_bad_epoch(variable_epochs, browser_backend):
     """Test that a click finds the right epoch when the widths differ."""
     if browser_backend.name != "matplotlib":
-        pytest.skip("variable-duration browsing is matplotlib-only")
+        pytest.skip("epoch marking by click is matplotlib-specific")
     boundaries = _boundaries()
     fig = variable_epochs.plot(n_epochs=4)
     y = fig.mne.traces[0].get_ydata()[0]
@@ -723,10 +711,14 @@ def test_plot_variable_duration_events(browser_backend):
     assert_allclose(got, want)
 
 
-def test_plot_variable_duration_refuses_other_backends(variable_epochs, monkeypatch):
-    """Test that non-matplotlib backends decline rather than fail obscurely."""
+def test_plot_variable_duration_refuses_old_backends(variable_epochs, monkeypatch):
+    """Test that a backend without the boundary model declines, not fails."""
     import mne.viz._figure
 
+    class _OldBackend:  # an mne-qt-browser that predates the boundary model
+        pass
+
     monkeypatch.setattr(mne.viz._figure, "get_browser_backend", lambda: "qt")
+    monkeypatch.setattr(mne.viz._figure, "_load_backend", lambda name: _OldBackend())
     with pytest.raises(NotImplementedError, match="not implemented for the qt"):
         variable_epochs.plot()

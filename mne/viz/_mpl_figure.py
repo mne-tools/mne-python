@@ -2263,8 +2263,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # check for bad epochs
         time_range = (self.mne.times + self.mne.first_time)[[0, -1]]
         if self.mne.instance_type == "epochs":
-            epoch_ix = np.searchsorted(self.mne.boundary_times, time_range)
-            epoch_ix = np.arange(epoch_ix[0], epoch_ix[1])
+            # ask the view directly: deriving this from the time range drops
+            # the last epoch whenever it holds a single sample, because that
+            # sample's time is its own left boundary
+            epoch_ix = np.arange(*self._get_epoch_ix_range())
             epoch_nums = self.mne.inst.selection[epoch_ix[0] : epoch_ix[-1] + 1]
             (visible_bad_epoch_ix,) = np.isin(epoch_nums, self.mne.bad_epochs).nonzero()
             while len(self.mne.epoch_traces):
@@ -2334,7 +2336,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     _starts = self.mne.boundary_times[epoch_ix][bool_ixs]
                     _stops = self.mne.boundary_times[epoch_ix + 1][bool_ixs]
                     for _start, _stop in zip(_starts, _stops):
-                        _mask = np.logical_and(_start < this_times, this_times <= _stop)
+                        # inclusive at both ends: an epoch owns its own first
+                        # sample, and a one-sample epoch has nothing else
+                        _mask = np.logical_and(
+                            _start <= this_times, this_times <= _stop
+                        )
                         mask = mask | _mask
                     _times = np.ma.masked_array(this_times, mask=~mask)
                     # always use the existing traces first
@@ -2442,7 +2448,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 len(boundary_times) - 2,
             )
         )
-        offset = round((xdata - boundary_times[clicked_ix]) * sfreq)
+        # clamp into the clicked epoch: a click in its last half sample would
+        # otherwise round up to one sample past its end, which no epoch holds,
+        # and every line would be dropped
+        n_samp = int(
+            round((boundary_times[clicked_ix + 1] - boundary_times[clicked_ix]) * sfreq)
+        )
+        offset = int(
+            np.clip(round((xdata - boundary_times[clicked_ix]) * sfreq), 0, n_samp - 1)
+        )
         latency = self.mne.epoch_tmins[clicked_ix] + offset / sfreq
         ix_start, ix_stop = self._get_epoch_ix_range()
         xs = list()
