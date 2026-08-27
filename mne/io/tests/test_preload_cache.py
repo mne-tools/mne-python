@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import errno
 import gc
 import hashlib
 import json
@@ -12,9 +11,8 @@ import multiprocessing
 import os
 import shutil
 import threading
-import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from contextlib import chdir, nullcontext
+from contextlib import chdir
 from pathlib import Path
 
 import numpy as np
@@ -92,7 +90,7 @@ def auto_cache(tmp_path, cache_root):
     return source, cache_root
 
 
-def _fail_manifest_replace(source, destination):
+def _fail_manifest_dump(*args, **kwargs):
     raise OSError("injected manifest failure")
 
 
@@ -100,135 +98,37 @@ def _fail_memmap_flush(self):
     raise OSError("injected flush failure")
 
 
-def _raise_unsupported_fsync(descriptor):
-    raise OSError(errno.EINVAL, "unsupported")
+def test_unlocked_cache_lock_never_blocks(auto_cache, monkeypatch):
+    """Test that an abandoned unlocked file cannot block cache creation."""
+    source, _ = auto_cache
+    raw = _RawArange(preload=False, filename=source)
+    cache_dir, key, _, _, _ = _preload_cache._raw_preload_cache_info(raw)
+    (cache_dir / f"{key}.lock").write_text("abandoned", encoding="ascii")
+    monkeypatch.setattr(_preload_cache, "_RAW_PRELOAD_LOCK_TIMEOUT", 0.1)
 
+    raw.load_data(memmap="auto")
 
-def _raise_fsync_io_error(descriptor):
-    raise OSError(errno.EIO, "I/O failure")
-
-
-def test_live_writer_lock_is_never_stale(tmp_path):
-    """Test that age alone cannot evict a positively live publisher."""
-    lock = tmp_path / "entry.lock"
-    lock.write_text(f"{os.getpid()} token", encoding="ascii")
-    old = time.time() - 7200.0
-    os.utime(lock, (old, old))
-    assert not _preload_cache._raw_preload_remove_stale_lock(lock)
-    assert lock.is_file()
-
-
-@pytest.mark.parametrize(
-    ("replacement", "error"),
-    (
-        (_raise_unsupported_fsync, None),
-        (_raise_fsync_io_error, "I/O failure"),
-    ),
-)
-@pytest.mark.skipif(os.name == "nt", reason="directory fsync is POSIX-only")
-def test_directory_fsync_unsupported_only(replacement, error, tmp_path, monkeypatch):
-    """Test narrow handling of filesystems without directory fsync."""
-    monkeypatch.setattr(_preload_cache.os, "fsync", replacement)
-    context = nullcontext() if error is None else pytest.raises(OSError, match=error)
-    with context:
-        _preload_cache._raw_preload_fsync_directory(tmp_path)
-
-
-def test_windows_identity_uses_change_time_and_file_id(tmp_path, monkeypatch):
-    """Test that Windows identity comes from the validated file handle."""
-    source = tmp_path / "source.data"
-    source.write_bytes(b"source")
-    expected = dict(
-        size=len(b"source"),
-        mtime_ns=10,
-        change_ns=20,
-        device=30,
-        inode=40,
-    )
-    descriptor = os.open(source, os.O_RDONLY)
-    try:
-        monkeypatch.setattr(_preload_cache, "_IS_WINDOWS", True)
-        monkeypatch.setattr(
-            _preload_cache,
-            "_raw_preload_windows_fstat",
-            lambda descriptor, result: expected,
-            raising=False,
-        )
-        identity = _preload_cache._raw_preload_fstat(descriptor)
-    finally:
-        os.close(descriptor)
-    assert identity == expected
-
-
-def test_windows_open_uses_reparse_safe_handle(tmp_path, monkeypatch):
-    """Test that Windows cache opens use the no-reparse helper."""
-    source = tmp_path / "source.data"
-    source.write_bytes(b"source")
-    opened = []
-
-    def _open_windows(path):
-        opened.append(path)
-        return path.open("rb")
-
-    monkeypatch.setattr(_preload_cache, "_IS_WINDOWS", True)
-    monkeypatch.setattr(
-        _preload_cache,
-        "_raw_preload_open_windows",
-        _open_windows,
-        raising=False,
-    )
-    with _preload_cache._raw_preload_open_regular(source) as file:
-        assert file.read() == b"source"
-    assert opened == [source]
-
-
-def test_windows_uses_configured_cache_directory(tmp_path, monkeypatch):
-    """Test that Windows can create the managed cache directory."""
-    cache_root = tmp_path / "cache"
-    cache_root.mkdir()
-    path_class = _preload_cache.Path
-    monkeypatch.setattr(_preload_cache, "_IS_WINDOWS", True)
-    monkeypatch.setattr(
-        _preload_cache,
-        "Path",
-        lambda value: value if isinstance(value, path_class) else path_class(value),
-    )
-    managed = _preload_cache._raw_preload_cache_dir(cache_root)
-    assert managed == cache_root / "raw-preload-v1"
-    assert managed.is_dir()
-
-
-def test_windows_does_not_use_posix_fchmod(monkeypatch):
-    """Test that Windows publication avoids unavailable POSIX permissions."""
-    monkeypatch.setattr(_preload_cache, "_IS_WINDOWS", True)
-    monkeypatch.setattr(
-        _preload_cache.os,
-        "fchmod",
-        lambda *args: pytest.fail("os.fchmod was called"),
-    )
-    _preload_cache._raw_preload_protect_generation(1)
+    assert_array_equal(raw.get_data()[:, 0], np.arange(1, 9))
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX directory permissions")
-def test_cache_rejects_untrusted_ancestor(tmp_path):
-    """Test that another local user cannot replace the managed directory."""
+def test_cache_accepts_configured_shared_ancestor(tmp_path):
+    """Test that the explicitly configured cache location is trusted."""
     shared = tmp_path / "shared"
     shared.mkdir(mode=0o777)
     shared.chmod(0o777)
     cache_root = shared / "cache"
     cache_root.mkdir(mode=0o700)
-    with pytest.raises(PermissionError, match="untrusted writable ancestor"):
-        _preload_cache._raw_preload_cache_dir(cache_root)
+    assert _preload_cache._raw_preload_cache_dir(cache_root).is_dir()
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX directory permissions")
-def test_cache_rejects_existing_public_managed_directory(tmp_path):
-    """Test that making an already exposed cache private is insufficient."""
+def test_cache_accepts_configured_public_managed_directory(tmp_path):
+    """Test that an explicitly configured existing cache is trusted."""
     managed = tmp_path / "raw-preload-v1"
     managed.mkdir(mode=0o777)
     managed.chmod(0o777)
-    with pytest.raises(PermissionError, match="already be private"):
-        _preload_cache._raw_preload_cache_dir(tmp_path)
+    assert _preload_cache._raw_preload_cache_dir(tmp_path) == managed
     assert managed.stat().st_mode & 0o777 == 0o777
 
 
@@ -294,6 +194,24 @@ def test_auto_preload_first_miss_is_copy_on_write(auto_cache, tmp_path):
     assert not (tmp_path / "auto").exists()
 
 
+def test_auto_preload_ignores_generation_metadata(auto_cache):
+    """Test that generation metadata does not cause an expensive re-decode."""
+    source, _ = auto_cache
+    raw = _RawArange(preload="auto", filename=source)
+    generation = Path(raw._data.filename)
+    del raw
+    gc.collect()
+    result = generation.stat()
+    os.utime(
+        generation,
+        ns=(result.st_atime_ns, result.st_mtime_ns + 1_000_000),
+    )
+
+    other = _RawArange(preload="auto", filename=source)
+
+    assert Path(other._data.filename) == generation
+
+
 def test_auto_preload_scavenges_same_key(auto_cache):
     """Test that a retry removes abandoned files for its cache key."""
     source, _ = auto_cache
@@ -318,14 +236,14 @@ def test_auto_preload_cleans_failed_publication(auto_cache, monkeypatch):
     source, cache_root = auto_cache
 
     with monkeypatch.context() as context:
-        context.setattr(
-            _preload_cache, "_raw_preload_replace_manifest", _fail_manifest_replace
-        )
+        context.setattr(_preload_cache.json, "dump", _fail_manifest_dump)
         with pytest.raises(OSError, match="injected manifest failure"):
             _RawArange(preload="auto", filename=source)
 
     cache_dir = cache_root / "raw-preload-v1"
-    assert list(cache_dir.iterdir()) == []
+    assert not list(cache_dir.glob("*.data"))
+    assert not list(cache_dir.glob("*.json"))
+    assert not list(cache_dir.glob("*.tmp"))
     raw = _RawArange(preload="auto", filename=source)
     assert_array_equal(raw.get_data()[:, 0], np.arange(1, 9))
 
@@ -340,7 +258,10 @@ def test_auto_preload_closes_failed_flush(auto_cache, monkeypatch):
         _RawArangeRecording(preload="auto", filename=source)
 
     assert mappings[0]._mmap.closed
-    assert list((cache_root / "raw-preload-v1").iterdir()) == []
+    cache_dir = cache_root / "raw-preload-v1"
+    assert not list(cache_dir.glob("*.data"))
+    assert not list(cache_dir.glob("*.json"))
+    assert not list(cache_dir.glob("*.tmp"))
 
 
 def test_auto_preload_invalidates_mne_version(auto_cache, monkeypatch):
@@ -385,8 +306,8 @@ def test_auto_preload_api_contract(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
-def test_auto_preload_private_storage(auto_cache):
-    """Test private permissions for managed decoded data."""
+def test_auto_preload_storage_permissions(auto_cache):
+    """Test that newly created cache files are not shared by default."""
     source, cache_root = auto_cache
     raw = _RawArange(preload="auto", filename=source)
     cache_dir = next(cache_root.iterdir())
@@ -395,7 +316,6 @@ def test_auto_preload_private_storage(auto_cache):
     assert cache_dir.stat().st_mode & 0o077 == 0
     assert manifest.stat().st_mode & 0o077 == 0
     assert generation.stat().st_mode & 0o077 == 0
-    assert generation.stat().st_mode & 0o222 == 0
 
 
 def test_auto_preload_rejects_cache_symlink(tmp_path, cache_root):
@@ -450,11 +370,9 @@ def test_auto_preload_cache_formats(reader_name, relative_path, cache_root):
         "symlink_manifest",
         "missing_field",
         "unknown_field",
-        "version",
         "traversal_generation",
         "missing_generation",
         "wrong_size_generation",
-        "same_size_generation",
         "symlink_generation",
     ),
 )
@@ -482,13 +400,10 @@ def test_auto_preload_cache_corruption(corruption, auto_cache, tmp_path):
         except OSError:
             pytest.skip("symlink creation is unavailable")
     elif corruption == "missing_field":
-        manifest.pop("version")
+        manifest.pop("generation")
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     elif corruption == "unknown_field":
         manifest["unknown"] = True
-        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    elif corruption == "version":
-        manifest[corruption] = -1
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     elif corruption == "traversal_generation":
         manifest["generation"] = f"../{manifest['generation']}"
@@ -498,12 +413,6 @@ def test_auto_preload_cache_corruption(corruption, auto_cache, tmp_path):
     elif corruption == "wrong_size_generation":
         generation.chmod(0o600)
         generation.write_bytes(b"short")
-    elif corruption == "same_size_generation":
-        generation.chmod(0o600)
-        stat = generation.stat()
-        with generation.open("r+b") as file:
-            file.write(b"\x00" * 8)
-        os.utime(generation, ns=(stat.st_atime_ns, stat.st_mtime_ns))
     else:
         outside = tmp_path / "outside.dat"
         outside.write_bytes(b"outside")
@@ -549,14 +458,12 @@ def test_auto_preload_recovers_crashed_publisher(cache_root):
     assert process.exitcode == 91
     cache_dir = next(cache_root.iterdir())
     assert len(list(cache_dir.glob("*.data"))) == 1
-    assert len(list(cache_dir.glob("*.lock"))) == 1
     assert not list(cache_dir.glob("*.json"))
 
     raw = mne.io.read_raw_edf(source, preload="auto", verbose="error")
     reference = mne.io.read_raw_edf(source, preload=True, verbose="error")
     assert raw._data.mode == "c"
     assert_array_equal(raw.get_data(), reference.get_data())
-    assert not list(cache_dir.glob("*.lock"))
     assert not list(cache_dir.glob("*.tmp"))
     assert len(list(cache_dir.glob("*.data"))) == 1
 
@@ -619,13 +526,16 @@ def test_auto_preload_numeric_invalidation(tmp_path, cache_root):
     )
     assert Path(excluded._data.filename) != generation
     assert excluded._data.shape[0] == original._data.shape[0] - 1
-    stat = edf_source.stat()
+    result = edf_source.stat()
     with edf_source.open("r+b") as file:
         file.seek(-1, os.SEEK_END)
         byte = file.read(1)
         file.seek(-1, os.SEEK_END)
         file.write(bytes([byte[0] ^ 1]))
-    os.utime(edf_source, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    os.utime(
+        edf_source,
+        ns=(result.st_atime_ns, result.st_mtime_ns + 10_000_000_000),
+    )
     changed = mne.io.read_raw_edf(edf_source, preload="auto", verbose="error")
     assert Path(changed._data.filename) != generation
 

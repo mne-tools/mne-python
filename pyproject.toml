@@ -115,6 +115,7 @@ classifiers = [
 ]
 dependencies = [
   "decorator >= 5.1",
+  "filelock >= 3.18.0",
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.9",  # released 2024-05-15, will become 3.10 on 2026-12-14
@@ -170,7 +171,6 @@ full-no-qt = [
   "dipy >= 1.9",  # released 2024-03-08, will become 1.10 on 2026-12-12
   "edfio >= 0.4.10",
   "eeglabio",
-  "filelock >= 3.18.0",
   "h5py >= 2.4",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
