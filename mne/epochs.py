@@ -10,7 +10,7 @@ import os.path as op
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
-from functools import partial
+from functools import partial, wraps
 from inspect import getfullargspec
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -4040,6 +4040,165 @@ def _events_from_annotations(raw, events, event_id, annotations, on_missing):
         # remove any non-selected annotations
         annotations.delete(~np.isin(raw.annotations.description, list(event_id)))
     return events, event_id, annotations
+
+
+#: Methods whose result is only looked at. They warn and run on ``as_fixed()``,
+#: which is enough for inspection because the padding is visible to whoever is
+#: looking. Anything numeric is not in this table: see the two below.
+_VARIABLE_FALLBACK = {
+    "to_data_frame": "",
+}
+
+#: Methods that combine epochs across a shared time axis. Padding them makes the
+#: number of contributing epochs a function of time, which no scalar ``nave`` can
+#: describe, so they ask for a policy instead of inventing one. See :gh:`14206`.
+_VARIABLE_NEEDS_POLICY = {
+    "average": "averaging",
+    "standard_error": "estimating the standard error",
+    "subtract_evoked": "subtracting an evoked response",
+    "iter_evoked": "iterating as evoked responses",
+    "compute_tfr": "computing a time-frequency representation",
+    "compute_psd": "computing a spectrum",
+}
+
+#: Methods that are mathematically per-trial and simply have no ragged
+#: implementation yet. Running them on a padded copy would return a wrong answer
+#: rather than a slow one, so they raise until implemented natively.
+_VARIABLE_NOT_IMPLEMENTED = {
+    "filter": "filtering",
+    "plot": "browsing",
+    "apply_function": "applying a function",
+    "apply_baseline": "baseline correction",
+    "crop": "cropping",
+    "decimate": "decimation",
+    "resample": "resampling",
+    "save": "writing to FIF",
+    "export": "exporting",
+    # these render an image over one axis and cannot draw the NaN padding that
+    # as_fixed() introduces, so the fallback has nothing useful to show
+    "plot_image": "plotting as an image",
+    "plot_topo_image": "plotting as a topographic image",
+}
+
+
+def _wrap_variable_fallback(func, name, note):
+    """Warn and fall back to ``as_fixed()`` for variable-duration epochs.
+
+    Parameters
+    ----------
+    func : callable
+        The original method.
+    name : str
+        Its name, used to look it up on the fixed-duration copy.
+    note : str
+        Extra sentence appended to the warning, or an empty string.
+
+    Returns
+    -------
+    wrapper : callable
+        The wrapped method.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not getattr(self, "_variable_duration", False):
+            return func(self, *args, **kwargs)
+        message = (
+            f"{name}() needs one time axis, which these variable-duration "
+            f"epochs do not have, so it ran on as_fixed(): every epoch padded "
+            f"to span {self.tmin.min():g} to {self.tmax.max():g} s."
+        )
+        if note:
+            message += " " + note
+        message += " Call as_fixed() yourself to make this explicit."
+        warn(message, RuntimeWarning)
+        fixed, _ = self.as_fixed()
+        return getattr(fixed, name)(*args, **kwargs)
+
+    return wrapper
+
+
+def _raise_needs_policy(func, name, what):
+    """Raise for reductions across a time axis the epochs do not share.
+
+    Parameters
+    ----------
+    func : callable
+        The original method.
+    name : str
+        Its name.
+    what : str
+        Short description of the operation, used in the message.
+
+    Returns
+    -------
+    wrapper : callable
+        The wrapped method.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not getattr(self, "_variable_duration", False):
+            return func(self, *args, **kwargs)
+        raise NotImplementedError(
+            f"{name}() combines epochs across a shared time axis, and these "
+            f"epochs do not share one. {what.capitalize()} them needs an "
+            "explicit policy, because the number of contributing epochs varies "
+            "across the window and no single nave describes it. Either call "
+            "as_fixed(), which pads to the union window and returns that count "
+            "alongside the data, or align the epochs first. See "
+            "https://github.com/mne-tools/mne-python/issues/14206."
+        )
+
+    return wrapper
+
+
+def _raise_not_implemented(func, name, what):
+    """Raise for per-trial operations with no ragged implementation yet.
+
+    Parameters
+    ----------
+    func : callable
+        The original method.
+    name : str
+        Its name.
+    what : str
+        Short description of the operation, used in the message.
+
+    Returns
+    -------
+    wrapper : callable
+        The wrapped method.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not getattr(self, "_variable_duration", False):
+            return func(self, *args, **kwargs)
+        raise NotImplementedError(
+            f"{name}() is not implemented for variable-duration epochs. "
+            f"{what.capitalize()} is per-trial and could work here, but running "
+            "it on a padded copy would change the result rather than just slow "
+            "it down, so it raises until implemented. See "
+            "https://github.com/mne-tools/mne-python/issues/14206."
+        )
+
+    return wrapper
+
+
+for _name, _note in _VARIABLE_FALLBACK.items():
+    _orig = getattr(BaseEpochs, _name, None)
+    if _orig is not None:
+        setattr(BaseEpochs, _name, _wrap_variable_fallback(_orig, _name, _note))
+for _name, _what in _VARIABLE_NEEDS_POLICY.items():
+    _orig = getattr(BaseEpochs, _name, None)
+    if _orig is not None:
+        setattr(BaseEpochs, _name, _raise_needs_policy(_orig, _name, _what))
+for _name, _what in _VARIABLE_NOT_IMPLEMENTED.items():
+    _orig = getattr(BaseEpochs, _name, None)
+    if _orig is not None:
+        setattr(BaseEpochs, _name, _raise_not_implemented(_orig, _name, _what))
+del _name, _note, _what, _orig
 
 
 @fill_doc

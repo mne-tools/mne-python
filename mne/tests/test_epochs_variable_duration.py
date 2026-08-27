@@ -9,6 +9,11 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import EpochsArray, create_info
+from mne.epochs import (
+    _VARIABLE_FALLBACK,
+    _VARIABLE_NEEDS_POLICY,
+    _VARIABLE_NOT_IMPLEMENTED,
+)
 
 SFREQ = 100.0
 CH_NAMES = ["a", "b", "c"]
@@ -204,9 +209,91 @@ def test_as_fixed_on_fixed_epochs_is_a_copy():
 
 
 # -- dispatch --------------------------------------------------------------
+@pytest.mark.parametrize("meth", sorted(_VARIABLE_NEEDS_POLICY))
+def test_reductions_ask_for_a_policy(variable, meth):
+    """Test that combining epochs across a time axis they lack is refused.
+
+    Padding first and reducing afterwards is not a slower answer, it is a
+    different one: one short epoch turns a whole time point into NaN, and the
+    scalar ``nave`` keeps reporting the full count.
+    """
+    with pytest.raises(NotImplementedError, match="explicit policy"):
+        result = getattr(variable, meth)()
+        list(result)  # iter_evoked is a generator
+
+
+def test_policy_message_names_the_varying_count(variable):
+    """Test that the refusal explains itself rather than just declining."""
+    with pytest.raises(NotImplementedError) as excinfo:
+        variable.average()
+    message = str(excinfo.value)
+    assert "varies across the window" in message
+    assert "as_fixed" in message
+
+
+def test_compute_tfr_does_not_silently_pad(variable):
+    """Test that the transform is not quietly given padded data.
+
+    Padding before a time-frequency transform is the opposite of the order this
+    work argues for, which is to transform at native duration and warp the
+    result. Doing it silently inside ``compute_tfr`` would ship the thing being
+    argued against.
+    """
+    with pytest.raises(NotImplementedError, match="explicit policy"):
+        variable.compute_tfr("morlet", freqs=np.arange(10.0, 20.0, 2.0), n_cycles=2)
+
+
+@pytest.mark.parametrize("meth", sorted(_VARIABLE_NOT_IMPLEMENTED))
+def test_per_trial_methods_raise_until_implemented(variable, meth):
+    """Test that per-trial work refuses rather than running on a padded copy."""
+    with pytest.raises(NotImplementedError, match="not implemented"):
+        getattr(variable, meth)()
+
+
+@pytest.mark.parametrize("meth", sorted(_VARIABLE_FALLBACK))
+def test_display_methods_warn_and_fall_back(variable, meth):
+    """Test that the remaining inspection method degrades rather than refuses."""
+    if meth == "to_data_frame":
+        pytest.importorskip("pandas")
+    with pytest.warns(RuntimeWarning, match="ran on as_fixed"):
+        assert getattr(variable, meth)() is not None
 
 
 # -- operations that stay native -------------------------------------------
+def test_pick_keeps_durations(variable):
+    """Test that channel selection leaves the time axis alone."""
+    before = variable.durations.copy()
+    picked = variable.copy().pick(["a", "c"])
+    assert picked.ch_names == ["a", "c"]
+    assert_allclose(picked.durations, before)
+    for epoch in picked.get_data():
+        assert epoch.shape[0] == 2
+
+
+def test_getitem_keeps_per_epoch_bounds(variable):
+    """Test that indexing carries the bounds with the epochs."""
+    subset = variable[[0, 2]]
+    assert len(subset) == 2
+    assert_allclose(subset.durations, variable.durations[[0, 2]])
+    for got, want in zip(subset.get_data(), [variable.get_data()[i] for i in (0, 2)]):
+        assert_array_equal(got, want)
+
+
+def test_drop_keeps_per_epoch_bounds(variable):
+    """Test that dropping an epoch drops its bounds too."""
+    kept = variable.copy().drop([1])
+    assert len(kept) == 3
+    assert_allclose(kept.durations, variable.durations[[0, 2, 3]])
+
+
+def test_shift_time_moves_bounds_not_samples(variable):
+    """Test that shifting the origin does not resample anything."""
+    before_lengths = [epoch.shape[1] for epoch in variable.get_data()]
+    before_durations = variable.durations.copy()
+    shifted = variable.copy().shift_time(0.1)
+    assert_allclose(shifted.tmin, variable.tmin + 0.1)
+    assert_allclose(shifted.durations, before_durations)
+    assert [epoch.shape[1] for epoch in shifted.get_data()] == before_lengths
 
 
 # -- the time axis ---------------------------------------------------------
@@ -243,6 +330,30 @@ def test_fixed_epochs_still_have_times():
     )
     assert len(epochs.times) == 71
     assert epochs.average().data.shape == (len(CH_NAMES), 71)
+
+
+def test_nothing_reaches_the_user_as_an_internal_error(variable):
+    """Test that no public method leaks a NumPy error about lists."""
+    import warnings
+
+    names = (
+        sorted(_VARIABLE_FALLBACK)
+        + sorted(_VARIABLE_NEEDS_POLICY)
+        + sorted(_VARIABLE_NOT_IMPLEMENTED)
+    )
+    for name in names:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            try:
+                getattr(variable.copy(), name)()
+            except (NotImplementedError, RuntimeError):
+                pass
+            except TypeError as exc:
+                assert "argument" in str(exc), f"{name}: {exc}"
+            except (AttributeError, IndexError) as exc:
+                raise AssertionError(f"{name} leaked an internal error: {exc}")
+            except Exception:
+                pass
 
 
 # -- construction from Raw -------------------------------------------------
@@ -352,3 +463,41 @@ def test_from_raw_scalar_bounds_still_scalar():
     assert not epochs.variable_duration
     assert isinstance(epochs.tmin, float)
     assert epochs.get_data().shape == (2, len(CH_NAMES), 51)
+
+
+@pytest.mark.parametrize(
+    "item", [slice(None, 2), slice(1, None), slice(None, None, 2), slice(None)]
+)
+def test_getitem_slice_selects_epochs_not_the_slice(variable, item):
+    """Test that slicing subsets the epochs rather than wrapping the slice."""
+    want = np.arange(len(variable))[item]
+    subset = variable[item]
+
+    assert len(subset) == len(want)
+    # a slice used to survive into the data list as a single nested element
+    assert all(isinstance(d, np.ndarray) and d.ndim == 2 for d in subset.get_data())
+    assert_allclose(subset.durations, variable.durations[want])
+    for got, idx in zip(subset.get_data(), want):
+        assert_array_equal(got, variable.get_data()[idx])
+
+
+def test_apply_function_refuses(variable):
+    """Test that apply_function refuses instead of indexing a list with a tuple."""
+    with pytest.raises(NotImplementedError, match="not implemented"):
+        variable.apply_function(lambda x: x * 2)
+
+
+def test_pick_does_not_reach_back_into_the_parent(variable):
+    """Test that picking replaces one object's epochs and no other's."""
+    before = [epoch.shape for epoch in variable.get_data()]
+
+    # _pick_drop_channels replaces the list contents in place, so anything
+    # sharing that list would be picked too
+    variable.copy().pick(["a", "c"])
+    assert [epoch.shape for epoch in variable.get_data()] == before
+
+    subset = variable[:2]
+    assert subset._data is not variable._data
+    subset.pick(["a"])
+    assert [epoch.shape for epoch in variable.get_data()] == before
+    assert all(epoch.shape[0] == 1 for epoch in subset.get_data())

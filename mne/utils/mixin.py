@@ -222,7 +222,12 @@ class GetEpochsMixin:
         self._sanity_check_event_id()
         inst = self.copy() if copy else self
         if self._data is not None:
-            np.copyto(inst._data, self._data, casting="no")
+            if isinstance(self._data, list):
+                # variable-duration epochs hold one array per epoch, so there is
+                # nothing to copy into; copy() already produced the list
+                inst._data = [d.copy() for d in self._data] if copy else self._data
+            else:
+                np.copyto(inst._data, self._data, casting="no")
         del self
 
         select = inst._item_to_select(item)
@@ -257,9 +262,21 @@ class GetEpochsMixin:
             # will reset the index for us
             GetEpochsMixin.metadata.fset(inst, metadata, verbose=False)
         if inst.preload and select_data:
-            # ensure that each Epochs instance owns its own data so we can
-            # resize later if necessary
-            inst._data = np.require(inst._data[select], requirements=["O"])
+            if isinstance(inst._data, list):
+                # `select` can still be a slice here, and iterating one yields
+                # the slice itself rather than the epochs it covers
+                inst._data = [
+                    inst._data[ii] for ii in np.arange(len(inst._data))[select]
+                ]
+            else:
+                # ensure that each Epochs instance owns its own data so we can
+                # resize later if necessary
+                inst._data = np.require(inst._data[select], requirements=["O"])
+        # per-event bounds travel with the epochs they describe
+        if getattr(inst, "_variable_duration", False):
+            # an ndarray takes a slice or an index array equally well
+            inst._tmin_per_epoch = inst._tmin_per_epoch[select]
+            inst._tmax_per_epoch = inst._tmax_per_epoch[select]
         if drop_event_id:
             # update event id to reflect new content of inst
             inst.event_id = {
@@ -767,6 +784,20 @@ class ExtendedTimeMixin(TimeMixin):
         or change the *data* values in any way.
         """
         _check_preload(self, "shift_time")
+        if getattr(self, "_variable_duration", False):
+            # each epoch keeps its own length; only the origin moves, so this
+            # shifts the bounds and leaves the samples alone
+            if relative:
+                shift = tshift
+            else:
+                shift = tshift - self._tmin_per_epoch.min()
+            self._tmin_per_epoch = self._tmin_per_epoch + shift
+            self._tmax_per_epoch = self._tmax_per_epoch + shift
+            self._raw_times = self._raw_times + shift
+            self._set_times(self._raw_times)
+            self._update_first_last()
+            return self
+
         start = tshift + (self.times[0] if relative else 0.0)
         new_times = start + np.arange(len(self.times)) / self.info["sfreq"]
         self._set_times(new_times)
