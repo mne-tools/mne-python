@@ -1,8 +1,8 @@
 # deps with onerous requirements
-conpy  # requires future and subprocess32, which don't have wheels #categories: Connectivity and source analysis 
-cross-domain-saliency-maps  # tensorflow #categories: Statistics and machine learning 
-eelbrain #nowheels #categories: Statistics and machine learning, Visualization and real-time analysis 
-fsleyes  # wxPython #categories: Other physiological signals and modalities, Visualization and real-time analysis 
-mne-kit-gui # mayavi #categories: Preprocessing and artifact correction 
-mne-videobrowser # opencv #categories: Visualization and real-time analysis 
-zuna # requires pytorch #categories: Statistics and machine learning 
+conpy  # requires future and subprocess32, which don't have wheels # categories: Connectivity and source analysis
+cross-domain-saliency-maps  # tensorflow # categories: Statistics and machine learning
+eelbrain #nowheels # categories: Statistics and machine learning, Visualization and real-time analysis
+fsleyes  # wxPython # categories: Other physiological signals and modalities, Visualization and real-time analysis
+mne-kit-gui # mayavi # categories: Preprocessing and artifact correction
+mne-videobrowser # opencv # categories: Visualization and real-time analysis
+zuna # requires pytorch # categories: Statistics and machine learning

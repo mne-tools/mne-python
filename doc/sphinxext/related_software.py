@@ -67,6 +67,11 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
         "Summary": "Functions and classes for performing connectivity analysis on MEG data.",  # noqa: E501
     },
+    # no wheels
+    "eelbrain": {
+        "Home-page": "https://eelbrain.readthedocs.io",
+        "Summary": "MEG/EEG analysis tools",
+    },
 }
 
 REQUIRE_INSTALLED = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
@@ -110,12 +115,13 @@ def _get_mapping(packages):
     txt_nodeps = cwd / "related_software_nodeps.txt"
     mapping = dict()
     for line in (txt.read_text() + "\n" + txt_nodeps.read_text()).split("\n"):
-        if not line or line[0] == "#":
+        line = line.strip()
+        if not line or line.startswith("#"):
             continue
         pkg = line.split("#")[0].strip()
-        # just keep anything after "categories: " to end of line and cut before next #
+        # just keep anything after "categories: " to end of line
         if "categories: " in line:
-            categories = line.split("categories:")[-1].split("#")[0].strip()
+            categories = line.split("categories:")[-1].strip()
         else:
             categories = "Other"
         # split the comma-separated list of categories into a tuple of strings
@@ -130,6 +136,9 @@ def _get_mapping(packages):
     rev_mapping = dict()
     for cat in cats:
         rev_mapping[cat] = tuple([pkg for pkg, cats in mapping.items() if cat in cats])
+    # extra packages: not in the two text files
+    extras = tuple(set(packages) - set(mapping))
+    rev_mapping["Other"] = tuple(sorted(rev_mapping["Other"] + extras))
     return rev_mapping
 
 
@@ -156,10 +165,11 @@ def _get_packages() -> dict[str, str]:
         if name not in packages:
             packages.append(name)
     # Simple alphabetical order
-    packages = sorted(packages, key=lambda x: x.lower())
     packages = [RENAMES.get(package, package) for package in packages]
+    packages = sorted(packages, key=lambda x: x.lower())
     out = dict()
     reasons = []
+    assert "fsleyes" in packages
     for package in status_iterator(
         packages, f"Adding {len(packages)} related software packages: "
     ):
@@ -170,6 +180,7 @@ def _get_packages() -> dict[str, str]:
             else:
                 md = importlib.metadata.metadata(package)
         except importlib.metadata.PackageNotFoundError:
+            assert "fsleyes" != package
             reasons.append(f"{package}: not found, needs to be installed")
             continue  # raise a complete error later
         else:
@@ -177,6 +188,7 @@ def _get_packages() -> dict[str, str]:
             do_continue = False
             for key in ("Summary",):
                 if key not in md:
+                    assert "fsleyes" != package
                     reasons.extend(f"{package}: missing {repr(key)}")
                     do_continue = True
             if do_continue:
@@ -224,20 +236,19 @@ class RelatedSoftwareDirective(Directive):
 
     def run(self):
         """Run the directive."""
-        my_list = nodes.bullet_list(bullet="*")
+        my_section = list()
         pkg_data, cat_to_pkgs = _get_packages()
-        print(cat_to_pkgs)
-
         # iterate over category, packages
-        for category, pkgs in cat_to_pkgs.items():
-            # Add category title
-            section = nodes.section()
-            title = nodes.title(text=category)
-            section += title
+        for category, packages in cat_to_pkgs.items():
+            title = nodes.paragraph()
+            title += nodes.strong(text=category)
+            my_section.append(title)
+            this_list = nodes.bullet_list(bullet="*")
 
-            # Add list of associated packages
-            for package in pkgs:
-                data = pkg_data[package.lower()]
+            for package in packages:
+                data = pkg_data.get(package.lower(), {})
+                if not data:
+                    print(package)
                 item = nodes.list_item()
                 if "description" not in data:
                     para = nodes.paragraph(text=f"{package}")
@@ -250,10 +261,10 @@ class RelatedSoftwareDirective(Directive):
                         refuri=data["url"],
                     )
                     para.insert(0, refnode)
-            item += para
-            section += item
-            my_list.append(section)
-        return [my_list]
+                item += para
+                this_list.append(item)
+            my_section.append(this_list)
+        return my_section
 
 
 def setup(app):  # noqa: D103
