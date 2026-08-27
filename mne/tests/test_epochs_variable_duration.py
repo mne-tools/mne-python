@@ -670,9 +670,7 @@ def test_crop_that_equalises_axes_returns_fixed_epochs(variable):
 
 def test_crop_keeps_epoch_bookkeeping(variable):
     """Test that events, metadata and drop_log travel unchanged."""
-    import pandas as pd
-
-    pytest.importorskip("pandas")
+    pd = pytest.importorskip("pandas")
     variable.metadata = pd.DataFrame(dict(kind=list("abcd")))
     events = variable.events.copy()
     drop_log = variable.drop_log
