@@ -547,8 +547,14 @@ def _boundaries():
 
 
 @pytest.fixture
-def variable_epochs():
+def variable_epochs(browser_backend):
     """Epochs of unequal duration sharing tmin=0."""
+    from mne.viz._figure import _check_variable_duration_backend
+
+    try:  # skips qt until an mne-qt-browser that announces support is released
+        _check_variable_duration_backend()
+    except NotImplementedError as exc:
+        pytest.skip(str(exc))
     return _variable_epochs()
 
 
@@ -711,7 +717,7 @@ def test_plot_variable_duration_events(browser_backend):
     assert_allclose(got, want)
 
 
-def test_plot_variable_duration_refuses_old_backends(variable_epochs, monkeypatch):
+def test_plot_variable_duration_refuses_old_backends(monkeypatch):
     """Test that a backend without the boundary model declines, not fails."""
     import mne.viz._figure
 
@@ -721,4 +727,4 @@ def test_plot_variable_duration_refuses_old_backends(variable_epochs, monkeypatc
     monkeypatch.setattr(mne.viz._figure, "get_browser_backend", lambda: "qt")
     monkeypatch.setattr(mne.viz._figure, "_load_backend", lambda name: _OldBackend())
     with pytest.raises(NotImplementedError, match="not implemented for the qt"):
-        variable_epochs.plot()
+        _variable_epochs().plot()
