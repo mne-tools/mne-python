@@ -3727,8 +3727,8 @@ preload : bool | str
     Cached data persist in a versioned ``raw-preload`` directory below the
     configured cache path and are mapped copy-on-write, so modifying the returned
     Raw does not modify later reads. A cache miss performs the normal full decode.
-    Valid entries for historical source or decoder identities are retained without
-    an automatic size limit. The configured cache path is fixed to its physical
+    Valid entries for historical source identities are retained without an
+    automatic size limit. The configured cache path is fixed to its physical
     location. Use ``Path("auto")``,
     ``"./auto"``, or an absolute path to create a file literally named ``auto``.
 

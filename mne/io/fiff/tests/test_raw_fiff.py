@@ -2122,9 +2122,7 @@ def test_file_like(kind, preload, split, tmp_path):
 
 def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
     """Test that automatic caching cannot misidentify a named stream."""
-    cache_dir = tmp_path / "cache"
-    cache_dir.mkdir()
-    monkeypatch.setenv("MNE_CACHE_DIR", str(cache_dir))
+    monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
     stream = BytesIO(test_fif_fname.read_bytes())
     stream.name = str(test_fif_fname)
     with pytest.raises(ValueError, match="stable source files"):
@@ -2133,13 +2131,11 @@ def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
 
 def test_compressed_auto_preload_rejected(tmp_path, monkeypatch):
     """Test that gzip FIF does not advertise ineffective decoded caching."""
-    cache_dir = tmp_path / "cache"
-    cache_dir.mkdir()
-    monkeypatch.setenv("MNE_CACHE_DIR", str(cache_dir))
+    monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
     with pytest.raises(ValueError, match="uncompressed FIF"):
         read_raw_fif(test_fif_gz_fname, preload="auto")
     raw = read_raw_fif(test_fif_gz_fname, preload=False)
-    with pytest.raises(ValueError, match="uncompressed FIF"):
+    with pytest.raises(ValueError, match="uncompressed"):
         raw.load_data(memmap="auto")
 
 

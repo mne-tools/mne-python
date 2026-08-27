@@ -42,18 +42,16 @@ def _raw_preload_source_signature(raw):
                 "or an explicit memory-map path"
             )
         path = Path(filename).resolve(strict=True)
+        if path.suffix == ".gz":
+            raise ValueError(
+                'preload="auto" supports only uncompressed source files; use '
+                "preload=True for compressed files"
+            )
         result = path.stat()
         if not stat.S_ISREG(result.st_mode):
             raise OSError("Raw source data must be regular files")
-        sources.append(
-            dict(
-                path=str(path),
-                size=int(result.st_size),
-                mtime_ns=int(result.st_mtime_ns),
-                device=int(result.st_dev),
-                inode=int(result.st_ino),
-            )
-        )
+        # ponytail: hash contents only if path, size, and mtime prove insufficient.
+        sources.append((str(path), int(result.st_size), int(result.st_mtime_ns)))
     return sources
 
 
@@ -76,13 +74,6 @@ def _raw_preload_cache_dir(cache_root=None):
 
 def _raw_preload_cache_info(raw):
     """Return the managed cache location and expected array description."""
-    cache_identity = raw._decoded_cache_identity()
-    if cache_identity is None:
-        raise ValueError(
-            f'preload="auto" is not supported for {type(raw).__name__}; use '
-            "preload=True or an explicit memory-map path"
-        )
-    decoder_abi, decoder_state = cache_identity
     cache_dir = _raw_preload_cache_dir()
     sources = _raw_preload_source_signature(raw)
     dtype = np.dtype(raw._dtype)
@@ -91,9 +82,8 @@ def _raw_preload_cache_info(raw):
         version=_RAW_PRELOAD_CACHE_VERSION,
         mne_version=MNE_VERSION,
         reader=(type(raw).__module__, type(raw).__qualname__),
-        decoder_abi=decoder_abi,
         sources=sources,
-        decoder_state=decoder_state,
+        raw_extras=raw._raw_extras,
         read_picks=raw._read_picks,
         cals=raw._cals,
         projector=raw._projector,

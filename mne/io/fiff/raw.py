@@ -83,20 +83,6 @@ class Raw(BaseRaw):
         Indicates whether raw data are in memory.
     """
 
-    def _decoded_cache_identity(self):
-        """Return identity that determines numeric FIF decoding."""
-        if any(
-            filename is not None and filename.suffix == ".gz"
-            for filename in self.filenames
-        ):
-            raise ValueError(
-                'preload="auto" supports only uncompressed FIF files; use '
-                "preload=True for gzip-compressed FIF"
-            )
-        keys = ("ent", "bounds", "orig_nchan")
-        state = [{key: extra[key] for key in keys} for extra in self._raw_extras]
-        return (1, state)
-
     _extra_attributes = (
         "fix_mag_coil_types",
         "acqparser",

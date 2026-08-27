@@ -207,10 +207,6 @@ class BaseRaw(
     _filenames: list[Path | None]
     _data: np.ndarray | None
 
-    def _decoded_cache_identity(self):
-        """Return ``(ABI, state)`` for numeric decoding, or ``None``."""
-        return None
-
     @verbose
     def __init__(
         self,
@@ -617,7 +613,7 @@ class BaseRaw(
             and is responsible for removing it after the Raw object is no longer
             in use. For supported file readers, ``"auto"`` instead reuses the
             persistent decoded-data cache configured by :func:`mne.set_cache_dir`.
-            Cache entries for superseded source or decoder identities remain in
+            Cache entries for superseded source identities remain in
             a versioned ``raw-preload`` directory below the configured path.
             If ``None`` (default), preload data into RAM.
 

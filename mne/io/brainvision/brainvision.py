@@ -95,12 +95,6 @@ class RawBrainVision(BaseRaw):
 
     _extra_attributes = ("impedances",)
 
-    def _decoded_cache_identity(self):
-        """Return identity that determines numeric BrainVision decoding."""
-        keys = ("offsets", "fmt", "order", "n_samples", "orig_nchan")
-        state = [{key: extra[key] for key in keys} for extra in self._raw_extras]
-        return (1, state)
-
     @verbose
     def __init__(
         self,
