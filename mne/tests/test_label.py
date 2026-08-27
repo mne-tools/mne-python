@@ -58,8 +58,8 @@ stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
 real_label_fname = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
 v1_label_fname = subjects_dir / "sample" / "label" / "lh.V1.label"
 
+fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
 fname_vsrc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
-fname_src_fs = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 
 fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
 src_bad_fname = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
@@ -466,6 +466,16 @@ def test_labels_to_stc():
     for value, label in zip(values, labels):
         stc_label = stc.in_label(label)
         assert (stc_label.data == value).all()
+    # labels from a single hemisphere, and vertices shared by multiple labels
+    # (which get averaged, see the docstring)
+    lh = [
+        Label(np.arange(3), hemi="lh", subject="sample"),
+        Label(np.arange(2, 5), hemi="lh", subject="sample"),
+    ]
+    stc = labels_to_stc(lh, np.array([1.0, 3.0]))
+    assert_array_equal(stc.vertices[0], np.arange(5))
+    assert_array_equal(stc.vertices[1], [])
+    assert_array_equal(stc.data[:, 0], [1.0, 1.0, 2.0, 3.0, 3.0])
     stc = read_source_estimate(stc_fname, "sample")
 
 
@@ -1351,22 +1361,19 @@ def test_volume_label_adjacency():
 def test_label_adjacency():
     """Test label adjacency."""
     pytest.importorskip("nibabel")
-    src = read_source_spaces(fname_src_fs)
-    mne.add_source_space_distances(src, dist_limit=0.01, n_jobs=-1)
-
+    src = read_source_spaces(fname_src)
     labels = mne.read_labels_from_annot(
-        subject="fsaverage",
+        subject="sample",
         subjects_dir=subjects_dir,
     )
     adj = mne.label_adjacency(labels, src)
 
     n_neighbors = adj.sum(axis=1)
 
-    assert_equal(len(labels), 69)  # default number of labels in aseg.mgz
+    assert_equal(len(labels), 68)  # default number of labels in aseg.mgz
     assert_equal(adj.shape, (len(labels), len(labels)))
 
-    assert_equal(n_neighbors.min(), 0)
-    assert_equal(np.sum(n_neighbors == 0), 1)
+    assert n_neighbors.min() == 3
 
     input_labels = [
         "cuneus-lh",
