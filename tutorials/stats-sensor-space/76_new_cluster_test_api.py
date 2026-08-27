@@ -146,19 +146,3 @@ print(f"The lowest cluster p-value is: {cluster_result.cluster_p_values.min()}")
 
 # note that we ran an exact test due to the small sample size
 # (only 15 permutations)
-
-# %% plot the results
-
-# set up conditions dictionary for cluster plots
-# this is necessary for plotting the evoked data and the cluster result on top
-conditions_dict = {"target": target_only, "non-target": non_target_only}
-
-# finally let's plot the results using the ClusterResults class
-
-# we plot the cluster with the lowest p-value
-cluster_result.plot_cluster_time_sensor(condition_labels=conditions_dict, ci=True)
-# we can see that there is something going on around 400 ms
-# with a stronger signal for target trials in right central-parietal channels
-
-# however the cluster is not significant which is unsurprising
-# given the small sample size (only 5 subjects)
