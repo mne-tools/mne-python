@@ -972,7 +972,7 @@ class BaseRaw(
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
-        exclude : list[str] | Literal["bads"] | tuple = ()
+        exclude : list[str] | Literal["bads"]
             Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
             excluded; pass an empty list or tuple (the default) to include all
             channels. Note: ``exclude`` is currently only applied when ``picks``
