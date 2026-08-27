@@ -2380,8 +2380,11 @@ class BaseEpochs(
         *,
         copy: bool = True,
         verbose: bool | str | int | None = None,
-    ) -> np.ndarray:
+    ) -> np.ndarray | list[np.ndarray]:
         """Get all epochs as a 3D array.
+
+        Epochs of different durations have no shared time axis, so those are
+        returned as one array per epoch instead; see :meth:`as_fixed`.
 
         Parameters
         ----------
@@ -2425,11 +2428,19 @@ class BaseEpochs(
 
         Returns
         -------
-        data : array of shape (n_epochs, n_channels, n_times)
+        data : array of shape (n_epochs, n_channels, n_times) | list of array
             The epochs data. Will be a copy when ``copy=True`` and will be a view
-            when possible when ``copy=False``.
+            when possible when ``copy=False``. When durations vary, one
+            ``(n_channels, n_times_i)`` array per epoch.
         """
         if self._variable_duration:
+            for name, value in (("units", units), ("tmin", tmin), ("tmax", tmax)):
+                if value is not None:
+                    raise NotImplementedError(
+                        f"get_data() with {name} is not implemented for "
+                        "variable-duration epochs; it would have to be applied "
+                        "per epoch. Call as_fixed() first to get one array."
+                    )
             return self._get_variable_data(picks=picks, item=item, copy=copy)
         return self._get_data(
             picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
@@ -2863,6 +2874,7 @@ class BaseEpochs(
             total_size = 0
         else:
             d = self[0].get_data(copy=False)
+            assert isinstance(d, np.ndarray)  # save() refuses ragged epochs
             # this should be guaranteed by subclasses
             assert d.dtype in (">f8", "<f8", ">c16", "<c16")
             total_size = d.nbytes * len(self)

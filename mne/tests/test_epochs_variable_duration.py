@@ -122,6 +122,23 @@ def test_get_data_returns_one_array_per_epoch(variable):
     assert all(epoch.shape[0] == 2 for epoch in picked)
 
 
+def test_get_data_refuses_what_it_cannot_honour(variable):
+    """Test that units, tmin and tmax raise rather than being ignored."""
+    for name, kwargs in (
+        ("units", dict(units="uV")),
+        ("tmin", dict(tmin=0.0)),
+        ("tmax", dict(tmax=0.4)),
+    ):
+        with pytest.raises(NotImplementedError, match=rf"get_data\(\) with {name}"):
+            variable.get_data(**kwargs)
+    # all three work on the padded copy the message points at
+    fixed, _ = variable.as_fixed()
+    volts = fixed.get_data(tmin=0.0, tmax=0.4)
+    assert volts.shape == (4, len(CH_NAMES), 40)
+    micro = fixed.get_data(units="uV", tmin=0.0, tmax=0.4)
+    assert_allclose(micro, volts * 1e6)
+
+
 def test_only_time_may_vary():
     """Test that a varying channel count is rejected."""
     info = create_info(CH_NAMES, SFREQ, "eeg")
