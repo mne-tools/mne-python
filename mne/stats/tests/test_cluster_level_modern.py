@@ -254,7 +254,8 @@ def test_cluster_test_reduce(stat_conditions):
     condition1_1d, _, _, _ = stat_conditions
     # For this test we need equal sized arrays
     condition2_1d = condition1_1d.copy()
-    np.random.shuffle(condition2_1d)
+    rng = np.random.default_rng(0)
+    rng.shuffle(condition2_1d)
 
     info = mne.create_info(
         ch_names=[f"ch_{ii}" for ii in range(condition1_1d.shape[0])],
