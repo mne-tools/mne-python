@@ -1741,9 +1741,14 @@ class BaseEpochs(
         %(picks_all)s
         item : slice | array-like | str | list | None
             See docstring of get_data method.
-        %(exclude_spectrum_get_data)s
+        exclude : list[str] | Literal["bads"] | tuple = ()
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
 
-                            .. versionadded:: 1.13
+            .. versionadded:: 1.13
         %(units)s
         tmin : int | float | None
             Start time of data to get in seconds.
@@ -2026,7 +2031,12 @@ class BaseEpochs(
 
             .. versionadded:: 0.24.0
 
-        %(exclude_spectrum_get_data)s
+        exclude : list[str] | Literal["bads"] | tuple = ()
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
 
             .. versionadded:: 1.13
         copy : bool
