@@ -12,7 +12,7 @@ import numpy as np
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import _simplify_info
-from .._fiff.pick import pick_info, pick_types
+from .._fiff.pick import pick_channels_forward, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..bem import _check_origin
 from ..cov import make_ad_hoc_cov
@@ -21,7 +21,14 @@ from ..evoked import Evoked, EvokedArray
 from ..fixes import _safe_svd
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
-from ..utils import _check_fname, _check_option, _pl, _reg_pinv, logger, verbose
+from ..utils import (
+    _check_fname,
+    _check_option,
+    _pl,
+    _reg_pinv,
+    logger,
+    verbose,
+)
 from ._lead_dots import _do_cross_dots, _do_self_dots, _do_surface_dots, _get_legen_fun
 from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
 
@@ -29,14 +36,19 @@ from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
 def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
     int_rad = 0.06
-    noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
+    noise = _make_field_mapping_noise(info)
     # "fast" uses a coarser (n_coeff=50) Legendre series than "accurate" (n_coeff=100)
     n_coeff = 50 if mode == "fast" else 100
     leg_fun, n_fact = _get_legen_fun(ch_type, False, n_coeff)
     return int_rad, noise, leg_fun, n_fact
 
 
-def _compute_mapping_matrix(fmd, info):
+def _make_field_mapping_noise(info):
+    """Create the ad hoc noise covariance used for field mapping."""
+    return make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
+
+
+def _compute_mapping_matrix(fmd, info, *, rank=None):
     """Do the hairy computations."""
     logger.info("    Preparing the mapping matrix...")
     # assemble a projector and apply it to the data
@@ -54,7 +66,9 @@ def _compute_mapping_matrix(fmd, info):
 
     # SVD is numerically better than the eigenvalue composition even if
     # mat is supposed to be symmetric and positive definite
-    if fmd.get("pinv_method", "tsvd") == "tsvd":
+    if rank is not None:
+        inv, _, _ = _reg_pinv(whitened_dots, reg=0, rank=rank)
+    elif fmd.get("pinv_method", "tsvd") == "tsvd":
         inv, fmd["nest"] = _pinv_trunc(whitened_dots, fmd["miss"])
     else:
         assert fmd["pinv_method"] == "tikhonov", fmd["pinv_method"]
@@ -110,7 +124,9 @@ def _pinv_tikhonov(x, reg):
     return inv, n
 
 
-def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
+def _map_meg_or_eeg_channels(
+    info_from, info_to, mode, *, origin, miss=None, forward=None, rank=None
+):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -133,8 +149,6 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
     mapping : array, shape (n_to, n_from)
         A mapping matrix.
     """
-    assert origin is not None  # should be assured elsewhere
-
     # no need to apply trans because both from and to coils are in device
     # coordinates
     info_kinds = set(ch["kind"] for ch in info_to["chs"])
@@ -149,6 +163,26 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, *, origin, miss=None):
         FIFF.FIFFV_EEG_CH,
     )
     kind = "eeg" if info_kinds[0] == FIFF.FIFFV_EEG_CH else "meg"
+
+    if forward is not None:
+        forward = pick_channels_forward(
+            forward, include=info_from["ch_names"], ordered=True
+        )
+        assert forward["sol"]["row_names"] == info_from["ch_names"]
+        lead_field = forward["sol"]["data"]
+        # Form the sensor-space field covariance from the Forward gain matrix.
+        # As with any Gram representation, very weak modes can be numerically unstable.
+        dots = lead_field @ lead_field.T
+        fmd = dict(
+            kind=kind,
+            ch_names=info_from["ch_names"],
+            noise=_make_field_mapping_noise(info_from),
+            self_dots=dots,
+            surface_dots=dots,
+        )
+        return _compute_mapping_matrix(fmd, info_from, rank=rank)
+
+    assert origin is not None  # should be assured elsewhere
 
     #
     # Step 1. Prepare the coil definitions

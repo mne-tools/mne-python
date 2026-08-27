@@ -13,6 +13,7 @@ from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEF
 from ..fixes import _safe_svd
 from ..utils import (
     _check_option,
+    _ensure_int,
     _validate_type,
     fill_doc,
     logger,
@@ -561,7 +562,15 @@ class ProjMixin:
         )
         return fig
 
-    def reconstruct_proj(self, *, projs=None, mode="accurate", origin="auto"):
+    def reconstruct_proj(
+        self,
+        *,
+        projs=None,
+        mode="accurate",
+        origin="auto",
+        forward=None,
+        rank=None,
+    ):
         """Apply SSP projectors and reconstruct the resulting signal in sensor space.
 
         Operates in place.
@@ -574,18 +583,46 @@ class ProjMixin:
             ``None``, all projectors attached to the instance are used.
         mode : str
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
-            Legendre polynomial expansion used for reconstruction.
+            Legendre polynomial expansion used for geometry-based
+            reconstruction. Ignored when ``forward`` is provided.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
             Can be ``'auto'`` (default), which means a head-digitization-based
-            origin fit.
+            origin fit. Used for geometry-based reconstruction and ignored when
+            ``forward`` is provided.
+        forward : instance of Forward | None
+            Forward model used to construct the reconstruction field mapping.
+            If ``None`` (default), use the geometry-based field mapping model.
+            If provided, ``rank`` must also be specified.
+        rank : int | None
+            Number of spatial modes to retain when reconstructing with
+            ``forward``. This is a sensor-space reconstruction rank, not a
+            number of sources or dipoles. Must be provided together with
+            ``forward``.
+
+        Notes
+        -----
+        When ``forward`` is provided, the reconstruction uses the sensor-space
+        field covariance formed from the Forward gain matrix. ``rank`` specifies
+        the number of sensor-space modes retained in the reconstruction.
 
         Returns
         -------
         self : same type as the input data
             The modified instance.
         """
-        from ..forward import _map_meg_or_eeg_channels
+        from ..forward import Forward, _map_meg_or_eeg_channels
+
+        if forward is None:
+            if rank is not None:
+                raise ValueError("rank can only be used when forward is provided")
+        else:
+            _validate_type(forward, Forward, "forward")
+            if rank is None:
+                raise ValueError("rank must be provided when forward is provided")
+            rank = _ensure_int(rank, "rank")
+            if rank <= 0:
+                raise ValueError(f"rank must be positive, got {rank}")
 
         if projs is None:
             if len(self.info["projs"]) == 0:
@@ -626,7 +663,12 @@ class ProjMixin:
                         make_eeg_average_ref_proj(info_to, verbose=False)
                     ]
             mapping = _map_meg_or_eeg_channels(
-                info_from, info_to, mode=mode, origin=origin
+                info_from,
+                info_to,
+                mode=mode,
+                origin=origin,
+                forward=forward,
+                rank=rank,
             )
             self.data[..., picks, :] = np.matmul(mapping, self.data[..., picks, :])
         return self
