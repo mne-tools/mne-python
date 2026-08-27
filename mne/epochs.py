@@ -387,26 +387,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection, drop_log
 
 
 def _check_variable_bounds(tmin, tmax, n_events):
-    """Normalize ``tmin``/``tmax``, which may be given per event.
-
-    Parameters
-    ----------
-    tmin : float | array of float
-        Start time(s) in seconds.
-    tmax : float | array of float
-        End time(s) in seconds.
-    n_events : int
-        Number of events, used to check the length of array inputs.
-
-    Returns
-    -------
-    tmin : float | array of float
-        The validated start time(s).
-    tmax : float | array of float
-        The validated end time(s).
-    variable_duration : bool
-        Whether either bound was given per event.
-    """
+    """Normalize ``tmin``/``tmax``, which may be given per event."""
     arrays = [np.ndim(bound) > 0 for bound in (tmin, tmax)]
     if not any(arrays):
         return tmin, tmax, False
@@ -442,21 +423,7 @@ def _check_variable_bounds(tmin, tmax, n_events):
 
 
 def _check_variable_data(data, tmin, tmax, events, sfreq):
-    """Validate per-epoch data for variable-duration epochs.
-
-    Parameters
-    ----------
-    data : list of array
-        Per-epoch data, each of shape ``(n_channels, n_times_i)``.
-    tmin : array of float
-        Per-epoch start times in seconds.
-    tmax : array of float
-        Per-epoch end times in seconds.
-    events : array of int
-        The events.
-    sfreq : float
-        The sampling frequency in Hz.
-    """
+    """Validate per-epoch data for variable-duration epochs."""
     if isinstance(data, np.ndarray) and data.ndim == 3:
         data = list(data)
     if not isinstance(data, list | tuple):
@@ -491,21 +458,7 @@ def _check_variable_data(data, tmin, tmax, events, sfreq):
 
 
 def _check_variable_unsupported(*, baseline, reject_tmin, reject_tmax, decim, preload):
-    """Reject options this implementation does not yet handle.
-
-    Parameters
-    ----------
-    baseline : tuple | None
-        The requested baseline.
-    reject_tmin : float | None
-        Start of the rejection window.
-    reject_tmax : float | None
-        End of the rejection window.
-    decim : int
-        Decimation factor.
-    preload : bool
-        Whether the data is preloaded.
-    """
+    """Reject options this implementation does not yet handle."""
     if baseline is not None:
         raise NotImplementedError(
             "Baseline correction is not implemented for variable-duration "
@@ -531,18 +484,7 @@ def _check_variable_unsupported(*, baseline, reject_tmin, reject_tmax, decim, pr
 
 
 def _is_variable_duration_data(data):
-    """Whether ``data`` is a sequence of arrays with differing lengths.
-
-    Parameters
-    ----------
-    data : array | list of array
-        Candidate epoch data.
-
-    Returns
-    -------
-    variable : bool
-        True if the entries cannot share one time axis.
-    """
+    """Whether ``data`` is a sequence of arrays with differing lengths."""
     if isinstance(data, np.ndarray):
         return False
     if not isinstance(data, list | tuple) or len(data) == 0:
@@ -777,8 +719,7 @@ class BaseEpochs(
             self.metadata = metadata
             # do not set self.events here, let subclass do it
 
-        # Variable-duration epochs: tmin and/or tmax may be given per event. The
-        # scalar path below is untouched; only _variable_duration is new.
+        # Variable-duration epochs: tmin and/or tmax may be given per event.
         tmin, tmax, self._variable_duration = _check_variable_bounds(
             tmin,
             tmax,
@@ -891,7 +832,8 @@ class BaseEpochs(
         if not self._variable_duration:
             self.decimate(decim)
         else:
-            # decim != 1 is rejected above; decimate() would densify _data
+            # decim != 1 is rejected above, and decimate() is wrapped to raise
+            # for these, so set the slice it would otherwise have set
             self._decim_slice = slice(None, None, None)
 
         # baseline correction: replace `None` tuple elements  with actual times
@@ -1132,24 +1074,7 @@ class BaseEpochs(
         return out, n_contributing
 
     def _get_variable_data(self, *, picks=None, item=None, copy=True):
-        """Return per-epoch data when durations vary.
-
-        Parameters
-        ----------
-        picks : str | array-like | slice | None
-            Channels to include.
-        item : slice | array-like | str | list | None
-            Epochs to include.
-        copy : bool
-            Whether to copy the data.
-
-        Returns
-        -------
-        data : list of array
-            One ``(n_channels, n_times_i)`` array per epoch. A single array is
-            not returned, because there is no length every epoch shares; use
-            :meth:`as_fixed` to obtain one.
-        """
+        """Return per-epoch data when durations vary, as one array per epoch."""
         if item is None:
             item = slice(None)
         sel = np.arange(len(self.events))[item] if not isinstance(item, str) else None
@@ -1181,7 +1106,6 @@ class BaseEpochs(
         if self.preload:
             return self
         if self._variable_duration:
-            # a list, one array per epoch; see the note on _data above
             self._data = self._load_variable_from_raw()
         else:
             self._data = self._get_data()
@@ -1352,18 +1276,7 @@ class BaseEpochs(
             self._reject_time = slice(reject_imin, reject_imax)
 
     def _load_variable_from_raw(self):
-        """Read every epoch at its own length, dropping bad ones.
-
-        Returns
-        -------
-        data : list of array
-            One ``(n_channels, n_times_i)`` array per retained epoch.
-
-        Notes
-        -----
-        Mirrors the drop bookkeeping of :meth:`drop_bad` for the fixed-duration
-        path, but collects a list because there is no length the epochs share.
-        """
+        """Read every epoch at its own length, mirroring ``drop_bad`` bookkeeping."""
         detrend_picks = self._detrend_picks
         drop_log = list(self.drop_log)
         good_idx, out = [], []
@@ -1397,18 +1310,7 @@ class BaseEpochs(
         return out
 
     def _n_times_per_epoch(self, idx):
-        """Return the number of samples in one epoch.
-
-        Parameters
-        ----------
-        idx : int
-            Index of the epoch.
-
-        Returns
-        -------
-        n_times : int
-            Number of samples.
-        """
+        """Return the number of samples in one epoch."""
         if not self._variable_duration:
             return len(self.times)
         sfreq = float(self.info["sfreq"])
@@ -1980,9 +1882,7 @@ class BaseEpochs(
             raise ValueError('reject and flat, if strings, must be "existing"')
         if self._variable_duration and (reject or flat):
             # the no-arg call has already short-circuited above, so reaching
-            # here means real thresholds; amplitude rejection would run per
-            # epoch, but it goes through `times` on the way and there is no
-            # ragged path for it yet
+            # here means real thresholds
             raise NotImplementedError(
                 "drop_bad() with reject or flat is not implemented for "
                 "variable-duration epochs. Amplitude rejection is per-trial "
@@ -2765,23 +2665,7 @@ class BaseEpochs(
         return self
 
     def _crop_variable(self, tmin, tmax, include_tmax):
-        """Crop each epoch on its own time axis.
-
-        The requested window is a physical interval in seconds, so it is applied
-        to every epoch independently and clamped to the epoch's own bounds when
-        it reaches past them. Nothing is padded, interpolated or aligned; an
-        epoch that the window misses entirely makes the whole call fail, the
-        same way it would for that epoch on its own.
-
-        Parameters
-        ----------
-        tmin : float | None
-            Start of the window, or ``None`` for each epoch's own start.
-        tmax : float | None
-            End of the window, or ``None`` for each epoch's own end.
-        include_tmax : bool
-            Whether to keep the sample at ``tmax``.
-        """
+        """Crop each epoch on its own time axis."""
         for name in ("reject_tmin", "reject_tmax"):
             if getattr(self, name, None) is not None:
                 raise NotImplementedError(
@@ -2839,7 +2723,6 @@ class BaseEpochs(
                 "each of those epochs' own last sample."
             )
 
-        # Second pass: apply
         ragged = self._data
         assert ragged is not None  # variable-duration epochs are always preloaded
         starts = np.empty(len(masks))
@@ -4169,16 +4052,16 @@ def _events_from_annotations(raw, events, event_id, annotations, on_missing):
     return events, event_id, annotations
 
 
-#: Methods whose result is only looked at. They warn and run on ``as_fixed()``,
-#: which is enough for inspection because the padding is visible to whoever is
-#: looking. Anything numeric is not in this table: see the two below.
+# Methods whose result is only looked at. They warn and run on ``as_fixed()``,
+# which is enough for inspection because the padding is visible to whoever is
+# looking. Anything numeric is not in this table: see the two below.
 _VARIABLE_FALLBACK = {
     "to_data_frame": "",
 }
 
-#: Methods that combine epochs across a shared time axis. Padding them makes the
-#: number of contributing epochs a function of time, which no scalar ``nave`` can
-#: describe, so they ask for a policy instead of inventing one. See :gh:`14206`.
+# Methods that combine epochs across a shared time axis. Padding them makes the
+# number of contributing epochs a function of time, which no scalar ``nave`` can
+# describe, so they ask for a policy instead of inventing one. See :gh:`14206`.
 _VARIABLE_NEEDS_POLICY = {
     "average": "averaging",
     "standard_error": "estimating the standard error",
@@ -4188,9 +4071,9 @@ _VARIABLE_NEEDS_POLICY = {
     "compute_psd": "computing a spectrum",
 }
 
-#: Methods that are mathematically per-trial and simply have no ragged
-#: implementation yet. Running them on a padded copy would return a wrong answer
-#: rather than a slow one, so they raise until implemented natively.
+# Methods that are mathematically per-trial and simply have no ragged
+# implementation yet. Running them on a padded copy would return a wrong answer
+# rather than a slow one, so they raise until implemented natively.
 _VARIABLE_NOT_IMPLEMENTED = {
     "filter": "filtering",
     "apply_function": "applying a function",
@@ -4207,22 +4090,7 @@ _VARIABLE_NOT_IMPLEMENTED = {
 
 
 def _wrap_variable_fallback(func, name, note):
-    """Warn and fall back to ``as_fixed()`` for variable-duration epochs.
-
-    Parameters
-    ----------
-    func : callable
-        The original method.
-    name : str
-        Its name, used to look it up on the fixed-duration copy.
-    note : str
-        Extra sentence appended to the warning, or an empty string.
-
-    Returns
-    -------
-    wrapper : callable
-        The wrapped method.
-    """
+    """Warn and fall back to ``as_fixed()`` for variable-duration epochs."""
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -4244,22 +4112,7 @@ def _wrap_variable_fallback(func, name, note):
 
 
 def _raise_needs_policy(func, name, what):
-    """Raise for reductions across a time axis the epochs do not share.
-
-    Parameters
-    ----------
-    func : callable
-        The original method.
-    name : str
-        Its name.
-    what : str
-        Short description of the operation, used in the message.
-
-    Returns
-    -------
-    wrapper : callable
-        The wrapped method.
-    """
+    """Raise for reductions across a time axis the epochs do not share."""
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -4279,22 +4132,7 @@ def _raise_needs_policy(func, name, what):
 
 
 def _raise_not_implemented(func, name, what):
-    """Raise for per-trial operations with no ragged implementation yet.
-
-    Parameters
-    ----------
-    func : callable
-        The original method.
-    name : str
-        Its name.
-    what : str
-        Short description of the operation, used in the message.
-
-    Returns
-    -------
-    wrapper : callable
-        The wrapped method.
-    """
+    """Raise for per-trial operations with no ragged implementation yet."""
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):

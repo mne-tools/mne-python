@@ -223,8 +223,7 @@ class GetEpochsMixin:
         inst = self.copy() if copy else self
         if self._data is not None:
             if isinstance(self._data, list):
-                # variable-duration epochs hold one array per epoch, so there is
-                # nothing to copy into; copy() already produced the list
+                # one array per epoch, so there is nothing to copy into
                 inst._data = [d.copy() for d in self._data] if copy else self._data
             else:
                 np.copyto(inst._data, self._data, casting="no")
@@ -272,7 +271,6 @@ class GetEpochsMixin:
                 # ensure that each Epochs instance owns its own data so we can
                 # resize later if necessary
                 inst._data = np.require(inst._data[select], requirements=["O"])
-        # per-event bounds travel with the epochs they describe
         if getattr(inst, "_variable_duration", False):
             # an ndarray takes a slice or an index array equally well
             inst._tmin_per_epoch = inst._tmin_per_epoch[select]

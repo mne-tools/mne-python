@@ -791,8 +791,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             old_t_start = self.mne.t_start
             direction = 1 if key.endswith("right") else -1
             if self.mne.is_epochs:
-                # step whole epochs, since they need not share a duration: one
-                # epoch normally, a whole window with shift
+                # step whole epochs, since they need not share a duration
                 step = self.mne.n_epochs if key.startswith("shift") else 1
                 ix_start, _ = self._get_epoch_ix_range()
                 self.mne.t_start, self.mne.duration = _epoch_window(
@@ -841,8 +840,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.mne.n_epochs = int(
                     np.clip(self.mne.n_epochs + dur_delta, 1, len(self.mne.inst))
                 )
-                # the epochs added or removed have their own durations, so ask
-                # the boundaries how many seconds that actually is
+                # the epochs added or removed have their own durations
                 self.mne.t_start, new_dur = _epoch_window(
                     self.mne.boundary_times, ix_start, self.mne.n_epochs
                 )
@@ -1012,7 +1010,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             time = np.clip(time, self.mne.first_time, max_time)
             if self.mne.is_epochs:
                 ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
-                # the epochs from here on have their own durations
                 time, self.mne.duration = _epoch_window(
                     self.mne.boundary_times, ix, self.mne.n_epochs
                 )
@@ -1934,7 +1931,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         time = np.clip(time, self.mne.first_time, max_time)
         if self.mne.is_epochs:
             ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
-            # the epochs from here on have their own durations
             time, self.mne.duration = _epoch_window(
                 self.mne.boundary_times, ix, self.mne.n_epochs
             )

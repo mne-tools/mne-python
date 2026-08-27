@@ -45,29 +45,7 @@ class BrowserParams:
 
 
 def _epoch_window(boundary_times, start_ix, n_epochs):
-    """Return the start time and duration of a window of whole epochs.
-
-    Epochs may differ in duration, so a window of ``n_epochs`` of them spans
-    whatever lies between the two boundaries rather than a fixed number of
-    seconds. ``start_ix`` is clamped so the requested epochs stay visible when
-    the object is long enough to allow it.
-
-    Parameters
-    ----------
-    boundary_times : array
-        Cumulative epoch edges in seconds, including both ends.
-    start_ix : int
-        Index of the first epoch to show.
-    n_epochs : int
-        Number of epochs to show.
-
-    Returns
-    -------
-    t_start : float
-        Time of the first boundary.
-    duration : float
-        Seconds spanned by the requested epochs.
-    """
+    """Return the start time and duration of a window of whole epochs."""
     n_total = len(boundary_times) - 1
     n_epochs = int(np.clip(n_epochs, 1, n_total))
     start_ix = int(np.clip(start_ix, 0, n_total - n_epochs))
@@ -412,8 +390,7 @@ class BrowserBase(ABC):
         # update time
         start_sec = self.mne.t_start - self.mne.first_time
         if self.mne.is_epochs:
-            # take the samples the visible epochs really hold, so that this
-            # agrees with _load_data by construction rather than by arithmetic
+            # this agrees with _load_data by construction, not by arithmetic
             ix_start, ix_stop = self._get_epoch_ix_range()
             start = int(self.mne.boundary_samples[ix_start])
             stop = int(self.mne.boundary_samples[ix_stop])
