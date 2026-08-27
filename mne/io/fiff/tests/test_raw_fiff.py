@@ -2120,6 +2120,29 @@ def test_file_like(kind, preload, split, tmp_path):
     assert file_fid.closed
 
 
+def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
+    """Test that automatic caching cannot misidentify a named stream."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    monkeypatch.setenv("MNE_CACHE_DIR", str(cache_dir))
+    stream = BytesIO(test_fif_fname.read_bytes())
+    stream.name = str(test_fif_fname)
+    with pytest.raises(ValueError, match="stable source files"):
+        read_raw_fif(stream, preload="auto")
+
+
+def test_compressed_auto_preload_rejected(tmp_path, monkeypatch):
+    """Test that gzip FIF does not advertise ineffective decoded caching."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    monkeypatch.setenv("MNE_CACHE_DIR", str(cache_dir))
+    with pytest.raises(ValueError, match="uncompressed FIF"):
+        read_raw_fif(test_fif_gz_fname, preload="auto")
+    raw = read_raw_fif(test_fif_gz_fname, preload=False)
+    with pytest.raises(ValueError, match="uncompressed FIF"):
+        raw.load_data(memmap="auto")
+
+
 def test_str_like():
     """Test handling with str-like objects."""
     fname = pathlib.Path(test_fif_fname)

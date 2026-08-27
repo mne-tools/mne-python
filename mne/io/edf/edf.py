@@ -59,6 +59,34 @@ CH_TYPE_MAPPING = {
 }
 
 
+def _edf_decoded_cache_identity(raw):
+    """Return identity that determines numeric EDF/BDF decoding."""
+    if any(extra["blob"] is not None for extra in raw._raw_extras):
+        raise ValueError('preload="auto" does not support file-like EDF/BDF inputs')
+    # Keep this in the same order as the values consumed by
+    # ``_read_segment_file`` below. Header metadata that cannot affect decoded
+    # samples (for example channel types and filter descriptions) stays live.
+    state = [
+        (
+            extra["n_samps"],
+            extra["max_samp"],
+            extra["dtype_np"],
+            extra["dtype_byte"],
+            extra["data_offset"],
+            extra["stim_channel_idxs"],
+            extra["sel"],
+            extra["tal_idx"],
+            extra["subtype"],
+            extra["cal"],
+            extra["offsets"],
+            extra["units"],
+            extra["nsamples"],
+        )
+        for extra in raw._raw_extras
+    ]
+    return (1, state)
+
+
 @fill_doc
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+ file.
@@ -153,6 +181,9 @@ class RawEDF(BaseRaw):
     STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
+
+    def _decoded_cache_identity(self):
+        return _edf_decoded_cache_identity(self)
 
     @verbose
     def __init__(
@@ -365,6 +396,9 @@ class RawBDF(BaseRaw):
     STIM channels by default. Use :func:`mne.find_events` to parse events
     encoded in such analog stim channels.
     """
+
+    def _decoded_cache_identity(self):
+        return _edf_decoded_cache_identity(self)
 
     @verbose
     def __init__(

@@ -103,6 +103,7 @@ from ..utils import (
     warn,
 )
 from ..utils._typing import Color, Self
+from ._preload_cache import _raw_preload_auto
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -143,8 +144,13 @@ class BaseRaw(
         freshly created memory-mapped file used to store the data on the hard
         drive (slower, requires less memory). An existing file is overwritten.
         The caller owns the file and is responsible for removing it after the
-        Raw object is no longer in use. If preload is an ndarray, the data are
-        taken from that array. If False, data are not read until save.
+        Raw object is no longer in use. For supported file readers, the exact
+        string ``"auto"`` instead stores and reuses decoded data in the directory
+        configured by :func:`mne.set_cache_dir`. Cached data persist in a
+        versioned ``raw-preload`` directory and are mapped copy-on-write. Use
+        ``Path("auto")`` or ``"./auto"`` for a literal filename. If preload is
+        an ndarray, the data are taken from that array. If False, data are not
+        read until save.
     first_samps : sequence
         Sequence of the first sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple.
@@ -200,6 +206,10 @@ class BaseRaw(
     _extra_attributes = ()
     _filenames: list[Path | None]
     _data: np.ndarray | None
+
+    def _decoded_cache_identity(self):
+        """Return ``(ABI, state)`` for numeric decoding, or ``None``."""
+        return None
 
     @verbose
     def __init__(
@@ -594,18 +604,22 @@ class BaseRaw(
     def load_data(
         self,
         *,
-        memmap: Path | str | None = None,
+        memmap: Path | Literal["auto"] | str | None = None,
         verbose: bool | str | int | None = None,
     ) -> Self:
         """Load raw data.
 
         Parameters
         ----------
-        memmap : path-like | None
-            If not ``None``, preload data into a freshly created memory-mapped file
-            at this path. An existing file is overwritten. The caller owns the file
-            and is responsible for removing it after the Raw object is no longer in
-            use. If ``None`` (default), preload data into RAM.
+        memmap : path-like | "auto" | None
+            If a path, preload data into a freshly created memory-mapped file at
+            this path. An existing file is overwritten. The caller owns the file
+            and is responsible for removing it after the Raw object is no longer
+            in use. For supported file readers, ``"auto"`` instead reuses the
+            persistent decoded-data cache configured by :func:`mne.set_cache_dir`.
+            Cache entries for superseded source or decoder identities remain in
+            a versioned ``raw-preload`` directory below the configured path.
+            If ``None`` (default), preload data into RAM.
 
             .. versionadded:: 1.13
         %(verbose)s
@@ -630,12 +644,22 @@ class BaseRaw(
 
     def _preload_data(self, preload):
         """Actually preload the data."""
+        if isinstance(preload, str) and preload == "auto":
+            self._data = _raw_preload_auto(self)
+            assert len(self._data) == self.info["nchan"]
+            self.preload = True
+            self._comp = None
+            self.close()
+            return
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
-        t = self.times
+        # Avoid materializing ``self.times``; that scales with the recording
+        # length and can dominate a decoded-cache hit.
+        n_times = self.n_times
+        last_time = (n_times - 1) / self.info["sfreq"]
         logger.info(
-            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
+            f"Reading 0 ... {n_times - 1}  =  {0.0:9.3f} ... {last_time:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]
@@ -793,17 +817,18 @@ class BaseRaw(
                     "of the raw object."
                 )
 
-            delta = 1.0 / self.info["sfreq"]
+            # This is algebraically ``self.times[-1] + 1 / sfreq`` without
+            # allocating the full time vector for large file-backed recordings.
+            sfreq = self.info["sfreq"]
+            annotation_end = (self.n_times - 1) / sfreq + 1.0 / sfreq
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
-                new_annotations.crop(
-                    0, self.times[-1] + delta, emit_warning=emit_warning
-                )
+                new_annotations.crop(0, annotation_end, emit_warning=emit_warning)
                 new_annotations.onset += self._first_time
             else:
                 tmin = meas_date + timedelta(0, self._first_time)
-                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
+                tmax = tmin + timedelta(seconds=annotation_end)
                 new_annotations.crop(tmin=tmin, tmax=tmax, emit_warning=emit_warning)
                 new_annotations.onset -= (
                     meas_date - new_annotations.orig_time

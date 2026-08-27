@@ -1,0 +1,2 @@
+Speed up repeated preloading of uncompressed FIF, EDF/BDF, and BrainVision
+recordings with a persistent copy-on-write decoded-data cache, by `Bruno Aristimunha`_.
