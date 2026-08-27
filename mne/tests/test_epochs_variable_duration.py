@@ -4,6 +4,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import warnings
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -508,3 +510,177 @@ def test_pick_does_not_reach_back_into_the_parent(variable):
     subset.pick(["a"])
     assert [epoch.shape for epoch in variable.get_data()] == before
     assert all(epoch.shape[0] == 1 for epoch in subset.get_data())
+
+
+# -- crop -------------------------------------------------------------------
+def _crop_oracle(epochs, idx, **kwargs):
+    """Crop epoch ``idx`` as an ordinary one-epoch Epochs, for comparison."""
+    data = epochs.get_data()[idx]
+    tmin = np.atleast_1d(epochs.tmin)[idx]
+    one = EpochsArray(
+        data[None],
+        create_info(list(epochs.ch_names), SFREQ, "eeg"),
+        tmin=float(tmin),
+        baseline=None,
+        verbose=False,
+    )
+    return one.crop(**kwargs)
+
+
+def _assert_crop_matches_mne(epochs, **kwargs):
+    """Assert every cropped epoch equals ordinary MNE cropping it alone."""
+    wanted = [_crop_oracle(epochs, ii, **kwargs) for ii in range(len(epochs))]
+    got = epochs.copy().crop(**kwargs)
+    data = got.get_data()
+    for ii, one in enumerate(wanted):
+        assert_allclose(data[ii], one.get_data()[0])
+        times = got.get_times(ii) if got.variable_duration else got.times
+        assert_allclose(times, one.times)
+    return got
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        dict(tmin=0.0, tmax=0.4),  # both bounds
+        dict(tmin=0.1),  # only tmin
+        dict(tmax=0.45),  # only tmax
+        dict(tmin=-0.05, tmax=0.45, include_tmax=True),
+        dict(tmin=-0.05, tmax=0.45, include_tmax=False),
+    ],
+)
+def test_crop_matches_mne_per_epoch(variable, kwargs):
+    """Test that cropping equals ordinary MNE applied to each epoch alone."""
+    _assert_crop_matches_mne(variable, **kwargs)
+
+
+def test_crop_matches_mne_with_unequal_tmin(kwargs=None):
+    """Test parity when both bounds differ between epochs."""
+    epochs = _make([-0.2, -0.35, 0.0, -0.1], [0.5, 0.9, 0.7, 0.6])
+    _assert_crop_matches_mne(epochs, tmin=0.05, tmax=0.4)
+    _assert_crop_matches_mne(epochs, tmax=0.5)
+
+
+def test_crop_keeps_the_object_ragged(variable):
+    """Test that unequal durations survive a crop that does not equalise them."""
+    cropped = variable.copy().crop(tmin=0.0)
+    assert cropped.variable_duration
+    assert len(np.unique(cropped.durations)) > 1
+    assert isinstance(cropped._data, list)
+
+
+def test_crop_clamps_each_epoch_and_warns_once(variable):
+    """Test that a bound past some epochs clamps per epoch, warning once."""
+    before = variable.durations.copy()
+    with pytest.warns(RuntimeWarning, match="tmax is not in time interval") as rec:
+        cropped = variable.copy().crop(tmax=99.0)
+    assert len(rec) == 1  # not one per epoch
+    # each epoch kept everything it had
+    assert_allclose(cropped.durations, before)
+    assert cropped.variable_duration
+
+    with pytest.warns(RuntimeWarning, match="tmin is not in time interval") as rec:
+        cropped = variable.copy().crop(tmin=-99.0)
+    assert len(rec) == 1
+    assert_allclose(cropped.durations, before)
+
+
+def test_crop_does_not_warn_when_nothing_is_clamped(variable):
+    """Test that a window inside every epoch is silent."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        variable.copy().crop(tmin=0.0, tmax=0.4)
+
+
+def test_crop_clamped_tmax_keeps_the_last_sample(variable):
+    """Test that clamping tmax includes that epoch's final sample."""
+    lengths = [epoch.shape[-1] for epoch in variable.get_data()]
+    with pytest.warns(RuntimeWarning, match="tmax is not in time interval"):
+        # include_tmax=False must not drop the endpoint that clamping produced
+        cropped = variable.copy().crop(tmax=99.0, include_tmax=False)
+    assert [epoch.shape[-1] for epoch in cropped.get_data()] == lengths
+
+
+def test_crop_outside_every_sample_fails_cleanly(variable):
+    """Test that a window missing an epoch refuses and changes nothing."""
+    before_data = [epoch.copy() for epoch in variable.get_data()]
+    before_tmin = np.array(variable.tmin)
+    before_tmax = np.array(variable.tmax)
+    with pytest.raises(ValueError, match="must be less than or equal to"):
+        variable.crop(tmin=5.0)
+    # the failure left the object exactly as it was
+    for got, want in zip(variable.get_data(), before_data):
+        assert_array_equal(got, want)
+    assert_array_equal(np.array(variable.tmin), before_tmin)
+    assert_array_equal(np.array(variable.tmax), before_tmax)
+    assert variable.variable_duration
+
+
+def test_crop_bounds_come_from_retained_samples(variable):
+    """Test that the stored bounds are sample positions, not the request."""
+    # only tmin, so the differing ends keep the object ragged
+    cropped = variable.copy().crop(tmin=0.013)
+    assert cropped.variable_duration
+    # the request fell between samples and was snapped to one
+    assert not np.isclose(np.atleast_1d(cropped.tmin)[0], 0.013)
+    for ii in range(len(cropped)):
+        times = cropped.get_times(ii)
+        assert times[0] == pytest.approx(np.atleast_1d(cropped.tmin)[ii])
+        assert times[-1] == pytest.approx(np.atleast_1d(cropped.tmax)[ii])
+        # and the axis still describes the block exactly
+        assert len(times) == cropped.get_data()[ii].shape[-1]
+    assert_allclose(
+        cropped.durations, np.atleast_1d(cropped.tmax) - np.atleast_1d(cropped.tmin)
+    )
+
+
+def test_crop_that_equalises_axes_returns_fixed_epochs(variable):
+    """Test that removing the variation gives an ordinary Epochs back."""
+    cropped = variable.copy().crop(tmax=0.5)
+    assert not cropped.variable_duration
+    assert isinstance(cropped._data, np.ndarray)
+    assert cropped._tmin_per_epoch is None
+    assert cropped._tmax_per_epoch is None
+    assert isinstance(cropped.tmin, float)
+    assert isinstance(cropped.tmax, float)
+    # times is answerable again, and agrees with the data
+    assert len(cropped.times) == cropped.get_data().shape[-1]
+    # and the reductions come back on their own, without touching the tables
+    evoked = cropped.average()
+    assert evoked.nave == len(cropped)
+    assert_allclose(evoked.times, cropped.times)
+
+
+def test_crop_keeps_epoch_bookkeeping(variable):
+    """Test that events, metadata and drop_log travel unchanged."""
+    import pandas as pd
+
+    pytest.importorskip("pandas")
+    variable.metadata = pd.DataFrame(dict(kind=list("abcd")))
+    events = variable.events.copy()
+    drop_log = variable.drop_log
+    selection = variable.selection.copy()
+
+    cropped = variable.copy().crop(tmin=0.0, tmax=0.4)
+    assert_array_equal(cropped.events, events)
+    assert cropped.drop_log == drop_log
+    assert_array_equal(cropped.selection, selection)
+    assert list(cropped.metadata["kind"]) == list("abcd")
+
+
+def test_crop_does_not_fall_back_to_as_fixed(variable):
+    """Test that cropping is native, never a padded copy."""
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("crop() fell back to as_fixed()")
+
+    variable.as_fixed = _boom
+    cropped = variable.crop(tmin=0.0)
+    assert not np.isnan(np.concatenate(cropped.get_data(), axis=-1)).any()
+
+
+def test_crop_refuses_when_rejection_windows_are_set(variable):
+    """Test that a stray rejection window is refused, not compared to an array."""
+    variable.reject_tmin = 0.0  # the constructor forbids this; be defensive
+    with pytest.raises(NotImplementedError, match="reject_tmin is not implemented"):
+        variable.crop(tmin=0.0)

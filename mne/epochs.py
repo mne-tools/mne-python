@@ -97,6 +97,7 @@ from .utils import (
     _prepare_read_metadata,
     _prepare_write_metadata,
     _scale_dataframe_data,
+    _time_mask,
     _validate_type,
     check_fname,
     check_random_state,
@@ -2729,6 +2730,10 @@ class BaseEpochs(
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, "Modifying data of epochs")
 
+        if self._variable_duration:
+            self._crop_variable(tmin, tmax, include_tmax)
+            return self
+
         super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         # Adjust rejection period
@@ -2745,6 +2750,115 @@ class BaseEpochs(
             )
             self.reject_tmax = self.tmax
         return self
+
+    def _crop_variable(self, tmin, tmax, include_tmax):
+        """Crop each epoch on its own time axis.
+
+        The requested window is a physical interval in seconds, so it is applied
+        to every epoch independently and clamped to the epoch's own bounds when
+        it reaches past them. Nothing is padded, interpolated or aligned; an
+        epoch that the window misses entirely makes the whole call fail, the
+        same way it would for that epoch on its own.
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start of the window, or ``None`` for each epoch's own start.
+        tmax : float | None
+            End of the window, or ``None`` for each epoch's own end.
+        include_tmax : bool
+            Whether to keep the sample at ``tmax``.
+        """
+        for name in ("reject_tmin", "reject_tmax"):
+            if getattr(self, name, None) is not None:
+                raise NotImplementedError(
+                    f"{name} is not implemented for variable-duration epochs, "
+                    "because the window is not guaranteed to exist in every "
+                    "epoch."
+                )
+
+        sfreq = float(self.info["sfreq"])
+        # First pass: work out every selection while changing nothing, so that a
+        # window that misses one epoch leaves the object as it was.
+        masks = list()
+        clamped_tmin = clamped_tmax = False
+        for ii in range(len(self.events)):
+            times = self.get_times(ii)
+            this_tmin, this_tmax = tmin, tmax
+            this_include_tmax = include_tmax
+            if this_tmin is None:
+                this_tmin = times[0]
+            elif this_tmin < times[0]:
+                clamped_tmin = True
+                this_tmin = times[0]
+            if this_tmax is None:
+                this_tmax = times[-1]
+            elif this_tmax > times[-1]:
+                clamped_tmax = True
+                this_tmax = times[-1]
+                # matches the fixed path: a clamped end keeps its last sample
+                this_include_tmax = True
+            # _time_mask raises when the window is inverted, which is what an
+            # entirely out-of-range request collapses to once tmax is clamped
+            mask = _time_mask(
+                times,
+                this_tmin,
+                this_tmax,
+                sfreq=sfreq,
+                include_tmax=this_include_tmax,
+            )
+            if not mask.any():
+                raise ValueError(
+                    f"tmin ({tmin}) and tmax ({tmax}) would leave epoch {ii} "
+                    f"with no samples; it spans {times[0]:g} to {times[-1]:g} s."
+                )
+            masks.append(mask)
+
+        # One warning per bound however many epochs needed clamping
+        if clamped_tmin:
+            warn(
+                "tmin is not in time interval for every epoch. tmin is set to "
+                "each of those epochs' own first sample."
+            )
+        if clamped_tmax:
+            warn(
+                "tmax is not in time interval for every epoch. tmax is set to "
+                "each of those epochs' own last sample."
+            )
+
+        # Second pass: apply
+        ragged = self._data
+        assert ragged is not None  # variable-duration epochs are always preloaded
+        starts = np.empty(len(masks))
+        stops = np.empty(len(masks))
+        for ii, mask in enumerate(masks):
+            kept = self.get_times(ii)[mask]
+            ragged[ii] = ragged[ii][..., mask]
+            starts[ii], stops[ii] = kept[0], kept[-1]
+        self._tmin_per_epoch = starts
+        self._tmax_per_epoch = stops
+
+        # Cropping can remove the variation entirely. Compare the axes by their
+        # sample index and length rather than by float equality: every epoch is
+        # regularly sampled at one sfreq, so that pair identifies an axis
+        # exactly and does not depend on how the bound was rounded.
+        first_idx = np.round(starts * sfreq).astype(int)
+        lengths = np.array([epoch.shape[-1] for epoch in ragged])
+        if (
+            len(masks)
+            and (first_idx == first_idx[0]).all()
+            and (lengths == lengths[0]).all()
+        ):
+            self._data = np.stack(list(ragged))
+            self._variable_duration = False
+            self._tmin_per_epoch = None  # ty: ignore[invalid-assignment]
+            self._tmax_per_epoch = None  # ty: ignore[invalid-assignment]
+            start_idx, stop_idx = first_idx[0], first_idx[0] + lengths[0] - 1
+        else:
+            start_idx = int(round(starts.min() * sfreq))
+            stop_idx = int(round(stops.max() * sfreq))
+        self._raw_times = np.arange(start_idx, stop_idx + 1) / sfreq
+        self._set_times(self._raw_times)
 
     def copy(self) -> Self:
         """Return copy of Epochs instance.
@@ -4068,7 +4182,6 @@ _VARIABLE_NOT_IMPLEMENTED = {
     "filter": "filtering",
     "apply_function": "applying a function",
     "apply_baseline": "baseline correction",
-    "crop": "cropping",
     "decimate": "decimation",
     "resample": "resampling",
     "save": "writing to FIF",
