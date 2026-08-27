@@ -4066,7 +4066,6 @@ _VARIABLE_NEEDS_POLICY = {
 #: rather than a slow one, so they raise until implemented natively.
 _VARIABLE_NOT_IMPLEMENTED = {
     "filter": "filtering",
-    "plot": "browsing",
     "apply_function": "applying a function",
     "apply_baseline": "baseline correction",
     "crop": "cropping",

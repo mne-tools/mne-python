@@ -259,6 +259,13 @@ def test_display_methods_warn_and_fall_back(variable, meth):
         assert getattr(variable, meth)() is not None
 
 
+def test_plot_is_not_a_fallback():
+    """Test that browsing is native, not padded (see mne/viz/tests/test_epochs)."""
+    assert "plot" not in _VARIABLE_FALLBACK
+    assert "plot" not in _VARIABLE_NEEDS_POLICY
+    assert "plot" not in _VARIABLE_NOT_IMPLEMENTED
+
+
 # -- operations that stay native -------------------------------------------
 def test_pick_keeps_durations(variable):
     """Test that channel selection leaves the time axis alone."""

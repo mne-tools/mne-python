@@ -58,7 +58,7 @@ from .._fiff.pick import (
 from ..defaults import DEFAULTS
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, logger
-from ._figure import BrowserBase
+from ._figure import BrowserBase, _epoch_window
 from .utils import (
     _BLIT_KWARGS,
     DraggableLine,
@@ -489,7 +489,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             epoch_nums = self.mne.inst.selection
             for ix, _ in enumerate(epoch_nums):
                 start = self.mne.boundary_times[ix]
-                width = np.diff(self.mne.boundary_times[:2])[0]
+                width = self.mne.boundary_times[ix + 1] - start
                 ax_hscroll.add_patch(
                     Rectangle(
                         (start, 0),
@@ -791,12 +791,20 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             old_t_start = self.mne.t_start
             direction = 1 if key.endswith("right") else -1
             if self.mne.is_epochs:
-                denom = 1 if key.startswith("shift") else self.mne.n_epochs
+                # step whole epochs, since they need not share a duration: one
+                # epoch normally, a whole window with shift
+                step = self.mne.n_epochs if key.startswith("shift") else 1
+                ix_start, _ = self._get_epoch_ix_range()
+                self.mne.t_start, self.mne.duration = _epoch_window(
+                    self.mne.boundary_times,
+                    ix_start + direction * step,
+                    self.mne.n_epochs,
+                )
             else:
                 denom = 1 if key.startswith("shift") else 4
-            t_max = last_time - self.mne.duration
-            t_start = self.mne.t_start + direction * self.mne.duration / denom
-            self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
+                t_max = last_time - self.mne.duration
+                t_start = self.mne.t_start + direction * self.mne.duration / denom
+                self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
             if self.mne.t_start != old_t_start:
                 self._update_hscroll()
                 self._redraw(annotations=True, skip_hscroll=True)
@@ -828,13 +836,17 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             old_dur = self.mne.duration
             dur_delta = 1 if key == "end" else -1
             if self.mne.is_epochs:
+                ix_start, _ = self._get_epoch_ix_range()
                 # prevent from showing zero epochs, or more epochs than we have
-                self.mne.n_epochs = np.clip(
-                    self.mne.n_epochs + dur_delta, 1, len(self.mne.inst)
+                self.mne.n_epochs = int(
+                    np.clip(self.mne.n_epochs + dur_delta, 1, len(self.mne.inst))
                 )
-                # use the length of one epoch as duration change
-                min_dur = len(self.mne.inst.times) / self.mne.info["sfreq"]
-                new_dur = self.mne.duration + dur_delta * min_dur
+                # the epochs added or removed have their own durations, so ask
+                # the boundaries how many seconds that actually is
+                self.mne.t_start, new_dur = _epoch_window(
+                    self.mne.boundary_times, ix_start, self.mne.n_epochs
+                )
+                min_dur = np.diff(self.mne.boundary_times).min()
             else:
                 # never show fewer than 3 samples
                 min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
@@ -843,8 +855,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 new_dur = self.mne.duration * dur_delta
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
-                if self.mne.t_start + self.mne.duration > last_time:
-                    self.mne.t_start = last_time - self.mne.duration
+                if not self.mne.is_epochs:
+                    if self.mne.t_start + self.mne.duration > last_time:
+                        self.mne.t_start = last_time - self.mne.duration
+                # (the epochs branch above already clamped t_start to a boundary)
                 self._update_hscroll()
                 self._redraw(annotations=True, skip_hscroll=True)
         elif key == "?":  # help window
@@ -998,7 +1012,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             time = np.clip(time, self.mne.first_time, max_time)
             if self.mne.is_epochs:
                 ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
-                time = self.mne.boundary_times[ix]
+                # the epochs from here on have their own durations
+                time, self.mne.duration = _epoch_window(
+                    self.mne.boundary_times, ix, self.mne.n_epochs
+                )
             if self.mne.t_start != time:
                 self.mne.t_start = time
                 self._update_hscroll()
@@ -1917,7 +1934,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         time = np.clip(time, self.mne.first_time, max_time)
         if self.mne.is_epochs:
             ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
-            time = self.mne.boundary_times[ix]
+            # the epochs from here on have their own durations
+            time, self.mne.duration = _epoch_window(
+                self.mne.boundary_times, ix, self.mne.n_epochs
+            )
         if self.mne.t_start != time:
             self.mne.t_start = time
             self._update_hscroll()
@@ -2252,11 +2272,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             # handle custom epoch colors (for autoreject integration)
             if self.mne.epoch_colors is None:
                 # shape: n_traces × RGBA → n_traces × n_epochs × RGBA
-                custom_colors = np.tile(
-                    ch_colors[:, None, :], (1, self.mne.n_epochs, 1)
-                )
+                custom_colors = np.tile(ch_colors[:, None, :], (1, len(epoch_ix), 1))
             else:
-                custom_colors = np.empty((len(self.mne.picks), self.mne.n_epochs, 4))
+                custom_colors = np.empty((len(self.mne.picks), len(epoch_ix), 4))
                 for ii, _epoch_ix in enumerate(epoch_ix):
                     this_colors = self.mne.epoch_colors[_epoch_ix]
                     custom_colors[:, ii] = to_rgba_array(
@@ -2408,26 +2426,43 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # special case: changed view duration w/ "home" or "end" key
         # (no click event, hence no xdata)
         if xdata is None:
-            xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
-        # compute the (continuous) times for the lines on each epoch
-        epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
-        rel_time = xdata % epoch_dur
-        abs_time = self.mne.times[0]
-        xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
-        segs = np.array(self.mne.vline.get_segments())
+            segments = self.mne.vline.get_segments()
+            if not len(segments):  # no visible epoch reaches that latency
+                return None
+            xdata = np.array(segments)[0, 0, 0]
+        # Work out which latency relative to its own event was clicked, then
+        # mark that same latency on every visible epoch. Epochs need not share a
+        # duration, so an epoch that never reaches this latency gets no line.
+        sfreq = self.mne.info["sfreq"]
+        boundary_times = self.mne.boundary_times
+        clicked_ix = int(
+            np.clip(
+                np.searchsorted(boundary_times[1:], xdata, side="right"),
+                0,
+                len(boundary_times) - 2,
+            )
+        )
+        offset = round((xdata - boundary_times[clicked_ix]) * sfreq)
+        latency = self.mne.epoch_tmins[clicked_ix] + offset / sfreq
+        ix_start, ix_stop = self._get_epoch_ix_range()
+        xs = list()
+        for ix in range(ix_start, ix_stop):
+            tmin, tmax = self.mne.epoch_tmins[ix], self.mne.epoch_tmaxs[ix]
+            if tmin - 0.5 / sfreq <= latency <= tmax + 0.5 / sfreq:
+                xs.append(boundary_times[ix] + (latency - tmin))
+        xs = np.array(xs, float)
         # recreate segs from scratch in case view duration changed
         # (i.e., handle case when n_segments != n_epochs)
         segs = np.tile([[0.0], [1.0]], (len(xs), 1, 2))  # y values
-        segs[..., 0] = np.tile(xs[:, None], 2)  # x values
+        segs[..., 0] = np.tile(xs[:, None], 2) if len(xs) else segs[..., 0]
         self.mne.vline.set_segments(segs)
-        return rel_time
+        return latency
 
     def _show_vline(self, xdata):
         """Show the vertical line(s)."""
         if self.mne.is_epochs:
-            # convert xdata to be epoch-relative (for the text)
-            rel_time = self._recompute_epochs_vlines(xdata)
-            xdata = rel_time + self.mne.inst.times[0]
+            # the label shows the latency relative to each epoch's own event
+            xdata = self._recompute_epochs_vlines(xdata)
         else:
             self.mne.vline.set_xdata([xdata])
             self.mne.vline_hscroll.set_xdata([xdata])
