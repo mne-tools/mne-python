@@ -475,9 +475,8 @@ for data, title in zip([mags, mags_ecg], ["Without", "With"]):
 
 raw_ecg_mag = raw.copy().apply_proj(projs=ecg_projs[2:4])
 
+# %%
 # This avoids having to temporarily remove the other attached projectors.
-# Because applying projectors is irreversible, it is a good idea to use
-# ``.copy()`` when exploring different selections.
 #
 # .. warning::
 #
