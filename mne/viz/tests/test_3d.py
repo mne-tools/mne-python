@@ -247,6 +247,20 @@ def test_plot_evoked_field(renderer):
     fig.set_contour_line_width(3)
     assert fig._contour_line_width == 3
     assert fig._widgets["contour_line_width"].get_value() == 3
+
+    # Moving through time pushes new values into the contour filter that is still
+    # connected to the surface, rather than building a new actor.
+    from vtkmodules.util.numpy_support import vtk_to_numpy
+
+    surf_map = fig._surf_maps[1]  # the MEG map
+    actor = surf_map["contours_actor"]
+    mesh = surf_map["contours_alg"].GetInputDataObject(0, 0)
+    scalars = vtk_to_numpy(mesh.GetPointData().GetArray("scalars"))
+    fig.set_time(0.06)
+    assert surf_map["contours_actor"] is actor  # reused, not rebuilt
+    assert_allclose(scalars, surf_map["data_interp"](0.06))
+    fig.set_time(0.08)
+    assert_allclose(scalars, surf_map["data_interp"](0.08))
     fig.set_vmax(2e-12, kind="meg")
     assert fig._surf_maps[1]["contours"][-1] == 2e-12
     assert (

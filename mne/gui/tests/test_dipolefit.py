@@ -171,6 +171,10 @@ def test_dipolefit_gui_basic(
     assert not hasattr(g._fig, "_time_label_actor")
     assert re.fullmatch(r"90 ms · GOF \d+%", g._time_text.get_text())
     assert g._time_text.get_position()[0] == 0.09
+    # both move with the time, so they are drawn on top of a cached background
+    # rather than triggering a full redraw of the traces plot
+    blit_artists = g._renderer._mplcanvas._blit_artists
+    assert blit_artists == [g._time_line, g._time_text]
 
     g.fit_dipole()
     assert len(g._dipoles) == len(g.dipoles) == 2

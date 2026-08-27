@@ -151,17 +151,28 @@ class LayeredMesh:
         self._is_mapped = True
 
     def _compute_over(self, B, A):
+        # Alpha-composite A ("over") on top of B, both RGBA in [0, 1].
+        #
+        # This runs on every time point of an interactive time course, on surfaces
+        # with >1e5 vertices, so it is written to touch the (n_vertices, 4) arrays
+        # as few times as possible and only ever whole: expressing it in terms of
+        # the RGB columns (``C[:, :3] *= ...``) makes every operation strided,
+        # which costs ~4x more than the same work on the full array. The alpha
+        # column is included in the arithmetic and simply overwritten at the end.
         assert A.ndim == B.ndim == 2
         assert A.shape[1] == B.shape[1] == 4
-        A_w = A[:, 3:]  # * 1
-        B_w = B[:, 3:] * (1 - A_w)
-        C = A.copy()
-        C[:, :3] *= A_w
-        C[:, :3] += B[:, :3] * B_w
-        C[:, 3:] += B_w
-        C_alpha_zero = C[:, 3] == 0
-        C[~C_alpha_zero, :3] /= C[~C_alpha_zero, 3:]
-        C[C_alpha_zero, :3] = 0
+        A_w = A[:, 3].copy()  # copy: column slices of a (n, 4) array are strided
+        B_w = B[:, 3].copy()
+        B_w *= 1 - A_w
+        C = A * A_w[:, None]
+        C += B * B_w[:, None]
+        alpha = A_w + B_w
+        # Where the composite is fully transparent the color is undefined: divide
+        # by one there instead, and zero those rows out afterwards.
+        opaque = alpha != 0
+        np.divide(C, np.where(opaque, alpha, 1)[:, None], out=C)
+        C *= opaque[:, None]
+        C[:, 3] = alpha
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
