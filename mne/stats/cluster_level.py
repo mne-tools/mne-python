@@ -2078,7 +2078,6 @@ def cluster_test(
         X = X[0] - X[1]
     else:  # 2 elements in X but no within_id provided → unpaired test
         kind = "between"
-        logger.info("Running between-groups F-test.")
 
     # Now, for the within case check if there are unequal observations in each group
     # and whether the data is already subtracted (1 level) or not (2 levels)
@@ -2114,6 +2113,14 @@ def cluster_test(
     # check_fun doesn't work with list input`
     if kind == "within":  # will this create an issue for already subtracted data?
         X = [X]
+
+    kind_descs = {
+        "between": "between-groups F-test",
+        "within": "one-sample T-test",
+        "within_rm": "M-way repeated measures ANOVA",
+    }
+    logger.info(f"Chosen statistic: {kind_descs[kind]} ({stat_fun.__name__})")
+    assert 1 == 0
 
     # Run the cluster-based permutation test
     stat_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
