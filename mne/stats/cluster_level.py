@@ -1912,11 +1912,11 @@ def cluster_test(
         the "time" and/or "frequency" dimensions are large.
     out_type : 'mask' | 'indices'
         Format used to represent each cluster in the list of clusters stored in
-        the `clusters` attribute of :class:`mne.stats.ClusterResult`:
+        the ``clusters`` attribute of :class:`mne.stats.ClusterResult`:
 
         - ``'mask'``:s
             Each cluster is represented by a boolean array of the same shape as
-            the `stat_obs` attribute array of :class:`mne.stats.ClusterResult`,
+            the ``stat_obs`` attribute array of :class:`mne.stats.ClusterResult`,
             with ``True`` values indicating locations that are part of a cluster.  Note
             that MNE-Python's legacy API
             (e.g. :func:`mne.stats.permutation_cluster_test`) would return slices if the
@@ -2065,8 +2065,16 @@ def cluster_test(
     # by now we know there are exactly 2 elements in X, and their shapes match
     elif within_id in df:
         kind = "within"
+
+        n_vals = df[factor_names].nunique().item()
+        vals = df[factor_names].squeeze().unique().tolist()
         assert len(X) == 2
-        assert df[factor_names].nunique().item() == 2
+        assert n_vals == 2
+
+        logger.info(
+            f"Subtracting ({vals[0]} - {vals[1]}) of column {factor_names} before "
+            "computing cluster statistics."
+        )
         X = X[0] - X[1]
     else:  # 2 elements in X but no within_id provided → unpaired test
         kind = "between"
