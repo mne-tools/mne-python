@@ -23,7 +23,6 @@ dependencies:
   - ipympl
   - ipython !=8.7.0,>=2.0
   - ipywidgets
-  - jamica >=0.3.0
   - jinja2 >=3.1
   - joblib >=0.8
   - jupyter
@@ -70,5 +69,6 @@ dependencies:
   - vtk ==9.6.2
   - xlrd
   - pip:
+      - jamica>=0.3.0
       - pymef
       - pyobjc-framework-Cocoa>=5.2.0; platform_system == "Darwin"
