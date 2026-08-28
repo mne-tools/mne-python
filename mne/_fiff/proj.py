@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import re
+import warnings
 from copy import deepcopy
 from itertools import count
 
@@ -274,11 +275,14 @@ class ProjMixin:
         return self
 
     @verbose
-    def apply_proj(self, verbose=None):
+    def apply_proj(self, *, projs=None, verbose=None):
         """Apply the signal space projection (SSP) operators to the data.
 
         Parameters
         ----------
+        projs : Projection | list of Projection | None
+            The projectors to apply. All projectors must already be present in
+            ``self.info["projs"]``. If ``None``, all projectors are applied.
         %(verbose)s
 
         Returns
@@ -288,9 +292,9 @@ class ProjMixin:
 
         Notes
         -----
-        Once the projectors have been applied, they can no longer be
-        removed. It is usually not recommended to apply the projectors at
-        too early stages, as they are applied automatically later on
+        Once a projector has been applied, it can no longer be removed. It is
+        usually not recommended to apply the projectors at too early stages,
+        as they are applied automatically later on
         (e.g. when computing inverse solutions).
         Hint: using the copy method individual projection vectors
         can be tested without affecting the original data.
@@ -310,43 +314,85 @@ class ProjMixin:
         from ..evoked import Evoked
         from ..io import BaseRaw
 
-        if self.info["projs"] is None or len(self.info["projs"]) == 0:
-            logger.info(
-                "No projector specified for this dataset. "
-                "Please consider the method self.add_proj."
+        restore = None
+        if projs is not None:
+            if isinstance(projs, Projection):
+                projs = [projs]
+            projs = _check_projs(projs, copy=False)
+            if not projs:
+                return self
+            info = self.info.copy()
+            selected_idx = _proj_indices(info["projs"], projs)
+            to_apply = []
+            for ii in selected_idx:
+                proj = info["projs"][ii]
+                if proj["active"]:
+                    continue
+                # avoid emitting the warning twice
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    _, nproj, _ = make_projector([proj], info["ch_names"], info["bads"])
+                if nproj:
+                    to_apply.append(ii)
+            if not to_apply:
+                return self
+            with info._unlock():
+                attached = info["projs"]
+                keep = [
+                    proj["active"] or ii in to_apply for ii, proj in enumerate(attached)
+                ]
+                omitted = iter(proj for proj, use in zip(attached, keep) if not use)
+                info["projs"] = [proj for proj, use in zip(attached, keep) if use]
+            restore = (keep, omitted)
+            self.info = info
+
+        try:
+            if self.info["projs"] is None or len(self.info["projs"]) == 0:
+                logger.info(
+                    "No projector specified for this dataset. "
+                    "Please consider the method self.add_proj."
+                )
+                return self
+
+            # Exit delayed mode if you apply proj
+            if isinstance(self, BaseEpochs) and self._do_delayed_proj:
+                logger.info("Leaving delayed SSP mode.")
+                self._do_delayed_proj = False
+
+            if all(p["active"] for p in self.info["projs"]):
+                logger.info(
+                    "Projections have already been applied. "
+                    "Setting proj attribute to True."
+                )
+                return self
+
+            _projector, info = setup_proj(
+                self.info.copy(), add_eeg_ref=False, activate=True
             )
+            # let's not raise a RuntimeError here, otherwise interactive plotting
+            if _projector is None:  # won't be fun.
+                logger.info("The projections don't apply to these data. Doing nothing.")
+                return self
+            self._projector, self.info = _projector, info
+            if isinstance(self, BaseRaw | Evoked):
+                if self.preload:
+                    self._data = np.dot(self._projector, self._data)
+            else:  # BaseEpochs
+                if self.preload:
+                    for ii, e in enumerate(self._data):
+                        self._data[ii] = self._project_epoch(e)
+                else:
+                    self.load_data()  # will automatically apply
+            logger.info("SSP projectors applied...")
             return self
-
-        # Exit delayed mode if you apply proj
-        if isinstance(self, BaseEpochs) and self._do_delayed_proj:
-            logger.info("Leaving delayed SSP mode.")
-            self._do_delayed_proj = False
-
-        if all(p["active"] for p in self.info["projs"]):
-            logger.info(
-                "Projections have already been applied. Setting proj attribute to True."
-            )
-            return self
-
-        _projector, info = setup_proj(
-            deepcopy(self.info), add_eeg_ref=False, activate=True
-        )
-        # let's not raise a RuntimeError here, otherwise interactive plotting
-        if _projector is None:  # won't be fun.
-            logger.info("The projections don't apply to these data. Doing nothing.")
-            return self
-        self._projector, self.info = _projector, info
-        if isinstance(self, BaseRaw | Evoked):
-            if self.preload:
-                self._data = np.dot(self._projector, self._data)
-        else:  # BaseEpochs
-            if self.preload:
-                for ii, e in enumerate(self._data):
-                    self._data[ii] = self._project_epoch(e)
-            else:
-                self.load_data()  # will automatically apply
-        logger.info("SSP projectors applied...")
-        return self
+        finally:
+            if restore is not None:
+                keep, omitted = restore
+                visible = iter(self.info["projs"])
+                with self.info._unlock():
+                    self.info["projs"] = [
+                        next(visible) if use else next(omitted) for use in keep
+                    ]
 
     def del_proj(self, idx="all"):
         """Remove SSP projection vector.
@@ -515,19 +561,63 @@ class ProjMixin:
         )
         return fig
 
-    def _reconstruct_proj(self, mode="accurate", origin="auto"):
+    def reconstruct_proj(self, *, projs=None, mode="accurate", origin="auto"):
+        """Apply SSP projectors and reconstruct the resulting signal in sensor space.
+
+        Operates in place.
+
+        Parameters
+        ----------
+        projs : Projection | list of Projection | None
+            The projector or projectors to apply before reconstruction. All
+            projectors must already be present in ``self.info["projs"]``. If
+            ``None``, all projectors attached to the instance are used.
+        mode : str
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used for reconstruction.
+        origin : array-like, shape (3,) | str
+            Origin of the sphere in the head coordinate frame and in meters.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
+
+        Returns
+        -------
+        self : same type as the input data
+            The modified instance.
+        """
         from ..forward import _map_meg_or_eeg_channels
 
-        if len(self.info["projs"]) == 0:
-            return self
-        self.apply_proj()
+        if projs is None:
+            if len(self.info["projs"]) == 0:
+                return self
+            self.apply_proj()
+            mapping_info = self.info
+            selected_projs = None
+        else:
+            self.apply_proj(projs=projs)
+            selected_projs = [projs] if isinstance(projs, Projection) else projs
+            if len(selected_projs) == 0:
+                return self
+            mapping_info = self.info.copy()
+            with mapping_info._unlock():
+                mapping_info["projs"] = [
+                    proj for proj in mapping_info["projs"] if proj["active"]
+                ]
         for kind in ("meg", "eeg"):
             kwargs = dict(meg=False)
             kwargs[kind] = True
             picks = pick_types(self.info, **kwargs)
             if len(picks) == 0:
                 continue
-            info_from = pick_info(self.info, picks)
+            info_from = pick_info(mapping_info, picks)
+            if selected_projs is not None:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    _, nproj, _ = make_projector(
+                        selected_projs, info_from["ch_names"], info_from["bads"]
+                    )
+                if nproj == 0:
+                    continue
             info_to = info_from.copy()
             with info_to._unlock():
                 info_to["projs"] = []
@@ -1162,6 +1252,27 @@ def setup_proj(
             info["projs"] = activate_proj(info["projs"], copy=False)
 
     return projector, info
+
+
+def _proj_indices(attached, projs):
+    """Find the indices of projectors in an attached projector list."""
+    selected = []
+    for pi, proj in enumerate(projs):
+        matches = [
+            ii
+            for ii, attached_proj in enumerate(attached)
+            if _proj_equal(proj, attached_proj, check_active=False)
+        ]
+        if len(matches) == 0:
+            raise ValueError(
+                f"projs[{pi}] does not match any projector in self.info['projs']"
+            )
+        if len(matches) > 1:
+            raise ValueError(
+                f"projs[{pi}] matches multiple projectors in self.info['projs']"
+            )
+        selected.append(matches[0])
+    return list(dict.fromkeys(selected))
 
 
 def _uniquify_projs(projs, check_active=True, sort=True):

@@ -431,6 +431,12 @@ docdict["axes_tfr_plot"] = _axes_list.format(
     ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
 
+docdict["axis"] = """
+axis : int
+    Axis of the input data along which independent estimators are fitted.
+    The default ``-1`` uses the final axis.
+"""
+
 docdict["axis_facecolor"] = """\
 axis_facecolor : str | tuple
     A matplotlib-compatible color to use for the axis background.
@@ -2491,7 +2497,13 @@ docdict["label_tc_el_returns"] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
 """
-
+docdict["labels_aseg"] = """
+labels : list of str | None
+    Labeled regions of interest to plot. See :func:`mne.get_montage_volume_labels`
+    for one way to determine regions of interest. Regions can also be chosen from
+    the :term:`FreeSurfer LUT`. If ``None``, all labels that are defined in the
+    segmentation file are used.
+"""
 docdict["labels_eltc"] = """
 labels : Label | BiHemiLabel | list | tuple | str
     If using a surface or mixed source space, this should be the
@@ -3711,19 +3723,22 @@ docdict["preload"] = """
 preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory)."""
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use."""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory). If preload is
-    None, preload=True or False is inferred using the preload status
-    of the instances passed in.
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use. If preload is None, preload=True or False
+    is inferred using the preload status of the instances passed in.
 """
 
 docdict["proj_epochs"] = """

@@ -417,10 +417,19 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
-        fig.set_size_inches(6.4, 2 + len(axes))
+        if plot_type == "butterfly":
+            from ._mpl_figure import _line_figure
+
+            fig, axes = _line_figure(
+                evoked,
+                picks=picks,
+                figsize=(6.4, 2 + len(ch_types_used)),
+            )
+        else:
+            fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
+            if isinstance(axes, plt.Axes):
+                axes = [axes]
+            fig.set_size_inches(6.4, 2 + len(axes))
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
@@ -450,7 +459,7 @@ def _plot_evoked(
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if proj == "reconstruct":
-        evoked = evoked._reconstruct_proj()
+        evoked = evoked.reconstruct_proj()
 
     if plot_type == "butterfly":
         _plot_lines(
@@ -1961,7 +1970,7 @@ def plot_evoked_joint(
     if proj:
         evoked.apply_proj()
         if proj == "reconstruct":
-            evoked._reconstruct_proj()
+            evoked.reconstruct_proj()
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
     evoked.pick(picks, exclude=exclude)
     info = evoked.info

@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime
+import gc
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO
@@ -315,6 +316,28 @@ def test_edf_data_broken(tmp_path):
     raw_py = read_raw_edf(broken_fname)
     data_new = raw_py.get_data()
     assert_allclose(data, data_new)
+
+
+@pytest.mark.parametrize("method", ("constructor", "load_data"))
+def test_edf_preload_memmap_ownership(method, tmp_path):
+    """Test ownership of a populated EDF preload memmap."""
+    memmap_fname = tmp_path / f"edf-{method}-memmap.dat"
+    if method == "constructor":
+        raw = read_raw_edf(edf_stim_channel_path, preload=memmap_fname)
+    else:
+        raw = read_raw_edf(edf_stim_channel_path, preload=False)
+        raw.load_data(memmap=memmap_fname)
+    shape = raw._data.shape
+    expected = raw.get_data(picks=[0], start=0, stop=10)[0]
+    assert expected.any()
+    assert memmap_fname.stat().st_size == raw._data.nbytes
+    del raw
+    gc.collect()
+
+    assert memmap_fname.is_file()
+    data = np.memmap(memmap_fname, dtype=np.float64, mode="r", shape=shape)
+    assert_array_equal(data[0, :10], expected)
+    del data
 
 
 def test_duplicate_channel_labels_edf():

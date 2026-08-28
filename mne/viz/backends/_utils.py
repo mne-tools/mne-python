@@ -228,13 +228,24 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         qsplash = _splash_class()(*args)
         qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
-            alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
-            qsplash.showMessage(splash, alignment=alignment, color=Qt.white)
+            _splash_message(qsplash, splash)
         qsplash.show()
         app.processEvents()
         out = (out, qsplash)
 
     return out
+
+
+def _splash_message(splash, message):
+    """Show a message at the bottom of a splash screen from ``_init_mne_qtapp``.
+
+    ``QSplashScreen.showMessage`` repaints the splash screen synchronously, so this
+    can be used to narrate the startup of a GUI while its window is not up yet.
+    """
+    from qtpy.QtCore import Qt
+
+    alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
+    splash.showMessage(message, alignment=alignment, color=Qt.white)
 
 
 def _display_is_valid():
