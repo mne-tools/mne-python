@@ -5307,7 +5307,7 @@ def test_empty_error(method, epochs_empty):
         getattr(epochs_empty.copy(), method[0])(**method[1])
 
 
-def test_mask_epochs_per_channel():
+def test_mark_bad_channels_per_epoch():
     """Test channel-specific epoch rejection."""
     # load raw and events data without loading data to disk
     raw, ev, _ = _get_data(preload=False)
@@ -5322,13 +5322,13 @@ def test_mask_epochs_per_channel():
 
     # should throw an error
     with pytest.raises(ValueError, match="must be preloaded"):
-        ep.mask_epochs_per_channel(reject_mask_dummy)
+        ep.mark_bad_channels_per_epoch(reject_mask_dummy)
 
     # load data
     ep.load_data()
 
     # test if reject_mask == None returns epochs
-    assert ep == ep.mask_epochs_per_channel(None)
+    assert ep == ep.mark_bad_channels_per_epoch(None)
 
     # set epochs to bad in reject mask
     reject_mask = np.zeros((n_epochs, n_channels), dtype=bool)  # all epochs are good
@@ -5341,7 +5341,7 @@ def test_mask_epochs_per_channel():
     # reject_mask[:, 1] = True # all epochs from channel two are bad
 
     # drop bad epochs
-    ep.mask_epochs_per_channel(reject_mask)
+    ep.mark_bad_channels_per_epoch(reject_mask)
 
     # verify bad epochs are NaN after dropping them
     data = ep.get_data()
@@ -5359,13 +5359,9 @@ def test_mask_epochs_per_channel():
     # channel length must match
     assert len(ep.nave_per_channel) == len(ep.ch_names)
 
-    # make sure averaging breaks
-    with pytest.raises(ValueError, match="Cannot average epochs containing NaNs"):
-        ep.average()
-
     # test mask that contains floats instead of bool
     float_mask = reject_mask.astype(float)
-    ep.mask_epochs_per_channel(float_mask)
+    ep.mark_bad_channels_per_epoch(float_mask)
 
     data = ep.get_data()
     assert np.all(np.isnan(data[1, 0, :])) and np.all(np.isnan(data[3, 2, :]))
@@ -5373,7 +5369,11 @@ def test_mask_epochs_per_channel():
     # test wrong shape of rejection mask
     bad_mask = np.zeros((n_epochs, n_channels - 1), dtype=bool)
     with pytest.raises(ValueError, match="reject_mask must have shape"):
-        ep.mask_epochs_per_channel(bad_mask)
+        ep.mark_bad_channels_per_epoch(bad_mask)
+
+    # make sure averaging breaks and throws intelligent error for user
+    with pytest.raises(ValueError, match="Cannot average epochs containing NaNs"):
+        ep.average()
 
 
 def test_epochs_warn_out_of_bounds_events():
