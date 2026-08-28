@@ -84,6 +84,18 @@ RENAMES = {
     "matplotlib-base": "matplotlib",
 }
 
+# 4. Each package is associated to one or more category. The assignement is done in related_software.txt
+cat_names = {'io': 'Data I/O and interoperability', 
+             'organization': 'Data organization and workflows',
+             'preproc': 'Preprocessing and artifact correction',
+             'oscillations': 'Oscillations and time-frequency analysis',
+             'connectivity': 'Connectivity and source analysis',
+             'stats': 'Statistics and machine learning',
+             'microstates': 'Microstates and neural states',
+             'modalities': 'Other physiological signals and modalities',
+             'visu': 'Visualization and real-time analysis',
+             'Other': 'Other'}
+
 cwd = pathlib.Path(__file__).parent
 _memory = joblib.Memory(location=cwd / ".joblib", verbose=0)
 
@@ -129,6 +141,8 @@ def _get_mapping(packages):
         mapping[pkg] = tuple([x.strip() for x in categories.split(",")])
     # unpack the tuples to make a single sequence of (unique) categories
     categories = sorted(set([cat for cats in mapping.values() for cat in cats]))
+    # Use real categaroy name instead of short names
+    categories = [cat_names[cat_shortName] for cat_shortName in categories]
     # put "other" last
     if "Other" in categories:
         categories.remove("Other")

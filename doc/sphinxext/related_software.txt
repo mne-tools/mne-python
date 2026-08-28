@@ -8,84 +8,84 @@
 ## Make sure to put categories at the END of the line, separated by commas if a package
 ## fits in multiple categories.
 ##
-## LIST OF CATEGORIES
+## LIST OF CATEGORIES (shortname: full name)
 ## ==================
-## Connectivity and source analysis
-## Data I/O and interoperability
-## Data organization and workflows
-## Microstates and neural states
-## Oscillations and time-frequency analysis
-## Other physiological signals and modalities
-## Preprocessing and artifact correction
-## Statistics and machine learning
-## Visualization and real-time analysis
+## connectivity: Connectivity and source analysis
+## io: Data I/O and interoperability
+## organization: Data organization and workflows
+## microstates: Microstates and neural states
+## oscillations: Oscillations and time-frequency analysis
+## modalities: Other physiological signals and modalities
+## preproc: Preprocessing and artifact correction
+## stats: Statistics and machine learning
+## visu: Visualization and real-time analysis
 ##
 ## MNE-PYTHON OPTIONAL DEPENDENCIES THAT WE ALSO WANT IN THE CATEGORIZED LIST
 ## ==========================================================================
-# antio  # categories: Data I/O and interoperability
-# dipy # categories: Other physiological signals and modalities
-# edfio # categories: Data I/O and interoperability
-# eeglabio # categories: Data I/O and interoperability
-# mne-bids  # categories: Data organization and workflows
-# mne-connectivity # categories: Connectivity and source analysis
-# mne-gui-addons # categories: Visualization and real-time analysis
-# mne-qt-browser # categories: Visualization and real-time analysis
-# neo # categories: Data I/O and interoperability, Data organization and workflows
-# nilearn # categories: Statistics and machine learning, Other physiological signals and modalities
-# openmeeg # categories: Connectivity and source analysis
-# openneuro-py # categories: Data I/O and interoperability
-# pybv # categories: Data I/O and interoperability
-# snirf # categories: Other physiological signals and modalities
+# antio  # categories: io
+# dipy # categories: modalities
+# edfio # categories: io
+# eeglabio # categories: io
+# mne-bids  # categories: organization
+# mne-connectivity # categories: connectivity
+# mne-gui-addons # categories: visu
+# mne-qt-browser # categories: visu
+# neo # categories: io, organization
+# nilearn # categories: stats, modalities
+# openmeeg # categories: connectivity
+# openneuro-py # categories: io
+# pybv # categories: io
+# snirf # categories: modalities
 ##
 ## PACKAGES THAT CAN'T BE PIP-INSTALLED FOR VARIOUS REASONS
 ## ========================================================
-# best-python # categories: Data I/O and interoperability
-# conpy # categories: Connectivity and source analysis
-# eelbrain # categories: Statistics and machine learning, Visualization and real-time analysis
-# mne-hcp # categories: Data I/O and interoperability
-# posthoc # categories: Statistics and machine learning
-# surfa # categories: Visualization and real-time analysis, Other physiological signals and modalities
+# best-python # categories: io
+# conpy # categories: connectivity
+# eelbrain # categories: stats, visu
+# mne-hcp # categories: io
+# posthoc # categories: stats
+# surfa # categories: visu, modalities
 ##
 ## ONES WE ACTUALLY NEED CIRCLECI TO INSTALL
 ## =========================================
-alphacsc # categories: Statistics and machine learning, Oscillations and time-frequency analysis
-autoreject # categories: Preprocessing and artifact correction
-bycycle # categories: Oscillations and time-frequency analysis
-curryreader # categories: Data I/O and interoperability
-dcm2niix # categories: Data I/O and interoperability, Other physiological signals and modalities
-eeg_positions # categories: Preprocessing and artifact correction, Visualization and real-time analysis
-emd # categories: Oscillations and time-frequency analysis
-fooof # categories: Oscillations and time-frequency analysis
-hedtools # categories: Data organization and workflows
-meegkit # categories: Preprocessing and artifact correction
-meggie # categories: Visualization and real-time analysis
-mffpy # categories: Data I/O and interoperability
-mne-ari # categories: Statistics and machine learning
-mne-bids-pipeline # categories: Data organization and workflows
-mne-denoise # categories: Preprocessing and artifact correction
-mne-faster # categories: Preprocessing and artifact correction
-mne-features # categories: Statistics and machine learning
-mne-icalabel # categories: Preprocessing and artifact correction
-mne-lsl # categories: Visualization and real-time analysis
-mne-microstates # categories: Microstates and neural states
-mne-nirs # categories: Other physiological signals and modalities
-mne-rsa # categories: Statistics and machine learning
-mne-rt # categories: Visualization and real-time analysis
-mnelab # categories: Visualization and real-time analysis
-neurodsp # categories: Oscillations and time-frequency analysis
-neurokit2 # categories: Data organization and workflows, Other physiological signals and modalities
-niseq # categories: Statistics and machine learning
-nitime # categories: Other physiological signals and modalities
-pactools # categories: Oscillations and time-frequency analysis
-pybispectra # categories: Oscillations and time-frequency analysis
-pybvrf # categories: Data I/O and interoperability
-pycrostates # categories: Microstates and neural states
-pyprep # categories: Preprocessing and artifact correction
-pyriemann # categories: Statistics and machine learning
-python-picard # categories: Preprocessing and artifact correction
-rsatoolbox # categories: Statistics and machine learning
-sesameeg # categories: Connectivity and source analysis
-sleepecg # categories: Other physiological signals and modalities
-tensorpac # categories: Oscillations and time-frequency analysis
-wfdb # categories: Data I/O and interoperability
-yasa # categories: Other physiological signals and modalities
+alphacsc # categories: stats, oscillations
+autoreject # categories: preproc
+bycycle # categories: oscillations
+curryreader # categories: io
+dcm2niix # categories: io, modalities
+eeg_positions # categories: preproc, visu
+emd # categories: oscillations
+fooof # categories: oscillations
+hedtools # categories: organization
+meegkit # categories: preproc
+meggie # categories: visu
+mffpy # categories: io
+mne-ari # categories: stats
+mne-bids-pipeline # categories: organization
+mne-denoise # categories: preproc
+mne-faster # categories: preproc
+mne-features # categories: stats
+mne-icalabel # categories: preproc
+mne-lsl # categories: visu
+mne-microstates # categories: microstates
+mne-nirs # categories: modalities
+mne-rsa # categories: stats
+mne-rt # categories: visu
+mnelab # categories: visu
+neurodsp # categories: oscillations
+neurokit2 # categories: organization, modalities
+niseq # categories: stats
+nitime # categories: modalities
+pactools # categories: oscillations
+pybispectra # categories: oscillations
+pybvrf # categories: io
+pycrostates # categories: microstates
+pyprep # categories: preproc
+pyriemann # categories: stats
+python-picard # categories: preproc
+rsatoolbox # categories: stats
+sesameeg # categories: connectivity
+sleepecg # categories: modalities
+tensorpac # categories: oscillations
+wfdb # categories: io
+yasa # categories: modalities
