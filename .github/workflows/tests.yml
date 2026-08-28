@@ -104,8 +104,11 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
         id: setup-python
-      # Workaround macOS path behavior with login shells (which puts system Python first)
-      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
+      # Workaround macOS path behavior with login shells (which puts system Python first).
+      # \$PATH must stay escaped so that it is expanded when each login shell sources
+      # ~/.bash_profile: writing the expanded value would freeze PATH as of this step and
+      # silently discard anything a later step adds to $GITHUB_PATH.
+      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):\$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
         if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3

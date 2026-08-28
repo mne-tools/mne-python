@@ -1,7 +1,14 @@
-# deps with onerous requirements
-conpy  # requires future and subprocess32, which don't have wheels
-cross-domain-saliency-maps  # tensorflow
-fsleyes  # wxPython
-mne-kit-gui  # mayavi
-mne-videobrowser  # opencv
-zuna  # requires pytorch
+## This file is used to install extra packages into CircleCI when building our docs.
+## The purpose is to allow the packages in the "related software" list to be introspected
+## so we can get their URLs and Summary descriptions automatically.
+## **This file** is for packages with onerous dependencies (e.g., torch and tensorflow);
+## the sibling file `related_software.txt` is for ordinary packages.
+## Ideally each package should be tagged as one or more of the categories shown at the
+## top of `related_software.txt`; packages with no tags will be categorized as "Other".
+## Make sure to put categories at the END of the line, separated by commas if a package
+## fits in multiple categories.
+cross-domain-saliency-maps  # tensorflow # categories: stats
+fsleyes  # wxPython # categories: modalities, visu
+mne-kit-gui # mayavi # categories: preproc
+mne-videobrowser # opencv # categories: visu
+zuna # requires pytorch # categories: stats

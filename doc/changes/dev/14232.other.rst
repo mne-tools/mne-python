@@ -1,0 +1,1 @@
+Add categories to the :ref:`related-python-packages` list, by `Laetitia Grabot`_, `Daniel McCloy`_.

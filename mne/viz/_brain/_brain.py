@@ -1907,7 +1907,9 @@ class Brain:
                 )
             self.time_line.set_xdata([current_time])
             if update:
-                self.mpl_canvas.update_plot()
+                # only the time line moved, so the rest of the figure can be
+                # blitted from the cached background instead of being redrawn
+                self.mpl_canvas.update_blit_artists()
 
     def _configure_help(self):
         pairs = [
@@ -4295,7 +4297,7 @@ class Brain:
         time_actor = active.get("time_actor", None)
         time_label = active.get("time_label", None)
         for hemi in ["lh", "rh", "vol"]:
-            hemi_needs_recompose = False
+            staged_keys = list()
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
@@ -4353,10 +4355,10 @@ class Brain:
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:
-                        # Stage without recomposing; a single mesh.update() below
-                        # handles all overlays in O(N) instead of O(N²).
+                        # Stage without recomposing; a single update below handles
+                        # all overlays in O(N) instead of O(N²).
                         mesh.update_overlay(data_key, scalars=act_data, update=False)
-                        hemi_needs_recompose = True
+                        staged_keys.append(data_key)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
@@ -4371,8 +4373,15 @@ class Brain:
                 if vectors is not None and data_key == self._active_data_key:
                     self._update_glyphs(hemi, vectors)
 
-            if hemi_needs_recompose and hemi in self.layered_meshes:
-                self.layered_meshes[hemi].update()
+            if staged_keys and hemi in self.layered_meshes:
+                if len(staged_keys) == 1:
+                    # Let update_overlay pick the cached path when the overlay we
+                    # staged is the topmost one: the layers below it (curvature,
+                    # labels, ...) have not changed, so their composite can be
+                    # reused instead of color-mapping them all again.
+                    self.layered_meshes[hemi].update_overlay(staged_keys[0])
+                else:
+                    self.layered_meshes[hemi].update()
 
         active["time_idx"] = time_idx
         self._renderer._update()
