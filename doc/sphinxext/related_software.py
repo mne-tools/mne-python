@@ -257,10 +257,16 @@ class RelatedSoftwareDirective(Directive):
         pkg_data, cat_to_pkgs = _get_packages()
         # iterate over category, packages
         for category, packages in cat_to_pkgs.items():
-            title = nodes.paragraph()
+            # Make each category a proper (sub)section so that it gets a real
+            # heading, an anchor, and an entry in the page TOC. This mimics what
+            # docutils itself does in RSTState.new_subsection.
+            section = nodes.section()
             # Use real category name instead of short names
-            title += nodes.strong(text=cat_names[category])
-            my_section.append(title)
+            title = nodes.title(text=cat_names[category])
+            section["names"].append(nodes.fully_normalize_name(title.astext()))
+            self.state.document.note_implicit_target(section, section)
+            section += title
+            my_section.append(section)
             this_list = nodes.bullet_list(bullet="*")
 
             for package in packages:
@@ -279,7 +285,7 @@ class RelatedSoftwareDirective(Directive):
                     para.insert(0, refnode)
                 item += para
                 this_list.append(item)
-            my_section.append(this_list)
+            section += this_list
         return my_section
 
 
@@ -299,7 +305,9 @@ if __name__ == "__main__":  # pragma: no cover
     # running `python doc/sphinxext/related_software.py` for testing
     # require metadata for any installed packages (for debugging)
     REQUIRE_METADATA = True
-    items = list(RelatedSoftwareDirective.run(None)[0].children)
-    print(f"Got {len(items)} related software packages:")
-    for item in items:
-        print(f"- {item.astext()}")
+    pkg_data, cat_to_pkgs = _get_packages()
+    print(f"Got {len(pkg_data)} related software packages:")
+    for category, packages in cat_to_pkgs.items():
+        print(f"{cat_names[category]}:")
+        for package in packages:
+            print(f"- {package}")
