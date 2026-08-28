@@ -116,6 +116,18 @@ fitting_gui.set_time(0.085)
 fitting_gui.fit_dipole()
 
 # %%
+# Adjusting the 3D view
+# ~~~~~~~~~~~~~~~~~~~~~
+# Each dipole is drawn deep inside the head, so the "Meshes" panel on the left offers a
+# visibility checkbox and an opacity slider for every surface (the cortex, the head, the
+# MEG helmet, the sensors, and the colorbar of the distributed source estimate) to
+# uncover whatever the fit needs. Underneath are buttons for the five standard views of
+# the head. Both have programmatic equivalents:
+
+fitting_gui.toggle_mesh("helmet", show=False)
+fitting_gui.set_mesh_opacity("head", 0.1)
+
+# %%
 # Selecting channels to guide the ECD modeling
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # At nearly the same time, auditory responses are occurring in both left and right

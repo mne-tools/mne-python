@@ -189,3 +189,6 @@ _sigint_impl
 
 # Read by numpydoc's ClassDoc (also set in doc/conf.py)
 _.extra_public_methods
+
+# Accessed through an attribute-path string by the _qt_safe_window decorator
+_._init_renderer
