@@ -84,7 +84,8 @@ RENAMES = {
     "matplotlib-base": "matplotlib",
 }
 
-# 4. Each package is associated to one or more category. The assignement is done in related_software.txt
+# 4. Each package is associated to one or more category. The assignment is done in
+# related_software.txt
 cat_names = {
     "io": "Data I/O and interoperability",
     "organization": "Data organization and workflows",
