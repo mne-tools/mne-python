@@ -718,8 +718,8 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
-    def mask_epochs_per_channel(self, reject_mask=None):
-        """Mark epochs for individual channels with NaNs.
+    def mark_bad_channels_per_epoch(self, reject_mask=None):
+        """Mark bad channels on an epoch by epoch basis.
 
         Warning: This is only useful for channel-wise analyses.
 
@@ -733,7 +733,7 @@ class BaseEpochs(
         Returns
         -------
         epochs : instance of Epochs
-            The epochs with bad epochs marked with NaNs per channel.
+            The epochs object with bad epochs marked with NaNs per channel.
             Operates in-place.
         """
         if reject_mask is None:
@@ -1285,8 +1285,8 @@ class BaseEpochs(
             data = fun(self._data)
             if np.isnan(data).any():
                 raise ValueError(
-                    "Cannot average epochs containing NaNs (introduced by "
-                    "mask_epochs_per_channel): any channel with a rejected epoch "
+                    "Cannot average epochs containing NaNs (possibly introduced by "
+                    "mark_bad_channels_per_epoch): any channel with a rejected epoch "
                     "would average to NaN. Extract the data with get_data() and use "
                     "np.nanmean over the epoch axis if you need per-channel averages."
                 )
@@ -1402,9 +1402,9 @@ class BaseEpochs(
         # due to numerical precision issues
         evoked._set_times(self.times.copy())
 
-        # Apply picks
-        picks_idx = _picks_to_idx(info, picks, "data_or_ica", ())
-        ch_names = [evoked.ch_names[p] for p in picks_idx]
+        # pick channels
+        picks = _picks_to_idx(self.info, picks, "data_or_ica", ())
+        ch_names = [evoked.ch_names[p] for p in picks]
         evoked.pick(ch_names)
 
         if len(evoked.info["ch_names"]) == 0:
