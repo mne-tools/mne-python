@@ -1914,7 +1914,7 @@ def cluster_test(
         Output format of clusters within a list, default is ``'indices'``.
 
         - ``'mask'``:
-            returns a list of boolean arrays, each with the same shape as ``stat_obs``,
+            Returns a list of boolean arrays, each with the same shape as ``stat_obs``,
             with ``True`` values indicating locations that are part of a cluster.  Note
             that MNE-Python's legacy API
             (e.g. :func:`mne.stats.permutation_cluster_test`) would return slices if the
