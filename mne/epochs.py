@@ -1055,7 +1055,7 @@ class BaseEpochs(
         """Subtract an evoked response from each epoch.
 
         Can be used to exclude the evoked response when analyzing induced
-        activity, see e.g. [1]_.
+        activity, see e.g. :footcite:`DavidEtAl2006`.
 
         Parameters
         ----------
@@ -1070,9 +1070,121 @@ class BaseEpochs(
 
         References
         ----------
-        .. [1] David et al. "Mechanisms of evoked and induced responses in
-               MEG/EEG", NeuroImage, vol. 31, no. 4, pp. 1580-1591, July 2006.
+        .. footbibliography::
         """
+        evoked = self._prep_evoked(evoked)
+
+        # find the indices of the channels to use in Epochs
+        picks = pick_channels(evoked.ch_names, include=self.ch_names, ordered=False)
+        ep_picks = [self.ch_names.index(evoked.ch_names[ii]) for ii in picks]
+
+        # do the subtraction
+        if self.preload:
+            assert self._data is not None
+            self._data[:, ep_picks, :] -= evoked.data[picks][None, :, :]
+        else:
+            if self._offset is None:
+                self._offset = np.zeros(
+                    (len(self.ch_names), len(self.times)), dtype=np.float64
+                )
+            self._offset[ep_picks] -= evoked.data[picks]
+        logger.info("[done]")
+
+        return self
+
+    def regress_evoked(
+        self, evoked: Evoked | None = None, return_weights=False, return_offsets=False
+    ) -> Self | tuple:
+        """Regress an evoked response from each epoch.
+
+        Remove the evoked response from each epoch using ordinary least-squares
+        regression i.e., minimizes the sum of squared differences between the predicted
+        and observed trial signal.
+
+        Regression weights are computed for each epoch and each sensor (see
+        ``return_weights`` parameter) and capture the epoch-specific contribution to the
+        evoked response. Epochs are zero-centered before computing the regression
+        weights (see ``return_offsets`` parameter) and afterwards this centering is
+        undone. This preserves the non-phase-locked (induced) oscillatory activity while
+        removing the shared evoked component (:footcite:`GrandchampDelorme2011`,
+        :footcite`Cohen2014`).
+
+        Parameters
+        ----------
+        evoked : instance of Evoked | None
+            The evoked response to subtract. If None, the evoked response
+            is computed from Epochs itself.
+        return_weights : bool
+            Return the regression weights.
+        return_offsets : bool
+            Return for each epoch the offset from zero.
+
+        Returns
+        -------
+        self : instance of Epochs
+            The modified instance (instance is also modified inplace).
+        weights : ndarray of float, shape (n_epochs, n_sensors)
+            For each epoch, the regression weights.
+            Only returned if ``return_weights=True``.
+        offsets : ndarray of float, shape (n_epochs, n_sensors)
+            For each epoch, the offsets for the sensors.
+            Only returned if ``return_offsets=True``.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        evoked = self._prep_evoked(evoked)
+
+        # Find the indices of the channels to use in Epochs.
+        picks = pick_channels(evoked.ch_names, include=self.ch_names, ordered=False)
+        ep_picks = [self.ch_names.index(evoked.ch_names[ii]) for ii in picks]
+
+        if not self.preload:
+            raise ValueError("Data needs to be pre-loaded.")
+        assert self._data is not None
+        orig_data = self._data
+
+        epochs_data = self._data[:, ep_picks, :]
+        evoked_data = evoked.data[picks, :]
+
+        # Center the data
+        epochs_data_mean = epochs_data.mean(axis=2, keepdims=True)
+        evoked_data_mean = evoked_data.mean(axis=1, keepdims=True)
+        epochs_data -= epochs_data_mean
+        evoked_data -= evoked_data_mean
+
+        # Compute denominator for all sensors at once.
+        denom = np.sum(evoked_data**2, axis=1)  # shape (n_sensors,)
+
+        # Avoid division by zero.
+        denom = np.where(denom < 1e-30, 1, denom)
+
+        # Compute beta coefficients vectorized: (n_epochs, n_sensors).
+        betas = np.sum(epochs_data * evoked.data[np.newaxis, :, :], axis=2)
+        betas /= denom[np.newaxis, :]
+
+        # Regress the evoked from the epochs.
+        epochs_data -= betas[:, :, np.newaxis] * evoked_data[np.newaxis, :, :]
+        epochs_data += epochs_data_mean
+        self._data[:, ep_picks, :] = epochs_data
+
+        # At no point should a copy have been made.
+        assert self._data is orig_data
+
+        if not return_weights and not return_offsets:
+            return self
+        else:
+            out = [self]
+            if return_weights:
+                out.append(betas)
+            if return_offsets:
+                out.append(epochs_data_mean)
+            return tuple(out)
+
+    def _prep_evoked(self, evoked: Evoked | None = None) -> Evoked:
+        # Make sure an evoked object is compatible with this Epochs object.
+        # Used when subtracting or regressing an evoked from the epochs.
         logger.info("Subtracting Evoked from Epochs")
         if evoked is None:
             picks = _pick_data_channels(self.info, exclude=[])
@@ -1116,22 +1228,7 @@ class BaseEpochs(
         if self.proj and not evoked.proj:
             evoked = evoked.copy().apply_proj()
 
-        # find the indices of the channels to use in Epochs
-        ep_picks = [self.ch_names.index(evoked.ch_names[ii]) for ii in picks]
-
-        # do the subtraction
-        if self.preload:
-            assert self._data is not None
-            self._data[:, ep_picks, :] -= evoked.data[picks][None, :, :]
-        else:
-            if self._offset is None:
-                self._offset = np.zeros(
-                    (len(self.ch_names), len(self.times)), dtype=np.float64
-                )
-            self._offset[ep_picks] -= evoked.data[picks]
-        logger.info("[done]")
-
-        return self
+        return evoked
 
     @fill_doc
     def average(
