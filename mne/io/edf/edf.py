@@ -6,8 +6,6 @@
 
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
 from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
@@ -627,19 +625,12 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-_EDF_STRIDE_MAX_EXTRA_BYTES = 64 * 1024**2
-_EDF_FROMFILE_THREAD_MIN_BYTES = 64 * 1024**2
-_EDF_FROMFILE_WORKERS = 2
-
-
 def _calibrate_uniform_edf(data, source, cal, offsets, gains, cals):
     """Calibrate uniform EDF/BDF samples directly into their output buffer."""
-    broadcast_shape = (len(data),) + (1,) * (data.ndim - 1)
-    np.multiply(source, cal.reshape(broadcast_shape), out=data, casting="unsafe")
-    data += offsets.reshape(broadcast_shape)
-    data *= gains.reshape(broadcast_shape)
-    if cals is not None:
-        data *= cals.reshape(broadcast_shape)
+    np.multiply(source, cal, out=data, casting="unsafe")
+    data += offsets
+    data *= gains
+    data *= cals
 
 
 def _read_uniform_segment(
@@ -663,7 +654,7 @@ def _read_uniform_segment(
         return False
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
-    ch_offsets, n_per, sel_in_physical_order, rectangular = stride_layout
+    ch_offsets, n_per, sel_in_physical_order = stride_layout
 
     dtype = raw_extras["dtype_np"]
     dtype_byte = raw_extras["dtype_byte"]
@@ -684,8 +675,6 @@ def _read_uniform_segment(
     )
 
     block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
-    max_records = min(len(r_lims), n_per)
-    n_values = len(idx_arr) * max_records * buf_len
     in_physical_order = (
         sel_in_physical_order
         and idx_is_slice
@@ -700,30 +689,7 @@ def _read_uniform_segment(
         and r_lims[0][0] == 0
         and r_lims[-1][1] == buf_len
     )
-    direct_output = direct_output and bool(np.all(cals == 1.0))
-    estimated_incremental_bytes = 0
-    if not direct_output:
-        estimated_incremental_bytes += n_values * np.dtype(np.float64).itemsize
-    if not in_physical_order:
-        decoded_itemsize = np.dtype(INT32).itemsize if subtype == "bdf" else dtype_byte
-        estimated_incremental_bytes += n_values * decoded_itemsize
-    if len(stim_rows):
-        estimated_incremental_bytes += max_records * buf_len * np.dtype(int).itemsize
-    if estimated_incremental_bytes > _EDF_STRIDE_MAX_EXTRA_BYTES:
-        return False
-
-    threaded = (
-        subtype in ("edf", "bdf")
-        and direct_output
-        and data.nbytes >= _EDF_FROMFILE_THREAD_MIN_BYTES
-    )
-    worker_context = (
-        ThreadPoolExecutor(max_workers=_EDF_FROMFILE_WORKERS)
-        if threaded
-        else nullcontext()
-    )
-    with worker_context as executor, _gdf_edf_get_fid(filenames, buffering=0) as fid:
-        pending = []
+    with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
         for ai in range(0, len(r_lims), n_per):
             block_offset = ai * ch_offsets[-1] * dtype_byte
@@ -732,15 +698,13 @@ def _read_uniform_segment(
             many_chunk = _read_ch(
                 fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
             )
-            if rectangular:
-                record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
-                if in_physical_order:
-                    view = record_grid.transpose(1, 0, 2)
-                else:
-                    view = record_grid[:, read_sel, :].transpose(1, 0, 2)
+            if in_physical_order:
+                view = many_chunk.reshape(n_read, len(n_samps), buf_len).transpose(
+                    1, 0, 2
+                )
             else:
-                # a record is not a matrix (e.g. an EDF+ annotation channel is
-                # stored at its own rate), so slice out each picked channel
+                # a record need not be a matrix (e.g. an EDF+ annotation channel
+                # is stored at its own rate), so slice out each picked channel
                 records = many_chunk.reshape(n_read, -1)
                 view = np.empty((len(read_sel), n_read, buf_len), many_chunk.dtype)
                 for j, ci in enumerate(read_sel):
@@ -755,40 +719,8 @@ def _read_uniform_segment(
                 assert r_sidx == 0 and r_eidx == n_read * buf_len
                 output = data[:, d_start:d_stop].reshape(view.shape)
                 assert np.shares_memory(output, data)
-                if executor is None:
-                    _calibrate_uniform_edf(
-                        output,
-                        view,
-                        cal,
-                        offsets,
-                        gains,
-                        None,
-                    )
-                else:
-                    pending.append(
-                        executor.submit(
-                            _calibrate_uniform_edf,
-                            output,
-                            view,
-                            cal,
-                            offsets,
-                            gains,
-                            None,
-                        )
-                    )
-                continue
-            if (
-                n_read == 1
-                and not len(stim_rows)
-                and (r_sidx != 0 or r_eidx != buf_len)
-            ):
                 _calibrate_uniform_edf(
-                    data[:, d_start:d_stop],
-                    view[:, 0, r_sidx:r_eidx],
-                    cal[:, 0, 0],
-                    offsets[:, 0, 0],
-                    gains[:, 0, 0],
-                    cals,
+                    output, view, cal, offsets, gains, cals[:, :, np.newaxis]
                 )
                 continue
 
@@ -808,8 +740,6 @@ def _read_uniform_segment(
                 out=data[:, d_start:d_stop],
                 casting="unsafe",
             )
-        for future in pending:
-            future.result()
     return True
 
 
@@ -838,13 +768,16 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     # actually one of the requested channels
     idx_arr = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
 
-    # We could read this one EDF block at a time, which would be this:
-    ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
+    # We could read this one EDF block at a time, but to speed it up we really
+    # need to read multiple blocks at once, otherwise we can end up with e.g.
+    # 18,181 chunks for a 20 MB file! Let's do ~10 MB chunks:
+    stride_layout = raw_extras.get("stride_layout")
+    if stride_layout is None:
+        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
+        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    else:
+        ch_offsets, n_per = stride_layout[:2]
     block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
-    # But to speed it up, we really need to read multiple blocks at once,
-    # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
-    # Let's do ~10 MB chunks:
-    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -1120,25 +1053,19 @@ def _get_info(
         edf_info["max_samp"] = max_samp = n_samps.max()
     all_n_samps = edf_info["n_samps"]
     edf_info["stride_layout"] = None
-    # Only the *selected* channels have to share a sampling rate. An EDF+
-    # annotation channel usually does not, which is why `rectangular` is checked
-    # separately: it says whether a data record is a plain (n_channels, max_samp)
-    # matrix that can simply be reshaped, or has to be gathered channel by channel.
+    # Only the *selected* channels have to share a sampling rate for striding.
     if edf_info["subtype"] in ("edf", "bdf") and np.all(
         all_n_samps[edf_info["sel"]] == max_samp
     ):
         ch_offsets = np.cumsum(np.concatenate([[0], all_n_samps]), dtype=np.int64)
         n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * edf_info["dtype_byte"]), 1)
-        rectangular = bool(np.all(all_n_samps == max_samp))
-        sel_in_physical_order = rectangular and np.array_equal(
-            edf_info["sel"], np.arange(len(all_n_samps))
-        )
-        edf_info["stride_layout"] = (
-            ch_offsets,
-            n_per,
-            sel_in_physical_order,
-            rectangular,
-        )
+        # A data record is a plain (n_channels, max_samp) matrix -- and hence
+        # reshapeable -- only when *every* channel shares the rate; an EDF+
+        # annotation channel usually does not.
+        sel_in_physical_order = bool(
+            np.all(all_n_samps == max_samp)
+        ) and np.array_equal(edf_info["sel"], np.arange(len(all_n_samps)))
+        edf_info["stride_layout"] = (ch_offsets, n_per, sel_in_physical_order)
 
     # Info structure
     # -------------------------------------------------------------------------

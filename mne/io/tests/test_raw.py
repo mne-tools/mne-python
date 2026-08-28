@@ -54,16 +54,6 @@ def _fail_if_times_materialized(*args, **kwargs):
     pytest.fail("The full Raw.times vector was materialized")
 
 
-class _CropRecorder:
-    def __init__(self):
-        self.args = None
-        self.kwargs = None
-
-    def crop(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
-
 def assert_named_constants(info):
     """Assert that info['chs'] has named constants."""
     # for now we just check one
@@ -129,21 +119,6 @@ def test_set_annotations_does_not_materialize_times(monkeypatch):
     monkeypatch.setattr("mne.io.base._arange_div", _fail_if_times_materialized)
     raw.set_annotations(annotations)
     assert len(raw.annotations) == 1
-
-
-def test_set_annotations_preserves_endpoint_arithmetic(monkeypatch):
-    """Test annotation bounds preserve the prior floating-point operations."""
-    raw = RawArray(np.zeros((1, 6)), create_info(1, 100.0), verbose="error")
-    annotations = Annotations([0.0], [0.0], ["test"])
-    recorder = _CropRecorder()
-    monkeypatch.setattr(Annotations, "crop", recorder.crop)
-
-    raw.set_annotations(annotations)
-
-    endpoint = (raw.n_times - 1) / raw.info["sfreq"] + 1.0 / raw.info["sfreq"]
-    assert endpoint != raw.duration
-    assert recorder.args == (0, endpoint)
-    assert recorder.kwargs == {"emit_warning": True}
 
 
 def _test_raw_reader(

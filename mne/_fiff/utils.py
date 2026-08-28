@@ -2,19 +2,14 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import mmap
 import os
 import os.path as op
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from traceback import clear_frames
 
 import numpy as np
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
-
-_READ_SEGMENTS_FILE_THREAD_MIN_BYTES = 64 * 1024**2
 
 
 def _check_orig_units(orig_units):
@@ -219,9 +214,6 @@ def _read_segments_file(
     n_channels=None,
     offset=0,
     trigger_ch=None,
-    max_block_bytes=int(100e6),
-    use_mmap=False,
-    n_jobs=1,
 ):
     """Read a chunk of raw data."""
     if n_channels is None:
@@ -233,90 +225,28 @@ def _read_segments_file(
     data_offset = n_channels * start * n_bytes + offset
     data_left = (stop - start) * n_channels
 
-    # block_size is in data samples and spans complete channel frames.
-    block_size = max(
-        n_channels,
-        ((max_block_bytes // n_bytes) // n_channels) * n_channels,
-    )
+    # Read up to 100 MB of data at a time, block_size is in data samples
+    block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
     block_size = min(data_left, block_size)
     with open(raw.filenames[fi], "rb", buffering=0) as fid:
-        mapped = None
-        if use_mmap and data_left * n_bytes >= max_block_bytes:
-            try:
-                mapped = mmap.mmap(fid.fileno(), 0, access=mmap.ACCESS_READ)
-            except (OSError, ValueError):
-                pass
         fid.seek(data_offset)
         # extract data in chunks
-        executor = None
-        pending = []
-        worker_error = None
-        if (
-            mapped is not None
-            and n_jobs > 1
-            and data.nbytes >= _READ_SEGMENTS_FILE_THREAD_MIN_BYTES
-        ):
-            executor = ThreadPoolExecutor(max_workers=n_jobs)
-        try:
-            for sample_start in np.arange(0, data_left, block_size) // n_channels:
-                count = min(block_size, data_left - sample_start * n_channels)
-                raw_block = None
-                block = None
-                try:
-                    if mapped is None:
-                        raw_block = np.fromfile(fid, dtype, count)
-                    else:
-                        byte_offset = data_offset + sample_start * n_channels * n_bytes
-                        if len(mapped) - byte_offset < count * n_bytes:
-                            raw_block = np.empty(0, dtype=dtype)
-                        else:
-                            raw_block = np.frombuffer(
-                                mapped, dtype, count=count, offset=byte_offset
-                            )
-                    if raw_block.size != count:
-                        raise RuntimeError(
-                            f"Incorrect number of samples ({raw_block.size} != "
-                            f"{count}), please report this error to MNE-Python "
-                            "developers"
-                        )
-                    block = raw_block.reshape(n_channels, -1, order="F")
-                    n_samples = block.shape[1]  # = count // n_channels
-                    sample_stop = sample_start + n_samples
-                    if trigger_ch is not None:
-                        stim_ch = trigger_ch[start:stop][sample_start:sample_stop]
-                        block = np.vstack((block, stim_ch))
-                    data_view = data[:, sample_start:sample_stop]
-                    if executor is None:
-                        _mult_cal_one(data_view, block, idx, cals, mult)
-                    else:
-                        future = executor.submit(
-                            _mult_cal_one, data_view, block, idx, cals, mult
-                        )
-                        pending.append((future, block, raw_block))
-                finally:
-                    del block, raw_block
-            for pending_item in pending:
-                error = pending_item[0].exception()
-                if worker_error is None and error is not None:
-                    worker_error = error
-            if pending:
-                del pending_item
-        finally:
-            if executor is not None:
-                executor.shutdown(wait=True)
-            # Worker tracebacks retain their mapped NumPy inputs. Clear frame locals
-            # before closing the mapping, but keep the traceback locations intact.
-            for pending_item in pending:
-                error = pending_item[0].exception()
-                if error is not None and error.__traceback__ is not None:
-                    clear_frames(error.__traceback__)
-            if pending:
-                del pending_item
-            pending.clear()
-            if mapped is not None:
-                mapped.close()
-        if worker_error is not None:
-            raise worker_error
+        for sample_start in np.arange(0, data_left, block_size) // n_channels:
+            count = min(block_size, data_left - sample_start * n_channels)
+            block = np.fromfile(fid, dtype, count)
+            if block.size != count:
+                raise RuntimeError(
+                    f"Incorrect number of samples ({block.size} != {count}), please "
+                    "report this error to MNE-Python developers"
+                )
+            block = block.reshape(n_channels, -1, order="F")
+            n_samples = block.shape[1]  # = count // n_channels
+            sample_stop = sample_start + n_samples
+            if trigger_ch is not None:
+                stim_ch = trigger_ch[start:stop][sample_start:sample_stop]
+                block = np.vstack((block, stim_ch))
+            data_view = data[:, sample_start:sample_stop]
+            _mult_cal_one(data_view, block, idx, cals, mult)
 
 
 def read_str(fid, count=1):

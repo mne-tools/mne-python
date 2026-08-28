@@ -35,9 +35,6 @@ from ...utils import (
 )
 from ..base import BaseRaw
 
-_BRAINVISION_BLOCK_BYTES = 8 * 1024**2
-_BRAINVISION_READ_WORKERS = 4
-
 
 @fill_doc
 class RawBrainVision(BaseRaw):
@@ -194,9 +191,6 @@ class RawBrainVision(BaseRaw):
                 mult,
                 dtype=dtype,
                 n_channels=n_data_ch,
-                max_block_bytes=_BRAINVISION_BLOCK_BYTES,
-                use_mmap=True,
-                n_jobs=_BRAINVISION_READ_WORKERS,
             )
         else:
             offsets = self._raw_extras[fi]["offsets"]
