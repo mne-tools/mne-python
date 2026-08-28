@@ -2445,7 +2445,6 @@ def whiten_evoked(
     )
 
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
-
     return evoked
 
 
