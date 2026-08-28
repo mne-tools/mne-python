@@ -1011,8 +1011,6 @@ def _get_info(
     edf_info["offsets"] = (
         edf_info["physical_min"] - edf_info["digital_min"] * edf_info["cal"]
     )
-    del edf_info["physical_min"]
-    del edf_info["digital_min"]
 
     if edf_info["subtype"] == "bdf":
         edf_info["cal"][stim_channel_idxs] = 1
