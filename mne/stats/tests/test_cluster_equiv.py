@@ -322,16 +322,16 @@ def _mne_clusters(result):
     for ci, cl in enumerate(result.clusters):
         cl = cl if isinstance(cl, tuple) else (cl,)
         if len(cl) == 1:
-            members = frozenset(int(i) for i in np.asarray(cl[0]))
+            members = frozenset(int(i) for i in cl[0])
         else:
-            members = frozenset(zip(*(np.asarray(c).tolist() for c in cl)))
+            # reveersal here to deal with transpoe added after FT reulsts were generated
+            members = frozenset(zip(*cl[::-1]))
         out[members] = (result.cluster_masses[ci], result.cluster_p_values[ci])
     return out
 
 
 def _assert_ft_equiv(result, ref, threshold):
     """Assert a ClusterResult matches one FieldTrip reference run."""
-    __tracebackhide__ = True
     square = ref.get("square", False)
     assert result.stat_name == ref["stat_name"]  # check test-type routing
     # the threshold each scenario passes must equal FT's parametric

@@ -1910,7 +1910,22 @@ def cluster_test(
         Whether to check if the ``adjacency`` matrix can be separated into disjoint
         sets before clustering. This may lead to faster clustering, especially if
         the "time" and/or "frequency" dimensions are large.
-    %(out_type_clust)s
+    out_type : 'mask' | 'indices'
+        Output format of clusters within a list, default is ``'indices'``.
+
+        - ``'mask'``:
+            returns a list of boolean arrays, each with the same shape as ``stat_obs``,
+            with ``True`` values indicating locations that are part of a cluster.  Note
+            that MNE-Python's legacy API
+            (e.g. :func:`mne.stats.permutation_cluster_test`) would return slices if the
+            shape is 1D and adjacency is ``None``, whereas ``cluster_test`` will always
+            return a masked array.
+
+        - ``'indices'``:
+            Returns a list of tuple of ndarray, where each ndarray contains the indices
+            of locations that together form the given cluster along the given dimension.
+            Note that for large datasets, ``'indices'`` may use far less memory than
+            ``'mask'``.
     %(rng)s
     buffer_size : int | None
         Block size to use when computing test statistics. This can significantly
@@ -2112,6 +2127,13 @@ def cluster_test(
             clusters = [cl.T for cl in clusters]
         elif isinstance(clusters[0], tuple) and isinstance(clusters[0][0], slice):
             clusters = [tuple(reversed(cluster)) for cluster in clusters]
+            # Convert from old form of slices to mask, make users life easier.
+            new_clusters = list()
+            for clust in clusters:
+                new_clust = np.zeros(stat_obs.shape, bool)
+                new_clust[clust] = True
+                new_clusters.append(new_clust)
+            clusters = new_clusters
     elif out_type == "indices":
         clusters = [tuple(reversed(cluster)) for cluster in clusters]
     return ClusterResult(

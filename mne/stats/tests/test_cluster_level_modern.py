@@ -21,6 +21,16 @@ pd = pytest.importorskip("pandas")
 pytest.importorskip("formulaic")  # required for cluster_test API
 
 
+def _convert_cluster_slices_to_arrays(clusters, stat_obs_shape):
+    """Old API sometimes returns slices, we always want masked arrays."""
+    cluster_masks = list()
+    for clust in clusters:
+        clust_mask = np.zeros(stat_obs_shape, bool)
+        clust_mask[clust] = True
+        cluster_masks.append(clust_mask)
+    return cluster_masks
+
+
 def test_cluster_test_one_sample(stat_conditions):
     """Test cluster_test with a single-group (1-sample) design."""
     condition1_1d, _, _, _ = stat_conditions
@@ -54,10 +64,20 @@ def test_compare_old_and_new_cluster_api(stat_conditions):
     )
     formula = "data ~ condition"
     cluster_result = cluster_test(df_1d, formula, **kwargs)
+
+    for clust in cluster_result.clusters:
+        assert clust.shape == cluster_result.stat_obs.shape
     assert_array_equal(cluster_result.H0, H0)
     assert_array_equal(cluster_result.stat_obs, F_obs)
     assert_array_equal(cluster_result.cluster_p_values, cluster_pvals)
-    assert cluster_result.clusters == clusters
+
+    assert len(clusters) == len(cluster_result.clusters)
+    # Convert slices to masked arrays
+    cluster_masks = _convert_cluster_slices_to_arrays(clusters, F_obs.shape)
+    for cluster, res_clust in zip(cluster_masks, cluster_result.clusters):
+        # bool_clust = np.zeros(F_obs.shape, bool)
+        # bool_clust[cluster] = True
+        np.testing.assert_array_equal(cluster.T, res_clust)
 
 
 @pytest.mark.parametrize(
@@ -133,6 +153,10 @@ def test_new_cluster_api(Inst):
         X = [np.stack(Xa), np.stack(Xb)]
 
     F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(X, **kwargs)
+
+    for clust in result_new_api.clusters:
+        assert clust.shape == result_new_api.stat_obs.shape
+
     assert_array_almost_equal(result_new_api.H0, H0)
     assert_array_almost_equal(result_new_api.stat_obs, F_obs.T)
     assert_array_almost_equal(result_new_api.cluster_p_values, cluster_pvals)
