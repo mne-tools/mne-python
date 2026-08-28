@@ -138,7 +138,7 @@ def _get_mapping(packages):
         rev_mapping[cat] = tuple([pkg for pkg, cats in mapping.items() if cat in cats])
     # extra packages: not in the two text files
     extras = tuple(set(packages) - set(mapping))
-    rev_mapping["Other"] = tuple(sorted(rev_mapping["Other"] + extras))
+    rev_mapping["Other"] = tuple(sorted(rev_mapping.get("Other", ()) + extras))
     return rev_mapping
 
 
