@@ -1258,6 +1258,9 @@ def _read_edf_header(
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
+        # let's make sure we don't accidentally change these
+        for arr in (physical_min, physical_max, digital_min, digital_max):
+            arr.flags["WRITEABLE"] = False
         prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
