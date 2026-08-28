@@ -7,8 +7,8 @@
 ## top of `related_software.txt`; packages with no tags will be categorized as "Other".
 ## Make sure to put categories at the END of the line, separated by commas if a package
 ## fits in multiple categories.
-cross-domain-saliency-maps  # tensorflow # categories: Statistics and machine learning
-fsleyes  # wxPython # categories: Other physiological signals and modalities, Visualization and real-time analysis
-mne-kit-gui # mayavi # categories: Preprocessing and artifact correction
-mne-videobrowser # opencv # categories: Visualization and real-time analysis
-zuna # requires pytorch # categories: Statistics and machine learning
+cross-domain-saliency-maps  # tensorflow # categories: stats
+fsleyes  # wxPython # categories: modalities, visu
+mne-kit-gui # mayavi # categories: preproc
+mne-videobrowser # opencv # categories: visu
+zuna # requires pytorch # categories: stats
