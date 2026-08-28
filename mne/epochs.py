@@ -2010,7 +2010,6 @@ class BaseEpochs(
         Parameters
         ----------
         %(picks_all)s
-
         item : slice | array-like | str | list | None
             The items to get. See :meth:`mne.Epochs.__getitem__` for
             a description of valid options. This can be substantially faster
@@ -2030,7 +2029,6 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
-
         exclude : list[str] | Literal["bads"]
             Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
             excluded; pass an empty list or tuple (the default) to include all

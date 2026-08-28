@@ -979,7 +979,7 @@ class BaseRaw(
             is not ``None``; it is ignored when ``picks=None`` (to be fixed in a
             future release).
 
-                    .. versionadded:: 1.13
+            .. versionadded:: 1.13
         tmin : int | float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
             ignored if the ``start`` parameter is bigger than 0.
