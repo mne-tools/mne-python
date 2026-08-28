@@ -50,8 +50,14 @@ raw_fname = op.join(
 )
 
 
-def _fail_if_times_materialized(*args, **kwargs):
-    pytest.fail("The full Raw.times vector was materialized")
+@pytest.fixture
+def fail_if_times_materialized(monkeypatch):
+    """Fail the test if the full Raw.times vector is ever constructed."""
+
+    def _fail(*args, **kwargs):
+        pytest.fail("The full Raw.times vector was materialized")
+
+    monkeypatch.setattr("mne.io.base._arange_div", _fail)
 
 
 def assert_named_constants(info):
@@ -105,18 +111,16 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
-def test_preload_does_not_materialize_times(monkeypatch):
+def test_preload_does_not_materialize_times(fail_if_times_materialized):
     """Test preloading does not construct the full time vector."""
-    monkeypatch.setattr("mne.io.base._arange_div", _fail_if_times_materialized)
     raw = read_raw_fif(raw_fname, preload=True, verbose="error")
     assert raw.preload
 
 
-def test_set_annotations_does_not_materialize_times(monkeypatch):
+def test_set_annotations_does_not_materialize_times(fail_if_times_materialized):
     """Test annotation bounds use the scalar recording endpoint."""
     raw = read_raw_fif(raw_fname, preload=False, verbose="error")
     annotations = Annotations([0.0], [0.1], ["test"])
-    monkeypatch.setattr("mne.io.base._arange_div", _fail_if_times_materialized)
     raw.set_annotations(annotations)
     assert len(raw.annotations) == 1
 

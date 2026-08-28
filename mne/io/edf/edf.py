@@ -607,6 +607,16 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
             raise RuntimeError(
                 f"Only {raw.size} of {expected} requested BDF bytes could be read"
             )
+        # Read each 3-byte sample as the low bytes of an overlapping 4-byte
+        # word, mask off the byte borrowed from the next sample, then move the
+        # sign bit to bit 31 and shift back down to sign-extend it. The last
+        # sample has no next sample to borrow from, so it is done by hand.
+        # This is equivalent to, and ~3x faster than, the readable version:
+        #
+        #     ch_data = raw.reshape(-1, 3).astype(INT32)
+        #     ch_data = ch_data[:, 0] | (ch_data[:, 1] << 8) | (ch_data[:, 2] << 16)
+        #     ch_data <<= 8  # sign-extend bit 23
+        #     ch_data >>= 8
         ch_data = np.empty(samp, dtype=INT32)
         packed = np.ndarray(
             (max(samp - 1, 0),), dtype="<u4", buffer=raw, strides=(dtype_byte,)
@@ -614,7 +624,6 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
         np.bitwise_and(packed, (1 << 24) - 1, out=ch_data[:-1])
         if samp:
             ch_data[-1] = int(raw[-3]) | int(raw[-2]) << 8 | int(raw[-1]) << 16
-        # Move the sign bit to bit 31, then arithmetically extend it.
         ch_data <<= 8
         ch_data >>= 8
 
