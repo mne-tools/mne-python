@@ -254,7 +254,10 @@ class ICA(ContainsMixin):
         to set additional parameters. Specifically, if you want Extended
         Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
         (this also works for ``method='picard'``). Defaults to ``'fastica'``.
-        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
+        ``method='jamica'`` fits a single ICA model. For multi-model adaptive
+        mixture ICA and other advanced functionality, use the
+        `jamica package <https://snesmaeili.github.io/jamica/>`__ directly. For
+        reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018,PalmerEtAl2011`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``. Allowed entries are determined by the various algorithm
