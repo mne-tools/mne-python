@@ -6,11 +6,13 @@
 
 import gc
 import math
+import os
 import re
 from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -213,6 +215,22 @@ def _test_raw_reader(
                 data2, times2 = other_raw[picks, sl_time]
                 assert_allclose(data1, data2, err_msg="Data mismatch with preload")
                 assert_allclose(times1, times2)
+
+        # preload="auto" decodes once into a reusable cache entry (gh-14216)
+        if None not in raw.filenames:  # e.g. RawArray has no source file
+            with mock.patch.dict(os.environ, {"MNE_CACHE_DIR": tempdir}):
+                entries = set()
+                for _ in range(2):  # miss, then hit
+                    auto = reader(preload="auto", **kwargs)
+                    assert_allclose(auto[picks, :][0], raw[picks, :][0])
+                    # readers that hand BaseRaw an in-memory array (e.g. EEGLAB
+                    # with embedded data) never reach the cache
+                    if isinstance(auto._data, np.memmap):
+                        assert auto._data.mode == "c"
+                        entries.add(str(auto._data.filename))
+                    del auto
+                    gc.collect()
+                assert len(entries) in (0, 1)
 
         # test projection vs cals and data units
         other_raw = reader(preload=False, **kwargs)
@@ -511,6 +529,7 @@ def _test_raw_reader(
             "pdf_fname",  # BTi
             "directory",  # CTF
             "filename",  # nedf
+            "binfile",  # FIL
         ):
             try:
                 fname = kwargs[key]

@@ -13,6 +13,7 @@ from mne import pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fil
 from mne.io.fil.sensors import _get_pos_units
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import copytree_rw
 
 fil_path = testing.data_path(download=False) / "FIL"
@@ -155,6 +156,7 @@ def test_fil_complete():
     _fil_megmag(raw, mat)
     _fil_stim(raw, mat)
     _fil_sensorpos(raw, mat)
+    _test_raw_reader(read_raw_fil, binfile=binname)
 
 
 @testing.requires_testing_data

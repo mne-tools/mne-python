@@ -2120,6 +2120,15 @@ def test_file_like(kind, preload, split, tmp_path):
     assert file_fid.closed
 
 
+def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
+    """Test that automatic caching cannot misidentify a named stream."""
+    monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
+    stream = BytesIO(test_fif_fname.read_bytes())
+    stream.name = str(test_fif_fname)
+    with pytest.raises(ValueError, match="stable source files"):
+        read_raw_fif(stream, preload="auto")
+
+
 def test_str_like():
     """Test handling with str-like objects."""
     fname = pathlib.Path(test_fif_fname)

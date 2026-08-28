@@ -103,6 +103,7 @@ from ..utils import (
     warn,
 )
 from ..utils._typing import Color, Self
+from ._preload_cache import _raw_preload_auto
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -143,8 +144,11 @@ class BaseRaw(
         freshly created memory-mapped file used to store the data on the hard
         drive (slower, requires less memory). An existing file is overwritten.
         The caller owns the file and is responsible for removing it after the
-        Raw object is no longer in use. If preload is an ndarray, the data are
-        taken from that array. If False, data are not read until save.
+        Raw object is no longer in use. For supported file readers, the exact
+        string ``"auto"`` instead reuses decoded data below the directory
+        configured by :func:`mne.set_cache_dir`. Use ``Path("auto")`` for a
+        literal filename. If preload is an ndarray, the data are taken from that
+        array. If False, data are not read until save.
     first_samps : sequence
         Sequence of the first sample number from each raw file. For unsplit raw
         files this should be a length-one list or tuple.
@@ -601,11 +605,14 @@ class BaseRaw(
 
         Parameters
         ----------
-        memmap : path-like | None
+        memmap : path-like | str | None
             If not ``None``, preload data into a freshly created memory-mapped file
             at this path. An existing file is overwritten. The caller owns the file
             and is responsible for removing it after the Raw object is no longer in
-            use. If ``None`` (default), preload data into RAM.
+            use. The exact string ``"auto"`` instead means the same as
+            ``preload="auto"``: reuse decoded data below the directory configured by
+            :func:`mne.set_cache_dir`. Use ``Path("auto")`` for a literal filename.
+            If ``None`` (default), preload data into RAM.
 
             .. versionadded:: 1.13
         %(verbose)s
@@ -623,13 +630,23 @@ class BaseRaw(
         .. versionadded:: 0.10.0
         """
         if not self.preload:
-            if memmap is not None:
+            if isinstance(memmap, str) and memmap == "auto":
+                pass  # sentinel, resolved in _preload_data
+            elif memmap is not None:
                 _validate_type(memmap, "path-like", "memmap")
+                memmap = Path(memmap)
             self._preload_data(memmap if memmap is not None else True)
         return self
 
     def _preload_data(self, preload):
         """Actually preload the data."""
+        if isinstance(preload, str) and preload == "auto":
+            self._data = _raw_preload_auto(self)
+            assert len(self._data) == self.info["nchan"]
+            self.preload = True
+            self._comp = None
+            self.close()
+            return
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
@@ -794,6 +811,8 @@ class BaseRaw(
                     "of the raw object."
                 )
 
+            # This is algebraically ``self.times[-1] + 1 / sfreq`` without
+            # allocating the full time vector for large file-backed recordings.
             sfreq = self.info["sfreq"]
             annotation_end = (self.n_times - 1) / sfreq + 1.0 / sfreq
             new_annotations = annotations.copy()

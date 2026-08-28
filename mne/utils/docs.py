@@ -3727,7 +3727,13 @@ preload : bool | str
     freshly created memory-mapped file used to store the data on the hard
     drive (slower, requires less memory). An existing file is overwritten.
     The caller owns the file and is responsible for removing it after the
-    Raw object is no longer in use."""
+    Raw object is no longer in use. For supported Raw readers, the exact string
+    ``"auto"`` instead reuses decoded data below the directory configured by
+    :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+    copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+    .. versionchanged:: 1.13
+       Support for the ``"auto"`` decoded-data cache was added."""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None
