@@ -387,6 +387,11 @@ class DipoleFitUI:
                 time_viewer=False,
                 initial_time=self._current_time,
                 time_label=None,  # the traces plot shows the current time
+                # The source estimate is only a rough guide for where to put
+                # dipoles, so map each surface vertex to its nearest source rather
+                # than smoothing: the upsampling is then a gather instead of a
+                # sparse matrix product, which is cheaper on every time change.
+                smoothing_steps="nearest",
                 brain_kwargs=dict(units="m", show=False),
                 figure=fig_into,
                 # the GUI renders on a white figure, so the Brain (and hence its
@@ -707,7 +712,9 @@ class DipoleFitUI:
         if self._time_line is not None:
             self._time_line.set_xdata([new_time])
             self._update_time_text()
-            self._renderer._mplcanvas.update_plot()
+            # only the time line and its label moved, so the traces can be blitted
+            # from the cached background instead of being redrawn
+            self._renderer._mplcanvas.update_blit_artists()
         self._update_arrows()
 
     def _update_time_text(self):
@@ -1316,6 +1323,8 @@ class DipoleFitUI:
                 fontsize=8,
                 color="black",
             )
+            # the label travels with the time line, so it is drawn along with it
+            canvas.add_blit_artist(self._time_text)
         return self._renderer._mplcanvas
 
     def close(self):

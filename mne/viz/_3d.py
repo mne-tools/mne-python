@@ -2189,6 +2189,7 @@ def _plot_mpl_stc(
     time_viewer=False,
     colorbar=True,
     transparent=True,
+    block=False,
 ):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
@@ -2328,7 +2329,7 @@ def _plot_mpl_stc(
         cax.tick_params(labelsize=16)
         cb.ax.set_facecolor("0.5")
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt_show(True)
+    plt_show(True, block=block)
     return fig
 
 
@@ -2437,6 +2438,7 @@ def plot_source_estimates(
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
+    block=False,
     verbose=None,
 ):
     """Plot SourceEstimate.
@@ -2538,6 +2540,7 @@ def plot_source_estimates(
     %(view_layout)s
     %(add_data_kwargs)s
     %(brain_kwargs)s
+    %(block)s
     %(verbose)s
 
     Returns
@@ -2557,12 +2560,14 @@ def plot_source_estimates(
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    from .backends._utils import _qt_block
     from .backends.renderer import _get_3d_backend, use_3d_backend
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, "stc", "source estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     subject = _check_subject(stc.subject, subject)
+    _validate_type(block, bool, "block")
     _check_option("backend", backend, ["auto", "matplotlib", "pyvistaqt", "notebook"])
     plot_mpl = backend == "matplotlib"
     if not plot_mpl:
@@ -2593,10 +2598,10 @@ def plot_source_estimates(
         transparent=transparent,
     )
     if plot_mpl:
-        return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
+        return _plot_mpl_stc(stc, spacing=spacing, block=block, **kwargs)
     else:
         with use_3d_backend(backend):
-            return _plot_stc(
+            brain = _plot_stc(
                 stc,
                 overlay_alpha=alpha,
                 brain_alpha=alpha,
@@ -2614,6 +2619,9 @@ def plot_source_estimates(
                 title=title,
                 **kwargs,
             )
+        if block and brain._renderer._kind == "qt":
+            _qt_block(brain.plotter.app_window)
+        return brain
 
 
 def _plot_stc(

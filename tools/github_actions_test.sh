@@ -16,8 +16,7 @@ elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
   if [[ "$(uname -m)" == "arm64" ]]; then
     CONDITION="not (ultraslowtest or pgtest)"
   else
-    # TODO: the MNE-C tools are on PATH during setup but not once the tests run (gh-14230)
-    CONDITION="not (slowtest or pgtest or mne_c)"
+    CONDITION="not (slowtest or pgtest)"
   fi
 elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
   CONDITION="not (slowtest or pgtest)"
