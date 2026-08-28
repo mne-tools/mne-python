@@ -1429,6 +1429,12 @@ class _AbstractMplCanvas(ABC):
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel="Time (s)", ylabel="Activation (AU)")
         self.manager = None
+        # Artists that are redrawn on their own (see `add_blit_artist`), the
+        # background they are drawn onto, and the draw_event callback id that
+        # keeps that background up to date.
+        self._blit_artists = list()
+        self._blit_background = None
+        self._blit_cid = None
 
     def _connect(self):
         for event in ("button_press", "motion_notify") + self._extra_events:
@@ -1444,9 +1450,84 @@ class _AbstractMplCanvas(ABC):
     def plot_time_line(self, x, label, update=True, **kwargs):
         """Plot the vertical line."""
         line = self.axes.axvline(x, label=label, **kwargs)
+        self.add_blit_artist(line)
         if update:
             self.update_plot()
         return line
+
+    def add_blit_artist(self, artist):
+        """Mark an artist as fast-updating, to be drawn by :meth:`update_blit_artists`.
+
+        Such an artist is excluded from the canvas background, so that moving it
+        (e.g. the time line, or a label that travels with it) costs a blit of the
+        cached background rather than a full redraw of the figure.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to draw separately. Must live in this canvas's axes: an
+            artist added to the figure itself would be left out of saved images,
+            because Matplotlib only exempts *Axes* children from the rule that
+            animated artists are not drawn (see ``_AxesBase.draw``).
+        """
+        if not self.canvas.supports_blit:  # e.g. ipympl in a notebook
+            return
+        if artist.axes is not self.axes:
+            raise RuntimeError(
+                f"{artist!r} must be an artist of this canvas's axes to be drawn "
+                "separately, got one in " + repr(artist.axes)
+            )
+        if artist in self._blit_artists:
+            return
+        artist.set_animated(True)
+        self._blit_artists.append(artist)
+        # the cached background may already contain this artist, so drop it and
+        # let the next update redraw (and re-cache) the figure without it
+        self._blit_background = None
+        if self._blit_cid is None:
+            # Grab a fresh background after every full redraw, whatever caused it
+            # (update_plot, draw_idle, a resize, a DPI change, ...).
+            self._blit_cid = self.canvas.mpl_connect("draw_event", self._on_draw)
+
+    def remove_blit_artist(self, artist):
+        """Stop drawing an artist separately, putting it back in the background.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to stop drawing separately. Artists that were never added
+            are ignored.
+        """
+        if artist not in self._blit_artists:
+            return
+        self._blit_artists.remove(artist)
+        artist.set_animated(False)
+        self.update_plot()  # redraw so the artist becomes part of the background
+
+    def update_blit_artists(self):
+        """Redraw only the artists added with :meth:`add_blit_artist`.
+
+        This is the fast path taken while the time line moves; any other change
+        to the figure needs :meth:`update_plot` instead.
+        """
+        if self._blit_background is None or not self._blit_artists:
+            self.update_plot()  # nothing cached yet (or nothing to draw fast)
+            return
+        self.canvas.restore_region(self._blit_background)
+        self._draw_blit_artists()
+        self.canvas.blit(self.fig.bbox)
+
+    def _draw_blit_artists(self):
+        for artist in self._blit_artists:
+            self.fig.draw_artist(artist)
+
+    def _on_draw(self, event=None):
+        """Cache the background after a full redraw (draw_event callback)."""
+        self._blit_background = self.canvas.copy_from_bbox(self.fig.bbox)
+        if not self.canvas.is_saving():
+            # When saving, Matplotlib draws animated artists itself; drawing them
+            # again here would just double up their antialiasing.
+            self._draw_blit_artists()
 
     def update_plot(self):
         """Update the plot."""
@@ -1503,6 +1584,11 @@ class _AbstractMplCanvas(ABC):
     def clear(self):
         """Clear internal variables."""
         self.close()
+        if self._blit_cid is not None:
+            self.canvas.mpl_disconnect(self._blit_cid)
+            self._blit_cid = None
+        self._blit_artists.clear()  # the artists go away with the figure below
+        self._blit_background = None
         self.axes.clear()
         self.fig.clear()
         self.canvas = None

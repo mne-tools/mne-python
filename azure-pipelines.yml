@@ -56,7 +56,7 @@ stages:
             displayName: Setup up Xvfb
           - task: Cache@2
             inputs:
-              key: minimal-cmds-1
+              key: '"minimal-cmds" | "$(Agent.OS)" | $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh'
               path: /home/vsts/minimal_cmds
             displayName: Cache minimal commands
           - bash: $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh
@@ -166,6 +166,7 @@ stages:
         pool:
           vmImage: 'windows-latest'
         variables:
+          MNE_TOOLS_DIR: '$(Pipeline.Workspace)/mne-tools'
           MNE_LOGGING_LEVEL: 'warning'
           MNE_FORCE_SERIAL: 'true'
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
@@ -181,17 +182,33 @@ stages:
             3.14 pip:
               TEST_MODE: 'pip'
               PYTHON_VERSION: '3.14'
-              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires FreeSurfer|CUDA not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
             3.14 pip pre:
               TEST_MODE: 'pip-pre'
               PYTHON_VERSION: '3.14'
-              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires MNE-C|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
+              MNE_TEST_ALLOW_SKIP: "^.*(Requires (spm|brainstorm) dataset|Requires FreeSurfer|CUDA not|Numba not|on Windows|MNE_FORCE_SERIAL|PySide6 causes segfaults|SCIPY_ARRAY_API).*$"
         steps:
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(PYTHON_VERSION)
               architecture: 'x64'
               addToPath: true
+          - bash: |
+              set -xeo pipefail
+              git clone --depth 1 https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
+            displayName: Clone mne-tools
+          - task: Cache@2
+            inputs:
+              key: '"minimal-cmds" | "$(Agent.OS)" | $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh'
+              path: C:\Users\VssAdministrator\minimal_cmds
+            displayName: Cache minimal commands
+          # MNE_TOOLS_DIR is a Windows path and these steps run under Git Bash, hence
+          # cygpath; backticks rather than $(...) so Azure does not read it as a macro
+          - bash: |
+              set -eo pipefail
+              MNE_TOOLS_UNIX=`cygpath -u "$MNE_TOOLS_DIR"`
+              bash "$MNE_TOOLS_UNIX/tools/get_minimal_commands.sh"
+            displayName: Get minimal commands
           - bash: |
               set -xeo pipefail
               git clone --depth 1 https://github.com/pyvista/setup-headless-display-action.git
@@ -216,6 +233,11 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
+          # Windows does not define HOME, and MNE-C dereferences it unconditionally:
+          # mne_forward_solution crashes with 0xC0000005 without it. Set after the
+          # steps above so that Git Bash keeps deriving its own MSYS-style HOME.
+          - script: 'echo ##vso[task.setvariable variable=HOME]%USERPROFILE%'
+            displayName: Set HOME for MNE-C
           - script: pytest -m "not (slowtest or pgtest)" -n $(PYTEST_XDIST_N) --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: Run tests
           - bash: bash <(curl -s https://codecov.io/bash)

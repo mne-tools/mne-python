@@ -353,7 +353,7 @@ class EvokedField:
         # And the field lines on top
         if self._n_contours > 1:
             contours = np.linspace(-map_vmax, map_vmax, self._n_contours)
-            contours_actor, _ = self._renderer.contour(
+            contours_actor, contours_alg = self._renderer.contour(
                 surface=surf,
                 scalars=current_data,
                 contours=contours,
@@ -365,7 +365,7 @@ class EvokedField:
             )
         else:
             contours = None  # noqa
-            contours_actor = None
+            contours_actor = contours_alg = None
 
         return dict(
             pick=pick,
@@ -375,6 +375,7 @@ class EvokedField:
             mesh=mesh,
             contours=contours,
             contours_actor=contours_actor,
+            contours_alg=contours_alg,
             surf=surf,
             map_vmax=map_vmax,
         )
@@ -385,12 +386,31 @@ class EvokedField:
             current_data = surf_map["data_interp"](self._current_time)
             surf_map["mesh"].update_overlay(name="field", scalars=current_data)
 
-            if surf_map["contours"] is not None:
+            show_contours = surf_map["contours"] is not None and self._n_contours > 1
+            if show_contours and surf_map["contours_alg"] is not None:
+                # The filter is still connected to its surface, so pushing the new
+                # values in re-runs it on the next render: no need to build a new
+                # actor for every time point.
+                self._renderer._update_contour(
+                    surf_map["contours_alg"],
+                    scalars=current_data,
+                    contours=surf_map["contours"],
+                )
+                actor = surf_map["contours_actor"]
+                actor.prop.line_width = self._contour_line_width
+                actor.prop.opacity = self._contour_line_opacity
+            elif show_contours or surf_map["contours_actor"] is not None:
+                # The contours appeared or disappeared entirely, which needs a
+                # new actor (or none at all).
                 self._renderer.plotter.remove_actor(
                     surf_map["contours_actor"], render=False
                 )
-                if self._n_contours > 1:
-                    surf_map["contours_actor"], _ = self._renderer.contour(
+                surf_map["contours_actor"] = surf_map["contours_alg"] = None
+                if show_contours:
+                    (
+                        surf_map["contours_actor"],
+                        surf_map["contours_alg"],
+                    ) = self._renderer.contour(
                         surface=surf_map["surf"],
                         scalars=current_data,
                         contours=surf_map["contours"],
