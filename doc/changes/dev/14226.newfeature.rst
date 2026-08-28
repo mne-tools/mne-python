@@ -1,0 +1,3 @@
+Add :func:`mne.label_adjacency` and :func:`mne.volume_label_adjacency` for determining
+whether labels are adjacent (touching) or not, by :newcontrib:`Raphaël Bordas` and `Marijn van
+Vliet`_

@@ -8,6 +8,7 @@
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
 .. _Alan Leggitt: https://github.com/leggitta
+.. _Alejandro Santos Mayo: https://github.com/ASantosMayo
 .. _Alejandro Weinstein: http://ocam.cl
 .. _Alessandro Tonin: https://www.linkedin.com/in/alessandro-tonin-7892b046
 .. _Alex Ciok: https://github.com/alexCiok
@@ -363,6 +364,7 @@
 .. _Ram Pari: https://github.com/ramkpari
 .. _Ramiro Gatti: https://github.com/ragatti
 .. _ramonapariciog: https://github.com/ramonapariciog
+.. _Raphaël Bordas: https://github.com/raphbrd
 .. _Rasmus Aagaard: https://github.com/rasgaard
 .. _Rasmus Zetter: https://github.com/rzetter
 .. _Reza Nasri: https://github.com/rznas

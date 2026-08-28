@@ -40,6 +40,8 @@ set_channel_types_eyetrack
 _use_test_3d_backend
 verbose_debug
 metadata_routing
+Plotter
+customEvent
 
 # Decoding
 _.multi_class
@@ -151,6 +153,8 @@ _._has_rpa_data
 _._nearest_transformed_high_res_mri_idx_rpa
 _._nearest_transformed_high_res_mri_idx_nasion
 _._nearest_transformed_high_res_mri_idx_lpa
+_.prop.culling
+_.prop.lighting
 
 # Figures (prevent GC for example)
 _.decim_data
@@ -185,3 +189,6 @@ _sigint_impl
 
 # Read by numpydoc's ClassDoc (also set in doc/conf.py)
 _.extra_public_methods
+
+# Accessed through an attribute-path string by the _qt_safe_window decorator
+_._init_renderer

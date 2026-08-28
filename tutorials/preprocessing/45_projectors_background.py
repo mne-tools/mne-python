@@ -467,11 +467,16 @@ for data, title in zip([mags, mags_ecg], ["Without", "With"]):
 # automatically applied. It is also possible to apply projectors manually when
 # working with :class:`~mne.io.Raw`, :class:`~mne.Epochs` or
 # :class:`~mne.Evoked` objects via the object's :meth:`~mne.io.Raw.apply_proj`
-# method. For all instance types, you can always copy the contents of
-# :samp:`{<instance>}.info['projs']` into a separate :class:`list` variable,
-# use :samp:`{<instance>}.del_proj({<index of proj(s) to remove>})` to remove
-# one or more projectors, and then add them back later with
-# :samp:`{<instance>}.add_proj({<list containing projs>})` if desired.
+# method. By default, ``apply_proj()`` applies all projectors attached to the
+# instance. To apply only a particular projector or subset, pass the desired
+# projectors using ``projs=``. The selected projectors must already be attached
+# to the instance. For example, ``ecg_projs[2:4]`` are the two magnetometer
+# ("axial") ECG projectors, so we can apply only those:
+
+raw_ecg_mag = raw.copy().apply_proj(projs=ecg_projs[2:4])
+
+# %%
+# This avoids having to temporarily remove the other attached projectors.
 #
 # .. warning::
 #

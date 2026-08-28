@@ -68,6 +68,7 @@ Compute ``adjacency`` matrices for cluster-level statistics:
 
    channels.find_ch_adjacency
    channels.read_ch_adjacency
+   label_adjacency
    spatial_dist_adjacency
    spatial_src_adjacency
    spatial_tris_adjacency
@@ -75,3 +76,4 @@ Compute ``adjacency`` matrices for cluster-level statistics:
    spatio_temporal_src_adjacency
    spatio_temporal_tris_adjacency
    spatio_temporal_dist_adjacency
+   volume_label_adjacency
