@@ -807,8 +807,9 @@ class RawCurry(BaseRaw):
 
         # scale data to SI units
         self._cals = np.array(cals)
-        if isinstance(preload, bool | np.bool_) and preload:
-            self.load_data()
+        if not isinstance(preload, bool | np.bool_) or preload:
+            # preload can also be a memory-map path or the "auto" sentinel
+            self._preload_data(preload)
 
         # set events / annotations
         # format from curryreader: sample, etype, startsample, endsample

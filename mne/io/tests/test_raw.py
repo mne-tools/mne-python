@@ -6,11 +6,13 @@
 
 import gc
 import math
+import os
 import re
 from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -46,6 +48,10 @@ from mne.utils import (
 raw_fname = op.join(
     op.dirname(__file__), "..", "..", "io", "tests", "data", "test_raw.fif"
 )
+
+
+def _fail_if_times_materialized(*args, **kwargs):
+    pytest.fail("The full Raw.times vector was materialized")
 
 
 def assert_named_constants(info):
@@ -97,6 +103,15 @@ def test_orig_units():
     with pytest.raises(ValueError, match="orig_units must be of type dict"):
         info = create_info(ch_names=["Cz"], sfreq=100, ch_types="eeg")
         BaseRaw(info, last_samps=[1], orig_units=True)
+
+
+def test_set_annotations_does_not_materialize_times(monkeypatch):
+    """Test annotation bounds use the scalar recording endpoint."""
+    raw = read_raw_fif(raw_fname, preload=False, verbose="error")
+    annotations = Annotations([0.0], [0.1], ["test"])
+    monkeypatch.setattr("mne.io.base._arange_div", _fail_if_times_materialized)
+    raw.set_annotations(annotations)
+    assert len(raw.annotations) == 1
 
 
 def _test_raw_reader(
@@ -168,6 +183,22 @@ def _test_raw_reader(
                 data2, times2 = other_raw[picks, sl_time]
                 assert_allclose(data1, data2, err_msg="Data mismatch with preload")
                 assert_allclose(times1, times2)
+
+        # preload="auto" decodes once into a reusable cache entry (gh-14216)
+        if None not in raw.filenames:  # e.g. RawArray has no source file
+            with mock.patch.dict(os.environ, {"MNE_CACHE_DIR": tempdir}):
+                entries = set()
+                for _ in range(2):  # miss, then hit
+                    auto = reader(preload="auto", **kwargs)
+                    assert_allclose(auto[picks, :][0], raw[picks, :][0])
+                    # readers that hand BaseRaw an in-memory array (e.g. EEGLAB
+                    # with embedded data) never reach the cache
+                    if isinstance(auto._data, np.memmap):
+                        assert auto._data.mode == "c"
+                        entries.add(str(auto._data.filename))
+                    del auto
+                    gc.collect()
+                assert len(entries) in (0, 1)
 
         # test projection vs cals and data units
         other_raw = reader(preload=False, **kwargs)
@@ -466,6 +497,7 @@ def _test_raw_reader(
             "pdf_fname",  # BTi
             "directory",  # CTF
             "filename",  # nedf
+            "binfile",  # FIL
         ):
             try:
                 fname = kwargs[key]

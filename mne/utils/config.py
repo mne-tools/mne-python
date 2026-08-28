@@ -40,17 +40,20 @@ class UnknownPlatformError(Exception):
 
 
 def set_cache_dir(cache_dir):
-    """Set the directory to be used for temporary file storage.
+    """Set the directory used for temporary and managed cache storage.
 
-    This directory is used by joblib to store memmapped arrays,
-    which reduces memory requirements and speeds up parallel
-    computation.
+    This directory is used by joblib to store temporary memmapped arrays and,
+    when requested by supported Raw readers, to persist decoded preload data.
 
     Parameters
     ----------
     cache_dir : str or None
-        Directory to use for temporary file storage. None disables
-        temporary file storage.
+        Directory to use for cache storage. None disables cache storage.
+
+    Notes
+    -----
+    Persistent decoded Raw entries are not automatically size-limited. They are
+    stored below ``cache_dir`` in a versioned ``raw-preload`` directory.
     """
     if cache_dir is not None and not op.exists(cache_dir):
         raise OSError(f"Directory {cache_dir} does not exist")
@@ -109,7 +112,7 @@ _known_config_types = {
     "MNE_BROWSER_USE_OPENGL": (
         "bool, whether to use OpenGL for rendering in the raw browser"
     ),
-    "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
+    "MNE_CACHE_DIR": "str, path to the temporary and managed cache directory",
     "MNE_COREG_ADVANCED_RENDERING": (
         "bool, whether to use advanced OpenGL rendering in coreg"
     ),
