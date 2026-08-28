@@ -349,7 +349,7 @@ def test_reconstruct_proj_forward_validation(eeg_forward):
     assert _active_projs(invalid) == [False]
     with pytest.raises(ValueError, match="rank, if str"):
         evoked.copy().reconstruct_proj(forward=eeg_forward, rank="bad")
-    with pytest.raises(ValueError, match="rank='full'"):
+    with pytest.raises(ValueError, match="rank='full' is incompatible"):
         evoked.copy().reconstruct_proj(forward=eeg_forward, rank="full")
     rank = len(evoked.ch_names) + 1
     with pytest.raises(ValueError, match=r"rank\['eeg'\]=\d+ exceeds"):
