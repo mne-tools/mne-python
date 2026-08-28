@@ -27,6 +27,9 @@ Related software
 - :ref:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in
   C++ and is primarily intended for embedded and real-time applications.
 
+
+.. _related-python-packages:
+
 Related Python packages
 ^^^^^^^^^^^^^^^^^^^^^^^
 
