@@ -600,16 +600,16 @@ class ProjMixin:
             number of sources or dipoles. Must be provided together with
             ``forward``.
 
+        Returns
+        -------
+        self : same type as the input data
+            The modified instance.
+
         Notes
         -----
         When ``forward`` is provided, the reconstruction uses the sensor-space
         field covariance formed from the Forward gain matrix. ``rank`` specifies
         the number of sensor-space modes retained in the reconstruction.
-
-        Returns
-        -------
-        self : same type as the input data
-            The modified instance.
         """
         from ..forward import Forward, _map_meg_or_eeg_channels
 
