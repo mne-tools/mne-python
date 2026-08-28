@@ -117,12 +117,13 @@ def test_new_cluster_api(Inst):
     df = pd.DataFrame(dict(data=insts, condition=conds))
     kwargs = dict(n_permutations=100, rng=42, tail=1, buffer_size=None, out_type="mask")
     result_new_api = cluster_test(df, "data~condition", **kwargs)
-
     # make sure channels are last dimension for old API
     if is_epo:
+        assert result_new_api.stat_obs.shape == df["data"][0].get_data()[0, ...].shape
         axes = (0, 3, 2, 1) if is_tfr else (0, 2, 1)
         X = [cond_a.get_data().transpose(*axes), cond_b.get_data().transpose(*axes)]
     else:
+        assert result_new_api.stat_obs.shape == df["data"][0].get_data().shape
         axes = (2, 1, 0) if is_tfr else (1, 0)
         Xa = list()
         Xb = list()
@@ -133,11 +134,11 @@ def test_new_cluster_api(Inst):
 
     F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(X, **kwargs)
     assert_array_almost_equal(result_new_api.H0, H0)
-    assert_array_almost_equal(result_new_api.stat_obs, F_obs)
+    assert_array_almost_equal(result_new_api.stat_obs, F_obs.T)
     assert_array_almost_equal(result_new_api.cluster_p_values, cluster_pvals)
     assert len(result_new_api.clusters) == len(clusters)
     for clu1, clu2 in zip(result_new_api.clusters, clusters):
-        assert_array_equal(clu1, clu2)
+        assert_array_equal(clu1, clu2.T)
 
 
 @pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
@@ -177,7 +178,7 @@ def test_cluster_test_rm_anova():
         tail=1,
         rng=3,
         buffer_size=None,
-        out_type="mask",
+        out_type="indices",
         threshold=f_thresh,
     )
     F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
@@ -201,10 +202,10 @@ def test_cluster_test_rm_anova():
     result = cluster_test(df, "data ~ modality:location", within_id="subject", **kwargs)
 
     assert result.stat_name == "F-statistic (repeated-measures ANOVA)"
-    assert_array_almost_equal(result.stat_obs, F_obs)
+    assert_array_almost_equal(result.stat_obs, F_obs.T)
     assert len(result.clusters) == len(clusters)
     for clu1, clu2 in zip(result.clusters, clusters):
-        assert_array_equal(clu1, clu2)
+        assert_array_equal(clu1, tuple(reversed(clu2)))
     # the observed stat and clusters match the legacy API, but the null differs
     # by design: cluster_test permutes repeated-measures data within subject
     # only, whereas the legacy API shuffles rows across the whole design
@@ -249,7 +250,7 @@ def test_cluster_test_formula_validation(stat_conditions):
 @pytest.mark.filterwarnings("ignore:No clusters found:RuntimeWarning")
 def test_cluster_test_reduce(stat_conditions):
     """Reduce multiple observations for paired t-test."""
-    import mne
+    # TODO: parametrize this test for Epochs, AveragedTFR etc.
 
     condition1_1d, _, _, _ = stat_conditions
     # For this test we need equal sized arrays
@@ -257,12 +258,12 @@ def test_cluster_test_reduce(stat_conditions):
     rng = np.random.default_rng(0)
     rng.shuffle(condition2_1d)
 
-    info = mne.create_info(
+    info = create_info(
         ch_names=[f"ch_{ii}" for ii in range(condition1_1d.shape[0])],
         sfreq=10,
         ch_types="eeg",
     )
-    data = [mne.EvokedArray(arr, info) for arr in [condition1_1d, condition2_1d]]
+    data = [EvokedArray(arr, info) for arr in [condition1_1d, condition2_1d]]
     df = pd.DataFrame(dict(data=data, a=["x", "y"]))
     df["b"] = 1
 

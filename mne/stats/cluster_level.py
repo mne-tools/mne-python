@@ -1983,6 +1983,7 @@ def cluster_test(
         iv_names = iv_name.split(":")
         groups = df[[dv_name, *iv_names, within_id]].groupby([*iv_names, within_id])
         elem = df[dv_name].iloc[0]
+        # TODO: Support this for other input types e.g. array, epochs, TFR, etc.
         if isinstance(elem, Evoked):
             reduce = set(df.columns) - set([*iv_names, within_id, dv_name])
             if reduce:
@@ -2105,6 +2106,14 @@ def cluster_test(
         within_subject=kind == "within_rm",
     )
 
+    stat_obs = stat_obs.T
+    if out_type == "mask":
+        if isinstance(clusters[0], np.ndarray) and clusters[0].dtype == "bool":
+            clusters = [cl.T for cl in clusters]
+        elif isinstance(clusters[0], tuple) and isinstance(clusters[0][0], slice):
+            clusters = [tuple(reversed(cluster)) for cluster in clusters]
+    elif out_type == "indices":
+        clusters = [tuple(reversed(cluster)) for cluster in clusters]
     return ClusterResult(
         stat_obs=stat_obs,
         clusters=clusters,
