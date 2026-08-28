@@ -1919,7 +1919,7 @@ def cluster_test(
             that MNE-Python's legacy API
             (e.g. :func:`mne.stats.permutation_cluster_test`) would return slices if the
             shape is 1D and adjacency is ``None``, whereas ``cluster_test`` will always
-            return a masked array.
+            return a boolean array.
 
         - ``'indices'``:
             Returns a list of tuple of ndarray, where each ndarray contains the indices
@@ -2177,6 +2177,8 @@ class ClusterResult:
         input and return a 1D array. If ``None`` (the default), uses
         :func:`mne.stats.ttest_1samp_no_p` for paired tests and
         :func:`mne.stats.f_oneway` for unpaired tests or tests of more than 2 groups.
+    n_permutations : int
+        The number of permutations that were taken to compute the test statistic.
     t_power : float
         Power to which the observed statistic was raised (sign retained) before
         summing within a cluster to obtain its mass (see ``cluster_masses``).
