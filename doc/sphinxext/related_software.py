@@ -144,8 +144,6 @@ def _get_mapping(packages):
         mapping[pkg] = tuple([x.strip() for x in categories.split(",")])
     # unpack the tuples to make a single sequence of (unique) categories
     categories = sorted(set([cat for cats in mapping.values() for cat in cats]))
-    # Use real categaroy name instead of short names
-    categories = [cat_names[cat_shortName] for cat_shortName in categories]
     # put "other" last
     if "Other" in categories:
         categories.remove("Other")
@@ -260,7 +258,8 @@ class RelatedSoftwareDirective(Directive):
         # iterate over category, packages
         for category, packages in cat_to_pkgs.items():
             title = nodes.paragraph()
-            title += nodes.strong(text=category)
+            # Use real category name instead of short names
+            title += nodes.strong(text=cat_names[category])
             my_section.append(title)
             this_list = nodes.bullet_list(bullet="*")
 
