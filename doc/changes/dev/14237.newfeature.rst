@@ -1,0 +1,1 @@
+Speed up preloading Raw data and reading uniform EDF and BDF data by avoiding unnecessary setup and using pure-NumPy record-stride decoders, by `Bruno Aristimunha`_.
