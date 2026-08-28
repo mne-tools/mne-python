@@ -1911,10 +1911,12 @@ def cluster_test(
         sets before clustering. This may lead to faster clustering, especially if
         the "time" and/or "frequency" dimensions are large.
     out_type : 'mask' | 'indices'
-        Output format of clusters within a list, default is ``'indices'``.
+        Format used to represent each cluster in the list of clusters stored in
+        the `clusters` attribute of :class:`mne.stats.ClusterResult`:
 
-        - ``'mask'``:
-            Returns a list of boolean arrays, each with the same shape as ``stat_obs``,
+        - ``'mask'``:s
+            Each cluster is represented by a boolean array of the same shape as
+            the `stat_obs` attribute array of :class:`mne.stats.ClusterResult`,
             with ``True`` values indicating locations that are part of a cluster.  Note
             that MNE-Python's legacy API
             (e.g. :func:`mne.stats.permutation_cluster_test`) would return slices if the
@@ -1922,8 +1924,11 @@ def cluster_test(
             return a boolean array.
 
         - ``'indices'``:
-            Returns a list of tuple of ndarray, where each ndarray contains the indices
-            of locations that together form the given cluster along the given dimension.
+            Each cluster is represented by a tuple of 1D integer arrays, one array per
+            dimension of the array in the ``stat_obs`` attribute of
+            :class:`mne.stats.ClusterResult`. The arrays
+            together give the coordinates of all locations belonging to the cluster and
+            can be used to index ``stat_obs``.
             Note that for large datasets, ``'indices'`` may use far less memory than
             ``'mask'``.
     %(rng)s
