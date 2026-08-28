@@ -15,10 +15,11 @@ from .._fiff.meas_info import _simplify_info
 from .._fiff.pick import pick_channels_forward, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..bem import _check_origin
-from ..cov import make_ad_hoc_cov
+from ..cov import Covariance, make_ad_hoc_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
 from ..fixes import _safe_svd
+from ..rank import _compute_rank_int
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
 from ..utils import (
@@ -143,6 +144,10 @@ def _map_meg_or_eeg_channels(
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
         fit.
+    forward : instance of Forward | None
+        Forward model used instead of geometry-based field interpolation.
+    rank : None | 'info' | dict
+        Rank specification for Forward-based reconstruction.
 
     Returns
     -------
@@ -173,6 +178,14 @@ def _map_meg_or_eeg_channels(
         # Form the sensor-space field covariance from the Forward gain matrix.
         # As with any Gram representation, very weak modes can be numerically unstable.
         dots = lead_field @ lead_field.T
+        field_cov = Covariance(
+            dots,
+            info_from["ch_names"],
+            info_from["bads"],
+            info_from["projs"],
+            nfree=1,
+        )
+        rank_int = _compute_rank_int(field_cov, rank=rank, info=info_from)
         fmd = dict(
             kind=kind,
             ch_names=info_from["ch_names"],
@@ -180,7 +193,7 @@ def _map_meg_or_eeg_channels(
             self_dots=dots,
             surface_dots=dots,
         )
-        return _compute_mapping_matrix(fmd, info_from, rank=rank)
+        return _compute_mapping_matrix(fmd, info_from, rank=rank_int)
 
     assert origin is not None  # should be assured elsewhere
 

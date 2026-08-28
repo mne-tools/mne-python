@@ -13,7 +13,7 @@ from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEF
 from ..fixes import _safe_svd
 from ..utils import (
     _check_option,
-    _ensure_int,
+    _check_rank,
     _validate_type,
     fill_doc,
     logger,
@@ -593,12 +593,13 @@ class ProjMixin:
         forward : instance of Forward | None
             Forward model used to construct the reconstruction field mapping.
             If ``None`` (default), use the geometry-based field mapping model.
-            If provided, ``rank`` must also be specified.
-        rank : int | None
-            Number of spatial modes to retain when reconstructing with
-            ``forward``. This is a sensor-space reconstruction rank, not a
-            number of sources or dipoles. Must be provided together with
-            ``forward``.
+        rank : None | 'info' | dict
+            Rank specification for Forward reconstruction. If ``None``,
+            estimate the rank from the projected Forward field covariance. If
+            ``'info'``, infer the rank from the measurement info and the
+            projectors applied during reconstruction. If a dict, explicitly
+            specify the rank by channel type, e.g. ``{'eeg': M}``. Used only
+            when ``forward`` is provided.
 
         Returns
         -------
@@ -607,22 +608,21 @@ class ProjMixin:
 
         Notes
         -----
-        When ``forward`` is provided, the reconstruction uses the sensor-space
-        field covariance formed from the Forward gain matrix. ``rank`` specifies
-        the number of sensor-space modes retained in the reconstruction.
+        When ``forward`` is provided, ``rank`` controls the sensor-space rank
+        of the projected Forward field covariance.
         """
         from ..forward import Forward, _map_meg_or_eeg_channels
 
-        if forward is None:
-            if rank is not None:
-                raise ValueError("rank can only be used when forward is provided")
-        else:
+        if forward is not None:
             _validate_type(forward, Forward, "forward")
-            if rank is None:
-                raise ValueError("rank must be provided when forward is provided")
-            rank = _ensure_int(rank, "rank")
-            if rank <= 0:
-                raise ValueError(f"rank must be positive, got {rank}")
+        rank = _check_rank(rank)
+        if forward is None and rank is not None:
+            raise ValueError("rank can only be used when forward is provided")
+        if forward is not None and rank == "full":
+            raise ValueError(
+                "rank='full' is incompatible with Forward reconstruction "
+                "after projection; use rank='info', None, or an explicit rank dict"
+            )
 
         if projs is None:
             if len(self.info["projs"]) == 0:
