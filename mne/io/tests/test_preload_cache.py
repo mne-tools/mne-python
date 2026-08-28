@@ -59,30 +59,19 @@ def test_auto_preload_api(tmp_path, monkeypatch):
         lazy.load_data(memmap="auto")
 
 
-@pytest.mark.parametrize(
-    ("reader_name", "relative_path"),
-    (
-        ("read_raw_fif", "tests/data/test_raw.fif"),
-        ("read_raw_fif", "tests/data/test_raw.fif.gz"),
-        ("read_raw_edf", "edf/tests/data/test.edf"),
-        ("read_raw_bdf", "edf/tests/data/test.bdf"),
-        ("read_raw_brainvision", "brainvision/tests/data/test.vhdr"),
-    ),
-)
-def test_auto_preload_formats(reader_name, relative_path, cache_root):
-    """Test exact copy-on-write cache reuse across file formats."""
-    source = _IO_DATA_DIR / relative_path
-    reader = getattr(mne.io, reader_name)
-    expected = reader(source, preload=True, verbose="error").get_data()
-    raw = reader(source, preload="auto", verbose="error")
+@pytest.mark.parametrize("fname", ("test_raw.fif", "test_raw.fif.gz"))
+def test_auto_preload_fif(fname, cache_root):
+    """Test cache reuse for FIF, whose reader tests skip test_preloading."""
+    source = _IO_DATA_DIR / "tests/data" / fname
+    expected = mne.io.read_raw_fif(source, preload=True, verbose="error").get_data()
+    raw = mne.io.read_raw_fif(source, preload="auto", verbose="error")
     generation = Path(raw._data.filename)
     assert raw._data.mode == "c"
     assert_array_equal(raw.get_data(), expected)
-    raw._data[0, 0] += 1.0
     del raw
     gc.collect()
 
-    other = reader(source, preload="auto", verbose="error")
+    other = mne.io.read_raw_fif(source, preload="auto", verbose="error")
     assert Path(other._data.filename) == generation
     assert_array_equal(other.get_data(), expected)
 

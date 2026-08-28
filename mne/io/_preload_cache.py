@@ -37,8 +37,13 @@ def _raw_preload_cache_info(raw):
                 "or an explicit memory-map path"
             )
         path = Path(filename).resolve(strict=True)
-        result = path.stat()
-        sources.append((str(path), int(result.st_size), int(result.st_mtime_ns)))
+        # some formats (e.g., CTF) name a directory rather than a single file
+        members = sorted(path.rglob("*")) if path.is_dir() else [path]
+        for member in members:
+            if not member.is_file():
+                continue
+            result = member.stat()
+            sources.append((str(member), int(result.st_size), int(result.st_mtime_ns)))
 
     dtype = np.dtype(raw._dtype)
     shape = (int(raw.info["nchan"]), int(raw.n_times))
