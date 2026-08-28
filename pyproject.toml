@@ -178,6 +178,7 @@ full-no-qt = [
   "ipympl",
   "ipython >= 2.0, != 8.7.0",  # for notebook backend; also in "doc" and "test"
   "ipywidgets",
+  "jamica >= 0.3.0",
   "joblib >= 0.8",
   "jupyter",
   "mffpy >= 0.11.0",
