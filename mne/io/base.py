@@ -940,6 +940,7 @@ class BaseRaw(
         return_times: bool = False,
         units: str | dict | None = None,
         *,
+        exclude: list[str] | Literal["bads"] | tuple = (),
         tmin: int | float | None = None,
         tmax: int | float | None = None,
         verbose: bool | str | int | None = None,
@@ -961,6 +962,14 @@ class BaseRaw(
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is not ``None``; it is ignored when ``picks=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         tmin : int | float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
             ignored if the ``start`` parameter is bigger than 0.
@@ -997,7 +1006,7 @@ class BaseRaw(
             # allocation and ~40 us of name resolution on every call.
             picks = np.arange(self.info["nchan"])
         else:
-            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+            picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         # Get channel factors for conversion into specified unit
         # (vector of ones if no conversion needed)
