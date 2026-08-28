@@ -839,7 +839,7 @@ class InterpolationMixin:
         on_bad_position="warn",
         verbose=None,
     ):
-        """Interpolate bad MEG, EEG and fNIRS channels.
+        """Interpolate bad MEG and EEG channels.
 
         Operates in place.
 
