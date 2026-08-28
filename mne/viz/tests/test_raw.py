@@ -795,8 +795,8 @@ def test_plot_annotation_span(browser_backend):
     )
     raw.set_annotations(Annotations(3.0, 1.0, "test"))
 
-    tmin, tmax = raw.get_annotation_span(0)
-    fig = raw.plot(start=tmin, duration=tmax - tmin, show=False)
+    tmin, tmax = raw.get_annotation_spans()
+    fig = raw.plot(start=tmin[0], duration=tmax[0] - tmin[0], show=False)
     assert fig._get_start_stop() == (30, 40)
     browser_backend._close_all()
 

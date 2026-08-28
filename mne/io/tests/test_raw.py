@@ -691,7 +691,7 @@ def test_crop_by_annotations(meas_date, first_samp):
 
 @pytest.mark.parametrize("meas_date", [None, 0])
 @pytest.mark.parametrize("first_samp", [0, 50])
-def test_get_annotation_span(meas_date, first_samp):
+def test_get_annotation_spans(meas_date, first_samp):
     """Test converting annotation spans to the Raw time reference."""
     sfreq = 10.0
     data = np.arange(120.0)[np.newaxis]
@@ -702,21 +702,24 @@ def test_get_annotation_span(meas_date, first_samp):
         verbose="error",
     )
     raw.set_meas_date(meas_date)
-    raw.set_annotations(mne.Annotations(3.0, 1.0, "test"))
+    raw.set_annotations(mne.Annotations([3.0, 3.0], [1.0, 0.5], ["test", "test 2"]))
 
-    tmin, tmax = raw.get_annotation_span(0)
-    assert_allclose([tmin, tmax], [3.0, 4.0])
-    got, times = raw.get_data(tmin=tmin, tmax=tmax, return_times=True)
+    tmin, tmax = raw.get_annotation_spans()
+    assert_allclose(tmin, [3.0, 3.0])
+    assert_allclose(tmax, [3.5, 4.0])
+    got, times = raw.get_data(tmin=tmin[1], tmax=tmax[1], return_times=True)
     assert_array_equal(got, data[:, 30:40])
     assert_allclose(times, np.arange(30, 40) / sfreq)
 
     cropped = raw.copy().crop(2.0, 5.0)
-    tmin, tmax = cropped.get_annotation_span(0)
-    assert_allclose([tmin, tmax], [1.0, 2.0])
-    assert_array_equal(cropped.get_data(tmin=tmin, tmax=tmax), data[:, 30:40])
+    tmin, tmax = cropped.get_annotation_spans()
+    assert_allclose(tmin, [1.0, 1.0])
+    assert_allclose(tmax, [1.5, 2.0])
+    assert_array_equal(cropped.get_data(tmin=tmin[1], tmax=tmax[1]), data[:, 30:40])
 
-    with pytest.raises(TypeError, match="index must be .* int"):
-        raw.get_annotation_span(0.0)
+    raw.set_annotations(None)
+    tmin, tmax = raw.get_annotation_spans()
+    assert tmin.shape == tmax.shape == (0,)
 
 
 @pytest.mark.parametrize(

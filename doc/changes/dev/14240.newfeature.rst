@@ -1,1 +1,1 @@
-Add :meth:`mne.io.BaseRaw.get_annotation_span` to convert annotation spans to the time reference used by Raw data and plotting methods, by :newcontrib:`Tim Anderson`.
+Add :meth:`mne.io.BaseRaw.get_annotation_spans` to convert annotation spans to the time reference used by Raw data and plotting methods, by :newcontrib:`Tim Anderson`.

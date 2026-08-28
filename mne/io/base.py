@@ -740,20 +740,15 @@ class BaseRaw(
         """:class:`~mne.Annotations` for marking segments of data."""
         return self._annotations
 
-    def get_annotation_span(self, index: int) -> tuple[float, float]:
-        """Get an annotation span relative to the first data sample.
-
-        Parameters
-        ----------
-        index : int
-            Index of the annotation in :attr:`annotations`.
+    def get_annotation_spans(self) -> tuple[np.ndarray, np.ndarray]:
+        """Get annotation spans relative to the first data sample.
 
         Returns
         -------
-        tmin : float
-            Annotation onset in seconds relative to the first data sample.
-        tmax : float
-            Annotation end in seconds relative to the first data sample.
+        tmin : ndarray, shape (n_annotations,)
+            Annotation onsets in seconds relative to the first data sample.
+        tmax : ndarray, shape (n_annotations,)
+            Annotation ends in seconds relative to the first data sample.
 
         Notes
         -----
@@ -763,9 +758,8 @@ class BaseRaw(
         use zero at the first available data sample. This method converts
         between those time references.
         """
-        _validate_type(index, "int-like", "index")
-        tmin = float(_sync_onset(self, self.annotations.onset[index]))
-        tmax = tmin + float(self.annotations.duration[index])
+        tmin = _sync_onset(self, self.annotations.onset)
+        tmax = tmin + self.annotations.duration
         return tmin, tmax
 
     @property
