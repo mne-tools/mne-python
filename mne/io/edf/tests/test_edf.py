@@ -266,12 +266,11 @@ def test_uniform_stride_bdf(pick_kind, window_kind, monkeypatch, tmp_path):
     _assert_uniform_stride_matches(monkeypatch, raw, picks, start, stop)
 
 
-@pytest.mark.parametrize("fallback_kind", ("mixed_rate", "tal", "projection", "memory"))
+@pytest.mark.parametrize("fallback_kind", ("mixed_rate", "projection", "memory"))
 def test_uniform_stride_edf_falls_back(fallback_kind, monkeypatch):
     """Test EDF layouts requiring special handling retain legacy behavior."""
     path = {
         "mixed_rate": edf_uneven_path,
-        "tal": edf_path,
         "projection": edf_stim_channel_path,
         "memory": edf_stim_channel_path,
     }[fallback_kind]
@@ -291,6 +290,16 @@ def test_uniform_stride_edf_falls_back(fallback_kind, monkeypatch):
     got = raw.get_data(picks=picks, start=100, stop=900)
     assert recorder.results == [False]
     assert_array_equal(got, want)
+
+
+def test_uniform_stride_edf_annotations(monkeypatch):
+    """Test an EDF+ annotation channel does not disable the stride path."""
+    raw = read_raw_edf(edf_path, preload=False, verbose="error")
+    buffer_length = int(raw._raw_extras[0]["max_samp"])
+    picks = np.array([0, 2])
+    _assert_uniform_stride_matches(
+        monkeypatch, raw, picks, buffer_length // 3, 3 * buffer_length + 7
+    )
 
 
 def test_uniform_stride_concurrent(monkeypatch, tmp_path):

@@ -649,9 +649,6 @@ def _read_uniform_segment(
     subtype = raw_extras["subtype"]
     if subtype not in ("edf", "bdf") or not isinstance(filenames, str | Path):
         return False
-    if len(raw_extras.get("tal_idx", ())) != 0:
-        return False
-
     idx_is_slice = isinstance(idx, slice)
     if idx_is_slice and idx.step not in (None, 1):
         return False
@@ -666,7 +663,7 @@ def _read_uniform_segment(
         return False
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
-    ch_offsets, n_per, sel_in_physical_order = stride_layout
+    ch_offsets, n_per, sel_in_physical_order, rectangular = stride_layout
 
     dtype = raw_extras["dtype_np"]
     dtype_byte = raw_extras["dtype_byte"]
@@ -735,11 +732,19 @@ def _read_uniform_segment(
             many_chunk = _read_ch(
                 fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
             )
-            record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
-            if in_physical_order:
-                view = record_grid.transpose(1, 0, 2)
+            if rectangular:
+                record_grid = many_chunk.reshape(n_read, len(n_samps), buf_len)
+                if in_physical_order:
+                    view = record_grid.transpose(1, 0, 2)
+                else:
+                    view = record_grid[:, read_sel, :].transpose(1, 0, 2)
             else:
-                view = record_grid[:, read_sel, :].transpose(1, 0, 2)
+                # a record is not a matrix (e.g. an EDF+ annotation channel is
+                # stored at its own rate), so slice out each picked channel
+                records = many_chunk.reshape(n_read, -1)
+                view = np.empty((len(read_sel), n_read, buf_len), many_chunk.dtype)
+                for j, ci in enumerate(read_sel):
+                    view[j] = records[:, ch_offsets[ci] : ch_offsets[ci + 1]]
 
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
@@ -1115,20 +1120,24 @@ def _get_info(
         edf_info["max_samp"] = max_samp = n_samps.max()
     all_n_samps = edf_info["n_samps"]
     edf_info["stride_layout"] = None
-    if (
-        edf_info["subtype"] in ("edf", "bdf")
-        and len(edf_info.get("tal_idx", ())) == 0
-        and np.all(all_n_samps == max_samp)
+    # Only the *selected* channels have to share a sampling rate. An EDF+
+    # annotation channel usually does not, which is why `rectangular` is checked
+    # separately: it says whether a data record is a plain (n_channels, max_samp)
+    # matrix that can simply be reshaped, or has to be gathered channel by channel.
+    if edf_info["subtype"] in ("edf", "bdf") and np.all(
+        all_n_samps[edf_info["sel"]] == max_samp
     ):
         ch_offsets = np.cumsum(np.concatenate([[0], all_n_samps]), dtype=np.int64)
         n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * edf_info["dtype_byte"]), 1)
-        sel_in_physical_order = np.array_equal(
+        rectangular = bool(np.all(all_n_samps == max_samp))
+        sel_in_physical_order = rectangular and np.array_equal(
             edf_info["sel"], np.arange(len(all_n_samps))
         )
         edf_info["stride_layout"] = (
             ch_offsets,
             n_per,
             sel_in_physical_order,
+            rectangular,
         )
 
     # Info structure
