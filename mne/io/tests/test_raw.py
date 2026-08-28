@@ -497,6 +497,7 @@ def _test_raw_reader(
             "pdf_fname",  # BTi
             "directory",  # CTF
             "filename",  # nedf
+            "binfile",  # FIL
         ):
             try:
                 fname = kwargs[key]
