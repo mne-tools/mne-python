@@ -562,6 +562,8 @@ class ProjMixin:
         )
         return fig
 
+    @fill_doc
+    @verbose
     def reconstruct_proj(
         self,
         *,
@@ -570,6 +572,7 @@ class ProjMixin:
         origin="auto",
         forward=None,
         rank=None,
+        verbose=None,
     ):
         """Apply SSP projectors and reconstruct the resulting signal in sensor space.
 
@@ -593,13 +596,10 @@ class ProjMixin:
         forward : instance of Forward | None
             Forward model used to construct the reconstruction field mapping.
             If ``None`` (default), use the geometry-based field mapping model.
-        rank : None | 'info' | dict
-            Rank specification for Forward reconstruction. If ``None``,
-            estimate the rank from the projected Forward field covariance. If
-            ``'info'``, infer the rank from the measurement info and the
-            projectors applied during reconstruction. If a dict, explicitly
-            specify the rank by channel type, e.g. ``{'eeg': M}``. Used only
-            when ``forward`` is provided.
+        %(rank_none)s
+            For Forward-based reconstruction, ``rank`` is used only when
+            ``forward`` is provided; ``rank='full'`` is not supported.
+        %(verbose)s
 
         Returns
         -------
