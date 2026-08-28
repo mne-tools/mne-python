@@ -2119,8 +2119,8 @@ def cluster_test(
         "within": "one-sample T-test",
         "within_rm": "M-way repeated measures ANOVA",
     }
-    logger.info(f"Chosen statistic: {kind_descs[kind]} ({stat_fun.__name__})")
-    assert 1 == 0
+    func_name = stat_fun.__name__ if "__name__" in dir(stat_fun) else str(stat_fun)
+    logger.info(f"Chosen statistic: {kind_descs[kind]} -- {func_name}")
 
     # Run the cluster-based permutation test
     stat_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
