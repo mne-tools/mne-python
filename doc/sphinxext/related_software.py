@@ -116,8 +116,9 @@ def _get_mapping(packages):
     mapping = dict()
     for line in (txt.read_text() + "\n" + txt_nodeps.read_text()).split("\n"):
         line = line.strip()
-        if not line or line.startswith("#"):
+        if not line or line.startswith("##"):
             continue
+        line = line.lstrip("# ")
         pkg = line.split("#")[0].strip()
         # just keep anything after "categories: " to end of line
         if "categories: " in line:
@@ -127,18 +128,19 @@ def _get_mapping(packages):
         # split the comma-separated list of categories into a tuple of strings
         mapping[pkg] = tuple([x.strip() for x in categories.split(",")])
     # unpack the tuples to make a single sequence of (unique) categories
-    cats = sorted(set([cat for cats in mapping.values() for cat in cats]))
+    categories = sorted(set([cat for cats in mapping.values() for cat in cats]))
     # put "other" last
-    if "Other" in cats:
-        cats.remove("Other")
-        cats.append("Other")
+    if "Other" in categories:
+        categories.remove("Other")
+        categories.append("Other")
     # now, invert the mapping to be category: list of packages
     rev_mapping = dict()
-    for cat in cats:
+    for cat in categories:
         rev_mapping[cat] = tuple([pkg for pkg, cats in mapping.items() if cat in cats])
     # extra packages: not in the two text files
     extras = tuple(set(packages) - set(mapping))
-    rev_mapping["Other"] = tuple(sorted(rev_mapping.get("Other", ()) + extras))
+    if len(other := tuple(sorted(rev_mapping.get("Other", ()) + extras))):
+        rev_mapping["Other"] = other
     return rev_mapping
 
 
@@ -247,8 +249,6 @@ class RelatedSoftwareDirective(Directive):
 
             for package in packages:
                 data = pkg_data.get(package.lower(), {})
-                if not data:
-                    print(package)
                 item = nodes.list_item()
                 if "description" not in data:
                     para = nodes.paragraph(text=f"{package}")

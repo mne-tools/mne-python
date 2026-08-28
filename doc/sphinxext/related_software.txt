@@ -1,29 +1,28 @@
-# This file is used to install extra packages into CircleCI when building our docs.
-# The purpose is to allow the packages in the "related software" list to be introspected
-# so we can get their URLs and Summary descriptions automatically.
-# Related software with onerous dependencies (e.g., torch and tensorflow)
-# should be added to `related_software_nodeps.txt` instead.
-# Ideally each package should be tagged as one or more of the following categories;
-# packages with no tags will be categorized as "Other".
-# Make sure to put categories at the END of the line, separated by commas if a package
-# fits in multiple categories.
-#
-# LIST OF CATEGORIES
-# ==================
-# Connectivity and source analysis
-# Data I/O and interoperability
-# Data organization and workflows
-# Microstates and neural states
-# Oscillations and time-frequency analysis
-# Other physiological signals and modalities
-# Preprocessing and artifact correction
-# Statistics and machine learning
-# Visualization and real-time analysis
-#
-# MNE-PYTHON OPTIONAL DEPENDENCIES THAT WE ALSO WANT IN THE CATEGORIZED LIST
-# ==========================================================================
+## This file is used to install extra packages into CircleCI when building our docs.
+## The purpose is to allow the packages in the "related software" list to be introspected
+## so we can get their URLs and Summary descriptions automatically.
+## Related software with onerous dependencies (e.g., torch and tensorflow)
+## should be added to `related_software_nodeps.txt` instead.
+## Ideally each package should be tagged as one or more of the following categories;
+## packages with no tags will be categorized as "Other".
+## Make sure to put categories at the END of the line, separated by commas if a package
+## fits in multiple categories.
+##
+## LIST OF CATEGORIES
+## ==================
+## Connectivity and source analysis
+## Data I/O and interoperability
+## Data organization and workflows
+## Microstates and neural states
+## Oscillations and time-frequency analysis
+## Other physiological signals and modalities
+## Preprocessing and artifact correction
+## Statistics and machine learning
+## Visualization and real-time analysis
+##
+## MNE-PYTHON OPTIONAL DEPENDENCIES THAT WE ALSO WANT IN THE CATEGORIZED LIST
+## ==========================================================================
 # antio  # categories: Data I/O and interoperability
-# best-python # categories: Data I/O and interoperability
 # dipy # categories: Other physiological signals and modalities
 # edfio # categories: Data I/O and interoperability
 # eeglabio # categories: Data I/O and interoperability
@@ -35,14 +34,21 @@
 # nilearn # categories: Statistics and machine learning, Other physiological signals and modalities
 # openmeeg # categories: Connectivity and source analysis
 # openneuro-py # categories: Data I/O and interoperability
-# posthoc # categories: Statistics and machine learning
 # pybv # categories: Data I/O and interoperability
 # snirf # categories: Other physiological signals and modalities
+##
+## PACKAGES THAT CAN'T BE PIP-INSTALLED FOR VARIOUS REASONS
+## ========================================================
+# best-python # categories: Data I/O and interoperability
+# conpy # categories: Connectivity and source analysis
+# eelbrain # categories: Statistics and machine learning, Visualization and real-time analysis
+# mne-hcp # categories: Data I/O and interoperability
+# posthoc # categories: Statistics and machine learning
 # surfa # categories: Visualization and real-time analysis, Other physiological signals and modalities
-#
-# ONES WE ACTUALLY NEED CIRCLECI TO INSTALL
-# =========================================
-alphaCSC # categories: Statistics and machine learning, Oscillations and time-frequency analysis
+##
+## ONES WE ACTUALLY NEED CIRCLECI TO INSTALL
+## =========================================
+alphacsc # categories: Statistics and machine learning, Oscillations and time-frequency analysis
 autoreject # categories: Preprocessing and artifact correction
 bycycle # categories: Oscillations and time-frequency analysis
 curryreader # categories: Data I/O and interoperability
