@@ -1004,10 +1004,11 @@ def _get_info(
     info._unlocked = False
     info._update_redundant()
 
-    # Later used for reading
+    # Later used for reading. Unit is uV per bit
     edf_info["cal"] = physical_ranges / cals
 
-    # physical dimension in µV
+    # physical dimension in µV. Difference between attested lowest uV value and lowest
+    # possible stored uV value (in light of what digital_min is)
     edf_info["offsets"] = (
         edf_info["physical_min"] - edf_info["digital_min"] * edf_info["cal"]
     )
