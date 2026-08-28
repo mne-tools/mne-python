@@ -85,16 +85,18 @@ RENAMES = {
 }
 
 # 4. Each package is associated to one or more category. The assignement is done in related_software.txt
-cat_names = {'io': 'Data I/O and interoperability', 
-             'organization': 'Data organization and workflows',
-             'preproc': 'Preprocessing and artifact correction',
-             'oscillations': 'Oscillations and time-frequency analysis',
-             'connectivity': 'Connectivity and source analysis',
-             'stats': 'Statistics and machine learning',
-             'microstates': 'Microstates and neural states',
-             'modalities': 'Other physiological signals and modalities',
-             'visu': 'Visualization and real-time analysis',
-             'Other': 'Other'}
+cat_names = {
+    "io": "Data I/O and interoperability",
+    "organization": "Data organization and workflows",
+    "preproc": "Preprocessing and artifact correction",
+    "oscillations": "Oscillations and time-frequency analysis",
+    "connectivity": "Connectivity and source analysis",
+    "stats": "Statistics and machine learning",
+    "microstates": "Microstates and neural states",
+    "modalities": "Other physiological signals and modalities",
+    "visu": "Visualization and real-time analysis",
+    "Other": "Other",
+}
 
 cwd = pathlib.Path(__file__).parent
 _memory = joblib.Memory(location=cwd / ".joblib", verbose=0)
