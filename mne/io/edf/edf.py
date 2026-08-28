@@ -252,9 +252,11 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -464,9 +466,11 @@ class RawBDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -582,9 +586,11 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )

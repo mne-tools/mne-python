@@ -1877,11 +1877,9 @@ docdict["fmin_fmax_psd"] = _fmin_fmax.format(
 )
 
 docdict["fmin_fmax_psd_topo"] = _fmin_fmax.format("``fmin=0, fmax=100``.")
-docdict["fmin_fmax_tfr"] = _fmin_fmax.format(
-    """``None``
+docdict["fmin_fmax_tfr"] = _fmin_fmax.format("""``None``
     which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
-    present in the data)."""
-)
+    present in the data).""")
 
 docdict["fmin_fmid_fmax"] = """
 fmin : float
@@ -3383,13 +3381,13 @@ pad : str
 """
 )
 
-docdict["pad_resample_auto"] = (  # used when default is "auto"
+docdict["pad_resample_auto"] = (
     docdict["pad_resample"]
     + """\
     The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
     ``'reflect'`` for ``method='polyphase'``.
 """
-)
+)  # used when default is "auto"
 docdict["pca_vars_pctf"] = """
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
