@@ -689,6 +689,36 @@ def test_crop_by_annotations(meas_date, first_samp):
     assert raws[1].annotations.description[0] == annot.description[1]
 
 
+@pytest.mark.parametrize("meas_date", [None, 0])
+@pytest.mark.parametrize("first_samp", [0, 50])
+def test_get_annotation_span(meas_date, first_samp):
+    """Test converting annotation spans to the Raw time reference."""
+    sfreq = 10.0
+    data = np.arange(120.0)[np.newaxis]
+    raw = mne.io.RawArray(
+        data,
+        mne.create_info(["EEG 001"], sfreq, "eeg"),
+        first_samp=first_samp,
+        verbose="error",
+    )
+    raw.set_meas_date(meas_date)
+    raw.set_annotations(mne.Annotations(3.0, 1.0, "test"))
+
+    tmin, tmax = raw.get_annotation_span(0)
+    assert_allclose([tmin, tmax], [3.0, 4.0])
+    got, times = raw.get_data(tmin=tmin, tmax=tmax, return_times=True)
+    assert_array_equal(got, data[:, 30:40])
+    assert_allclose(times, np.arange(30, 40) / sfreq)
+
+    cropped = raw.copy().crop(2.0, 5.0)
+    tmin, tmax = cropped.get_annotation_span(0)
+    assert_allclose([tmin, tmax], [1.0, 2.0])
+    assert_array_equal(cropped.get_data(tmin=tmin, tmax=tmax), data[:, 30:40])
+
+    with pytest.raises(TypeError, match="index must be .* int"):
+        raw.get_annotation_span(0.0)
+
+
 @pytest.mark.parametrize(
     "offset, origin",
     [
