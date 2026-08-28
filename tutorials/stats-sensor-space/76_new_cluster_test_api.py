@@ -118,6 +118,7 @@ df = pd.DataFrame(
         "subject_index": subject_index,
     }
 )
+df
 
 # %% run the cluster test function with formulaic input
 

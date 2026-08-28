@@ -2065,6 +2065,8 @@ def cluster_test(
     # by now we know there are exactly 2 elements in X, and their shapes match
     elif within_id in df:
         kind = "within"
+        assert len(X) == 2
+        assert df[factor_names].nunique().item() == 2
         X = X[0] - X[1]
     else:  # 2 elements in X but no within_id provided → unpaired test
         kind = "between"
