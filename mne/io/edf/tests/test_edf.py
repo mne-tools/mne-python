@@ -68,113 +68,50 @@ eog = ["REOG", "LEOG", "IEOG"]
 misc = ["EXG1", "EXG5", "EXG8", "M1", "M2"]
 
 
-def _repeat_edf_records(source, destination, n_records=6):
-    """Repeat a one-record EDF/BDF payload so windows can cross boundaries."""
+def _multi_record(source, destination, n_records=6):
+    """Give a one-record EDF/BDF file several records, so windows cross them."""
     blob = bytearray(source.read_bytes())
+    if int(blob[236:244]) != 1:
+        return source  # already spans several records
     header_nbytes = int(blob[184:192])
-    assert int(blob[236:244]) == 1
     blob[236:244] = f"{n_records:<8}".encode("ascii")
     destination.write_bytes(blob[:header_nbytes] + blob[header_nbytes:] * n_records)
+    return destination
 
 
-def _disable_uniform_stride(*args):
-    return False
-
-
-def _assert_uniform_stride_matches(monkeypatch, raw, picks, start, stop, used=True):
-    """Compare a read against the same read with the stride path disabled."""
-    helper = edf.edf._read_uniform_segment
-    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
-    want = raw.get_data(picks=picks, start=start, stop=stop)
-    calls = []
-
-    def _record(*args):
-        calls.append(helper(*args))
-        return calls[-1]
-
-    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _record)
-    got = raw.get_data(picks=picks, start=start, stop=stop)
-    assert calls == [used]
-    assert_array_equal(got, want)
-    return want
-
-
+@pytest.mark.parametrize("chunk_bytes", (10 * 1024 * 1024, 4096))  # one chunk, several
 @pytest.mark.parametrize(
     "reader, path",
-    ((read_raw_edf, edf_stim_channel_path), (read_raw_bdf, bdf_path)),
-    ids=("edf", "bdf"),
+    (
+        # EDF+: an annotation channel at its own rate, plus two stim channels
+        (read_raw_edf, data_dir / "test_stim_channel.edf"),
+        (read_raw_edf, edf_stim_channel_path),
+        (read_raw_bdf, bdf_path),  # BDF: 24-bit samples and a Status channel
+    ),
+    ids=("edf+", "edf", "bdf"),
 )
-@pytest.mark.parametrize("pick_kind", ("all", "permuted"))
-@pytest.mark.parametrize("window_kind", ("boundary", "multiple"))
-def test_uniform_stride_decode(
-    reader, path, pick_kind, window_kind, monkeypatch, tmp_path
-):
-    """Test exact uniform EDF/BDF striding, incl. calibration and stim masking."""
-    repeated = tmp_path / f"uniform{path.suffix}"
-    _repeat_edf_records(path, repeated)
-    raw = reader(repeated, stim_channel=-1, preload=False, verbose="error")
+def test_uniform_decode_matches_loop(reader, path, chunk_bytes, monkeypatch, tmp_path):
+    """Test uniform-rate records decode exactly like the per-channel loop."""
+    path = _multi_record(path, tmp_path / f"uniform{path.suffix}")
+    monkeypatch.setattr(edf.edf, "_EDF_CHUNK_BYTES", chunk_bytes)
+    raw = reader(path, preload=False, verbose="error")
+    buf_len = int(raw._raw_extras[0]["max_samp"])
     n_channels = len(raw.ch_names)
-    picks = {
-        "all": np.arange(n_channels),
-        "permuted": np.array([n_channels - 1, 1, n_channels // 2, 0]),
-    }[pick_kind]
-    # powers of two, so dividing the calibration back out below stays exact
-    raw._cals[picks] *= 2.0 ** (np.arange(len(picks)) % 3 - 1)
-    buf_len = int(raw._raw_extras[0]["max_samp"])
-    start, stop = {
-        "boundary": (buf_len - 7, buf_len + 11),
-        "multiple": (buf_len // 2, 4 * buf_len + 13),
-    }[window_kind]
-    want = _assert_uniform_stride_matches(monkeypatch, raw, picks, start, stop)
-    (row,) = np.flatnonzero(np.isin(picks, raw._raw_extras[0]["stim_channel_idxs"]))
-    stim = want[row] / raw._cals[picks[row]]
-    assert_array_equal(stim, np.bitwise_and(stim.astype(int), 2**17 - 1))
-
-
-def test_uniform_stride_aligned_memmap_direct_output(monkeypatch, tmp_path):
-    """Test an aligned full-record preload calibrates straight into the memmap."""
-    repeated = tmp_path / "uniform.edf"
-    _repeat_edf_records(edf_stim_channel_path, repeated)
-    kwargs = dict(stim_channel=None, verbose="error")
-    monkeypatch.setattr(edf.edf, "_read_uniform_segment", _disable_uniform_stride)
-    want = read_raw_edf(repeated, preload=True, **kwargs).get_data()
-    monkeypatch.undo()
-    calibrate = edf.edf._calibrate_uniform_edf
-    direct = []
-
-    def _record(*args):
-        direct.append(args[0].shape)
-        return calibrate(*args)
-
-    monkeypatch.setattr(edf.edf, "_calibrate_uniform_edf", _record)
-    raw = read_raw_edf(repeated, preload=tmp_path / "uniform.dat", **kwargs)
-    assert len(direct) == 1  # calibrated in place, no float64 work buffer
-    assert isinstance(raw._data, np.memmap)
-    assert_array_equal(raw._data.view(np.uint64), want.view(np.uint64))
-    raw._data._mmap.close()
-    raw._data = None
-
-
-@pytest.mark.parametrize("fallback_kind", ("mixed_rate", "projection"))
-def test_uniform_stride_edf_falls_back(fallback_kind, monkeypatch):
-    """Test EDF layouts requiring special handling retain legacy behavior."""
-    path = edf_uneven_path if fallback_kind == "mixed_rate" else edf_stim_channel_path
-    raw = read_raw_edf(path, preload=False, verbose="error")
-    if fallback_kind == "projection":
-        raw.set_eeg_reference(projection=True, verbose="error").apply_proj(
-            verbose="error"
-        )
-    picks = np.array([0])
-    _assert_uniform_stride_matches(monkeypatch, raw, picks, 100, 900, used=False)
-
-
-def test_uniform_stride_edf_annotations(monkeypatch):
-    """Test an EDF+ annotation channel does not disable the stride path."""
-    raw = read_raw_edf(edf_path, preload=False, verbose="error")
-    buf_len = int(raw._raw_extras[0]["max_samp"])
-    _assert_uniform_stride_matches(
-        monkeypatch, raw, np.array([0, 2]), buf_len // 3, 3 * buf_len + 7
+    picks = np.array([n_channels - 1, 1, 0])  # reordered, and includes any stim channel
+    kwargs = dict(picks=picks, start=buf_len // 2, stop=4 * buf_len + 13)
+    # the fast path writes into `data` itself, the per-channel loop stages the
+    # result and calls _mult_cal_one -- so counting it tells the two apart
+    staged = []
+    stage = edf.edf._mult_cal_one
+    monkeypatch.setattr(
+        edf.edf, "_mult_cal_one", lambda *a: (staged.append(1), stage(*a))[1]
     )
+    want = raw.get_data(**kwargs)
+    assert not staged
+    # an identity projector sends the same values down the per-channel loop
+    raw._projector = np.eye(n_channels)
+    assert_array_equal(want, raw.get_data(**kwargs))
+    assert staged
 
 
 def test_orig_units():

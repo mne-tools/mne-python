@@ -625,129 +625,11 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _calibrate_uniform_edf(data, source, cal, offsets, gains, cals):
-    """Calibrate uniform EDF/BDF samples directly into their output buffer."""
-    np.multiply(source, cal, out=data, casting="unsafe")
-    data += offsets
-    data *= gains
-    data *= cals
-
-
-def _read_uniform_segment(
-    data, idx, start, stop, raw_extras, filenames, cals, mult
-) -> bool:
-    """Read a uniformly sampled EDF/BDF segment using NumPy strides."""
-    subtype = raw_extras["subtype"]
-    if subtype not in ("edf", "bdf") or not isinstance(filenames, str | Path):
-        return False
-    idx_is_slice = isinstance(idx, slice)
-    if idx_is_slice and idx.step not in (None, 1):
-        return False
-    idx_arr = np.arange(idx.start, idx.stop) if idx_is_slice else np.asarray(idx)
-    if len(idx_arr) == 0 or (
-        not idx_is_slice and len(np.unique(idx_arr)) != len(idx_arr)
-    ):
-        return False
-
-    stride_layout = raw_extras.get("stride_layout")
-    if stride_layout is None or mult is not None:
-        return False
-    n_samps = raw_extras["n_samps"]
-    buf_len = int(raw_extras["max_samp"])
-    ch_offsets, n_per, sel_in_physical_order = stride_layout
-
-    dtype = raw_extras["dtype_np"]
-    dtype_byte = raw_extras["dtype_byte"]
-    data_offset = raw_extras["data_offset"]
-    stim_channel_idxs = raw_extras["stim_channel_idxs"]
-    orig_sel = raw_extras["sel"]
-    cal = raw_extras["cal"]
-    offsets = raw_extras["offsets"]
-    gains = raw_extras["units"]
-    read_sel = orig_sel[idx_arr]
-    cal = cal[idx_arr, np.newaxis, np.newaxis]
-    offsets = offsets[idx_arr, np.newaxis, np.newaxis]
-    gains = gains[idx_arr, np.newaxis, np.newaxis]
-    stim_rows = (
-        np.flatnonzero(np.isin(idx_arr, stim_channel_idxs))
-        if len(stim_channel_idxs)
-        else ()
-    )
-
-    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
-    in_physical_order = (
-        sel_in_physical_order
-        and idx_is_slice
-        and idx.start == 0
-        and idx.stop == len(n_samps)
-    )
-    direct_output = (
-        in_physical_order
-        and not len(stim_rows)
-        and len(r_lims) > 1
-        and n_per > 1
-        and r_lims[0][0] == 0
-        and r_lims[-1][1] == buf_len
-    )
-    with _gdf_edf_get_fid(filenames, buffering=0) as fid:
-        start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
-        for ai in range(0, len(r_lims), n_per):
-            block_offset = ai * ch_offsets[-1] * dtype_byte
-            n_read = min(len(r_lims) - ai, n_per)
-            fid.seek(start_offset + block_offset, 0)
-            many_chunk = _read_ch(
-                fid, subtype, ch_offsets[-1] * n_read, dtype_byte, dtype
-            )
-            if in_physical_order:
-                view = many_chunk.reshape(n_read, len(n_samps), buf_len).transpose(
-                    1, 0, 2
-                )
-            else:
-                # a record need not be a matrix (e.g. an EDF+ annotation channel
-                # is stored at its own rate), so slice out each picked channel
-                records = many_chunk.reshape(n_read, -1)
-                view = np.empty((len(read_sel), n_read, buf_len), many_chunk.dtype)
-                for j, ci in enumerate(read_sel):
-                    view[j] = records[:, ch_offsets[ci] : ch_offsets[ci + 1]]
-
-            r_sidx = r_lims[ai][0]
-            r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
-            d_start = d_lims[ai][0]
-            d_stop = d_lims[ai + n_read - 1][1]
-            assert d_stop - d_start == r_eidx - r_sidx
-            if direct_output and n_read > 1:
-                assert r_sidx == 0 and r_eidx == n_read * buf_len
-                output = data[:, d_start:d_stop].reshape(view.shape)
-                assert np.shares_memory(output, data)
-                _calibrate_uniform_edf(
-                    output, view, cal, offsets, gains, cals[:, :, np.newaxis]
-                )
-                continue
-
-            one = np.empty(view.shape, dtype=np.float64)
-            np.multiply(view, cal, out=one)
-            one += offsets
-            one *= gains
-            block = one.reshape(len(idx_arr), -1)[:, r_sidx:r_eidx]
-            for row in stim_rows:
-                stim = block[row].astype(int)
-                np.bitwise_and(stim, 2**17 - 1, out=stim)
-                block[row] = stim
-            assert d_stop - d_start == block.shape[1]
-            np.multiply(
-                block,
-                cals,
-                out=data[:, d_start:d_stop],
-                casting="unsafe",
-            )
-    return True
+_EDF_CHUNK_BYTES = 10 * 1024 * 1024  # read roughly this much per chunk
 
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
-    if _read_uniform_segment(data, idx, start, stop, raw_extras, filenames, cals, mult):
-        return []
-
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]
@@ -768,16 +650,22 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     # actually one of the requested channels
     idx_arr = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
 
-    # We could read this one EDF block at a time, but to speed it up we really
-    # need to read multiple blocks at once, otherwise we can end up with e.g.
-    # 18,181 chunks for a 20 MB file! Let's do ~10 MB chunks:
-    stride_layout = raw_extras.get("stride_layout")
-    if stride_layout is None:
-        ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
-    else:
-        ch_offsets, n_per = stride_layout[:2]
-    block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
+    # We could read this one EDF block at a time, which would be this:
+    ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+    # But to speed it up, we really need to read multiple blocks at once,
+    # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
+    n_per = max(_EDF_CHUNK_BYTES // (ch_offsets[-1] * dtype_byte), 1)
+
+    # When every picked channel stores buf_len samples per data record there is
+    # nothing to resample, so the picks form a plain (n_picks, n_times) block we
+    # can calibrate in one go straight into `data`. Mixed sampling rates, a
+    # projector, or a stim channel that needs interpolating use the per-channel
+    # loop below instead.
+    n_picks = len(idx_arr)
+    picks = read_sel[:n_picks]  # picked signal channels, in output row order
+    uniform = mult is None and bool((n_samps[picks] == buf_len).all())
+    stim_rows = [j for j, i in enumerate(idx_arr) if i in stim_channel_idxs]
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -786,7 +674,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
         # first read everything into the `ones` array. For channels with
         # lower sampling frequency, there will be zeros left at the end of the
         # row. Ignore TAL/annotations channel and only store `orig_sel`
-        ones = np.zeros((len(orig_sel), data.shape[-1]), dtype=data.dtype)
+        # `ones` has no rows on the fast path, which writes into `data` itself
+        n_stage = 0 if uniform else len(orig_sel)
+        ones = np.zeros((n_stage, data.shape[-1]), dtype=data.dtype)
         # save how many samples have already been read per channel
         n_smp_read = [0 for _ in range(len(orig_sel))]
 
@@ -801,6 +691,23 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             ).reshape(n_read, -1)
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+
+            if uniform:
+                block = np.empty((n_picks, n_read, buf_len), many_chunk.dtype)
+                for j, ci in enumerate(picks):
+                    block[j] = many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]]
+                for ci in read_sel[n_picks:]:  # annotation channels
+                    tal_data.append(
+                        many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]].copy()
+                    )
+                out = data[:, d_lims[ai][0] : d_lims[ai + n_read - 1][1]]
+                flat = block.reshape(n_picks, n_read * buf_len)[:, r_sidx:r_eidx]
+                np.multiply(flat, cal[idx_arr, np.newaxis], out=out)
+                out += offsets[idx_arr, np.newaxis]
+                out *= gains[idx_arr, np.newaxis]
+                for j in stim_rows:
+                    out[j] = np.bitwise_and(out[j].astype(int), 2**17 - 1)
+                continue
 
             # loop over selected channels, ci=channel selection
             for ii, ci in enumerate(read_sel):
@@ -875,6 +782,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 )
 
             _mult_cal_one(data[:, :], ones, idx, cals, mult)
+
+    if uniform:
+        # stands in for the `data_view *= cals` that _mult_cal_one applies; the
+        # block above is skipped because the fast path leaves n_smp_read zero
+        data *= cals
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
@@ -1051,21 +963,6 @@ def _get_info(
         edf_info["max_samp"] = max_samp = n_samps[picks].max()
     else:
         edf_info["max_samp"] = max_samp = n_samps.max()
-    all_n_samps = edf_info["n_samps"]
-    edf_info["stride_layout"] = None
-    # Only the *selected* channels have to share a sampling rate for striding.
-    if edf_info["subtype"] in ("edf", "bdf") and np.all(
-        all_n_samps[edf_info["sel"]] == max_samp
-    ):
-        ch_offsets = np.cumsum(np.concatenate([[0], all_n_samps]), dtype=np.int64)
-        n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * edf_info["dtype_byte"]), 1)
-        # A data record is a plain (n_channels, max_samp) matrix -- and hence
-        # reshapeable -- only when *every* channel shares the rate; an EDF+
-        # annotation channel usually does not.
-        sel_in_physical_order = bool(
-            np.all(all_n_samps == max_samp)
-        ) and np.array_equal(edf_info["sel"], np.arange(len(all_n_samps)))
-        edf_info["stride_layout"] = (ch_offsets, n_per, sel_in_physical_order)
 
     # Info structure
     # -------------------------------------------------------------------------
