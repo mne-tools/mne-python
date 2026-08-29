@@ -71,6 +71,24 @@ def _find_channels(ch_names, ch_type="EOG"):
     return eog_idx
 
 
+_SCALE_KERNEL = None
+
+
+def _get_scale_kernel():
+    """Return the jitted calibration kernel, or None if numba is unavailable."""
+    global _SCALE_KERNEL
+    if _SCALE_KERNEL is None:
+        from .._numba import has_numba
+
+        if not has_numba:
+            _SCALE_KERNEL = False
+        else:
+            from ._utils_numba import _scale_into
+
+            _SCALE_KERNEL = _scale_into
+    return _SCALE_KERNEL or None
+
+
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     assert data_view.shape[1] == one.shape[1], (
@@ -89,18 +107,27 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
             # Benchmark (128 ch x 1024 samples): ~85 -> ~30 us per call
             # on BrainVision/FIF window reads.
             one = one[idx]
-            swapped_ints = not one.dtype.isnative and one.dtype.kind in "iu"
-            if swapped_ints and not one.flags.c_contiguous:
-                # FIFF stores sample-major, so `one` is the transpose of a
-                # big-endian integer tag and consecutive samples of a channel
-                # sit a row apart. np.multiply has no fast loop for input that
-                # is byte-swapped *and* strided, so it swaps element by element
-                # while it also casts and transposes; swapping up front in one
-                # pass is cheaper. Floats are excluded because there the swap
-                # costs about what it saves, and contiguous input already has a
-                # fast loop.
-                one = one.astype(one.dtype.newbyteorder("="))
-            np.multiply(one, cals.reshape(-1, 1), out=data_view, casting="unsafe")
+            kernel = _get_scale_kernel()
+            if kernel is not None:
+                # numba refuses byte-swapped input outright, so normalize
+                # first; the kernel more than pays for the extra pass
+                if not one.dtype.isnative:
+                    one = one.astype(one.dtype.newbyteorder("="))
+                kernel(one, cals.reshape(-1), data_view)
+            else:
+                # NumPy fallback. FIFF hands us the transpose of a big-endian
+                # tag, and np.multiply has no fast loop for input that is
+                # byte-swapped *and* strided, so it swaps element by element
+                # while it also casts and transposes. Swapping up front in one
+                # pass is cheaper, but only for integers -- for floats it costs
+                # about what it saves.
+                if (
+                    not one.dtype.isnative
+                    and one.dtype.kind in "iu"
+                    and not one.flags.c_contiguous
+                ):
+                    one = one.astype(one.dtype.newbyteorder("="))
+                np.multiply(one, cals.reshape(-1, 1), out=data_view, casting="unsafe")
         else:
             one = np.asarray(one, dtype=data_view.dtype)
             np.take(one, idx, axis=0, out=data_view)

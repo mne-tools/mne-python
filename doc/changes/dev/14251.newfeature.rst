@@ -1,0 +1,1 @@
+Speed up raw data reading by calibrating each buffer with an optional numba kernel, by `Bruno Aristimunha`_.
