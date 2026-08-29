@@ -562,7 +562,6 @@ class ProjMixin:
         )
         return fig
 
-    @fill_doc
     @verbose
     def reconstruct_proj(
         self,
@@ -597,6 +596,7 @@ class ProjMixin:
             Forward model used to construct the reconstruction field mapping.
             If ``None`` (default), use the geometry-based field mapping model.
         %(rank)s
+
             Only used when ``forward`` is provided, where the default ``None``
             estimates the rank of the projected field covariance. ``'full'`` is
             not supported, as that covariance is rank-deficient after
