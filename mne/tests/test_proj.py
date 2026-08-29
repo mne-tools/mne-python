@@ -979,3 +979,18 @@ def test_compute_proj_explained_variance():
             if proj["desc"].split("-")[0] == type_
         ]
         assert n_vector_ <= sum(explained_var)
+
+
+def test_make_projector_matches_by_name():
+    """Test projector columns are matched by channel name, not by position."""
+    ch_names = ["EEG 001", "EEG 002", "EEG 003"]
+    # col_names deliberately permuted, so a positional match gives the wrong
+    # vector: the direction is [2, 3, 1] in ch_names order, not [1, 2, 3]
+    proj = _make_test_proj(["EEG 003", "EEG 001", "EEG 002"], [1.0, 2.0, 3.0], "perm")
+    P, nproj, _ = make_projector([proj], ch_names)
+    assert nproj == 1
+    direction = np.array([2.0, 3.0, 1.0])
+    assert_allclose(P @ direction, 0.0, atol=1e-12)
+    # and a channel the projector does not mention is left untouched
+    P, _, _ = make_projector([proj], ch_names + ["EEG 004"])
+    assert_allclose(P[3], [0, 0, 0, 1], atol=1e-12)

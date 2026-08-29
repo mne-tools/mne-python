@@ -184,8 +184,24 @@ class RawFIL(BaseRaw):
         """Read a chunk of raw data."""
         si = self._raw_extras[fi]
         _read_segments_file(
-            self, data, idx, fi, start, stop, cals, mult, dtype=si["dt"]
+            self,
+            data,
+            idx,
+            fi,
+            start,
+            stop,
+            cals,
+            mult,
+            dtype=si["dt"],
+            max_block_bytes=_BLOCK_BYTES,
         )
+
+
+# read in cache-sized blocks rather than one huge one (1.9x on a 197 MB file); see
+# _read_segments_file() for why a smaller block is faster. 4 MiB is faster still
+# (2.5x) but measurably regresses the 9.8 MB shipped fixture, which fits in one
+# 16 MiB block and so keeps its current code path exactly.
+_BLOCK_BYTES = 16 * 1024**2
 
 
 def _convert_channel_info(chans):

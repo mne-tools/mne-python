@@ -171,6 +171,10 @@ def test_dipolefit_gui_basic(
     assert not hasattr(g._fig, "_time_label_actor")
     assert re.fullmatch(r"90 ms · GOF \d+%", g._time_text.get_text())
     assert g._time_text.get_position()[0] == 0.09
+    # both move with the time, so they are drawn on top of a cached background
+    # rather than triggering a full redraw of the traces plot
+    blit_artists = g._renderer._mplcanvas._blit_artists
+    assert blit_artists == [g._time_line, g._time_text]
 
     g.fit_dipole()
     assert len(g._dipoles) == len(g.dipoles) == 2
@@ -299,7 +303,7 @@ def test_dipolefit_gui_dipole_controls(
         g._set_camera_preset("Sideways")
 
     # Test toggling dipoles off and on. This is done through the GUI widgets, which are
-    # ordered: [active, name, fix orientation, delete].
+    # ordered: [active, name, delete].
     dip = mne.read_dipole(fname_dip)[[12, 15]]  # 80ms and 90ms
     g.add_dipole(dip, name=["rh", "lh"])
     dip1, dip2 = g._dipoles.values()
@@ -350,17 +354,6 @@ def test_dipolefit_gui_dipole_controls(
     new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
     assert np.allclose(old_timecourses, new_timecourses, atol=0)
 
-    # Toggle fixed orientation off and on.
-    assert dip1["fix_ori"] and dip2["fix_ori"]
-    dip1["widgets"][2].set_value(False)
-    assert not dip1["fix_ori"]
-    new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
-    assert not np.allclose(old_timecourses, new_timecourses, atol=1e-9)
-    dip1["widgets"][2].set_value(True)
-    assert dip1["fix_ori"]
-    new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
-    assert np.allclose(old_timecourses, new_timecourses, atol=0)
-
     # Change the names of the dipoles.
     dip1["widgets"][1].set_value("dipole1")
     g._on_dipole_set_name("dipole2", dip2["num"])
@@ -369,7 +362,7 @@ def test_dipolefit_gui_dipole_controls(
 
     # Remove a dipole (through the "delete" button).
     line, dot = dip1["line_artist"], dip1["dot_artist"]
-    dip1["widgets"][3].set_value(None)
+    dip1["widgets"][2].set_value(None)
     assert line not in g._renderer._mplcanvas.axes.lines
     assert dot not in g._renderer._mplcanvas.axes.lines
     assert len(g.dipoles) == 1
@@ -380,17 +373,6 @@ def test_dipolefit_gui_dipole_controls(
     assert 2 in g._dipoles
     assert list(g._dipoles.keys())[1] == 2
     assert list(g._dipoles.values())[1]["num"] == 2  # new dipole number
-
-    # Fitting the timecourse of a single dipole, with a free orientation.
-    g._on_dipole_toggle(False, 2)  # only leave a single dipole active
-    g._on_select_method("Single dipole")
-    g._renderer._process_events()  # run the deferred refit
-    assert dip2["fix_ori"]
-    assert_allclose(dip2["orientation"], dip2["dip"].ori.repeat(len(evoked.times), 0))
-    g._on_dipole_toggle_fix_orientation(False, dip2["num"])
-    assert not dip2["fix_ori"]
-    assert dip2["orientation"].shape == (len(evoked.times), 3)
-    assert not np.allclose(dip2["orientation"][0], dip2["orientation"][-1], atol=1e-9)
 
     g.close()
 

@@ -1723,6 +1723,7 @@ class BaseEpochs(
         picks=None,
         item=None,
         *,
+        exclude=(),
         units=None,
         tmin=None,
         tmax=None,
@@ -1740,6 +1741,14 @@ class BaseEpochs(
         %(picks_all)s
         item : slice | array-like | str | list | None
             See docstring of get_data method.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         %(units)s
         tmin : int | float | None
             Start time of data to get in seconds.
@@ -1806,7 +1815,7 @@ class BaseEpochs(
 
         orig_picks = picks
         if orig_picks is None:
-            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+            picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
         else:
             picks = _picks_to_idx(self.info, picks)
 
@@ -1992,6 +2001,7 @@ class BaseEpochs(
         tmin: int | float | None = None,
         tmax: int | float | None = None,
         *,
+        exclude: list[str] | Literal["bads"] | tuple = (),
         copy: bool = True,
         verbose: bool | str | int | None = None,
     ) -> np.ndarray:
@@ -2019,6 +2029,14 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         copy : bool
             Whether to return a copy of the object's data, or (if possible) a view.
             See :ref:`the NumPy docs <numpy:basics.copies-and-views>` for an
@@ -2044,7 +2062,13 @@ class BaseEpochs(
             when possible when ``copy=False``.
         """
         return self._get_data(
-            picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
+            picks=picks,
+            exclude=exclude,
+            item=item,
+            units=units,
+            tmin=tmin,
+            tmax=tmax,
+            copy=copy,
         )
 
     @verbose

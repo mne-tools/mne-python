@@ -20,6 +20,7 @@ from mne._fiff.constants import FIFF
 from mne.annotations import events_from_annotations
 from mne.datasets import testing
 from mne.io import read_raw_brainvision, read_raw_fif
+from mne.io.brainvision import brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import _record_warnings, _stamp_to_dt, object_diff
 
@@ -1163,3 +1164,15 @@ def test_ahdr_format():
     assert raw.info["nchan"] == expected_num_channels
     assert raw.info["highpass"] == expected_hp
     assert raw.info["lowpass"] == expected_lp
+
+
+@pytest.mark.parametrize("block_bytes", (100, 1))  # partial frame, sub-frame
+def test_read_block_size_does_not_change_data(block_bytes, monkeypatch):
+    """Test the size of the read blocks does not change the decoded data."""
+    want = read_raw_brainvision(vhdr_path, preload=True).get_data()
+    # neither budget is a whole number of channel frames, so the read splits
+    # into many blocks whose edges must still land on frame boundaries; a
+    # budget below one frame must still make progress rather than hang
+    monkeypatch.setattr(brainvision, "_BLOCK_BYTES", block_bytes)
+    got = read_raw_brainvision(vhdr_path, preload=True).get_data()
+    assert_array_equal(want, got)

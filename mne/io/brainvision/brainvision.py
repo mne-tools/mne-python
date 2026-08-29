@@ -35,6 +35,9 @@ from ...utils import (
 )
 from ..base import BaseRaw
 
+# read in cache-sized blocks rather than one huge one
+_BLOCK_BYTES = 8 * 1024**2
+
 
 @fill_doc
 class RawBrainVision(BaseRaw):
@@ -191,6 +194,7 @@ class RawBrainVision(BaseRaw):
                 mult,
                 dtype=dtype,
                 n_channels=n_data_ch,
+                max_block_bytes=_BLOCK_BYTES,
             )
         else:
             offsets = self._raw_extras[fi]["offsets"]

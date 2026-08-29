@@ -214,6 +214,7 @@ def _read_segments_file(
     n_channels=None,
     offset=0,
     trigger_ch=None,
+    max_block_bytes=int(100e6),
 ):
     """Read a chunk of raw data."""
     if n_channels is None:
@@ -225,8 +226,12 @@ def _read_segments_file(
     data_offset = n_channels * start * n_bytes + offset
     data_left = (stop - start) * n_channels
 
-    # Read up to 100 MB of data at a time, block_size is in data samples
-    block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
+    # Read up to max_block_bytes of data at a time; block_size is in data
+    # samples and spans whole channel frames
+    # never below one complete channel frame, or the loop would not advance
+    block_size = max(
+        n_channels, ((max_block_bytes // n_bytes) // n_channels) * n_channels
+    )
     block_size = min(data_left, block_size)
     with open(raw.filenames[fi], "rb", buffering=0) as fid:
         fid.seek(data_offset)

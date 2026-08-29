@@ -1,0 +1,1 @@
+Speed up repeated preloading of any file-backed :class:`~mne.io.Raw` with ``preload="auto"``, which persists decoded data in a copy-on-write cache below :func:`mne.set_cache_dir`, by `Bruno Aristimunha`_.

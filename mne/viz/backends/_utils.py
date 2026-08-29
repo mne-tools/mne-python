@@ -431,6 +431,14 @@ def _qt_get_stylesheet(theme):
 def _should_raise_window():
     from matplotlib import rcParams
 
+    from . import renderer
+
+    # The test suite opens a lot of 3D windows, and raising each one steals focus
+    # from whatever the developer is doing -- on macOS especially, where
+    # `activateWindow()` brings the whole application forward. The windows are
+    # still shown during tests, they just stay behind the active window.
+    if renderer.MNE_3D_BACKEND_TESTING:
+        return False
     return rcParams["figure.raise_window"]
 
 
