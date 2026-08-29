@@ -13,6 +13,7 @@ from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEF
 from ..fixes import _safe_svd
 from ..utils import (
     _check_option,
+    _check_rank,
     _validate_type,
     fill_doc,
     logger,
@@ -561,7 +562,17 @@ class ProjMixin:
         )
         return fig
 
-    def reconstruct_proj(self, *, projs=None, mode="accurate", origin="auto"):
+    @verbose
+    def reconstruct_proj(
+        self,
+        *,
+        projs=None,
+        mode="accurate",
+        origin="auto",
+        forward=None,
+        rank=None,
+        verbose=None,
+    ):
         """Apply SSP projectors and reconstruct the resulting signal in sensor space.
 
         Operates in place.
@@ -574,18 +585,48 @@ class ProjMixin:
             ``None``, all projectors attached to the instance are used.
         mode : str
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
-            Legendre polynomial expansion used for reconstruction.
+            Legendre polynomial expansion used for geometry-based
+            reconstruction. Ignored when ``forward`` is provided.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
             Can be ``'auto'`` (default), which means a head-digitization-based
-            origin fit.
+            origin fit. Used for geometry-based reconstruction and ignored when
+            ``forward`` is provided.
+        forward : instance of Forward | None
+            Forward model used to construct the reconstruction field mapping.
+            If ``None`` (default), use the geometry-based field mapping model.
+        %(rank)s
+
+            Only used when ``forward`` is provided, where the default ``None``
+            estimates the rank of the projected field covariance. ``'full'`` is
+            not supported, as that covariance is rank-deficient after
+            projection. Without ``forward``, ``rank`` must be ``None``, and the
+            geometry-based field mapping uses its own internal truncation
+            rather than a rank estimated from the data.
+        %(verbose)s
 
         Returns
         -------
         self : same type as the input data
             The modified instance.
+
+        Notes
+        -----
+        When ``forward`` is provided, ``rank`` controls the sensor-space rank
+        of the projected Forward field covariance.
         """
-        from ..forward import _map_meg_or_eeg_channels
+        from ..forward import Forward, _map_meg_or_eeg_channels
+
+        if forward is not None:
+            _validate_type(forward, Forward, "forward")
+        rank = _check_rank(rank)
+        if forward is None and rank is not None:
+            raise ValueError("rank can only be used when forward is provided")
+        if forward is not None and rank == "full":
+            raise ValueError(
+                "rank='full' is incompatible with Forward reconstruction "
+                "after projection; use rank='info', None, or an explicit rank dict"
+            )
 
         if projs is None:
             if len(self.info["projs"]) == 0:
@@ -626,7 +667,12 @@ class ProjMixin:
                         make_eeg_average_ref_proj(info_to, verbose=False)
                     ]
             mapping = _map_meg_or_eeg_channels(
-                info_from, info_to, mode=mode, origin=origin
+                info_from,
+                info_to,
+                mode=mode,
+                origin=origin,
+                forward=forward,
+                rank=rank,
             )
             self.data[..., picks, :] = np.matmul(mapping, self.data[..., picks, :])
         return self

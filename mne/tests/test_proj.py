@@ -19,10 +19,14 @@ from mne import (
     compute_raw_covariance,
     convert_forward_solution,
     create_info,
+    make_forward_solution,
+    make_sphere_model,
+    pick_channels_forward,
     pick_types,
     read_events,
     read_forward_solution,
     read_source_estimate,
+    read_source_spaces,
     sensitivity_map,
 )
 from mne._fiff.proj import (
@@ -207,6 +211,149 @@ def test_reconstruct_proj(raw_orig, events):
         assert not np.array_equal(
             reconstructed_all[untouched_picks], original[untouched_picks]
         )
+
+
+@pytest.fixture(scope="module")
+def eeg_forward():
+    """Create a small local EEG forward for projection reconstruction tests."""
+    raw = read_raw_fif(raw_fname, preload=False, verbose=False).pick(picks="eeg")
+    raw.pick(raw.ch_names[:8])
+    src = read_source_spaces(base_dir / "small-src.fif.gz", verbose=False)
+    sphere = make_sphere_model(verbose=False)
+    return make_forward_solution(
+        raw.info,
+        trans=None,
+        src=src,
+        bem=sphere,
+        meg=False,
+        eeg=True,
+        mindist=0.0,
+        verbose=False,
+    )
+
+
+def _direct_forward_reconstruction(evoked, forward, rank):
+    """Compute the independent direct lead-field reconstruction."""
+    projector = make_projector(evoked.info["projs"], evoked.ch_names)[0]
+    forward = pick_channels_forward(forward, include=evoked.ch_names, ordered=True)
+    lead_field = forward["sol"]["data"]
+    u, s, vh = np.linalg.svd(projector @ lead_field, full_matrices=False)
+    mapping = lead_field @ (vh[:rank].T / s[:rank]) @ u[:, :rank].T
+    if _has_eeg_average_ref_proj(evoked.info):
+        mapping -= mapping.mean(axis=0)
+    return mapping @ (projector @ evoked.data)
+
+
+def test_reconstruct_proj_forward(raw_orig, eeg_forward):
+    """Test Forward reconstruction and channel handling."""
+    raw = raw_orig.copy().pick(picks="eeg")
+    raw.pick(raw.ch_names[:8])
+    evoked = EvokedArray(raw.get_data()[:, :10], raw.info, tmin=0.0)
+    evoked.add_proj(
+        _make_test_proj(
+            evoked.ch_names,
+            np.arange(1.0, len(evoked.ch_names) + 1.0),
+            "Forward reconstruction",
+        ),
+        verbose=False,
+    )
+    rank = 3
+    for average_ref in (False, True):
+        this_evoked = evoked.copy()
+        if average_ref:
+            this_evoked.set_eeg_reference(projection=True)
+        expected = _direct_forward_reconstruction(this_evoked, eeg_forward, rank)
+        got = (
+            this_evoked.copy()
+            .reconstruct_proj(forward=eeg_forward, rank={"eeg": 3})
+            .data
+        )
+        assert_allclose(got, expected, rtol=1e-10, atol=1e-12)
+
+    reordered = pick_channels_forward(
+        eeg_forward, include=eeg_forward.ch_names[::-1], ordered=True
+    )
+    got = evoked.copy().reconstruct_proj(forward=eeg_forward, rank={"eeg": 3}).data
+    got_reordered = (
+        evoked.copy().reconstruct_proj(forward=reordered, rank={"eeg": 3}).data
+    )
+    assert_allclose(got, got_reordered, rtol=1e-10, atol=1e-12)
+
+    evoked_bad = evoked.copy()
+    evoked_bad.info["bads"] = [evoked_bad.ch_names[0]]
+    got_bad = evoked_bad.reconstruct_proj(forward=eeg_forward, rank={"eeg": 3}).data
+    assert_allclose(got_bad[0], evoked_bad.data[0])
+
+
+def test_reconstruct_proj_forward_rank_info(eeg_forward):
+    """Test that rank='info' only uses projectors selected for reconstruction."""
+    ch_names = eeg_forward["info"]["ch_names"]
+    info = create_info(ch_names, 100.0, "eeg")
+    evoked = EvokedArray(np.arange(len(ch_names))[:, np.newaxis], info, tmin=0.0)
+    projs = [
+        _make_test_proj(ch_names, np.eye(len(ch_names))[ii], f"EEG-{ii}")
+        for ii in range(3)
+    ]
+    evoked.add_proj(projs, verbose=False)
+    selected = projs[:2]
+    nproj = make_projector(selected, ch_names)[1]
+    expected_rank = len(ch_names) - nproj
+    got = (
+        evoked.copy()
+        .reconstruct_proj(projs=selected, forward=eeg_forward, rank="info")
+        .data
+    )
+    expected = (
+        evoked.copy()
+        .reconstruct_proj(
+            projs=selected, forward=eeg_forward, rank={"eeg": expected_rank}
+        )
+        .data
+    )
+    assert_allclose(got, expected, rtol=1e-10, atol=1e-12)
+
+
+def test_reconstruct_proj_forward_rank_none(eeg_forward):
+    """Test automatic Forward reconstruction with the default rank."""
+    ch_names = eeg_forward["info"]["ch_names"]
+    info = create_info(ch_names, 100.0, "eeg")
+    evoked = EvokedArray(np.ones((len(ch_names), 1)), info, tmin=0.0)
+    evoked.add_proj(
+        _make_test_proj(ch_names, np.arange(1.0, len(ch_names) + 1.0), "EEG"),
+        verbose=False,
+    )
+    got = evoked.copy().reconstruct_proj(forward=eeg_forward).data
+    assert got.shape == evoked.data.shape
+    assert np.isfinite(got).all()
+
+
+def test_reconstruct_proj_forward_validation(eeg_forward):
+    """Test validation of the explicit Forward reconstruction arguments."""
+    info = create_info(eeg_forward["info"]["ch_names"], 100.0, "eeg")
+    evoked = EvokedArray(np.zeros((len(info["ch_names"]), 1)), info, tmin=0.0)
+    evoked.add_proj(
+        _make_test_proj(
+            evoked.ch_names,
+            np.ones(len(evoked.ch_names)),
+            "Forward reconstruction",
+        ),
+        verbose=False,
+    )
+    with pytest.raises(ValueError, match="rank can only be used"):
+        evoked.copy().reconstruct_proj(rank={"eeg": 1})
+    with pytest.raises(TypeError, match="forward must be an instance of Forward"):
+        evoked.copy().reconstruct_proj(forward=[], rank={"eeg": 1})
+    invalid = evoked.copy()
+    with pytest.raises(TypeError, match="rank must be an instance of"):
+        invalid.reconstruct_proj(forward=eeg_forward, rank=1)
+    assert _active_projs(invalid) == [False]
+    with pytest.raises(ValueError, match="rank, if str"):
+        evoked.copy().reconstruct_proj(forward=eeg_forward, rank="bad")
+    with pytest.raises(ValueError, match="rank='full' is incompatible"):
+        evoked.copy().reconstruct_proj(forward=eeg_forward, rank="full")
+    rank = len(evoked.ch_names) + 1
+    with pytest.raises(ValueError, match=r"rank\['eeg'\]=\d+ exceeds"):
+        evoked.copy().reconstruct_proj(forward=eeg_forward, rank={"eeg": rank})
 
 
 @pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
