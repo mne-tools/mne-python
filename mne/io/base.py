@@ -650,9 +650,10 @@ class BaseRaw(
         data_buffer = preload
         if isinstance(preload, bool | np.bool_) and not preload:
             data_buffer = None
-        t = self.times
+        n_times = self.n_times
+        last_time = (n_times - 1) / self.info["sfreq"]
         logger.info(
-            f"Reading 0 ... {len(t) - 1}  =  {0.0:9.3f} ... {t[-1]:9.3f} secs..."
+            f"Reading 0 ... {n_times - 1}  =  {0.0:9.3f} ... {last_time:9.3f} secs..."
         )
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info["nchan"]

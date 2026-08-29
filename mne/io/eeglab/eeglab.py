@@ -16,7 +16,7 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import _PICK_TYPES_KEYS
 from ..._fiff.utils import _find_channels, _mult_cal_one, _read_segments_file
-from ...annotations import Annotations, read_annotations
+from ...annotations import Annotations
 from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
 from ...epochs import BaseEpochs
@@ -501,7 +501,7 @@ class RawEEGLAB(BaseRaw):
             )
 
         # create event_ch from annotations
-        annot = read_annotations(input_fname, uint16_codec=uint16_codec)
+        annot = _read_annotations_eeglab(eeg)
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
