@@ -60,11 +60,17 @@ user-visible behavior; anything else can be added later, when something actually
   covers formats added later for free.
 - **Never promote an optional dependency to a required one** as a side effect of a feature, and do
   not add a dependency at all without asking first.
-- **Extend the existing test harness instead of adding a test module.** A new
-  `mne/**/tests/test_<thing>.py` is a signal to stop and look: most behavior belongs in an
-  existing test file, and new I/O behavior usually belongs in the generic
+- **Add to an existing test before writing a new one.** In order of preference: extend a test
+  function that already builds the objects you need — a parametrized one especially, since the new
+  assertion then runs across every case for free — then add to the existing test module for that
+  code, and only then write a new test function or file. A new `mne/**/tests/test_<thing>.py` is a
+  signal to stop and look, and new I/O behavior usually belongs in the generic
   `mne/io/tests/test_raw.py::_test_raw_reader`, which runs for every format. A few compact
-  assertions that run everywhere beat hundreds of lines that run once.
+  assertions that run everywhere beat hundreds of lines that run once, and re-created setup is one
+  of the most common things reviewers ask to have deleted. In mne-tools/mne-python#14248 a 30-line
+  standalone test became fewer than 10 lines added to the existing parametrized
+  `test_anonymize_with_io`, which already had the fixture, the save/load round trip, and the
+  `daysback` parametrization that exposed the bug.
 - **Check that a new API spelling does not already mean something else.** A new sentinel or
   keyword value (`preload="auto"`, `memmap="auto"`, ...) must not collide with an existing meaning
   of the same string on a related argument.
