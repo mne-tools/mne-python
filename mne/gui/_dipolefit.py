@@ -537,7 +537,12 @@ class DipoleFitUI:
         self._set_status("Setting up controls...")
         r = self._renderer
 
+        # Add some controls for the STC viewer, but not all of them.
+        if self._stc_brain is not None:
+            self._stc_brain._configure_dock_colormap_widget(name="STC Color Limits")
+
         # Visibility and opacity controls for the various meshes, one row per mesh.
+        r._dock_add_stretch()
         layout = r._dock_add_group_box("Meshes", collapse=True)
         grid = r._layout_create("grid")
         r._layout_add_widget(layout, grid)
@@ -633,6 +638,7 @@ class DipoleFitUI:
         )
         self._save_button.set_enabled(False)
         r._dock_add_stretch()
+        r._dock_finalize()
 
     def toggle_mesh(self, name, show=None):
         """Toggle a mesh on or off.
