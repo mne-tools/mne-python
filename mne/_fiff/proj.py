@@ -596,9 +596,13 @@ class ProjMixin:
         forward : instance of Forward | None
             Forward model used to construct the reconstruction field mapping.
             If ``None`` (default), use the geometry-based field mapping model.
-        %(rank_none)s
-            For Forward-based reconstruction, ``rank`` is used only when
-            ``forward`` is provided; ``rank='full'`` is not supported.
+        %(rank)s
+            Only used when ``forward`` is provided, where the default ``None``
+            estimates the rank of the projected field covariance. ``'full'`` is
+            not supported, as that covariance is rank-deficient after
+            projection. Without ``forward``, ``rank`` must be ``None``, and the
+            geometry-based field mapping uses its own internal truncation
+            rather than a rank estimated from the data.
         %(verbose)s
 
         Returns

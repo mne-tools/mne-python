@@ -18,7 +18,6 @@ from ..bem import _check_origin
 from ..cov import Covariance, make_ad_hoc_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _safe_svd
 from ..rank import _compute_rank_int
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import _find_trans, transform_surface_to
@@ -65,14 +64,26 @@ def _compute_mapping_matrix(fmd, info, *, rank=None):
     whitener = np.diag(1.0 / np.sqrt(noise_cov["data"].ravel()))
     whitened_dots = np.dot(whitener.T, np.dot(proj_dots, whitener))
 
-    # SVD is numerically better than the eigenvalue composition even if
-    # mat is supposed to be symmetric and positive definite
-    if rank is not None:
-        inv, _, _ = _reg_pinv(whitened_dots, reg=0, rank=rank)
-    elif fmd.get("pinv_method", "tsvd") == "tsvd":
-        inv, fmd["nest"] = _pinv_trunc(whitened_dots, fmd["miss"])
+    # whitened_dots is symmetric and positive semi-definite, so _reg_pinv (which
+    # requires square Hermitian input) can do the truncated pseudoinversion
+    if fmd.get("pinv_method", "tsvd") == "tsvd":
+        n = len(whitened_dots)
+        if rank is None:
+            # truncate at most "miss" fraction of the singular value energy
+            s = np.linalg.svd(whitened_dots, compute_uv=False, hermitian=True)
+            varexp = np.cumsum(s)
+            varexp /= varexp[-1]
+            rank = np.where(varexp >= 1.0 - fmd["miss"])[0][0] + 1
+            logger.info(
+                f"    Truncating at {rank}/{n} components to omit less than "
+                f"{fmd['miss']:g} ({1.0 - varexp[rank - 1]:0.2g})"
+            )
+        else:
+            logger.info(f"    Truncating at {rank}/{n} components")
+        inv, _, fmd["nest"] = _reg_pinv(whitened_dots, reg=0, rank=rank)
     else:
         assert fmd["pinv_method"] == "tikhonov", fmd["pinv_method"]
+        assert rank is None, rank  # only the tsvd path supports an explicit rank
         inv, fmd["nest"] = _pinv_tikhonov(whitened_dots, fmd["miss"])
 
     # Sandwich with the whitener
@@ -94,26 +105,6 @@ def _compute_mapping_matrix(fmd, info, *, rank=None):
         )
         mapping_mat -= np.mean(mapping_mat, axis=0)
     return mapping_mat
-
-
-def _pinv_trunc(x, miss):
-    """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
-    u, s, v = _safe_svd(x, full_matrices=False)
-
-    # Eigenvalue truncation
-    varexp = np.cumsum(s)
-    varexp /= varexp[-1]
-    n = np.where(varexp >= (1.0 - miss))[0][0] + 1
-    logger.info(
-        "    Truncating at %d/%d components to omit less than %g (%0.2g)",
-        n,
-        len(s),
-        miss,
-        1.0 - varexp[n - 1],
-    )
-    s = 1.0 / s[:n]
-    inv = ((u[:, :n] * s) @ v[:n]).T
-    return inv, n
 
 
 def _pinv_tikhonov(x, reg):
@@ -147,7 +138,9 @@ def _map_meg_or_eeg_channels(
     forward : instance of Forward | None
         Forward model used instead of geometry-based field interpolation.
     rank : None | 'info' | dict
-        Rank specification for Forward-based reconstruction.
+        Rank specification for Forward-based reconstruction, where ``None``
+        estimates it from the projected field covariance. Must be ``None`` for
+        the geometry-based path, which uses its own truncation instead.
 
     Returns
     -------
