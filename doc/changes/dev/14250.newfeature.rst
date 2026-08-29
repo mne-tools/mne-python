@@ -1,0 +1,1 @@
+Speed up :func:`mne.io.read_raw_egi` on simple-binary files by reading the event channels in blocks instead of one sample at a time, by `Bruno Aristimunha`_.
