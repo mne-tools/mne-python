@@ -2964,8 +2964,14 @@ def _check_dates(info, prepend_error=""):
     It's needed because of the limited integer precision
     of the fix standard.
     """
-    for key in ("file_id", "meas_id"):
-        value = info.get(key)
+    to_check = [(f"[{key!r}]", info.get(key)) for key in ("file_id", "meas_id")]
+    for pi, record in enumerate(info.get("proc_history") or []):
+        prefix = f"['proc_history'][{pi}]"
+        to_check.append((f"{prefix}['block_id']", record.get("block_id")))
+        date = record.get("date")
+        if date is not None:
+            to_check.append((f"{prefix}['date']", dict(zip(("secs", "usecs"), date))))
+    for name, value in to_check:
         if value is not None:
             assert "msecs" not in value
             for key_2 in ("secs", "usecs"):
@@ -2974,7 +2980,7 @@ def _check_dates(info, prepend_error=""):
                     or value[key_2] > np.iinfo(">i4").max
                 ):
                     raise RuntimeError(
-                        f"{prepend_error}info[{key}][{key_2}] must be between "
+                        f"{prepend_error}info{name}[{key_2!r}] must be between "
                         f'"{np.iinfo(">i4").min!r}" and "{np.iinfo(">i4").max!r}", got '
                         f'"{value[key_2]!r}"'
                     )
@@ -3874,10 +3880,16 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 record["date"] = DATE_NONE
             else:
                 this_t0 = (record["block_id"]["secs"], record["block_id"]["usecs"])
-                this_t1 = _add_timedelta_to_stamp(this_t0, -delta_t)
+                if this_t0 == DATE_NONE:
+                    this_t1 = DATE_NONE
+                else:
+                    this_t1 = _add_timedelta_to_stamp(this_t0, -delta_t)
                 record["block_id"]["secs"] = this_t1[0]
                 record["block_id"]["usecs"] = this_t1[1]
-                record["date"] = _add_timedelta_to_stamp(record["date"], -delta_t)
+                this_date = tuple(record["date"])
+                if this_date != DATE_NONE:
+                    this_date = _add_timedelta_to_stamp(this_date, -delta_t)
+                record["date"] = this_date
 
     hi = info.get("helium_info")
     if hi is not None:
