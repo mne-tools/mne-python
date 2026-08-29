@@ -434,7 +434,7 @@ class _NoOpAxes(matplotlib.axes.Axes):
     but :func:`_update_contours` only wants the geometry it computes.
     """
 
-    def add_collection(self, collection, autolim=True):
+    def add_collection(self, collection, *args, **kwargs):
         return collection
 
     def update_datalim(self, *args, **kwargs):

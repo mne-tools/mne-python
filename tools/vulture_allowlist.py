@@ -192,3 +192,6 @@ _.extra_public_methods
 
 # Accessed through an attribute-path string by the _qt_safe_window decorator
 _._init_renderer
+
+# Called by Matplotlib on the _NoOpAxes a ContourSet attaches itself to
+_.update_datalim
