@@ -88,7 +88,19 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
             # (was three passes plus a full float64 temporary).
             # Benchmark (128 ch x 1024 samples): ~85 -> ~30 us per call
             # on BrainVision/FIF window reads.
-            np.multiply(one[idx], cals.reshape(-1, 1), out=data_view, casting="unsafe")
+            one = one[idx]
+            swapped_ints = not one.dtype.isnative and one.dtype.kind in "iu"
+            if swapped_ints and not one.flags.c_contiguous:
+                # FIFF stores sample-major, so `one` is the transpose of a
+                # big-endian integer tag and consecutive samples of a channel
+                # sit a row apart. np.multiply has no fast loop for input that
+                # is byte-swapped *and* strided, so it swaps element by element
+                # while it also casts and transposes; swapping up front in one
+                # pass is cheaper. Floats are excluded because there the swap
+                # costs about what it saves, and contiguous input already has a
+                # fast loop.
+                one = one.astype(one.dtype.newbyteorder("="))
+            np.multiply(one, cals.reshape(-1, 1), out=data_view, casting="unsafe")
         else:
             one = np.asarray(one, dtype=data_view.dtype)
             np.take(one, idx, axis=0, out=data_view)
