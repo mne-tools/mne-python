@@ -23,7 +23,6 @@ from shutil import copyfile
 
 import matplotlib
 import numpy as np
-from matplotlib.animation import AbstractMovieWriter
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
@@ -85,7 +84,7 @@ from ..viz import (
 from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
-from ..viz.utils import _ndarray_to_fig
+from ..viz.utils import _BlitManager, _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
@@ -369,27 +368,6 @@ def _check_tags(tags) -> tuple[str]:
 # PLOTTING FUNCTIONS
 
 
-class _NdArrayCapture(AbstractMovieWriter):
-    def __init__(self, frames: list):
-        super().__init__(fps=1, metadata={}, bitrate=0)
-        self.frames = frames
-
-    def grab_frame(self, **savefig_kwargs):
-        img = _fig_to_img(
-            fig=self.fig, image_format="ndarray", pad_inches=0, **savefig_kwargs
-        )
-        self.frames.append(img)
-
-    def save(self, filename, *args, **kwargs):
-        pass
-
-    def finish(self):
-        pass
-
-    def setup(self, fig, outfile, dpi=None):
-        self.fig = fig
-
-
 def _use_agg(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -486,7 +464,17 @@ def _fig_to_img(
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with {dpi} dpi"
     )
-    mpl_format = "svg" if image_format == "svg" else "png"
+    if image_format == "ndarray":
+        # Raw RGBA: the caller wants the rendered pixels, so encoding them as PNG
+        # only to decode them again below is pure overhead.
+        mpl_format = "rgba"
+        # Agg truncates the figure size to whole pixels (`RendererAgg.__init__`),
+        # so rounding here would mis-shape the buffer at fractional DPI
+        shape = (int(fig.bbox.size[1]), int(fig.bbox.size[0]), 4)
+    elif image_format == "svg":
+        mpl_format = "svg"
+    else:
+        mpl_format = "png"
     fig.savefig(output, format=mpl_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -512,8 +500,9 @@ def _fig_to_img(
             new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
 
     if image_format == "ndarray":
-        output.seek(0)
-        output = plt.imread(output, format="png")
+        # float in [0, 1], like the PNG this used to go through
+        output = np.frombuffer(output.getbuffer(), np.uint8).reshape(shape)
+        output = output.astype(np.float32) / 255
     else:
         output = output.getvalue()
         if image_format == "svg":
@@ -3893,8 +3882,6 @@ class Report:
             fig.delaxes(axes[1, 1])
             axes = axes.ravel()[:3]
             axes[0].set_title(ch_type)
-            frames[ch_type] = list()
-            this_writer = _NdArrayCapture(frames[ch_type])
             _, ch_anim = evoked.animate_topomap(
                 times=times,
                 ch_type=ch_type,
@@ -3903,10 +3890,22 @@ class Report:
                 show=False,
                 time_format="",  # we impose our own in HTML
                 butterfly=True,
+                blit=False,  # we do our own, `Animation.save` cannot blit at all
                 **topomap_kwargs,
             )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+            fig.canvas.draw()  # the animation does its initial draw here
             ch_anim.pause()
-            ch_anim.save("", writer=this_writer)
+            # Only the topomap image, its contours and the butterfly cursor change
+            # from one frame to the next, so blit those onto a cached picture of the
+            # rest of the figure and read the pixels straight out of the canvas.
+            blit = _BlitManager(fig)
+            frames[ch_type] = list()
+            for frame in range(len(times)):
+                blit.update(ch_anim.mne_frame_func(frame))
+                frames[ch_type].append(
+                    np.asarray(fig.canvas.buffer_rgba(), dtype=np.float32) / 255
+                )
             plt.close(fig)
             del (
                 fig,

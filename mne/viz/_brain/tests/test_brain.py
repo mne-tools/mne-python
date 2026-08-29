@@ -1682,29 +1682,26 @@ def test_brain_time_line_blitting(renderer_interactive_pyvistaqt, brain_gc):
     brain = _create_testing_brain(hemi="lh", show_traces=True, initial_time=0)
     canvas = brain.mpl_canvas
     assert canvas.canvas.supports_blit
-    assert brain.time_line in canvas._blit_artists
-    assert brain.time_line.get_animated()
+    assert brain.time_line in canvas._blit._artists
 
     n_draws = list()
     canvas.canvas.mpl_connect("draw_event", lambda event: n_draws.append(event))
-    canvas.update_plot()  # a full redraw caches the background ...
-    assert canvas._blit_background is not None
-    assert len(n_draws) == 1
-
-    brain.set_time(brain._times[-1])  # ... so moving the time line only blits
+    brain.set_time(brain._times[-1])  # one redraw caches the background ...
     assert brain.time_line.get_xdata()[0] == brain._times[-1]
+    assert canvas._blit._background is not None
     assert len(n_draws) == 1
 
-    # adding a trace still redraws in full, and anything can be blitted
+    brain.set_time(brain._times[len(brain._times) // 2])  # ... then it only blits
+    assert len(n_draws) == 1
+
+    # a full redraw invalidates the background, and anything can be blitted
     text = canvas.axes.text(0, 0, "hello")
     canvas.add_blit_artist(text)
-    assert text.get_animated()
-    canvas.update_blit_artists()  # background was dropped, so this redraws
+    canvas.update_blit_artists()  # the background was dropped, so this redraws
     assert len(n_draws) == 2
 
     canvas.remove_blit_artist(text)
-    assert not text.get_animated()
-    assert text not in canvas._blit_artists
+    assert text not in canvas._blit._artists
     assert len(n_draws) == 3  # restored to the background by a full redraw
     brain.close()
 

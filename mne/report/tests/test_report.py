@@ -33,6 +33,7 @@ from mne.report import report as report_mod
 from mne.report.report import (
     _ALLOWED_IMAGE_FORMATS,
     CONTENT_ORDER,
+    _fig_to_img,
 )
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
@@ -207,6 +208,9 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
 
     # ndarray support smoke test
     report.add_figure(fig=np.zeros((2, 3, 3)), title="title")
+    # ... and the reverse: a figure whose size is not a whole number of pixels
+    fig = plt.figure(figsize=(2.8, 2.8), dpi=89.6)
+    assert _fig_to_img(fig, image_format="ndarray").shape == (250, 250, 4)
 
     with pytest.raises(TypeError, match="It seems you passed a path"):
         report.add_figure(fig="foo", title="title")

@@ -1,0 +1,1 @@
+Sped up various evoked plotting functions by taking advantage of blitting, by `Eric Larson`_
