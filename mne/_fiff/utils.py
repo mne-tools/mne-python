@@ -71,25 +71,7 @@ def _find_channels(ch_names, ch_type="EOG"):
     return eog_idx
 
 
-_SCALE_KERNEL = None
-
-
-def _get_scale_kernel():
-    """Return the jitted calibration kernel, or None if numba is unavailable."""
-    global _SCALE_KERNEL
-    if _SCALE_KERNEL is None:
-        from .._numba import has_numba
-
-        if not has_numba:
-            _SCALE_KERNEL = False
-        else:
-            from ._utils_numba import _scale_into
-
-            _SCALE_KERNEL = _scale_into
-    return _SCALE_KERNEL or None
-
-
-def _mult_cal_one(data_view, one, idx, cals, mult):
+def _mult_cal_one(data_view, one, idx, cals, mult, *, kernel=None):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     assert data_view.shape[1] == one.shape[1], (
         data_view.shape[1],
@@ -107,7 +89,6 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
             # Benchmark (128 ch x 1024 samples): ~85 -> ~30 us per call
             # on BrainVision/FIF window reads.
             one = one[idx]
-            kernel = _get_scale_kernel()
             if kernel is not None:
                 # numba refuses byte-swapped input outright, so normalize
                 # first; the kernel more than pays for the extra pass

@@ -4,6 +4,7 @@
 
 import copy
 import os.path as op
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,7 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import read_meas_info
 from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
-from ..._fiff.tag import _call_dict, read_tag
+from ..._fiff.tag import _call_dict, _simple_dict, read_tag
 from ..._fiff.tree import dir_tree_find
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
@@ -36,6 +37,43 @@ from ..base import (
     _get_fname_rep,
     _RawShell,
 )
+
+# Resolving the jitted calibration kernel is expensive in every process, and it
+# never amortizes across processes: numba's on-disk cache still has to be
+# loaded. Measured here, first get_data() pays ~159 ms when numba has not been
+# imported yet and ~90 ms when it has. The kernel saves ~0.25 ms per MB of
+# integer payload and ~0.145 ms per MB of float payload, which puts break-even
+# at the sizes below -- only reach for it once a request is that big.
+_KERNEL_MIN_BYTES = {
+    # (numba already imported, dtype kind) -> payload bytes
+    (True, "i"): int(360e6),
+    (True, "u"): int(360e6),
+    (True, "f"): int(620e6),
+    (False, "i"): int(640e6),
+    (False, "u"): int(640e6),
+    (False, "f"): int(1100e6),
+}
+
+
+def _resolve_scale_kernel(n_bytes, tag_type):
+    """Return the jitted calibration kernel if this read is worth it, else None.
+
+    Deliberately does not import numba for a small request.
+    """
+    dtype = _simple_dict.get(tag_type)
+    if dtype is None:
+        return None
+    warm = "numba" in sys.modules
+    threshold = _KERNEL_MIN_BYTES.get((warm, np.dtype(dtype).kind))
+    if threshold is None or n_bytes < threshold:
+        return None
+    from ..._numba import has_numba
+
+    if not has_numba:
+        return None
+    from ..._fiff._utils_numba import _scale_into
+
+    return _scale_into
 
 
 @fill_doc
@@ -416,8 +454,17 @@ class Raw(BaseRaw):
             ents = self._raw_extras[fi]["ent"]
             nchan = self._raw_extras[fi]["orig_nchan"]
             use = (stop > bounds[:-1]) & (start < bounds[1:])
+            use_idx = np.where(use)[0]
+            # Decide once per request, not per buffer: only this level knows how
+            # much the whole read will decode.
+            present = [ents[ei] for ei in use_idx if ents[ei] is not None]
+            kernel = (
+                _resolve_scale_kernel(sum(e.size for e in present), present[0].type)
+                if present
+                else None
+            )
             offset = 0
-            for ei in np.where(use)[0]:
+            for ei in use_idx:
                 first = bounds[ei]
                 last = bounds[ei + 1]
                 nsamp = last - first
@@ -448,6 +495,7 @@ class Raw(BaseRaw):
                         idx,
                         cals,
                         mult,
+                        kernel=kernel,
                     )
             if n_bad:
                 warn(
