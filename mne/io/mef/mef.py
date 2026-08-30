@@ -191,6 +191,7 @@ class RawMEF(BaseRaw):
                     "n_channels": len(ch_names),
                     "ch_names": ch_names,
                     "password": password,
+                    "session": session,
                 }
             ],
             orig_units=orig_units,
@@ -235,7 +236,7 @@ class RawMEF(BaseRaw):
         """Read a chunk of raw data."""
         extras = self._raw_extras[fi]
         ch_names = extras["ch_names"]
-        session = _get_session(self._filenames[fi], extras)
+        session = extras["session"]
 
         ch_indices = (
             range(*idx.indices(extras["n_channels"])) if isinstance(idx, slice) else idx
@@ -253,22 +254,6 @@ class RawMEF(BaseRaw):
         block_out = np.zeros((extras["n_channels"], stop - start), dtype=data.dtype)
         block_out[idx] = raw_data
         _mult_cal_one(data, block_out, idx, cals, mult)
-
-
-def _get_session(fname, extras):
-    """Open a MEF session, reusing the one already opened for this file.
-
-    Parsing the session metadata costs ~38 ms on a 194-channel recording and
-    does not depend on the requested range, so opening it per read makes a short
-    window cost as much as reading the whole recording.
-    """
-    session = extras.get("session")
-    if session is None:
-        from pymef.mef_session import MefSession
-
-        session = MefSession(str(fname), extras.get("password", ""))
-        extras["session"] = session
-    return session
 
 
 @verbose
