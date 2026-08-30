@@ -496,17 +496,19 @@ def _fig_to_img(
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with {dpi} dpi"
     )
-    if image_format == "ndarray":
-        # Raw RGBA: the caller wants the rendered pixels, so encoding them as PNG
-        # only to decode them again below is pure overhead.
+    if image_format == "svg":
+        mpl_format = "svg"
+    elif image_format != "ndarray" and "bbox_inches" in mpl_kwargs:
+        # bbox_inches changes the rendered size, so the raw buffer could no longer be
+        # reshaped from the figure's own bbox
+        mpl_format = "png"
+    else:
+        # Raw RGBA: the pixels are all that is wanted below, so encoding them as PNG
+        # only to decode them again is pure overhead.
         mpl_format = "rgba"
         # Agg truncates the figure size to whole pixels (`RendererAgg.__init__`),
         # so rounding here would mis-shape the buffer at fractional DPI
         shape = (int(fig.bbox.size[1]), int(fig.bbox.size[0]), 4)
-    elif image_format == "svg":
-        mpl_format = "svg"
-    else:
-        mpl_format = "png"
     fig.savefig(output, format=mpl_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -516,8 +518,13 @@ def _fig_to_img(
     if image_format not in ("svg", "ndarray"):
         from PIL import Image
 
-        output.seek(0)
-        orig = Image.open(output)
+        if mpl_format == "rgba":
+            orig = Image.frombuffer(
+                "RGBA", shape[1::-1], output.getbuffer(), "raw", "RGBA", 0, 1
+            )
+        else:
+            output.seek(0)
+            orig = Image.open(output)
         if orig.mode == "RGBA":
             output = _compress_img(orig, image_format, dpi)
 
