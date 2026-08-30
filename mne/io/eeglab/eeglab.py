@@ -216,11 +216,6 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
     return ch_names, ch_types, montage
 
 
-# read in cache-sized blocks rather than one huge one (2.1x on a 102 MB file); see
-# _read_segments_file() for why a smaller block is faster
-_BLOCK_BYTES = 4 * 1024**2
-
-
 def _get_info(eeg, *, eog, montage_units):
     """Get measurement info."""
     # add the ch_names and info['chs'][idx]['loc']
@@ -480,6 +475,8 @@ class RawEEGLAB(BaseRaw):
                         "is_embedded": is_embedded,
                         "input_fname": input_fname,
                         "uint16_codec": uint16_codec,
+                        # Cache-sized blocks are 2.1x faster on a 102 MB file.
+                        "max_block_samples": max(1, 4 * 1024**2 // 4 // info["nchan"]),
                     }
                 ],
             )
@@ -561,7 +558,7 @@ class RawEEGLAB(BaseRaw):
             cals,
             mult,
             dtype="<f4",
-            max_block_bytes=_BLOCK_BYTES,
+            max_block_samples=raw_extra["max_block_samples"],
         )
 
 

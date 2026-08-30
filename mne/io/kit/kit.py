@@ -149,6 +149,10 @@ class RawKIT(BaseRaw):
         )
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
+        # Each block is cast to float64 and scaled, so a smaller one stays in cache
+        kit_info["max_block_samples"] = max(
+            1, 2 * 1024**2 // kit_info["dtype"].itemsize // kit_info["nchan"]
+        )
         if kit_info["acq_type"] != KIT.CONTINUOUS:
             raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
@@ -209,8 +213,7 @@ class RawKIT(BaseRaw):
 
         n_bytes = sqd["dtype"].itemsize
         assert n_bytes in (2, 4)
-        # Read up to 100 MB of data at a time.
-        blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
+        blk_size = min(data_left, sqd["max_block_samples"] * nchan)
         with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes

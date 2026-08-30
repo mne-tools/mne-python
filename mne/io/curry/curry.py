@@ -209,11 +209,6 @@ def _get_curry_recording_type(fname):
             return "evoked"
 
 
-# read in cache-sized blocks rather than one huge one (1.5x on a 107 MB file); see
-# _read_segments_file() for why a smaller block is faster
-_BLOCK_BYTES = 16 * 1024**2
-
-
 def _get_curry_epoch_info(fname):
     _soft_import("curryreader", "read epoch info")
     _soft_import("pandas", "dataframe integration")
@@ -795,7 +790,11 @@ class RawCurry(BaseRaw):
 
         # create raw object
         last_samps = [n_samples - 1]
-        raw_extras = dict(is_ascii=is_ascii)
+        # Cache-sized blocks are 1.5x faster on a 107 MB file.
+        raw_extras = dict(
+            is_ascii=is_ascii,
+            max_block_samples=max(1, 16 * 1024**2 // 4 // info["nchan"]),
+        )
         super().__init__(
             info,
             preload=False,
@@ -879,7 +878,7 @@ class RawCurry(BaseRaw):
                 cals,
                 mult,
                 dtype="<f4",
-                max_block_bytes=_BLOCK_BYTES,
+                max_block_samples=self._raw_extras[fi]["max_block_samples"],
             )
 
 

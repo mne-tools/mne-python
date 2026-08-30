@@ -10,10 +10,6 @@ from ..._fiff.utils import _file_size, _read_segments_file
 from ...utils import _check_fname, fill_doc, logger, verbose, warn
 from ..base import BaseRaw
 
-# read in cache-sized blocks rather than one huge one (2.4x on a 102 MB file); see
-# _read_segments_file() for why a smaller block is faster
-_BLOCK_BYTES = 2 * 1024**2
-
 
 @fill_doc
 def read_raw_eximia(
@@ -105,6 +101,10 @@ class RawEximia(BaseRaw):
             last_samps=(n_samples - 1,),
             filenames=[fname],
             orig_format="short",
+            raw_extras=[
+                # Cache-sized blocks are 2.4x faster on a 102 MB file.
+                {"max_block_samples": max(1, 2 * 1024**2 // 2 // info["nchan"])}
+            ],
         )
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -119,5 +119,5 @@ class RawEximia(BaseRaw):
             cals,
             mult,
             dtype="<i2",
-            max_block_bytes=_BLOCK_BYTES,
+            max_block_samples=self._raw_extras[fi]["max_block_samples"],
         )

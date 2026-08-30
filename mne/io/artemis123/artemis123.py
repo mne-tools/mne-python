@@ -19,10 +19,6 @@ from ...utils import _check_fname, logger, verbose, warn
 from ..base import BaseRaw
 from .utils import _load_mne_locs, _read_pos
 
-# read in cache-sized blocks rather than one huge one (1.5x on a 176 MB file); see
-# _read_segments_file() for why a smaller block is faster
-_BLOCK_BYTES = 16 * 1024**2
-
 
 @verbose
 def read_raw_artemis123(
@@ -366,6 +362,8 @@ class RawArtemis123(BaseRaw):
             raise RuntimeError(f"{input_fname} - Not Found")
 
         info, header_info = _get_artemis123_info(input_fname, pos_fname=pos_fname)
+        # Cache-sized blocks are 1.5x faster on a 176 MB file.
+        header_info["max_block_samples"] = max(1, 16 * 1024**2 // 4 // info["nchan"])
 
         last_samps = [header_info.get("num_samples", 1) - 1]
 
@@ -550,5 +548,5 @@ class RawArtemis123(BaseRaw):
             cals,
             mult,
             dtype=">f4",
-            max_block_bytes=_BLOCK_BYTES,
+            max_block_samples=self._raw_extras[fi]["max_block_samples"],
         )

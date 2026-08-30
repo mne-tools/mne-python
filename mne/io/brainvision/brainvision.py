@@ -35,9 +35,6 @@ from ...utils import (
 )
 from ..base import BaseRaw
 
-# read in cache-sized blocks rather than one huge one
-_BLOCK_BYTES = 8 * 1024**2
-
 
 @fill_doc
 class RawBrainVision(BaseRaw):
@@ -147,6 +144,11 @@ class RawBrainVision(BaseRaw):
 
         orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
+        if not isinstance(fmt, dict):
+            # Read in cache-sized blocks rather than one huge one.
+            raw_extras["max_block_samples"] = max(
+                1, 8 * 1024**2 // dtype_bytes // n_data_ch
+            )
         super().__init__(
             info,
             last_samps=[n_samples - 1],
@@ -194,7 +196,7 @@ class RawBrainVision(BaseRaw):
                 mult,
                 dtype=dtype,
                 n_channels=n_data_ch,
-                max_block_bytes=_BLOCK_BYTES,
+                max_block_samples=self._raw_extras[fi]["max_block_samples"],
             )
         else:
             offsets = self._raw_extras[fi]["offsets"]

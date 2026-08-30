@@ -99,6 +99,9 @@ class RawFIL(BaseRaw):
         nchans = len(chans["name"])
         nsamples = _determine_nsamples(files["bin"], nchans, precision) - 1
         sample_info["nsamples"] = nsamples
+        # 16 MiB avoids regressing the 9.8 MB fixture while remaining 1.9x
+        # faster on a 197 MB file.
+        sample_info["max_block_samples"] = max(1, 16 * 1024**2 // dt.itemsize // nchans)
 
         raw_extras = list()
         raw_extras.append(sample_info)
@@ -193,15 +196,8 @@ class RawFIL(BaseRaw):
             cals,
             mult,
             dtype=si["dt"],
-            max_block_bytes=_BLOCK_BYTES,
+            max_block_samples=si["max_block_samples"],
         )
-
-
-# read in cache-sized blocks rather than one huge one (1.9x on a 197 MB file); see
-# _read_segments_file() for why a smaller block is faster. 4 MiB is faster still
-# (2.5x) but measurably regresses the 9.8 MB shipped fixture, which fits in one
-# 16 MiB block and so keeps its current code path exactly.
-_BLOCK_BYTES = 16 * 1024**2
 
 
 def _convert_channel_info(chans):

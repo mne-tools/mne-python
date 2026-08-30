@@ -55,11 +55,6 @@ def read_raw_persyst(
     return RawPersyst(fname, preload, verbose)
 
 
-# read in cache-sized blocks rather than one huge one (2.3x on a 107 MB file);
-# see _read_segments_file() for why a smaller block is faster
-_BLOCK_BYTES = 16 * 1024**2
-
-
 @fill_doc
 class RawPersyst(BaseRaw):
     """Raw object from a Persyst file.
@@ -235,7 +230,11 @@ class RawPersyst(BaseRaw):
 
             logger.debug(f"Loaded {n_samples} samples for {n_chs} channels.")
 
+        # Cache-sized blocks are 2.3x faster on a 107 MB file.
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
+        raw_extras["max_block_samples"] = max(
+            1, 16 * 1024**2 // dtype.itemsize // n_chs
+        )
         # create Raw object
         super().__init__(
             info,
@@ -283,7 +282,7 @@ class RawPersyst(BaseRaw):
             mult,
             dtype=self._raw_extras[fi]["dtype"],
             n_channels=self._raw_extras[fi]["n_chs"],
-            max_block_bytes=_BLOCK_BYTES,
+            max_block_samples=self._raw_extras[fi]["max_block_samples"],
         )
 
 
