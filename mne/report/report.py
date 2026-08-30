@@ -408,6 +408,26 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
         fig.set_dpi(dpi)
 
 
+def _compress_img(img, image_format, dpi):
+    """Drop the alpha channel and compress, for space and to avoid rendering issues."""
+    from PIL import Image
+
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+    pil_kwargs = dict()
+    if image_format == "webp":
+        # Here quality means speed/size tradeoff (either way the result is lossless);
+        # 20 rather than 50 encodes ~1.5x faster for a few percent more bytes
+        pil_kwargs.update(lossless=True, quality=20)
+    else:
+        assert image_format == "png", image_format
+        pil_kwargs.update(optimize=True, compress_level=9)
+    background = Image.new("RGBA", img.size, (255, 255, 255))
+    img = Image.alpha_composite(background, img).convert("RGB")
+    output = BytesIO()
+    img.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+    return output
+
+
 def _fig_to_img(
     fig,
     *,
@@ -425,10 +445,22 @@ def _fig_to_img(
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
         # auto-close in all cases
-        fig = _ndarray_to_fig(fig)
+        img, fig = fig, _ndarray_to_fig(fig)
+        dpi = fig.get_dpi()
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the figure we just created
+        if fig.get_dpi() == dpi and image_format in ("png", "webp"):
+            # Nothing rescaled the pixels, so compress them as they are rather than
+            # rendering them back through the figure only to read them out again
+            from PIL import Image
+
+            plt.close(fig)
+            if img.dtype.kind == "f":  # float in [0, 1], as _fig_to_img returns
+                img = np.clip(img, 0, 1) * 255
+            img = Image.fromarray(img.astype(np.uint8)).convert("RGBA")
+            output = _compress_img(img, image_format, dpi)
+            return base64.b64encode(output.getvalue()).decode("ascii")
     elif isinstance(fig, Figure):
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
@@ -484,20 +516,10 @@ def _fig_to_img(
     if image_format not in ("svg", "ndarray"):
         from PIL import Image
 
-        # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-        pil_kwargs = dict()
-        if image_format == "webp":
-            # Here quality means speed/size tradeoff (either way the result is lossless)
-            pil_kwargs.update(lossless=True, quality=50)
-        elif image_format == "png":
-            pil_kwargs.update(optimize=True, compress_level=9)
         output.seek(0)
         orig = Image.open(output)
         if orig.mode == "RGBA":
-            background = Image.new("RGBA", orig.size, (255, 255, 255))
-            new = Image.alpha_composite(background, orig).convert("RGB")
-            output = BytesIO()
-            new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+            output = _compress_img(orig, image_format, dpi)
 
     if image_format == "ndarray":
         # float in [0, 1], like the PNG this used to go through
