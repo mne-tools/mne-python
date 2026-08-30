@@ -418,10 +418,6 @@ def _map_ch_to_specs(ch_name, chan_labels_upper):
     return out
 
 
-# decode in cache-sized blocks rather than one huge one (1.8x on a 106 MB file)
-_BLOCK_BYTES = 1024**2
-
-
 @fill_doc
 class RawNihon(BaseRaw):
     """Raw object from a Nihon Kohden EEG file.
@@ -477,6 +473,11 @@ class RawNihon(BaseRaw):
         ]
 
         raw_extras = dict(cal=cal, offsets=offsets, gains=gains, header=header)
+        # Cache-sized blocks are 1.8x faster on a 106 MB file.
+        for datablock in header["controlblocks"][0]["datablocks"]:
+            datablock["max_block_samples"] = max(
+                1, 1024**2 // 2 // (datablock["n_channels"] + 1)
+            )
         for i_ch, ch_name in enumerate(info["ch_names"]):
             t_range = chs[ch_name]["phys_max"] - chs[ch_name]["phys_min"]
             info["chs"][i_ch]["range"] = t_range
@@ -574,7 +575,7 @@ class RawNihon(BaseRaw):
             # size of the block, so reading the whole request at once pushes
             # them all out of cache.
             n_times = stop - start
-            n_block = max(1, _BLOCK_BYTES // 2 // n_channels)
+            n_block = datablock["max_block_samples"]
             with open(self.filenames[fi], "rb") as fid:
                 fid.seek(start_offset)
                 for sample_start in range(0, n_times, n_block):

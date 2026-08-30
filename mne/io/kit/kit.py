@@ -82,11 +82,6 @@ class UnsupportedKITFormat(ValueError):
         ValueError.__init__(self, *args, **kwargs)
 
 
-# read in cache-sized blocks rather than one huge one (1.8x on a 136 MB file);
-# each block is cast to float64 and scaled, so a smaller one stays in cache
-_BLOCK_BYTES = 2 * 1024**2
-
-
 @fill_doc
 class RawKIT(BaseRaw):
     r"""Raw object from KIT SQD file.
@@ -154,6 +149,10 @@ class RawKIT(BaseRaw):
         )
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
+        # Each block is cast to float64 and scaled, so a smaller one stays in cache
+        kit_info["max_block_samples"] = max(
+            1, 2 * 1024**2 // kit_info["dtype"].itemsize // kit_info["nchan"]
+        )
         if kit_info["acq_type"] != KIT.CONTINUOUS:
             raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
@@ -214,7 +213,7 @@ class RawKIT(BaseRaw):
 
         n_bytes = sqd["dtype"].itemsize
         assert n_bytes in (2, 4)
-        blk_size = min(data_left, (_BLOCK_BYTES // n_bytes // nchan) * nchan)
+        blk_size = min(data_left, sqd["max_block_samples"] * nchan)
         with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
