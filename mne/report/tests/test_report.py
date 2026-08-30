@@ -211,6 +211,10 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     # ... and the reverse: a figure whose size is not a whole number of pixels
     fig = plt.figure(figsize=(2.8, 2.8), dpi=89.6)
     assert _fig_to_img(fig, image_format="ndarray").shape == (250, 250, 4)
+    # add_figure does not validate image_format, so _fig_to_img normalizes and checks
+    report.add_figure(fig=fig, title="upper", image_format="PNG")  # used in the docs
+    with pytest.raises(ValueError, match="Invalid value for the 'image_format'"):
+        report.add_figure(fig=fig, title="bad", image_format="jpeg")
 
     with pytest.raises(TypeError, match="It seems you passed a path"):
         report.add_figure(fig="foo", title="title")

@@ -419,7 +419,7 @@ def _compress_img(img, image_format, dpi):
         # 20 rather than 50 encodes ~1.5x faster for a few percent more bytes
         pil_kwargs.update(lossless=True, quality=20)
     else:
-        assert image_format == "png", image_format
+        assert image_format == "png", image_format  # _fig_to_img checks this
         pil_kwargs.update(optimize=True, compress_level=9)
     background = Image.new("RGBA", img.size, (255, 255, 255))
     img = Image.alpha_composite(background, img).convert("RGB")
@@ -441,6 +441,12 @@ def _fig_to_img(
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
+
+    # Report validates its own image_format, but add_figure and friends pass whatever
+    # they are given straight through, and e.g. "PNG" is used in the docs
+    _validate_type(image_format, str, "image_format")
+    image_format = image_format.lower()
+    _check_option("image_format", image_format, _ALLOWED_IMAGE_FORMATS + ("ndarray",))
 
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
