@@ -1,0 +1,1 @@
+Speed up :func:`mne.io.read_raw_fif` on integer-format files by normalizing the byte order of each data buffer before calibrating it, by `Bruno Aristimunha`_.
