@@ -72,6 +72,7 @@ from ..utils import (
     _pl,
     _reject_data_segments,
     _require_version,
+    _soft_import,
     _validate_type,
     check_fname,
     check_random_state,
@@ -684,9 +685,6 @@ class ICA(ContainsMixin):
         for method, mod in req_map.items():
             if self.method == method:
                 _require_version(mod, f"use method={repr(method)}")
-        if self.method == "jamica":
-            _require_version("jamica", "use method='jamica'", "0.3.0")
-
         _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
 
         if np.isclose(inst.info["highpass"], 0.0):
@@ -1017,9 +1015,11 @@ class ICA(ContainsMixin):
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
             del _, n_iter
         elif self.method == "jamica":
-            from jamica import amica
+            jamica = _soft_import(
+                "jamica", "fitting ICA with method='jamica'", min_version="0.3.0"
+            )
 
-            _, W, _, n_iter = amica(
+            _, W, _, n_iter = jamica.amica(
                 data[:, sel].T,
                 whiten=False,
                 return_n_iter=True,

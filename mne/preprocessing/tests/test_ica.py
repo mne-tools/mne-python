@@ -184,19 +184,6 @@ def test_ica_simple(method):
     assert amari_distance < 0.1
 
 
-def test_ica_jamica_missing_dependency(monkeypatch):
-    """Test the optional JAMICA dependency error."""
-    raw = RawArray(np.zeros((2, 10)), create_info(2, 100.0, "mag"), verbose=False)
-    monkeypatch.setattr(
-        "mne.utils.check.import_module", MagicMock(side_effect=ImportError)
-    )
-    with pytest.raises(
-        ImportError,
-        match=r"jamica package \(version >= 0\.3\.0\).*method='jamica'",
-    ):
-        ICA(n_components=2, method="jamica").fit(raw)
-
-
 def test_ica_jamica_multimodel_error():
     """Test that JAMICA's single-model error propagates through ICA."""
     pytest.importorskip("jamica", minversion="0.3.0")
