@@ -460,6 +460,7 @@
 .. _Thomas Jochmann: https://github.com/tjochmann
 .. _Thomas Moreau: https://github.com/tomMoral
 .. _Thomas Radman: https://github.com/tradman
+.. _Tim Anderson: https://github.com/timothyanderson096-ocdealcheck
 .. _Tim Gates: https://github.com/timgates42
 .. _Timon Merk: https://github.com/timonmerk
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199

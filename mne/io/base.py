@@ -741,6 +741,28 @@ class BaseRaw(
         """:class:`~mne.Annotations` for marking segments of data."""
         return self._annotations
 
+    def get_annotation_spans(self) -> tuple[np.ndarray, np.ndarray]:
+        """Get annotation spans relative to the first data sample.
+
+        Returns
+        -------
+        tmin : ndarray, shape (n_annotations,)
+            Annotation onsets in seconds relative to the first data sample.
+        tmax : ndarray, shape (n_annotations,)
+            Annotation ends in seconds relative to the first data sample.
+
+        Notes
+        -----
+        Onsets in :attr:`annotations` use the acquisition/sample-number time
+        reference and therefore include :attr:`first_time`. Time parameters
+        such as :meth:`get_data` ``tmin`` and :meth:`plot` ``start`` instead
+        use zero at the first available data sample. This method converts
+        between those time references.
+        """
+        tmin = _sync_onset(self, self.annotations.onset)
+        tmax = tmin + self.annotations.duration
+        return tmin, tmax
+
     @property
     def filenames(self) -> tuple[Path | None, ...]:
         """The filenames used.
