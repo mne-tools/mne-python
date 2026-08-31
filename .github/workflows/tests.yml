@@ -93,7 +93,7 @@ jobs:
           detached: true
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
-      - uses: pyvista/setup-headless-display-action@v4
+      - uses: pyvista/setup-headless-display-action@v5
         with:
           qt: true
           pyvista: false
