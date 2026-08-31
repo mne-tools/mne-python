@@ -23,11 +23,11 @@ doc = [
   "mne-gui-addons",
   "neo",
   "numpydoc >= 0.5",
-  "openneuro-py >= 2020.1",
+  "openneuro-py >= 2020.1",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "psutil",
   "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
-  "pymef",  # released 2023-06-30, will become 0.12 on 2028-07-01
+  "pymef",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
