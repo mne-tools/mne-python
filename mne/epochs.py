@@ -2305,6 +2305,7 @@ class BaseEpochs(
         """Make a deepcopy."""
         cls = self.__class__
         result = cls.__new__(cls)
+        memodict[id(self)] = result  # so self-referencing attributes terminate
         for k, v in self.__dict__.items():
             # drop_log is immutable and _raw is private (and problematic to
             # deepcopy)
