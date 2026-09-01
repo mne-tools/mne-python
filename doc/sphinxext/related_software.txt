@@ -57,6 +57,7 @@ eeg_positions # categories: preproc, visu
 emd # categories: oscillations
 fooof # categories: oscillations
 hedtools # categories: organization
+jamica # categories: preproc
 meegkit # categories: preproc
 meggie # categories: visu
 mffpy # categories: io
