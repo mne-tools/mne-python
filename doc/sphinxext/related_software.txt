@@ -81,6 +81,7 @@ pactools # categories: oscillations
 pybispectra # categories: oscillations
 pybvrf # categories: io
 pycrostates # categories: microstates
+pymef  # categories: io
 pyprep # categories: preproc
 pyriemann # categories: stats
 python-picard # categories: preproc
