@@ -636,7 +636,12 @@ class UpdateChannelsMixin:
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
         if hasattr(self, "_data"):  # skip non-preloaded Raw
-            self._data = self._data.take(idx, axis=axis)
+            if isinstance(self._data, list):
+                # replacing the contents rather than the attribute keeps `_data`
+                # an ndarray everywhere else this mixin is used
+                self._data[:] = [epoch.take(idx, axis=axis) for epoch in self._data]
+            else:
+                self._data = self._data.take(idx, axis=axis)
         else:
             assert isinstance(self, BaseRaw) and not self.preload
 

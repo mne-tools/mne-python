@@ -10,7 +10,7 @@ import os.path as op
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
-from functools import partial
+from functools import partial, wraps
 from inspect import getfullargspec
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -97,6 +97,7 @@ from .utils import (
     _prepare_read_metadata,
     _prepare_write_metadata,
     _scale_dataframe_data,
+    _time_mask,
     _validate_type,
     check_fname,
     check_random_state,
@@ -385,6 +386,118 @@ def _handle_event_repeated(events, event_id, event_repeated, selection, drop_log
     return new_events, event_id, selection, drop_log
 
 
+def _check_variable_bounds(tmin, tmax, n_events):
+    """Normalize ``tmin``/``tmax``, which may be given per event."""
+    arrays = [np.ndim(bound) > 0 for bound in (tmin, tmax)]
+    if not any(arrays):
+        return tmin, tmax, False
+
+    out = []
+    for name, bound in (("tmin", tmin), ("tmax", tmax)):
+        bound = np.atleast_1d(np.asarray(bound, dtype=float))
+        if bound.ndim != 1:
+            raise ValueError(f"{name} must be a scalar or 1D array, got {bound.ndim}D.")
+        if bound.size == 1:
+            bound = np.repeat(bound, n_events)
+        elif bound.size != n_events:
+            raise ValueError(
+                f"{name} has {bound.size} entries but there are {n_events} "
+                "events; per-event bounds must match the number of events."
+            )
+        if not np.all(np.isfinite(bound)):
+            raise ValueError(f"{name} must be finite.")
+        out.append(bound)
+
+    tmin, tmax = out
+    if n_events > 0 and np.all(tmin == tmin[0]) and np.all(tmax == tmax[0]):
+        # arrays were passed, but every epoch has the same bounds, so this is
+        # the ordinary fixed-duration case and should behave identically
+        return float(tmin[0]), float(tmax[0]), False
+    if np.any(tmin > tmax):
+        bad = int(np.argmax(tmin > tmax))
+        raise ValueError(
+            f"tmin has to be less than or equal to tmax, but epoch {bad} has "
+            f"tmin={tmin[bad]:g} > tmax={tmax[bad]:g}."
+        )
+    return tmin, tmax, True
+
+
+def _check_variable_data(data, tmin, tmax, events, sfreq):
+    """Validate per-epoch data for variable-duration epochs."""
+    if isinstance(data, np.ndarray) and data.ndim == 3:
+        data = list(data)
+    if not isinstance(data, list | tuple):
+        raise TypeError(
+            "With per-event tmin/tmax, data must be a list of arrays of shape "
+            f"(n_channels, n_times_i), got {type(data).__name__}."
+        )
+    if len(data) != len(events):
+        raise ValueError(
+            f"data has {len(data)} epochs but there are {len(events)} events."
+        )
+    n_channels = None
+    for ii, epoch in enumerate(data):
+        epoch = np.asarray(epoch)
+        if epoch.ndim != 2:
+            raise ValueError(
+                f"Epoch {ii} has ndim={epoch.ndim}, expected 2 (n_channels, n_times)."
+            )
+        if n_channels is None:
+            n_channels = epoch.shape[0]
+        elif epoch.shape[0] != n_channels:
+            raise ValueError(
+                f"Epoch {ii} has {epoch.shape[0]} channels but epoch 0 has "
+                f"{n_channels}. Only the time axis may vary between epochs."
+            )
+        want = round((tmax[ii] - tmin[ii]) * sfreq) + 1
+        if epoch.shape[1] != want:
+            raise ValueError(
+                f"Epoch {ii} has {epoch.shape[1]} samples but tmin={tmin[ii]:g} "
+                f"and tmax={tmax[ii]:g} at {sfreq:g} Hz imply {want}."
+            )
+
+
+def _check_variable_unsupported(*, baseline, reject_tmin, reject_tmax, decim, preload):
+    """Reject options this implementation does not yet handle."""
+    if baseline is not None:
+        raise NotImplementedError(
+            "Baseline correction is not implemented for variable-duration "
+            "epochs; pass baseline=None and correct afterwards. The baseline "
+            "window would have to be checked against each epoch separately."
+        )
+    for name, value in (("reject_tmin", reject_tmin), ("reject_tmax", reject_tmax)):
+        if value is not None:
+            raise NotImplementedError(
+                f"{name} is not implemented for variable-duration epochs, "
+                "because the window is not guaranteed to exist in every epoch."
+            )
+    if decim != 1:
+        raise NotImplementedError(
+            "decim is not implemented for variable-duration epochs."
+        )
+    if not preload:
+        raise NotImplementedError(
+            "Variable-duration epochs must be preloaded. Reading them lazily "
+            "from disk requires per-epoch bounds in the I/O layer, which is "
+            "not part of this change."
+        )
+
+
+def _is_variable_duration_data(data):
+    """Whether ``data`` is a sequence of arrays with differing lengths."""
+    if isinstance(data, np.ndarray):
+        return False
+    if not isinstance(data, list | tuple) or len(data) == 0:
+        return False
+    lengths = set()
+    for epoch in data:
+        epoch = np.asarray(epoch)
+        if epoch.ndim != 2:
+            return False
+        lengths.add(epoch.shape[1])
+    return len(lengths) > 1
+
+
 @fill_doc
 class BaseEpochs(
     ProjMixin,
@@ -410,9 +523,11 @@ class BaseEpochs(
     Parameters
     ----------
     %(info_not_none)s
-    data : ndarray | None
+    data : ndarray | list of ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
-        of shape (n_epochs, n_channels, n_times).
+        of shape (n_epochs, n_channels, n_times). A list of
+        (n_channels, n_times) arrays, one per epoch, gives epochs of differing
+        duration.
     %(events_epochs)s
     %(event_id)s
     %(epochs_tmin_tmax)s
@@ -459,15 +574,22 @@ class BaseEpochs(
     used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
+    # Variable-duration epochs keep one array per epoch in this same slot. The
+    # declaration describes the rectangular case that every reshaping code path
+    # below relies on; those paths refuse before they run when durations vary.
+    _data: np.ndarray | None
+    _tmin_per_epoch: np.ndarray
+    _tmax_per_epoch: np.ndarray
+
     @verbose
     def __init__(
         self,
         info: Info,
-        data: np.ndarray | None,
+        data: np.ndarray | list[np.ndarray] | None,
         events: np.ndarray,
         event_id: int | list[int] | dict | str | list[str] | None = None,
-        tmin: float = -0.2,
-        tmax: float = 0.5,
+        tmin: float | np.ndarray = -0.2,
+        tmax: float | np.ndarray = 0.5,
         baseline: tuple[float | None, float | None] | None = (None, 0),
         raw: "BaseRaw | list | None" = None,
         picks: str | np.ndarray | slice | None = None,
@@ -597,6 +719,13 @@ class BaseEpochs(
             self.metadata = metadata
             # do not set self.events here, let subclass do it
 
+        # Variable-duration epochs: tmin and/or tmax may be given per event.
+        tmin, tmax, self._variable_duration = _check_variable_bounds(
+            tmin,
+            tmax,
+            len(self.events) if getattr(self, "events", None) is not None else 0,
+        )
+
         if (detrend not in [None, 0, 1]) or isinstance(detrend, bool):
             raise ValueError("detrend must be None, 0, or 1")
         self.detrend = detrend
@@ -614,8 +743,16 @@ class BaseEpochs(
             self.preload = False
             self._data = None
             self._do_baseline = True
+        elif self._variable_duration:
+            _check_variable_data(data, tmin, tmax, self.events, self.info["sfreq"])
+            self.preload = True
+            self._data = [  # ty: ignore[invalid-assignment]  # ragged payload
+                np.asarray(epoch, dtype=np.float64) for epoch in data
+            ]
+            self._do_baseline = False
         else:
             assert decim == 1
+            assert not isinstance(data, list)  # only the branch above takes a list
             if (
                 data.ndim != 3
                 or data.shape[2] != round((tmax - tmin) * self.info["sfreq"]) + 1
@@ -630,13 +767,35 @@ class BaseEpochs(
             self._do_baseline = False
         self._offset = None
 
-        if tmin > tmax:
+        if not self._variable_duration and tmin > tmax:
             raise ValueError("tmin has to be less than or equal to tmax")
 
         # Handle times
         sfreq = float(self.info["sfreq"])
-        start_idx = int(round(tmin * sfreq))
-        self._raw_times = np.arange(start_idx, int(round(tmax * sfreq)) + 1) / sfreq
+        if self._variable_duration:
+            # Per-epoch bounds are kept, and `times` spans their union so that
+            # it agrees with `as_fixed()`. Per-epoch axes are available from
+            # `get_times()`; see `durations`.
+            self._tmin_per_epoch = tmin
+            self._tmax_per_epoch = tmax
+            start_idx = int(round(tmin.min() * sfreq))
+            stop_idx = int(round(tmax.max() * sfreq))
+            _check_variable_unsupported(
+                baseline=baseline,
+                reject_tmin=reject_tmin,
+                reject_tmax=reject_tmax,
+                decim=decim,
+                preload=self.preload or preload_at_end,
+            )
+            baseline = None
+        else:
+            # only the variable-duration path carries per-epoch bounds; every
+            # reader of these guards on _variable_duration first
+            self._tmin_per_epoch = None  # ty: ignore[invalid-assignment]
+            self._tmax_per_epoch = None  # ty: ignore[invalid-assignment]
+            start_idx = int(round(tmin * sfreq))
+            stop_idx = int(round(tmax * sfreq))
+        self._raw_times = np.arange(start_idx, stop_idx + 1) / sfreq
         self._set_times(self._raw_times)
 
         # check reject_tmin and reject_tmax
@@ -670,12 +829,22 @@ class BaseEpochs(
 
         # decimation
         self._decim = 1
-        self.decimate(decim)
+        if not self._variable_duration:
+            self.decimate(decim)
+        else:
+            # decim != 1 is rejected above, and decimate() is wrapped to raise
+            # for these, so set the slice it would otherwise have set
+            self._decim_slice = slice(None, None, None)
 
         # baseline correction: replace `None` tuple elements  with actual times
-        self.baseline = _check_baseline(
-            baseline, times=self.times, sfreq=self.info["sfreq"]
-        )
+        if self._variable_duration:
+            # baseline is forced to None above, and there is no shared time axis
+            # to resolve None endpoints against
+            self.baseline = None
+        else:
+            self.baseline = _check_baseline(
+                baseline, times=self.times, sfreq=self.info["sfreq"]
+            )
         if self.baseline is not None and self.baseline != baseline:
             logger.info(
                 f"Setting baseline interval to "
@@ -743,7 +912,9 @@ class BaseEpochs(
             assert len(self.drop_log) >= len(self.events)
         assert len(self.selection) == sum(len(dl) == 0 for dl in self.drop_log)
         assert hasattr(self, "_times_readonly")
-        assert not self.times.flags["WRITEABLE"]
+        # `times` is deliberately unavailable when durations vary, so check the
+        # underlying vector rather than going through the property
+        assert not self._times_readonly.flags["WRITEABLE"]
         assert isinstance(self.drop_log, tuple)
         assert all(isinstance(log, tuple) for log in self.drop_log)
         assert all(isinstance(s, str) for log in self.drop_log for s in log)
@@ -773,6 +944,151 @@ class BaseEpochs(
         self.drop_log = (tuple(),) * len(self.events)
         self._check_consistency()
 
+    # -- variable-duration epochs ---------------------------------------
+    @property
+    def variable_duration(self):
+        """Whether the epochs have per-event ``tmin``/``tmax``."""
+        return self._variable_duration
+
+    @property
+    def times(self):
+        """The time axis shared by all epochs, in seconds.
+
+        Raises
+        ------
+        RuntimeError
+            When durations vary, because there is no such axis. Returning the
+            union would leave ``len(epochs.times) == data.shape[-1]`` false while
+            looking ordinary, which is how silent errors happen downstream. Use
+            :meth:`get_times` for one epoch, or :meth:`as_fixed` for the padded
+            common axis.
+        """
+        if self._variable_duration:
+            raise RuntimeError(
+                f"These {len(self.events)} epochs have durations from "
+                f"{self.durations.min():.3f} to {self.durations.max():.3f} s, so "
+                "there is no time axis they share. Use get_times(epoch) for one "
+                "epoch's axis, durations for their lengths, or as_fixed() for "
+                "the padded common axis."
+            )
+        return super().times
+
+    @property
+    def tmin(self):
+        """First time point, or one per epoch when durations vary."""
+        if self._variable_duration:
+            return self._tmin_per_epoch
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        """Last time point, or one per epoch when durations vary."""
+        if self._variable_duration:
+            return self._tmax_per_epoch
+        return self.times[-1]
+
+    @property
+    def durations(self):
+        """Duration of each epoch in seconds."""
+        if not self._variable_duration:
+            return np.full(len(self.events), self.times[-1] - self.times[0])
+        return self._tmax_per_epoch - self._tmin_per_epoch
+
+    def get_times(self, epoch=None):
+        """Return the time vector of one epoch, or of all of them.
+
+        Parameters
+        ----------
+        epoch : int | None
+            Index of the epoch. If ``None``, return one time vector per epoch.
+
+        Returns
+        -------
+        times : array | list of array
+            Time vector(s) in seconds. For fixed-duration epochs every entry is
+            :attr:`times`.
+        """
+        if epoch is None:
+            return [self.get_times(ii) for ii in range(len(self.events))]
+        if not self._variable_duration:
+            return self.times
+        sfreq = float(self.info["sfreq"])
+        start = int(round(self._tmin_per_epoch[epoch] * sfreq))
+        stop = int(round(self._tmax_per_epoch[epoch] * sfreq))
+        return np.arange(start, stop + 1) / sfreq
+
+    def as_fixed(self, pad_value=np.nan):
+        """Return fixed-duration epochs spanning the union of all epochs.
+
+        Parameters
+        ----------
+        pad_value : float
+            Value used where an epoch does not extend across the full window.
+
+        Returns
+        -------
+        epochs : instance of EpochsArray
+            Fixed-duration epochs from ``min(tmin)`` to ``max(tmax)``.
+        n_contributing : array, shape (n_times,)
+            Number of epochs carrying real data at each time point.
+
+        Notes
+        -----
+        Shorter epochs are padded to reach the common window, so the number of
+        epochs contributing to any reduction varies across the window. That
+        makes the noise level time-dependent, and the scalar ``nave`` carried by
+        :class:`mne.Evoked` cannot express it, which matters wherever ``nave``
+        scales a noise covariance. ``n_contributing`` is returned rather than
+        discarded so this stays visible; see
+        :gh:`14206` for the discussion.
+        """
+        if not self._variable_duration:
+            return self.copy(), np.full(len(self.times), len(self.events))
+        # the union vector, which `times` deliberately refuses to hand out
+        times = self._times_readonly
+        n_times = len(times)
+        data = np.full(
+            (len(self.events), len(self.ch_names), n_times), pad_value, dtype=float
+        )
+        n_contributing = np.zeros(n_times, int)
+        sfreq = float(self.info["sfreq"])
+        offset = int(round(times[0] * sfreq))
+        ragged = self._data
+        assert ragged is not None  # variable-duration epochs are always preloaded
+        for ii, epoch in enumerate(ragged):
+            start = int(round(self._tmin_per_epoch[ii] * sfreq)) - offset
+            stop = start + epoch.shape[1]
+            data[ii, :, start:stop] = epoch
+            n_contributing[start:stop] += 1
+        out = EpochsArray(
+            data,
+            self.info.copy(),
+            events=self.events.copy(),
+            event_id=self.event_id,
+            tmin=float(times[0]),
+            metadata=self.metadata,
+            selection=self.selection,
+            drop_log=self.drop_log,
+            verbose=False,
+        )
+        return out, n_contributing
+
+    def _get_variable_data(self, *, picks=None, item=None, copy=True):
+        """Return per-epoch data when durations vary, as one array per epoch."""
+        if item is None:
+            item = slice(None)
+        sel = np.arange(len(self.events))[item] if not isinstance(item, str) else None
+        if sel is None:
+            raise NotImplementedError(
+                "Selecting variable-duration epochs by condition name is not "
+                "implemented; index with integers or a slice."
+            )
+        ch_idx = _picks_to_idx(self.info, picks, "all", exclude=())
+        ragged = self._data
+        assert ragged is not None  # variable-duration epochs are always preloaded
+        out = [ragged[ii][ch_idx] for ii in sel]
+        return [epoch.copy() for epoch in out] if copy else out
+
     def load_data(self) -> Self:
         """Load the data if not already preloaded.
 
@@ -789,13 +1105,19 @@ class BaseEpochs(
         """
         if self.preload:
             return self
-        self._data = self._get_data()
+        if self._variable_duration:
+            self._data = self._load_variable_from_raw()
+        else:
+            self._data = self._get_data()
         self.preload = True
         self._do_baseline = False
         self._decim_slice = slice(None, None, None)
         self._decim = 1
-        self._raw_times = self.times
-        assert self._data.shape[-1] == len(self.times)
+        if not self._variable_duration:
+            # variable-duration epochs already set _raw_times to the union span
+            # in __init__, and self.times refuses to answer for them
+            self._raw_times = self.times
+            assert self._data.shape[-1] == len(self.times)
         self._raw = None  # shouldn't need it anymore
         return self
 
@@ -953,14 +1275,59 @@ class BaseEpochs(
                 reject_imax = idxs[-1]
             self._reject_time = slice(reject_imin, reject_imax)
 
+    def _load_variable_from_raw(self):
+        """Read every epoch at its own length into a list, mirroring ``drop_bad``."""
+        detrend_picks = self._detrend_picks
+        drop_log = list(self.drop_log)
+        good_idx, out = [], []
+        for idx, sel in enumerate(self.selection):
+            epoch_noproj = self._get_epoch_from_raw(idx)
+            epoch_noproj = self._detrend_offset_decim(epoch_noproj, detrend_picks)
+            epoch = self._project_epoch(epoch_noproj)
+            epoch_out = epoch_noproj if self._do_delayed_proj else epoch
+            is_good, bad_tuple = self._is_good_epoch(
+                epoch, n_times=self._n_times_per_epoch(idx)
+            )
+            if not is_good:
+                drop_log[sel] = drop_log[sel] + bad_tuple
+                continue
+            good_idx.append(idx)
+            out.append(epoch_out)
+
+        good_idx = np.asarray(good_idx, dtype=int)
+        if len(good_idx) != len(self.events):
+            self._tmin_per_epoch = self._tmin_per_epoch[good_idx]
+            self._tmax_per_epoch = self._tmax_per_epoch[good_idx]
+            self.events = self.events[good_idx]
+            self.selection = self.selection[good_idx]
+            if self.metadata is not None:
+                GetEpochsMixin.metadata.fset(
+                    self, self.metadata.iloc[good_idx], verbose=False
+                )
+        self.drop_log = tuple(drop_log)
+        self._bad_dropped = True
+        logger.info(f"{len(out)} matching events found after rejection")
+        return out
+
+    def _n_times_per_epoch(self, idx):
+        """Return the number of samples in one epoch."""
+        if not self._variable_duration:
+            return len(self.times)
+        sfreq = float(self.info["sfreq"])
+        return (
+            int(round((self._tmax_per_epoch[idx] - self._tmin_per_epoch[idx]) * sfreq))
+            + 1
+        )
+
     @verbose  # verbose is used by mne-realtime
-    def _is_good_epoch(self, data, verbose=None):
+    def _is_good_epoch(self, data, verbose=None, *, n_times=None):
         """Determine if epoch is good."""
         if isinstance(data, str):
             return False, (data,)
         if data is None:
             return False, ("NO_DATA",)
-        n_times = len(self.times)
+        if n_times is None:
+            n_times = len(self.times)
         if data.shape[1] < n_times:
             # epoch is too short ie at the end of the data
             return False, ("TOO_SHORT",)
@@ -1513,6 +1880,17 @@ class BaseEpochs(
             flat = self.flat
         if any(isinstance(rej, str) and rej != "existing" for rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
+        if self._variable_duration and (reject or flat):
+            # the no-arg call has already short-circuited above, so reaching
+            # here means real thresholds
+            raise NotImplementedError(
+                "drop_bad() with reject or flat is not implemented for "
+                "variable-duration epochs. Amplitude rejection is per-trial "
+                "and could work here, but the preloaded path needs one shared "
+                "time axis, which these epochs do not have. Pass reject= to "
+                "Epochs() at construction instead, which does apply it per "
+                "epoch. See https://github.com/mne-tools/mne-python/issues/14206."
+            )
         self._reject_setup(reject, flat, allow_callable=True)
         self._get_data(out=False, verbose=verbose)
         return self
@@ -1882,7 +2260,15 @@ class BaseEpochs(
                     epoch = self._project_epoch(epoch_noproj)
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
-                is_good, bad_tuple = self._is_good_epoch(epoch, verbose=verbose)
+                is_good, bad_tuple = self._is_good_epoch(
+                    epoch,
+                    verbose=verbose,
+                    n_times=(
+                        self._n_times_per_epoch(idx)
+                        if self._variable_duration
+                        else None
+                    ),
+                )
                 if not is_good:
                     assert isinstance(bad_tuple, tuple)
                     assert all(isinstance(x, str) for x in bad_tuple)
@@ -2004,8 +2390,11 @@ class BaseEpochs(
         exclude: list[str] | Literal["bads"] | tuple = (),
         copy: bool = True,
         verbose: bool | str | int | None = None,
-    ) -> np.ndarray:
+    ) -> np.ndarray | list[np.ndarray]:
         """Get all epochs as a 3D array.
+
+        Epochs of different durations have no shared time axis, so those are
+        returned as one array per epoch instead; see :meth:`as_fixed`.
 
         Parameters
         ----------
@@ -2057,10 +2446,20 @@ class BaseEpochs(
 
         Returns
         -------
-        data : array of shape (n_epochs, n_channels, n_times)
+        data : array of shape (n_epochs, n_channels, n_times) | list of array
             The epochs data. Will be a copy when ``copy=True`` and will be a view
-            when possible when ``copy=False``.
+            when possible when ``copy=False``. When durations vary, one
+            ``(n_channels, n_times_i)`` array per epoch.
         """
+        if self._variable_duration:
+            for name, value in (("units", units), ("tmin", tmin), ("tmax", tmax)):
+                if value is not None:
+                    raise NotImplementedError(
+                        f"get_data() with {name} is not implemented for "
+                        "variable-duration epochs; it would have to be applied "
+                        "per epoch. Call as_fixed() first to get one array."
+                    )
+            return self._get_variable_data(picks=picks, item=item, copy=copy)
         return self._get_data(
             picks=picks,
             exclude=exclude,
@@ -2182,8 +2581,13 @@ class BaseEpochs(
         """Build string representation."""
         s = f"{len(self.events)} events "
         s += "(all good)" if self._bad_dropped else "(good & bad)"
-        s += f", {self.tmin:.3f}".rstrip("0").rstrip(".")
-        s += f" – {self.tmax:.3f}".rstrip("0").rstrip(".")
+        if self._variable_duration:
+            s += f", {self.tmin.min():.3f}".rstrip("0").rstrip(".")
+            s += f" – {self.tmax.max():.3f}".rstrip("0").rstrip(".")
+            s += f" s, durations {self.durations.min():.3f}–{self.durations.max():.3f}"
+        else:
+            s += f", {self.tmin:.3f}".rstrip("0").rstrip(".")
+            s += f" – {self.tmax:.3f}".rstrip("0").rstrip(".")
         s += " s (baseline "
         if self.baseline is None:
             s += "off"
@@ -2274,6 +2678,10 @@ class BaseEpochs(
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, "Modifying data of epochs")
 
+        if self._variable_duration:
+            self._crop_variable(tmin, tmax, include_tmax)
+            return self
+
         super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         # Adjust rejection period
@@ -2290,6 +2698,98 @@ class BaseEpochs(
             )
             self.reject_tmax = self.tmax
         return self
+
+    def _crop_variable(self, tmin, tmax, include_tmax):
+        """Crop each epoch on its own time axis."""
+        for name in ("reject_tmin", "reject_tmax"):
+            if getattr(self, name, None) is not None:
+                raise NotImplementedError(
+                    f"{name} is not implemented for variable-duration epochs, "
+                    "because the window is not guaranteed to exist in every "
+                    "epoch."
+                )
+
+        sfreq = float(self.info["sfreq"])
+        # Work out every selection before changing anything, so a window that
+        # misses one epoch leaves the object as it was.
+        masks = list()
+        clamped_tmin = clamped_tmax = False
+        for ii in range(len(self.events)):
+            times = self.get_times(ii)
+            this_tmin, this_tmax = tmin, tmax
+            this_include_tmax = include_tmax
+            if this_tmin is None:
+                this_tmin = times[0]
+            elif this_tmin < times[0]:
+                clamped_tmin = True
+                this_tmin = times[0]
+            if this_tmax is None:
+                this_tmax = times[-1]
+            elif this_tmax > times[-1]:
+                clamped_tmax = True
+                this_tmax = times[-1]
+                # matches the fixed path: a clamped end keeps its last sample
+                this_include_tmax = True
+            # _time_mask raises when the window is inverted, which is what an
+            # entirely out-of-range request collapses to once tmax is clamped
+            mask = _time_mask(
+                times,
+                this_tmin,
+                this_tmax,
+                sfreq=sfreq,
+                include_tmax=this_include_tmax,
+            )
+            if not mask.any():
+                raise ValueError(
+                    f"tmin ({tmin}) and tmax ({tmax}) would leave epoch {ii} "
+                    f"with no samples; it spans {times[0]:g} to {times[-1]:g} s."
+                )
+            masks.append(mask)
+
+        # One warning per bound however many epochs needed clamping
+        if clamped_tmin:
+            warn(
+                "tmin is not in time interval for every epoch. tmin is set to "
+                "each of those epochs' own first sample."
+            )
+        if clamped_tmax:
+            warn(
+                "tmax is not in time interval for every epoch. tmax is set to "
+                "each of those epochs' own last sample."
+            )
+
+        ragged = self._data
+        assert ragged is not None  # variable-duration epochs are always preloaded
+        starts = np.empty(len(masks))
+        stops = np.empty(len(masks))
+        for ii, mask in enumerate(masks):
+            kept = self.get_times(ii)[mask]
+            ragged[ii] = ragged[ii][..., mask]
+            starts[ii], stops[ii] = kept[0], kept[-1]
+        self._tmin_per_epoch = starts
+        self._tmax_per_epoch = stops
+
+        # Cropping can remove the variation entirely. Compare the axes by their
+        # sample index and length rather than by float equality: every epoch is
+        # regularly sampled at one sfreq, so that pair identifies an axis
+        # exactly and does not depend on how the bound was rounded.
+        first_idx = np.round(starts * sfreq).astype(int)
+        lengths = np.array([epoch.shape[-1] for epoch in ragged])
+        if (
+            len(masks)
+            and (first_idx == first_idx[0]).all()
+            and (lengths == lengths[0]).all()
+        ):
+            self._data = np.stack(list(ragged))
+            self._variable_duration = False
+            self._tmin_per_epoch = None  # ty: ignore[invalid-assignment]
+            self._tmax_per_epoch = None  # ty: ignore[invalid-assignment]
+            start_idx, stop_idx = first_idx[0], first_idx[0] + lengths[0] - 1
+        else:
+            start_idx = int(round(float(np.min(starts)) * sfreq))
+            stop_idx = int(round(float(np.max(stops)) * sfreq))
+        self._raw_times = np.arange(start_idx, stop_idx + 1) / sfreq
+        self._set_times(self._raw_times)
 
     def copy(self) -> Self:
         """Return copy of Epochs instance.
@@ -2398,6 +2898,7 @@ class BaseEpochs(
             total_size = 0
         else:
             d = self[0].get_data(copy=False)
+            assert isinstance(d, np.ndarray)  # save() refuses ragged epochs
             # this should be guaranteed by subclasses
             assert d.dtype in (">f8", "<f8", ">c16", "<c16")
             total_size = d.nbytes * len(self)
@@ -3587,6 +4088,118 @@ def _events_from_annotations(raw, events, event_id, annotations, on_missing):
     return events, event_id, annotations
 
 
+# Methods whose result is only looked at. They warn and run on ``as_fixed()``,
+# which is enough for inspection because the padding is visible to whoever is
+# looking. Anything numeric is not in this table: see the two below.
+_VARIABLE_FALLBACK = {
+    "to_data_frame": "",
+}
+
+# Methods that combine epochs across a shared time axis. Padding them makes the
+# number of contributing epochs a function of time, which no scalar ``nave`` can
+# describe, so they ask for a policy instead of inventing one. See :gh:`14206`.
+_VARIABLE_NEEDS_POLICY = {
+    "average": "averaging",
+    "standard_error": "estimating the standard error",
+    "subtract_evoked": "subtracting an evoked response",
+    "iter_evoked": "iterating as evoked responses",
+    "compute_tfr": "computing a time-frequency representation",
+    "compute_psd": "computing a spectrum",
+}
+
+# Methods that are mathematically per-trial and simply have no ragged
+# implementation yet. Running them on a padded copy would return a wrong answer
+# rather than a slow one, so they raise until implemented natively.
+_VARIABLE_NOT_IMPLEMENTED = {
+    "filter": "filtering",
+    "apply_function": "applying a function",
+    "apply_baseline": "baseline correction",
+    "decimate": "decimation",
+    "resample": "resampling",
+    "save": "writing to FIF",
+    "export": "exporting",
+    # these render an image over one axis and cannot draw the NaN padding that
+    # as_fixed() introduces, so the fallback has nothing useful to show
+    "plot_image": "plotting as an image",
+    "plot_topo_image": "plotting as a topographic image",
+}
+
+
+def _wrap_variable_fallback(func, name, note):
+    """Warn and fall back to ``as_fixed()`` for variable-duration epochs."""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not getattr(self, "_variable_duration", False):
+            return func(self, *args, **kwargs)
+        message = (
+            f"{name}() needs one time axis, which these variable-duration "
+            f"epochs do not have, so it ran on as_fixed(): every epoch padded "
+            f"to span {self.tmin.min():g} to {self.tmax.max():g} s."
+        )
+        if note:
+            message += " " + note
+        message += " Call as_fixed() yourself to make this explicit."
+        warn(message, RuntimeWarning)
+        fixed, _ = self.as_fixed()
+        return getattr(fixed, name)(*args, **kwargs)
+
+    return wrapper
+
+
+def _raise_needs_policy(func, name, what):
+    """Raise for reductions across a time axis the epochs do not share."""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not getattr(self, "_variable_duration", False):
+            return func(self, *args, **kwargs)
+        raise NotImplementedError(
+            f"{name}() combines epochs across a shared time axis, and these "
+            f"epochs do not share one. {what.capitalize()} them needs an "
+            "explicit policy, because the number of contributing epochs varies "
+            "across the window and no single nave describes it. Either call "
+            "as_fixed(), which pads to the union window and returns that count "
+            "alongside the data, or align the epochs first. See "
+            "https://github.com/mne-tools/mne-python/issues/14206."
+        )
+
+    return wrapper
+
+
+def _raise_not_implemented(func, name, what):
+    """Raise for per-trial operations with no ragged implementation yet."""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not getattr(self, "_variable_duration", False):
+            return func(self, *args, **kwargs)
+        raise NotImplementedError(
+            f"{name}() is not implemented for variable-duration epochs. "
+            f"{what.capitalize()} is per-trial and could work here, but running "
+            "it on a padded copy would change the result rather than just slow "
+            "it down, so it raises until implemented. See "
+            "https://github.com/mne-tools/mne-python/issues/14206."
+        )
+
+    return wrapper
+
+
+for _name, _note in _VARIABLE_FALLBACK.items():
+    _orig = getattr(BaseEpochs, _name, None)
+    if _orig is not None:
+        setattr(BaseEpochs, _name, _wrap_variable_fallback(_orig, _name, _note))
+for _name, _what in _VARIABLE_NEEDS_POLICY.items():
+    _orig = getattr(BaseEpochs, _name, None)
+    if _orig is not None:
+        setattr(BaseEpochs, _name, _raise_needs_policy(_orig, _name, _what))
+for _name, _what in _VARIABLE_NOT_IMPLEMENTED.items():
+    _orig = getattr(BaseEpochs, _name, None)
+    if _orig is not None:
+        setattr(BaseEpochs, _name, _raise_not_implemented(_orig, _name, _what))
+del _name, _note, _what, _orig
+
+
 @fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
@@ -3709,8 +4322,8 @@ class Epochs(BaseEpochs):
         raw: "BaseRaw",
         events: np.ndarray | None = None,
         event_id: int | list[int] | dict | str | list[str] | None = None,
-        tmin: float = -0.2,
-        tmax: float = 0.5,
+        tmin: float | np.ndarray = -0.2,
+        tmax: float | np.ndarray = 0.5,
         baseline: tuple[float | None, float | None] | None = (None, 0),
         picks: str | np.ndarray | slice | None = None,
         preload: bool = False,
@@ -3813,24 +4426,37 @@ class Epochs(BaseEpochs):
         assert not isinstance(self._raw, list)  # a single Raw, unlike EpochsFIF
         sfreq = self._raw.info["sfreq"]
         event_samp = self.events[idx, 0]
-        # Read a data segment from "start" to "stop" in samples
+        # Read a data segment from "start" to "stop" in samples. With per-event
+        # bounds each epoch has its own window; otherwise all epochs share
+        # self._raw_times.
         first_samp = self._raw.first_samp
-        start = int(round(event_samp + self._raw_times[0] * sfreq))
+        if self._variable_duration:
+            epoch_tmin = self._tmin_per_epoch[idx]
+            n_samples = self._n_times_per_epoch(idx)
+        else:
+            epoch_tmin = self._raw_times[0]
+            n_samples = len(self._raw_times)
+        start = int(round(event_samp + epoch_tmin * sfreq))
         start -= first_samp
-        stop = start + len(self._raw_times)
+        stop = start + n_samples
 
         # reject_tmin, and reject_tmax need to be converted to samples to
         # check the reject_by_annotation boundaries: reject_start, reject_stop
         reject_tmin = self.reject_tmin
         if reject_tmin is None:
-            reject_tmin = self._raw_times[0]
+            reject_tmin = epoch_tmin
         reject_start = int(round(event_samp + reject_tmin * sfreq))
         reject_start -= first_samp
 
+        epoch_tmax = (
+            self._tmax_per_epoch[idx]
+            if self._variable_duration
+            else self._raw_times[-1]
+        )
         reject_tmax = self.reject_tmax
         if reject_tmax is None:
-            reject_tmax = self._raw_times[-1]
-        diff = int(round((self._raw_times[-1] - reject_tmax) * sfreq))
+            reject_tmax = epoch_tmax
+        diff = int(round((epoch_tmax - reject_tmax) * sfreq))
         reject_stop = stop - diff
 
         logger.debug(f"    Getting epoch for {start}-{stop}")
@@ -3905,10 +4531,10 @@ class EpochsArray(BaseEpochs):
     @verbose
     def __init__(
         self,
-        data: np.ndarray,
+        data: np.ndarray | list[np.ndarray],
         info: Info,
         events: np.ndarray | None = None,
-        tmin: float = 0.0,
+        tmin: float | np.ndarray = 0.0,
         event_id: int | list[int] | dict | str | list[str] | None = None,
         reject: dict | None = None,
         flat: dict | None = None,
@@ -3925,20 +4551,60 @@ class EpochsArray(BaseEpochs):
         raw_sfreq: float | None = None,
         verbose: bool | str | int | None = None,
     ):
-        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
-        data = np.asanyarray(data, dtype=dtype)
-        if data.ndim != 3:
-            raise ValueError(
-                "Data must be a 3D array of shape (n_epochs, n_channels, n_samples)"
+        # A list of differently-shaped arrays means variable-duration epochs;
+        # each epoch's tmax follows from its own length. A ragged list cannot
+        # become a 3D array, so this must be decided before the cast below.
+        # Match the decision BaseEpochs will make: bounds that are given as
+        # arrays but carry no actual variation are the ordinary fixed case.
+        _tmin_arr = np.asarray(tmin, dtype=float)
+        variable = _is_variable_duration_data(data) or (
+            _tmin_arr.ndim > 0
+            and _tmin_arr.size > 0
+            and not np.all(_tmin_arr == _tmin_arr.flat[0])
+        )
+        if not variable and _tmin_arr.ndim > 0:
+            tmin = float(_tmin_arr.flat[0]) if _tmin_arr.size else 0.0
+        if variable:
+            data = [np.asanyarray(epoch) for epoch in data]
+            dtype = (
+                np.complex128
+                if any(np.any(np.iscomplex(epoch)) for epoch in data)
+                else np.float64
             )
+            data = [epoch.astype(dtype, copy=False) for epoch in data]
+            for ii, epoch in enumerate(data):
+                if epoch.ndim != 2:
+                    raise ValueError(
+                        f"Epoch {ii} must be 2D (n_channels, n_samples), got "
+                        f"{epoch.ndim}D."
+                    )
+                if len(info["ch_names"]) != epoch.shape[0]:
+                    raise ValueError("Info and data must have same number of channels.")
+            if events is None:
+                events = _gen_events(len(data))
+            info = info.copy()  # do not modify original info
+            tmin = np.broadcast_to(np.asarray(tmin, dtype=float), (len(data),)).copy()
+            tmax = np.array(
+                [
+                    (epoch.shape[1] - 1) / info["sfreq"] + start
+                    for epoch, start in zip(data, tmin)
+                ]
+            )
+        else:
+            dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+            data = np.asanyarray(data, dtype=dtype)
+            if data.ndim != 3:
+                raise ValueError(
+                    "Data must be a 3D array of shape (n_epochs, n_channels, n_samples)"
+                )
 
-        if len(info["ch_names"]) != data.shape[1]:
-            raise ValueError("Info and data must have same number of channels.")
-        if events is None:
-            n_epochs = len(data)
-            events = _gen_events(n_epochs)
-        info = info.copy()  # do not modify original info
-        tmax = (data.shape[2] - 1) / info["sfreq"] + tmin
+            if len(info["ch_names"]) != data.shape[1]:
+                raise ValueError("Info and data must have same number of channels.")
+            if events is None:
+                n_epochs = len(data)
+                events = _gen_events(n_epochs)
+            info = info.copy()  # do not modify original info
+            tmax = (data.shape[2] - 1) / info["sfreq"] + tmin
 
         super().__init__(
             info,

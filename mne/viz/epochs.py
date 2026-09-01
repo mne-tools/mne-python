@@ -964,11 +964,24 @@ def plot_epochs(
                 raise ValueError(msg)
 
     # handle time dimension
+    #
+    # The browser lays the epochs end to end and draws a boundary between them,
+    # so its x axis is "concatenated seconds". Building that axis from the
+    # samples each epoch really has keeps it correct when durations vary, and
+    # reproduces the old uniform grid exactly when they do not.
     n_epochs = min(n_epochs, len(epochs))
-    n_times = len(epochs) * len(epochs.times)
-    duration = n_epochs * len(epochs.times) / sfreq
+    lengths = np.array(
+        [epochs._n_times_per_epoch(ii) for ii in range(len(epochs))], int
+    )
     # NB: this includes start and end of data:
-    boundary_times = np.arange(len(epochs) + 1) * len(epochs.times) / sfreq
+    boundary_samples = np.concatenate([[0], np.cumsum(lengths)])
+    boundary_times = boundary_samples / sfreq
+    n_times = int(boundary_samples[-1])
+    duration = boundary_times[n_epochs] - boundary_times[0]
+    # one value per epoch on both paths, so the browser never needs to ask
+    # whether it is looking at a scalar or an array
+    epoch_tmins = np.broadcast_to(np.asarray(epochs.tmin, float), (len(epochs),)).copy()
+    epoch_tmaxs = np.broadcast_to(np.asarray(epochs.tmax, float), (len(epochs),)).copy()
 
     # events
     _validate_type(events, (bool, np.ndarray), "events")
@@ -980,14 +993,25 @@ def plot_epochs(
             events = epochs.events
         event_nums = events[:, 2]
         event_samps = events[:, 0]
-        epoch_n_samps = len(epochs.times)
+        # first sample of each epoch in the raw recording it was cut from
+        first_samps = epochs.events[:, 0] - np.round(-epoch_tmins * sfreq).astype(int)
         # handle overlapping epochs (each event may show up in multiple places)
-        boundaries = epochs.events[:, [0]] + np.array([-1, 1]) * epochs.time_as_index(
-            [0, epochs.tmax]
-        )
-        in_bounds = np.logical_and(
-            boundaries[:, [0]] <= event_samps, event_samps < boundaries[:, [1]]
-        )
+        if epochs._variable_duration:
+            # each epoch spans the samples it actually holds; both ends are
+            # inclusive, matching the fixed path's effective behaviour
+            last_samps = first_samps + lengths - 1
+            in_bounds = np.logical_and(
+                first_samps[:, None] <= event_samps,
+                event_samps <= last_samps[:, None],
+            )
+        else:
+            epoch_n_samps = len(epochs.times)
+            boundaries = epochs.events[:, [0]] + np.array(
+                [-1, 1]
+            ) * epochs.time_as_index([0, epochs.tmax])
+            in_bounds = np.logical_and(
+                boundaries[:, [0]] <= event_samps, event_samps < boundaries[:, [1]]
+            )
         event_ixs = [np.nonzero(a)[0] for a in in_bounds.T]
         warned = False
         event_times = list()
@@ -1000,8 +1024,13 @@ def plot_epochs(
                     "lines may be duplicated in the plot."
                 )
                 warned = True
-            offsets = samp - relevant_epoch_events + epochs.time_as_index(0)
-            this_event_times = (_ixs * epoch_n_samps + offsets) / sfreq
+            if epochs._variable_duration:
+                # position inside each containing epoch, then along the strip
+                offsets = samp - first_samps[_ixs]
+                this_event_times = boundary_times[_ixs] + offsets / sfreq
+            else:
+                offsets = samp - relevant_epoch_events + epochs.time_as_index(0)
+                this_event_times = (_ixs * epoch_n_samps + offsets) / sfreq
             event_times.extend(this_event_times)
             event_numbers.extend([num] * len(_ixs))
         event_nums = np.array(event_numbers)
@@ -1059,6 +1088,9 @@ def plot_epochs(
         time_format="float",
         decim=decim,
         boundary_times=boundary_times,
+        boundary_samples=boundary_samples,
+        epoch_tmins=epoch_tmins,
+        epoch_tmaxs=epoch_tmaxs,
         # events
         event_id_rev=event_id_rev,
         event_color_dict=event_color_dict,
@@ -1099,6 +1131,11 @@ def plot_epochs(
         splash=splash,
         figure_class=figure_class,
     )
+
+    if epochs._variable_duration:
+        from ._figure import _check_variable_duration_backend
+
+        _check_variable_duration_backend()
 
     fig = _get_browser(show=show, block=block, **params)
 

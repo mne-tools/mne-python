@@ -1401,7 +1401,8 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             data = inst._read_segment(smin, smax)
         elif isinstance(inst, BaseEpochs):
             # Load a random subset of epochs up to 100mb in size
-            n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
+            longest = max(inst._n_times_per_epoch(ii) for ii in range(len(inst)))
+            n_epochs = 1e8 // (len(inst.ch_names) * longest * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
             ixs_epochs = np.random.default_rng(0).choice(
                 len(inst), n_epochs, replace=False
@@ -1410,7 +1411,11 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     else:
         data = inst._data
     if isinstance(inst, BaseEpochs):
-        data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
+        if isinstance(inst._data, list):
+            # variable-duration epochs: one array per epoch, already channels-first
+            data = np.concatenate(inst._data, axis=-1)
+        else:
+            data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
         if key not in ch_types or value != "auto":

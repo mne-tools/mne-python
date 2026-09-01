@@ -3,10 +3,12 @@
 # Copyright the MNE-Python contributors.
 
 import platform
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import Epochs, EpochsArray, create_info
 from mne.datasets import testing
@@ -511,3 +513,218 @@ def test_plot_epochs_selection_butterfly(raw, browser_backend):
     epochs = Epochs(raw, events, tmin=0, tmax=0.5, preload=True, baseline=None)
     assert len(epochs) == 1
     epochs.plot(group_by="selection", butterfly=True)
+
+
+# -- variable-duration epochs ----------------------------------------------
+SFREQ_VAR = 100.0
+LENGTHS_VAR = (100, 250, 75, 180)  # deliberately very different
+
+
+def _variable_epochs(tmin=None):
+    """Return epochs whose trials have deliberately unequal lengths."""
+    n = len(LENGTHS_VAR)
+    info = create_info(["a", "b", "c"], SFREQ_VAR, "eeg")
+    rng = np.random.default_rng(0)
+    data = [rng.standard_normal((3, length)) * 1e-6 for length in LENGTHS_VAR]
+    events = np.column_stack(
+        [np.arange(n) * 1000 + 500, np.zeros(n, int), np.ones(n, int)]
+    )
+    tmin = np.zeros(n) if tmin is None else np.asarray(tmin, float)
+    return EpochsArray(
+        data,
+        info,
+        events=events,
+        tmin=tmin,
+        event_id={"x": 1},
+        baseline=None,
+        verbose=False,
+    )
+
+
+def _boundaries():
+    """Return the boundary times the browser should derive."""
+    return np.concatenate([[0], np.cumsum(LENGTHS_VAR)]) / SFREQ_VAR
+
+
+@pytest.fixture
+def variable_epochs(browser_backend):
+    """Epochs of unequal duration sharing tmin=0."""
+    from mne.viz._figure import _check_variable_duration_backend
+
+    try:  # skips qt until an mne-qt-browser that announces support is released
+        _check_variable_duration_backend()
+    except NotImplementedError as exc:
+        pytest.skip(str(exc))
+    return _variable_epochs()
+
+
+def test_plot_variable_duration_is_native(variable_epochs, browser_backend):
+    """Test that browsing ragged epochs neither warns nor pads."""
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("plot() fell back to as_fixed() instead of browsing")
+
+    variable_epochs.as_fixed = _boom
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any warning fails the test
+        fig = variable_epochs.plot(n_epochs=2)
+    assert not np.isnan(fig.mne.data).any()
+
+
+def test_plot_variable_duration_boundaries(variable_epochs, browser_backend):
+    """Test that the browser lays epochs end to end at their true lengths."""
+    fig = variable_epochs.plot(n_epochs=2)
+    assert_allclose(fig.mne.boundary_times, _boundaries())
+    assert_array_equal(fig.mne.boundary_samples, np.r_[0, np.cumsum(LENGTHS_VAR)])
+    # the concatenated axis holds every sample once, with nothing invented
+    assert fig.mne.n_times == sum(LENGTHS_VAR)
+    assert fig.mne.n_times != len(LENGTHS_VAR) * max(LENGTHS_VAR)
+
+
+def test_plot_variable_duration_window_spans_whole_epochs(
+    variable_epochs, browser_backend
+):
+    """Test that n_epochs means epochs, not a representative duration."""
+    boundaries = _boundaries()
+    for n_epochs in (1, 2, 3, 4):
+        fig = variable_epochs.plot(n_epochs=n_epochs)
+        assert fig.mne.duration == pytest.approx(boundaries[n_epochs])
+        assert fig.mne.data.shape[-1] == sum(LENGTHS_VAR[:n_epochs])
+
+
+def test_plot_variable_duration_data_is_unpadded(variable_epochs, browser_backend):
+    """Test that a view holds exactly the source samples, in order."""
+    fig = variable_epochs.plot(n_epochs=2)
+    source = variable_epochs.get_data()
+    for keys in ([], ["right"], ["right", "right"]):
+        for key in keys:
+            fig._fake_keypress(key)
+        start, stop = fig._get_start_stop()
+        data, times = fig._load_data(start, stop)
+        ix_start, ix_stop = fig._get_epoch_ix_range()
+        want = np.concatenate(source[ix_start:ix_stop], axis=-1)
+        # the raw window is the source samples, in order, with nothing added
+        assert_array_equal(data, want)
+        assert not np.isnan(data).any()
+        # and the sample bounds agree with it, which is what lets the shape
+        # assertions in _update_data mean something for ragged windows
+        assert data.shape[-1] == stop - start
+        assert len(times) == stop - start
+
+
+def test_plot_variable_duration_navigation(variable_epochs, browser_backend):
+    """Test that arrow keys move by epochs and land on real boundaries."""
+    boundaries = _boundaries()
+    fig = variable_epochs.plot(n_epochs=2)
+    assert fig.mne.t_start == pytest.approx(boundaries[0])
+
+    fig._fake_keypress("right")  # one epoch
+    assert fig.mne.t_start == pytest.approx(boundaries[1])
+    assert fig.mne.duration == pytest.approx(boundaries[3] - boundaries[1])
+
+    fig._fake_keypress("right")  # clamped: two epochs must stay visible
+    assert fig.mne.t_start == pytest.approx(boundaries[2])
+    assert fig.mne.duration == pytest.approx(boundaries[4] - boundaries[2])
+
+    fig._fake_keypress("left")
+    assert fig.mne.t_start == pytest.approx(boundaries[1])
+
+    # shift moves a whole window
+    fig._fake_keypress("shift+left")
+    assert fig.mne.t_start == pytest.approx(boundaries[0])
+    fig._fake_keypress("shift+right")
+    assert fig.mne.t_start == pytest.approx(boundaries[2])
+
+
+def test_plot_variable_duration_home_end(variable_epochs, browser_backend):
+    """Test that home/end change the epoch count and recompute the duration."""
+    boundaries = _boundaries()
+    fig = variable_epochs.plot(n_epochs=2)
+    assert fig.mne.duration == pytest.approx(boundaries[2])
+
+    fig._fake_keypress("end")  # show one more epoch
+    assert fig.mne.n_epochs == 3
+    assert fig.mne.duration == pytest.approx(boundaries[3])
+    # the epoch added is 75 samples, not a repeat of the first one
+    assert fig.mne.duration != pytest.approx(boundaries[2] * 3 / 2)
+
+    fig._fake_keypress("home")
+    assert fig.mne.n_epochs == 2
+    assert fig.mne.duration == pytest.approx(boundaries[2])
+
+
+def test_plot_variable_duration_hscroll_patches(variable_epochs, browser_backend):
+    """Test that the scrollbar draws each epoch at its own width."""
+    if browser_backend.name != "matplotlib":
+        pytest.skip("scrollbar patches are matplotlib-specific")
+    fig = variable_epochs.plot(n_epochs=2)
+    widths = [p.get_width() for p in fig.mne.ax_hscroll.patches[: len(LENGTHS_VAR)]]
+    assert_allclose(widths, np.diff(_boundaries()))
+    assert len(set(np.round(widths, 6))) == len(LENGTHS_VAR)  # all different
+
+
+def test_plot_variable_duration_bad_epoch(variable_epochs, browser_backend):
+    """Test that a click finds the right epoch when the widths differ."""
+    if browser_backend.name != "matplotlib":
+        pytest.skip("epoch marking by click is matplotlib-specific")
+    boundaries = _boundaries()
+    fig = variable_epochs.plot(n_epochs=4)
+    y = fig.mne.traces[0].get_ydata()[0]
+    # click inside epoch 2, which starts well past twice the first epoch's width
+    x = (boundaries[2] + boundaries[3]) / 2
+    fig._fake_click((x, y), xform="data")
+    assert list(fig.mne.bad_epochs) == [variable_epochs.selection[2]]
+    fig._fake_click((x, y), xform="data")  # unmark
+    assert list(fig.mne.bad_epochs) == []
+
+
+def test_plot_variable_duration_vline_latency(variable_epochs, browser_backend):
+    """Test that vlines mark a latency, skipping epochs that never reach it."""
+    if browser_backend.name != "matplotlib":
+        pytest.skip("vline segments are matplotlib-specific")
+    boundaries = _boundaries()
+    fig = variable_epochs.plot(n_epochs=4)
+
+    # 1.5 s exists only in the 250- and 180-sample epochs
+    latency = 1.5
+    fig._fake_click((boundaries[1] + latency, 0.5), xform="data")
+    xs = np.sort(np.array(fig.mne.vline.get_segments())[:, 0, 0])
+    assert_allclose(xs, [boundaries[1] + latency, boundaries[3] + latency])
+
+    # 0.5 s exists in every epoch
+    fig._fake_click((boundaries[0] + 0.5, 0.5), xform="data")
+    xs = np.sort(np.array(fig.mne.vline.get_segments())[:, 0, 0])
+    assert_allclose(xs, boundaries[:4] + 0.5)
+
+
+def test_plot_variable_duration_events(browser_backend):
+    """Test that events map into the strip using each epoch's own window."""
+    if browser_backend.name != "matplotlib":
+        pytest.skip("event line segments are matplotlib-specific")
+    # unequal tmin as well as unequal duration
+    tmin = np.array([0.0, -0.2, 0.0, -0.5])
+    epochs = _variable_epochs(tmin=tmin)
+    boundaries = _boundaries()
+    first_samps = epochs.events[:, 0] - np.round(-tmin * SFREQ_VAR).astype(int)
+
+    fig = epochs.plot(n_epochs=4, events=True)
+    lines, _ = _get_event_lines_and_texts(fig)
+    got = np.sort(np.array(lines)[:, 0, 0])
+    # each defining event sits at its own offset inside its own epoch
+    want = np.sort(
+        boundaries[: len(LENGTHS_VAR)] + (epochs.events[:, 0] - first_samps) / SFREQ_VAR
+    )
+    assert_allclose(got, want)
+
+
+def test_plot_variable_duration_refuses_old_backends(monkeypatch):
+    """Test that a backend without the boundary model declines, not fails."""
+    import mne.viz._figure
+
+    class _OldBackend:  # an mne-qt-browser that predates the boundary model
+        pass
+
+    monkeypatch.setattr(mne.viz._figure, "get_browser_backend", lambda: "qt")
+    monkeypatch.setattr(mne.viz._figure, "_load_backend", lambda name: _OldBackend())
+    with pytest.raises(NotImplementedError, match="not implemented for the qt"):
+        _variable_epochs().plot()

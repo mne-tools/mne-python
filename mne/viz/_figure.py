@@ -44,6 +44,15 @@ class BrowserParams:
         vars(self).update(**kwargs)
 
 
+def _epoch_window(boundary_times, start_ix, n_epochs):
+    """Return the start time and duration of a window of whole epochs."""
+    n_total = len(boundary_times) - 1
+    n_epochs = int(np.clip(n_epochs, 1, n_total))
+    start_ix = int(np.clip(start_ix, 0, n_total - n_epochs))
+    stop_ix = start_ix + n_epochs
+    return boundary_times[start_ix], boundary_times[stop_ix] - boundary_times[start_ix]
+
+
 class BrowserBase(ABC):
     """A base class containing for the 2D browser.
 
@@ -78,7 +87,13 @@ class BrowserBase(ABC):
                 f"Expected an instance of Raw, Epochs, or ICA, got {type(inst)}."
             )
 
-        if len(inst.times) < 2:
+        # variable-duration epochs have no one time axis, so count the samples
+        # the browser will lay end to end instead
+        if self.mne.instance_type == "epochs":
+            n_inst_times = self.mne.n_times
+        else:
+            n_inst_times = len(inst.times)
+        if n_inst_times < 2:
             raise ValueError(
                 "Data from at least two time points are required to open the browser."
             )
@@ -120,7 +135,12 @@ class BrowserBase(ABC):
         self.mne.epoch_traces = list()
         self.mne.bad_epochs = list()
         if inst is not None:
-            self.mne.sampling_period = np.diff(inst.times[:2])[0] / inst.info["sfreq"]
+            # NB: this is 1 / sfreq**2, not a sampling period; it is only ever
+            # used as a small nudge before searchsorted on boundary_times, so
+            # keep the value while deriving it without touching inst.times
+            # (which variable-duration epochs refuse to provide).
+            sfreq = inst.info["sfreq"]
+            self.mne.sampling_period = (1.0 / sfreq) / sfreq
         # annotations
         self.mne.annotations = list()
         self.mne.hscroll_annotations = list()
@@ -157,6 +177,23 @@ class BrowserBase(ABC):
             self.mne.midpoints = (
                 np.convolve(self.mne.boundary_times, np.ones(2), mode="valid") / 2
             )
+            # callers that only ever deal with equal-length epochs (ICA sources)
+            # do not supply these, so derive them from the boundaries
+            sfreq = self.mne.info["sfreq"]
+            if not hasattr(self.mne, "boundary_samples"):
+                self.mne.boundary_samples = np.round(
+                    np.asarray(self.mne.boundary_times) * sfreq
+                ).astype(int)
+            if not hasattr(self.mne, "epoch_tmins"):
+                n_epochs_total = len(self.mne.boundary_times) - 1
+                self.mne.epoch_tmins = np.full(
+                    n_epochs_total, float(self.mne.inst.times[0])
+                )
+                self.mne.epoch_tmaxs = (
+                    self.mne.epoch_tmins
+                    + np.diff(self.mne.boundary_times)
+                    - 1.0 / sfreq
+                )
 
         # initialize picks and projectors
         self._update_picks()
@@ -328,14 +365,35 @@ class BrowserBase(ABC):
     # MANAGE DATA
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+    def _get_epoch_ix_range(self):
+        """Return the first and last+1 epoch index currently in view.
+
+        Both :meth:`_get_start_stop` and :meth:`_load_data` go through here so
+        the sample bounds and the concatenated data cannot disagree, which is
+        what keeps the shape assertions in :meth:`_update_data` meaningful when
+        epochs differ in duration.
+        """
+        # subtract one sample from tstart before searchsorted, to make sure
+        # we land on the left side of the boundary time (avoid precision
+        # errors)
+        ix_start = int(
+            np.searchsorted(
+                self.mne.boundary_times, self.mne.t_start - self.mne.sampling_period
+            )
+        )
+        n_total = len(self.mne.boundary_times) - 1
+        ix_start = min(ix_start, max(n_total - 1, 0))
+        ix_stop = min(ix_start + self.mne.n_epochs, n_total)
+        return ix_start, ix_stop
+
     def _get_start_stop(self):
         # update time
         start_sec = self.mne.t_start - self.mne.first_time
         if self.mne.is_epochs:
-            start, stop = np.round(
-                np.array([start_sec, start_sec + self.mne.duration])
-                * self.mne.info["sfreq"]
-            ).astype(int)
+            # this agrees with _load_data by construction, not by arithmetic
+            ix_start, ix_stop = self._get_epoch_ix_range()
+            start = int(self.mne.boundary_samples[ix_start])
+            stop = int(self.mne.boundary_samples[ix_stop])
         else:
             # ensure our end time includes the last sample
             disp_duration = (
@@ -355,13 +413,7 @@ class BrowserBase(ABC):
             else:
                 return self.mne.inst[:, start:stop]
         else:
-            # subtract one sample from tstart before searchsorted, to make sure
-            # we land on the left side of the boundary time (avoid precision
-            # errors)
-            ix_start = np.searchsorted(
-                self.mne.boundary_times, self.mne.t_start - self.mne.sampling_period
-            )
-            ix_stop = ix_start + self.mne.n_epochs
+            ix_start, ix_stop = self._get_epoch_ix_range()
             item = slice(ix_start, ix_stop)
             data = np.concatenate(
                 self.mne.inst.get_data(item=item, copy=False), axis=-1
@@ -635,7 +687,11 @@ class BrowserBase(ABC):
         """Create peak-to-peak histogram of channel amplitudes."""
         epochs = self.mne.inst
         data = OrderedDict()
-        ptp = np.ptp(epochs.get_data(copy=False), axis=2)
+        # per epoch, so that variable-duration epochs (a list of arrays)
+        # work too; peak-to-peak is a per-trial reduction either way
+        ptp = np.array(
+            [np.ptp(epoch, axis=-1) for epoch in epochs.get_data(copy=False)]
+        )
         for ch_type in ("eeg", "mag", "grad"):
             if ch_type in epochs:
                 data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
@@ -731,6 +787,27 @@ def _load_backend(backend_name):
     logger.info(f"Using {backend_name} as 2D backend.")
 
     return backend
+
+
+def _check_variable_duration_backend():
+    """Raise unless the active browser backend can draw ragged epochs.
+
+    Matplotlib always can. The Qt backend gained the ability in
+    mne-qt-browser 0.8, which announces it with a module-level flag, so an
+    older one declines here rather than drawing a wrong picture from a
+    boundary model it does not know about.
+    """
+    backend_name = get_browser_backend()
+    if backend_name == "matplotlib":
+        return
+    module = _load_backend(backend_name)
+    if not getattr(module, "_SUPPORTS_VARIABLE_DURATION", False):
+        raise NotImplementedError(
+            f"Browsing variable-duration epochs is not implemented for the "
+            f"{backend_name} backend of this version, only for matplotlib. "
+            "Upgrade mne-qt-browser, or select matplotlib with "
+            'mne.viz.set_browser_backend("matplotlib").'
+        )
 
 
 def _get_browser(show, block, **kwargs):
