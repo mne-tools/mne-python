@@ -32,9 +32,11 @@ jobs:
         default: "false"
     machine:
       <<: *machine_image
-    # large 4 vCPUs 15GB mem
+    # large.gen3 4 vCPUs 16GiB mem -- gen3 is an open beta, and is both faster
+    # and cheaper per minute than gen1 large (14 vs 20 credits/min); revert to
+    # `large` if beta queue times or reliability become a problem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
-    resource_class: large
+    resource_class: large.gen3
     steps:
       - restore_cache:
           keys:
@@ -431,7 +433,7 @@ jobs:
         default: "false"
     machine:
       <<: *machine_image
-    resource_class: large
+    resource_class: large.gen3
     steps:
       - restore_cache:
           keys:
