@@ -160,13 +160,13 @@ def _get_mapping(packages):
 
 
 @functools.lru_cache
-def _get_packages() -> dict[str, str]:
+def _get_packages() -> tuple[dict[str, dict], dict[str, tuple]]:
     try:
         packages = _get_installer_packages()
     except urllib.error.URLError as exc:  # e.g., bad internet connection
         if not REQUIRE_METADATA:
             sphinx_logger.warning(f"Could not fetch package list, got: {exc}")
-            return dict()
+            return dict(), dict()
         raise
     # There can be duplicates in manual and installer packages because some of the
     # PyPI entries for installer packages are incorrect or unusable (see above), so
@@ -186,7 +186,6 @@ def _get_packages() -> dict[str, str]:
     packages = sorted(packages, key=lambda x: x.lower())
     out = dict()
     reasons = []
-    assert "fsleyes" in packages
     for package in status_iterator(
         packages, f"Adding {len(packages)} related software packages: "
     ):
@@ -197,7 +196,6 @@ def _get_packages() -> dict[str, str]:
             else:
                 md = importlib.metadata.metadata(package)
         except importlib.metadata.PackageNotFoundError:
-            assert "fsleyes" != package
             reasons.append(f"{package}: not found, needs to be installed")
             continue  # raise a complete error later
         else:
@@ -205,7 +203,6 @@ def _get_packages() -> dict[str, str]:
             do_continue = False
             for key in ("Summary",):
                 if key not in md:
-                    assert "fsleyes" != package
                     reasons.extend(f"{package}: missing {repr(key)}")
                     do_continue = True
             if do_continue:
