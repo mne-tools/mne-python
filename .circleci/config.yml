@@ -21,8 +21,10 @@ _check_skip: &check_skip
       circleci-agent step halt;
     fi
 
+# gen3 resource classes are only valid with the `current` tag, not a pinned
+# dated tag -- a pinned tag is rejected with "is not a valid resource class"
 _machine_image: &machine_image
-  image: ubuntu-2604:2026.05.1
+  image: ubuntu-2604:current
 
 jobs:
   build_docs:
