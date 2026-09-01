@@ -47,6 +47,12 @@ stages:
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing
           MNE_BROWSER_PRECOMPUTE: 'false'
+          # See tools/github_actions_env_vars.sh for why these are set (this job
+          # is on Python 3.14, so sys.monitoring can measure branches)
+          COVERAGE_CORE: 'sysmon'
+          NUMBA_CACHE_DIR: '/home/vsts/.cache/mne-numba'
+          NUMBA_CPU_NAME: 'generic'
+          NUMBA_CPU_FEATURES: ''
         steps:
           - bash: |
               set -xeo pipefail
@@ -87,6 +93,13 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
+          - bash: ./tools/get_numba_version.sh
+            displayName: Get numba version
+          - task: Cache@2
+            inputs:
+              key: 'mne_numba | "$(Agent.OS)" | "3.14" | "$(numba_version)" | mne/**/*numba*.py'
+              path: /home/vsts/.cache/mne-numba
+            displayName: Cache numba
           - script: pytest -m "ultraslowtest or pgtest" -n $(PYTEST_XDIST_N) --dist loadscope --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: slow and mne-qt-browser tests
           - bash: bash <(curl -s https://codecov.io/bash)
@@ -105,6 +118,8 @@ stages:
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
           TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-append -vv mne/gui mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/report"
           MNE_TEST_ALLOW_SKIP: '^$'  # nothing (can be overridden below)
+          # See tools/github_actions_env_vars.sh; this job is on Python 3.14
+          COVERAGE_CORE: 'sysmon'
         steps:
           - bash: |
               set -xeo pipefail
@@ -172,6 +187,12 @@ stages:
           PYTEST_XDIST_N: '2'  # Microsoft-hosted agents have 2 cores
           OMP_DYNAMIC: 'false'
           PYTHONUNBUFFERED: 1
+          # See tools/github_actions_env_vars.sh; both matrix legs are Python 3.14
+          COVERAGE_CORE: 'sysmon'
+          # See tools/github_actions_env_vars.sh for why these three are set
+          NUMBA_CACHE_DIR: 'C:\Users\VssAdministrator\.cache\mne-numba'
+          NUMBA_CPU_NAME: 'generic'
+          NUMBA_CPU_FEATURES: ''
           AZURE_CI_WINDOWS: 'true'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
@@ -233,6 +254,13 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
+          - bash: ./tools/get_numba_version.sh
+            displayName: Get numba version
+          - task: Cache@2
+            inputs:
+              key: 'mne_numba | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(numba_version)" | mne/**/*numba*.py'
+              path: C:\Users\VssAdministrator\.cache\mne-numba
+            displayName: Cache numba
           # Windows does not define HOME, and MNE-C dereferences it unconditionally:
           # mne_forward_solution crashes with 0xC0000005 without it. Set after the
           # steps above so that Git Bash keeps deriving its own MSYS-style HOME.
