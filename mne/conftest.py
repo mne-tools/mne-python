@@ -45,6 +45,7 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
+    _testing,
     numerics,
 )
 from mne.viz._figure import use_browser_backend
@@ -288,6 +289,18 @@ def check_verbose(request):
             ".".join([request.module.__name__, request.function.__name__])
             + " modifies logger.level"
         )
+
+
+@pytest.fixture(autouse=True)
+def _track_request(request):
+    """Make the running test's fixtures reachable from plain helper functions.
+
+    Used by ``mne.utils._testing._pytest_tmp_path``; nothing is instantiated
+    here, so tests that never ask for it do not get a ``tmp_path`` directory.
+    """
+    _testing._current_pytest_request = request
+    yield
+    _testing._current_pytest_request = None
 
 
 @pytest.fixture(autouse=True)
@@ -841,9 +854,10 @@ def pixel_ratio(qapp):
 
 @pytest.fixture(scope="function", params=[testing._pytest_param()])
 def subjects_dir_tmp(tmp_path):
-    """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
-    for key in ("sample", "fsaverage"):
-        shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    """Copy the MNE-testing-data ``sample`` subject to a temp dir."""
+    # Only "sample" is copied: it is ~200 MB on its own, and no user of this
+    # fixture needs "fsaverage".
+    shutil.copytree(op.join(subjects_dir, "sample"), str(tmp_path / "sample"))
     _chmod_rw_R(tmp_path)
     return str(tmp_path)
 

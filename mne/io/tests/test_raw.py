@@ -8,6 +8,8 @@ import gc
 import math
 import os
 import re
+import shutil
+import tempfile
 from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
@@ -36,9 +38,9 @@ from mne.io.base import _get_scaling
 from mne.transforms import Transform
 from mne.utils import (
     _import_h5io_funcs,
+    _pytest_tmp_path,
     _raw_annot,
     _stamp_to_dt,
-    _TempDir,
     catch_logging,
     check_version,
     object_diff,
@@ -156,7 +158,9 @@ def _test_raw_reader(
     raw : instance of Raw
         A preloaded Raw object.
     """
-    tempdir = _TempDir()
+    # write under the running test's tmp_path (i.e. --basetemp) rather than
+    # $TMPDIR; mkdtemp keeps repeat calls within one test from colliding
+    tempdir = tempfile.mkdtemp(dir=_pytest_tmp_path())
     rng = np.random.default_rng(0)
     montage = None
     if "montage" in kwargs:
@@ -211,8 +215,11 @@ def _test_raw_reader(
                     gc.collect()
                 assert len(entries) in (0, 1)
 
-        # test projection vs cals and data units
-        other_raw = reader(preload=False, **kwargs)
+        # test projection vs cals and data units. The non-preloaded raw above
+        # was only indexed, never modified, so reuse it rather than parsing the
+        # file a third time (this helper runs ~100x across the suite).
+        other_raw = other_raws[1]
+        del other_raws
         other_raw.del_proj()
         eeg = meg = fnirs = seeg = eyetrack = False
         if "eeg" in raw:
@@ -571,6 +578,10 @@ def _test_raw_reader(
         if len(card_pts_head) == 3:  # they should all be in head coords then
             assert len(eeg_dig_head) == len(eeg_dig)
 
+    # Free the ~60 MB of on-disk artifacts eagerly (they accumulate across the
+    # ~94 call sites otherwise); deliberately not in a finally so a failing
+    # test keeps its files for debugging, cleaned up by tmp_path rotation.
+    shutil.rmtree(tempdir, ignore_errors=True)
     return raw
 
 

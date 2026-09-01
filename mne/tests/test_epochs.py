@@ -1639,8 +1639,7 @@ def epochs_to_split(request, epochs_factory):
     return epochs, split_size, n_files
 
 
-@pytest.mark.parametrize("preload", [True, False], ids=["preload", "no_preload"])
-def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
+def test_split_saving_and_loading_back(tmp_path, epochs_to_split):
     """Test saving split epochs and loading them back.
 
     In particular, check events after loading splits to test against gh-5102.
@@ -1652,12 +1651,15 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
     got_size = _get_split_size(split_size)
 
     epochs.save(fname, split_size=split_size, overwrite=True)
-    epochs2 = mne.read_epochs(fname, preload=preload)
 
     _assert_splits(fname, n_files, got_size)
     assert not fname.with_name(f"{fname.stem}-{n_files + 1}{fname.suffix}").is_file()
-    assert_allclose(epochs2.get_data(), epochs_data)
-    assert_array_equal(epochs.events, epochs2.events)
+    # both read paths are checked against the same set of splits rather than
+    # parametrizing, which would write every split file twice
+    for preload in (True, False):
+        epochs2 = mne.read_epochs(fname, preload=preload)
+        assert_allclose(epochs2.get_data(), epochs_data)
+        assert_array_equal(epochs.events, epochs2.events)
 
 
 @pytest.mark.parametrize(
@@ -1684,6 +1686,11 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
         ),
     ],
     ids=["neuromag", "bids", "mix"],
+)
+# file naming is orthogonal to the split-boundary cases, so one multi-split
+# case is enough here (the boundaries are covered by the test above)
+@pytest.mark.parametrize(
+    "epochs_to_split", [("3MB", 18, False, False, 3)], indirect=True
 )
 def test_split_naming(
     tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn, check_bids
