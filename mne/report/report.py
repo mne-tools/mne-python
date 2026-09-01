@@ -420,7 +420,9 @@ def _compress_img(img, image_format, dpi):
         pil_kwargs.update(lossless=True, quality=20)
     else:
         assert image_format == "png", image_format  # _fig_to_img checks this
-        pil_kwargs.update(optimize=True, compress_level=9)
+        # optimize=True forces maximum effort regardless of compress_level and
+        # encodes ~3x slower for ~1% fewer bytes, so favor speed here
+        pil_kwargs.update(compress_level=6)
     background = Image.new("RGBA", img.size, (255, 255, 255))
     img = Image.alpha_composite(background, img).convert("RGB")
     output = BytesIO()
