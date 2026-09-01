@@ -1148,6 +1148,22 @@ def brain_gc(request):
 
 
 _files = list()
+# Per-nodeid total duration (setup + call + teardown) and whether any phase was an
+# unexpected skip. Accumulated in pytest_runtest_logreport because under pytest-xdist
+# the tests run in worker processes, and xdist replays every TestReport through
+# pytest_runtest_logreport on the controller
+_durations: dict[str, float] = defaultdict(float)
+_bad_skips: set[str] = set()
+
+
+def pytest_runtest_logreport(report: pytest.TestReport):
+    """Accumulate per-test durations and unexpected skips."""
+    _durations[report.nodeid] += report.duration
+    if (
+        report.outcome in ("error", "failed")
+        and "UNEXPECTED SKIP" in report.longreprtext
+    ):
+        _bad_skips.add(report.nodeid)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
@@ -1158,13 +1174,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     print("\n")
     # get the number to print
     files = defaultdict(lambda: 0.0)
-    bad_skip = False
-    for item in session.items:
-        if _phase_report_key not in item.stash:
-            continue
-        report = item.stash[_phase_report_key]
-        dur = sum(x.duration for x in report.values())
-        parts = Path(item.nodeid.split(":")[0]).parts
+    for nodeid, dur in _durations.items():
+        parts = Path(nodeid.split(":")[0]).parts
         # split mne/tests/test_whatever.py into separate categories since these
         # are essentially submodule-level tests. Keeping just [:3] works,
         # except for mne/viz where we want level-4 granulatity
@@ -1174,18 +1185,11 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
             parts = parts + ("",)
         file_key = "/".join(parts)
         files[file_key] += dur
-        # detect if there were any bad skips
-        for _phase, result in report.items():
-            if (
-                result.outcome in ("error", "failed")
-                and "UNEXPECTED SKIP" in result.longreprtext
-            ):
-                bad_skip = True
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
     # Now handle exit status modification
-    if exitstatus == pytest.ExitCode.OK and bad_skip:
+    if exitstatus == pytest.ExitCode.OK and _bad_skips:
         session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
