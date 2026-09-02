@@ -251,6 +251,9 @@ stages:
               key: 'mne_numba | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(numba_version)" | mne/**/*numba*.py'
               path: C:\Users\VssAdministrator\.cache\mne-numba
             displayName: Cache numba
+            # pip-pre has no numba when nightly wheels are missing; without it
+            # nothing creates the cache dir and the post-job save fails on tar
+            condition: ne(variables['numba_version'], 'none')
           # Windows does not define HOME, and MNE-C dereferences it unconditionally:
           # mne_forward_solution crashes with 0xC0000005 without it. Set after the
           # steps above so that Git Bash keeps deriving its own MSYS-style HOME.
