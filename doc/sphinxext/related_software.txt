@@ -57,6 +57,7 @@ eeg_positions # categories: preproc, visu
 emd # categories: oscillations
 fooof # categories: oscillations
 hedtools # categories: organization
+jamica # categories: preproc
 meegkit # categories: preproc
 meggie # categories: visu
 mffpy # categories: io
@@ -80,6 +81,7 @@ pactools # categories: oscillations
 pybispectra # categories: oscillations
 pybvrf # categories: io
 pycrostates # categories: microstates
+pymef  # categories: io
 pyprep # categories: preproc
 pyriemann # categories: stats
 python-picard # categories: preproc

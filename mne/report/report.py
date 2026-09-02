@@ -782,6 +782,7 @@ def open_report(fname, **params):
                 )
         report = Report()
         report.__setstate__(state)
+        report._unsaved_changes = False  # what we have matches what's on disk
     else:
         report = Report(**params)
     # Keep track of the filename in case the Report object is used as a context
@@ -974,6 +975,23 @@ class Report:
 
         self.fname = None  # The name of the saved report
         self.data_path = None
+        self._unsaved_changes = False  # must come last, mutators set it to True
+
+    @property
+    def unsaved_changes(self):
+        """Whether the report content changed since it was created, loaded, or saved.
+
+        Returns
+        -------
+        unsaved_changes : bool
+            ``True`` if content was added, replaced, removed, or reordered since the
+            report was created, read from disk, or last saved.
+
+        Notes
+        -----
+        .. versionadded:: 1.13
+        """
+        return self._unsaved_changes
 
     @property
     def img_max_width(self):
@@ -1138,7 +1156,9 @@ class Report:
         report : instance of Report
             The copied report.
         """
-        return copy.deepcopy(self)
+        report = copy.deepcopy(self)
+        report._unsaved_changes = self._unsaved_changes  # deepcopy uses __setstate__
+        return report
 
     def get_contents(self):
         """Get the content of the report.
@@ -1187,6 +1207,7 @@ class Report:
                 f"order must be a permutation of range({n_elements}), got:\n{order}"
             )
         self._content = [self._content[ii] for ii in order]
+        self._unsaved_changes = True
 
     def _content_as_html(self):
         """Generate HTML representations based on the added content & sections.
@@ -1285,6 +1306,7 @@ class Report:
         """
         style = f'\n<style type="text/css">\n{css}\n</style>'
         self.include += style
+        self._unsaved_changes = True
 
     def add_custom_js(self, js):
         """Add custom JavaScript to the report.
@@ -1301,6 +1323,7 @@ class Report:
         """
         script = f'\n<script type="text/javascript">\n{js}\n</script>'
         self.include += script
+        self._unsaved_changes = True
 
     @fill_doc
     def add_epochs(
@@ -2395,11 +2418,13 @@ class Report:
         elif not remove_all:  # only remove last occurrence
             remove_idx = remove_idx[-1]
             del self._content[remove_idx]
+            self._unsaved_changes = True
         else:  # remove all occurrences
             remove_idx = tuple(remove_idx)
             self._content = [
                 e for idx, e in enumerate(self._content) if idx not in remove_idx
             ]
+            self._unsaved_changes = True
 
         return remove_idx
 
@@ -2446,6 +2471,7 @@ class Report:
         new_content.dom_id = dom_id
         new_content.html = html_partial(id_=dom_id)
         assert isinstance(new_content.html, str), type(new_content.html)
+        self._unsaved_changes = True
 
     def _add_code(self, *, code, title, language, section, tags, replace):
         if isinstance(code, Path):
@@ -3294,6 +3320,9 @@ class Report:
             if param_name == "_content":
                 param_val = [_ContentElement(**val) for val in param_val]
             setattr(self, param_name, param_val)
+        # conservative, as we don't know where the state came from (open_report and
+        # copy, which both go through here, set the correct value themselves)
+        self._unsaved_changes = True
         return state
 
     @verbose
@@ -3304,6 +3333,7 @@ class Report:
         overwrite=False,
         sort_content=False,
         *,
+        only_if_changed=False,
         verbose=None,
     ):
         """Save the report and optionally open it in browser.
@@ -3331,6 +3361,13 @@ class Report:
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
+        only_if_changed : bool
+            If ``True`` and :attr:`~mne.Report.unsaved_changes` is ``False`` and the
+            output file already exists, skip writing it (the existing file is left
+            untouched) and just return its name. If the output file does not exist, it
+            is always written.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -3343,6 +3380,16 @@ class Report:
                 self.data_path = os.getcwd()
                 warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
+
+        if only_if_changed and not self._unsaved_changes:
+            # overwrite="read" so that an existing file is not an error here
+            check_fname = _check_fname(fname, overwrite="read", name=fname)
+            if check_fname.is_file():
+                fname = op.realpath(str(check_fname))
+                logger.info(f"Report has no unsaved changes, not saving to : {fname}")
+                if self.fname is None:
+                    self.fname = fname
+                return fname
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
@@ -3392,6 +3439,8 @@ class Report:
 
                 html = [header_html, toc_html, *self.html, footer_html]
                 Path(fname).write_text(data="".join(html), encoding="utf-8")
+
+            self._unsaved_changes = False
 
         building_doc = os.getenv("_MNE_BUILDING_DOC", "").lower() == "true"
         if open_browser and not is_hdf5 and not building_doc:

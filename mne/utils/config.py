@@ -877,6 +877,7 @@ def sys_info(
         "dipy",
         "openmeeg",
         "python-picard",
+        "jamica",
         "cupy",
         "pandas",
         "h5io",

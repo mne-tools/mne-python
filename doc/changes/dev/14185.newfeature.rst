@@ -1,0 +1,1 @@
+Add a ``block`` parameter to :func:`mne.viz.plot_source_estimates`, :meth:`mne.SourceEstimate.plot` and :meth:`mne.VolSourceEstimate.plot_3d` to halt execution until the figure is closed, by `Cedric Conday`_.

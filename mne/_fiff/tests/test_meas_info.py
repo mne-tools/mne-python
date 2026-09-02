@@ -281,6 +281,12 @@ def test_info():
     info2 = Info(info_dict)
     assert info == info2
 
+    # a self-referencing entry must terminate and remap to the copy (gh-14260)
+    with info._unlock():
+        info["temp"] = info
+    info2 = info.copy()
+    assert info2["temp"] is info2
+
 
 def test_read_write_info(tmp_path):
     """Test IO of info."""

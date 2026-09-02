@@ -1149,6 +1149,8 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     brain = stc.plot(**kwargs)
     assert brain.data["center"] is None
     brain.close()
+    with pytest.raises(TypeError, match="block must be an instance of bool"):
+        stc.plot(block="yes", **kwargs)
     brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
     assert brain.data["center"] == 0.0
     brain.close()

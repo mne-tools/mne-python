@@ -438,11 +438,12 @@ class EvokedField:
         """Configure the widgets shown in the dock on the left."""
         r = self._renderer
 
-        if not hasattr(r, "_dock"):
+        existing_dock = hasattr(r, "_dock")
+        if not existing_dock:
             r._dock_initialize()
 
         # Fieldline configuration
-        layout = r._dock_add_group_box("Fieldlines", collapse=True)
+        layout = r._dock_add_group_box("Fieldlines", collapse=False)
 
         r._dock_add_label(value="max value", align=True, layout=layout)
 
@@ -514,7 +515,7 @@ class EvokedField:
         self._widgets["contour_line_width"] = r._dock_add_slider(
             name="Thickness",
             value=self._contour_line_width,
-            rng=[0, 10],
+            rng=[0, 5],
             callback=_set_contour_line_width,
             double=True,
             layout=layout,
@@ -532,7 +533,9 @@ class EvokedField:
             double=True,
             layout=layout,
         )
-        r._dock_finalize()
+
+        if not existing_dock:
+            r._dock_finalize()
 
     def _on_time_change(self, event):
         """Respond to time_change UI event."""

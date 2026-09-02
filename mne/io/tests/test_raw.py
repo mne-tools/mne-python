@@ -50,8 +50,14 @@ raw_fname = op.join(
 )
 
 
-def _fail_if_times_materialized(*args, **kwargs):
-    pytest.fail("The full Raw.times vector was materialized")
+@pytest.fixture
+def fail_if_times_materialized(monkeypatch):
+    """Fail the test if the full Raw.times vector is ever constructed."""
+
+    def _fail(*args, **kwargs):
+        pytest.fail("The full Raw.times vector was materialized")
+
+    monkeypatch.setattr("mne.io.base._arange_div", _fail)
 
 
 def assert_named_constants(info):
@@ -105,11 +111,16 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
-def test_set_annotations_does_not_materialize_times(monkeypatch):
+def test_preload_does_not_materialize_times(fail_if_times_materialized):
+    """Test preloading does not construct the full time vector."""
+    raw = read_raw_fif(raw_fname, preload=True, verbose="error")
+    assert raw.preload
+
+
+def test_set_annotations_does_not_materialize_times(fail_if_times_materialized):
     """Test annotation bounds use the scalar recording endpoint."""
     raw = read_raw_fif(raw_fname, preload=False, verbose="error")
     annotations = Annotations([0.0], [0.1], ["test"])
-    monkeypatch.setattr("mne.io.base._arange_div", _fail_if_times_materialized)
     raw.set_annotations(annotations)
     assert len(raw.annotations) == 1
 
@@ -687,6 +698,39 @@ def test_crop_by_annotations(meas_date, first_samp):
     assert len(raws[1].annotations) == 1
     assert raws[1].times[-1] == pytest.approx(annot[1:2].duration[0], rel=5e-3)
     assert raws[1].annotations.description[0] == annot.description[1]
+
+
+@pytest.mark.parametrize("meas_date", [None, 0])
+@pytest.mark.parametrize("first_samp", [0, 50])
+def test_get_annotation_spans(meas_date, first_samp):
+    """Test converting annotation spans to the Raw time reference."""
+    sfreq = 10.0
+    data = np.arange(120.0)[np.newaxis]
+    raw = mne.io.RawArray(
+        data,
+        mne.create_info(["EEG 001"], sfreq, "eeg"),
+        first_samp=first_samp,
+        verbose="error",
+    )
+    raw.set_meas_date(meas_date)
+    raw.set_annotations(mne.Annotations([3.0, 3.0], [1.0, 0.5], ["test", "test 2"]))
+
+    tmin, tmax = raw.get_annotation_spans()
+    assert_allclose(tmin, [3.0, 3.0])
+    assert_allclose(tmax, [3.5, 4.0])
+    got, times = raw.get_data(tmin=tmin[1], tmax=tmax[1], return_times=True)
+    assert_array_equal(got, data[:, 30:40])
+    assert_allclose(times, np.arange(30, 40) / sfreq)
+
+    cropped = raw.copy().crop(2.0, 5.0)
+    tmin, tmax = cropped.get_annotation_spans()
+    assert_allclose(tmin, [1.0, 1.0])
+    assert_allclose(tmax, [1.5, 2.0])
+    assert_array_equal(cropped.get_data(tmin=tmin[1], tmax=tmax[1]), data[:, 30:40])
+
+    raw.set_annotations(None)
+    tmin, tmax = raw.get_annotation_spans()
+    assert tmin.shape == tmax.shape == (0,)
 
 
 @pytest.mark.parametrize(

@@ -9,6 +9,7 @@ https://github.com/jendrikseipp/vulture/blob/main/README.md#whitelists
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+fail_if_times_materialized
 numba_conditional
 options_3d
 invisible_fig

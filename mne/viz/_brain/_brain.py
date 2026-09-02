@@ -557,7 +557,6 @@ class Brain:
             raise ValueError("No data to visualize. See ``add_data``.")
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
-        self.default_smoothing_range = [-1, 15]
 
         # Default configuration
         self.visibility = False
@@ -1012,7 +1011,7 @@ class Brain:
         self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
             name="Smoothing",
             value=self._data["smoothing_steps"],
-            rng=self.default_smoothing_range,
+            rng=[-1, 15],
             callback=self.set_data_smoothing,
             double=False,
             layout=layout,
