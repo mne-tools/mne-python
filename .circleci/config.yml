@@ -139,6 +139,16 @@ jobs:
           paths:
             - ~/.cache/uv
 
+      # Load numba's JIT cache
+      - run:
+          name: Get numba cache key
+          command: |
+            { ./tools/get_numba_version.sh; find mne -name "*numba*.py" | sort | xargs cat; } | sha256sum > numba_key.txt
+            cat numba_key.txt
+      - restore_cache:
+          keys:
+            - mne-numba-1-{{ checksum "numba_key.txt" }}-
+
       - run:
           name: Check Qt
           command: |
@@ -360,6 +370,12 @@ jobs:
           command: |  # we have -o pipefail in #BASH_ENV so we should be okay
             set -x
             PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
+      # Only on success: a failed build compiles an arbitrary subset of the
+      # kernels, and there is no point saving that.
+      - save_cache:
+          key: mne-numba-1-{{ checksum "numba_key.txt" }}-{{ epoch }}
+          paths:
+            - ~/.cache/mne-numba
       - run:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
