@@ -1394,7 +1394,8 @@ def test_image_format(image_format):
     r = Report(image_format=image_format)
     fig1, _ = _get_example_figures()
     r.add_figure(fig1, "fig1")
-    assert image_format in r.html[0]
+    assert image_format.removesuffix("-lossy") in r.html[0]
+    assert "-lossy" not in r.html[0]  # not a MIME type
 
 
 def test_gif(tmp_path):

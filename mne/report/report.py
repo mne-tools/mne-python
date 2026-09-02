@@ -230,7 +230,7 @@ def _html_slider_element(
         tags=tags,
         title=title,
         start_idx=start_idx,
-        image_format=image_format,
+        image_format=_mime_format(image_format),
         klass=klass,
         show="show" if show else "",
     )
@@ -255,7 +255,7 @@ def _html_image_element(
         caption=caption,
         tags=tags,
         title=title,
-        image_format=image_format,
+        image_format=_mime_format(image_format),
         div_klass=div_klass,
         img_klass=img_klass,
         embedded=embedded,
@@ -418,6 +418,9 @@ def _compress_img(img, image_format, dpi):
         # Here quality means speed/size tradeoff (either way the result is lossless);
         # 20 rather than 50 encodes ~1.5x faster for a few percent more bytes
         pil_kwargs.update(lossless=True, quality=20)
+    elif image_format == "webp-lossy":
+        # ~as cheap to encode as PNG and ~3x smaller, at the cost of exactness
+        pil_kwargs.update(lossless=False, quality=90)
     else:
         assert image_format == "png", image_format  # _fig_to_img checks this
         # optimize=True forces maximum effort regardless of compress_level and
@@ -426,7 +429,7 @@ def _compress_img(img, image_format, dpi):
     background = Image.new("RGBA", img.size, (255, 255, 255))
     img = Image.alpha_composite(background, img).convert("RGB")
     output = BytesIO()
-    img.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+    img.save(output, format=_mime_format(image_format), dpi=(dpi, dpi), **pil_kwargs)
     return output
 
 
@@ -458,7 +461,7 @@ def _fig_to_img(
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the figure we just created
-        if fig.get_dpi() == dpi and image_format in ("png", "webp"):
+        if fig.get_dpi() == dpi and image_format not in ("svg", "ndarray"):
             # Nothing rescaled the pixels, so compress them as they are rather than
             # rendering them back through the figure only to read them out again
             from PIL import Image
@@ -797,7 +800,12 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / "icons" / "mne_icon-cropped.png"
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 
-_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
+_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp", "webp-lossy")
+
+
+def _mime_format(image_format):
+    """Strip our lossy/lossless qualifier to get the PIL/MIME name."""
+    return image_format.split("-")[0]
 
 
 def _check_image_format(rep, image_format):
@@ -830,16 +838,20 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'webp' | 'auto'
+    image_format : 'png' | 'svg' | 'webp' | 'webp-lossy' | 'auto'
         Default image format to use (default is ``'auto'``, which will use
         ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
+        ``'webp-lossy'`` gives much smaller files than the (lossless) ``'webp'``
+        at a comparable encoding cost, at the price of exact pixel fidelity.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
            Added support for ``'webp'`` format, removed support for GIF, and
            set the default to ``'auto'``.
+        .. versionchanged:: 1.13
+           Added support for ``'webp-lossy'`` format.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
