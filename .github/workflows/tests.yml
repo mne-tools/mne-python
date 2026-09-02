@@ -23,6 +23,8 @@ jobs:
   bandit:
     name: Bandit
     runs-on: ubuntu-latest
+    # main is enough
+    if: ${{ github.event_name != 'pull_request' }}
     steps:
       - uses: davidslusser/actions_python_bandit@v1.0.1
         with:
