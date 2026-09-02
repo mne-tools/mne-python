@@ -70,7 +70,7 @@ python -m pip install $STD_ARGS \
 	git+https://github.com/the-siesta-group/edfio \
 	trame trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
-	filelock
+	jamica filelock
 echo "::endgroup::"
 
 echo "::group::Make sure we're on a NumPy 2.0 variant"

@@ -50,9 +50,6 @@ stages:
           # See tools/github_actions_env_vars.sh for why these are set (this job
           # is on Python 3.14, so sys.monitoring can measure branches)
           COVERAGE_CORE: 'sysmon'
-          NUMBA_CACHE_DIR: '/home/vsts/.cache/mne-numba'
-          NUMBA_CPU_NAME: 'generic'
-          NUMBA_CPU_FEATURES: ''
         steps:
           - bash: |
               set -xeo pipefail
@@ -93,13 +90,6 @@ stages:
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
-          - bash: ./tools/get_numba_version.sh
-            displayName: Get numba version
-          - task: Cache@2
-            inputs:
-              key: 'mne_numba | "$(Agent.OS)" | "3.14" | "$(numba_version)" | mne/**/*numba*.py'
-              path: /home/vsts/.cache/mne-numba
-            displayName: Cache numba
           - script: pytest -m "ultraslowtest or pgtest" -n $(PYTEST_XDIST_N) --dist loadscope --tb=short --cov=mne --cov-report=xml -vv mne
             displayName: slow and mne-qt-browser tests
           - bash: bash <(curl -s https://codecov.io/bash)
