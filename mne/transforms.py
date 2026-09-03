@@ -1413,8 +1413,13 @@ def _quat_mult(one, two):
 
 
 def _skew_symmetric_cross(a):
-    """Compute the skew-symmetric cross product of a vector."""
-    return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
+    """Compute the skew-symmetric cross product matrix of (..., 3) vector(s)."""
+    a = np.asarray(a, float)
+    ax = np.zeros(a.shape + (3,))
+    ax[..., 0, 1], ax[..., 0, 2] = -a[..., 2], a[..., 1]
+    ax[..., 1, 0], ax[..., 1, 2] = a[..., 2], -a[..., 0]
+    ax[..., 2, 0], ax[..., 2, 1] = -a[..., 1], a[..., 0]
+    return ax
 
 
 def _find_vector_rotation(a, b):
@@ -1456,11 +1461,7 @@ def _find_vector_rotation(a, b):
     v = np.cross(a, b)  # rotation axis, with the sine of the angle as its length
     s = (v * v).sum(-1)  # sine squared
     c = b @ a  # cosine
-    # skew-symmetric cross-product matrices, one per b
-    vx = np.zeros(b.shape[:-1] + (3, 3))
-    vx[..., 0, 1], vx[..., 0, 2] = -v[..., 2], v[..., 1]
-    vx[..., 1, 0], vx[..., 1, 2] = v[..., 2], -v[..., 0]
-    vx[..., 2, 0], vx[..., 2, 1] = -v[..., 1], v[..., 0]
+    vx = _skew_symmetric_cross(v)
     # (1 - c) / s is 1 / (1 + c), but written this way it stays accurate as b
     # approaches -a, where 1 + c cancels and s does not. Only an s that has
     # vanished outright needs special handling below.
