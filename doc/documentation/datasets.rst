@@ -559,6 +559,17 @@ examples are not available in the browser.
 This exists for the documentation build; for analysis, use the individual
 dataset fetchers above.
 
+.. note:: Not every tutorial and example can run in the browser, so the
+   "Open in JupyterLite" badge is only shown on the pages that work there. A page
+   is left without a badge when it needs a non-Python runtime (for example the R
+   interoperability example, via ``rpy2``), a compiled reader with no WebAssembly
+   build (such as ``antio``), or a dataset too large to serve to a browser
+   (brainstorm, spm_face, opm, hf_sef, and similar).
+
+   3D is also limited: source estimates are rendered with vtk.js, but the
+   coregistration and sensor-plotting views that rely on the full VTK stack are
+   not available.
+
 References
 ==========
 

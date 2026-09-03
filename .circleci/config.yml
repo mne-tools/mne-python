@@ -251,6 +251,17 @@ jobs:
           no_output_timeout: 10m
           command: |
             ./tools/circleci_download.sh
+      # Ensure the data the JupyterLite notebooks need is on disk so conf.py can
+      # copy the required subset for the build. lite_data fetches only the
+      # curated files the browser notebooks use (from the MNE-lite-data OSF
+      # project) instead of the full sample/kiloword/erp_core/mtrf/eegbci
+      # datasets, which slims the build. The curated files share hashes with the
+      # full datasets, so on a full build that already downloaded them nothing
+      # extra is fetched.
+      - run:
+          name: Ensure MNE data for JupyterLite
+          command: |
+            python -c "import mne; mne.datasets.lite_data.data_path(update_path=True)"
       - run:
           name: Verify build type
           command: |
