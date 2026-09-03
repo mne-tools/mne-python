@@ -527,6 +527,9 @@ def test_plot_alignment_meg(renderer, system):
         ]
     elif system == "CTF":
         this_info = read_raw_ctf(ctf_fname).info
+        # EEG with no digitized positions (bst_auditory) must be skipped, not crash
+        for idx in pick_types(this_info, eeg=True):
+            this_info["chs"][idx]["loc"][:] = np.nan
     elif system == "BTi":
         this_info = read_raw_bti(
             pdf_fname, config_fname, hs_fname, convert=True, preload=False
@@ -543,13 +546,15 @@ def test_plot_alignment_meg(renderer, system):
             plot_alignment(this_info, meg=meg, sensor_colors=sensor_colors)
         sensor_colors = dict(meg=sensor_colors)
         sensor_colors["ref_meg"] = ["r"] * len(pick_types(this_info, ref_meg=True))
+    elif system == "CTF":  # meg + (unplottable) eeg types means a dict is required
+        sensor_colors = dict(meg=sensor_colors)
     fig = plot_alignment(
         this_info,
         read_trans(trans_fname),
         subject="sample",
         subjects_dir=subjects_dir,
         meg=meg,
-        eeg=False,
+        eeg=system == "CTF",
         sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
