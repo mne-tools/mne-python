@@ -1540,6 +1540,12 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     assert str(vertex_id) in line.get_label()
     assert row_text(row) == f"LH {vertex_id}"
 
+    # the y-axis must autoscale to fit a newly-picked trace, not leave it
+    # clipped outside whatever range the previous traces happened to set
+    ymin, ymax = canvas.axes.get_ylim()
+    y = line.get_ydata()
+    assert y.min() >= ymin and y.max() <= ymax
+
     # toggling a row hides the trace and its 3D glyph together, without
     # rebuilding the row list (sync() must skip unchanged trace sets --
     # the whole point of the native list was to stop rebuilding on every
@@ -1840,9 +1846,29 @@ def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtb
     assert len(brain._picked_patches["lh"]) == 0
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1
+
+    # the picked label's trace-list row gets a friendly display name/subtitle
+    # instead of the raw internal label name (still available as the tooltip)
+    label_id = brain._picked_patches["lh"][0]
+    label = brain._annotation_labels["lh"][label_id]
+    line = label._line
+    assert line in brain._label_trace_meta
+    display_label = brain._trace_display_label(line)
+    assert display_label != line.get_label()
+    assert display_label.endswith("(LH)")
+    subtitle = brain._trace_display_subtitle(line)
+    assert str(brain.label_extract_mode) in subtitle
+    assert str(len(label.vertices)) in subtitle
+
+    # the y-axis must autoscale to fit the newly-picked label's trace
+    ymin, ymax = brain.mpl_canvas.axes.get_ylim()
+    y = line.get_ydata()
+    assert y.min() >= ymin and y.max() <= ymax
+
     # clicking the same label again removes it
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 0
+    assert line not in brain._label_trace_meta
     # the clear-glyphs shortcut clears a picked label
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1
