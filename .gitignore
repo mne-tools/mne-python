@@ -109,6 +109,8 @@ uv.lock
 
 # written into the repo root by the CI helper scripts in tools/
 /build.txt
+/cache_keys/
+/datasets.txt
 /gitlog.txt
 /merge.txt
 /misc_version.txt
