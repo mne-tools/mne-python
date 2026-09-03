@@ -7,13 +7,12 @@
 import numpy as np
 from scipy import linalg
 from scipy.signal import fftconvolve
-from scipy.sparse.csgraph import laplacian
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
 
+from .._numba import jit
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
-from ..fixes import jit
 from ..utils import ProgressBar, _check_option, logger, warn
 from ._fixes import _check_n_features_3d, validate_data
 
@@ -155,6 +154,8 @@ def _toeplitz_dot(a, b):
 
 def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=False):
     """Compute regularization parameter from neighbors."""
+    from scipy.sparse.csgraph import laplacian
+
     known_types = ("ridge", "laplacian")
     if isinstance(reg_type, str):
         reg_type = (reg_type,) * 2

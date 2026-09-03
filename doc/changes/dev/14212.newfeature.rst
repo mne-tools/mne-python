@@ -1,0 +1,1 @@
+Speed up reading by optimizing small read paths, by `Bruno Aristimunha`_

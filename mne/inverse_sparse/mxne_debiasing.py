@@ -6,11 +6,11 @@ from math import sqrt
 
 import numpy as np
 
-from ..utils import check_random_state, fill_doc, logger, verbose
+from ..utils import _check_rng, fill_doc, logger, verbose
 
 
 @fill_doc
-def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
+def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, rng=0):
     """Find the largest singular value for the matrix kron(C.T, A).
 
     It uses power iterations.
@@ -23,7 +23,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
         An array
     max_iter : int
         Maximum number of iterations
-    %(random_state)s
+    %(rng)s
 
     Returns
     -------
@@ -35,7 +35,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     http://en.wikipedia.org/wiki/Power_iteration
     """
     AS_size = C.shape[0]
-    rng = check_random_state(random_state)
+    rng = _check_rng(rng)
     B = rng.standard_normal((AS_size, AS_size))
     B /= np.linalg.norm(B, "fro")
     ATA = np.dot(A.T, A)

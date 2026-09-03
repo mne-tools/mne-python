@@ -7,9 +7,7 @@ from copy import deepcopy
 from math import log
 
 import numpy as np
-from scipy.sparse import issparse
 
-from . import viz
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import _read_bad_channels, _write_bad_channels, create_info
 from ._fiff.pick import (
@@ -275,7 +273,18 @@ class Covariance(dict):
         return s
 
     def __add__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom."""
+        """Add Covariance taking into account number of degrees of freedom.
+
+        Parameters
+        ----------
+        cov : instance of Covariance
+            The covariance to add.
+
+        Returns
+        -------
+        cov : instance of Covariance
+            A new covariance, weighted by the degrees of freedom of each input.
+        """
         _check_covs_algebra(self, cov)
         this_cov = cov.copy()
         this_cov["data"] = (
@@ -299,8 +308,8 @@ class Covariance(dict):
 
         return self
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_cov")
     @verbose
-    @copy_function_doc_to_method_doc(viz.plot_cov)
     def plot(
         self,
         info,
@@ -311,6 +320,8 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
+        from . import viz
+
         return viz.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
@@ -607,15 +618,15 @@ def compute_raw_covariance(
         Raw data.
     tmin : float
         Beginning of time interval in seconds. Defaults to 0.
-    tmax : float | None (default None)
+    tmax : float | None
         End of time interval in seconds. If None (default), use the end of the
         recording.
-    tstep : float (default 0.2)
+    tstep : float | None
         Length of data chunks for artifact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
         duration. This can use a lot of memory for large ``Raw``
         instances.
-    reject : dict | None (default None)
+    reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done. Example::
@@ -626,7 +637,7 @@ def compute_raw_covariance(
                           eog=250e-6 # V (EOG channels)
                           )
 
-    flat : dict | None (default None)
+    flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
@@ -638,23 +649,23 @@ def compute_raw_covariance(
         covariance or rank estimates.
 
         .. versionadded:: 1.11
-    method : str | list | None (default 'empirical')
+    method : str | list | None
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.12
-    method_params : dict | None (default None)
+    method_params : dict | None
         Additional parameters to the estimation procedure.
         See :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.12
-    cv : int | sklearn.model_selection object (default 3)
+    cv : int | sklearn.model_selection object
         The cross validation method. Defaults to 3, which will
         internally trigger by default :class:`sklearn.model_selection.KFold`
         with 3 splits.
 
         .. versionadded:: 0.12
-    scalings : dict | None (default None)
+    scalings : dict | None
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale magnetometers and gradiometers
         at the same unit.
@@ -663,7 +674,7 @@ def compute_raw_covariance(
     %(n_jobs)s
 
         .. versionadded:: 0.12
-    return_estimators : bool (default False)
+    return_estimators : bool
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False.
 
@@ -929,18 +940,18 @@ def compute_covariance(
     inst : instance of Epochs | Evoked | list of Epochs
         The epochs or evoked response. For an evoked response, time samples
         are treated as observations.
-    keep_sample_mean : bool (default True)
+    keep_sample_mean : bool
         If False, the average response over epochs is computed for
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
         previous stimulus extends into the baseline period of the next.
         Note. This option is only implemented for method='empirical'.
         This option cannot be used when ``inst`` is an Evoked instance.
-    tmin : float | None (default None)
+    tmin : float | None
         Start time for baseline. If None start at first sample.
-    tmax : float | None (default None)
+    tmax : float | None
         End time for baseline. If None end at last sample.
-    projs : list of Projection | None (default None)
+    projs : list of Projection | None
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the input should be
         inherited. If None, then projectors from all epochs must match.
@@ -955,7 +966,7 @@ def compute_covariance(
         covariance or rank estimates.
 
         .. versionadded:: 1.11
-    method : str | list | None (default 'empirical')
+    method : str | list | None
         The method used for covariance estimation. If 'empirical' (default),
         the sample covariance will be computed. A list can be passed to
         perform estimates using multiple methods.
@@ -973,7 +984,7 @@ def compute_covariance(
         segments of data, since computation can take a long time.
 
         .. versionadded:: 0.9.0
-    method_params : dict | None (default None)
+    method_params : dict | None
         Additional parameters to the estimation procedure. Only considered if
         method is not None. Keys must correspond to the value(s) of ``method``.
         If None (default), expands to the following (with the addition of
@@ -986,16 +997,16 @@ def compute_covariance(
              'pca': {'iter_n_components': None},
              'factor_analysis': {'iter_n_components': None}}
 
-    cv : int | sklearn.model_selection object (default 3)
+    cv : int | sklearn.model_selection object
         The cross validation method. Defaults to 3, which will
         internally trigger by default :class:`sklearn.model_selection.KFold`
         with 3 splits.
-    scalings : dict | None (default None)
+    scalings : dict | None
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale data to roughly the same order of
         magnitude.
     %(n_jobs)s
-    return_estimators : bool (default False)
+    return_estimators : bool
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False.
     on_mismatch : str
@@ -1513,12 +1524,12 @@ def _auto_low_rank_model(
         iter_n_components = np.arange(5, data.shape[1], 5)
     from sklearn.decomposition import PCA, FactorAnalysis
 
+    random_state = method_params.pop("random_state", 0)
     if mode == "factor_analysis":
-        est = FactorAnalysis
+        est = FactorAnalysis(random_state=random_state, **method_params)
     else:
         assert mode == "pca"
-        est = PCA
-    est = est(**method_params)
+        est = PCA(random_state=random_state, **method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)
@@ -2014,45 +2025,45 @@ def regularize(
     cov : Covariance
         The noise covariance matrix.
     %(info_not_none)s (Used to get channel types and bad channels).
-    mag : float (default 0.1)
+    mag : float
         Regularization factor for MEG magnetometers.
-    grad : float (default 0.1)
+    grad : float
         Regularization factor for MEG gradiometers. Must be the same as
         ``mag`` if data have been processed with SSS.
-    eeg : float (default 0.1)
+    eeg : float
         Regularization factor for EEG.
-    exclude : list | 'bads' (default 'bads')
+    exclude : list | 'bads'
         List of channels to mark as bad. If 'bads', bads channels
         are extracted from both info['bads'] and cov['bads'].
-    proj : bool (default True)
+    proj : bool
         Apply projections to keep rank of data.
-    seeg : float (default 0.1)
+    seeg : float
         Regularization factor for sEEG signals.
-    ecog : float (default 0.1)
+    ecog : float
         Regularization factor for ECoG signals.
-    hbo : float (default 0.1)
+    hbo : float
         Regularization factor for HBO signals.
-    hbr : float (default 0.1)
+    hbr : float
         Regularization factor for HBR signals.
-    fnirs_cw_amplitude : float (default 0.1)
+    fnirs_cw_amplitude : float
         Regularization factor for fNIRS CW raw signals.
-    fnirs_fd_ac_amplitude : float (default 0.1)
+    fnirs_fd_ac_amplitude : float
         Regularization factor for fNIRS FD AC raw signals.
-    fnirs_fd_phase : float (default 0.1)
+    fnirs_fd_phase : float
         Regularization factor for fNIRS raw phase signals.
-    fnirs_od : float (default 0.1)
+    fnirs_od : float
         Regularization factor for fNIRS optical density signals.
-    fnirs_td_gated_amplitude : float (default 0.1)
+    fnirs_td_gated_amplitude : float
         Regularization factor for fNIRS time domain gated amplitude signals.
-    fnirs_td_moments_intensity : float (default 0.1)
+    fnirs_td_moments_intensity : float
         Regularization factor for fNIRS time domain moments amplitude signals.
-    fnirs_td_moments_mean : float (default 0.1)
+    fnirs_td_moments_mean : float
         Regularization factor for fNIRS time domain moments mean signals.
-    fnirs_td_moments_variance : float (default 0.1)
+    fnirs_td_moments_variance : float
         Regularization factor for fNIRS time domain moments variance signals.
-    csd : float (default 0.1)
+    csd : float
         Regularization factor for EEG-CSD signals.
-    dbs : float (default 0.1)
+    dbs : float
         Regularization factor for DBS signals.
     %(rank_none)s
 
@@ -2403,13 +2414,13 @@ def whiten_evoked(
     noise_cov : instance of Covariance
         The noise covariance.
     %(picks_good_data)s
-    diag : bool (default False)
+    diag : bool
         If True, whiten using only the diagonal of the covariance.
     %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
-    scalings : dict | None (default None)
+    scalings : dict | None
         To achieve reliable rank estimation on multiple sensors,
         sensors have to be rescaled. This parameter controls the
         rescaling. If dict, it will override the
@@ -2441,6 +2452,8 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy.sparse import issparse
+
     from ._fiff.write import _safe_read_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)

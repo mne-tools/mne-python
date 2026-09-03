@@ -37,7 +37,7 @@ dependencies:
   - nomkl
   - noqt5
   - numba >=0.60
-  - numpy <3,>=2.0
+  - numpy <3,>=2.1
   - openmeeg >=2.5.7
   - packaging
   - pandas !=3.0.4,>=2.2
@@ -52,7 +52,7 @@ dependencies:
   - python-picard >=0.4
   - pyvista >=0.44
   - pyvistaqt >=0.11
-  - qdarkstyle !=3.2.2
+  - qdarkstyle >=3.2.2
   - qtpy
   - scikit-learn >=1.5
   - scipy >=1.14
@@ -69,5 +69,6 @@ dependencies:
   - vtk ==9.6.2
   - xlrd
   - pip:
+      - jamica>=0.3.0
       - pymef
       - pyobjc-framework-Cocoa>=5.2.0; platform_system == "Darwin"

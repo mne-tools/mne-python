@@ -10,6 +10,7 @@ import random
 import re
 import time
 import tomllib
+import urllib.request
 from functools import partial
 from pathlib import Path
 from urllib.error import URLError
@@ -241,7 +242,7 @@ def test_sys_info_check_other(monkeypatch):
     # SSL error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="SSL: CERT"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="SSL: CERT"))
         sys_info(fid=out)
     out = out.getvalue()
     assert re.match(".*unable to check.*SSL.*", out, re.DOTALL) is not None
@@ -249,7 +250,7 @@ def test_sys_info_check_other(monkeypatch):
     # Other error
     out = ClosingStringIO()
     with monkeypatch.context() as m:
-        m.setattr(mne.utils.config, "urlopen", partial(bad_open, msg="foo bar"))
+        m.setattr(urllib.request, "urlopen", partial(bad_open, msg="foo bar"))
         sys_info(fid=out)
     out = out.getvalue()
     match = re.match(".*unable to .*unknown error: .*foo bar.*", out, re.DOTALL)

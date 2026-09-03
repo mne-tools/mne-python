@@ -901,7 +901,6 @@ class ContainsMixin:
             True
             >>> 'seeg' in inst  # doctest: +SKIP
             False
-
         """
         # this method is not supported by Info object. An Info object inherits from a
         # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
@@ -1001,7 +1000,15 @@ class ValidatedDict(dict):
         super().__setitem__(key, val)
 
     def update(self, other=None, **kwargs):
-        """Update method using __setitem__()."""
+        """Update the instance, validating each key like ``__setitem__``.
+
+        Parameters
+        ----------
+        other : dict | iterable of pair | None
+            The entries to set, as a mapping or as ``(key, value)`` pairs.
+        **kwargs : dict
+            Additional entries to set, as keyword arguments.
+        """
         iterable = other.items() if isinstance(other, Mapping) else other
         if other is not None:
             for key, val in iterable:
@@ -1956,6 +1963,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """Make a deepcopy."""
         result = Info.__new__(Info)
         result._unlocked = True
+        memodict[id(self)] = result  # e.g. info["temp"] = info
         for k, v in self.items():
             # chs is roughly half the time but most are immutable
             if k == "chs":

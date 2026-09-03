@@ -18,7 +18,6 @@ from functools import partial
 
 import numpy as np
 from decorator import decorator
-from scipy.signal import argrelmax
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
@@ -190,9 +189,8 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         plt_show(show, block=block, **kwargs)
     else:
         from qtpy.QtCore import Qt
-        from qtpy.QtWidgets import QApplication
 
-        from .backends._utils import _qt_app_exec
+        from .backends._utils import _qt_block
 
         if fig is not None and os.getenv("_MNE_BROWSER_BACK", "").lower() == "true":
             fig.setWindowFlags(fig.windowFlags() | Qt.WindowStaysOnBottomHint)
@@ -201,7 +199,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         # If block=False, a Qt-Event-Loop has to be started
         # somewhere else in the calling code.
         if block:
-            _qt_app_exec(QApplication.instance())
+            _qt_block(fig)
 
 
 def _check_delayed_ssp(container):
@@ -874,6 +872,8 @@ def _find_peaks(evoked, npeaks):
 
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
+    from scipy.signal import argrelmax
+
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:
@@ -1403,7 +1403,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
-            ixs_epochs = np.random.default_rng().choice(
+            ixs_epochs = np.random.default_rng(0).choice(
                 len(inst), n_epochs, replace=False
             )
             inst = inst.copy()[ixs_epochs].load_data()

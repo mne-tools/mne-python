@@ -7,7 +7,6 @@
 import warnings
 
 import numpy as np
-from scipy.stats import gaussian_kde
 
 from .._fiff.meas_info import create_info
 from .._fiff.pick import _picks_to_idx, pick_types
@@ -225,6 +224,7 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -676,9 +676,9 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
-    reject_by_annotation : bool, optional
+    reject_by_annotation : bool
         [description], by default True
-    reject : str, optional
+    reject : str
         [description], by default 'auto'
 
     Returns
@@ -1068,7 +1068,7 @@ def plot_ica_overlay(
         before and after cleaning. A second panel with the RMS for MEG sensors and the
         :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
         signals before and after cleaning will be superimposed.
-    exclude : array-like of int | None (default)
+    exclude : array-like of int | None
         The components marked for exclusion. If ``None`` (default), the components
         listed in ``ICA.exclude`` will be used.
     %(picks_base)s all channels that were included during fitting.

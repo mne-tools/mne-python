@@ -21,23 +21,23 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
     ----------
     freqs : array-like of float, shape (n_freqs,)
         The frequencies.
-    sfreq : float | int, default 1.0
+    sfreq : float | int
         Sampling frequency of the data.
-    method : 'multitaper' | 'morlet', default 'morlet'
+    method : 'multitaper' | 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
         'multitaper' uses Morlet wavelets windowed with multiple DPSS
         multitapers.
-    n_cycles : float | array of float, default 7.0
+    n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    time_bandwidth : float, default None
+    time_bandwidth : float | None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
-    use_fft : bool, default True
+    use_fft : bool
         Use the FFT for convolutions or not.
-    decim : int | slice, default 1
+    decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -46,7 +46,7 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
         .. note:: Decimation may create aliasing artifacts, yet decimation
                   is done after the convolutions.
 
-    output : str, default 'complex'
+    output : str
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.

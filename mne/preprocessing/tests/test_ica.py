@@ -4,8 +4,10 @@
 
 import os
 import shutil
+import sys
 from contextlib import nullcontext
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -54,7 +56,7 @@ from mne.preprocessing.ica import (
     read_ica_eeglab,
 )
 from mne.rank import _compute_rank_int
-from mne.utils import _record_warnings, catch_logging, check_version
+from mne.utils import _record_warnings, catch_logging, check_random_state, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -82,8 +84,8 @@ _baseline_corrected = pytest.warns(RuntimeWarning, match="were baseline-correcte
 
 def ICA(*args, **kwargs):
     """Fix the random state in tests."""
-    if "random_state" not in kwargs:
-        kwargs["random_state"] = 0
+    if "random_state" not in kwargs and "rng" not in kwargs:
+        kwargs["rng"] = 0
     return _ICA(*args, **kwargs)
 
 
@@ -117,9 +119,7 @@ def test_ica_full_data_recovery(method):
     for method in methods:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
-            ica = ICA(
-                n_components=n_components, random_state=0, method=method, max_iter=1
-            )
+            ica = ICA(n_components=n_components, rng=0, method=method, max_iter=1)
             kwargs = dict(exclude=[], n_pca_components=n_pca_components)
             picks = list(range(n_channels))
             with pytest.warns(UserWarning, match=None):  # sometimes warns
@@ -134,7 +134,7 @@ def test_ica_full_data_recovery(method):
                 diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
                 assert np.max(diff) > 1e-14
 
-            ica = ICA(n_components=n_components, method=method, random_state=0)
+            ica = ICA(n_components=n_components, method=method, rng=0)
             with _record_warnings():  # sometimes warns
                 ica.fit(epochs, picks=picks)
             _assert_ica_attributes(ica, epochs.get_data(picks))
@@ -171,7 +171,7 @@ def test_ica_simple(method):
     data = np.dot(A, S)
     info = create_info(data.shape[-2], 1000.0, "eeg")
     cov = make_ad_hoc_cov(info)
-    ica = ICA(n_components=n_components, method=method, random_state=0, noise_cov=cov)
+    ica = ICA(n_components=n_components, method=method, rng=0, noise_cov=cov)
     with (
         pytest.warns(RuntimeWarning, match="high-pass filtered"),
         pytest.warns(RuntimeWarning, match="No average EEG.*"),
@@ -184,6 +184,94 @@ def test_ica_simple(method):
     assert amari_distance < 0.1
 
 
+def test_ica_jamica_multimodel_error():
+    """Test that JAMICA's single-model error propagates through ICA."""
+    pytest.importorskip("jamica", minversion="0.3.0")
+    rng = np.random.default_rng(0)
+    info = create_info(2, 100.0, "mag")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(rng.standard_normal((2, 100)), info, verbose=False)
+    ica = ICA(
+        n_components=2,
+        method="jamica",
+        max_iter=1,
+        fit_params=dict(num_models=2),
+    )
+    with pytest.raises(ValueError, match=r"single AMICA model.*jamica\.AmicaICA"):
+        ica.fit(raw, verbose=False)
+
+
+def test_ica_jamica(tmp_path, monkeypatch):
+    """Test the single-model JAMICA solver boundary and I/O."""
+    jamica = pytest.importorskip("jamica", minversion="0.3.0")
+    original_amica = jamica.amica
+    amica_mock = MagicMock(wraps=original_amica)
+    monkeypatch.setattr(jamica, "amica", amica_mock)
+
+    rng = np.random.default_rng(7)
+    sources = rng.laplace(size=(3, 600))
+    mixing = np.array([[1.0, 0.4, -0.2], [0.3, 1.2, 0.5], [-0.4, 0.2, 0.9]])
+    data = mixing @ sources
+    info = create_info(3, 200.0, "mag")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(data, info, verbose=False)
+    fit_params = dict(do_newton=False, chunk_size=None)
+    ica = ICA(
+        n_components=3,
+        method="jamica",
+        rng=42,
+        max_iter=2,
+        fit_params=fit_params,
+    )
+    with pytest.warns(jamica.JamicaConvergenceWarning, match="did not converge"):
+        ica.fit(raw, verbose=False)
+
+    assert amica_mock.call_count == 1
+    (solver_x,), solver_kwargs = amica_mock.call_args
+    assert solver_kwargs == dict(
+        whiten=False,
+        return_n_iter=True,
+        random_state=42,
+        max_iter=2,
+        **fit_params,
+    )
+
+    # Explicitly reconstruct the matrix MNE passes to external ICA solvers.
+    expected_x = ica._pre_whiten(data.copy())
+    expected_x = ica.pca_components_ @ (expected_x - ica.pca_mean_[:, np.newaxis])
+    pca_norms = np.sqrt(ica.pca_explained_variance_)
+    expected_x /= pca_norms[:, np.newaxis]
+    assert_allclose(solver_x, expected_x[: ica.n_components_], rtol=1e-12, atol=1e-12)
+
+    with pytest.warns(jamica.JamicaConvergenceWarning, match="did not converge"):
+        _, direct_w, _, direct_n_iter = original_amica(solver_x, **solver_kwargs)
+    # The same input and seed must produce the same operator, so ICA ambiguity
+    # does not apply to this direct-call equivalence check.
+    mne_solver_w = ica.unmixing_matrix_ * pca_norms[: ica.n_components_]
+    assert_allclose(mne_solver_w, direct_w, rtol=1e-12, atol=1e-12)
+    assert ica.n_iter_ == direct_n_iter == 2
+    assert_allclose(ica.mixing_matrix_, linalg.pinv(ica.unmixing_matrix_))
+    assert ica.get_sources(raw).get_data().shape == data.shape
+
+    ica.exclude = [0]
+    fname = tmp_path / "jamica-ica.fif"
+    ica.save(fname)
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "jamica", None)
+        ica_read = read_ica(fname)
+    assert ica_read.method == "jamica"
+    assert_allclose(ica_read.unmixing_matrix_, ica.unmixing_matrix_)
+    assert_allclose(ica_read.mixing_matrix_, ica.mixing_matrix_)
+    assert_allclose(
+        ica_read.get_sources(raw).get_data(), ica.get_sources(raw).get_data()
+    )
+    assert_allclose(
+        ica_read.apply(raw.copy()).get_data(), ica.apply(raw.copy()).get_data()
+    )
+
+
 def test_warnings():
     """Test that ICA warns on certain input data conditions."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
@@ -191,7 +279,7 @@ def test_warnings():
     epochs = Epochs(
         raw, events=events, baseline=None, preload=True, on_outside="ignore"
     )
-    ica = ICA(n_components=2, max_iter=1, method="infomax", random_state=0)
+    ica = ICA(n_components=2, max_iter=1, method="infomax", rng=0)
 
     # not high-passed
     with epochs.info._unlock():
@@ -275,7 +363,8 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "method, max_iter_default", [("fastica", 1000), ("infomax", 500), ("picard", 500)]
+    "method, max_iter_default",
+    [("fastica", 1000), ("infomax", 500), ("jamica", 500), ("picard", 500)],
 )
 def test_ica_max_iter_(method, max_iter_default):
     """Test that ICA.max_iter is set to the right defaults."""
@@ -292,6 +381,36 @@ def test_ica_max_iter_(method, max_iter_default):
         ICA(max_iter=1.0)
 
 
+def test_ica_rng_transition():
+    """Test the transition from random_state to rng."""
+    with pytest.raises(TypeError, match="only one"):
+        _ICA(random_state=0, rng=0)
+
+    info = create_info(["Fz", "Cz", "Pz"], 100.0, "eeg")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(np.random.default_rng(0).standard_normal((3, 200)), info)
+    unmixings = []
+    for kwargs in (
+        dict(random_state=0),
+        dict(random_state=check_random_state(0)),
+        dict(rng=0),
+    ):
+        ica = _ICA(
+            n_components=2,
+            method="fastica",
+            max_iter=1000,
+            **kwargs,
+        )
+        with _record_warnings():  # ICA does not necessarily converge
+            ica.fit(raw)
+        unmixings.append(ica.unmixing_matrix_)
+    assert_array_equal(unmixings[0], unmixings[1])
+    # at the ICA/sklearn boundary an integer ``rng`` seed is forwarded verbatim,
+    # so it matches the same integer passed to the legacy parameter
+    assert_array_equal(unmixings[0], unmixings[2])
+
+
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
 def test_ica_n_iter_(method, tmp_path):
     """Test that ICA.n_iter_ is set after fitting."""
@@ -300,9 +419,7 @@ def test_ica_n_iter_(method, tmp_path):
     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
     n_components = 3
     max_iter = 1
-    ica = ICA(
-        n_components=n_components, max_iter=max_iter, method=method, random_state=0
-    )
+    ica = ICA(n_components=n_components, max_iter=max_iter, method=method, rng=0)
 
     if method == "infomax":
         ica.fit(raw)
@@ -1399,7 +1516,7 @@ def test_n_components_none(method, tmp_path):
     random_state = 12345
 
     output_fname = tmp_path / "test_ica-ica.fif"
-    ica = ICA(method=method, n_components=n_components, random_state=random_state)
+    ica = ICA(method=method, n_components=n_components, rng=random_state)
     with _record_warnings():
         ica.fit(epochs)
     _assert_ica_attributes(ica)
@@ -1774,13 +1891,13 @@ def test_ica_rejects_nonfinite():
     # Case 1: NaN
     raw = RawArray(data.copy(), info)
     raw._data[0, 25] = np.nan
-    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    ica = ICA(n_components=2, rng=0, method="fastica", max_iter="auto")
     with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)
 
     # Case 2: Inf
     raw = RawArray(data.copy(), info)
     raw._data[1, 50] = np.inf
-    ica = ICA(n_components=2, random_state=0, method="fastica", max_iter="auto")
+    ica = ICA(n_components=2, rng=0, method="fastica", max_iter="auto")
     with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)

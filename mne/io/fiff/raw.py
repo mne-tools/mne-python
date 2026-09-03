@@ -18,7 +18,6 @@ from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
-from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _file_like,
@@ -55,7 +54,7 @@ class Raw(BaseRaw):
 
         .. versionchanged:: 0.18
            Support for file-like objects.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
@@ -99,6 +98,12 @@ class Raw(BaseRaw):
         on_split_missing: str = "raise",
         verbose: bool | str | int | None = None,
     ):
+        if isinstance(preload, str) and preload == "auto":
+            if _file_like(fname):
+                raise ValueError(
+                    'preload="auto" requires stable source files and is not '
+                    "supported for file-like FIF inputs"
+                )
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname
@@ -199,7 +204,9 @@ class Raw(BaseRaw):
                 check_fname(fname, "raw", endings)
             # filename
             fname = _check_fname(fname, "read", True, "fname")
-            whole_file = preload if fname.suffix == ".gz" else False
+            whole_file = (
+                preload if preload != "auto" and fname.suffix == ".gz" else False
+            )
         else:
             # file-like
             if not preload:
@@ -428,12 +435,11 @@ class Raw(BaseRaw):
                 # already (cutting out some of read_tag) ...
                 fid.seek(ent.pos + 16, 0)
                 one = _call_dict[ent.type](fid, ent, shape=None, rlims=None)
-                try:
-                    one = _reshape_view(one, (nsamp, nchan))
-                except AttributeError:  # one is None
+                if one is None:
                     n_bad += picksamp
                 else:
                     # ... then pick samples we want
+                    one = one.reshape((nsamp, nchan), copy=False)
                     if first_pick != 0 or last_pick != nsamp:
                         one = one[first_pick:last_pick]
                     _mult_cal_one(
@@ -521,7 +527,7 @@ def read_raw_fif(
 
         .. versionchanged:: 0.18
            Support for file-like objects.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using

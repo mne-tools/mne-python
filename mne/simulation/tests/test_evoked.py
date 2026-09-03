@@ -14,10 +14,12 @@ from numpy.testing import (
 )
 
 from mne import (
+    Covariance,
     EpochsArray,
     compute_covariance,
     compute_raw_covariance,
     convert_forward_solution,
+    create_info,
     pick_channels_cov,
     pick_types,
     pick_types_forward,
@@ -60,7 +62,7 @@ def test_simulate_evoked():
     times = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
 
     # Generate times series for 2 dipoles
-    stc = simulate_sparse_stc(fwd["src"], n_dipoles=2, times=times, random_state=42)
+    stc = simulate_sparse_stc(fwd["src"], n_dipoles=2, times=times, rng=42)
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
@@ -71,7 +73,7 @@ def test_simulate_evoked():
         cov,
         iir_filter=iir_filter,
         nave=nave,
-        random_state=0,
+        rng=0,
     )
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd["sol"]["data"])
@@ -128,7 +130,7 @@ def test_add_noise():
     evoked = epochs.average(picks=np.arange(len(raw.ch_names)))
     for inst in (raw, epochs, evoked):
         with catch_logging() as log:
-            add_noise(inst, cov, random_state=rng, verbose=True)
+            add_noise(inst, cov, rng=rng, verbose=True)
         log = log.getvalue()
         want = "to {0}/{1} channels ({0}".format(len(cov["names"]), len(raw.ch_names))
         assert want in log
@@ -142,6 +144,28 @@ def test_add_noise():
         assert cov["names"] == cov_new["names"]
         r = np.corrcoef(cov["data"].ravel(), cov_new["data"].ravel())[0, 1]
         assert r > 0.99
+
+    info = create_info(["EEG 001"], 100.0, "eeg")
+    small_cov = Covariance(np.ones(1), info["ch_names"], [], [], 1)
+    legacy = EpochsArray(np.zeros((2, 1, 5)), info, verbose=False)
+    add_noise(legacy, small_cov, random_state=0)
+    want = np.array(
+        [
+            1.764052345967664,
+            0.4001572083672233,
+            0.9787379841057392,
+            2.240893199201458,
+            1.8675579901499675,
+        ]
+    )
+    assert_array_equal(legacy.get_data(copy=False)[0, 0], want)
+    assert_array_equal(legacy.get_data(copy=False)[1, 0], want)
+
+    modern = EpochsArray(np.zeros((2, 1, 5)), info, verbose=False)
+    add_noise(modern, small_cov, rng=0)
+    assert not np.array_equal(
+        modern.get_data(copy=False)[0], modern.get_data(copy=False)[1]
+    )
 
 
 def test_rank_deficiency():
@@ -160,7 +184,7 @@ def test_rank_deficiency():
     cov = regularize(cov, evoked.info, rank=None)
     cov = pick_channels_cov(cov, evoked.ch_names)
     evoked.data[:] = 0
-    add_noise(evoked, cov, random_state=0)
+    add_noise(evoked, cov, rng=0)
     cov_new = compute_covariance(
         EpochsArray(evoked.data[np.newaxis], evoked.info), verbose="error"
     )
@@ -182,7 +206,7 @@ def test_order():
     # MEG then EEG
     assert (eeg_picks > meg_picks.max()).all()
     times = np.arange(10) / 1000.0
-    stc = simulate_sparse_stc(fwd["src"], 1, times=times, random_state=0)
+    stc = simulate_sparse_stc(fwd["src"], 1, times=times, rng=0)
     evoked_sim = simulate_evoked(fwd, stc, evoked.info, nave=np.inf)
     reorder = np.concatenate([eeg_picks, meg_picks])
     evoked.reorder_channels([evoked.ch_names[pick] for pick in reorder])

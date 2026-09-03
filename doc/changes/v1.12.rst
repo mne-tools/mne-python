@@ -136,3 +136,5 @@ Authors
 - Thomas S. Binns
 - Varun Kasyap Pentamaraju+
 - Victor Férat
+
+.. include:: names.inc

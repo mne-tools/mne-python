@@ -4,10 +4,12 @@
 # Copyright the MNE-Python contributors.
 
 import collections.abc
+import contextlib
 import functools
 import os
 import platform
 import signal
+import socket
 import sys
 from contextlib import contextmanager
 from ctypes import c_char_p, c_void_p, cdll
@@ -15,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...fixes import _compare_version, _reshape_view
+from ...fixes import _compare_version
 from ...utils import _check_qt_version, _validate_type, logger, warn
 from ..utils import _get_cmap, _is_dark
 
@@ -111,6 +113,13 @@ def _splash_class():
 
 @contextmanager
 def _qt_disable_paint(widget):
+    if hasattr(widget, "paintGL"):
+        # QOpenGLWidget-based interactor (PyVistaQt >= 0.13): paintEvent drives
+        # the GL compositing of the whole window there, and suppressing it
+        # while the window is first shown leaves the entire window blank on
+        # macOS until a resize forces a fresh frame
+        yield
+        return
     paintEvent = widget.paintEvent
     widget.paintEvent = lambda *args, **kwargs: None
     try:
@@ -219,13 +228,24 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         qsplash = _splash_class()(*args)
         qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
-            alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
-            qsplash.showMessage(splash, alignment=alignment, color=Qt.white)
+            _splash_message(qsplash, splash)
         qsplash.show()
         app.processEvents()
         out = (out, qsplash)
 
     return out
+
+
+def _splash_message(splash, message):
+    """Show a message at the bottom of a splash screen from ``_init_mne_qtapp``.
+
+    ``QSplashScreen.showMessage`` repaints the splash screen synchronously, so this
+    can be used to narrate the startup of a GUI while its window is not up yet.
+    """
+    from qtpy.QtCore import Qt
+
+    alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
+    splash.showMessage(message, alignment=alignment, color=Qt.white)
 
 
 def _display_is_valid():
@@ -275,6 +295,79 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+@contextmanager
+def _allow_qt_interrupt(loop):
+    """Let SIGINT out of a Qt event loop, which otherwise never lets Python run.
+
+    Adapted from Matplotlib: a socketpair registered as the signal wakeup fd makes Qt
+    wake up on delivery, and running any Python at all (the notifier callback) is what
+    lets the interpreter reach the handler.
+    """
+    from qtpy.QtCore import QSocketNotifier
+
+    old_handler = signal.getsignal(signal.SIGINT)
+    if old_handler in (None, signal.SIG_IGN, signal.SIG_DFL):
+        yield  # a non-Python handler owns SIGINT; don't get in its way
+        return
+    wsock, rsock = socket.socketpair()
+    wsock.setblocking(False)
+    rsock.setblocking(False)
+    old_wakeup_fd = signal.set_wakeup_fd(wsock.fileno())
+    notifier = QSocketNotifier(rsock.fileno(), QSocketNotifier.Type.Read)
+
+    def _drain():
+        with contextlib.suppress(BlockingIOError):
+            rsock.recv(1)  # re-arm the notifier, which the wakeup write triggered
+
+    notifier.activated.connect(_drain)
+    handler_args = []
+    signal.signal(signal.SIGINT, lambda *args: (handler_args.append(args), loop.quit()))
+    try:
+        yield
+    finally:
+        notifier.setEnabled(False)
+        signal.set_wakeup_fd(old_wakeup_fd)
+        signal.signal(signal.SIGINT, old_handler)
+        wsock.close()
+        rsock.close()
+        # Hand the signal to whoever owned it (a notebook kernel, IPython, plain
+        # Python) with the frame it arrived on, so it is reported their way
+        if handler_args:
+            old_handler(*handler_args[0])
+
+
+def _qt_block(window):
+    """Block until ``window`` is closed, keeping it interactive.
+
+    Unlike :func:`_qt_app_exec` this runs a nested loop instead of the application's
+    own, so it neither quits the app nor stops an event loop something else owns (a
+    notebook kernel, an IDE), and it returns when this window closes rather than when
+    the last one does.
+    """
+    from qtpy.QtCore import QEvent, QEventLoop, QObject
+
+    if not window.isVisible():
+        return
+
+    loop = QEventLoop()
+
+    class _CloseWatcher(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Close:
+                loop.quit()
+            return False
+
+    watcher = _CloseWatcher()
+    window.installEventFilter(watcher)
+    window.destroyed.connect(loop.quit)  # closed without a Close event
+    try:
+        with _allow_qt_interrupt(loop):
+            loop.exec()
+    finally:
+        with contextlib.suppress(RuntimeError):  # window may already be deleted
+            window.removeEventFilter(watcher)
+
+
 def _qt_detect_theme():
     try:
         import darkdetect
@@ -315,22 +408,12 @@ def _qt_get_stylesheet(theme):
                 "pip install qdarkstyle\n"
             )
         else:
-            # TODO VERSION remove on qdarkstyle 3.2.3+
-            if api in ("PySide6", "PyQt6") and _compare_version(
-                qdarkstyle.__version__, "<", "3.2.3"
-            ):
-                warn(
-                    f"Setting theme={repr(theme)} is not supported for {api} in "
-                    f"qdarkstyle {qdarkstyle.__version__}, it will be ignored. "
-                    "Consider upgrading qdarkstyle to >=3.2.3."
+            stylesheet = qdarkstyle.load_stylesheet(
+                getattr(
+                    getattr(qdarkstyle, theme).palette,
+                    f"{theme.capitalize()}Palette",
                 )
-            else:
-                stylesheet = qdarkstyle.load_stylesheet(
-                    getattr(
-                        getattr(qdarkstyle, theme).palette,
-                        f"{theme.capitalize()}Palette",
-                    )
-                )
+            )
         return stylesheet
     else:
         try:
@@ -348,6 +431,14 @@ def _qt_get_stylesheet(theme):
 def _should_raise_window():
     from matplotlib import rcParams
 
+    from . import renderer
+
+    # The test suite opens a lot of 3D windows, and raising each one steals focus
+    # from whatever the developer is doing -- on macOS especially, where
+    # `activateWindow()` brings the whole application forward. The windows are
+    # still shown during tests, they just stay behind the active window.
+    if renderer.MNE_3D_BACKEND_TESTING:
+        return False
     return rcParams["figure.raise_window"]
 
 
@@ -374,7 +465,7 @@ def _pixmap_to_ndarray(pixmap):
     if hasattr(ptr, "setsize"):  # PyQt
         ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
-    data = _reshape_view(data, (img.height(), img.width(), 4))
+    data = data.reshape((img.height(), img.width(), 4), copy=False)
     return data / 255.0
 
 

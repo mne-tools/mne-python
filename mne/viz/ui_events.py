@@ -19,10 +19,14 @@ import re
 import weakref
 from dataclasses import dataclass
 from functools import partial
-
-from matplotlib.colors import Colormap
+from typing import TYPE_CHECKING
 
 from ..utils import _validate_type, fill_doc, logger, verbose, warn
+
+if TYPE_CHECKING:
+    # matplotlib is ~40 ms to import and this module is on the import path of
+    # mne.viz.utils (see mne/tests/test_import_nesting.py)
+    from matplotlib.colors import Colormap
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -152,7 +156,7 @@ class ColormapRange(UIEvent):
     fmid: float | None = None
     fmax: float | None = None
     alpha: bool | None = None
-    cmap: Colormap | str | None = None
+    cmap: "Colormap | str | None" = None
 
 
 @dataclass
@@ -202,6 +206,9 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
 
     Attributes
     ----------
@@ -212,10 +219,14 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
     """
 
     kind: str
     contours: list[str]
+    line_width: float | None = None
 
 
 @dataclass
@@ -267,10 +278,10 @@ def _get_event_channel(fig):
 
     Returns
     -------
-    channel : dict[event -> list]
-        The event channel. An event channel is a list mapping string event
-        names to a list of callback representing all subscribers to the
-        channel.
+    channel : dict[event -> dict]
+        The event channel. An event channel is a dict mapping string event
+        names to a dict of callbacks (used as an ordered set) representing all
+        subscribers to the channel, in the order in which they subscribed.
     """
     import matplotlib
 
@@ -338,7 +349,7 @@ def publish(fig, event, *, verbose=None):
     logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
-            channel[event.name] = set()
+            channel[event.name] = dict()
         for callback in channel[event.name]:
             callback(event=event)
 
@@ -356,12 +367,18 @@ def subscribe(fig, event_name, callback, *, verbose=None):
     callback : callable
         The function that should be called whenever the event is published.
     %(verbose)s
+
+    Notes
+    -----
+    Subscribers are called in the order in which they subscribed when the event
+    is published.
     """
     channel = _get_event_channel(fig)
     logger.debug(f"Subscribing to channel {channel}")
     if event_name not in channel:
-        channel[event_name] = set()
-    channel[event_name].add(callback)
+        channel[event_name] = dict()
+    # use a dict as an ordered set: subscribers are called in subscription order
+    channel[event_name][callback] = None
 
 
 @verbose
@@ -407,7 +424,7 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
             # Unsubscribe specific callback function.
             subscribers = channel[event_name]
             if callback in subscribers:
-                subscribers.remove(callback)
+                del subscribers[callback]
             else:
                 warn(
                     f'Cannot unsubscribe {callback} from event "{event_name}" '

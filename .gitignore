@@ -55,6 +55,7 @@ mne/viz/_brain/tests/.ipynb_checkpoints
 
 dist/
 doc/_build/
+doc/pypi/
 doc/generated/
 doc/auto_examples/
 doc/auto_tutorials/
@@ -104,3 +105,12 @@ venv/
 .ruff_cache/
 .ipynb_checkpoints/
 /.claude/
+uv.lock
+
+# written into the repo root by the CI helper scripts in tools/
+/build.txt
+/gitlog.txt
+/merge.txt
+/misc_version.txt
+/pattern.txt
+/testing_version.txt

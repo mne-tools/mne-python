@@ -11,7 +11,6 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import eigh
-from scipy.optimize import fmin_cobyla
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
@@ -52,8 +51,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz import plot_dipole_amplitudes, plot_dipole_locations
-from .viz.evoked import _plot_evoked
 
 
 @fill_doc
@@ -269,8 +266,8 @@ class Dipole(TimeMixin):
         """
         return deepcopy(self)
 
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_dipole_locations")
     @verbose
-    @copy_function_doc_to_method_doc(plot_dipole_locations)
     def plot_locations(
         self,
         trans,
@@ -294,6 +291,8 @@ class Dipole(TimeMixin):
         width=None,
         verbose=None,
     ):
+        from .viz import plot_dipole_locations
+
         return plot_dipole_locations(
             self,
             trans,
@@ -425,6 +424,8 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
+        from .viz import plot_dipole_amplitudes
+
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
@@ -623,6 +624,8 @@ class DipoleFixed(ExtendedTimeMixin):
         fig : instance of matplotlib.figure.Figure
             The figure containing the time courses.
         """
+        from .viz.evoked import _plot_evoked
+
         return _plot_evoked(
             self,
             picks=None,
@@ -911,7 +914,7 @@ def _write_dipole_bdip(fname, dip):
             fid.write(np.array(has_errors, ">i4").tobytes())  # has_errors
             fid.write(np.zeros(1, ">f4").tobytes())  # noise level
             for key in _BDIP_ERROR_KEYS:
-                val = dip.conf[key][ti] if key in dip.conf else 0.0
+                val = dip.conf[key][ti] if key in dip.conf else np.array(0.0)
                 assert val.shape == ()
                 fid.write(np.array(val, ">f4").tobytes())
             fid.write(np.zeros(25, ">f4").tobytes())
@@ -1065,6 +1068,8 @@ def _fit_dipoles(
     rhoend,
 ):
     """Fit a single dipole to the given whitened, projected data."""
+    from scipy.optimize import fmin_cobyla
+
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(

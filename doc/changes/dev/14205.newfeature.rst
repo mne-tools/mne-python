@@ -1,0 +1,1 @@
+Added ``meanlogratio`` baselining mode to :meth:`mne.time_frequency.EpochsTFR.apply_baseline` and related functions, by :newcontrib:`Virginie van Wassenhove`.

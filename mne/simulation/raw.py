@@ -44,10 +44,10 @@ from ..surface import _CheckInside
 from ..transforms import Transform, _get_trans, transform_surface_to
 from ..utils import (
     _check_preload,
+    _legacy_rng,
     _pl,
     _validate_type,
     _verbose_safe_false,
-    check_random_state,
     logger,
     verbose,
 )
@@ -387,9 +387,17 @@ def simulate_raw(
     return raw
 
 
+@_legacy_rng("random_state")
 @verbose
 def add_eog(
-    raw, head_pos=None, interp="cos2", n_jobs=None, random_state=None, verbose=None
+    raw,
+    head_pos=None,
+    interp="cos2",
+    n_jobs=None,
+    verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Add blink noise to raw data.
 
@@ -400,10 +408,11 @@ def add_eog(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
-    %(random_state)s
+    %(verbose)s
+    %(rng)s
+    %(random_state_rng)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
-    %(verbose)s
 
     Returns
     -------
@@ -439,12 +448,20 @@ def add_eog(
     ----------
     .. footbibliography::
     """
-    return _add_exg(raw, "blink", head_pos, interp, n_jobs, random_state)
+    return _add_exg(raw, "blink", head_pos, interp, n_jobs, rng)
 
 
+@_legacy_rng("random_state")
 @verbose
 def add_ecg(
-    raw, head_pos=None, interp="cos2", n_jobs=None, random_state=None, verbose=None
+    raw,
+    head_pos=None,
+    interp="cos2",
+    n_jobs=None,
+    verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Add ECG noise to raw data.
 
@@ -455,10 +472,11 @@ def add_ecg(
     %(head_pos)s
     %(interp)s
     %(n_jobs)s
-    %(random_state)s
+    %(verbose)s
+    %(rng)s
+    %(random_state_rng)s
         The random generator state used for blink, ECG, and sensor noise
         randomization.
-    %(verbose)s
 
     Returns
     -------
@@ -492,14 +510,13 @@ def add_ecg(
 
     .. versionadded:: 0.18
     """
-    return _add_exg(raw, "ecg", head_pos, interp, n_jobs, random_state)
+    return _add_exg(raw, "ecg", head_pos, interp, n_jobs, rng)
 
 
-def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
+def _add_exg(raw, kind, head_pos, interp, n_jobs, rng):
     assert isinstance(kind, str) and kind in ("ecg", "blink")
     _validate_type(raw, BaseRaw, "raw")
     _check_preload(raw, f"Adding {kind} noise ")
-    rng = check_random_state(random_state)
     info, times, first_samp = raw.info, raw.times, raw.first_samp
     data = raw._data
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=())

@@ -146,3 +146,5 @@ The committer list for this release is the following (preceded by number of comm
 *   3  Daniel McCloy
 *   3  Daniel Strohmeier
 *   1  Jussi Nurminen
+
+.. include:: names.inc

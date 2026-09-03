@@ -704,7 +704,7 @@ def _adjust_times(
     sfreq : int | float:
         sampling frequency of the data
 
-    time_col : str (default 'time'):
+    time_col : str
         name of column with the timestamps (e.g. 9511881, 9511882, ...)
 
     Returns
@@ -742,7 +742,7 @@ def _find_overlaps(df, max_time=0.05):
     ----------
     df : pandas.DataFrame
         Pandas DataFrame with ocular events (fixations, saccades, blinks)
-    max_time : float (default 0.05)
+    max_time : float
         Time in seconds. Defaults to .05 (50 ms)
 
     Returns
@@ -809,7 +809,7 @@ def _href_to_radian(opposite, f=15_000):
     ----------
     opposite : int
         The x or y coordinate in an HREF gaze sample.
-    f : int (default 15_000)
+    f : int
         distance of plane from the eye. Defaults to 15,000 units, which was taken
         from the Eyelink 1000 plus user manual.
 

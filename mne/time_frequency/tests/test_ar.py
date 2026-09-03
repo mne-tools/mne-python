@@ -24,7 +24,7 @@ def test_yule_walker():
 
     yw_kwargs = dict()
     if check_version("statsmodels", "0.15"):
-        yw_kwargs.update(use_namedtuple=False)
+        yw_kwargs.update(result_object=False)
 
     rng = np.random.default_rng(0)
     d = rng.standard_normal(100)

@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import datetime
+import gc
 import os
 import pathlib
 import pickle
@@ -315,7 +316,8 @@ def test_multiple_files(tmp_path):
     )
     _compare_combo(raw, raw_combo, times, n_times)
     raw_combo = concatenate_raws(
-        [read_raw_fif(f) for f in [fif_fname, fif_fname]], preload="memmap8.dat"
+        [read_raw_fif(f) for f in [fif_fname, fif_fname]],
+        preload=tmp_path / "memmap8.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
     assert raw[:, :][0].shape[1] * 2 == raw_combo0[:, :][0].shape[1]
@@ -349,13 +351,13 @@ def test_multiple_files(tmp_path):
 
     raw_combo = concatenate_raws(
         [read_raw_fif(fif_fname, preload=False), read_raw_fif(fif_fname, preload=True)],
-        preload="memmap3.dat",
+        preload=tmp_path / "memmap3.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
 
     raw_combo = concatenate_raws(
         [read_raw_fif(fif_fname, preload=True), read_raw_fif(fif_fname, preload=True)],
-        preload="memmap4.dat",
+        preload=tmp_path / "memmap4.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
 
@@ -364,7 +366,7 @@ def test_multiple_files(tmp_path):
             read_raw_fif(fif_fname, preload=False),
             read_raw_fif(fif_fname, preload=False),
         ],
-        preload="memmap5.dat",
+        preload=tmp_path / "memmap5.dat",
     )
     _compare_combo(raw, raw_combo, times, n_times)
 
@@ -957,9 +959,9 @@ def test_io_complex(tmp_path, dtype):
 
 
 @testing.requires_testing_data
-def test_getitem():
+def test_getitem(tmp_path):
     """Test getitem/indexing of Raw."""
-    for preload in [False, True, "memmap1.dat"]:
+    for preload in [False, True, tmp_path / "memmap1.dat"]:
         raw = read_raw_fif(fif_fname, preload=preload)
         data, times = raw[0, :]
         data1, times1 = raw[0]
@@ -1078,9 +1080,11 @@ def test_proj(tmp_path):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize("preload", [False, True, "memmap2.dat"])
+@pytest.mark.parametrize("preload", [False, True, "memmap"])
 def test_preload_modify(preload, tmp_path):
     """Test preloading and modifying data."""
+    if preload == "memmap":
+        preload = tmp_path / "memmap2.dat"
     rng = np.random.default_rng(0)
     raw = read_raw_fif(fif_fname, preload=preload)
 
@@ -2030,6 +2034,9 @@ def test_memmap(tmp_path):
     raw_0._data[:] = 0.0
     assert not raw_0._data.any()
     assert raw_1._data[:1, 3:5].all()
+    del raw_0, raw_1
+    gc.collect()
+    assert Path(memmaps[3]).is_file()
     # other things like drop_channels and crop work but do not use memmapping,
     # eventually we might want to add support for some of these as users
     # require them.
@@ -2111,6 +2118,15 @@ def test_file_like(kind, preload, split, tmp_path):
         else:
             assert fname.name in raw._repr_html_()
     assert file_fid.closed
+
+
+def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
+    """Test that automatic caching cannot misidentify a named stream."""
+    monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
+    stream = BytesIO(test_fif_fname.read_bytes())
+    stream.name = str(test_fif_fname)
+    with pytest.raises(ValueError, match="stable source files"):
+        read_raw_fif(stream, preload="auto")
 
 
 def test_str_like():

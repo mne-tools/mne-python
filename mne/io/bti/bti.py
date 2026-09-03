@@ -16,7 +16,6 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..._fiff.utils import _mult_cal_one, read_str
-from ...fixes import _reshape_view
 from ...transforms import Transform, combine_transforms, invert_transform
 from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
 from ..base import BaseRaw
@@ -1044,7 +1043,7 @@ class RawBTi(BaseRaw):
                     block = np.fromfile(fid, dtype, count)
                 sample_stop = sample_start + count // n_channels
                 shape = (sample_stop - sample_start, bti_info["total_chans"])
-                block = _reshape_view(block, shape)
+                block = block.reshape(shape, copy=False)
                 data_view = data[:, sample_start:sample_stop]
                 one = np.empty(block.shape[::-1])
 

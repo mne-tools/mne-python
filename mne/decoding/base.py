@@ -469,7 +469,9 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     def __sklearn_tags__(self):
         """Get sklearn tags."""
         tags = super().__sklearn_tags__()
-        model = self.model if self.model is not None else LogisticRegression()
+        model = (
+            self.model if self.model is not None else LogisticRegression(random_state=0)
+        )
         model_tags = model.__sklearn_tags__()
         tags.estimator_type = model_tags.estimator_type
         if tags.estimator_type is not None:
@@ -523,7 +525,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
             The training input samples to estimate the linear coefficients.
         y : array, shape (n_samples, [n_targets])
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -538,7 +540,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self.model_ = (
             clone(self.model)
             if self.model is not None
-            else LogisticRegression(solver="liblinear")
+            else LogisticRegression(solver="liblinear", random_state=0)
         )
         self.model_.fit(X, y, **fit_params)
 
@@ -842,9 +844,9 @@ def cross_val_multiscore(
         other cases, :class:`sklearn.model_selection.KFold` is used.
     %(n_jobs)s
     %(verbose)s
-    fit_params : dict, optional
+    fit_params : dict | None
         Parameters to pass to the fit method of the estimator.
-    pre_dispatch : int, or str, optional
+    pre_dispatch : int | str
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched

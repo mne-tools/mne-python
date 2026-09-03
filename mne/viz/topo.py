@@ -9,7 +9,6 @@ from functools import partial
 from inspect import signature
 
 import numpy as np
-from scipy import ndimage
 
 from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
@@ -805,6 +804,7 @@ def _erfimage_imshow(
 ):
     """Plot erfimage on sensor topography."""
     import matplotlib.pyplot as plt
+    from scipy import ndimage
 
     this_data = data[:, ch_idx, :]
     if vlim_array is not None:
@@ -861,6 +861,8 @@ def _erfimage_imshow_unified(
     vlim_array=None,
 ):
     """Plot erfimage topography using a single axis."""
+    from scipy import ndimage
+
     _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines

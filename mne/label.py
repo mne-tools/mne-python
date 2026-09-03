@@ -8,10 +8,12 @@ import os.path as op
 import re
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
+from pathlib import Path
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
+from ._freesurfer import get_volume_labels_from_aseg
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
 from .parallel import parallel_func
@@ -19,6 +21,7 @@ from .source_estimate import (
     SourceEstimate,
     VolSourceEstimate,
     _center_of_mass,
+    _volume_labels,
     extract_label_time_course,
     spatial_src_adjacency,
 )
@@ -41,8 +44,8 @@ from .utils import (
     _check_option,
     _check_subject,
     _import_nibabel,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
     fill_doc,
     get_subjects_dir,
     logger,
@@ -324,7 +327,19 @@ class Label:
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add Labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The union of the two labels (a :class:`~mne.BiHemiLabel` if the
+            hemispheres differ).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             return other + self
@@ -394,7 +409,18 @@ class Label:
         return label
 
     def __sub__(self, other):
-        """Subtract Labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label
+            The vertices of this label that are not in ``other``.
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             if self.hemi == "lh":
@@ -916,6 +942,8 @@ class Label:
 
         .. versionadded:: 0.24
         """
+        from scipy import sparse
+
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -1044,7 +1072,18 @@ class BiHemiLabel:
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        """Add labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of BiHemiLabel
+            The union of the two labels.
+        """
         if isinstance(other, Label):
             if other.hemi == "lh":
                 lh = self.lh + other
@@ -1063,7 +1102,19 @@ class BiHemiLabel:
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
-        """Subtract labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The vertices of this label that are not in ``other`` (a
+            :class:`~mne.Label` if only one hemisphere remains).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, Label):
             if other.hemi == "lh":
@@ -1659,36 +1710,13 @@ def _verts_within_dist(graph, sources, max_dist):
     dist : array
         Distances from source vertex.
     """
-    dist_map = {}
-    verts_added_last = []
-    for source in sources:
-        dist_map[source] = 0
-        verts_added_last.append(source)
+    from scipy.sparse.csgraph import dijkstra
 
-    # add neighbors until no more neighbors within max_dist can be found
-    while len(verts_added_last) > 0:
-        verts_added = []
-        for i in verts_added_last:
-            v_dist = dist_map[i]
-            row = graph[[i], :]
-            neighbor_vert = row.indices
-            neighbor_dist = row.data
-            for j, d in zip(neighbor_vert, neighbor_dist):
-                n_dist = v_dist + d
-                if j in dist_map:
-                    if n_dist < dist_map[j]:
-                        dist_map[j] = n_dist
-                else:
-                    if n_dist <= max_dist:
-                        dist_map[j] = n_dist
-                        # we found a new vertex within max_dist
-                        verts_added.append(j)
-        verts_added_last = verts_added
-
-    verts = np.sort(np.array(list(dist_map.keys()), int))
-    dist = np.array([dist_map[v] for v in verts], int)
-
-    return verts, dist
+    # ``min_only`` gives the distance to the closest of ``sources`` for every vertex,
+    # and ``limit`` leaves the ones beyond max_dist at infinity
+    dist = dijkstra(graph, indices=sources, min_only=True, limit=max_dist)
+    verts = np.flatnonzero(np.isfinite(dist))
+    return verts, dist[verts].astype(int)
 
 
 def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
@@ -1880,6 +1908,8 @@ def _grow_nonoverlapping_labels(
     subject, seeds_, extents_, hemis, vertices_, graphs, names_
 ):
     """Grow labels while ensuring that they don't overlap."""
+    from scipy.sparse.csgraph import dijkstra
+
     labels = []
     for hemi in set(hemis):
         hemi_index = hemis == hemi
@@ -1890,56 +1920,34 @@ def _grow_nonoverlapping_labels(
         n_vertices = len(vertices_[hemi])
         n_labels = len(seeds)
 
-        # prepare parcellation
-        parc = np.empty(n_vertices, dtype="int32")
-        parc[:] = -1
-
-        # initialize active sources
-        sources = {}  # vert -> (label, dist_from_seed)
-        edge = []  # queue of vertices to process
+        # which label each seed vertex belongs to
+        seed_label = np.full(n_vertices, -1, int)
         for label, seed in enumerate(seeds):
-            if np.any(parc[seed] >= 0):
+            if np.any(seed_label[seed] >= 0):
                 raise ValueError("Overlapping seeds")
-            parc[seed] = label
-            for s in np.atleast_1d(seed):
-                sources[s] = (label, 0.0)
-                edge.append(s)
+            seed_label[seed] = label
 
-        # grow from sources
-        while edge:
-            vert_from = edge.pop(0)
-            label, old_dist = sources[vert_from]
-
-            # add neighbors within allowable distance
-            row = graph[[vert_from], :]
-            for vert_to, dist in zip(row.indices, row.data):
-                # Prevent adding a point that has already been used
-                # (prevents infinite loop)
-                if (vert_to == seeds[label]).any():
-                    continue
-                new_dist = old_dist + dist
-
-                # abort if outside of extent
-                if new_dist > extents[label]:
-                    continue
-
-                vert_to_label = parc[vert_to]
-                if vert_to_label >= 0:
-                    _, vert_to_dist = sources[vert_to]
-                    # abort if the vertex is occupied by a closer seed
-                    if new_dist > vert_to_dist:
-                        continue
-                    elif vert_to in edge:
-                        edge.remove(vert_to)
-
-                # assign label value
-                parc[vert_to] = label
-                sources[vert_to] = (label, new_dist)
-                edge.append(vert_to)
+        # A multi-source Dijkstra with min_only gives, for every vertex, its distance
+        # to the closest seed vertex and which seed vertex that was, i.e. exactly the
+        # non-overlapping assignment we want: each label grows outward until it runs
+        # into a vertex that some other label reaches sooner.
+        dist, _, sources = dijkstra(
+            graph,
+            indices=np.flatnonzero(seed_label >= 0),
+            min_only=True,
+            return_predecessors=True,
+        )
+        parc = np.full(n_vertices, -1, int)
+        reached = np.isfinite(dist)
+        parc[reached] = seed_label[sources[reached]]
+        # then drop vertices that are further away than their own label's extent
+        parc[reached] = np.where(
+            dist[reached] <= extents[parc[reached]], parc[reached], -1
+        )
 
         # convert parc to labels
         for i in range(n_labels):
-            vertices = np.nonzero(parc == i)[0]
+            vertices = np.flatnonzero(parc == i)
             name = str(names[i])
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
             labels.append(label_)
@@ -1947,9 +1955,17 @@ def _grow_nonoverlapping_labels(
     return labels
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def random_parcellation(
-    subject, n_parcel, hemi, subjects_dir=None, surface="white", random_state=None
+    subject,
+    n_parcel,
+    hemi,
+    subjects_dir=None,
+    surface="white",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Generate random cortex parcellation by growing labels.
 
@@ -1968,7 +1984,8 @@ def random_parcellation(
         parcels per hemisphere.
     %(subjects_dir)s
     %(surface)s
-    %(random_state)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -1988,7 +2005,7 @@ def random_parcellation(
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, random_state)
+    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, rng)
 
     # add a unique color to each label
     colors = _n_colors(len(labels))
@@ -1998,12 +2015,9 @@ def random_parcellation(
     return labels
 
 
-def _cortex_parcellation(
-    subject, n_parcel, hemis, vertices_, graphs, random_state=None
-):
+def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs, rng):
     """Random cortex parcellation."""
     labels = []
-    rng = check_random_state(random_state)
     for hemi in set(hemis):
         parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
         graph = graphs[hemi]  # distance graph
@@ -2061,16 +2075,21 @@ def _cortex_parcellation(
                 rest -= 1
 
         # merging small labels
-        # label adjacency matrix
+        # label adjacency matrix: every vertex belongs to exactly one label at this
+        # point, so mapping both ends of each graph edge through parc marks all pairs
+        # of adjacent labels at once. Functionally equivalent to, but much faster than:
+        #
+        #     for i in range(n_labels):
+        #         vertices = np.nonzero(parc == i)[0]
+        #         label_sizes[i] = len(vertices)
+        #         neighbor_labels = np.unique(parc[graph[vertices, :].indices])
+        #         label_conn[i, neighbor_labels] = 1
+        #
         n_labels = label_idx + 1
-        label_sizes = np.empty(n_labels, dtype=int)
+        label_sizes = np.bincount(parc, minlength=n_labels)
         label_conn = np.zeros([n_labels, n_labels], dtype="bool")
-        for i in range(n_labels):
-            vertices = np.nonzero(parc == i)[0]
-            label_sizes[i] = len(vertices)
-            neighbor_vertices = graph[vertices, :].indices
-            neighbor_labels = np.unique(np.array(parc[neighbor_vertices]))
-            label_conn[i, neighbor_labels] = 1
+        edges = graph.tocoo()
+        label_conn[parc[edges.row], parc[edges.col]] = True
         np.fill_diagonal(label_conn, 0)
 
         # merging
@@ -2559,28 +2578,53 @@ def _check_values_labels(values, n_labels):
         )
 
 
+def _label_membership(label_indices, n_vertices):
+    """Get a sparse (n_labels, n_vertices) matrix of which vertices are in each label.
+
+    ``label_indices[li]`` holds the indices, into some length-``n_vertices`` array of
+    vertices, of the vertices belonging to label ``li``. Multiplying by this matrix (or
+    its transpose) is how the label-wise operations in this module avoid looping over
+    labels; see ``_labels_to_stc_surf`` and ``_label_adjacency`` for examples.
+    """
+    from scipy import sparse
+
+    n_labels = len(label_indices)
+    rows = np.repeat(np.arange(n_labels), [len(ind) for ind in label_indices])
+    cols = np.concatenate([np.empty(0, int)] + list(label_indices))
+    return sparse.csr_array(
+        (np.ones(len(cols)), (rows, cols)), shape=(n_labels, n_vertices)
+    )
+
+
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
-    vertices = dict(lh=[], rh=[])
-    data = dict(lh=[], rh=[])
-    for li, label in enumerate(labels):
-        data[label.hemi].append(
-            np.repeat(values[li][np.newaxis], len(label.vertices), axis=0)
+    vertices = list()
+    data = list()
+    for hemi in ("lh", "rh"):
+        idx = np.array(
+            [li for li, label in enumerate(labels) if label.hemi == hemi], int
         )
-        vertices[label.hemi].append(label.vertices)
-    hemis = ("lh", "rh")
-    for hemi in hemis:
-        vertices[hemi] = np.concatenate(vertices[hemi], axis=0)
-        data[hemi] = np.concatenate(data[hemi], axis=0).astype(float)
-        cols = np.arange(len(vertices[hemi]))
-        vertices[hemi], rows = np.unique(vertices[hemi], return_inverse=True)
-        mat = sparse.coo_array((np.ones(len(rows)), (rows, cols))).tocsr()
-        mat *= 1.0 / mat.sum(axis=-1)
-        data[hemi] = mat @ data[hemi]
-    vertices = [vertices[hemi] for hemi in hemis]
-    data = np.concatenate([data[hemi] for hemi in hemis], axis=0)
-    return data, vertices, subject
+        label_vertices = [labels[li].vertices for li in idx]
+        these_vertices = np.unique(np.concatenate([np.empty(0, int)] + label_vertices))
+        membership = _label_membership(
+            [np.searchsorted(these_vertices, verts) for verts in label_vertices],
+            len(these_vertices),
+        )
+        # ``membership.T @ values[idx]`` sums, for each vertex, the values of every
+        # label containing it, and ``n_used`` is how many labels that was, so the two
+        # together give the mean. Functionally equivalent to, but much faster than:
+        #
+        #     for vi, vertex in enumerate(these_vertices):
+        #         in_label = [
+        #             ii for ii, verts in enumerate(label_vertices) if vertex in verts
+        #         ]
+        #         this_data[vi] = values[idx[in_label]].mean(axis=0)
+        #
+        n_used = membership.sum(axis=0)  # number of labels containing each vertex
+        vertices.append(these_vertices)
+        data.append((membership.T @ values[idx]) / n_used[:, np.newaxis])
+    return np.concatenate(data), vertices, subject
 
 
 _DEFAULT_TABLE_NAME = "MNE-Python Colortable"
@@ -2886,6 +2930,7 @@ def write_labels_to_annot(
         _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def select_sources(
     subject,
@@ -2895,8 +2940,10 @@ def select_sources(
     grow_outside=True,
     subjects_dir=None,
     name=None,
-    random_state=None,
     surf="white",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Select sources from a label.
 
@@ -2920,9 +2967,10 @@ def select_sources(
     %(subjects_dir)s
     name : None | str
         Assign name to the new label.
-    %(random_state)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -2960,7 +3008,6 @@ def select_sources(
                 subject, restrict_vertices=True, subjects_dir=subjects_dir, surf=surf
             )
         else:
-            rng = check_random_state(random_state)
             seed = rng.choice(label.vertices)
     else:
         seed = label.vertices[location]
@@ -2984,3 +3031,131 @@ def select_sources(
         )
 
     return new_label
+
+
+def _label_adjacency(label_src_ind, src_adjacency):
+    """Turn per-label source space indices plus source adjacency into label adjacency.
+
+    Two labels are adjacent if any vertex of one is adjacent to any vertex of the
+    other. ``label_src_ind[li]`` holds the indices into the source space of the
+    vertices belonging to label ``li``.
+    """
+    from scipy import sparse
+
+    n_labels = len(label_src_ind)
+    membership = _label_membership(label_src_ind, src_adjacency.shape[0])
+    # ``counts[i, j]`` is the number of adjacent (vertex in label i, vertex in label j)
+    # vertex pairs, which is nonzero exactly when the two labels are adjacent.
+    # Functionally equivalent to, but much faster than:
+    #
+    #     src_adjacency = src_adjacency.tocsr()
+    #     counts = np.zeros((n_labels, n_labels))
+    #     for i in range(n_labels):
+    #         for j in range(n_labels):
+    #             counts[i, j] = src_adjacency[label_src_ind[i]][
+    #                 :, label_src_ind[j]
+    #             ].sum()
+    #
+    # which needs O(n_labels ** 2) sparse slices, each costing O(nnz(src_adjacency)).
+    counts = membership @ src_adjacency.tocsr() @ membership.T
+    row, col = counts.nonzero()  # ignores any explicitly stored zeros
+    return sparse.coo_matrix(
+        (np.ones(len(row)), (row, col)), shape=(n_labels, n_labels)
+    )
+
+
+def label_adjacency(labels, src):
+    """Compute adjacency between labels.
+
+    Two labels are considered adjacent if one of their vertices are adjacent in the
+    source space.
+
+    Parameters
+    ----------
+    labels : list of mne.Label
+        The labels between which to compute adjacency.
+    src : mne.SourceSpaces
+        The source space on which the labels are defined.
+
+    Returns
+    -------
+    label_adjacency : scipy.sparse.coo_matrix
+        A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
+        otherwise.
+
+    See Also
+    --------
+    volume_label_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+    src_adjacency = spatial_src_adjacency(src)
+    label_src_ind = list()
+    for label in labels:
+        src_hemi = src[0] if label.hemi == "lh" else src[1]
+        label_verts = label.get_vertices_used(src_hemi["vertno"])
+        src_ind = np.searchsorted(src_hemi["vertno"], label_verts)
+        if label.hemi == "rh":
+            src_ind += src[0]["nuse"]
+        label_src_ind.append(src_ind)
+    # Labels in different hemispheres are never adjacent because the source space
+    # adjacency has no inter-hemispheric edges, so no explicit hemisphere check is
+    # needed here.
+    return _label_adjacency(label_src_ind, src_adjacency)
+
+
+@fill_doc
+def volume_label_adjacency(src, subject, subjects_dir, *, aseg="auto", labels=None):
+    """Compute adjacency between volume labels.
+
+    Two labels are considered adjacent if one of their voxels are adjacent in the
+    (volumetric) source space.
+
+    Parameters
+    ----------
+    src : mne.SourceSpaces
+        The volumetric source space on which the labels are defined.
+    %(subject)s
+    %(subjects_dir)s
+    %(aseg)s
+    %(labels_aseg)s
+
+    Returns
+    -------
+    label_adjacency : scipy.sparse.coo_matrix
+        A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
+        otherwise.
+    labels : list of str
+        The names of the labels which contain at least one source point.
+
+    See Also
+    --------
+    label_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+    subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+
+    if labels is None:
+        labels = get_volume_labels_from_aseg(aseg)
+
+    vol_labels = _volume_labels(src, (aseg, labels), mri_resolution=False)
+    src_adjacency = spatial_src_adjacency(src)
+    label_src_ind = [
+        np.searchsorted(src[0]["vertno"], label.vertices) for label in vol_labels
+    ]
+    return _label_adjacency(label_src_ind, src_adjacency), labels

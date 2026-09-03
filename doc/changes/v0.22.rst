@@ -251,3 +251,5 @@ People who contributed to this release in alphabetical order
 * Thomas Hartmann
 * Tod Flak +
 * Victoria Peterson +
+
+.. include:: names.inc

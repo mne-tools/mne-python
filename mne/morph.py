@@ -7,9 +7,8 @@ import os.path as op
 import warnings
 
 import numpy as np
-from scipy import sparse
 
-from .fixes import _get_img_fdata, _reshape_view
+from .fixes import _get_img_fdata
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -38,9 +37,7 @@ from .utils import (
     verbose,
     warn,
 )
-from .utils import (
-    warn as warn_,
-)
+from .utils import warn as warn_
 
 
 @verbose
@@ -524,8 +521,8 @@ class SourceMorph:
         mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
@@ -607,6 +604,7 @@ class SourceMorph:
 
     def _morph_vols(self, vols, mesg, subselect=True):
         from dipy.align.reslice import reslice
+        from scipy import sparse
 
         interp = self.src_data["interpolator"].tocsc()[
             :, np.concatenate(self._vol_vertices_from)
@@ -1179,6 +1177,8 @@ def _compute_morph_matrix(
     xhemi=False,
 ):
     """Compute morph matrix."""
+    from scipy import sparse
+
     logger.info("Computing morph matrix...")
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -1221,6 +1221,8 @@ def _compute_morph_matrix(
 
 
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
+    from scipy import sparse
+
     _validate_type(smooth, (str, None, "int-like"), "smoothing steps")
     if len(vertices_from) == 0:
         return sparse.csr_array((len(vertices_to), 0))
@@ -1334,6 +1336,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
 @_custom_lru_cache(20)
 def _surf_nearest(vertices, adj_mat):
     # Vertices can be out of order, so sort them to start ...
+    from scipy import sparse
+
     order = np.argsort(vertices)
     vertices = vertices[order]
     # work around https://github.com/scipy/scipy/issues/20904
@@ -1371,6 +1375,8 @@ def _csr_row_norm(data, row_norm):
 def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
+    from scipy import sparse
+
     assert isinstance(e, sparse.csr_array)
     n_tot = e.shape[0]
     assert e.shape == (n_tot, n_tot)
@@ -1419,12 +1425,20 @@ def _surf_upsampling_mat(idx_from, e, smooth):
 
 def _sparse_argmax_nnz_row(csr_mat):
     """Return index of the maximum non-zero index in each row."""
-    n_rows = csr_mat.shape[0]
-    idx = np.empty(n_rows, dtype=np.int64)
-    for k in range(n_rows):
-        row = csr_mat[[k]].tocoo()
-        idx[k] = row.col[np.argmax(row.data)]
-    return idx
+    # Equivalent to, but orders of magnitude faster than, slicing out each row and
+    # taking ``row.indices[np.argmax(row.data)]``:
+    #
+    #     for k in range(csr_mat.shape[0]):
+    #         row = csr_mat[[k]].tocoo()
+    #         idx[k] = row.col[np.argmax(row.data)]
+    #
+    starts, counts = csr_mat.indptr[:-1], np.diff(csr_mat.indptr)
+    assert (counts > 0).all()  # reduceat below needs every row to be non-empty
+    row_max = np.maximum.reduceat(csr_mat.data, starts)
+    # position of the first stored entry in each row that attains the row maximum
+    is_max = csr_mat.data == np.repeat(row_max, counts)
+    pos = np.where(is_max, np.arange(len(is_max)), len(is_max))
+    return csr_mat.indices[np.minimum.reduceat(pos, starts)]
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):
@@ -1555,7 +1569,7 @@ def _apply_morph_data(morph, stc_from):
         data[to_sl] = morph.morph_mat @ data_from[from_sl]
     assert to_used.all()
     assert from_used.all()
-    data = _reshape_view(data, (data.shape[0],) + stc_from.data.shape[1:])
+    data = data.reshape((data.shape[0],) + stc_from.data.shape[1:], copy=False)
     klass = stc_from.__class__
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep, morph.subject_to)
     return stc_to

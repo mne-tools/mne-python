@@ -90,6 +90,29 @@ def test_datasets_basic(tmp_path, monkeypatch):
     assert sd / "fsaverage" == sd_2
 
 
+def test_erp_core_fetch_file(tmp_path, monkeypatch):
+    """Test fetching individual ERP CORE files."""
+    fnames = (
+        "sub-001/eeg/sub-001_task-N170_eeg.fdt",
+        "sub-001/eeg/sub-001_task-N170_eeg.set",
+        "sub-001/eeg/sub-001_task-N170_events.tsv",
+    )
+
+    def fetch(pooch_instance, fname, **kwargs):
+        assert fname in pooch_instance.registry
+        destination = pooch_instance.abspath / fname
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.touch()
+        return str(destination)
+
+    monkeypatch.setattr(pooch.Pooch, "fetch", fetch)
+    for fname in fnames:
+        destination = datasets.erp_core.fetch_file(fname, path=tmp_path)
+        assert destination == tmp_path / "ERP-CORE-N170" / fname
+    with pytest.raises(ValueError, match="Invalid value for.*fname"):
+        datasets.erp_core.fetch_file("unknown", path=tmp_path)
+
+
 @requires_good_network
 def test_downloads(tmp_path, monkeypatch, capsys):
     """Test dataset URL and version handling."""
@@ -322,3 +345,18 @@ def test_fetch_uncompressed_file(tmp_path):
     )
     fetch_dataset(dataset_dict, path=None, force_update=True)
     assert (tmp_path / "foo" / "LICENSE.foo").is_file()
+
+
+def test_lite_data():
+    """Test the lite_data curated dataset is registered correctly."""
+    from mne.datasets import lite_data
+    from mne.datasets.config import MNE_DATASETS
+
+    assert "lite_data" in MNE_DATASETS
+    cfg = MNE_DATASETS["lite_data"]
+    assert cfg["archive_name"] == "MNE-lite-data.tar.gz"
+    assert cfg["hash"].startswith("md5:")
+    assert cfg["url"].startswith("https://osf.io/")
+    assert cfg["config_key"] == "MNE_DATASETS_LITE_DATA_PATH"
+    assert callable(lite_data.data_path)
+    assert callable(lite_data.get_version)

@@ -1124,7 +1124,16 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         pass
 
     @abstractmethod
@@ -1156,11 +1165,15 @@ class _AbstractDock(ABC):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+    ):
         pass
 
     @abstractmethod
@@ -1370,6 +1383,14 @@ class _AbstractWdgt(ABC):
     def set_style(self, style):
         pass
 
+    def set_hover_callbacks(self, enter, leave):
+        """Call ``enter``/``leave`` when the pointer enters/leaves the widget.
+
+        Hovering is a pointer-only affordance, so backends that have no notion of it
+        (e.g. notebooks) simply do nothing here.
+        """
+        pass
+
     @abstractmethod
     def set_items(self, items):
         pass
@@ -1408,6 +1429,12 @@ class _AbstractMplCanvas(ABC):
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel="Time (s)", ylabel="Activation (AU)")
         self.manager = None
+        # Artists that are redrawn on their own (see `add_blit_artist`), the
+        # background they are drawn onto, and the draw_event callback id that
+        # keeps that background up to date.
+        self._blit_artists = list()
+        self._blit_background = None
+        self._blit_cid = None
 
     def _connect(self):
         for event in ("button_press", "motion_notify") + self._extra_events:
@@ -1423,9 +1450,84 @@ class _AbstractMplCanvas(ABC):
     def plot_time_line(self, x, label, update=True, **kwargs):
         """Plot the vertical line."""
         line = self.axes.axvline(x, label=label, **kwargs)
+        self.add_blit_artist(line)
         if update:
             self.update_plot()
         return line
+
+    def add_blit_artist(self, artist):
+        """Mark an artist as fast-updating, to be drawn by :meth:`update_blit_artists`.
+
+        Such an artist is excluded from the canvas background, so that moving it
+        (e.g. the time line, or a label that travels with it) costs a blit of the
+        cached background rather than a full redraw of the figure.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to draw separately. Must live in this canvas's axes: an
+            artist added to the figure itself would be left out of saved images,
+            because Matplotlib only exempts *Axes* children from the rule that
+            animated artists are not drawn (see ``_AxesBase.draw``).
+        """
+        if not self.canvas.supports_blit:  # e.g. ipympl in a notebook
+            return
+        if artist.axes is not self.axes:
+            raise RuntimeError(
+                f"{artist!r} must be an artist of this canvas's axes to be drawn "
+                "separately, got one in " + repr(artist.axes)
+            )
+        if artist in self._blit_artists:
+            return
+        artist.set_animated(True)
+        self._blit_artists.append(artist)
+        # the cached background may already contain this artist, so drop it and
+        # let the next update redraw (and re-cache) the figure without it
+        self._blit_background = None
+        if self._blit_cid is None:
+            # Grab a fresh background after every full redraw, whatever caused it
+            # (update_plot, draw_idle, a resize, a DPI change, ...).
+            self._blit_cid = self.canvas.mpl_connect("draw_event", self._on_draw)
+
+    def remove_blit_artist(self, artist):
+        """Stop drawing an artist separately, putting it back in the background.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to stop drawing separately. Artists that were never added
+            are ignored.
+        """
+        if artist not in self._blit_artists:
+            return
+        self._blit_artists.remove(artist)
+        artist.set_animated(False)
+        self.update_plot()  # redraw so the artist becomes part of the background
+
+    def update_blit_artists(self):
+        """Redraw only the artists added with :meth:`add_blit_artist`.
+
+        This is the fast path taken while the time line moves; any other change
+        to the figure needs :meth:`update_plot` instead.
+        """
+        if self._blit_background is None or not self._blit_artists:
+            self.update_plot()  # nothing cached yet (or nothing to draw fast)
+            return
+        self.canvas.restore_region(self._blit_background)
+        self._draw_blit_artists()
+        self.canvas.blit(self.fig.bbox)
+
+    def _draw_blit_artists(self):
+        for artist in self._blit_artists:
+            self.fig.draw_artist(artist)
+
+    def _on_draw(self, event=None):
+        """Cache the background after a full redraw (draw_event callback)."""
+        self._blit_background = self.canvas.copy_from_bbox(self.fig.bbox)
+        if not self.canvas.is_saving():
+            # When saving, Matplotlib draws animated artists itself; drawing them
+            # again here would just double up their antialiasing.
+            self._draw_blit_artists()
 
     def update_plot(self):
         """Update the plot."""
@@ -1435,16 +1537,38 @@ class _AbstractMplCanvas(ABC):
 
     def set_color(self, bg_color, fg_color):
         """Set the widget colors."""
+        from matplotlib.ticker import AutoMinorLocator
+
         self.axes.set_facecolor(bg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
+        self.axes.spines["top"].set_visible(False)
+        self.axes.spines["right"].set_visible(False)
+        for side in ("bottom", "left"):
+            spine = self.axes.spines[side]
+            spine.set_color(fg_color)
+            spine.set_linewidth(2.0)
+
         self.axes.xaxis.label.set_color(fg_color)
         self.axes.yaxis.label.set_color(fg_color)
-        self.axes.spines["top"].set_color(fg_color)
-        self.axes.spines["bottom"].set_color(fg_color)
-        self.axes.spines["left"].set_color(fg_color)
-        self.axes.spines["right"].set_color(fg_color)
-        self.axes.tick_params(axis="x", colors=fg_color)
-        self.axes.tick_params(axis="y", colors=fg_color)
-        self.fig.patch.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_fontsize(14)
+        self.axes.yaxis.label.set_fontsize(14)
+
+        self.axes.tick_params(
+            axis="both",
+            colors=fg_color,
+            labelsize=13,
+            length=6,
+            width=1.5,
+            direction="out",
+        )
+
+        self.axes.xaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.yaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.tick_params(which="minor", length=3, width=1.0, colors=fg_color)
+        self.axes.grid(which="major", color=fg_color, alpha=0.18, linewidth=0.9)
+        self.axes.grid(which="minor", color=fg_color, alpha=0.08, linewidth=0.6)
+        self.axes.set_axisbelow(True)
 
     def show(self):
         """Show the canvas."""
@@ -1460,6 +1584,11 @@ class _AbstractMplCanvas(ABC):
     def clear(self):
         """Clear internal variables."""
         self.close()
+        if self._blit_cid is not None:
+            self.canvas.mpl_disconnect(self._blit_cid)
+            self._blit_cid = None
+        self._blit_artists.clear()  # the artists go away with the figure below
+        self._blit_background = None
         self.axes.clear()
         self.fig.clear()
         self.canvas = None
@@ -1471,22 +1600,64 @@ class _AbstractMplCanvas(ABC):
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
+    _legend_in_figure = True
+
     def __init__(self, brain, width, height, dpi):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
     def update_plot(self):
         """Update the plot."""
-        leg = self.axes.legend(
-            prop={"family": "monospace", "size": "small"},
-            framealpha=0.5,
-            handlelength=1.0,
-            facecolor=self.brain._bg_color,
-        )
-        for text in leg.get_texts():
-            text.set_color(self.brain._fg_color)
+        if self._legend_in_figure:
+            leg = self.axes.legend(
+                prop={"family": "monospace", "size": "small"},
+                framealpha=0.5,
+                handlelength=1.0,
+                facecolor=self.brain._bg_color,
+            )
+            for text in leg.get_texts():
+                text.set_color(self.brain._fg_color)
+        self.sync_traces()
         super().update_plot()
+
+    def sync_traces(self):
+        """Refresh a native trace-list widget; no-op unless a backend provides one."""
+
+    def set_trace_visible(self, line, visible):
+        """Toggle one trace's visibility, in the plot and on its 3D glyph."""
+        line.set_visible(visible)
+        self.brain._set_trace_visible(line, visible)
+        self.update_plot()
+
+    def set_trace_highlight(self, line):
+        """Highlight one trace (or none), dimming the plot's other traces."""
+        if line is not None and not line.get_visible():
+            line = None
+        if line is self._hovered_line:
+            return
+        time_line = getattr(self.brain, "time_line", None)
+        origlines = [
+            origline
+            for origline in self.axes.get_lines()
+            if origline is not time_line and origline.get_visible()
+        ]
+        if self._hovered_line is None and line is not None:
+            self._trace_base_alpha = {
+                origline: origline.get_alpha() for origline in origlines
+            }
+        self._hovered_line = line
+        for origline in origlines:
+            if line is None:
+                origline.set_alpha(self._trace_base_alpha.get(origline))
+            else:
+                origline.set_alpha(1.0 if origline is line else 0.25)
+        if line is None:
+            self._trace_base_alpha = {}
+        self.canvas.draw_idle()
+        self.brain._set_trace_highlight(line)
 
     def on_button_press(self, event):
         """Handle button presses."""
@@ -1501,6 +1672,8 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Clear internal variables."""
         super().clear()
         self.brain = None
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
 
 class _AbstractWindow(ABC):
@@ -1574,6 +1747,34 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_new_cursor(self, name):
         pass
+
+    def _window_set_enabled(self, enabled):
+        """Enable or disable user interaction with the whole window.
+
+        Blocking input is a pointer/keyboard affordance, so backends that have no
+        notion of it (e.g. notebooks) simply do nothing here.
+        """
+        pass
+
+    def _window_settle_layouts(self):
+        """Recompute all pending widget layouts of the window, synchronously.
+
+        Qt lays widgets out lazily, when the posted ``LayoutRequest`` events are
+        delivered. Calling this before showing a freshly-built window makes it appear
+        fully composed, instead of visibly assembling on screen. Backends without
+        lazy layouts (e.g. notebooks) do nothing here.
+        """
+        pass
+
+    def _window_defer(self, callback):
+        """Run ``callback`` from the event loop instead of the current call stack.
+
+        Use this to run a slow operation triggered by a widget *after* that widget has
+        finished reacting to the interaction (e.g. a combo box closing its popup) — the
+        callback runs the next time events are processed. Backends without an event
+        loop run the callback immediately.
+        """
+        callback()
 
     @abstractmethod
     def _window_ensure_minimum_sizes(self):

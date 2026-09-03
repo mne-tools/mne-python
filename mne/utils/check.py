@@ -10,6 +10,7 @@ import os
 import re
 from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
+from functools import wraps
 from importlib import import_module
 from inspect import signature
 from pathlib import Path
@@ -228,6 +229,43 @@ def check_random_state(seed):
     raise ValueError(
         f"{seed!r} cannot be used to seed a numpy.random.mtrand.RandomState instance"
     )
+
+
+def _check_rng(rng):
+    """Return a NumPy Generator, or a legacy RandomState unchanged.
+
+    Legacy RandomState instances are accepted for interoperability with
+    third-party code such as scikit-learn that does not accept Generator
+    instances.
+    """
+    if isinstance(rng, np.random.mtrand.RandomState):
+        return rng
+    return np.random.default_rng(rng)
+
+
+def _legacy_rng(legacy_name):
+    """Handle presence-sensitive legacy RNG parameters at the call boundary.
+
+    The decorated function must accept a keyword-only ``rng`` parameter. When
+    it is called, ``kwargs["rng"]`` is replaced by the normalized value before
+    the function runs, so the body only ever sees an already-normalized RNG.
+    """
+
+    def decorator(function):
+        @wraps(function)
+        def _legacy_rng_wrapper(*args, **kwargs):
+            if legacy_name not in kwargs:
+                kwargs["rng"] = _check_rng(kwargs.get("rng"))
+                return function(*args, **kwargs)
+            if "rng" in kwargs:
+                raise TypeError(f"Specify only one of rng or {legacy_name}")
+            logger.info(f"Use rng= instead of {legacy_name}= in new code")
+            kwargs["rng"] = check_random_state(kwargs[legacy_name])
+            return function(*args, **kwargs)
+
+        return _legacy_rng_wrapper
+
+    return decorator
 
 
 def _check_event_id(event_id, events):

@@ -41,31 +41,31 @@ class SSD(_GEDTransformer):
         Filtering for the frequencies of interest.
     filt_params_noise : dict
         Filtering for the frequencies of non-interest.
-    reg : float | str | None (default)
+    reg : float | str | None
         Which covariance estimator to use.
         If not None (same as 'empirical'), allow regularization for covariance
         estimation. If float, shrinkage is used (0 <= shrinkage <= 1). For str
         options, reg will be passed to method :func:`mne.compute_covariance`.
-    n_components : int | None (default None)
+    n_components : int | None
         The number of components to extract from the signal.
         If None, the number of components equal to the rank of the data are
         returned (see ``rank``).
-    picks : array of int | None (default None)
+    picks : array of int | None
         The indices of good channels.
-    sort_by_spectral_ratio : bool (default True)
+    sort_by_spectral_ratio : bool
         If set to True, the components are sorted according to the spectral
         ratio.
         See Eq. (24) in :footcite:`NikulinEtAl2011`.
-    return_filtered : bool (default False)
+    return_filtered : bool
         If return_filtered is True, data is bandpassed and projected onto the
         SSD components.
-    n_fft : int (default None)
+    n_fft : int | None
        If sort_by_spectral_ratio is set to True, then the SSD sources will be
        sorted according to their spectral ratio which is calculated based on
        :func:`mne.time_frequency.psd_array_welch`. The n_fft parameter sets the
        length of FFT used. The default (None) will use 1 second of data.
        See :func:`mne.time_frequency.psd_array_welch` for more information.
-    cov_method_params : dict | None (default None)
+    cov_method_params : dict | None
         As in :class:`mne.decoding.SPoC`
         The default is None.
     restr_type : "restricting" | "whitening" | None

@@ -11,17 +11,23 @@ doc = [
   "graphviz",
   "intersphinx_registry >= 0.2405.27",
   "ipython != 8.7.0",  # also in "full-no-qt" and "test"
+  # 0.8 is the Pyodide 314 line, whose matplotlib, scipy and numpy all satisfy
+  # MNE, and 0.23 raised jupyterlite-sphinx's jupyterlite-core cap to < 0.9 so
+  # the two resolve together. Below either, the browser drops to Pyodide 0.29
+  # and its matplotlib 3.8.4, a minor under the 3.9 MNE declares.
+  "jupyterlite-pyodide-kernel >= 0.8",
+  "jupyterlite-sphinx >= 0.23",
   "memory_profiler >= 0.16",
   "mne-bids",
   "mne-connectivity",
   "mne-gui-addons",
   "neo",
   "numpydoc >= 0.5",
-  "openneuro-py >= 2020.1",
+  "openneuro-py >= 2020.1",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "psutil",
   "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
-  "pymef",  # released 2023-06-30, will become 0.12 on 2028-07-01
+  "pymef",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
@@ -112,7 +118,7 @@ dependencies = [
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
   "matplotlib >= 3.9",  # released 2024-05-15, will become 3.10 on 2026-12-14
-  "numpy >= 2.0, < 3",  # released 2024-06-16, will become 2.1 on 2026-08-18
+  "numpy >= 2.1, < 3",  # released 2024-08-18, will become 2.2 on 2026-12-08
   "packaging",
   "pooch >= 1.5",
   "scipy >= 1.14",  # released 2024-06-24, will become 1.15 on 2027-01-03
@@ -172,6 +178,7 @@ full-no-qt = [
   "ipympl",
   "ipython >= 2.0, != 8.7.0",  # for notebook backend; also in "doc" and "test"
   "ipywidgets",
+  "jamica >= 0.3.0",
   "joblib >= 0.8",
   "jupyter",
   "mffpy >= 0.11.0",
@@ -192,7 +199,7 @@ full-no-qt = [
   "python-picard >= 0.4",
   "pyvista >= 0.44",  # released 2024-07-07, will become 0.45 on 2027-04-19
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
-  "qdarkstyle != 3.2.2",
+  "qdarkstyle >= 3.2.2",  # released 2023-11-27, no newer version available
   "qtpy",
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "sip",
@@ -324,7 +331,7 @@ addopts = [
   "--ignore=mne/report/js_and_css",
   "--junit-xml=junit-results.xml",
   "--tb=short",
-  "-rfEXs",
+  "-ra",
 ]
 testpaths = [
   "mne",

@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.fft import irfft, rfft
 
 from .utils import (
     _check_option,
@@ -122,6 +121,67 @@ def _set_cuda_device(device_id, verbose=None):
     logger.info(f"Now using CUDA device {device_id}")
 
 
+def _setup_cuda_hilbert(n_jobs, n_fft):
+    """Set up CUDA for a Hilbert transform."""
+    multiplier = None
+    if isinstance(n_jobs, str):
+        _check_option("n_jobs", n_jobs, ("cuda",))
+        n_jobs = 1
+        init_cuda()
+        if _cuda_capable:
+            import cupy
+
+            try:
+                multiplier = cupy.asarray(_hilbert_multiplier(n_fft, np, dtype=np.int8))
+                logger.info("Using CUDA for Hilbert transform")
+            except Exception as exp:
+                logger.info(
+                    "CUDA not used, could not allocate the Hilbert multiplier "
+                    f'("{exp}"), falling back to n_jobs=None'
+                )
+        else:
+            logger.info(
+                "CUDA not used, CUDA could not be initialized, "
+                "falling back to n_jobs=None"
+            )
+    return n_jobs, multiplier
+
+
+def _cuda_hilbert(x, n_fft, envelope, multiplier):
+    """Compute an analytic signal on the GPU."""
+    import cupy
+
+    if np.iscomplexobj(x):
+        raise ValueError("x must be real.")
+    out = _fft_hilbert(cupy.asarray(x), n_fft, envelope, cupy, multiplier)
+    return cupy.asnumpy(out)
+
+
+def _hilbert_multiplier(n_fft, xp, dtype):
+    """Create the frequency-domain multiplier for an analytic signal."""
+    multiplier = xp.zeros(n_fft, dtype=dtype)
+    multiplier[0] = 1
+    if n_fft % 2 == 0:
+        multiplier[1 : n_fft // 2] = 2
+        multiplier[n_fft // 2] = 1
+    else:
+        multiplier[1 : (n_fft + 1) // 2] = 2
+    return multiplier
+
+
+def _fft_hilbert(x, n_fft, envelope, xp, multiplier=None):
+    """Compute an analytic signal with a NumPy-compatible array module."""
+    n_x = x.shape[-1]
+    x_fft = xp.fft.fft(x, n=n_fft, axis=-1)
+    if multiplier is None:
+        multiplier = _hilbert_multiplier(n_fft, xp, x_fft.real.dtype)
+    x_fft *= multiplier
+    out = xp.fft.ifft(x_fft, axis=-1)[..., :n_x]
+    if envelope:
+        out = xp.abs(out)
+    return out
+
+
 ###############################################################################
 # Repeated FFT multiplication
 
@@ -166,6 +226,8 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
     -----
     This function is designed to be used with fft_multiply_repeated().
     """
+    from scipy.fft import irfft, rfft
+
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft, h_fft=rfft(h, n=n_fft))
     if isinstance(n_jobs, str):
         _check_option("n_jobs", n_jobs, ("cuda",))
@@ -261,6 +323,8 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     -----
     This function is designed to be used with fft_resample().
     """
+    from scipy.fft import irfft, rfft
+
     cuda_dict = dict(use_cuda=False, rfft=rfft, irfft=irfft)
     rfft_len_x = len(W) // 2 + 1
     # fold the window onto inself (should be symmetric) and truncate

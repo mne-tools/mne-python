@@ -37,9 +37,7 @@ raw.filter(l_freq=1.0, h_freq=None)
 
 # %%
 # Run ICA
-ica = mne.preprocessing.ICA(
-    n_components=15, method="picard", max_iter="auto", random_state=97
-)
+ica = mne.preprocessing.ICA(n_components=15, method="picard", max_iter="auto", rng=97)
 ica.fit(raw)
 
 # %%
@@ -104,7 +102,7 @@ for sub in (1, 2):
 
     # Run ICA
     ica = mne.preprocessing.ICA(
-        n_components=15, method="picard", max_iter="auto", random_state=97
+        n_components=15, method="picard", max_iter="auto", rng=97
     )
     ica.fit(raw)
     ica.plot_sources(raw)

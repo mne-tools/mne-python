@@ -16,6 +16,7 @@ from qtpy import API_NAME  # noqa: F401, isort: skip
 
 import pyvista
 from matplotlib.backends.backend_qtagg import FigureCanvas
+from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
 from pyvistaqt.plotting import FileDialog, MainWindow
 from qtpy.QtCore import (
@@ -23,12 +24,14 @@ from qtpy.QtCore import (
     QLibraryInfo,
     QLocale,
     QObject,
+    QPoint,
+    QSize,
     Qt,
     QTimer,
     # non-object-based-abstraction-only, remove
     Signal,
 )
-from qtpy.QtGui import QCursor, QGuiApplication, QIcon, QKeyEvent
+from qtpy.QtGui import QCursor, QFont, QGuiApplication, QIcon, QKeyEvent
 from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -39,6 +42,8 @@ from qtpy.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
+    QGraphicsOpacityEffect,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -102,6 +107,7 @@ from ._abstract import (
 )
 from ._pyvista import (
     _check_3d_figure,  # noqa: F401
+    _clear_3d_figure,  # noqa: F401
     _close_3d_figure,  # noqa: F401
     _close_all,  # noqa: F401
     _PyVistaRenderer,
@@ -112,7 +118,7 @@ from ._pyvista import (
 from ._utils import (
     _ICONS_PATH,
     _init_mne_qtapp,
-    _qt_app_exec,
+    _qt_block,
     _qt_detect_theme,
     _qt_disable_paint,
     _qt_get_stylesheet,
@@ -224,17 +230,7 @@ class _Widget(_AbstractWidget, metaclass=_BaseWidget):
         self.setFocus()
 
     def _set_theme(self, theme=None):
-        if theme is None:
-            default_theme = _qt_detect_theme()
-        else:
-            default_theme = theme
-        theme = get_config("MNE_3D_OPTION_THEME", default_theme)
-        stylesheet = _qt_get_stylesheet(theme)
-        self.setStyleSheet(stylesheet)
-        if _qt_is_dark(self):
-            QIcon.setThemeName("dark")
-        else:
-            QIcon.setThemeName("light")
+        _qt_set_theme(self, theme)
 
     def _set_size(self, width=None, height=None):
         if width:
@@ -682,14 +678,41 @@ class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
 # -------
 
 
-# In theory we should be able to set the theme later (e.g., in
-# _window_initialize() below), but at least on Qt6 this has to be done
-# earlier. So let's do it immediately upon instantiation of the QMainWindow
-# class (see _AppWindow.__init__'s self._set_theme() call below).
-# TODO: This should eventually allow us to handle
-# https://github.com/mne-tools/mne-python/issues/9182
+def _qt_set_theme(window, theme=None):
+    """(Re)apply a theme to a window, remembering any explicitly requested one."""
+    if theme is not None:
+        # remembered so that reapplying on an OS theme switch keeps honoring it
+        window._mne_theme = theme
+    elif remembered := getattr(window, "_mne_theme", None):
+        theme = remembered  # an explicit theme= from an earlier call
+    elif config_theme := get_config("MNE_3D_OPTION_THEME", None):
+        theme = config_theme
+    else:
+        theme = _qt_detect_theme()
+    stylesheet = _qt_get_stylesheet(theme)
+    # our own setStyleSheet emits PaletteChange; without this the signal recurses
+    window._mne_theme_updating = True
+    try:
+        window.setStyleSheet(stylesheet)
+        QIcon.setThemeName("dark" if _qt_is_dark(window) else "light")
+        # not a no-op: setStyleSheet re-parses, re-resolving palette(...) refs that a
+        # palette change alone leaves stale
+        for widget in window.findChildren(QWidget):
+            if child_stylesheet := widget.styleSheet():
+                widget.setStyleSheet(child_stylesheet)
+    finally:
+        window._mne_theme_updating = False
+
+
 class _MNEMainWindow(MainWindow):
+    signal_theme_change = Signal()
+
     def __init__(self, parent=None, title=None, size=None):
+        # before the base __init__: Qt can dispatch event() while the C++
+        # constructor is still running (PaletteChange is delivered during
+        # construction), and these must already exist by then
+        self._mne_theme = None
+        self._mne_theme_updating = False
         MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
@@ -697,6 +720,12 @@ class _MNEMainWindow(MainWindow):
 
         if renderer.MNE_3D_BACKEND_TESTING:
             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnBottomHint)
+
+    def event(self, ev):
+        """Turn OS light/dark mode switches into a signal (macOS only for now)."""
+        if ev.type() == QEvent.PaletteChange and not self._mne_theme_updating:
+            self.signal_theme_change.emit()
+        return super().event(ev)
 
 
 class _AppWindow(_AbstractAppWindow, _Widget, _MNEMainWindow, metaclass=_BaseWidget):
@@ -710,6 +739,7 @@ class _AppWindow(_AbstractAppWindow, _Widget, _MNEMainWindow, metaclass=_BaseWid
             self.setWindowState(Qt.WindowFullScreen)
 
         self._set_theme()
+        self.signal_theme_change.connect(self._set_theme)
         self.setLocale(QLocale(QLocale.Language.English))
         self.signal_close.connect(self._clean)
 
@@ -736,7 +766,7 @@ class _AppWindow(_AbstractAppWindow, _Widget, _MNEMainWindow, metaclass=_BaseWid
         _qt_raise_window(self)
         _Widget._show(self)
         if block:
-            _qt_app_exec(self._app)
+            _qt_block(self)
 
     def _close(self):
         self.close()
@@ -965,7 +995,16 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = QVBoxLayout() if vertical else QHBoxLayout()
         return layout
 
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = QLabel()
         if align:
@@ -974,7 +1013,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setWordWrap(True)
         if selectable:
             widget.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _QtWidget(widget)
 
     def _dock_add_button(
@@ -1027,6 +1066,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         slider_class = QFloatSlider if double else QSlider
@@ -1040,16 +1081,18 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.floatValueChanged.connect(callback)
         else:
             widget.valueChanged.connect(callback)
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _QtWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
         _set_widget_tooltip(widget, tooltip)
         widget.setChecked(value)
         widget.stateChanged.connect(callback)
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _QtWidget(widget)
 
     def _dock_add_spin_box(
@@ -1145,7 +1188,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             " border: none;"
             " font-size: 13pt;"
             " font-weight: 600;"
-            " color: palette(mid);"
+            " color: palette(placeholder-text);"
             " }"
             "QToolButton:hover { color: palette(text); }"
         )
@@ -1165,6 +1208,19 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setLayout(outer)
         self._layout_add_widget(layout, widget)
         return hlayout
+
+    def _dock_add_trace_list(self, name, *, collapse=True, layout=None):
+        """Add a collapsible group box holding the live trace-visibility list.
+
+        Unlike the other ``_dock_add_*`` widgets this isn't backed by a single
+        value, it mirrors ``self._mplcanvas``'s current traces and grows or
+        shrinks, so it's Qt-specific rather than part
+        of the cross-backend :class:`_AbstractDock` interface.
+        """
+        group_layout = self._dock_add_group_box(name, collapse=collapse, layout=layout)
+        trace_list = _QtTraceList(self._mplcanvas)
+        self._layout_add_widget(group_layout, trace_list)
+        return trace_list
 
     def _dock_add_text(self, name, value, placeholder, *, callback=None, layout=None):
         layout = self._dock_layout if layout is None else layout
@@ -1427,15 +1483,159 @@ class _QtMplCanvas(_AbstractMplCanvas, _QtMplInterface):
         self._mpl_initialize()
 
 
+class _QtTraceRow(QWidget):
+    """One row of the trace list: a color swatch, a label, a visibility toggle."""
+
+    def __init__(self, canvas, line):
+        super().__init__()
+        self._canvas = canvas
+        self._line = line
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(8)
+
+        swatch = QLabel()
+        swatch.setFixedSize(13, 13)
+        radius = 3 if line.get_label().startswith("RMS") else 6
+        swatch.setStyleSheet(
+            f"background-color: {to_hex(line.get_color())}; border-radius: {radius}px;"
+        )
+        layout.addWidget(swatch)
+
+        brain = canvas.brain
+        text_col = QVBoxLayout()
+        text_col.setContentsMargins(0, 0, 0, 0)
+        text_col.setSpacing(0)
+
+        text = QLabel(brain._trace_display_label(line) if brain else line.get_label())
+        text.setObjectName("trace_label")
+        text.setToolTip(line.get_label())
+        text.setWordWrap(True)
+        text_col.addWidget(text)
+
+        meta = brain._trace_meta.get(line) if brain else None
+        coords = meta[2] if meta is not None else None
+        if coords:
+            coord_label = QLabel(f"MNI: {coords}")
+            coord_label.setStyleSheet(
+                "color: palette(placeholder-text); font-size: 8pt;"
+            )
+            coord_label.setWordWrap(True)
+            text_col.addWidget(coord_label)
+
+        layout.addLayout(text_col, 1)
+
+        self._toggle = QToolButton()
+        self._toggle.setAutoRaise(True)
+        self._toggle.setIconSize(QSize(18, 18))
+        self._toggle.setFixedSize(28, 28)
+        self._toggle.setCursor(Qt.PointingHandCursor)
+        self._toggle.setToolTip("Show/hide this trace")
+        self._toggle.setStyleSheet(
+            "QToolButton { border: none; border-radius: 4px; }"
+            "QToolButton:hover { background-color: palette(midlight); }"
+        )
+        self._toggle.clicked.connect(self._on_toggle)
+        layout.addWidget(self._toggle)
+
+        self._opacity = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self._opacity)
+        self._sync_visibility()
+
+    def _sync_visibility(self):
+        visible = self._line.get_visible()
+        self._toggle.setIcon(_qicon("visibility_on" if visible else "visibility_off"))
+        self._opacity.setOpacity(1.0 if visible else 0.45)
+
+    def _on_toggle(self):
+        self._canvas.set_trace_visible(self._line, not self._line.get_visible())
+        self._sync_visibility()
+
+    def _repolish(self):
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+
+    def enterEvent(self, event):
+        """Highlight this trace when the row is hovered."""
+        self.setStyleSheet("_QtTraceRow { background-color: palette(alternate-base); }")
+        self._repolish()
+        self._canvas.set_trace_highlight(self._line)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Clear the highlight when the mouse leaves the row."""
+        self.setStyleSheet("")
+        self._repolish()
+        self._canvas.set_trace_highlight(None)
+        super().leaveEvent(event)
+
+
+class _QtTraceList(QWidget):
+    """Live-updating list of the trace panel's traces, for the "Trace List" dock.
+
+    A plain widget so it reads as part of the dock's
+    normal flow, matching the other collapsible sections, the side dock as
+    a whole already scrolls if its total content outgrows the window.
+    """
+
+    def __init__(self, canvas):
+        super().__init__()
+        self._canvas = canvas
+        self._rows_layout = QVBoxLayout(self)
+        self._rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._rows_layout.setSpacing(2)
+        self._synced_lines = None
+
+    def sync(self, lines):
+        """Rebuild the row list to match the canvas's current lines.
+
+        A no-op unless the set of traces actually changed (added/removed),
+        called on every plot update, including once per time step during
+        playback, so a per-row visibility/color change must not pay for a
+        full rebuild here; rows refresh themselves directly instead.
+        """
+        if lines == self._synced_lines:
+            return
+        self._synced_lines = list(lines)
+        while self._rows_layout.count():
+            widget = self._rows_layout.takeAt(0).widget()
+            if widget is not None:
+                widget.deleteLater()
+        if not lines:
+            placeholder = QLabel(
+                "Set Annotation to None to see\nvertex and RMS traces here."
+            )
+            placeholder.setStyleSheet(
+                "color: palette(placeholder-text); font-style: italic; font-size: 9pt;"
+            )
+            self._rows_layout.addWidget(placeholder)
+            return
+        for line in lines:
+            self._rows_layout.addWidget(_QtTraceRow(self._canvas, line))
+
+
 class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
+    _legend_in_figure = False
+
     def __init__(self, brain, width, height, dpi):
         super().__init__(brain, width, height, dpi)
         self._mpl_initialize()
+        self._trace_list = None
         if brain.separate_canvas:
             self.canvas.setParent(None)
         else:
             self.canvas.setParent(brain._renderer._window)
         self._connect()
+
+    def sync_traces(self):
+        """Refresh the trace-list dock widget with the canvas's current lines."""
+        if self._trace_list is None:
+            return
+        time_line = getattr(self.brain, "time_line", None)
+        lines = [line for line in self.axes.get_lines() if line is not time_line]
+        self._trace_list.sync(lines)
 
 
 class _QtHelpDialog(QDialog):
@@ -1514,6 +1714,8 @@ class _QtWindow(_AbstractWindow):
             central_widget.setLayout(central_layout)
         self._window_load_icons()
         self._window_set_theme()
+        if hasattr(self._window, "signal_theme_change"):  # not for a foreign window
+            self._window.signal_theme_change.connect(self._window_set_theme)
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
         self._window_before_close_callbacks = list()
@@ -1619,6 +1821,19 @@ class _QtWindow(_AbstractWindow):
     def _window_new_cursor(self, name):
         return _qcursor(name)
 
+    def _window_set_enabled(self, enabled):
+        self._window.setEnabled(enabled)
+
+    def _window_settle_layouts(self):
+        # Activate the deepest layouts first, so that parent layouts (activated
+        # bottom-up by _qt_activate_layouts below) see settled children.
+        for layout in reversed(self._window.findChildren(QLayout)):
+            layout.activate()
+        _qt_activate_layouts(self._window, self._interactor)
+
+    def _window_defer(self, callback):
+        QTimer.singleShot(0, callback)
+
     @contextmanager
     def _window_ensure_minimum_sizes(self):
         sz = self.figure.store["window_size"]
@@ -1644,6 +1859,28 @@ class _QtWindow(_AbstractWindow):
             # 1. Settle the layout
             self._window.ensurePolished()
             _qt_activate_layouts(self._window, self._interactor)
+            # Never grow the shown window beyond the available screen
+            # geometry below: on macOS the compositor can stop presenting
+            # such a window entirely (fully blank until the user resizes
+            # it). Measure the true frame overhead from the live window
+            # rather than guessing at decoration sizes.
+            # NB: not self._window.screen(): PySide's wrapper for
+            # QWidget.screen() can end up owning -- and later deleting -- the
+            # application's QScreen, which crashes (segfault) on the next
+            # window creation. Instead find the screen from the window's
+            # position (as in mne-qt-browser's _screen)
+            screen = QGuiApplication.screenAt(
+                self._window.mapToGlobal(QPoint(self._window.width() // 2, 0))
+            )
+            if screen is None:
+                screen = QGuiApplication.primaryScreen()
+            if screen is None:
+                max_w = max_h = 10**6
+            else:
+                frame = self._window.frameGeometry()
+                avail = screen.availableGeometry()
+                max_w = avail.width() - (frame.width() - self._window.width())
+                max_h = avail.height() - (frame.height() - self._window.height())
             # 2. Get the window and interactor sizes that work
             win_sz = self._window.size()
             ren_sz = self._interactor.size()
@@ -1658,7 +1895,10 @@ class _QtWindow(_AbstractWindow):
             if adjust_mpl:
                 win_h += max(self._mpl_dock.widget().size().height() - mpl_h, 0)
             # 5. Resize the window to the size that gave us ren_sz
-            self._interactor.window_size = (win_sz.width(), win_h)
+            self._interactor.window_size = (
+                min(win_sz.width(), max_w),
+                min(win_h, max_h),
+            )
             _qt_activate_layouts(self._window, self._interactor)
             # 6. Zeroing the frame's layout margins above avoids the interactor
             #    drifting on most platforms, but not always (e.g. CI's macOS
@@ -1669,23 +1909,15 @@ class _QtWindow(_AbstractWindow):
                 err_h = ren_sz.height() - self._interactor.height()
                 if not (err_w or err_h):
                     break
-                self._window.resize(
-                    self._window.width() + err_w, self._window.height() + err_h
-                )
+                new_w = min(self._window.width() + err_w, max_w)
+                new_h = min(self._window.height() + err_h, max_h)
+                if (new_w, new_h) == (self._window.width(), self._window.height()):
+                    break  # cannot converge without leaving the screen
+                self._window.resize(new_w, new_h)
                 _qt_activate_layouts(self._window, self._interactor)
 
     def _window_set_theme(self, theme=None):
-        if theme is None:
-            default_theme = _qt_detect_theme()
-        else:
-            default_theme = theme
-        theme = get_config("MNE_3D_OPTION_THEME", default_theme)
-        stylesheet = _qt_get_stylesheet(theme)
-        self._window.setStyleSheet(stylesheet)
-        if _qt_is_dark(self._window):
-            QIcon.setThemeName("dark")
-        else:
-            QIcon.setThemeName("light")
+        _qt_set_theme(self._window, theme)
 
     def _window_create(self):
         return _MNEMainWindow()
@@ -1780,12 +2012,38 @@ class _QtWidget(_AbstractWdgt):
         for key, val in style.items():
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
+        # Restyling a QLineEdit can scroll it to the end of its text; scroll back so
+        # the beginning of the text stays visible.
+        if hasattr(self._widget, "setCursorPosition"):
+            self._widget.setCursorPosition(0)
+
+    def set_hover_callbacks(self, enter, leave):
+        # keep a reference, otherwise the filter is garbage collected right away
+        self._hover_filter = _QtHoverFilter(enter, leave)
+        self._widget.installEventFilter(self._hover_filter)
 
     def set_items(self, items):
         self._widget.blockSignals(True)
         self._widget.clear()
         self._widget.addItems(items)
         self._widget.blockSignals(False)
+
+
+class _QtHoverFilter(QObject):
+    """Translate Qt enter/leave events into plain callbacks."""
+
+    def __init__(self, enter, leave):
+        super().__init__()
+        self._enter = enter
+        self._leave = leave
+
+    def eventFilter(self, obj, event):  # noqa: N802
+        """Handle enter and leave events (Qt API)."""
+        if event.type() == QEvent.Type.Enter:
+            self._enter()
+        elif event.type() == QEvent.Type.Leave:
+            self._leave()
+        return False  # never consume the event
 
 
 class _QtDialogCommunicator(QObject):
@@ -1853,22 +2111,26 @@ class _Renderer(
 
     @_qt_safe_window()
     def show(self):
-        super().show()
-        with _qt_disable_paint(self.plotter):
-            with self._window_ensure_minimum_sizes():
-                self.plotter.app_window.show()
-        self._update()
-        for plotter in self._all_plotters:
-            plotter.updateGeometry()
-            plotter._render()
-        # Ideally we would just put a `splash.finish(plotter.window())` in the
-        # same place that we initialize this (_init_qt_app call). However,
-        # the window show event is triggered (closing the splash screen) well
-        # before the window actually appears for complex scenes like the coreg
-        # GUI. Therefore, we close after all these events have been processed
-        # here.
-        self._process_events()
-        _qt_raise_window(self.plotter.app_window)
+        # Setting up and repainting the window is expensive, so skip it when the
+        # window is already up. This matters when a figure is reused for many plots,
+        # where it also avoids the scene visibly flashing on each plot.
+        if not self.plotter.app_window.isVisible():
+            super().show()
+            with _qt_disable_paint(self.plotter):
+                with self._window_ensure_minimum_sizes():
+                    self.plotter.app_window.show()
+            self._update()
+            for plotter in self._all_plotters:
+                plotter.updateGeometry()
+                plotter._render()
+            # Ideally we would just put a `splash.finish(plotter.window())` in the
+            # same place that we initialize this (_init_qt_app call). However,
+            # the window show event is triggered (closing the splash screen) well
+            # before the window actually appears for complex scenes like the coreg
+            # GUI. Therefore, we close after all these events have been processed
+            # here.
+            self._process_events()
+            _qt_raise_window(self.plotter.app_window)
 
 
 def _qt_activate_layouts(window, widget):
@@ -1894,19 +2156,34 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     dock = QDockWidget(name)
     # add scroll area
     scroll = QScrollArea(dock)
+    scroll.setFrameShape(QFrame.NoFrame)
     dock.setWidget(scroll)
     # give the scroll area a child widget
     widget = QWidget(scroll)
     scroll.setWidget(widget)
     scroll.setWidgetResizable(True)
     dock.setAllowedAreas(area)
-    dock.setTitleBarWidget(QLabel(name))
+
+    title = QLabel(name.upper())
+    title_font = title.font()
+    title_font.setBold(True)
+    title_font.setPointSize(max(title_font.pointSize() - 1, 8))
+    title_font.setLetterSpacing(QFont.AbsoluteSpacing, 1.1)
+    title.setFont(title_font)
+    title.setStyleSheet(
+        "QLabel {"
+        " color: palette(placeholder-text);"
+        " padding: 7px 10px 6px 10px;"
+        " border-bottom: 1px solid palette(midlight);"
+        " }"
+    )
+    dock.setTitleBarWidget(title)
     window.addDockWidget(area, dock)
     dock_layout = QVBoxLayout()
     widget.setLayout(dock_layout)
     # Fix resize grip size
     # https://stackoverflow.com/a/65050468/2175965
-    styles = ["margin: 4px;"]
+    styles = ["margin: 4px;", "border: none;"]
     if max_width is not None:
         styles.append(f"max-width: {max_width};")
     style_sheet = "QDockWidget { " + "  \n".join(styles) + "\n}"

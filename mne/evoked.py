@@ -45,7 +45,6 @@ from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
-from .time_frequency.tfr import AverageTFR
 from .utils import (
     ExtendedTimeMixin,
     SizeMixin,
@@ -69,15 +68,6 @@ from .utils import (
     warn,
 )
 from .utils._typing import Color, Self
-from .viz import (
-    plot_evoked,
-    plot_evoked_field,
-    plot_evoked_image,
-    plot_evoked_topo,
-    plot_evoked_topomap,
-)
-from .viz.evoked import plot_evoked_joint, plot_evoked_white
-from .viz.topomap import _topomap_animation
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -90,6 +80,7 @@ if TYPE_CHECKING:
 
     from .bem import ConductorModel
     from .cov import Covariance
+    from .time_frequency.tfr import AverageTFR
     from .viz import Brain, EvokedField, Figure3D
 
 _aspect_dict = {
@@ -131,12 +122,12 @@ class Evoked(
     condition : int | str | None
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
-    proj : bool, optional
+    proj : bool
         Apply SSP projection vectors.
     kind : str
         Either ``'average'`` or ``'standard_error'``. The type of data to read.
         Only used if 'condition' is a str.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
@@ -251,6 +242,7 @@ class Evoked(
         units: str | dict | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
+        exclude: list[str] | Literal["bads"] | tuple = (),
     ) -> np.ndarray:
         """Get evoked data as 2D array.
 
@@ -262,6 +254,12 @@ class Evoked(
             Start time of data to get in seconds.
         tmax : float | None
             End time of data to get in seconds.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels.
+
+            .. versionadded:: 1.13
 
         Returns
         -------
@@ -275,7 +273,7 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
@@ -527,7 +525,7 @@ class Evoked(
         """Channel names."""
         return self.info["ch_names"]
 
-    @copy_function_doc_to_method_doc(plot_evoked)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked")
     def plot(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -554,6 +552,8 @@ class Evoked(
         highlight: np.ndarray | None = None,
         verbose: bool | str | int | None = None,
     ) -> "Figure":
+        from .viz import plot_evoked
+
         return plot_evoked(
             self,
             picks=picks,
@@ -580,7 +580,7 @@ class Evoked(
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_image)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_image")
     def plot_image(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -605,6 +605,8 @@ class Evoked(
         group_by: dict | None = None,
         sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
     ) -> "Figure":
+        from .viz import plot_evoked_image
+
         return plot_evoked_image(
             self,
             picks=picks,
@@ -630,7 +632,7 @@ class Evoked(
             sphere=sphere,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_topo)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_topo")
     def plot_topo(
         self,
         layout: Layout | None = None,
@@ -652,6 +654,8 @@ class Evoked(
         select: bool = False,
         show: bool = True,
     ) -> "Figure":
+        from .viz import plot_evoked_topo
+
         return plot_evoked_topo(
             self,
             layout=layout,
@@ -674,7 +678,7 @@ class Evoked(
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_topomap)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_topomap")
     def plot_topomap(
         self,
         times: float | np.ndarray | Literal["auto", "peaks", "interactive"] = "auto",
@@ -709,6 +713,8 @@ class Evoked(
         ncols: int | Literal["auto"] = "auto",
         show: bool = True,
     ) -> "Figure":
+        from .viz import plot_evoked_topomap
+
         return plot_evoked_topomap(
             self,
             times=times,
@@ -743,7 +749,7 @@ class Evoked(
             ncols=ncols,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_field)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_evoked_field")
     def plot_field(
         self,
         surf_maps: list,
@@ -761,6 +767,8 @@ class Evoked(
         time_viewer: bool | str = "auto",
         verbose: bool | str | int | None = None,
     ) -> "Figure3D | EvokedField":
+        from .viz import plot_evoked_field
+
         return plot_evoked_field(
             self,
             surf_maps,
@@ -778,7 +786,7 @@ class Evoked(
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_white)
+    @copy_function_doc_to_method_doc("func:mne.viz.evoked.plot_evoked_white")
     def plot_white(
         self,
         noise_cov: "list | Covariance | Path | str",
@@ -791,6 +799,8 @@ class Evoked(
         spatial_colors: bool | Literal["auto"] = "auto",
         verbose: bool | str | int | None = None,
     ) -> "Figure":
+        from .viz.evoked import plot_evoked_white
+
         return plot_evoked_white(
             self,
             noise_cov=noise_cov,
@@ -803,7 +813,7 @@ class Evoked(
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_evoked_joint)
+    @copy_function_doc_to_method_doc("func:mne.viz.evoked.plot_evoked_joint")
     def plot_joint(
         self,
         times: float | np.ndarray | Literal["auto", "peaks"] = "peaks",
@@ -814,6 +824,8 @@ class Evoked(
         ts_args: dict | None = None,
         topomap_args: dict | None = None,
     ) -> "Figure | list":
+        from .viz.evoked import plot_evoked_joint
+
         return plot_evoked_joint(
             self,
             times=times,
@@ -944,6 +956,8 @@ class Evoked(
            :meth:`~mne.Evoked.plot_topomap`.
         .. versionadded:: 0.12.0
         """
+        from .viz.topomap import _topomap_animation
+
         return _topomap_animation(
             evoked=self,
             times=times,
@@ -1297,7 +1311,7 @@ class Evoked(
         n_jobs: int | None = None,
         verbose: bool | str | int | None = None,
         **method_kw,
-    ) -> AverageTFR:
+    ) -> "AverageTFR":
         """Compute a time-frequency representation of evoked data.
 
         Parameters
@@ -1326,6 +1340,8 @@ class Evoked(
         ----------
         .. footbibliography::
         """
+        from .time_frequency.tfr import AverageTFR
+
         _check_option("output", output, ("power", "phase", "complex"))
         method_kw["output"] = output
         return AverageTFR(
@@ -1801,7 +1817,7 @@ def read_evokeds(
         Either ``'average'`` or ``'standard_error'``, the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
-    allow_maxshield : bool | str (default False)
+    allow_maxshield : bool | str
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using

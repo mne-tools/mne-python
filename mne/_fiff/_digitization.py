@@ -7,7 +7,6 @@ from collections import Counter
 
 import numpy as np
 
-from ..fixes import _reshape_view
 from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
 from .constants import FIFF, _coord_frame_named
 from .tag import read_tag
@@ -336,7 +335,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
             f"Only single coordinate frame in dig is supported, got {dig_coord_frames}"
         )
     dig_ch_pos_location = np.array(dig_ch_pos_location)
-    dig_ch_pos_location = _reshape_view(dig_ch_pos_location, (-1, 3))
+    dig_ch_pos_location = dig_ch_pos_location.reshape((-1, 3), copy=False)
     return Bunch(
         nasion=fids.get("nasion", None),
         lpa=fids.get("lpa", None),
@@ -349,15 +348,51 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     )
 
 
-def _get_fid_coords(dig, raise_error=True):
+_FIDUCIAL_ORDER = ("lpa", "nasion", "rpa")
+
+
+def _get_fid_coords(dig, raise_error=True, *, coord_frame=None, ctf_fallback=False):
+    """Get the cardinal fiducials from a list of dig points.
+
+    Parameters
+    ----------
+    dig : list of dict
+        The dig points.
+    raise_error : bool
+        Whether to raise if fiducials are missing or in mixed coordinate frames.
+    coord_frame : int | None
+        If not None, only consider points already in this coordinate frame.
+    ctf_fallback : bool
+        Whether to fall back to deriving the fiducials from CTF HPI coils when no
+        cardinal points are present. Only the plotting code wants this.
+    """
     fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
     fid_coord_frames = dict()
+
+    if coord_frame is not None:
+        dig = [d for d in dig if d["coord_frame"] == coord_frame]
 
     for d in dig:
         if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
             key = _cardinal_ident_mapping[d["ident"]]
             fid_coords[key] = d["r"]
             fid_coord_frames[key] = d["coord_frame"]
+
+    if not fid_coord_frames and ctf_fallback:
+        # XXX eventually this should probably live in montage.py
+        if coord_frame in (None, FIFF.FIFFV_COORD_HEAD):
+            # Try converting CTF HPI coils to fiducials
+            out = np.full((3, 3), np.nan)
+            for d in dig:
+                if d["kind"] == FIFF.FIFFV_POINT_HPI:
+                    if np.isclose(d["r"][1:], 0, atol=1e-6).all():
+                        out[0 if d["r"][0] < 0 else 2] = d["r"]
+                    elif np.isclose(d["r"][::2], 0, atol=1e-6).all():
+                        out[1] = d["r"]
+            if np.isfinite(out).all():
+                for key, r in zip(_FIDUCIAL_ORDER, out):
+                    fid_coords[key] = r
+                    fid_coord_frames[key] = FIFF.FIFFV_COORD_HEAD
 
     if len(fid_coord_frames) > 0 and raise_error:
         if set(fid_coord_frames.keys()) != set(["nasion", "lpa", "rpa"]):
@@ -374,6 +409,16 @@ def _get_fid_coords(dig, raise_error=True):
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
 
     return fid_coords, coord_frame
+
+
+def _fiducial_coords(points, coord_frame=None):
+    """Generate 3x3 array of fiducial coordinates, in LPA/nasion/RPA order."""
+    fid_coords, _ = _get_fid_coords(
+        points or [], raise_error=False, coord_frame=coord_frame, ctf_fallback=True
+    )
+    if any(fid_coords[key] is None for key in _FIDUCIAL_ORDER):
+        return np.array([])
+    return np.array([fid_coords[key] for key in _FIDUCIAL_ORDER])
 
 
 def _coord_frame_const(coord_frame):

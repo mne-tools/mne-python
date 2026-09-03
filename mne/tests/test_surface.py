@@ -17,9 +17,9 @@ from mne import (
     write_surface,
 )
 from mne._fiff.constants import FIFF
+from mne._numba import has_numba
 from mne.channels import make_dig_montage
 from mne.datasets import testing
-from mne.fixes import has_numba
 from mne.io import read_info
 from mne.surface import (
     _compute_nearest,

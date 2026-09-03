@@ -4,6 +4,7 @@
 
 import sys
 from collections import OrderedDict
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from itertools import repeat
 from pathlib import Path
@@ -1296,7 +1297,7 @@ def test_read_annotation_txt_empty(tmp_path):
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
-    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, str)  # str, not np.str_
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
 
@@ -1732,6 +1733,49 @@ def test_annotation_rename():
     a = mne.annotations_from_events(a, 256)
     a.rename({"1": "A", "11": "B", "111": "C"})
     assert_array_equal(a.description, ["B", "A", "C"])
+
+
+def _assert_no_truncation(annot):
+    """Check that in-place description assignment keeps the whole string."""
+    assert annot.description.dtype == np.dtypes.StringDType()
+    long_description = "a_very_much_longer_description"
+    annot.description[-1] = long_description
+    assert annot.description[-1] == long_description
+
+
+@pytest.mark.parametrize("fmt", ("fif", "csv", "txt"))
+def test_description_assignment_not_truncated(tmp_path, fmt):
+    """Test that assigning into description does not truncate strings."""
+    if fmt != "fif":
+        pytest.importorskip("pandas")
+    annot = Annotations([1.0, 2.0], [1.0, 1.0], ["short", "b"], extras=[dict(a=1)] * 2)
+    _assert_no_truncation(annot.copy())
+    # the copy must be independent (and not crash: numpy/numpy#28609)
+    annot_copy = deepcopy(annot)
+    annot_copy.description[0] = "changed"
+    assert annot.description[0] == "short"
+    annot.append(3.0, 1.0, "c", extras=[dict(a=1)])
+    annot.rename({"b": "b_renamed"})
+    other = annot.copy()
+    other.onset += 10.0
+    cropped, deleted = annot.copy(), annot.copy()
+    cropped.crop(0.0, 100.0)
+    deleted.delete(0)
+    for modified in (annot.copy(), annot + other, cropped, deleted):
+        _assert_no_truncation(modified)
+    # round-trip through disk (Annotations.save and raw.save)
+    annot_fname = tmp_path / f"test-annot.{fmt}"
+    annot.save(annot_fname)
+    round_tripped = [read_annotations(annot_fname)]
+    if fmt == "fif":
+        raw = RawArray(np.zeros((1, 2000)), create_info(1, 100.0, "eeg"))
+        raw.set_annotations(annot)
+        raw_fname = tmp_path / "test_raw.fif"
+        raw.save(raw_fname)
+        round_tripped.append(read_raw_fif(raw_fname).annotations)
+    for got in round_tripped:
+        assert_array_equal(got.description, annot.description)
+        _assert_no_truncation(got)
 
 
 def test_annotation_duration_setting():

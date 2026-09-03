@@ -186,3 +186,5 @@ To remove the MNE-Python distribution provided by our installers above:
            :name: uninstall-windows
 
            To uninstall MNE-Python, you can remove the application using the `Windows Control Panel <https://support.microsoft.com/en-us/windows/uninstall-or-remove-apps-and-programs-in-windows-4b55f974-2cc6-2d2b-d092-5905080eaf98>`__.
+
+.. include:: ../links.inc

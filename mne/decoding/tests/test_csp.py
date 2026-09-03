@@ -365,7 +365,7 @@ def test_regularized_csp(ch_type, rank, reg):
     clf = make_pipeline(
         sc,
         csp,
-        LinearModel(LogisticRegression(solver="liblinear")),
+        LinearModel(LogisticRegression(solver="liblinear", random_state=0)),
     )
     score = cross_val_score(clf, epochs_data_orig, y, cv=cv, scoring="roc_auc").mean()
     assert 0.75 <= score <= 1.0
@@ -387,7 +387,7 @@ def test_regularized_csp(ch_type, rank, reg):
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
     csp = CSP(reg=1, norm_trace=False)
-    svc = SVC()
+    svc = SVC(random_state=0)
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
     assert pipe.get_params()["CSP__reg"] == 0.2

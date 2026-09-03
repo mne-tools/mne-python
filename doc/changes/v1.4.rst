@@ -131,3 +131,5 @@ Authors
 * Tom Stone+
 * Toomas Erik Anijärv
 * Zvi Baratz+
+
+.. include:: names.inc

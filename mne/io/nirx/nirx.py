@@ -11,14 +11,12 @@ from configparser import ConfigParser, RawConfigParser
 from pathlib import Path
 
 import numpy as np
-from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info
 from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
 from ...annotations import Annotations
-from ...fixes import _reshape_view
 from ...transforms import _get_trans, apply_trans
 from ...utils import (
     _check_fname,
@@ -104,6 +102,8 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        from scipy.io import loadmat
+
         logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
@@ -608,7 +608,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds, sep=" ", replace=None)
         if replace is not None:
             data = replace(data)
         x = np.fromstring(data, float, sep=sep)
-    x = _reshape_view(x, (stop - start, -1))
+    x = x.reshape((stop - start, -1), copy=False)
     x = x[:, cols]
     return x
 

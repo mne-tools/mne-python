@@ -63,6 +63,7 @@ SORT_PACKAGES = [
     "pandas",
     "pyvista",
     "pyvistaqt",
+    "qdarkstyle",
     "scikit-learn",
     "scipy",
 ]

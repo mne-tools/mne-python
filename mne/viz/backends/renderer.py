@@ -380,6 +380,29 @@ def create_3d_figure(
         return renderer
 
 
+def clear_3d_figure(figure):
+    """Remove all actors from the given scene.
+
+    The scene itself is kept open, so it can be reused for another plot. This is
+    much cheaper than closing the scene and creating a new one, and it keeps
+    memory usage constant when many scenes are plotted in a loop.
+
+    Parameters
+    ----------
+    figure : object
+        The scene which needs to be cleared.
+
+    See Also
+    --------
+    mne.viz.close_3d_figure
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+    backend._clear_3d_figure(figure)
+
+
 def close_3d_figure(figure):
     """Close the given scene.
 
@@ -387,6 +410,10 @@ def close_3d_figure(figure):
     ----------
     figure : object
         The scene which needs to be closed.
+
+    See Also
+    --------
+    mne.viz.clear_3d_figure
     """
     backend._close_3d_figure(figure)
 

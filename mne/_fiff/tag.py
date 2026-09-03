@@ -10,9 +10,7 @@ from functools import partial
 from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_array, csr_array
 
-from ..fixes import _reshape_view
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_date
 from .constants import (
@@ -149,6 +147,8 @@ def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
+    from scipy.sparse import csc_array, csr_array
+
     if shape is not None or rlims is not None:
         raise ValueError("Row reading not implemented for matrices yet")
 
@@ -178,7 +178,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data = _reshape_view(data, dims)
+        data = data.reshape(dims, copy=False)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())

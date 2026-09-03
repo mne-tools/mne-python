@@ -65,7 +65,7 @@ from ..viz._3d import (
     _plot_mri_fiducials,
     _plot_sensors_3d,
 )
-from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
+from ..viz.backends._utils import _qt_block, _qt_safe_window
 from ..viz.utils import safe_event
 
 
@@ -373,16 +373,15 @@ class CoregistrationUI(HasTraits):
         }  # left
         self._renderer.set_camera(distance="auto", **views[self._lock_fids])
         self._redraw()
-        # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
-            self._renderer.plotter.add_callback(self._redraw, self._refresh_rate_ms)
-        self._renderer.plotter.show_axes()
+            self._renderer._add_redraw_callback(self._redraw, self._refresh_rate_ms)
+        self._renderer._show_axes()
         # initialization does not count as modification by the user
         self._trans_modified = False
         self._mri_fids_modified = False
         self._mri_scale_modified = False
-        if block and self._renderer._kind != "notebook":
-            _qt_app_exec(self._renderer.figure.store["app"])
+        if block and self._renderer._kind == "qt":
+            _qt_block(self._renderer.plotter.app_window)
 
     def _set_subjects_dir(self, subjects_dir):
         if subjects_dir is None or not subjects_dir:
@@ -607,8 +606,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
-        # XXX: add coreg.set_subjects_dir
-        self.coreg._subjects_dir = self._subjects_dir
+        self.coreg.set_subjects_dir(self._subjects_dir)
         subjects = _get_subjects(self._subjects_dir)
 
         if self._subject not in subjects:  # Just pick the first available one
@@ -618,10 +616,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_subject")
     def _subject_changed(self, change=None):
-        # XXX: add coreg.set_subject()
-        self.coreg._subject = self._subject
-        self.coreg._setup_bem()
-        self.coreg._setup_fiducials(self._fiducials)
+        self.coreg.set_subject(self._subject, fiducials=self._fiducials)
         self._reset()
 
         default_fid_fname = fid_fname.format(
@@ -730,9 +725,7 @@ class CoregistrationUI(HasTraits):
                 self._info._unlocked = False
         else:
             self._info = read_raw(self._info_file).info
-        # XXX: add coreg.set_info()
-        self.coreg._info = self._info
-        self.coreg._setup_digs()
+        self.coreg.set_info(self._info)
         self._reset()
 
     @observe("_orient_glyphs")
@@ -911,11 +904,7 @@ class CoregistrationUI(HasTraits):
     def _on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
-            # XXX: internal plotter/renderer should not be exposed
-            picker = self._renderer._picker
-            picked_renderer = self._renderer.figure.plotter.renderer
-            # trigger the pick
-            picker.Pick(x, y, 0, picked_renderer)
+            self._renderer._trigger_pick(x, y)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -929,11 +918,7 @@ class CoregistrationUI(HasTraits):
         if not any(mesh is target() for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
-        fiducials = [s.lower() for s in self._defaults["fiducials"]]
-        idx = fiducials.index(self._current_fiducial.lower())
-        # XXX: add coreg.set_fids
-        self.coreg._fid_points[idx] = pos
-        self.coreg._reset_fiducials()
+        self.coreg.set_fid_point(self._current_fiducial.lower(), pos)
         self._update_fiducials()
         self._update_plot("mri_fids")
 
@@ -1205,14 +1190,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
-        # XXX: internal plotter/renderer should not be exposed
-        # Work around PyVista sequential update bug with iterable until > 0.42.3 is req
-        # https://github.com/pyvista/pyvista/pull/5046
         actors = self._actors.get(actor_name) or []  # convert None to list
-        if not isinstance(actors, list):
-            actors = [actors]
-        for this_actor in actors:
-            self._renderer.plotter.remove_actor(this_actor, render=False)
+        self._renderer._remove_actors(actors, render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):

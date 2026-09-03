@@ -8,8 +8,6 @@ import os.path as op
 from types import GeneratorType
 
 import numpy as np
-from scipy import sparse
-from scipy.spatial.distance import cdist, pdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info
@@ -19,7 +17,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import FilterMixin, _check_fun, resample
-from .fixes import _reshape_view, _safe_svd
+from .fixes import _safe_svd
 from .parallel import parallel_func
 from .source_space._source_space import (
     SourceSpaces,
@@ -60,11 +58,6 @@ from .utils import (
     sizeof_fmt,
     verbose,
     warn,
-)
-from .viz import (
-    plot_source_estimates,
-    plot_vector_source_estimates,
-    plot_volume_source_estimates,
 )
 
 
@@ -752,7 +745,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             overwrite=True,
         )
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
     def plot(
         self,
         subject=None,
@@ -785,8 +778,11 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
+        block=False,
         verbose=None,
     ):
+        from .viz import plot_source_estimates
+
         brain = plot_source_estimates(
             self,
             subject,
@@ -818,6 +814,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
+            block=block,
             verbose=verbose,
         )
         return brain
@@ -1008,7 +1005,19 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         self._times.flags.writeable = False
 
     def __add__(self, a):
-        """Add source estimates."""
+        """Add source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            add.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the sum as data.
+        """
         stc = self.copy()
         stc += a
         return stc
@@ -1056,7 +1065,19 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         return sum_stc
 
     def __sub__(self, a):
-        """Subtract source estimates."""
+        """Subtract source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            subtract.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the difference as data.
+        """
         stc = self.copy()
         stc -= a
         return stc
@@ -1073,8 +1094,20 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def __truediv__(self, a):  # noqa: D105
         return self.__div__(a)
 
-    def __div__(self, a):  # noqa: D105
-        """Divide source estimates."""
+    def __div__(self, a):
+        """Divide source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            divide by.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the quotient as data.
+        """
         stc = self.copy()
         stc /= a
         return stc
@@ -1092,7 +1125,19 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         return self
 
     def __mul__(self, a):
-        """Multiply source estimates."""
+        """Multiply source estimates.
+
+        Parameters
+        ----------
+        a : instance of SourceEstimate | float
+            The source estimate (with matching vertices) or scalar to
+            multiply by.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with the product as data.
+        """
         stc = self.copy()
         stc *= a
         return stc
@@ -1128,8 +1173,14 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
     def __rdiv__(self, a):  # noqa: D105
         return self / a
 
-    def __neg__(self):  # noqa: D105
-        """Negate the source estimate."""
+    def __neg__(self):
+        """Negate the source estimate.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A new source estimate with negated data.
+        """
         stc = self.copy()
         stc._remove_kernel_sens_data_()
         stc.data *= -1
@@ -2242,7 +2293,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         )
         return stc, directions
 
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
     def plot(
         self,
         subject=None,
@@ -2277,6 +2328,8 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         brain_kwargs=None,
         verbose=None,
     ):
+        from .viz import plot_vector_source_estimates
+
         return plot_vector_source_estimates(
             self,
             subject=subject,
@@ -2316,7 +2369,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     _src_type = "volume"
     _src_count = None
 
-    @copy_function_doc_to_method_doc(plot_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -2348,6 +2401,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
+        block=False,
         verbose=None,
     ):
         return super().plot(
@@ -2380,10 +2434,11 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
+            block=block,
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_volume_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_volume_source_estimates")
     def plot(
         self,
         src,
@@ -2400,7 +2455,10 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_pos=None,
         verbose=None,
     ):
+        from .viz import plot_volume_source_estimates
+
         data = self.magnitude() if self._data_ndim == 3 else self
+
         return plot_volume_source_estimates(
             data,
             src=src,
@@ -2546,8 +2604,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         format : str
             Either ``'nifti1'`` (default) or ``'nifti2'``.
 
@@ -2596,8 +2654,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning: If you have many time points the file produced can be
-                        huge. The default is ``mri_resolution=False``.
+            .. warning:: If you have many time points the file produced can be
+                         huge. The default is ``mri_resolution=False``.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
@@ -2756,7 +2814,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
     _scalar_class = VolSourceEstimate
 
     # defaults differ: hemi='both', views='axial'
-    @copy_function_doc_to_method_doc(plot_vector_source_estimates)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -3183,6 +3241,8 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy import sparse
+
     if remap_vertices:
         logger.info("Reassigning vertex indices.")
         tris = np.searchsorted(np.unique(tris), tris)
@@ -3332,6 +3392,9 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         existing intra-hemispheric adjacency matrix, e.g. computed
         using geodesic distances.
     """
+    from scipy import sparse
+    from scipy.spatial.distance import cdist
+
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
     adj = sparse.csr_array(adj <= dist, dtype=int)
@@ -3345,6 +3408,8 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
+    from scipy import sparse
+
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d", n_vertices)
     nnz = edges.col.size
@@ -3434,6 +3499,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
+    from scipy import sparse
+
     from .label import BiHemiLabel, Label, label_sign_flip
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3664,6 +3731,8 @@ def _gen_extract_label_time_course(
     verbose=None,
 ):
     # loop through source estimates and extract time series
+    from scipy import sparse
+
     if src is None and mode in ["mean", "max"]:
         kind = "surface"
     else:
@@ -3732,8 +3801,8 @@ def _gen_extract_label_time_course(
                     assert vertidx.shape[1] == stc.data.shape[0]
                     this_data = np.reshape(stc.data, (stc.data.shape[0], -1))
                     this_data = vertidx @ this_data
-                    this_data = _reshape_view(
-                        this_data, (this_data.shape[0],) + stc.data.shape[1:]
+                    this_data = this_data.reshape(
+                        (this_data.shape[0],) + stc.data.shape[1:], copy=False
                     )
                 else:
                     this_data = stc.data[vertidx]
@@ -3922,6 +3991,8 @@ def stc_near_sensors(
 
     .. versionadded:: 0.22
     """
+    from scipy.spatial.distance import cdist, pdist
+
     from .evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")

@@ -7,7 +7,6 @@ from io import SEEK_SET, BytesIO
 from pathlib import Path
 
 import numpy as np
-from scipy.sparse import issparse
 
 from ..utils import _check_fname, _file_like, _validate_type, logger, verbose, warn
 from .constants import FIFF
@@ -295,6 +294,8 @@ def _show_tree(
     show_bytes=False,
 ):
     """Show FIFF tree."""
+    from scipy.sparse import issparse
+
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

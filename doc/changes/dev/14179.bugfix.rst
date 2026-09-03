@@ -1,0 +1,1 @@
+Fixed a bug where ``block=True`` in plotting functions such as :meth:`mne.io.Raw.plot` ran the Qt application's own event loop, which deadlocked or silently did not block when something else already owned that loop (for example inside a notebook kernel), and could not be interrupted, by `Eric Larson`_.

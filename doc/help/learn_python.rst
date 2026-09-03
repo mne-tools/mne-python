@@ -3,7 +3,7 @@
 Getting started with Python
 ===========================
 
-`Python`_ is a modern general-purpose object-oriented high-level programming
+`Python <http://www.python.org>`__ is a modern general-purpose object-oriented high-level programming
 language. There are many general introductions to Python online; here are a
 few:
 

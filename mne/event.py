@@ -15,7 +15,6 @@ from ._fiff.pick import pick_channels
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import end_block, start_and_end_file, start_block, write_int
-from .fixes import _reshape_view
 from .utils import (
     _check_fname,
     _check_integer_or_list,
@@ -182,7 +181,7 @@ def _read_events_fif(fid, tree):
     if event_list is None:
         raise ValueError("Could not find any events")
     else:
-        event_list = _reshape_view(event_list, (-1, 3))
+        event_list = event_list.reshape((-1, 3), copy=False)
     for d in events["directory"]:
         kind = d.kind
         pos = d.pos
@@ -1250,7 +1249,6 @@ class AcqParserFIF:
                 manual for details. Currently the class does not offer any
                 facility for computing subaverages, but it can be done manually
                 by the user after collecting the epochs.
-
         """
         if isinstance(item, str):
             item = [item]

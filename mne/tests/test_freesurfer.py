@@ -114,7 +114,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     n_check = 1000
     subject = "sample"
     vertices = rng.integers(0, 100000, n_check)
-    hemis = rng.integers(0, 1, n_check)
+    hemis = rng.integers(0, 2, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     read_mri = mne._freesurfer._read_mri_info
     monkeypatch.setattr(

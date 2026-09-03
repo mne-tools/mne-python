@@ -1,0 +1,1 @@
+Fix a crash (``AttributeError`` on ``NoneType``) when picking channels on a :class:`~mne.io.Raw` whose ``_orig_units`` is ``None``, by `Cedric Conday`_.

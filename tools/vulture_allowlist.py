@@ -9,6 +9,7 @@ https://github.com/jendrikseipp/vulture/blob/main/README.md#whitelists
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+fail_if_times_materialized
 numba_conditional
 options_3d
 invisible_fig
@@ -40,6 +41,8 @@ set_channel_types_eyetrack
 _use_test_3d_backend
 verbose_debug
 metadata_routing
+Plotter
+customEvent
 
 # Decoding
 _.multi_class
@@ -62,8 +65,13 @@ deep
 # not yet referenced elsewhere in the package
 setup_subcortical_source_space
 
+# Module-level __getattr__ (PEP 562), used by mne/surface.py and
+# mne/transforms.py to re-export their numba helpers lazily
+__getattr__
+
 # Backward compat or rarely used
 RawFIF
+select_source_in_label
 estimate_head_mri_t
 plot_epochs_psd_topomap
 plot_epochs_psd
@@ -130,6 +138,9 @@ _._plotter
 _.set_fmax
 _.set_fmid
 _.set_fmin
+_._set_trace_visible
+_._set_trace_highlight
+_._trace_display_label
 _.EnterEvent
 _.MouseMoveEvent
 _.LeaveEvent
@@ -146,6 +157,8 @@ _._has_rpa_data
 _._nearest_transformed_high_res_mri_idx_rpa
 _._nearest_transformed_high_res_mri_idx_nasion
 _._nearest_transformed_high_res_mri_idx_lpa
+_.prop.culling
+_.prop.lighting
 
 # Figures (prevent GC for example)
 _.decim_data
@@ -173,3 +186,13 @@ _qt_raise_window
 _qt_disable_paint
 _qt_get_stylesheet
 _show_help_fig
+
+# Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
+eventFilter
+_sigint_impl
+
+# Read by numpydoc's ClassDoc (also set in doc/conf.py)
+_.extra_public_methods
+
+# Accessed through an attribute-path string by the _qt_safe_window decorator
+_._init_renderer

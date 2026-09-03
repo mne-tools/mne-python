@@ -1,0 +1,1 @@
+Add :func:`mne.viz.clear_3d_figure` to remove all actors from a 3D figure so that it can be reused for another plot, by `Eric Larson`_.

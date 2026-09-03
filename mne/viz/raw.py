@@ -9,13 +9,14 @@ from collections import OrderedDict
 import numpy as np
 
 from .._fiff.pick import _picks_to_idx, pick_channels, pick_types
-from ..defaults import _handle_default
+from ..defaults import _RAW_CLIP_DEF, _handle_default
 from ..filter import create_filter
 from ..utils import (
     _check_option,
     _get_stim_channel,
     _validate_type,
     legacy,
+    sizeof_fmt,
     verbose,
 )
 from ..utils.spectrum import _split_psd_kwargs
@@ -29,8 +30,6 @@ from .utils import (
     _normalize_annotation_colors,
     _shorten_path_from_middle,
 )
-
-_RAW_CLIP_DEF = 3
 
 
 @verbose
@@ -139,8 +138,9 @@ def plot_raw(
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
-        The title of the window. If None, and either the filename of the
-        raw object or '<unknown>' will be displayed as title.
+        The title of the window. If None, the filename of the raw object is
+        used; for in-memory instances without a filename (e.g.,
+        `~mne.io.RawArray`), the class name and approximate size are used.
     show : bool
         Show figure if True.
     block : bool
@@ -371,16 +371,18 @@ def plot_raw(
     start += first_time
     event_id_rev = {v: k for k, v in (event_id or {}).items()}
 
-    # generate window title; allow instances without a filename (e.g., ICA)
+    # generate window title; allow instances without a filename (e.g., RawArray)
     if title is None:
-        title = "<unknown>"
-        fnames = list(tuple(raw.filenames))  # get a list of a copy of the filenames
+        # in-memory instances (e.g., RawArray) have filenames of (None,)
+        fnames = [fname for fname in raw.filenames if fname is not None]
         if len(fnames):
             title = fnames.pop(0)
             extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""
             title = f"{title}{extra}"
             if len(title) > 60:
                 title = _shorten_path_from_middle(title)
+        else:  # give at least a hint about the data being shown
+            title = f"{type(raw).__name__} (~{sizeof_fmt(raw._size)})"
     elif not isinstance(title, str):
         raise TypeError(f"title must be None or a string, got a {type(title)}")
 

@@ -245,7 +245,7 @@ F_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_test(
     stat_fun=stat_fun,
     n_permutations=n_permutations,
     buffer_size=None,
-    seed=0,
+    rng=173,
 )
 # Now select the clusters that are sig. at p < 0.05 (note that this value
 # is multiple-comparisons corrected).

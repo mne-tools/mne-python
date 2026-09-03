@@ -10,7 +10,6 @@ import numpy as np
 
 from ...io.eyelink._utils import _parse_calibration
 from ...utils import _check_fname, _validate_type, fill_doc, logger
-from ...viz.utils import plt_show
 
 
 @fill_doc
@@ -134,6 +133,8 @@ class Calibration(dict):
             The resulting figure object for the calibration plot.
         """
         import matplotlib.pyplot as plt
+
+        from ...viz.utils import plt_show
 
         msg = "positions and gaze keys must both be 2D numpy arrays."
         assert isinstance(self["positions"], np.ndarray), msg

@@ -535,6 +535,18 @@ for pi, proj in enumerate((False, True, "reconstruct")):
         text.remove()
 
 # %%
+# Using ``proj="reconstruct"`` is convenient when reconstruction is needed only
+# for visualization. To obtain reconstructed sensor-space data for further
+# processing, use :meth:`~mne.Evoked.reconstruct_proj` directly. It can also
+# restrict the operation to selected projectors, which is useful when comparing
+# the effects of different artifact corrections. Here, ``evoked_eeg`` contains
+# both ECG and EOG projectors, but we apply and reconstruct using only the EOG
+# projectors:
+
+evoked_eog_reconstructed = evoked_eeg.copy().reconstruct_proj(projs=eog_projs)
+evoked_eog_reconstructed.plot(spatial_colors=True)
+
+# %%
 # Note that here the bias in the EEG and magnetometer channels is reduced by
 # the reconstruction. This suggests that the application of SSP has slightly
 # reduced the amplitude of our signals in sensor space, but that it should not

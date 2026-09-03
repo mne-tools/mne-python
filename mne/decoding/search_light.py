@@ -5,7 +5,6 @@
 import logging
 
 import numpy as np
-from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
@@ -29,7 +28,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     Fit, predict and score a series of models to each subset of the dataset
     along the last dimension. Each entry in the last dimension is referred
-    to as a task.
+    to as a task. The task axis can be selected with ``axis``.
 
     Parameters
     ----------
@@ -38,6 +37,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
     %(n_jobs)s
     %(position)s
     %(allow_2d)s
+    %(axis)s
     %(verbose)s
 
     Attributes
@@ -54,6 +54,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         *,
         position=0,
         allow_2d=False,
+        axis=-1,
         verbose=None,
     ):
         self.base_estimator = base_estimator
@@ -62,6 +63,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         self.position = position
         self.allow_2d = allow_2d
         self.verbose = verbose
+        self.axis = axis
 
     @property
     def _estimator_type(self):
@@ -100,7 +102,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -151,7 +153,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -289,7 +291,9 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     def _check_Xy(self, X, y=None, fit=False):
         """Aux. function to check input data."""
-        X = self._check_data(X, y=y, atleast_3d=False, fit=fit)
+        X = self._check_data(
+            X, y=y, atleast_3d=False, fit=False, check_n_features=False
+        )
         is_nd = X.ndim >= 3
         if not is_nd:
             err = None
@@ -300,6 +304,12 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             if err:
                 raise ValueError(f"X must have at least {err} dimensions.")
             X = X[..., np.newaxis]
+
+        if self.axis in (0, -X.ndim):
+            raise ValueError("axis must not be the sample axis (0).")
+        if self.axis != -1 and self.axis != (X.ndim - 1):
+            X = np.moveaxis(X, self.axis, -1)
+        X = self._check_data(X, atleast_3d=False, fit=fit)
         return X, is_nd
 
     def score(self, X, y):
@@ -483,7 +493,8 @@ class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
     Fit a search-light along the last dimension and use them to apply a
-    systematic cross-tasks generalization.
+    systematic cross-tasks generalization. The task axis is selected by
+    ``axis``.
 
     Parameters
     ----------
@@ -492,6 +503,7 @@ class GeneralizingEstimator(SlidingEstimator):
     %(n_jobs)s
     %(position)s
     %(allow_2d)s
+    %(axis)s
     %(verbose)s
     """
 
@@ -799,6 +811,8 @@ def _make_batched_score(score_func, response_method, method, y, sign, kwargs):
             # Mann-Whitney U identity with average-rank tie correction.
             # Equivalent to sklearn's roc_auc within floating point precision,
             # but different computation.
+            from scipy.stats import rankdata
+
             ranks = rankdata(y_pred, method="average", axis=0)
             return (
                 sign

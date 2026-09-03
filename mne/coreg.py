@@ -13,14 +13,11 @@ import shutil
 import stat
 import sys
 from copy import deepcopy
-from functools import reduce
 from glob import glob, iglob
 
 import numpy as np
-from scipy.optimize import leastsq
-from scipy.spatial.distance import cdist
 
-from ._fiff._digitization import _get_data_as_dict_from_dig
+from ._fiff._digitization import _fiducial_coords, _get_data_as_dict_from_dig
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, read_fiducials, read_info, write_fiducials
 
@@ -47,15 +44,16 @@ from .surface import (
     read_surface,
     write_surface,
 )
-from .transforms import (
+from .transforms import (  # noqa: F401  (re-exported for backward compatibility)
     Transform,
     _angle_between_quats,
-    _fit_matched_points,
     _quat_to_euler,
     _read_fs_xfm,
+    _trans_from_params,
     _write_fs_xfm,
     apply_trans,
     combine_transforms,
+    fit_matched_points,
     invert_transform,
     rot_to_quat,
     rotation,
@@ -77,7 +75,6 @@ from .utils import (
     verbose,
     warn,
 )
-from .viz._3d import _fiducial_coords
 
 # some path templates
 trans_fname = os.path.join("{raw_dir}", "{subject}-trans.fif")
@@ -280,6 +277,8 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
+    from scipy.spatial.distance import cdist
+
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -327,215 +326,6 @@ def _decimate_points(pts, res=10):
     # """
 
     return out
-
-
-def _trans_from_params(param_info, params):
-    """Convert transformation parameters into a transformation matrix."""
-    do_rotate, do_translate, do_scale = param_info
-    i = 0
-    trans = []
-
-    if do_rotate:
-        x, y, z = params[:3]
-        trans.append(rotation(x, y, z))
-        i += 3
-
-    if do_translate:
-        x, y, z = params[i : i + 3]
-        trans.insert(0, translation(x, y, z))
-        i += 3
-
-    if do_scale == 1:
-        s = params[i]
-        trans.append(scaling(s, s, s))
-    elif do_scale == 3:
-        x, y, z = params[i : i + 3]
-        trans.append(scaling(x, y, z))
-
-    trans = reduce(np.dot, trans)
-    return trans
-
-
-_ALLOW_ANALITICAL = True
-
-
-# XXX this function should be moved out of coreg as used elsewhere
-def fit_matched_points(
-    src_pts,
-    tgt_pts,
-    rotate=True,
-    translate=True,
-    scale=False,
-    tol=None,
-    x0=None,
-    out="trans",
-    weights=None,
-):
-    """Find a transform between matched sets of points.
-
-    This minimizes the squared distance between two matching sets of points.
-
-    Uses :func:`scipy.optimize.leastsq` to find a transformation involving
-    a combination of rotation, translation, and scaling (in that order).
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Points to which the transform should be applied.
-    tgt_pts : array, shape = (n, 3)
-        Points to which src_pts should be fitted. Each point in tgt_pts should
-        correspond to the point in src_pts with the same index.
-    rotate : bool
-        Allow rotation of the ``src_pts``.
-    translate : bool
-        Allow translation of the ``src_pts``.
-    scale : bool
-        Number of scaling parameters. With False, points are not scaled. With
-        True, points are scaled by the same factor along all axes.
-    tol : scalar | None
-        The error tolerance. If the distance between any of the matched points
-        exceeds this value in the solution, a RuntimeError is raised. With
-        None, no error check is performed.
-    x0 : None | tuple
-        Initial values for the fit parameters.
-    out : 'params' | 'trans'
-        In what format to return the estimate: 'params' returns a tuple with
-        the fit parameters; 'trans' returns a transformation matrix of shape
-        (4, 4).
-
-    Returns
-    -------
-    trans : array, shape (4, 4)
-        Transformation that, if applied to src_pts, minimizes the squared
-        distance to tgt_pts. Only returned if out=='trans'.
-    params : array, shape (n_params, )
-        A single tuple containing the rotation, translation, and scaling
-        parameters in that order (as applicable).
-    """
-    src_pts = np.atleast_2d(src_pts)
-    tgt_pts = np.atleast_2d(tgt_pts)
-    if src_pts.shape != tgt_pts.shape:
-        raise ValueError(
-            "src_pts and tgt_pts must have same shape "
-            f"(got {src_pts.shape}, {tgt_pts.shape})"
-        )
-    if weights is not None:
-        weights = np.asarray(weights, src_pts.dtype)
-        if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
-            raise ValueError(
-                f"weights (shape={weights.shape}) must be None or have shape "
-                f"({src_pts.shape[0]},)"
-            )
-        weights = weights[:, np.newaxis]
-
-    param_info = (bool(rotate), bool(translate), int(scale))
-    del rotate, translate, scale
-
-    # very common use case, rigid transformation (maybe with one scale factor,
-    # with or without weighted errors)
-    if param_info in ((True, True, 0), (True, True, 1)) and _ALLOW_ANALITICAL:
-        src_pts = np.asarray(src_pts, float)
-        tgt_pts = np.asarray(tgt_pts, float)
-        if weights is not None:
-            weights = np.asarray(weights, float)
-        x, s = _fit_matched_points(src_pts, tgt_pts, weights, bool(param_info[2]))
-        x[:3] = _quat_to_euler(x[:3])
-        x = np.concatenate((x, [s])) if param_info[2] else x
-    else:
-        x = _generic_fit(src_pts, tgt_pts, param_info, weights, x0)
-
-    # re-create the final transformation matrix
-    if (tol is not None) or (out == "trans"):
-        trans = _trans_from_params(param_info, x)
-
-    # assess the error of the solution
-    if tol is not None:
-        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-        est_pts = np.dot(src_pts, trans.T)[:, :3]
-        err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
-        if np.any(err > tol):
-            raise RuntimeError(f"Error exceeds tolerance. Error = {err!r}")
-
-    if out == "params":
-        return x
-    elif out == "trans":
-        return trans
-    else:
-        raise ValueError(
-            f"Invalid out parameter: {out!r}. Needs to be 'params' or 'trans'."
-        )
-
-
-def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
-    if param_info[1]:  # translate
-        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-
-    if param_info == (True, False, 0):
-
-        def error(x):
-            rx, ry, rz = x
-            trans = rotation3d(rx, ry, rz)
-            est = np.dot(src_pts, trans.T)
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0)
-    elif param_info == (True, True, 0):
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz = x
-            trans = np.dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = np.dot(src_pts, trans.T)[:, :3]
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0, 0, 0, 0)
-    elif param_info == (True, True, 1):
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz, s = x
-            trans = reduce(
-                np.dot,
-                (translation(tx, ty, tz), rotation(rx, ry, rz), scaling(s, s, s)),
-            )
-            est = np.dot(src_pts, trans.T)[:, :3]
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0, 0, 0, 0, 1)
-    elif param_info == (True, True, 3):
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz, sx, sy, sz = x
-            trans = reduce(
-                np.dot,
-                (translation(tx, ty, tz), rotation(rx, ry, rz), scaling(sx, sy, sz)),
-            )
-            est = np.dot(src_pts, trans.T)[:, :3]
-            d = tgt_pts - est
-            if weights is not None:
-                d *= weights
-            return d.ravel()
-
-        if x0 is None:
-            x0 = (0, 0, 0, 0, 0, 0, 1, 1, 1)
-    else:
-        raise NotImplementedError(
-            "The specified parameter combination is not implemented: "
-            "rotate={!r}, translate={!r}, scale={!r}".format(*param_info)
-        )
-
-    x, _, _, _, _ = leastsq(error, x0, full_output=True)
-    return x
 
 
 def _find_label_paths(subject="fsaverage", pattern=None, subjects_dir=None):
@@ -1619,6 +1409,7 @@ class Coregistration:
             self._bem_low_res = _read_surface(low_res_path, on_defects=self._on_defects)
 
     def _setup_fiducials(self, fids):
+
         _validate_type(fids, (str, dict, list))
         # find fiducials file
         fid_accurate = None
@@ -1664,6 +1455,84 @@ class Coregistration:
             coord_frame="mri",
         )
         self.fiducials = dig_montage
+
+    def set_subjects_dir(self, subjects_dir):
+        """Set the FreeSurfer subjects directory.
+
+        Parameters
+        ----------
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR``
+            environment variable.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        return self
+
+    def set_subject(self, subject, fiducials="auto"):
+        """Set the subject to use for the coregistration.
+
+        Parameters
+        ----------
+        subject : str
+            The FreeSurfer subject name.
+        fiducials : list | dict | str
+            The fiducials to use for the new subject, see the ``fiducials``
+            parameter of :class:`~mne.coreg.Coregistration`. Defaults to
+            ``'auto'``.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        self._subject = _check_subject(subject, subject)
+        self._setup_bem()
+        self._setup_fiducials(fiducials)
+        return self
+
+    def set_info(self, info):
+        """Set the measurement info used to digitize the head shape.
+
+        Parameters
+        ----------
+        info : instance of Info | None
+            The measurement info.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        _validate_type(info, (Info, None), "info")
+        self._info = info
+        self._setup_digs()
+        return self
+
+    def set_fid_point(self, name, point):
+        """Set the coordinates of one MRI fiducial point.
+
+        Parameters
+        ----------
+        name : str
+            The fiducial to set, one of ``"lpa"``, ``"nasion"``, ``"rpa"``.
+        point : array, shape (3,)
+            The point coordinates, in MRI coordinates (m).
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        idx = _map_fid_name_to_idx(name)
+        self._fid_points[idx] = point
+        self._reset_fiducials()
+        return self
 
     def _update_params(self, rot=None, tra=None, sca=None, force_update=False):
         if force_update and tra is None:

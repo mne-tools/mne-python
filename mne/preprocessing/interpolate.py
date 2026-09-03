@@ -7,7 +7,6 @@
 from itertools import chain
 
 import numpy as np
-from scipy.sparse.csgraph import connected_components
 
 from .._fiff.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
@@ -108,6 +107,8 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     --------
     mne.preprocessing.compute_bridged_electrodes
     """
+    from scipy.sparse.csgraph import connected_components
+
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
     bad_limit = _ensure_int(bad_limit, "bad_limit")
     if bad_limit <= 0:

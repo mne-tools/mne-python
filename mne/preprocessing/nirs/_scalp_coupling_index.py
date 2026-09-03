@@ -5,7 +5,7 @@
 import numpy as np
 
 from ...io import BaseRaw
-from ...utils import _validate_type, verbose
+from ...utils import _validate_type, _verbose_safe_false, verbose
 from ..nirs import _channel_frequencies, _validate_nirs_info
 
 
@@ -16,7 +16,7 @@ def scalp_coupling_index(
     h_freq=1.5,
     l_trans_bandwidth=0.3,
     h_trans_bandwidth=0.3,
-    verbose=False,
+    verbose=None,
 ):
     r"""Calculate scalp coupling index.
 
@@ -53,7 +53,7 @@ def scalp_coupling_index(
         h_freq,
         l_trans_bandwidth=l_trans_bandwidth,
         h_trans_bandwidth=h_trans_bandwidth,
-        verbose=verbose,
+        verbose=_verbose_safe_false(),
     ).get_data()
 
     # Determine number of wavelengths per source-detector pair

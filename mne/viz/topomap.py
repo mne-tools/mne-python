@@ -13,14 +13,6 @@ from numbers import Integral
 import matplotlib.artist
 import matplotlib.patches
 import numpy as np
-from scipy.interpolate import (
-    CloughTocher2DInterpolator,
-    LinearNDInterpolator,
-    NearestNDInterpolator,
-)
-from scipy.sparse import csr_array
-from scipy.spatial import Delaunay, Voronoi
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, _simplify_info
@@ -202,6 +194,8 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 def _find_overlaps(info, ch_type, sphere, modality="fnirs"):
     """Find overlapping channels."""
+    from scipy.spatial.distance import pdist, squareform
+
     from ..channels.layout import _find_topomap_coords
 
     if modality == "fnirs":
@@ -844,6 +838,8 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additional interpolation points."""
+    from scipy.spatial import Delaunay
+
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -981,6 +977,12 @@ class _GridData:
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
         # in principle this works in N dimensions, not just 2
+        from scipy.interpolate import (
+            CloughTocher2DInterpolator,
+            LinearNDInterpolator,
+            NearestNDInterpolator,
+        )
+
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ("numeric", str), "border")
 
@@ -1258,6 +1260,8 @@ _VORONOI_CIRCLE_RES = 100
 def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
     """Make a Voronoi diagram on a topomap."""
     # we need an image axis object so first empty image to plot over
+    from scipy.spatial import Voronoi
+
     im = ax.imshow(
         np.zeros((res, res)) * np.nan,
         cmap=cmap,
@@ -2061,20 +2065,7 @@ def plot_tfr_topomap(
         "b (s)". If a is None the beginning of the data is used and if b is
         None then b is set to the end of the interval. If baseline is equal to
         (None, None) the whole time interval is used.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
-        Perform baseline correction by
-
-          - subtracting the mean baseline power ('mean')
-          - dividing by the mean baseline power ('ratio')
-          - dividing by the mean baseline power and taking the log ('logratio')
-          - subtracting the mean baseline power followed by dividing by the
-            mean baseline power ('percent')
-          - subtracting the mean baseline power and dividing by the standard
-            deviation of the baseline power ('zscore')
-          - dividing by the mean baseline power, taking the log, and dividing
-            by the standard deviation of the baseline power ('zlogratio')
-
-        If None no baseline correction is applied.
+    %(baseline_mode)s
     %(sensors_topomap)s
     %(show_names_topomap)s
     %(mask_evoked_topomap)s
@@ -2115,6 +2106,10 @@ def plot_tfr_topomap(
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     import matplotlib.pyplot as plt
 
@@ -2524,7 +2519,7 @@ def _plot_evoked_topomap(
     if proj is True and not evoked.proj:
         evoked.apply_proj()
     elif proj == "reconstruct":
-        evoked._reconstruct_proj()
+        evoked.reconstruct_proj()
 
     # remove compensation matrices (safe: only plotting & already made copy)
     with evoked.info._unlock():
@@ -3885,7 +3880,7 @@ def plot_arrowmap(
     info_to : instance of Info | None
         The measurement info to interpolate to. If None, it is assumed
         to be the same as info_from.
-    scale : float, default 3e-10
+    scale : float
         To scale the arrows.
     %(vlim_plot_topomap)s
 
@@ -4145,6 +4140,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     """
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from scipy.sparse import csr_array
 
     _validate_type(info, Info, "info")
     _validate_type(adjacency, (np.ndarray, csr_array), "adjacency")

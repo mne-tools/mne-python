@@ -1,0 +1,1 @@
+:func:`mne.io.read_raw_egi` now reads bad channels from ``categories.xml`` (when present in the MFF directory) and populates :class:`info["bads"] <mne.Info>` with channels marked ``exclusion="badChannels"`` in NetStation. By `Pragnya Khandelwal`_.

@@ -27,8 +27,6 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import orth
-from scipy.optimize import fmin_cobyla
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, _simplify_info
@@ -46,7 +44,6 @@ from .channels.channels import _get_meg_system
 from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
 from .event import find_events
-from .fixes import _reshape_view, jit
 from .forward import _concatenate_coils, _create_meg_coils, _magnetic_dipole_field_vec
 from .io import BaseRaw, RawArray
 from .io.ctf.trans import _make_ctf_coord_trans_set
@@ -61,7 +58,6 @@ from .preprocessing.maxwell import (
 from .transforms import (
     Transform,
     _angle_between_quats,
-    _fit_matched_points,
     _quat_to_affine,
     als_ras_trans,
     angle_distance_between_rigid,
@@ -120,7 +116,9 @@ def read_head_pos(fname):
     """
     _check_fname(fname, must_exist=True, overwrite="read")
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
-    data = _reshape_view(data, (-1, 10))  # ensure it's the right size even if empty
+    data = data.reshape(
+        (-1, 10), copy=False
+    )  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
         raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
@@ -521,6 +519,8 @@ def _magnetic_dipole_objective(
     x, B, B2, coils, whitener, too_close, return_moment=False
 ):
     """Project data onto right eigenvectors of whitened forward."""
+    from ._chpi_numba import _magnetic_dipole_delta
+
     fwd = _magnetic_dipole_field_vec(x[np.newaxis], coils, too_close)
     out, u, s, one = _magnetic_dipole_delta(fwd, whitener, B, B2)
     if return_moment:
@@ -528,16 +528,6 @@ def _magnetic_dipole_objective(
         Q = one @ u.T
         out = (out, Q)
     return out
-
-
-@jit()
-def _magnetic_dipole_delta(fwd, whitener, B, B2):
-    # Here we use .T to get whitener to Fortran order, which speeds things up
-    fwd = fwd @ whitener.T
-    u, s, v = np.linalg.svd(fwd, full_matrices=False)
-    one = v @ B
-    Bm2 = one @ one
-    return B2 - Bm2, u, s, one
 
 
 def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
@@ -549,6 +539,8 @@ def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
+    from scipy.optimize import fmin_cobyla
+
     B = whitener @ B_orig
     B2 = B @ B
     objective = partial(
@@ -576,16 +568,6 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     return x, gof, moment
 
 
-@jit()
-def _chpi_objective(x, coil_dev_rrs, coil_head_rrs, weights):
-    """Compute objective function."""
-    d = coil_dev_rrs @ quat_to_rot(x[:3]).T
-    d += x[3:]
-    d -= coil_head_rrs
-    d *= d
-    return d.sum(axis=1) @ weights  # sum over coils, weighted
-
-
 def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, weights=None, quat=None):
     """Fit rotation and translation (quaternion) parameters for cHPI coils.
 
@@ -593,6 +575,9 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, weights=None, quat=None):
     and inter-coil distance error) so that coils can smoothly enter or leave the
     fit rather than switching in and out discontinuously; see :gh:`11330`.
     """
+    from ._chpi_numba import _chpi_objective
+    from ._transforms_numba import _fit_matched_points
+
     if weights is None:
         weights = np.ones(len(coil_head_rrs))
     # The GOF ratio is invariant to the overall weight scale, so we can pass the
@@ -674,6 +659,8 @@ def _setup_hpi_amplitude_fitting(
     info, t_window, remove_aliased=False, ext_order=1, allow_empty=False, verbose=None
 ):
     """Generate HPI structure for HPI localization."""
+    from ._chpi_numba import _reorder_inv_model
+
     # grab basic info.
     on_missing = "raise" if not allow_empty else "ignore"
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing=on_missing)
@@ -771,13 +758,6 @@ def _setup_hpi_glm(hpi_freqs, line_freqs, sfreq, window_nsamp):
     return np.hstack(model)
 
 
-@jit()
-def _reorder_inv_model(inv_model, n_freqs):
-    # Reorder for faster computation
-    idx = np.arange(2 * n_freqs).reshape(2, n_freqs).T.ravel()
-    return inv_model[idx]
-
-
 def _setup_ext_proj(info, ext_order):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude="bads")
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
@@ -828,6 +808,8 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
     snr : ndarray, shape (n_freqs, 2)
         Estimated SNR for this window, separately for mag and grad channels.
     """
+    from ._chpi_numba import _fast_fit, _fast_fit_snr
+
     # No need to detrend the data because our model has a DC term
     with use_log_level(False):
         # loads good channels
@@ -861,53 +843,6 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
         hpi["model"],
         hpi["inv_model_reord"],
     )
-
-
-@jit()
-def _fast_fit(this_data, proj, n_freqs, model, inv_model_reord):
-    # first or last window
-    if this_data.shape[1] != model.shape[0]:
-        model = model[: this_data.shape[1]]
-        inv_model_reord = _reorder_inv_model(np.linalg.pinv(model), n_freqs)
-    proj_data = proj @ this_data
-    X = inv_model_reord @ proj_data.T
-
-    sin_fit = np.zeros((n_freqs, X.shape[1]))
-    for fi in range(n_freqs):
-        # use SVD across all sensors to estimate the sinusoid phase
-        u, s, vt = np.linalg.svd(X[2 * fi : 2 * fi + 2], full_matrices=False)
-        # the first component holds the predominant phase direction
-        # (so ignore the second, effectively doing s[1] = 0):
-        sin_fit[fi] = vt[0] * s[0]
-    return sin_fit
-
-
-@jit()
-def _fast_fit_snr(this_data, n_freqs, model, inv_model, mag_picks, grad_picks):
-    # first or last window
-    if this_data.shape[1] != model.shape[0]:
-        model = model[: this_data.shape[1]]
-        inv_model = np.linalg.pinv(model)
-    coefs = np.ascontiguousarray(inv_model) @ np.ascontiguousarray(this_data.T)
-    # average sin & cos terms (special property of sinusoids: power=A²/2)
-    hpi_power = (coefs[:n_freqs] ** 2 + coefs[n_freqs : (2 * n_freqs)] ** 2) / 2
-    resid = this_data - np.ascontiguousarray((model @ coefs).T)
-    # can't use np.var(..., axis=1) with Numba, so do it manually:
-    resid_mean = np.atleast_2d(resid.sum(axis=1) / resid.shape[1]).T
-    squared_devs = np.abs(resid - resid_mean) ** 2
-    resid_var = squared_devs.sum(axis=1) / squared_devs.shape[1]
-    # output array will be (n_freqs, 3 * n_ch_types). The 3 columns for each
-    # channel type are the SNR, the mean cHPI power and the residual variance
-    # (which gets tiled to shape (n_freqs,) because it's a scalar).
-    snrs = np.empty((n_freqs, 0))
-    # average power & compute residual variance separately for each ch type
-    for _picks in (mag_picks, grad_picks):
-        if len(_picks):
-            avg_power = hpi_power[:, _picks].sum(axis=1) / len(_picks)
-            avg_resid = resid_var[_picks].mean() * np.ones(n_freqs)
-            snr = 10 * np.log10(avg_power / avg_resid)
-            snrs = np.hstack((snrs, np.stack((snr, avg_power, avg_resid), 1)))
-    return snrs
 
 
 def _check_chpi_param(chpi_, name):
@@ -1018,6 +953,8 @@ def compute_head_pos(
     -----
     .. versionadded:: 0.20
     """
+    from scipy.spatial.distance import cdist
+
     _check_chpi_param(chpi_locs, "chpi_locs")
     _validate_type(info, Info, "info")
     if weighted is None:
@@ -1454,7 +1391,7 @@ def compute_chpi_locs(
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
     fwd = fwd @ whitener.T
-    fwd = _reshape_view(fwd, (guesses.shape[0], 3, -1))
+    fwd = fwd.reshape((guesses.shape[0], 3, -1), copy=False)
     fwd = np.linalg.svd(fwd, full_matrices=False)[2]
     guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
     del fwd, R
@@ -1713,6 +1650,8 @@ def _subtract_chpi(raw, hpi, meg_picks, n_step, n_remove, include_line, interp):
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     """Compute good coils based on distances."""
+    from scipy.spatial.distance import cdist
+
     these_dists = cdist(new_pos, new_pos)
     these_dists = np.abs(hpi_coil_dists - these_dists)
     # there is probably a better algorithm for finding the bad ones...

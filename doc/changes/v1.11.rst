@@ -120,3 +120,5 @@ Authors
 * Tom Ma
 * Wouter Kroot+
 * Young Truong
+
+.. include:: names.inc

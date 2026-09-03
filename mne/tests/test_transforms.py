@@ -19,7 +19,7 @@ from numpy.testing import (
 import mne
 from mne import read_trans, write_trans
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata, _reshape_view
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.transforms import (
     _angle_between_quats,
@@ -76,7 +76,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph = _reshape_view(sph, (3, -1))
+    sph = sph.reshape((3, -1), copy=False)
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()
@@ -468,13 +468,13 @@ def _check_fit_matched_points(
     p, x, weights, do_scale, angtol=1e-5, dtol=1e-5, stol=1e-7
 ):
     __tracebackhide__ = True
-    mne.coreg._ALLOW_ANALITICAL = False
+    mne.transforms._ALLOW_ANALITICAL = False
     try:
-        params = mne.coreg.fit_matched_points(
+        params = mne.transforms.fit_matched_points(
             p, x, weights=weights, scale=do_scale, out="params"
         )
     finally:
-        mne.coreg._ALLOW_ANALITICAL = True
+        mne.transforms._ALLOW_ANALITICAL = True
     quat_an, scale_an = _fit_matched_points(p, x, weights, scale=do_scale)
     assert len(params) == 6 + int(do_scale)
     q_co = _euler_to_quat(params[:3])
@@ -491,7 +491,7 @@ def _check_fit_matched_points(
     trans[:3, :3] *= scale_an
     weights = np.ones(1) if weights is None else weights
     err_an = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
-    trans = mne.coreg._trans_from_params((True, True, do_scale), params)
+    trans = mne.transforms._trans_from_params((True, True, do_scale), params)
     err_co = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
     if err_an > 1e-14:
         assert err_an < err_co * 1.5

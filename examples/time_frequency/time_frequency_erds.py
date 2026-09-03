@@ -90,7 +90,7 @@ baseline = (-1, 0)  # baseline interval (in s)
 cnorm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)  # min, center & max ERDS
 
 kwargs = dict(
-    n_permutations=100, step_down_p=0.05, seed=1, buffer_size=None, out_type="mask"
+    n_permutations=100, step_down_p=0.05, rng=1, buffer_size=None, out_type="mask"
 )  # for cluster test
 
 # %%

@@ -7,6 +7,7 @@
 import functools
 import gc
 import os
+import re
 import sys
 import time
 import warnings
@@ -142,6 +143,12 @@ def _reraise_extension_error(func):
 def reset_modules(gallery_conf, fname, when):
     """Do the reset."""
     import matplotlib.pyplot as plt
+
+    # Examples that set ``# sphinx_gallery_preserve_gui = True`` keep a single GUI open
+    # across all of their code blocks, and the scraper (not the example's globals, which
+    # sphinx-gallery has already dropped by the time we get here with when="after")
+    # holds the last reference to it. Close them before the leak checks below.
+    gui_scraper.close_preserved()
 
     mne.viz.set_3d_backend("pyvistaqt")
     pyvista.OFF_SCREEN = False
@@ -283,3 +290,122 @@ report_scraper = mne.report._ReportScraper()
 mne_qt_browser_scraper = mne.viz._scraper._MNEQtBrowserScraper()
 brain_scraper = mne.viz._brain._BrainScraper()
 gui_scraper = mne.gui._GUIScraper()
+
+
+# -- link-target hygiene ------------------------------------------------------
+# Corpus-wide checks that neither docutils nor rstcheck can do (docutils only
+# warns about unreferenced targets *per assembled document*, so a shared file
+# like links.inc would flag every target on every page that includes it):
+#
+# 1. Targets in doc/links.inc exist iff referenced more than once across the
+#    documentation (single-use links should be inlined at their use site).
+# 2. Any other external link target must be referenced at least once
+#    (docutils silently tolerates dead targets).
+# 3. A local target definition must not duplicate a links.inc URL.
+# 4. The same URL must not be written out in more than one file (move it to
+#    links.inc and reference it instead).
+#
+# doc/changes/names.inc is exempt: its contributor anchors are maintained by
+# the credit tooling and may outlive their changelog references.
+
+
+_REF_PHRASE = re.compile(r"`([^`<]+?)`_(?!_)", re.S)  # `Name`_
+_REF_INDIRECT = re.compile(r"`[^`<]*?<([^`>]+?)\s*_>`_{1,2}", re.S)  # `x <Name_>`__
+_REF_BARE = re.compile(r"(?<![\w`.:/<>-])([A-Za-z][\w.+-]*)_(?![\w_])")  # Name_
+_TARGET_DEF = re.compile(r"^\.\. _(`[^`]+`|[^:\n]+): +(\S+) *$", re.M)
+_INLINE_URL = re.compile(r"`[^`<]*?<(https?://[^>\s]+)>`_{1,2}", re.S)
+_PY_COMMENT = re.compile(r"^[ \t]*#(.*)$", re.M)
+
+
+def _norm_name(name):
+    """Normalize a reference name the way docutils does (roughly)."""
+    return " ".join(name.strip("`").split()).lower()
+
+
+def _norm_url(url):
+    return url.rstrip("/")
+
+
+def _py_rst_content(text):
+    """Return the rST-bearing parts of a gallery .py file (docstring+comments)."""
+    parts = []
+    match = re.search(r'[rRbBuUfF]*("""|\'\'\')', text)
+    if match:
+        end = text.find(match.group(1), match.end())
+        if end != -1:
+            parts.append(text[match.end() : end])
+    parts.extend(m for m in _PY_COMMENT.findall(text))
+    return "\n".join(parts)
+
+
+def _iter_source_files(root):
+    for path in (root / "doc").rglob("*"):
+        if path.suffix in (".rst", ".inc") and not any(
+            part in ("_build", "generated", "sphinxext") or part.startswith("auto_")
+            for part in path.relative_to(root).parts
+        ):
+            yield path
+    for top in ("tutorials", "examples"):
+        yield from (root / top).rglob("*.py")
+
+
+def check_links(app=None):
+    """Enforce the link-target policy (see module docstring)."""
+    root = Path(__file__).parents[2] if app is None else Path(app.srcdir).parent
+    links_inc = root / "doc" / "links.inc"
+    names_inc = root / "doc" / "changes" / "names.inc"
+    linksinc_targets = {}  # normalized name -> url
+    for name, url in _TARGET_DEF.findall(links_inc.read_text("utf-8")):
+        linksinc_targets[_norm_name(name)] = _norm_url(url)
+    linksinc_urls = {url: name for name, url in linksinc_targets.items()}
+
+    ref_counts = dict.fromkeys(linksinc_targets, 0)
+    local_defs = []  # (path, name, url)
+    url_files = {}  # url -> set of paths that write it out
+    for path in _iter_source_files(root):
+        if path in (links_inc, names_inc):
+            continue
+        text = path.read_text("utf-8", errors="ignore")
+        if path.suffix == ".py":
+            text = _py_rst_content(text)
+        rel = path.relative_to(root)
+        for regex in (_REF_PHRASE, _REF_INDIRECT, _REF_BARE):
+            for name in regex.findall(text):
+                name = _norm_name(name)
+                ref_counts[name] = ref_counts.get(name, 0) + 1
+        for name, url in _TARGET_DEF.findall(text):
+            if url.startswith(("http://", "https://")):
+                local_defs.append((rel, _norm_name(name), _norm_url(url)))
+                url_files.setdefault(_norm_url(url), set()).add(rel)
+        for url in _INLINE_URL.findall(text):
+            url_files.setdefault(_norm_url(url), set()).add(rel)
+
+    def warn(msg):
+        sphinx_logger.warning(msg, type="mne", subtype="links")
+
+    # 1. links.inc targets must be referenced more than once
+    for name in linksinc_targets:
+        if ref_counts[name] < 2:
+            warn(
+                f"doc/links.inc target {name!r} is referenced {ref_counts[name]} "
+                "time(s); links.inc entries must be used more than once "
+                "(inline single-use links at their use site instead)"
+            )
+    # 2. every other external target definition must be referenced somewhere,
+    # 3. and must not duplicate a links.inc URL
+    for rel, name, url in local_defs:
+        if ref_counts.get(name, 0) == 0:
+            warn(f"{rel}: link target {name!r} is never referenced; remove it")
+        if url in linksinc_urls:
+            warn(
+                f"{rel}: link target {name!r} duplicates the URL of "
+                f"doc/links.inc target {linksinc_urls[url]!r}; reference that instead"
+            )
+    # 4. a URL written out in several files belongs in links.inc
+    for url, files in url_files.items():
+        if len(files) > 1 and url not in linksinc_urls:
+            warn(
+                f"URL {url} is written out in {len(files)} files "
+                f"({', '.join(sorted(str(f) for f in files))}); move it to "
+                "doc/links.inc and reference it instead"
+            )

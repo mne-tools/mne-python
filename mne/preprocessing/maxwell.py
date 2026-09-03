@@ -26,7 +26,7 @@ from .._ola import _COLA, _Interp2, _Storer
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
-from ..fixes import _reshape_view, _safe_svd, bincount, sph_harm_y
+from ..fixes import _safe_svd, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
 from ..surface import _normalize_vectors
@@ -311,6 +311,11 @@ def maxwell_filter(
     Notes
     -----
     .. versionadded:: 0.11
+
+    When ``head_pos`` is provided, the returned object contains cHPI result
+    channels that have no counterpart in the source file. It therefore cannot
+    be concatenated using ``raw_sss.append(..., preload=False)``. Use
+    ``preload=True`` or a memory-mapped filename instead.
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
@@ -1258,6 +1263,20 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
         raw.info["chs"].extend(chpi_chs)
         raw.info._update_redundant()
         raw.info._check_consistency()
+        # The remaining per-channel attributes must grow along with info, otherwise
+        # any later channel operation (e.g., raw_sss.drop_channels) indexes them out
+        # of bounds
+        raw._cals = np.concatenate([raw._cals, raw.info._cals[off:]])
+        # The added channels have no counterpart in the source file, but the data are
+        # preloaded, so _read_picks (and _raw_extras) will never be used to read from
+        # disk again -- use indices that are likely to break loudly if they ever are
+        extra_idx = [2147483647] * len(chpi_chs)  # 2 ** 31 - 1
+        raw._read_picks = [np.concatenate([r, extra_idx]) for r in raw._read_picks]
+        assert raw._comp is None  # preloading the data above unsets it
+        if raw._projector is not None:  # identity for the added channels
+            projector = np.eye(raw.info["nchan"])
+            projector[:off, :off] = raw._projector
+            raw._projector = projector
         assert raw._data.shape == (raw.info["nchan"], len(raw.times))
         # Return the pos picks
         pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs), len(raw.ch_names))
@@ -1939,6 +1958,8 @@ def _integrate_points(
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
     grads = (grads * cosmags).sum(axis=1)
+    from .._numba import bincount
+
     return bincount(bins, grads, n_coils)
 
 
@@ -2930,7 +2951,7 @@ def find_bad_channels_maxwell(
         n = stop - start
         flat_stop = n - (n % flat_step)
         data = chunk_raw.get_data(good_meg_picks, 0, flat_stop)
-        data = _reshape_view(data, (data.shape[0], -1, flat_step))
+        data = data.reshape((data.shape[0], -1, flat_step), copy=False)
         delta = np.std(data, axis=-1).min(-1)  # min std across segments
 
         # We may want to return this later if `return_scores=True`.

@@ -31,6 +31,9 @@ class RawArray(BaseRaw):
         Determines what gets copied on instantiation. "auto" (default)
         will copy info, and copy "data" only if necessary to get to
         double floating point precision.
+        If ``data`` is a memory-mapped array and is not copied, the caller
+        retains ownership of its backing file and is responsible for removing
+        it after the Raw object is no longer in use.
 
         .. versionadded:: 0.18
     %(verbose)s

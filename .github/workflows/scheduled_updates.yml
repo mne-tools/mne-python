@@ -26,10 +26,12 @@ jobs:
             name: Update dependency specifiers
             title: 'MAINT: Update dependency specifiers'
             body: '*Adjustments may need to be made to shims in `mne/fixes.py` and elsewhere in this or another PR. `make -C tools/dev dep` is a good starting point for finding potential updates.*'
+            label: ''  # this one writes doc/changes/dev/dependency.rst itself
           - id: prek_auto_update
             name: Update pre-commit hooks
             title: 'MAINT: Update pre-commit hook versions'
             body: '*Created by `prek auto-update`. The updated hooks were then run over the whole repo, so any reformatting they now do is included here.*'
+            label: 'no-changelog-entry-needed'
     env:
       GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
@@ -55,7 +57,7 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           version: ">=0.9"
           activate-environment: true
@@ -82,6 +84,7 @@ jobs:
           BRANCH: ${{ matrix.id }}
           TITLE: ${{ matrix.title }}
           BODY: ${{ matrix.body }}
+          LABEL: ${{ matrix.label }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -xeo pipefail
@@ -95,6 +98,10 @@ jobs:
           printf '%s\n\n%s\n' \
             "Created by the \`$BRANCH\` job of this [GitHub Action run]($RUN_URL)." \
             "$BODY" > "$RUNNER_TEMP/pr_body.md"
-          PR_NUM=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr_body.md")
+          LABEL_ARGS=()
+          if [[ -n "$LABEL" ]]; then
+            LABEL_ARGS=(--label "$LABEL")
+          fi
+          PR_NUM=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr_body.md" "${LABEL_ARGS[@]}")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true' && (success() || failure())

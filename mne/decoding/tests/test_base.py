@@ -98,7 +98,9 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
 
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
-    lm_classification = LinearModel(LogisticRegression(solver="liblinear"))
+    lm_classification = LinearModel(
+        LogisticRegression(solver="liblinear", random_state=0)
+    )
     assert hasattr(lm_classification, "__sklearn_tags__")
     if check_version("sklearn", "1.6"):
         print(lm_classification.__sklearn_tags__())
@@ -107,7 +109,7 @@ def test_get_coef():
     assert not is_regressor(lm_classification.model)
     assert not is_regressor(lm_classification)
 
-    lm_regression = LinearModel(Ridge())
+    lm_regression = LinearModel(Ridge(random_state=0))
     assert is_regressor(lm_regression.model)
     assert is_regressor(lm_regression)
     assert not is_classifier(lm_regression.model)
@@ -115,7 +117,7 @@ def test_get_coef():
 
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     lm_gs_classification = LinearModel(
-        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=None)
+        GridSearchCV(svm.SVC(random_state=0), parameters, cv=2, refit=True, n_jobs=None)
     )
     assert is_classifier(lm_gs_classification)
 
@@ -247,19 +249,21 @@ class _Noop(BaseEstimator, TransformerMixin):
         pytest.param(
             make_pipeline(
                 Scaler(info=None, scalings="mean"),
-                SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
+                SlidingEstimator(make_pipeline(LinearModel(Ridge(random_state=0)))),
             ),
             id="Scaler+SlidingEstimator",
         ),
         pytest.param(
             make_pipeline(
                 _Noop(),
-                SlidingEstimator(make_pipeline(LinearModel(Ridge()))),
+                SlidingEstimator(make_pipeline(LinearModel(Ridge(random_state=0)))),
             ),
             id="Noop+SlidingEstimator",
         ),
         pytest.param(
-            SlidingEstimator(make_pipeline(StandardScaler(), LinearModel(Ridge()))),
+            SlidingEstimator(
+                make_pipeline(StandardScaler(), LinearModel(Ridge(random_state=0)))
+            ),
             id="SlidingEstimator+nested StandardScaler",
         ),
     ],
@@ -293,7 +297,11 @@ def test_get_coef_inverse_step_name():
     X, y, _ = _make_data(n_samples=100, n_features=5, n_targets=1)
 
     # Test with a simple pipeline
-    pipe = make_pipeline(StandardScaler(), PCA(n_components=3), LinearModel(Ridge()))
+    pipe = make_pipeline(
+        StandardScaler(),
+        PCA(n_components=3, random_state=0),
+        LinearModel(Ridge(random_state=0)),
+    )
     pipe.fit(X, y)
 
     coef_inv_actual = get_coef(
@@ -325,7 +333,9 @@ def test_get_coef_inverse_step_name():
         )
 
     # Test with a nested pipeline to check __ parsing
-    inner_pipe = make_pipeline(PCA(n_components=3), LinearModel(Ridge()))
+    inner_pipe = make_pipeline(
+        PCA(n_components=3, random_state=0), LinearModel(Ridge(random_state=0))
+    )
     nested_pipe = make_pipeline(StandardScaler(), inner_pipe)
     nested_pipe.fit(X, y)
     coef_nested_inv_actual = get_coef(
@@ -360,7 +370,7 @@ def test_get_coef_inverse_step_name():
             # In a real scenario, this would modify X
             return X
 
-    pipe = make_pipeline(NonInvertibleTransformer(), LinearModel(Ridge()))
+    pipe = make_pipeline(NonInvertibleTransformer(), LinearModel(Ridge(random_state=0)))
     pipe.fit(X, y)
     with pytest.warns(RuntimeWarning, match="not invertible"):
         _ = get_coef(
@@ -389,7 +399,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     assert_array_equal(lm.filters_.shape, want_shape)
     if n_features > 1 and n_targets > 1:
         assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
-    lm = LinearModel(Ridge(alpha=0))
+    lm = LinearModel(Ridge(alpha=0, random_state=0))
     clf = make_pipeline(lm)
     clf.fit(X, Y)
     if n_features > 1 and n_targets > 1:
@@ -400,7 +410,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     # With epochs, scaler, and vectorizer (typical use case)
     X_epo = X.reshape(X.shape + (1,))
     info = create_info(n_features, 1000.0, "eeg")
-    lm = LinearModel(Ridge(alpha=1))
+    lm = LinearModel(Ridge(alpha=1, random_state=0))
     clf = make_pipeline(
         Scaler(info, scalings=dict(eeg=1.0)),  # XXX adding this step breaks
         Vectorizer(),
@@ -490,7 +500,7 @@ def test_linearmodel():
     _ = clf.fit_transform(X, y)
 
     # check that model has to have coef_, RBF-SVM doesn't
-    clf = LinearModel(svm.SVC(kernel="rbf"))
+    clf = LinearModel(svm.SVC(kernel="rbf", random_state=0))
     with pytest.raises(ValueError, match="does not have a `coef_`"):
         clf.fit(X, y)
 
@@ -502,7 +512,7 @@ def test_linearmodel():
     # check categorical target fit in standard linear model with GridSearchCV
     parameters = {"kernel": ["linear"], "C": [1, 10]}
     clf = LinearModel(
-        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=None)
+        GridSearchCV(svm.SVC(random_state=0), parameters, cv=2, refit=True, n_jobs=None)
     )
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
@@ -596,7 +606,7 @@ def test_cross_val_multiscore():
         assert_array_equal(manual, auto)
 
 
-@parametrize_with_checks([LinearModel(LogisticRegression())])
+@parametrize_with_checks([LinearModel(LogisticRegression(random_state=0))])
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
     check(estimator)

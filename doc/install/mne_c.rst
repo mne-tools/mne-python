@@ -188,4 +188,5 @@ If you encounter other errors installing MNE-C, please post a message to the
 .. _Homebrew: https://brew.sh/
 .. _XCode developer tools: https://developer.apple.com/xcode/
 .. _xquartz: https://www.xquartz.org/
-.. _debian: https://packages.debian.org/jessie/amd64/libxp6/download
+
+.. include:: ../links.inc

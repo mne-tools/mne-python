@@ -1006,7 +1006,7 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
         fnirs_epochs.info["highpass"] = 1.0
     fnirs_epochs.baseline = None
 
-    ica = ICA(random_state=0).fit(fnirs_epochs)
+    ica = ICA(rng=0).fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
 

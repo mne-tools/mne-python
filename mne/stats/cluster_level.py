@@ -5,42 +5,22 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import ndimage, sparse
-from scipy.sparse.csgraph import connected_components
-from scipy.stats import f as fstat
-from scipy.stats import t as tstat
 
-from ..fixes import _reshape_view, jit
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
 from ..utils import (
     ProgressBar,
     _check_option,
+    _legacy_rng,
     _pl,
     _validate_type,
-    check_random_state,
     logger,
     split_list,
     verbose,
     warn,
 )
 from .parametric import f_oneway, ttest_1samp_no_p
-
-
-@jit()
-def _masked_sum(x, c):
-    return np.sum(x[c])
-
-
-@jit()
-def _masked_sum_power(x, c, t_power):
-    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-
-
-@jit()
-def _sum_cluster_data(data, tstep):
-    return np.sign(data) * tstep
 
 
 def _get_labels_st(x_in, adjacency, max_step):
@@ -51,6 +31,9 @@ def _get_labels_st(x_in, adjacency, max_step):
     of active points rather than with the full ``n_times * n_src`` extent
     of ``x_in`` -- important since this is called on every permutation.
     """
+    from scipy import sparse
+    from scipy.sparse.csgraph import connected_components
+
     n_src = adjacency.shape[0]
     n_total = len(x_in)
     active = np.where(x_in)[0]
@@ -104,12 +87,23 @@ def _get_labels_st(x_in, adjacency, max_step):
     return active, labels
 
 
+def _labels_to_clusters(active, labels):
+    """Group active indices by component label into a list of index arrays."""
+    # A stable sort keeps clusters in ascending label order and indices in
+    # ascending order within each cluster, i.e., the same output as masking
+    # once per label, but without the O(n_active * n_clusters) cost.
+    order = np.argsort(labels, kind="stable")
+    active = active[order]
+    labels = labels[order]
+    return np.split(active, np.flatnonzero(np.diff(labels)) + 1)
+
+
 def _get_clusters_st(x_in, adjacency, max_step=1):
     """Find spatio-temporal clusters via SciPy connected components."""
     active, labels = _get_labels_st(x_in, adjacency, max_step)
     if labels is None:
         return []
-    return [active[labels == id_] for id_ in np.unique(labels)]
+    return _labels_to_clusters(active, labels)
 
 
 def _get_cluster_sums_st(x, x_in, adjacency, max_step, t_power):
@@ -129,6 +123,9 @@ def _get_labels(x_in, adjacency):
     Same idea as :func:`_get_labels_st`, but for a plain (non spatio-temporal)
     sparse adjacency matrix that already spans all of ``x_in``.
     """
+    from scipy import sparse
+    from scipy.sparse.csgraph import connected_components
+
     active = np.where(x_in)[0]
     if len(active) == 0:
         return active, None
@@ -156,7 +153,7 @@ def _get_components(x_in, adjacency):
     active, labels = _get_labels(x_in, adjacency)
     if labels is None:
         return []
-    return [active[labels == id_] for id_ in np.unique(labels)]
+    return _labels_to_clusters(active, labels)
 
 
 def _get_cluster_sums(x, x_in, adjacency, t_power):
@@ -239,6 +236,8 @@ def _find_clusters(
     sums : array
         Sum of x values in clusters.
     """
+    from scipy import ndimage
+
     _check_option("tail", tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
@@ -390,6 +389,8 @@ def _find_clusters_1dir(
     x, x_in, adjacency, max_step, t_power, ndimage, sums_only=False
 ):
     """Actually call the clustering algorithm."""
+    from scipy import sparse
+
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -440,6 +441,8 @@ def _find_clusters_1dir(
             raise TypeError(
                 f"adjacency must be a sparse array or False, got {type(adjacency)}"
             )
+        from ._cluster_level_numba import _masked_sum, _masked_sum_power
+
         if t_power == 1:
             sums = [_masked_sum(x, c) for c in clusters]
         else:
@@ -498,6 +501,8 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_adjacency(adjacency, n_tests, n_times):
+    from scipy import sparse
+
     if not sparse.issparse(adjacency):
         raise ValueError(
             "If adjacency matrix is given, it must be a SciPy sparse matrix."
@@ -576,7 +581,7 @@ def _do_permutations(
 
         # The stat should have the same shape as the samples for no adj.
         if adjacency is None:
-            t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
+            t_obs_surr = t_obs_surr.reshape(sample_shape, copy=False)
 
         # Find cluster on randomized stats (only the max cluster sum is
         # needed here, so skip building the cluster index-array list)
@@ -713,7 +718,7 @@ def _do_1samp_permutations(
 
         # The stat should have the same shape as the samples for no adj.
         if adjacency is None:
-            t_obs_surr = _reshape_view(t_obs_surr, sample_shape)
+            t_obs_surr = t_obs_surr.reshape(sample_shape, copy=False)
 
         # Find cluster on randomized stats (only the max cluster sum is
         # needed here, so skip building the cluster index-array list)
@@ -827,7 +832,7 @@ def _permutation_cluster_test(
     stat_fun,
     adjacency,
     n_jobs,
-    seed,
+    rng,
     max_step,
     exclude,
     step_down_p,
@@ -909,7 +914,7 @@ def _permutation_cluster_test(
             f"compatible with the sample shape {sample_shape}"
         )
     if adjacency is None or adjacency is False:
-        t_obs = _reshape_view(t_obs, sample_shape)
+        t_obs = t_obs.reshape(sample_shape, copy=False)
 
     if exclude is not None:
         include = np.logical_not(exclude)
@@ -936,7 +941,7 @@ def _permutation_cluster_test(
     clusters, cluster_stats = out
 
     # The stat should have the same shape as the samples
-    t_obs = _reshape_view(t_obs, sample_shape)
+    t_obs = t_obs.reshape(sample_shape, copy=False)
 
     # For TFCE, return the "adjusted" statistic instead of raw scores
     # and for clusters, each point gets treated independently
@@ -958,12 +963,10 @@ def _permutation_cluster_test(
         if out_type == "indices":
             clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
-    # convert our seed to orders
+    # Convert the RNG state to permutation orders.
     # check to see if we can do an exact test
     # (for a two-tailed test, we can exploit symmetry to just do half)
     extra = ""
-    rng = check_random_state(seed)
-    del seed
     if len(X) == 1:  # 1-sample test
         do_perm_func = _do_1samp_permutations
         X_full = X[0]
@@ -1052,7 +1055,7 @@ def _permutation_cluster_test(
         for ti in to_remove:
             step_down_include[clusters[ti]] = False
         if adjacency is None and adjacency is not False:
-            step_down_include = _reshape_view(step_down_include, sample_shape)
+            step_down_include = step_down_include.reshape(sample_shape, copy=False)
         n_step_downs += 1
         if step_down_p > 0:
             a_text = "additional " if n_step_downs > 1 else ""
@@ -1072,6 +1075,9 @@ def _permutation_cluster_test(
 
 def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     """Check the stat_fun and threshold values."""
+    from scipy.stats import f as fstat
+    from scipy.stats import t as tstat
+
     if kind == "within":
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
@@ -1105,6 +1111,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     return stat_fun, threshold
 
 
+@_legacy_rng("seed")
 @verbose
 def permutation_cluster_test(
     X,
@@ -1114,7 +1121,6 @@ def permutation_cluster_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     exclude=None,
     step_down_p=0,
@@ -1123,6 +1129,9 @@ def permutation_cluster_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Cluster-level statistical permutation test.
 
@@ -1154,7 +1163,6 @@ def permutation_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_n)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     %(exclude_clust)s
     %(step_down_p_clust)s
@@ -1163,6 +1171,8 @@ def permutation_cluster_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1192,7 +1202,7 @@ def permutation_cluster_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1203,6 +1213,7 @@ def permutation_cluster_test(
     )
 
 
+@_legacy_rng("seed")
 @verbose
 def permutation_cluster_1samp_test(
     X,
@@ -1212,7 +1223,6 @@ def permutation_cluster_1samp_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     exclude=None,
     step_down_p=0,
@@ -1221,6 +1231,9 @@ def permutation_cluster_1samp_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Non-parametric cluster-level paired t-test.
 
@@ -1241,7 +1254,6 @@ def permutation_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_1)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     %(exclude_clust)s
     %(step_down_p_clust)s
@@ -1250,6 +1262,8 @@ def permutation_cluster_1samp_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1280,9 +1294,9 @@ def permutation_cluster_1samp_test(
     %(threshold_clust_t_notes)s
 
     If ``n_permutations`` exceeds the maximum number of possible permutations
-    given the number of observations, then ``n_permutations`` and ``seed``
-    will be ignored since an exact test (full permutation test) will be
-    performed (this is the case when
+    given the number of observations, then ``n_permutations``, ``seed``, and
+    ``rng`` will be ignored since an exact test (full permutation test) will
+    be performed (this is the case when
     ``n_permutations >= 2 ** (n_observations - (tail == 0))``).
 
     If no initial clusters are found because all points in the true
@@ -1302,7 +1316,7 @@ def permutation_cluster_1samp_test(
         stat_fun=stat_fun,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1313,6 +1327,7 @@ def permutation_cluster_1samp_test(
     )
 
 
+@_legacy_rng("seed")
 @verbose
 def spatio_temporal_cluster_1samp_test(
     X,
@@ -1322,7 +1337,6 @@ def spatio_temporal_cluster_1samp_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     spatial_exclude=None,
     step_down_p=0,
@@ -1331,6 +1345,9 @@ def spatio_temporal_cluster_1samp_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
@@ -1354,7 +1371,6 @@ def spatio_temporal_cluster_1samp_test(
     %(stat_fun_clust_t)s
     %(adjacency_clust_st1)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
@@ -1364,6 +1380,8 @@ def spatio_temporal_cluster_1samp_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1399,7 +1417,7 @@ def spatio_temporal_cluster_1samp_test(
         n_permutations=n_permutations,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1410,6 +1428,7 @@ def spatio_temporal_cluster_1samp_test(
     )
 
 
+@_legacy_rng("seed")
 @verbose
 def spatio_temporal_cluster_test(
     X,
@@ -1419,7 +1438,6 @@ def spatio_temporal_cluster_test(
     stat_fun=None,
     adjacency=None,
     n_jobs=None,
-    seed=None,
     max_step=1,
     spatial_exclude=None,
     step_down_p=0,
@@ -1428,6 +1446,9 @@ def spatio_temporal_cluster_test(
     check_disjoint=False,
     buffer_size=1000,
     verbose=None,
+    *,
+    rng=None,
+    seed=None,
 ):
     """Non-parametric cluster-level test for spatio-temporal data.
 
@@ -1453,7 +1474,6 @@ def spatio_temporal_cluster_test(
     %(stat_fun_clust_f)s
     %(adjacency_clust_stn)s
     %(n_jobs)s
-    %(seed)s
     %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
@@ -1463,6 +1483,8 @@ def spatio_temporal_cluster_test(
     %(check_disjoint_clust)s
     %(buffer_size_clust)s
     %(verbose)s
+    %(rng)s
+    %(seed_rng)s
 
     Returns
     -------
@@ -1498,7 +1520,7 @@ def spatio_temporal_cluster_test(
         n_permutations=n_permutations,
         adjacency=adjacency,
         n_jobs=n_jobs,
-        seed=seed,
+        rng=rng,
         max_step=max_step,
         exclude=exclude,
         step_down_p=step_down_p,
@@ -1653,6 +1675,8 @@ def summarize_clusters_stc(
         )
     data = np.zeros((n_vertices, n_times))
     data_summary = np.zeros((n_vertices, len(good_cluster_inds) + 1))
+    from ._cluster_level_numba import _sum_cluster_data
+
     for ii, cluster_ind in enumerate(good_cluster_inds):
         data.fill(0)
         t_inds, v_inds = clusters[cluster_ind]

@@ -1,0 +1,1 @@
+Added a trace-list sidebar to the :class:`mne.viz.Brain` GUI, replacing legend by `Payam Sadeghi-Shabestari`_.

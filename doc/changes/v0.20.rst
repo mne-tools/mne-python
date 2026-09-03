@@ -405,3 +405,5 @@ People who contributed to this release  (in alphabetical order):
 * Thomas Hartmann
 * Victor Férat
 * Yu-Han Luo
+
+.. include:: names.inc

@@ -23,7 +23,7 @@ def test_what(tmp_path, verbose_debug):
     """Test mne.what."""
     pytest.importorskip("sklearn")
     # ICA
-    ica = ICA(max_iter=1, random_state=0)
+    ica = ICA(max_iter=1, rng=0)
     raw = RawArray(
         np.random.default_rng(0).standard_normal((3, 10)), create_info(3, 1000.0, "eeg")
     )

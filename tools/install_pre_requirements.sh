@@ -54,7 +54,7 @@ echo "::endgroup::"
 echo "::group::Everything else"
 python -m pip install $STD_ARGS \
 	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
-	"pyvistaqt @ https://github.com/larsoner/pyvistaqt/archive/refs/heads/qvtk-opengl-widget.zip" \
+	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"git+https://github.com/nilearn/nilearn" \
 	"git+https://github.com/pierreablin/picard" \
 	"git+https://github.com/the-siesta-group/edfio" \
@@ -63,13 +63,14 @@ python -m pip install $STD_ARGS \
 	"mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
 	"mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
 	"nibabel @ https://github.com/nipy/nibabel/archive/refs/heads/master.zip" \
+	"nitime @ https://github.com/nipy/nitime/archive/refs/heads/master.zip" \
 	git+https://github.com/joblib/joblib \
 	git+https://github.com/h5io/h5io \
 	git+https://github.com/BUNPC/pysnirf2 \
 	git+https://github.com/the-siesta-group/edfio \
 	trame trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
-	filelock
+	jamica filelock
 echo "::endgroup::"
 
 echo "::group::Make sure we're on a NumPy 2.0 variant"

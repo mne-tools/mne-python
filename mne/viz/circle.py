@@ -268,7 +268,7 @@ def _plot_connectivity_circle(
         nodes_n_con[j] += 1
 
     # initialize random number generator so plot is reproducible
-    rng = np.random.mtrand.RandomState(0)
+    rng = np.random.default_rng(0)
 
     n_con = len(indices[0])
     noise_max = 0.25 * node_width
@@ -408,7 +408,7 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
         The color (value) for each label (key).
     picks : list | tuple
         The channels to consider.
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments for
         :func:`mne_connectivity.viz.plot_connectivity_circle`.
 

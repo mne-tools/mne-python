@@ -20,10 +20,6 @@ import sys
 import tempfile
 from functools import lru_cache, partial
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
-
-from packaging.version import parse
 
 from ._logging import logger, warn
 from .check import (
@@ -44,17 +40,20 @@ class UnknownPlatformError(Exception):
 
 
 def set_cache_dir(cache_dir):
-    """Set the directory to be used for temporary file storage.
+    """Set the directory used for temporary and managed cache storage.
 
-    This directory is used by joblib to store memmapped arrays,
-    which reduces memory requirements and speeds up parallel
-    computation.
+    This directory is used by joblib to store temporary memmapped arrays and,
+    when requested by supported Raw readers, to persist decoded preload data.
 
     Parameters
     ----------
     cache_dir : str or None
-        Directory to use for temporary file storage. None disables
-        temporary file storage.
+        Directory to use for cache storage. None disables cache storage.
+
+    Notes
+    -----
+    Persistent decoded Raw entries are not automatically size-limited. They are
+    stored below ``cache_dir`` in a versioned ``raw-preload`` directory.
     """
     if cache_dir is not None and not op.exists(cache_dir):
         raise OSError(f"Directory {cache_dir} does not exist")
@@ -113,7 +112,7 @@ _known_config_types = {
     "MNE_BROWSER_USE_OPENGL": (
         "bool, whether to use OpenGL for rendering in the raw browser"
     ),
-    "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
+    "MNE_CACHE_DIR": "str, path to the temporary and managed cache directory",
     "MNE_COREG_ADVANCED_RENDERING": (
         "bool, whether to use advanced OpenGL rendering in coreg"
     ),
@@ -170,6 +169,7 @@ _known_config_types = {
     "MNE_DATASETS_TESTING_PATH": "str, path for testing data",
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
+    "MNE_DATASETS_LITE_DATA_PATH": "str, path for lite_data data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
     "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
@@ -221,6 +221,24 @@ _known_config_wildcards = (
 )
 
 
+_use_filelock = True
+
+
+@contextlib.contextmanager
+def _no_filelock():
+    """Skip the config file lock, to avoid importing filelock.
+
+    Used only for the single config read during ``import mne``: filelock pulls in
+    asyncio and sqlite3, which costs ~20 ms on every interpreter start.
+    """
+    global _use_filelock
+    _use_filelock = False
+    try:
+        yield
+    finally:
+        _use_filelock = True
+
+
 @contextlib.contextmanager
 def _open_lock(path, *args, **kwargs):
     """
@@ -236,14 +254,17 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
-        Additional arguments and keyword arguments to be passed to the
-        `open` function.
+    *args : list
+        Additional arguments to be passed to the `open` function.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the `open` function.
 
     """
-    filelock = _soft_import(
-        "filelock", purpose="parallel config set and get", strict=False
-    )
+    filelock = None
+    if _use_filelock:
+        filelock = _soft_import(
+            "filelock", purpose="parallel config set and get", strict=False
+        )
 
     lock_context = contextlib.nullcontext()  # default to no lock
 
@@ -856,6 +877,7 @@ def sys_info(
         "dipy",
         "openmeeg",
         "python-picard",
+        "jamica",
         "cupy",
         "pandas",
         "h5io",
@@ -1029,6 +1051,9 @@ def sys_info(
 
 
 def _get_latest_version(timeout):
+    from urllib.error import URLError
+    from urllib.request import urlopen
+
     # Bandit complains about urlopen, but we know the URL here
     url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
     try:
@@ -1050,6 +1075,8 @@ def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
+    from packaging.version import parse
+
     rel_ver = parse(rel_ver)
     this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:

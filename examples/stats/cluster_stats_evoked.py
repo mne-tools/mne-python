@@ -70,7 +70,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
     threshold=threshold,
     tail=1,
     n_jobs=None,
-    seed=0,
+    rng=23,
     out_type="mask",
 )
 

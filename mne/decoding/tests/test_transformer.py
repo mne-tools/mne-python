@@ -262,9 +262,9 @@ def test_unsupervised_spatial_filter():
 
     # Test fit
     n_components = 4
-    usf = UnsupervisedSpatialFilter(PCA(n_components))
+    usf = UnsupervisedSpatialFilter(PCA(n_components, random_state=0))
     usf.fit(X)
-    usf1 = UnsupervisedSpatialFilter(PCA(n_components))
+    usf1 = UnsupervisedSpatialFilter(PCA(n_components, random_state=0))
 
     # test transform
     assert_equal(usf.transform(X).ndim, 3)
@@ -274,9 +274,9 @@ def test_unsupervised_spatial_filter():
     assert_array_almost_equal(usf.inverse_transform(usf.transform(X)), X)
 
     # Test with average param
-    usf = UnsupervisedSpatialFilter(PCA(4), average=True)
+    usf = UnsupervisedSpatialFilter(PCA(4, random_state=0), average=True)
     usf.fit_transform(X)
-    usf = UnsupervisedSpatialFilter(PCA(4), 2)
+    usf = UnsupervisedSpatialFilter(PCA(4, random_state=0), 2)
     with pytest.raises(TypeError, match="average must be"):
         usf.fit(X)
 
@@ -335,7 +335,7 @@ def test_bad_triage():
         Scaler(scalings="mean"),
         # Not easy to test Scaler(info) b/c number of channels must match
         TemporalFilter(),
-        UnsupervisedSpatialFilter(PCA()),
+        UnsupervisedSpatialFilter(PCA(random_state=0)),
         Vectorizer(),
     ]
 )

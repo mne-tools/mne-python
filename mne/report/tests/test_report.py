@@ -26,7 +26,6 @@ from mne import (
 from mne._fiff.write import DATE_NONE
 from mne.datasets import testing
 from mne.epochs import make_metadata
-from mne.fixes import _reshape_view
 from mne.io import RawArray, read_info, read_raw_fif
 from mne.preprocessing import ICA
 from mne.report import Report, _ReportScraper, open_report, report
@@ -508,7 +507,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     )
     assert imgs.ndim == 4  # images, h, w, rgba
     assert len(imgs) == 6
-    imgs = _reshape_view(imgs, (len(imgs), -1))
+    imgs = imgs.reshape((len(imgs), -1), copy=False)
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
@@ -629,9 +628,12 @@ def test_open_report(tmp_path):
     with open_report(hdf5, subjects_dir=tmp_path) as report:
         assert report.subjects_dir == str(tmp_path)
         assert report.fname == str(hdf5)
+        assert not report.unsaved_changes
         report.add_figure(fig=fig1, title="evoked response")
+        assert report.unsaved_changes
     # Exiting the context block should have triggered saving to HDF5
     assert Path(hdf5).exists()
+    assert not report.unsaved_changes
 
     # Let's add some companion data to the HDF5 file
     with h5py.File(hdf5, "r+") as f:
@@ -640,6 +642,7 @@ def test_open_report(tmp_path):
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
+    assert not report2.unsaved_changes
     assert report2.fname == str(hdf5)
     assert report2.subjects_dir == report.subjects_dir
     assert report2.html == report.html
@@ -649,7 +652,9 @@ def test_open_report(tmp_path):
     # Check parameters when loading a report
     pytest.raises(ValueError, open_report, hdf5, foo="bar")  # non-existing
     pytest.raises(ValueError, open_report, hdf5, subjects_dir="foo")
-    open_report(hdf5, subjects_dir=str(tmp_path))  # This should work
+    with open_report(hdf5, subjects_dir=str(tmp_path)) as report3:  # This should work
+        assert not report3.unsaved_changes  # a session that changes nothing ...
+    assert not report3.unsaved_changes  # ... stays clean, though __exit__ still saves
 
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
@@ -687,6 +692,40 @@ def test_remove():
     assert r2.html[0] == r.html[0]
     assert r2.html[1] == r.html[2]
     assert r2.html[2] == r.html[3]
+
+
+def test_unsaved_changes(tmp_path):
+    """Test Report.unsaved_changes and Report.save(only_if_changed=True)."""
+    fname = tmp_path / "report.html"
+    kwargs = dict(open_browser=False, only_if_changed=True)
+    r = Report()
+    assert not r.unsaved_changes
+    fig1, fig2 = _get_example_figures()
+    r.add_figure(fig=fig1, title="figure1")
+    assert r.unsaved_changes
+    assert r.copy().unsaved_changes  # copies inherit the flag
+    # the target does not exist yet, so it's written even though it's up to date
+    assert r.save(fname, **kwargs) == os.path.realpath(fname)
+    assert not r.unsaved_changes
+    content, mtime = fname.read_text("utf-8"), fname.stat().st_mtime_ns
+    # nothing changed, so nothing is written (and no overwrite=True needed)
+    assert r.save(fname, **kwargs) == os.path.realpath(fname)
+    assert (fname.read_text("utf-8"), fname.stat().st_mtime_ns) == (content, mtime)
+    # ... but every kind of content mutation makes it stale again (and get written)
+    for mutate in (
+        lambda: r.add_figure(fig=fig2, title="figure2"),
+        lambda: r.remove(title="figure2"),
+        lambda: r.reorder([0]),
+        lambda: r.add_custom_css("p {color: red;}"),
+        lambda: r.add_custom_js("console.log('hello');"),
+    ):
+        assert not r.unsaved_changes
+        mutate()
+        assert r.unsaved_changes
+        r.save(fname, overwrite=True, **kwargs)
+    assert fname.read_text("utf-8") != content
+    assert r.remove(title="does-not-exist") is None  # no-op, so still up to date
+    assert not r.unsaved_changes
 
 
 @pytest.mark.parametrize("tags", (True, False))  # shouldn't matter
@@ -958,9 +997,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     evoked = evokeds[0].pick("eeg").decimate(10, verbose="error")
 
     with pytest.warns(ConvergenceWarning, match="did not converge"):
-        ica = ICA(n_components=3, max_iter=1, random_state=42).fit(
-            inst=raw.copy().crop(tmax=1)
-        )
+        ica = ICA(n_components=3, max_iter=1, rng=42).fit(inst=raw.copy().crop(tmax=1))
     ica_ecg_scores = ica_eog_scores = np.array([3, 0, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 

@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import Annotations, events_from_annotations
+from mne import Annotations, create_info, events_from_annotations
 from mne.chpi import read_head_pos
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import (
     annotate_break,
     annotate_movement,
@@ -188,6 +188,22 @@ def test_muscle_annotation_without_meeg_data(meas_date):
     raw.pick("stim")
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annotate_muscle_zscore(raw, threshold=10)
+
+
+def test_muscle_annotation_cuda():
+    """Test muscle annotation with CUDA filtering and Hilbert transform."""
+    rng = np.random.default_rng(0)
+    raw = RawArray(rng.standard_normal((3, 1000)), create_info(3, 200.0, "eeg"))
+    annotations, scores = annotate_muscle_zscore(
+        raw,
+        threshold=100,
+        ch_type="eeg",
+        filter_freq=(20, 40),
+        n_jobs="cuda",
+    )
+    assert len(annotations) == 0
+    assert scores.shape == (raw.n_times,)
+    assert np.isfinite(scores).all()
 
 
 @pytest.mark.parametrize("meas_date", (None, "orig"))

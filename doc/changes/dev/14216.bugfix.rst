@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.io.read_raw_ant` and :func:`mne.io.read_raw_curry` ignored projections and non-boolean ``preload`` values respectively when reading data lazily, by `Bruno Aristimunha`_.

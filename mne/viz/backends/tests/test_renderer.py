@@ -9,8 +9,9 @@ import sys
 import numpy as np
 import pytest
 from matplotlib.font_manager import findfont
+from numpy.testing import assert_allclose
 
-from mne.transforms import rot_to_quat
+from mne.transforms import quat_to_rot, rot_to_quat
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
@@ -57,6 +58,12 @@ def test_3d_functions(renderer):
     )
     renderer.set_3d_title(figure=fig, title="foo")
     renderer.backend._take_3d_screenshot(figure=fig)
+    assert len(fig.plotter.renderer.actors) > 0
+    renderer.clear_3d_figure(fig)
+    assert len(fig.plotter.renderer.actors) == 0
+    # the (empty) figure can be reused
+    renderer.backend._Renderer(fig=fig).sphere(np.array([0.0, 0.0, 0.0]), "w", 1.0)
+    assert len(fig.plotter.renderer.actors) > 0
     renderer.close_3d_figure(fig)
     renderer.close_all_3d_figures()
 
@@ -152,6 +159,17 @@ def test_3d_backend(renderer):
         rend.quiver3d(mode="foo", **kwargs)
 
     # use instanced_mesh
+    # VTK must interpret our wxyz quaternions with the same convention as
+    # quat_to_rot, otherwise instanced sensors render with wrong rotations
+    from vtkmodules.vtkCommonCore import vtkMath
+
+    from mne.viz.backends._pyvista import _quat_to_vtk_wxyz
+
+    quat = np.array([0.1, -0.2, 0.3])
+    mat = [[0.0] * 3 for _ in range(3)]
+    vtkMath.QuaternionToMatrix3x3(_quat_to_vtk_wxyz(quat[np.newaxis])[0], mat)
+    assert_allclose(mat, quat_to_rot(quat), atol=1e-12)
+
     inst_positions = np.array([[0.0, 0.0, 0.0], [tet_size, 0.0, 0.0]])
     inst_quats = np.array([rot_to_quat(np.eye(3)), rot_to_quat(np.eye(3))])
     inst_colors = np.array([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]])
@@ -199,6 +217,46 @@ def test_3d_backend(renderer):
         azimuth=180.0, elevation=90.0, distance=cam_distance, focalpoint=center
     )
     rend.show()
+
+
+def test_renderer_internal_helpers(renderer):
+    """Test internal helper methods used by mne.gui.coregistration."""
+    rend = renderer.create_3d_figure((300, 300), scene=False)
+
+    # _remove_actors accepts a single actor or a list of actors
+    actor1, _ = rend.mesh(
+        x=np.array([0, 1, 0]),
+        y=np.array([0, 0, 1]),
+        z=np.array([0, 0, 0]),
+        triangles=np.array([[0, 1, 2]]),
+        color="white",
+    )
+    actor2, _ = rend.mesh(
+        x=np.array([0, 1, 0]),
+        y=np.array([0, 0, 1]),
+        z=np.array([1, 1, 1]),
+        triangles=np.array([[0, 1, 2]]),
+        color="red",
+    )
+    actors = rend.plotter.renderer.actors.values()
+    assert actor1 in actors and actor2 in actors
+    rend._remove_actors(actor1, render=False)
+    rend._remove_actors([actor2], render=False)
+    actors = rend.plotter.renderer.actors.values()
+    assert actor1 not in actors and actor2 not in actors
+
+    # _show_axes creates the axes orientation widget
+    assert rend.plotter.renderer.axes_widget is None
+    rend._show_axes()
+    assert rend.plotter.renderer.axes_widget is not None
+
+    # _add_redraw_callback schedules a periodic callback
+    rend._add_redraw_callback(lambda: None, 50)
+    assert rend.plotter._callback_timer.isActive()
+    assert rend.plotter._callback_timer.interval() == 50
+
+    # _trigger_pick should not raise
+    rend._trigger_pick(1, 1)
 
 
 def test_get_3d_backend(renderer):

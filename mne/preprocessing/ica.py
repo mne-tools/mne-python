@@ -16,8 +16,6 @@ from time import time
 from typing import Literal
 
 import numpy as np
-from scipy import stats
-from scipy.spatial import distance
 from scipy.special import expit
 
 from .._fiff.constants import FIFF
@@ -66,6 +64,7 @@ from ..utils import (
     _check_on_missing,
     _check_option,
     _check_preload,
+    _check_rng,
     _ensure_int,
     _get_inst_data,
     _limit_blas_threads,
@@ -73,6 +72,7 @@ from ..utils import (
     _pl,
     _reject_data_segments,
     _require_version,
+    _soft_import,
     _validate_type,
     check_fname,
     check_random_state,
@@ -86,14 +86,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz import (
-    plot_ica_components,
-    plot_ica_overlay,
-    plot_ica_scores,
-    plot_ica_sources,
-)
-from ..viz.ica import plot_ica_properties
-from ..viz.topomap import _plot_corrmap
 from .bads import _find_outliers
 from .ctps_ import ctps
 from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
@@ -141,6 +133,9 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
+    from scipy import stats
+    from scipy.spatial import distance
+
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -194,7 +189,14 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
         )
 
 
-_KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
+_KNOWN_ICA_METHODS = ("fastica", "infomax", "jamica", "picard")
+
+
+def _rng_to_seed(rng):
+    """Adapt a Generator for third-party random_state parameters."""
+    if isinstance(rng, np.random.Generator):
+        return int(rng.integers(np.iinfo(np.int32).max))
+    return rng
 
 
 @fill_doc
@@ -246,24 +248,29 @@ class ICA(ContainsMixin):
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
-    %(random_state)s
-    method : 'fastica' | 'infomax' | 'picard'
+    %(rng)s
+    %(random_state_rng)s
+    method : 'fastica' | 'infomax' | 'jamica' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
         Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
         (this also works for ``method='picard'``). Defaults to ``'fastica'``.
-        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
+        ``method='jamica'`` fits a single ICA model. For multi-model adaptive
+        mixture ICA and other advanced functionality, use the
+        `jamica package <https://snesmaeili.github.io/jamica/>`__ directly. For
+        reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018,PalmerEtAl2011`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``. Allowed entries are determined by the various algorithm
         implementations: see :class:`~sklearn.decomposition.FastICA`,
-        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`.
+        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`, and the
+        ``jamica.amica`` function from the ``jamica`` package.
     max_iter : int | 'auto'
         Maximum number of iterations during fit. If ``'auto'``, it
         will set maximum iterations to ``1000`` for ``'fastica'``
-        and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
-        iterations it took :meth:`ICA.fit` to complete will be stored in the
-        ``n_iter_`` attribute.
+        and to ``500`` for ``'infomax'``, ``'jamica'``, or ``'picard'``. The
+        actual number of iterations it took :meth:`ICA.fit` to complete will be
+        stored in the ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -439,6 +446,7 @@ class ICA(ContainsMixin):
         n_components=None,
         *,
         noise_cov=None,
+        rng=None,
         random_state=None,
         method="fastica",
         fit_params=None,
@@ -473,7 +481,14 @@ class ICA(ContainsMixin):
         self._max_pca_components = None
         self.n_pca_components = None
         self.ch_names = None
+        if rng is not None and random_state is not None:
+            raise TypeError("Specify only one of rng or random_state")
+        if random_state is not None:
+            logger.info("Use rng= instead of random_state= in new code")
         self.random_state = random_state
+        # stored un-normalized so that integer seeds stay intact for the
+        # third-party ``random_state`` parameters used during fitting
+        self.rng = rng
 
         if fit_params is None:
             fit_params = {}
@@ -491,7 +506,7 @@ class ICA(ContainsMixin):
             _check_option("max_iter", max_iter, ("auto",), "when str")
             if method == "fastica":
                 max_iter = 1000
-            elif method in ["infomax", "picard"]:
+            elif method in ["infomax", "jamica", "picard"]:
                 max_iter = 500
         fit_params.setdefault("max_iter", max_iter)
         self.max_iter = max_iter
@@ -507,7 +522,9 @@ class ICA(ContainsMixin):
         @dataclass
         class _InfosForRepr:
             fit_on: Literal["raw data", "epochs"] | None
-            fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
+            fit_method: Literal[
+                "fastica", "infomax", "extended-infomax", "jamica", "picard"
+            ]
             fit_params: dict[str, str | float]
             fit_n_iter: int | None
             fit_n_samples: int | None
@@ -668,7 +685,6 @@ class ICA(ContainsMixin):
         for method, mod in req_map.items():
             if self.method == method:
                 _require_version(mod, f"use method={repr(method)}")
-
         _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
 
         if np.isclose(inst.info["highpass"], 0.0):
@@ -894,7 +910,14 @@ class ICA(ContainsMixin):
         if not np.isfinite(data).all():
             raise ValueError("Input data contains non-finite values (NaN/Inf). ")
 
-        random_state = check_random_state(self.random_state)
+        rng = getattr(self, "rng", None)
+        if self.random_state is None:
+            # Keep integer seeds intact for third-party ``random_state``
+            # parameters, but use an independent Generator for the default.
+            if rng is None:
+                rng = _check_rng(None)
+        else:
+            rng = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
         self._compute_pre_whitener(data)
         data = self._pre_whiten(data)
@@ -962,14 +985,16 @@ class ICA(ContainsMixin):
         if self.method == "fastica":
             from sklearn.decomposition import FastICA
 
-            ica = FastICA(whiten=False, random_state=random_state, **self.fit_params)
+            ica = FastICA(
+                whiten=False, random_state=_rng_to_seed(rng), **self.fit_params
+            )
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
             unmixing_matrix, n_iter = infomax(
                 data[:, sel],
-                random_state=random_state,
+                rng=_check_rng(rng),
                 return_n_iter=True,
                 **self.fit_params,
             )
@@ -983,11 +1008,26 @@ class ICA(ContainsMixin):
                 data[:, sel].T,
                 whiten=False,
                 return_n_iter=True,
-                random_state=random_state,
+                random_state=_rng_to_seed(rng),
                 **self.fit_params,
             )
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            del _, n_iter
+        elif self.method == "jamica":
+            jamica = _soft_import(
+                "jamica", "fitting ICA with method='jamica'", min_version="0.3.0"
+            )
+
+            _, W, _, n_iter = jamica.amica(
+                data[:, sel].T,
+                whiten=False,
+                return_n_iter=True,
+                random_state=_rng_to_seed(rng),
+                **self.fit_params,
+            )
+            self.unmixing_matrix_ = W
+            self.n_iter_ = n_iter
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         norms = self.pca_explained_variance_
@@ -1998,6 +2038,8 @@ class ICA(ContainsMixin):
         -----
         .. versionadded:: 1.1
         """
+        from scipy.spatial import distance
+
         _validate_type(threshold, "numeric", "threshold")
 
         slope_score, focus_score, smoothness_score = None, None, None
@@ -2470,7 +2512,7 @@ class ICA(ContainsMixin):
         """
         return deepcopy(self)
 
-    @copy_function_doc_to_method_doc(plot_ica_components)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_components")
     def plot_components(
         self,
         picks=None,
@@ -2503,6 +2545,10 @@ class ICA(ContainsMixin):
         psd_args=None,
         verbose=None,
     ):
+        from ..viz import (
+            plot_ica_components,
+        )
+
         return plot_ica_components(
             self,
             picks=picks,
@@ -2535,7 +2581,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_properties)
+    @copy_function_doc_to_method_doc("func:mne.viz.ica.plot_ica_properties")
     def plot_properties(
         self,
         inst,
@@ -2555,6 +2601,8 @@ class ICA(ContainsMixin):
         estimate="power",
         verbose=None,
     ):
+        from ..viz.ica import plot_ica_properties
+
         return plot_ica_properties(
             self,
             inst,
@@ -2574,7 +2622,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_sources)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_sources")
     def plot_sources(
         self,
         inst,
@@ -2597,6 +2645,10 @@ class ICA(ContainsMixin):
         overview_mode=None,
         splash=True,
     ):
+        from ..viz import (
+            plot_ica_sources,
+        )
+
         return plot_ica_sources(
             self,
             inst=inst,
@@ -2619,7 +2671,7 @@ class ICA(ContainsMixin):
             splash=splash,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_scores)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_scores")
     def plot_scores(
         self,
         scores,
@@ -2631,6 +2683,10 @@ class ICA(ContainsMixin):
         n_cols=None,
         show=True,
     ):
+        from ..viz import (
+            plot_ica_scores,
+        )
+
         return plot_ica_scores(
             ica=self,
             scores=scores,
@@ -2643,7 +2699,7 @@ class ICA(ContainsMixin):
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_overlay)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_ica_overlay")
     def plot_overlay(
         self,
         inst,
@@ -2658,6 +2714,10 @@ class ICA(ContainsMixin):
         on_baseline="warn",
         verbose=None,
     ):
+        from ..viz import (
+            plot_ica_overlay,
+        )
+
         return plot_ica_overlay(
             self,
             inst=inst,
@@ -3348,6 +3408,8 @@ def corrmap(
     ----------
     .. footbibliography::
     """
+    from ..viz.topomap import _plot_corrmap
+
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
 

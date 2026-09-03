@@ -8,7 +8,7 @@ Contributing guide
 .. important::
    **AI Usage Policy:** Before submitting any code or documentation, please make sure to review our AI usage policy outlined in the repository `CONTRIBUTING.md file <https://github.com/mne-tools/mne-python/blob/main/CONTRIBUTING.md>`_.
 
-   
+
 Thanks for taking the time to contribute! MNE-Python is an open-source project
 sustained mostly by volunteer effort. We welcome contributions from anyone as
 long as they abide by our `Code of Conduct`_.
@@ -457,8 +457,8 @@ commits to your fork anyway and open a pull request (as described above), then
 in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
-To learn more about git, check out the `GitHub help`_ website, the `GitHub
-skills`_ tutorial series, and the `pro git book`_.
+To learn more about git, check out the `GitHub help <https://help.github.com>`__ website, the `GitHub skills <https://skills.github.com/>`__
+tutorial series, and the `pro git book <https://git-scm.com/book/>`__.
 
 
 .. _github-ssh:
@@ -711,7 +711,7 @@ entry):
 .. code-block:: rst
 
     Your commit message
-    
+
     Co-authored-by: Original Author Name <original-author-email@example.com>
 
 Continuous integration (CI) and local testing before opening a PR
@@ -722,7 +722,7 @@ whenever you open or update a pull request.
 MNE-Python uses `continuous integration`_ (CI) to ensure code quality,
 test across multiple platforms, and automatically validate pull requests.
 However, CI runs are slower than testing locally and some of them cost money to run.
-Therefore, *do not rely on the CIs to catch bugs and style errors for you*; 
+Therefore, *do not rely on the CIs to catch bugs and style errors for you*;
 :ref:`run the tests locally <run-tests>`
 instead before opening a new PR and before each time you push additional
 changes to an already-open PR.
@@ -748,7 +748,7 @@ Once you have at least one PR merged into the MNE-Python repository, future
 contributions will not require manual approval.
 
 `CircleCI`_ will not build the documentation unless the GitHub account of the PR's most recent commit
-is associated with a CircleCI account. Creating one is easy and free, 
+is associated with a CircleCI account. Creating one is easy and free,
 choose "login with GitHub" on `CircleCI`_ to get started.
 If you do not do this, it will show up as a failing CI job.
 
@@ -816,7 +816,7 @@ We (mostly) follow NumPy style for docstrings
 
 In most cases you can look at existing MNE-Python docstrings to figure out how
 yours should be formatted. If you can't find a relevant example, consult the
-`Numpy docstring style guidelines`_ for examples of more complicated formatting
+`Numpy docstring style guidelines <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`__ for examples of more complicated formatting
 such as embedding example code, citing references, or including rendered
 mathematics.  Note that we diverge from the NumPy docstring standard in a few
 ways:
@@ -987,7 +987,7 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Our documentation (including docstrings in code files) is in
-reStructuredText_ format and is built using Sphinx_ and `Sphinx-Gallery`_.
+reStructuredText_ format and is built using `Sphinx <https://www.sphinx-doc.org/>`__ and `Sphinx-Gallery`_.
 The easiest way to ensure that your contributions to the documentation are
 properly formatted is to follow the style guidelines on this page, imitate
 existing documentation examples, refer to the Sphinx and Sphinx-Gallery
@@ -1135,9 +1135,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. MNE
 
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
-.. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
-.. _our user forum: https://mne.discourse.group
+.. _our user forum: `MNE Forum`_
 .. _sg_execution_times page: https://mne.tools/dev/sg_execution_times.html
 .. _sg_api_usage page: https://mne.tools/dev/sg_api_usage.html
 
@@ -1192,10 +1191,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. misc
 
-.. _miniconda: https://conda.io/en/latest/miniconda.html
-.. _Spyder: https://www.spyder-ide.org/
 .. _continuous integration: https://about.gitlab.com/topics/ci-cd/
-.. _matplotlib: https://matplotlib.org/
 .. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _CircleCI: https://circleci.com/gh/mne-tools/mne-python

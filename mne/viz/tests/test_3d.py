@@ -29,15 +29,15 @@ from mne import (
 )
 from mne._fiff._digitization import write_dig
 from mne._fiff.constants import FIFF
+from mne._fiff.tag import _loc_to_coil_trans
 from mne.bem import read_bem_solution, read_bem_surfaces
 from mne.datasets import testing
 from mne.defaults import DEFAULTS
-from mne.fixes import _reshape_view
 from mne.io import read_info, read_raw_bti, read_raw_ctf, read_raw_kit, read_raw_nirx
 from mne.minimum_norm import apply_inverse
 from mne.source_estimate import _BaseVolSourceEstimate
 from mne.source_space import read_source_spaces
-from mne.transforms import Transform
+from mne.transforms import Transform, _find_vector_rotation, quat_to_rot
 from mne.utils import _record_warnings, catch_logging
 from mne.viz import (
     Brain,
@@ -50,7 +50,9 @@ from mne.viz import (
     plot_head_positions,
     plot_source_estimates,
     plot_sparse_source_estimates,
+    set_3d_view,
     snapshot_brain_montage,
+    ui_events,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
@@ -138,7 +140,7 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
         np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"
@@ -218,21 +220,65 @@ def test_plot_evoked_field(renderer):
         )
         renderer.backend._close_all()
 
-    # Test some methods
-    fig = evoked.plot_field(maps, time_viewer=True)
-    assert isinstance(fig, EvokedField)
+    # Test some methods. Not all parameters are exposed through `plot_field`, so
+    # construct the `EvokedField` object directly.
+    fig = EvokedField(
+        evoked,
+        maps,
+        time_viewer=True,
+        contour_line_width=2,
+        contour_line_opacity=0.5,
+        background="white",
+        foreground="black",
+    )
+    assert fig._contour_line_width == 2
+    assert fig._widgets["contour_line_width"].get_value() == 2
+    assert fig._contour_line_opacity == 0.5
+    assert fig._widgets["contour_line_opacity"].get_value() == 0.5
+    fig.set_contour_line_opacity(0.8)
+    assert fig._contour_line_opacity == 0.8
+    assert fig._widgets["contour_line_opacity"].get_value() == 0.8
     fig._rescale()
     fig.set_time(0.05)
     assert fig._current_time == 0.05
     fig.set_contours(10)
     assert fig._n_contours == 10
     assert fig._widgets["contours"].get_value() == 10
+    fig.set_contour_line_width(3)
+    assert fig._contour_line_width == 3
+    assert fig._widgets["contour_line_width"].get_value() == 3
+
+    # Moving through time pushes new values into the contour filter that is still
+    # connected to the surface, rather than building a new actor.
+    from vtkmodules.util.numpy_support import vtk_to_numpy
+
+    surf_map = fig._surf_maps[1]  # the MEG map
+    actor = surf_map["contours_actor"]
+    mesh = surf_map["contours_alg"].GetInputDataObject(0, 0)
+    scalars = vtk_to_numpy(mesh.GetPointData().GetArray("scalars"))
+    fig.set_time(0.06)
+    assert surf_map["contours_actor"] is actor  # reused, not rebuilt
+    assert_allclose(scalars, surf_map["data_interp"](0.06))
+    fig.set_time(0.08)
+    assert_allclose(scalars, surf_map["data_interp"](0.08))
     fig.set_vmax(2e-12, kind="meg")
     assert fig._surf_maps[1]["contours"][-1] == 2e-12
     assert (
         fig._widgets["vmax_slider_meg"].get_value()
         == DEFAULTS["scalings"]["grad"] * 2e-12
     )
+
+    # The contours (and their line width) can also be set through a UI event.
+    contours = [-2e-12, 0, 2e-12]
+    ui_events.publish(
+        fig, ui_events.Contours("field_strength_meg", contours, line_width=4)
+    )
+    assert fig._n_contours == 3
+    assert fig._contour_line_width == 4
+    ui_events.publish(
+        fig, ui_events.Contours("field_strength_meg", contours, line_width=None)
+    )
+    assert fig._contour_line_width == 4  # line_width=None keeps the current value
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
@@ -535,6 +581,45 @@ def test_plot_alignment_meg(renderer, system):
     renderer.backend._close_all()
 
 
+def test_plot_alignment_meg_coil_orientation(renderer, monkeypatch):
+    """Test that MEG coils are drawn with the full loc rotation (incl. roll).
+
+    Planar gradiometers are not rotationally symmetric about the coil normal,
+    so the per-instance quaternion must encode the full rotation from
+    ``_loc_to_coil_trans``, not just the coil normal direction.
+    """
+    from mne.viz.backends._pyvista import _PyVistaRenderer
+
+    info = read_info(evoked_fname)
+    info = pick_info(info, pick_types(info, meg="grad")[:4])
+    calls = list()
+    orig = _PyVistaRenderer.instanced_mesh
+
+    def capture(self, *args, **kwargs):
+        calls.append((kwargs["positions"], kwargs["quats"]))
+        return orig(self, *args, **kwargs)
+
+    monkeypatch.setattr(_PyVistaRenderer, "instanced_mesh", capture)
+    plot_alignment(info, meg="sensors", coord_frame="meg")
+    # all four grads share one coil shape, so they form a single instanced
+    # actor whose instance order follows the channel order
+    assert len(calls) == 1
+    positions, quats = calls[0]
+    assert positions.shape == quats.shape == (4, 3)
+    for ch, position, quat in zip(info["chs"], positions, quats):
+        coil_trans = _loc_to_coil_trans(ch["loc"])
+        R_full = coil_trans[:3, :3]
+        # position is offset along ez by <= 2 mm for planar coil visibility
+        assert np.linalg.norm(position - coil_trans[:3, 3]) < 3e-3, ch["ch_name"]
+        assert_allclose(quat_to_rot(quat), R_full, atol=2e-2)
+        # make sure the check above pins the roll: a rotation that only aligns
+        # the coil normal (e.g., from _find_vector_rotation) must not pass
+        ez = R_full[:, 2] / np.linalg.norm(R_full[:, 2])
+        R_normal_only = _find_vector_rotation(np.array([0.0, 0.0, 1.0]), ez)
+        assert np.abs(R_normal_only - R_full).max() > 0.05, ch["ch_name"]
+    renderer.backend._close_all()
+
+
 @testing.requires_testing_data
 def test_plot_alignment_surf(renderer, evoked):
     """Test plotting of a surface."""
@@ -604,7 +689,14 @@ def test_plot_alignment_surf_errors(renderer, evoked):
 def test_plot_alignment_info(renderer, evoked):
     """Test plotting with info, but no trans, fwd, bem, or src."""
     info = evoked.info
-    plot_alignment(info)  # works: surfaces='auto' default
+    fig = plot_alignment(info)  # works: surfaces='auto' default
+    # set_view=False keeps the view of the figure it is given, True resets it
+    set_3d_view(fig, azimuth=11, elevation=22, distance=0.33)
+    pos = np.array(fig.plotter.camera.position, float)
+    plot_alignment(info, fig=fig, set_view=False)
+    assert_allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    plot_alignment(info, fig=fig)
+    assert not np.allclose(fig.plotter.camera.position, pos, atol=1e-4)
     # check error raised if incorrect info provided
     with pytest.raises(TypeError, match="instance of Info"):
         plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)
@@ -1050,13 +1142,15 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.random.default_rng(0).random(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
 
     # Test for simple use cases
     brain = stc.plot(**kwargs)
     assert brain.data["center"] is None
     brain.close()
+    with pytest.raises(TypeError, match="block must be an instance of bool"):
+        stc.plot(block="yes", **kwargs)
     brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
     assert brain.data["center"] == 0.0
     brain.close()
@@ -1172,52 +1266,59 @@ def test_stc_mpl():
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.ones(n_verts * n_time)
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
-    stc.plot(
-        subjects_dir=subjects_dir,
-        time_unit="s",
-        views="ven",
-        hemi="rh",
-        smoothing_steps=7,
-        subject="sample",
-        backend="matplotlib",
-        spacing="oct1",
-        initial_time=0.001,
-        colormap="Reds",
-    )
-    fig = stc.plot(
-        subjects_dir=subjects_dir,
-        time_unit="ms",
-        views="dor",
-        hemi="lh",
-        smoothing_steps=7,
-        subject="sample",
-        backend="matplotlib",
-        spacing="ico2",
-        time_viewer=True,
-        colormap="mne",
-    )
+    dep_match = "matplotlib 3D backend is deprecated"
+    with pytest.warns(FutureWarning, match=dep_match):
+        stc.plot(
+            subjects_dir=subjects_dir,
+            time_unit="s",
+            views="ven",
+            hemi="rh",
+            smoothing_steps=7,
+            subject="sample",
+            backend="matplotlib",
+            spacing="oct1",
+            initial_time=0.001,
+            colormap="Reds",
+        )
+    with pytest.warns(FutureWarning, match=dep_match):
+        fig = stc.plot(
+            subjects_dir=subjects_dir,
+            time_unit="ms",
+            views="dor",
+            hemi="lh",
+            smoothing_steps=7,
+            subject="sample",
+            backend="matplotlib",
+            spacing="ico2",
+            time_viewer=True,
+            colormap="mne",
+        )
     time_viewer = fig.time_viewer
     _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
     _fake_keypress(time_viewer, "ctrl+right")
     _fake_keypress(time_viewer, "left")
-    pytest.raises(
-        ValueError,
-        stc.plot,
-        subjects_dir=subjects_dir,
-        hemi="both",
-        subject="sample",
-        backend="matplotlib",
-    )
-    pytest.raises(
-        ValueError,
-        stc.plot,
-        subjects_dir=subjects_dir,
-        time_unit="ss",
-        subject="sample",
-        backend="matplotlib",
-    )
+    with (
+        pytest.warns(FutureWarning, match=dep_match),
+        pytest.raises(ValueError, match="Invalid value for the 'hemi'"),
+    ):
+        stc.plot(
+            subjects_dir=subjects_dir,
+            hemi="both",
+            subject="sample",
+            backend="matplotlib",
+        )
+    with (
+        pytest.warns(FutureWarning, match=dep_match),
+        pytest.raises(ValueError, match="time_unit must be 's' or 'ms'"),
+    ):
+        stc.plot(
+            subjects_dir=subjects_dir,
+            time_unit="ss",
+            subject="sample",
+            backend="matplotlib",
+        )
 
 
 @pytest.mark.slowtest
@@ -1505,7 +1606,7 @@ def test_link_brains(renderer_interactive):
     stc_data[(rng.random(stc_size // 20) * stc_size).astype(int)] = (
         np.random.default_rng(0).random(stc_data.size // 20)
     )
-    stc_data = _reshape_view(stc_data, (n_verts, n_time))
+    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
     colormap = "mne_analyze"

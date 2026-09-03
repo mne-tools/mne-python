@@ -22,7 +22,6 @@ from ..._fiff.pick import pick_types
 from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ...event import read_events
-from ...fixes import _reshape_view
 from ...transforms import Transform, als_ras_trans, apply_trans
 from ...utils import (
     _check_fname,
@@ -150,6 +149,10 @@ class RawKIT(BaseRaw):
         )
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
+        # Each block is cast to float64 and scaled, so a smaller one stays in cache
+        kit_info["max_block_samples"] = max(
+            1, 2 * 1024**2 // kit_info["dtype"].itemsize // kit_info["nchan"]
+        )
         if kit_info["acq_type"] != KIT.CONTINUOUS:
             raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
@@ -178,15 +181,15 @@ class RawKIT(BaseRaw):
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         buffer_size : int
             The size of chunk to by which the data are scanned.
 
         Returns
         -------
-        events : array, [samples]
-           The event vector (1 x samples).
+        events : array, shape (n_samples,)
+            The event vector.
         """
         buffer_size = int(buffer_size)
         start = int(self.first_samp)
@@ -210,8 +213,7 @@ class RawKIT(BaseRaw):
 
         n_bytes = sqd["dtype"].itemsize
         assert n_bytes in (2, 4)
-        # Read up to 100 MB of data at a time.
-        blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
+        blk_size = min(data_left, sqd["max_block_samples"] * nchan)
         with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
@@ -674,7 +676,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]["offset"])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
         sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
-        sensitivity = _reshape_view(sensitivity, (channel_count, 2))
+        sensitivity = sensitivity.reshape((channel_count, 2), copy=False)
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
 

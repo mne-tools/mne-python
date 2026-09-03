@@ -53,7 +53,7 @@ clf = make_pipeline(
     LinearDiscriminantAnalysis(),
 )
 n_splits = 3  # for cross-validation, 5 is better, here we use 3 for speed
-cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=191)
 
 # Classification & time-frequency parameters
 tmin, tmax = -0.200, 2.000

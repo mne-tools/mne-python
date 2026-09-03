@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import ast
+import functools
 import importlib
 import inspect
 import re
@@ -15,8 +16,9 @@ from pkgutil import walk_packages
 import pytest
 
 import mne
-from mne.utils import _pl, _record_warnings
+from mne.utils import _pl, _record_warnings, _soft_import
 from mne.utils._typing import Color, FileLike
+from mne.utils.docs import _doc_special_members
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -88,6 +90,7 @@ def _func_name(func, cls=None):
 
 # functions to ignore args / docstring of
 docstring_ignores = {
+    "mne._numba",
     "mne.fixes",
     "mne.io.meas_info.Info",
 }
@@ -98,30 +101,62 @@ tab_ignores = [
 error_ignores_specific = {  # specific instances to skip
     ("regress_artifact", "SS05"),  # "Regress" is actually imperative
 }
-subclass_name_ignores = (
-    (
-        dict,
-        {
-            "values",
-            "setdefault",
-            "popitems",
-            "keys",
-            "pop",
-            "update",
-            "copy",
-            "popitem",
-            "get",
-            "items",
-            "fromkeys",
-            "clear",
-        },
-    ),
-    (list, {"append", "count", "extend", "index", "insert", "pop", "remove", "sort"}),
+# lookarounds keep quoted literals like {"default", "pandas"} from matching
+bad_docstring_type = re.compile(
+    r"(?<!['\"])\b(?:optional|defaults?)\b(?!['\"])",
+    re.IGNORECASE,
 )
+
+
+@pytest.mark.parametrize(
+    ("type_description", "is_bad"),
+    [
+        ("bool, optional", True),
+        ("bool, (optional)", True),
+        ("bool, optional | str", True),
+        ("bool, (optional) | str", True),
+        ("bool, default=True", True),
+        ("bool (default True)", True),
+        ("str (optional)", True),
+        ("bool, optional.", True),
+        ("float, defaults to 0.1", True),
+        ('{"default", "pandas"}', False),
+        ("{'optional', 'required'}", False),
+        ("bool | None", False),
+    ],
+)
+def test_bad_docstring_type(type_description, is_bad):
+    """Test detection of defaults and optional in parameter types."""
+    assert bool(bad_docstring_type.search(type_description)) == is_bad
+
+
+def test_bad_docstring_type_ignores_notes():
+    """Test that defaults outside parameter types are not checked."""
+    pytest.importorskip("numpydoc")
+    from numpydoc.docscrape import FunctionDoc
+
+    def func(param):
+        """Do something.
+
+        Parameters
+        ----------
+        param : bool
+            A parameter.
+
+        Notes
+        -----
+        * :data:`python:True` (default)
+            A valid default in the Notes section.
+        """
+
+    params = FunctionDoc(func)["Parameters"]
+    assert [param.type for param in params] == ["bool"]
+    assert not any(bad_docstring_type.search(param.type) for param in params)
 
 
 def check_parameters_match(func, *, cls=None, where):
     """Check docstring, return list of incorrect results."""
+    from numpydoc.docscrape import FunctionDoc
     from numpydoc.validate import validate
 
     name = _func_name(func, cls)
@@ -130,16 +165,24 @@ def check_parameters_match(func, *, cls=None, where):
     )
     if skip:
         return list()
-    if cls is not None:
-        for subclass, ignores in subclass_name_ignores:
-            if issubclass(cls, subclass) and name.split(".")[-1] in ignores:
-                return list()
+    # e.g. dict.keys / list.__getitem__ inherited by our dict/list subclasses
+    if not inspect.isclass(func) and not inspect.isfunction(inspect.unwrap(func)):
+        return list()
     incorrect = [
         f"{where} : {name} : {err[0]} : {err[1]}"
         for err in validate(name)["errors"]
         if err[0] not in error_ignores
         and (name.split(".")[-1], err[0]) not in error_ignores_specific
     ]
+    module = inspect.getmodule(func)
+    if module is not None and module.__name__.startswith("mne."):
+        for param in FunctionDoc(func)["Parameters"]:
+            if bad_docstring_type.search(param.type):
+                incorrect.append(
+                    f"{where} : {name} : {param.name} : type description "
+                    f"{param.type!r} includes a default or 'optional'; put defaults "
+                    "in the parameter description instead"
+                )
     # Add a check that all public functions and methods that have "verbose"
     # set the default verbose=None
     if cls is None:
@@ -168,49 +211,74 @@ def check_parameters_match(func, *, cls=None, where):
     return incorrect
 
 
-@pytest.mark.slowtest
-def test_docstring_parameters():
-    """Test module docstring formatting."""
-    npd = pytest.importorskip("numpydoc")
-    incorrect = []
+def _public_module_members():
+    """Yield ``(module_name, member_name, obj)`` for public module members."""
     for name in public_modules:
         # Assert that by default we import all public names with `import mne`
         if name not in ("mne", "mne.gui"):
-            extra = name.split(".")[1]
-            assert hasattr(mne, extra)
+            assert hasattr(mne, name.split(".")[1])
         with _record_warnings():  # traits warnings
-            module = __import__(name, globals())
-        for submod in name.split(".")[1:]:
-            module = getattr(module, submod)
+            module = importlib.import_module(name)
         try:
-            classes = inspect.getmembers(module, inspect.isclass)
+            members = inspect.getmembers(module, inspect.isclass)
+            members += inspect.getmembers(module, inspect.isfunction)
         except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
             if "'sklearn'" in str(exc):
                 continue
             raise
-        for cname, cls in classes:
-            if cname.startswith("_"):
+        for member_name, obj in members:
+            if not member_name.startswith("_"):
+                yield name, member_name, obj
+
+
+def _public_api_objects():
+    """Yield ``(obj, cls, where)`` for everything whose docstring we check.
+
+    This is the union of what is documented in ``doc/api/*.rst`` and what is
+    public in ``public_modules``; ``where`` is the documented dotted name or the
+    public module name, for error messages. Classes yield their public methods
+    (and ``__call__``) too.
+    """
+    from numpydoc.docscrape import ClassDoc
+
+    seen = set()
+    candidates = list()
+    for dotted in _documented_names():
+        try:
+            candidates.append((dotted, _resolve_dotted(dotted)))
+        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
+            if "'sklearn'" in str(exc):
                 continue
-            incorrect += check_parameters_match(cls, where=name)
-            cdoc = npd.docscrape.ClassDoc(cls)
-            for method_name in cdoc.methods:
-                method = getattr(cls, method_name)
-                incorrect += check_parameters_match(method, cls=cls, where=name)
+            raise
+    candidates += [(where, obj) for where, _, obj in _public_module_members()]
+    for where, obj in candidates:
+        if id(obj) in seen:
+            continue
+        seen.add(id(obj))
+        if inspect.isclass(obj):
+            yield obj, None, where
+            class_doc = ClassDoc(obj)
+            # the same dunders that doc/conf.py renders in the API docs
+            class_doc.extra_public_methods = _doc_special_members
+            for method_name in class_doc.methods:
+                yield getattr(obj, method_name), obj, where
             if (
-                hasattr(cls, "__call__")
-                and "of type object" not in str(cls.__call__)
-                and "of ABCMeta object" not in str(cls.__call__)
+                hasattr(obj, "__call__")
+                and "of type object" not in str(obj.__call__)
+                and "of ABCMeta object" not in str(obj.__call__)
             ):
-                incorrect += check_parameters_match(
-                    cls.__call__,
-                    cls=cls,
-                    where=name,
-                )
-        functions = inspect.getmembers(module, inspect.isfunction)
-        for fname, func in functions:
-            if fname.startswith("_"):
-                continue
-            incorrect += check_parameters_match(func, where=name)
+                yield obj.__call__, obj, where
+        elif inspect.isroutine(obj):
+            yield obj, None, where
+
+
+@pytest.mark.slowtest
+def test_docstring_parameters():
+    """Test module docstring formatting."""
+    pytest.importorskip("numpydoc")
+    incorrect = []
+    for obj, cls, where in _public_api_objects():
+        incorrect += check_parameters_match(obj, cls=cls, where=where)
     incorrect = sorted(list(set(incorrect)))
     if len(incorrect) > 0:
         raise AssertionError(
@@ -260,6 +328,46 @@ def _is_np_random(node):
     )
 
 
+def _sklearn_callables(tree):
+    """Resolve sklearn imports for signature inspection."""
+    callables = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module
+            and node.module.startswith("sklearn")
+        ):
+            module = _soft_import(node.module, "checking RNG parameters", strict=False)
+            if module:
+                for alias in node.names:
+                    callable_ = getattr(module, alias.name, None)
+                    if callable_ is not None:
+                        callables[alias.asname or alias.name] = callable_
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.startswith("sklearn"):
+                    module = _soft_import(
+                        alias.name, "checking RNG parameters", strict=False
+                    )
+                    if module:
+                        callables[alias.asname or alias.name] = module
+    return callables
+
+
+def _rng_parameters(callable_, node):
+    """Get RNG parameters from a callable, if inspectable."""
+    try:
+        parameters = inspect.signature(callable_).parameters
+    except (TypeError, ValueError):
+        return set()
+    shuffle = next((kw.value for kw in node.keywords if kw.arg == "shuffle"), None)
+    if "shuffle" in parameters and (
+        shuffle is None or isinstance(shuffle, ast.Constant) and not shuffle.value
+    ):
+        return set()
+    return {"random_state", "rng", "seed"} & parameters.keys()
+
+
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
@@ -270,26 +378,35 @@ def test_no_global_rng():
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
-            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
-                # 1. the global RNG: ``np.random.<attr>`` / ``numpy.random.<attr>``
+            tree = ast.parse(path.read_text("utf-8"))
+            callables = _sklearn_callables(tree)
+            for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Attribute)
                     and node.attr not in global_rng_ok
                     and _is_np_random(node.value)
                 ):
-                    bad.append(
-                        f"{rel}:{node.lineno}: np.random.{node.attr} "
-                        "(use a local np.random.default_rng)"
-                    )
-                # 2. legacy RandomState-only methods, e.g. ``rng.randn(...)``
+                    bad.append(f"{rel}:{node.lineno}: global np.random.{node.attr}")
                 elif (
                     isinstance(node, ast.Call)
                     and isinstance(node.func, ast.Attribute)
                     and node.func.attr in legacy_rng_methods
                     and not _is_np_random(node.func.value)
                 ):
-                    want = legacy_rng_methods[node.func.attr]
-                    bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
+                    bad.append(f"{rel}:{node.lineno}: legacy .{node.func.attr}()")
+                elif isinstance(node, ast.Call):
+                    name = getattr(node.func, "id", None) or getattr(
+                        node.func, "attr", None
+                    )
+                    callable_ = callables.get(name)
+                    if isinstance(node.func, ast.Attribute):
+                        module = callables.get(getattr(node.func.value, "id", None))
+                        if module is not None:
+                            callable_ = getattr(module, node.func.attr, None)
+                    parameters = _rng_parameters(callable_, node)
+                    supplied = parameters & {kw.arg for kw in node.keywords}
+                    if parameters and len(supplied) != 1:
+                        bad.append(f"{rel}:{node.lineno}: {name}() needs one RNG")
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)
@@ -297,6 +414,7 @@ def test_no_global_rng():
 
 
 documented_ignored_mods = (
+    "mne._numba",
     "mne.fixes",
     "mne.io.write",
     "mne.utils",
@@ -354,85 +472,36 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = (Path(__file__).parents[2] / "doc" / "api").absolute()
-    doc_file = doc_dir / "python_reference.rst"
-    if not doc_file.is_file():
-        pytest.skip(f"Documentation file not found: {doc_file}")
-    api_files = (
-        "covariance",
-        "creating_from_arrays",
-        "datasets",
-        "decoding",
-        "events",
-        "file_io",
-        "forward",
-        "inverse",
-        "logging",
-        "most_used_classes",
-        "mri",
-        "preprocessing",
-        "reading_raw_data",
-        "realtime",
-        "report",
-        "sensor_space",
-        "simulation",
-        "source_space",
-        "statistics",
-        "time_frequency",
-        "visualization",
-        "export",
-    )
-    known_names = list()
-    for api_file in api_files:
-        with open(doc_dir / f"{api_file}.rst", "rb") as fid:
-            for line in fid:
-                line = line.decode("utf-8")
-                if not line.startswith("  "):  # at least two spaces
-                    continue
-                line = line.split()
-                if len(line) == 1 and line[0] != ":":
-                    known_names.append(line[0].split(".")[-1])
-    known_names = set(known_names)
-
+    pytest.importorskip("sphinx")
+    known_names = {name.split(".")[-1] for name in _documented_names()}
     missing = []
-    for name in public_modules:
-        with _record_warnings():  # traits warnings
-            module = __import__(name, globals())
-        for submod in name.split(".")[1:]:
-            module = getattr(module, submod)
-        try:
-            classes = inspect.getmembers(module, inspect.isclass)
-        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
-            if "'sklearn'" in str(exc):
-                continue
-            raise
-        functions = inspect.getmembers(module, inspect.isfunction)
-        checks = list(classes) + list(functions)
-        for this_name, cf in checks:
-            if not this_name.startswith("_") and this_name not in known_names:
-                from_mod = inspect.getmodule(cf).__name__
-                if (
-                    from_mod.startswith("mne")
-                    and not any(from_mod.startswith(x) for x in documented_ignored_mods)
-                    and this_name not in documented_ignored_names
-                    and not hasattr(cf, "_deprecated_original")
-                ):
-                    missing.append(f"{name} : {from_mod}.{this_name}")
+    for where, this_name, cf in _public_module_members():
+        if this_name in known_names:
+            continue
+        from_mod = inspect.getmodule(cf).__name__
+        if (
+            from_mod.startswith("mne")
+            and not any(from_mod.startswith(x) for x in documented_ignored_mods)
+            and this_name not in documented_ignored_names
+            and not hasattr(cf, "_deprecated_original")
+        ):
+            missing.append(f"{where} : {from_mod}.{this_name}")
     missing = sorted(set(missing))
     if len(missing) > 0:
         raise AssertionError(
             f"{len(missing)} new public member{_pl(missing)} missing from "
-            "doc/python_reference.rst:\n" + "\n".join(missing)
+            "doc/api/*.rst:\n" + "\n".join(missing)
         )
 
 
-def _documented_public_names():
+@functools.cache
+def _documented_names():
     """Return the names documented in ``doc/api/*.rst`` autosummary blocks."""
     from sphinx.ext.autosummary.generate import find_autosummary_in_files
 
     api_dir = Path(__file__).parents[2] / "doc" / "api"
     files = [str(path) for path in sorted(api_dir.glob("*.rst"))]
-    return {entry.name for entry in find_autosummary_in_files(files)}
+    return tuple(sorted({entry.name for entry in find_autosummary_in_files(files)}))
 
 
 def _resolve_dotted(name):
@@ -451,23 +520,12 @@ def _in_typed_module(obj):
 
 
 def _documented_callables():
-    """Yield ``(callable, cls)`` for documented public API in typed modules."""
-    seen = set()
-    for dotted in sorted(_documented_public_names()):
-        obj = _resolve_dotted(dotted)
-        if not _in_typed_module(obj):
-            continue
-        if inspect.isclass(obj):
-            yield obj, None  # constructor signature vs class docstring
-            for mname, method in inspect.getmembers(obj, inspect.isfunction):
-                if mname.startswith("_") or not _in_typed_module(method):
-                    continue
-                if method not in seen:
-                    seen.add(method)
-                    yield method, obj
-        elif inspect.isfunction(obj) and obj not in seen:
-            seen.add(obj)
-            yield obj, None
+    """Yield ``(callable, cls)`` for public API in typed modules."""
+    for obj, cls, _ in _public_api_objects():
+        if cls is not None and obj.__name__.startswith("_"):
+            continue  # dunders like __call__ are not type-hint checked
+        if (inspect.isclass(obj) or inspect.isfunction(obj)) and _in_typed_module(obj):
+            yield obj, cls
 
 
 def _annotation_to_str(ann):
@@ -518,12 +576,6 @@ def _type_atoms(type_str):
     s = type_str.replace("``", "").replace("`", "")  # drop reST inline literals
     s = re.sub(r":\w+:", "", s)  # drop sphinx roles, e.g. :class:
     s = s.replace("~", "")  # drop the sphinx "abbreviate" marker
-    # TODO: neither ``default X`` nor ``optional`` belongs in a numpydoc *type* --
-    # MNE style puts the default in the parameter description prose instead. Drop
-    # these three normalizations to find (and then fix) the docstrings doing it.
-    s = re.sub(r"\s*\(\s*default[^)]*\)", "", s, flags=re.I)  # (default X)
-    s = re.sub(r"\s*,\s*default[:=]?\s*[^,|]+", "", s, flags=re.I)  # , default X
-    s = re.sub(r"\s*,?\s*optional\b", "", s, flags=re.I)  # , optional
     s = re.sub(r"\binstance of\b", "", s)
     s = re.sub(r",?\s*(?:of )?shape\s*\(?[^)|]*\)?", "", s)  # shape (n, m) suffixes
     s = re.sub(r"\btuple of length \d+\b", "tuple", s, flags=re.I)
@@ -583,7 +635,6 @@ unparseable_docstring_types = {
     "Evoked instance, or list of Evoked instances",
     "None | colormap | (colormap, bool) | 'interactive'",
     "Raw object",
-    "bool, str, or None (default None)",
     "instance of matplotlib Axes | None",
     "list of (int | str) | tuple of (int | str)",
     "list of (int | str) | tuple of (int | str) | ``'auto'``",

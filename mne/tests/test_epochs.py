@@ -819,6 +819,8 @@ def test_own_data():
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
     assert not epochs._data.flags["OWNDATA"]
+    # in-place selection must own its data too, so it stays resizable (gh-14260)
+    assert epochs.copy()._getitem(slice(2), copy=False)._data.flags["OWNDATA"]
 
     # data ownership value error
     epochs.drop_bad(flat=dict(eeg=8e-6))
@@ -2350,7 +2352,7 @@ def test_preload_epochs():
     assert_array_almost_equal(epochs_preload.average().data, epochs.average().data, 18)
 
 
-def test_indexing_slicing():
+def test_indexing_slicing(monkeypatch):
     """Test of indexing and slicing operations."""
     raw, events, picks = _get_data()
     epochs = Epochs(
@@ -2388,6 +2390,14 @@ def test_indexing_slicing():
 
         data_epochs2_sliced = epochs2_sliced.get_data()
         assert_array_equal(data_epochs2_sliced, data_normal[start_index:end_index])
+
+        if preload:  # gh-14260
+            assert not np.shares_memory(epochs2_sliced._data, epochs2._data)
+            with monkeypatch.context() as m:
+                m.setattr(BaseEpochs, "copy", None)  # make copy() fail mid-getitem
+                with pytest.raises(TypeError, match="not callable"):
+                    epochs2[0]
+            assert_array_equal(epochs2._data, data_normal)  # placeholder not left
 
         # using indexing
         pos = 0
@@ -2723,11 +2733,13 @@ def test_bootstrap():
         reject=reject,
         flat=flat,
     )
-    random_states = [0, np.random.default_rng(0)]
-    for random_state in random_states:
-        epochs2 = bootstrap(epochs, random_state=random_state)
+    rngs = [0, np.random.default_rng(0)]
+    for rng in rngs:
+        epochs2 = bootstrap(epochs, rng=rng)
         assert len(epochs2.events) == len(epochs.events)
         assert epochs._data.shape == epochs2._data.shape
+
+    bootstrap(epochs, random_state=0)
 
 
 def test_epochs_copy():
@@ -2746,6 +2758,10 @@ def test_epochs_copy():
     )
     copied = epochs.copy()
     assert_array_equal(epochs._data, copied._data)
+    # a self-referencing attribute must terminate and remap to the copy (gh-14260)
+    epochs.circular = epochs
+    copied = epochs.copy()
+    assert copied.circular is copied
 
     epochs = Epochs(
         raw,
@@ -3865,6 +3881,17 @@ def test_concatenate_epochs():
     with pytest.warns(RuntimeWarning, match="not chronologically ordered"):
         concatenate_epochs([epochs, epochs2], add_offset=False)
     concatenate_epochs([epochs, epochs2], add_offset=True)
+
+
+def test_concatenate_epochs_cropped_baseline():
+    """Test concatenating epochs cropped after baseline correction."""
+    data = np.arange(21.0)[np.newaxis, np.newaxis]
+    epochs = EpochsArray(data, create_info(["x"], 10, "eeg"), tmin=-1)
+    epochs.apply_baseline((-1, 0)).crop(0, 1)
+    expected = epochs.get_data()
+    epochs_conc = concatenate_epochs([epochs])
+    assert epochs_conc.baseline == (-1.0, 0.0)
+    assert_allclose(epochs_conc.get_data(), expected)
 
 
 @pytest.mark.slowtest

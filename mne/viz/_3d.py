@@ -15,10 +15,8 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
-from scipy.stats import rankdata
 
+from .._fiff._digitization import _fiducial_coords
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info, read_fiducials
 from .._fiff.pick import (
@@ -91,33 +89,6 @@ from .utils import (
 )
 
 verbose_dec = verbose
-FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
-
-
-# XXX: to unify with digitization
-def _fiducial_coords(points, coord_frame=None):
-    """Generate 3x3 array of fiducial coordinates."""
-    points = points or []  # None -> list
-    if coord_frame is not None:
-        points = [p for p in points if p["coord_frame"] == coord_frame]
-    points_ = {p["ident"]: p for p in points if p["kind"] == FIFF.FIFFV_POINT_CARDINAL}
-    if points_:
-        return np.array([points_[i]["r"] for i in FIDUCIAL_ORDER])
-    else:
-        # XXX eventually this should probably live in montage.py
-        if coord_frame is None or coord_frame == FIFF.FIFFV_COORD_HEAD:
-            # Try converting CTF HPI coils to fiducials
-            out = np.empty((3, 3))
-            out.fill(np.nan)
-            for p in points:
-                if p["kind"] == FIFF.FIFFV_POINT_HPI:
-                    if np.isclose(p["r"][1:], 0, atol=1e-6).all():
-                        out[0 if p["r"][0] < 0 else 2] = p["r"]
-                    elif np.isclose(p["r"][::2], 0, atol=1e-6).all():
-                        out[1] = p["r"]
-            if np.isfinite(out).all():
-                return out
-        return np.array([])
 
 
 @fill_doc
@@ -182,6 +153,7 @@ def plot_head_positions(
         The figure.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
@@ -554,6 +526,7 @@ def plot_alignment(
     *,
     sensor_scales=None,
     show_channel_names=False,
+    set_view=True,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -653,6 +626,12 @@ def plot_alignment(
         Default is False.
 
         .. versionadded:: 1.12
+    set_view : bool
+        If True (default), set the view of the figure to a default one. Can be set
+        to False to keep the view a figure passed via ``fig`` already has, which is
+        useful when reusing a single figure for multiple plots.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -1009,10 +988,16 @@ def plot_alignment(
     if fwd is not None:
         _plot_forward(renderer, fwd, to_cf_t[_frame_to_str[fwd["coord_frame"]]])
 
-    renderer.set_camera(
-        azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
-    )
+    if set_view:
+        renderer.set_camera(
+            azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
+        )
     renderer.show()
+    if not set_view:
+        # Nothing moved the camera, so nothing marked the scene as needing a repaint,
+        # and show() does not repaint a window that is already up. Redraw it here so
+        # that what we just plotted is actually drawn.
+        renderer._update()
     return renderer.scene()
 
 
@@ -1357,7 +1342,7 @@ def _plot_hpi_coils(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
@@ -1428,7 +1413,7 @@ def _plot_glyphs(
     defaults = DEFAULTS["coreg"]
     n = len(loc)
     if n == 0:
-        return None
+        return None, None
     colors = np.array(np.broadcast_to(to_rgba_array(colors), (n, 4)), float)
     colors[:, 3] *= opacity
     scales = np.broadcast_to(np.asarray(scales, float).reshape(-1), (n,))
@@ -1460,7 +1445,7 @@ def _plot_glyphs(
         rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
         quats = rot_to_quat(rots)
     rr, tris = renderer._glyph_template(kind, **template_kw)
-    actor, _ = renderer.instanced_mesh(
+    actor, cloud = renderer.instanced_mesh(
         rr=rr,
         tris=tris,
         positions=positions,
@@ -1469,7 +1454,7 @@ def _plot_glyphs(
         scales=scales,
         backface_culling=backface_culling,
     )
-    return actor
+    return actor, cloud
 
 
 @verbose
@@ -1513,7 +1498,7 @@ def _plot_head_shape_points(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
@@ -1579,6 +1564,7 @@ def _plot_sensors_3d(
 
     actors = defaultdict(lambda: list())
     locs = defaultdict(lambda: list())
+    ch_names_all = defaultdict(lambda: list())
     unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1612,14 +1598,19 @@ def _plot_sensors_3d(
             if ch_type == "eeg":
                 if "original" in eeg:
                     locs[ch_type].append(ch_coord)
+                    ch_names_all[ch_type].append(ch_name)
                 if "projected" in eeg:
                     locs["eegp"].append(ch_coord)
+                    ch_names_all["eegp"].append(ch_name)
             else:
                 locs[ch_type].append(ch_coord)
+                ch_names_all[ch_type].append(ch_name)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
+            ch_names_all["source"].append(ch_name)
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+            ch_names_all["detector"].append(ch_name)
         # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1680,7 +1671,7 @@ def _plot_sensors_3d(
             f"scales for {ch_type} must contain only numerical values, "
             f"got {scales} instead."
         )
-
+        ch_names = np.array(ch_names_all[ch_type], dtype="U")
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1697,7 +1688,7 @@ def _plot_sensors_3d(
                 template = sens_loc[idxs[0]]
                 positions = np.array([sens_loc[i]["position"] for i in idxs])
                 quats = np.array([sens_loc[i]["quat"] for i in idxs])
-                actor, _ = renderer.instanced_mesh(
+                actor, cloud = renderer.instanced_mesh(
                     rr=template["rr"],
                     tris=template["tris"],
                     positions=positions,
@@ -1706,6 +1697,7 @@ def _plot_sensors_3d(
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
+                cloud.field_data["ch_names"] = ch_names[idxs]
         else:
             # One GPU-instanced actor regardless of how many distinct
             # colors/scales are requested (broadcasting handles 1-vs-N).
@@ -1735,7 +1727,7 @@ def _plot_sensors_3d(
                 )
                 backface_culling = True
                 actor_key = "eeg"
-            actor = _plot_glyphs(
+            actor, cloud = _plot_glyphs(
                 renderer=renderer,
                 loc=loc * unit_scalar,
                 colors=these_colors,
@@ -1752,6 +1744,7 @@ def _plot_sensors_3d(
                 nearest=nearest,
             )
             actors[actor_key].append(actor)
+            cloud.field_data["ch_names"] = ch_names[mask]
 
     actors = dict(actors)  # get rid of defaultdict
 
@@ -1768,6 +1761,8 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
+    from scipy.spatial import ConvexHull, Delaunay
+
     id_ = coil["type"] & 0xFFFF
     # Offset for visibility (using heuristic for sanely named Neuromag coils).
     # It depends on the channel name, so keep it out of the cached template.
@@ -2169,6 +2164,12 @@ def _smooth_plot(this_time, params, *, draw=True):
         ax.figure.canvas.draw()
 
 
+_MPL_STC_DEPRECATION = (
+    "Plotting source estimates with the matplotlib 3D backend is deprecated and will "
+    "be removed in MNE 1.15, use a proper 3D backend (e.g., pyvistaqt) instead"
+)
+
+
 def _plot_mpl_stc(
     stc,
     subject=None,
@@ -2188,12 +2189,14 @@ def _plot_mpl_stc(
     time_viewer=False,
     colorbar=True,
     transparent=True,
+    block=False,
 ):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     import nibabel as nib
     from matplotlib.widgets import Slider
     from mpl_toolkits.mplot3d import Axes3D
+    from scipy.stats import rankdata
 
     from ..morph import _get_subject_sphere_tris
     from ..source_space._source_space import _check_spacing, _create_surf_spacing
@@ -2326,7 +2329,7 @@ def _plot_mpl_stc(
         cax.tick_params(labelsize=16)
         cb.ax.set_facecolor("0.5")
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt_show(True)
+    plt_show(True, block=block)
     return fig
 
 
@@ -2435,6 +2438,7 @@ def plot_source_estimates(
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
+    block=False,
     verbose=None,
 ):
     """Plot SourceEstimate.
@@ -2515,6 +2519,8 @@ def plot_source_estimates(
         pyvistaqt, but resorts to matplotlib if no 3d backend is available.
 
         .. versionadded:: 0.15.0
+        .. versionchanged:: 1.13
+           The ``'matplotlib'`` backend is deprecated and will be removed in 1.15.
     spacing : str
         Only affects the matplotlib backend.
         The spacing to use for the source space. Can be ``'ico#'`` for a
@@ -2524,6 +2530,8 @@ def plot_source_estimates(
         Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
+        .. deprecated:: 1.13
+           Will be removed in 1.15 along with the ``'matplotlib'`` backend.
     %(title_stc)s
 
         .. versionadded:: 0.17.0
@@ -2532,6 +2540,7 @@ def plot_source_estimates(
     %(view_layout)s
     %(add_data_kwargs)s
     %(brain_kwargs)s
+    %(block)s
     %(verbose)s
 
     Returns
@@ -2551,12 +2560,14 @@ def plot_source_estimates(
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    from .backends._utils import _qt_block
     from .backends.renderer import _get_3d_backend, use_3d_backend
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, "stc", "source estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     subject = _check_subject(stc.subject, subject)
+    _validate_type(block, bool, "block")
     _check_option("backend", backend, ["auto", "matplotlib", "pyvistaqt", "notebook"])
     plot_mpl = backend == "matplotlib"
     if not plot_mpl:
@@ -2566,6 +2577,8 @@ def plot_source_estimates(
             except (ImportError, ModuleNotFoundError):
                 warn("No 3D backend found. Resorting to matplotlib 3d.")
                 plot_mpl = True
+    if plot_mpl:
+        warn(f"{_MPL_STC_DEPRECATION}.", FutureWarning)
     kwargs = dict(
         subject=subject,
         surface=surface,
@@ -2585,10 +2598,10 @@ def plot_source_estimates(
         transparent=transparent,
     )
     if plot_mpl:
-        return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
+        return _plot_mpl_stc(stc, spacing=spacing, block=block, **kwargs)
     else:
         with use_3d_backend(backend):
-            return _plot_stc(
+            brain = _plot_stc(
                 stc,
                 overlay_alpha=alpha,
                 brain_alpha=alpha,
@@ -2606,6 +2619,9 @@ def plot_source_estimates(
                 title=title,
                 **kwargs,
             )
+        if block and brain._renderer._kind == "qt":
+            _qt_block(brain.plotter.app_window)
+        return brain
 
 
 def _plot_stc(
@@ -2701,6 +2717,10 @@ def _plot_stc(
     }
     if brain_kwargs is not None:
         kwargs.update(brain_kwargs)
+    # The window is shown at the end instead (unless the caller opted out entirely
+    # with ``brain_kwargs=dict(show=False)``, e.g. to embed the plot in a larger
+    # GUI whose window it shows itself, like mne.gui.dipolefit).
+    show = kwargs.get("show", True)
     kwargs["show"] = False
     kwargs["view_layout"] = view_layout
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -2763,7 +2783,7 @@ def _plot_stc(
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer, show_traces=show_traces)
-    else:
+    elif show:
         brain.show()
 
     return brain
@@ -3529,7 +3549,7 @@ def plot_sparse_source_estimates(
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
     Returns

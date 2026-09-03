@@ -24,7 +24,6 @@ from mne.coreg import (
     _is_mri_subject,
     coregister_fiducials,
     create_default_subject,
-    fit_matched_points,
     get_mni_fiducials,
     scale_bem,
     scale_labels,
@@ -38,6 +37,7 @@ from mne.transforms import (
     Transform,
     _angle_between_quats,
     apply_trans,
+    fit_matched_points,
     invert_transform,
     read_trans,
     rot_to_quat,
@@ -358,6 +358,8 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points."""
+    # still reachable from its historical home
+    assert mne.coreg.fit_matched_points is fit_matched_points
     tgt_pts = np.random.default_rng(42).uniform(size=(6, 3))
 
     # rotation only
@@ -499,6 +501,46 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials, fid_match):
     else:
         atol = 0.35
     assert_allclose(coreg._scale, ref_scale, atol=atol)
+    coreg.reset()
+    assert_allclose(coreg._parameters, default_params)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_fitting_invariants():
+    """Randomized regression net for Coregistration fitting properties."""
+    pytest.importorskip("nibabel")
+    fiducials, _ = read_fiducials(fid_fname)
+    info = read_info(raw_fname)
+    coreg = Coregistration(
+        info, subject="sample", subjects_dir=subjects_dir, fiducials=fiducials
+    )
+    rng = np.random.default_rng(0)
+
+    # omit_head_shape_points
+    all_dists = coreg._orig_hsp_point_distance
+    distances = np.sort(rng.uniform(all_dists.min(), all_dists.max(), size=5))[::-1]
+    prev_n_kept = len(all_dists)
+    for distance in distances:
+        coreg.omit_head_shape_points(distance=distance)
+        kept = coreg._orig_hsp_point_distance[coreg._extra_points_filter]
+        assert (kept <= distance).all()
+        assert len(kept) <= prev_n_kept
+        prev_n_kept = len(kept)
+
+    # fit_fiducials / fit_icp
+    for _ in range(5):
+        coreg.reset()
+        coreg.set_rotation(rng.uniform(-0.1, 0.1, size=3))
+        coreg.set_translation(rng.uniform(-0.01, 0.01, size=3))
+        err_before = np.median(coreg.compute_dig_mri_distances())
+        coreg.fit_fiducials()
+        err_after_fid = np.median(coreg.compute_dig_mri_distances())
+        assert err_after_fid <= err_before + 1e-9
+        coreg.fit_icp(5)
+        err_after_icp = np.median(coreg.compute_dig_mri_distances())
+        assert err_after_icp <= err_after_fid + 1e-9
+    default_params = coreg._default_parameters.copy()
     coreg.reset()
     assert_allclose(coreg._parameters, default_params)
 

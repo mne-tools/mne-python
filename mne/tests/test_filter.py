@@ -12,11 +12,12 @@ from numpy.testing import (
     assert_array_equal,
     assert_array_less,
 )
-from scipy.signal import butter, freqz, sosfreqz
+from scipy.signal import butter, freqz, hilbert, sosfreqz
 from scipy.signal import resample as sp_resample
 
 from mne import Epochs, create_info
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
+from mne.cuda import _fft_hilbert
 from mne.filter import (
     _length_factors,
     _overlap_add_filter,
@@ -844,6 +845,39 @@ def test_cuda_fir():
     assert sum(["Using CUDA for FFT FIR filtering" in o for o in out]) == tot
     if not _cuda_capable:
         pytest.skip("CUDA not enabled")
+
+
+@pytest.mark.parametrize("n_times, n_fft", ((99, 99), (100, 128)))
+@pytest.mark.parametrize("envelope", (False, True))
+def test_cuda_hilbert(n_times, n_fft, envelope):
+    """Test CUDA-based Hilbert transforms and CPU fallback."""
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((3, n_times))
+    raw = RawArray(data, create_info(3, 100.0, "eeg"))
+    expected = raw.copy().apply_hilbert(envelope=envelope, n_jobs=1, n_fft=n_fft)
+    with catch_logging() as log_file:
+        got = raw.copy().apply_hilbert(
+            envelope=envelope, n_jobs="cuda", n_fft=n_fft, verbose="info"
+        )
+    assert_allclose(got.get_data(), expected.get_data(), rtol=1e-7, atol=1e-12)
+
+    from mne.cuda import _cuda_capable
+
+    used_cuda = "Using CUDA for Hilbert transform" in log_file.getvalue()
+    assert used_cuda == _cuda_capable
+
+
+@pytest.mark.parametrize("n_times, n_fft", ((99, 99), (100, 128)))
+@pytest.mark.parametrize("envelope", (False, True))
+def test_fft_hilbert(n_times, n_fft, envelope):
+    """Test the FFT implementation used by the CUDA path."""
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((2, 3, n_times))
+    got = _fft_hilbert(data, n_fft, envelope, np)
+    expected = hilbert(data, N=n_fft, axis=-1)[..., :n_times]
+    if envelope:
+        expected = np.abs(expected)
+    assert_allclose(got, expected, rtol=1e-12, atol=1e-12)
 
 
 def test_cuda_resampling():

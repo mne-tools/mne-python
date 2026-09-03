@@ -67,6 +67,11 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
         "Summary": "Functions and classes for performing connectivity analysis on MEG data.",  # noqa: E501
     },
+    # no wheels
+    "eelbrain": {
+        "Home-page": "https://eelbrain.readthedocs.io",
+        "Summary": "MEG/EEG analysis tools",
+    },
 }
 
 REQUIRE_INSTALLED = os.getenv("MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED", "false").lower()
@@ -79,7 +84,23 @@ RENAMES = {
     "matplotlib-base": "matplotlib",
 }
 
-_memory = joblib.Memory(location=pathlib.Path(__file__).parent / ".joblib", verbose=0)
+# 4. Each package is associated to one or more category. The assignment is done in
+# related_software.txt
+cat_names = {
+    "io": "Data I/O and interoperability",
+    "organization": "Data organization and workflows",
+    "preproc": "Preprocessing and artifact correction",
+    "oscillations": "Oscillations and time-frequency analysis",
+    "connectivity": "Connectivity and source analysis",
+    "stats": "Statistics and machine learning",
+    "microstates": "Microstates and neural states",
+    "modalities": "Other physiological signals and modalities",
+    "visu": "Visualization and real-time analysis",
+    "Other": "Other",
+}
+
+cwd = pathlib.Path(__file__).parent
+_memory = joblib.Memory(location=cwd / ".joblib", verbose=0)
 
 
 @_memory.cache(cache_validation_callback=joblib.expires_after(days=7))
@@ -104,14 +125,48 @@ def _get_installer_packages():
     return packages
 
 
+def _get_mapping(packages):
+    txt = cwd / "related_software.txt"
+    txt_nodeps = cwd / "related_software_nodeps.txt"
+    mapping = dict()
+    for line in (txt.read_text() + "\n" + txt_nodeps.read_text()).split("\n"):
+        line = line.strip()
+        if not line or line.startswith("##"):
+            continue
+        line = line.lstrip("# ")
+        pkg = line.split("#")[0].strip()
+        # just keep anything after "categories: " to end of line
+        if "categories: " in line:
+            categories = line.split("categories:")[-1].strip()
+        else:
+            categories = "Other"
+        # split the comma-separated list of categories into a tuple of strings
+        mapping[pkg] = tuple([x.strip() for x in categories.split(",")])
+    # unpack the tuples to make a single sequence of (unique) categories
+    categories = sorted(set([cat for cats in mapping.values() for cat in cats]))
+    # put "other" last
+    if "Other" in categories:
+        categories.remove("Other")
+        categories.append("Other")
+    # now, invert the mapping to be category: list of packages
+    rev_mapping = dict()
+    for cat in categories:
+        rev_mapping[cat] = tuple([pkg for pkg, cats in mapping.items() if cat in cats])
+    # extra packages: not in the two text files
+    extras = tuple(set(packages) - set(mapping))
+    if len(other := tuple(sorted(rev_mapping.get("Other", ()) + extras))):
+        rev_mapping["Other"] = other
+    return rev_mapping
+
+
 @functools.lru_cache
-def _get_packages() -> dict[str, str]:
+def _get_packages() -> tuple[dict[str, dict], dict[str, tuple]]:
     try:
         packages = _get_installer_packages()
     except urllib.error.URLError as exc:  # e.g., bad internet connection
         if not REQUIRE_METADATA:
             sphinx_logger.warning(f"Could not fetch package list, got: {exc}")
-            return dict()
+            return dict(), dict()
         raise
     # There can be duplicates in manual and installer packages because some of the
     # PyPI entries for installer packages are incorrect or unusable (see above), so
@@ -127,8 +182,8 @@ def _get_packages() -> dict[str, str]:
         if name not in packages:
             packages.append(name)
     # Simple alphabetical order
-    packages = sorted(packages, key=lambda x: x.lower())
     packages = [RENAMES.get(package, package) for package in packages]
+    packages = sorted(packages, key=lambda x: x.lower())
     out = dict()
     reasons = []
     for package in status_iterator(
@@ -185,7 +240,9 @@ def _get_packages() -> dict[str, str]:
             f"Could not find suitable metadata for related software:\n{reason_str}"
         )
 
-    return out
+    # read the .txt files and build the category mapping
+    cat_to_pkgs_mapping = _get_mapping(out)
+    return out, cat_to_pkgs_mapping
 
 
 class RelatedSoftwareDirective(Directive):
@@ -193,23 +250,40 @@ class RelatedSoftwareDirective(Directive):
 
     def run(self):
         """Run the directive."""
-        my_list = nodes.bullet_list(bullet="*")
-        for package, data in _get_packages().items():
-            item = nodes.list_item()
-            if "description" not in data:
-                para = nodes.paragraph(text=f"{package}")
-            else:
-                para = nodes.paragraph(text=f": {data['description']}")
-                refnode = nodes.reference(
-                    "url",
-                    package,
-                    internal=False,
-                    refuri=data["url"],
-                )
-                para.insert(0, refnode)
-            item += para
-            my_list.append(item)
-        return [my_list]
+        my_section = list()
+        pkg_data, cat_to_pkgs = _get_packages()
+        # iterate over category, packages
+        for category, packages in cat_to_pkgs.items():
+            # Make each category a proper (sub)section so that it gets a real
+            # heading, an anchor, and an entry in the page TOC. This mimics what
+            # docutils itself does in RSTState.new_subsection.
+            section = nodes.section()
+            # Use real category name instead of short names
+            title = nodes.title(text=cat_names[category])
+            section["names"].append(nodes.fully_normalize_name(title.astext()))
+            self.state.document.note_implicit_target(section, section)
+            section += title
+            my_section.append(section)
+            this_list = nodes.bullet_list(bullet="*")
+
+            for package in packages:
+                data = pkg_data.get(package.lower(), {})
+                item = nodes.list_item()
+                if "description" not in data:
+                    para = nodes.paragraph(text=f"{package}")
+                else:
+                    para = nodes.paragraph(text=f": {data['description']}")
+                    refnode = nodes.reference(
+                        "url",
+                        package,
+                        internal=False,
+                        refuri=data["url"],
+                    )
+                    para.insert(0, refnode)
+                item += para
+                this_list.append(item)
+            section += this_list
+        return my_section
 
 
 def setup(app):  # noqa: D103
@@ -228,7 +302,9 @@ if __name__ == "__main__":  # pragma: no cover
     # running `python doc/sphinxext/related_software.py` for testing
     # require metadata for any installed packages (for debugging)
     REQUIRE_METADATA = True
-    items = list(RelatedSoftwareDirective.run(None)[0].children)
-    print(f"Got {len(items)} related software packages:")
-    for item in items:
-        print(f"- {item.astext()}")
+    pkg_data, cat_to_pkgs = _get_packages()
+    print(f"Got {len(pkg_data)} related software packages:")
+    for category, packages in cat_to_pkgs.items():
+        print(f"{cat_names[category]}:")
+        for package in packages:
+            print(f"- {package}")

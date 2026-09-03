@@ -20,6 +20,7 @@ from numpy.testing import (
 )
 from scipy import sparse
 
+import mne
 from mne import (
     grow_labels,
     labels_to_stc,
@@ -57,12 +58,16 @@ stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
 real_label_fname = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
 v1_label_fname = subjects_dir / "sample" / "label" / "lh.V1.label"
 
+fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
+fname_vsrc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+
 fwd_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
 src_bad_fname = data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 label_dir = subjects_dir / "sample" / "label" / "aparc"
 
 test_path = Path(__file__).parents[1] / "io" / "tests" / "data"
 label_fname = test_path / "test-lh.label"
+
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -461,6 +466,16 @@ def test_labels_to_stc():
     for value, label in zip(values, labels):
         stc_label = stc.in_label(label)
         assert (stc_label.data == value).all()
+    # labels from a single hemisphere, and vertices shared by multiple labels
+    # (which get averaged, see the docstring)
+    lh = [
+        Label(np.arange(3), hemi="lh", subject="sample"),
+        Label(np.arange(2, 5), hemi="lh", subject="sample"),
+    ]
+    stc = labels_to_stc(lh, np.array([1.0, 3.0]))
+    assert_array_equal(stc.vertices[0], np.arange(5))
+    assert_array_equal(stc.vertices[1], [])
+    assert_array_equal(stc.data[:, 0], [1.0, 1.0, 2.0, 3.0, 3.0])
     stc = read_source_estimate(stc_fname, "sample")
 
 
@@ -1029,7 +1044,7 @@ def test_random_parcellation():
 
     # Parcellation
     labels = random_parcellation(
-        subject, n_parcel, hemi, subjects_dir, surface=surface, random_state=rng
+        subject, n_parcel, hemi, subjects_dir, surface=surface, rng=rng
     )
 
     # test number of labels
@@ -1213,6 +1228,14 @@ def test_select_sources():
     assert label.hemi == "rh"
 
 
+def test_select_sources_rng_conflict_at_center():
+    """Test RNG spelling conflicts when random selection is inactive."""
+    with pytest.raises(TypeError, match="only one"):
+        select_sources(None, None, location="center", random_state=0, rng=1)
+    with pytest.raises(TypeError, match="only one"):
+        select_sources(None, None, location="center", random_state=None, rng=None)
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "fname, area",
@@ -1255,3 +1278,116 @@ def test_label_geometry(fname, area):
     )
     assert_array_less(inside_euc, inside_dist)
     assert_array_less(0.25 * inside_dist, inside_euc)
+
+
+@testing.requires_testing_data
+def test_volume_label_adjacency():
+    """Test label adjacency."""
+    pytest.importorskip("nibabel")
+    pytest.importorskip("sklearn")
+    src = read_source_spaces(fname_vsrc)
+
+    # aseg=auto uses the aparc+aseg atlas, which does not exist in the testing datasets
+    adj, labels = mne.volume_label_adjacency(
+        src, subject="sample", subjects_dir=subjects_dir, aseg="aseg"
+    )
+    n_neighbors = adj.sum(axis=1)
+
+    assert_equal(len(labels), 46)  # default number of labels in aseg.mgz
+    assert_equal(adj.shape, (len(labels), len(labels)))
+
+    assert_equal(n_neighbors.min(), 0)
+    assert_equal(np.sum(n_neighbors == 0), 4)
+
+    # example: 'Left-Thalamus-Proper'
+    label_idx = 7
+    connected_labels_idx = adj.toarray()[label_idx, :]
+    connected_labels = np.array(labels)[np.where(connected_labels_idx == 1)[0]]
+
+    assert_equal(
+        np.sort(connected_labels).tolist(),
+        [
+            "3rd-Ventricle",
+            "Brain-Stem",
+            "CSF",
+            "Left-Accumbens-area",
+            "Left-Cerebral-Cortex",
+            "Left-Cerebral-White-Matter",
+            "Left-Hippocampus",
+            "Left-Lateral-Ventricle",
+            "Left-Thalamus-Proper",
+            "Left-VentralDC",
+            "Unknown",
+        ],
+    )
+
+    input_labels = [
+        "Left-Thalamus-Proper",
+        "Left-Hippocampus",
+        "Right-Hippocampus",
+    ]
+    adj, labels = mne.volume_label_adjacency(
+        src,
+        subject="sample",
+        subjects_dir=subjects_dir,
+        aseg="aseg",
+        labels=input_labels,
+    )
+
+    assert_equal(
+        adj.toarray(),
+        np.array(
+            [
+                [1, 1, 0],
+                [1, 1, 0],
+                [0, 0, 1],
+            ]
+        ),
+    )
+
+    assert_equal(labels, input_labels)
+
+    with pytest.raises(FileNotFoundError):
+        mne.volume_label_adjacency(
+            src,
+            subject="sample",
+            subjects_dir=subjects_dir,
+            aseg="my-aseg",
+            labels=input_labels,
+        )
+
+
+@testing.requires_testing_data
+def test_label_adjacency():
+    """Test label adjacency."""
+    pytest.importorskip("nibabel")
+    src = read_source_spaces(fname_src)
+    labels = mne.read_labels_from_annot(
+        subject="sample",
+        subjects_dir=subjects_dir,
+    )
+    adj = mne.label_adjacency(labels, src)
+
+    n_neighbors = adj.sum(axis=1)
+
+    assert_equal(len(labels), 68)  # default number of labels in aseg.mgz
+    assert_equal(adj.shape, (len(labels), len(labels)))
+
+    assert n_neighbors.min() == 3
+
+    input_labels = [
+        "cuneus-lh",
+        "cuneus-rh",
+        "precuneus-lh",
+    ]
+    adj = mne.label_adjacency([lab for lab in labels if lab.name in input_labels], src)
+    assert_equal(
+        adj.toarray(),
+        np.array(
+            [
+                [1, 0, 1],
+                [0, 1, 0],
+                [1, 0, 1],
+            ]
+        ),
+    )

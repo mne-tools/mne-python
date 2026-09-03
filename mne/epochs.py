@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from numpy.random import RandomState
-from scipy.interpolate import interp1d
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import (
@@ -71,11 +70,10 @@ from .channels.channels import InterpolationMixin, ReferenceMixin, UpdateChannel
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .evoked import Evoked, EvokedArray
 from .filter import FilterMixin, _check_fun, detrend
-from .fixes import _reshape_view, rng_uniform
+from .fixes import rng_uniform
 from .html_templates import _get_html_template
 from .parallel import parallel_func
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
-from .time_frequency.tfr import AverageTFR, EpochsTFR
 from .utils import (
     ExtendedTimeMixin,
     GetEpochsMixin,
@@ -92,6 +90,7 @@ from .utils import (
     _convert_times,
     _ensure_events,
     _gen_events,
+    _legacy_rng,
     _on_missing,
     _path_like,
     _pl,
@@ -112,7 +111,6 @@ from .utils import (
 )
 from .utils._typing import Color, FileLike, Self
 from .utils.docs import fill_doc
-from .viz import plot_drop_log, plot_epochs, plot_epochs_image, plot_topo_image_epochs
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -125,6 +123,7 @@ if TYPE_CHECKING:
     from .channels.layout import Layout
     from .cov import Covariance
     from .io import BaseRaw
+    from .time_frequency.tfr import AverageTFR, EpochsTFR
     from .transforms import Transform
 
     # The optional ``mne_qt_browser`` window subclasses the first-party
@@ -1122,6 +1121,7 @@ class BaseEpochs(
 
         # do the subtraction
         if self.preload:
+            assert self._data is not None
             self._data[:, ep_picks, :] -= evoked.data[picks][None, :, :]
         else:
             if self._offset is None:
@@ -1360,7 +1360,7 @@ class BaseEpochs(
         """Channel names."""
         return self.info["ch_names"]
 
-    @copy_function_doc_to_method_doc(plot_epochs)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_epochs")
     def plot(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -1391,6 +1391,9 @@ class BaseEpochs(
         annotation_colors: dict | None = None,
         figure_class: type | None = None,
     ) -> "Figure | MNEQtBrowser":
+
+        from .viz import plot_epochs
+
         return plot_epochs(
             self,
             picks=picks,
@@ -1421,7 +1424,7 @@ class BaseEpochs(
             figure_class=figure_class,
         )
 
-    @copy_function_doc_to_method_doc(plot_topo_image_epochs)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_topo_image_epochs")
     def plot_topo_image(
         self,
         layout: "Layout | None" = None,
@@ -1441,6 +1444,9 @@ class BaseEpochs(
         select: bool = False,
         show: bool = True,
     ) -> "Figure":
+
+        from .viz import plot_topo_image_epochs
+
         return plot_topo_image_epochs(
             self,
             layout=layout,
@@ -1530,7 +1536,7 @@ class BaseEpochs(
         """
         return _drop_log_stats(self.drop_log, ignore)
 
-    @copy_function_doc_to_method_doc(plot_drop_log)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_drop_log")
     def plot_drop_log(
         self,
         threshold: float = 0,
@@ -1547,6 +1553,9 @@ class BaseEpochs(
                 "epochs have not yet been dropped. "
                 "Use epochs.drop_bad()."
             )
+
+        from .viz import plot_drop_log
+
         return plot_drop_log(
             self.drop_log,
             threshold,
@@ -1558,7 +1567,7 @@ class BaseEpochs(
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_epochs_image)
+    @copy_function_doc_to_method_doc("func:mne.viz.plot_epochs_image")
     def plot_image(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -1581,6 +1590,9 @@ class BaseEpochs(
         title: str | None = None,
         clear: bool = False,
     ) -> "list[Figure]":
+
+        from .viz import plot_epochs_image
+
         return plot_epochs_image(
             self,
             picks=picks,
@@ -1711,6 +1723,7 @@ class BaseEpochs(
         picks=None,
         item=None,
         *,
+        exclude=(),
         units=None,
         tmin=None,
         tmax=None,
@@ -1728,6 +1741,14 @@ class BaseEpochs(
         %(picks_all)s
         item : slice | array-like | str | list | None
             See docstring of get_data method.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         %(units)s
         tmin : int | float | None
             Start time of data to get in seconds.
@@ -1794,7 +1815,7 @@ class BaseEpochs(
 
         orig_picks = picks
         if orig_picks is None:
-            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+            picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
         else:
             picks = _picks_to_idx(self.info, picks)
 
@@ -1980,6 +2001,7 @@ class BaseEpochs(
         tmin: int | float | None = None,
         tmax: int | float | None = None,
         *,
+        exclude: list[str] | Literal["bads"] | tuple = (),
         copy: bool = True,
         verbose: bool | str | int | None = None,
     ) -> np.ndarray:
@@ -2007,6 +2029,14 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         copy : bool
             Whether to return a copy of the object's data, or (if possible) a view.
             See :ref:`the NumPy docs <numpy:basics.copies-and-views>` for an
@@ -2032,7 +2062,13 @@ class BaseEpochs(
             when possible when ``copy=False``.
         """
         return self._get_data(
-            picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
+            picks=picks,
+            exclude=exclude,
+            item=item,
+            units=units,
+            tmin=tmin,
+            tmax=tmax,
+            copy=copy,
         )
 
     @verbose
@@ -2269,6 +2305,7 @@ class BaseEpochs(
         """Make a deepcopy."""
         cls = self.__class__
         result = cls.__new__(cls)
+        memodict[id(self)] = result  # so self-referencing attributes terminate
         for k, v in self.__dict__.items():
             # drop_log is immutable and _raw is private (and problematic to
             # deepcopy)
@@ -2477,12 +2514,14 @@ class BaseEpochs(
 
         export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
+    @_legacy_rng("random_state")
     @fill_doc
     def equalize_event_counts(
         self,
         event_ids: list | dict | None = None,
         method: Literal["truncate", "mintime", "random"] = "mintime",
         *,
+        rng=None,
         random_state: int | RandomState | None = None,
     ) -> tuple:
         """Equalize the number of trials in each condition.
@@ -2525,7 +2564,8 @@ class BaseEpochs(
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
         %(equalize_events_method)s
-        %(random_state)s Used only if ``method='random'``.
+        %(rng_method_random)s
+        %(random_state_rng_method_random)s
 
         Returns
         -------
@@ -2629,7 +2669,10 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(sample_nums, method, random_state)
+        legacy_seed = (
+            random_state if isinstance(random_state, int | np.integer) else None
+        )
+        indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -2718,7 +2761,7 @@ class BaseEpochs(
         n_jobs: int | None = None,
         verbose: bool | str | int | None = None,
         **method_kw,
-    ) -> EpochsTFR | AverageTFR | tuple:
+    ) -> "EpochsTFR | AverageTFR | tuple":
         """Compute a time-frequency representation of epoched data.
 
         Parameters
@@ -2762,6 +2805,8 @@ class BaseEpochs(
         ----------
         .. footbibliography::
         """
+        from .time_frequency.tfr import AverageTFR, EpochsTFR
+
         if method == "stockwell" and not average:  # stockwell method *must* average
             logger.info(
                 'Requested `method="stockwell"` so ignoring parameter `average=False`.'
@@ -3998,11 +4043,13 @@ def combine_event_ids(
     return epochs
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def equalize_epoch_counts(
     epochs_list: list,
     method: Literal["truncate", "mintime", "random"] = "mintime",
     *,
+    rng=None,
     random_state: int | RandomState | None = None,
 ) -> None:
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
@@ -4012,7 +4059,8 @@ def equalize_epoch_counts(
     epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
-    %(random_state)s Used only if ``method='random'``.
+    %(rng_method_random)s
+    %(random_state_rng_method_random)s
 
     Notes
     -----
@@ -4030,6 +4078,8 @@ def equalize_epoch_counts(
     --------
     >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
+    from .time_frequency.tfr import EpochsTFR
+
     if not all(isinstance(epoch, BaseEpochs | EpochsTFR) for epoch in epochs_list):
         raise ValueError("All inputs must be Epochs instances")
     # make sure bad epochs are dropped
@@ -4037,12 +4087,13 @@ def equalize_epoch_counts(
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(sample_nums, method, random_state)
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
+    indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method, random_state):
+def _get_drop_indices(sample_nums, method, rng, *, legacy_seed=None):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
@@ -4055,9 +4106,14 @@ def _get_drop_indices(sample_nums, method, random_state):
             mask = np.ones(event.size, dtype=bool)
             mask[small_epoch_indices.size :] = False
         elif method == "random":
-            rng = check_random_state(random_state)
             mask = np.zeros(event.size, dtype=bool)
-            idx = rng.choice(
+            # Historically an integer seed was normalized inside this loop,
+            # restarting the same stream for every event list. Preserve that
+            # behavior only for the deprecated parameter; ``rng`` advances.
+            this_rng = (
+                check_random_state(legacy_seed) if legacy_seed is not None else rng
+            )
+            idx = this_rng.choice(
                 np.arange(event.size), size=small_epoch_indices.size, replace=False
             )
             mask[idx] = True
@@ -4067,6 +4123,8 @@ def _get_drop_indices(sample_nums, method, random_state):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
+    from scipy.interpolate import interp1d
+
     keep = np.ones((len(t_longer)), dtype=bool)
     # special case: length zero or one
     if len(t_shorter) < 2:  # interp1d won't work
@@ -4631,20 +4689,22 @@ class EpochsFIF(BaseEpochs):
         else:
             data = data.astype(np.float64)
 
-        data = _reshape_view(data, raw.epoch_shape)
+        data = data.reshape(raw.epoch_shape, copy=False)
         data *= raw.cals
         return data
 
 
+@_legacy_rng("random_state")
 @fill_doc
-def bootstrap(epochs, random_state=None):
+def bootstrap(epochs, *, rng=None, random_state=None):
     """Compute epochs selected by bootstrapping.
 
     Parameters
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    %(random_state)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -4658,7 +4718,6 @@ def bootstrap(epochs, random_state=None):
             "in the constructor."
         )
 
-    rng = check_random_state(random_state)
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng_uniform(rng)(0, n_events, n_events)
@@ -4890,7 +4949,7 @@ def concatenate_epochs(
         events=events,
         event_id=event_id,
         tmin=tmin,
-        baseline=baseline,
+        baseline=None,
         selection=selection,
         drop_log=drop_log,
         proj=False,
@@ -4898,6 +4957,8 @@ def concatenate_epochs(
         metadata=metadata,
         raw_sfreq=raw_sfreq,
     )
+    # Don't reapply baseline correction. Restore the original baseline metadata.
+    out.baseline = baseline
     out.drop_bad()
     return out
 

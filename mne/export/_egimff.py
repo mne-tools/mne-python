@@ -27,7 +27,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False, verbose=
         List of evoked datasets to export to one file. Note that the
         measurement info from the first evoked instance is used, so be sure
         that information matches.
-    history : None (default) | list of dict
+    history : list of dict | None
         Optional list of history entries (dictionaries) to be written to
         history.xml. This must adhere to the format described in
         mffpy.xml_files.History.content. If None, no history.xml will be

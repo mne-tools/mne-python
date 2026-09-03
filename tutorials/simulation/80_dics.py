@@ -189,7 +189,7 @@ stcs = [
 ]  # stacked in time
 duration = (len(stc_signal.times) * 2) / sfreq
 raw = simulate_raw(info, stcs, forward=fwd)
-add_noise(raw, cov, iir_filter=[4, -4, 0.8], random_state=rand)
+add_noise(raw, cov, iir_filter=[4, -4, 0.8], rng=rand)
 
 
 # %%

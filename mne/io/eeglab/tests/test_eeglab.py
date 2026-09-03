@@ -5,6 +5,7 @@
 import os
 import shutil
 from copy import deepcopy
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -394,6 +395,45 @@ def test_io_set_epochs_events(tmp_path):
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat, epochs.events, None)
 
 
+@pytest.mark.parametrize("include_event_fields", (True, False))
+def test_io_set_epochs_without_events(tmp_path, include_event_fields):
+    """Read epoched EEGLAB files that have no event information."""
+    n_epochs, n_channels, n_times = 3, 2, 20
+    data = np.arange(n_channels * n_times * n_epochs, dtype=float).reshape(
+        n_channels, n_times, n_epochs
+    )
+    fname = tmp_path / "no-events.set"
+    eeg = {
+        "trials": n_epochs,
+        "nbchan": n_channels,
+        "pnts": n_times,
+        "srate": 100.0,
+        "xmin": -0.1,
+        "xmax": 0.09,
+        "data": data,
+        "chanlocs": np.array(
+            [{"labels": "EEG 001"}, {"labels": "EEG 002"}], dtype=object
+        ),
+    }
+    if include_event_fields:
+        eeg.update(epoch=np.array([], dtype=object), event=np.array([], dtype=object))
+    io.savemat(fname, {"EEG": eeg}, appendmat=False)
+
+    with pytest.warns(RuntimeWarning, match="contains no event information"):
+        epochs = read_epochs_eeglab(fname)
+
+    expected_events = np.column_stack(
+        (
+            np.arange(n_epochs),
+            np.zeros(n_epochs, dtype=int),
+            np.ones(n_epochs, dtype=int),
+        )
+    )
+    assert epochs.event_id == {"unknown": 1}
+    assert_array_equal(epochs.events, expected_events)
+    assert_allclose(epochs.get_data(copy=False), data.transpose(2, 0, 1) * 1e-6)
+
+
 @testing.requires_testing_data
 @pytest.mark.filterwarnings("ignore:At least one epoch has multiple events")
 @pytest.mark.filterwarnings("ignore:The data contains 'boundary' events")
@@ -458,7 +498,7 @@ def test_eeglab_annotations(fname):
 
 
 @testing.requires_testing_data
-def test_eeglab_read_annotations():
+def test_eeglab_read_annotations(monkeypatch):
     """Test annotations onsets are timestamps (+ validate some)."""
     annotations = read_annotations(raw_fname_mat)
     validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
@@ -485,9 +525,12 @@ def test_eeglab_read_annotations():
     )
 
     # test if event durations are imported correctly
+    check_load_mat = Mock(wraps=mne.io.eeglab.eeglab._check_load_mat)
+    monkeypatch.setattr(mne.io.eeglab.eeglab, "_check_load_mat", check_load_mat)
     raw = read_raw_eeglab(raw_fname_event_duration, preload=True, montage_units="dm")
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
+    assert check_load_mat.call_count == 1
 
 
 @testing.requires_testing_data
@@ -747,7 +790,7 @@ def test_eeglab_drop_nan_annotations(tmp_path):
     sfreq = raw.info["sfreq"]
     ch_names = raw.ch_names
     anno = [
-        raw.annotations.description,
+        raw.annotations.description.tolist(),
         raw.annotations.onset,
         raw.annotations.duration,
     ]

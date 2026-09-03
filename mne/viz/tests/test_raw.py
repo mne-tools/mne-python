@@ -4,6 +4,7 @@
 
 import itertools
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -747,6 +748,16 @@ def test_plot_raw_traces(raw, events, browser_backend):
         raw.plot(order="foo")
     with pytest.raises(TypeError, match="title must be None or a string, got"):
         raw.plot(title=1)
+    # in-memory raw has filenames == (None,); title should fall back to class + size
+    fig = RawArray(raw.get_data(), raw.info).plot()
+    if browser_backend.name != "matplotlib":
+        title = fig.windowTitle()
+    elif check_version("matplotlib", "3.10.3"):
+        title = fig.canvas.manager.get_window_title()
+    else:  # matplotlib < 3.10.3 hard-codes "image" for non-GUI window titles
+        title = None
+    if title is not None:
+        assert re.match(r"RawArray \(~[\d.]+ (bytes|[KMGT]iB)\)", title), title
     raw.plot(show_options=True)
     browser_backend._close_all()
 
@@ -772,6 +783,22 @@ def test_plot_raw_traces(raw, events, browser_backend):
     picks = [1, 7, 5, 2, 3]
     fig = raw.plot(events=events, order=picks, group_by="original")
     assert_array_equal(fig.mne.picks, picks)
+
+
+def test_plot_annotation_span(browser_backend):
+    """Test plotting an annotation span in the Raw time reference."""
+    raw = RawArray(
+        np.arange(120.0)[np.newaxis],
+        create_info(["EEG 001"], 10.0, "eeg"),
+        first_samp=50,
+        verbose="error",
+    )
+    raw.set_annotations(Annotations(3.0, 1.0, "test"))
+
+    tmin, tmax = raw.get_annotation_spans()
+    fig = raw.plot(start=tmin[0], duration=tmax[0] - tmin[0], show=False)
+    assert fig._get_start_stop() == (30, 40)
+    browser_backend._close_all()
 
 
 def test_plot_raw_picks(raw, browser_backend):

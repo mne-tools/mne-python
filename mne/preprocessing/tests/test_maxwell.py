@@ -256,6 +256,16 @@ def test_movement_compensation_basic(tmp_path):
     assert_meg_snr(
         raw_sss, read_crop(sss_movecomp_fname, lims), 4.6, 12.4, chpi_med_tol=58
     )
+    # appending the head position channels must leave the instance consistent, i.e.,
+    # picking and dropping channels must still work (and agree with info)
+    want = raw_sss.ch_names[:2] + ["CHPI002"]
+    raw_sss_pick = raw_sss.copy().pick(want)
+    assert raw_sss_pick.ch_names == want
+    assert len(raw_sss_pick._cals) == len(raw_sss_pick._read_picks[0]) == len(want)
+    assert_allclose(raw_sss_pick.get_data(), raw_sss.get_data(want))
+    raw_sss_drop = raw_sss.copy().drop_channels(["CHPI000"])
+    assert raw_sss_drop.ch_names == [c for c in raw_sss.ch_names if c != "CHPI000"]
+    assert_allclose(raw_sss_drop.get_data(), raw_sss.get_data(raw_sss_drop.ch_names))
     # IO
     temp_fname = tmp_path / "test_raw_sss.fif"
     raw_sss.save(temp_fname)
