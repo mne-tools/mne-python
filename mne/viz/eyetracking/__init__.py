@@ -4,4 +4,4 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from .heatmap import plot_gaze
+from .heatmap import plot_gaze, aoi_dwell_time
