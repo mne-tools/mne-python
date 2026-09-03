@@ -734,7 +734,12 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
+@pytest.fixture(
+    params=[
+        pytest.param("pyvistaqt", marks=pytest.mark.pvtest),
+        pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest),
+    ]
+)
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -757,18 +762,9 @@ def renderer_notebook(request, options_3d):
 
 @pytest.fixture(params=[pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest)])
 def renderer_lite(request, options_3d):
-    """Yield the JupyterLite (vtk.js) renderer."""
-    from mne.viz.backends import renderer as renderer_module
-
-    # use_3d_backend only puts a backend back if one was already selected, and
-    # this one draws for a browser, so make sure it is never what a later test
-    # inherits
-    was = (renderer_module.MNE_3D_BACKEND, renderer_module.backend)
-    try:
-        with _use_backend(request.param, interactive=False) as renderer:
-            yield renderer
-    finally:
-        renderer_module.MNE_3D_BACKEND, renderer_module.backend = was
+    """Yield the JupyterLite (vtk.js) renderer alone, for its own tests."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
 
 
 @pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
@@ -798,15 +794,21 @@ def _use_backend(backend_name, interactive):
     # figure-count test (in other modules) fails. Restore it on teardown.
     mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
+    from mne.viz.backends import renderer
+
+    # use_3d_backend only puts a backend back if one was already selected, so
+    # the first renderer test of a session would otherwise decide the backend
+    # every later test inherits; the JupyterLite one draws for a browser, so
+    # that must never be it
+    was = (renderer.MNE_3D_BACKEND, renderer.backend)
     try:
         with _use_test_3d_backend(backend_name, interactive=interactive):
-            from mne.viz.backends import renderer
-
             try:
                 yield renderer
             finally:
                 renderer.backend._close_all()
     finally:
+        renderer.MNE_3D_BACKEND, renderer.backend = was
         if matplotlib.get_backend() != mpl_backend:
             matplotlib.use(mpl_backend, force=True)
 

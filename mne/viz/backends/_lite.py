@@ -33,7 +33,6 @@ needs VTK.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import gc
 import weakref
 from contextlib import nullcontext
 
@@ -48,9 +47,9 @@ from ...transforms import (
     _sph_to_cart,
     quat_to_rot,
 )
-from ...utils import _check_option
-from ._abstract import _AbstractRenderer
-from ._utils import _vtk_faces
+from ...utils import _check_option, _validate_type
+from ._abstract import Figure3D, _AbstractRenderer
+from ._utils import ALLOWED_QUIVER_MODES, _vtk_faces
 
 # vtk.js positions text in normalized window coordinates, where PyVista takes
 # the names MNE's set_3d_title passes through
@@ -59,6 +58,10 @@ _TITLE_POSITIONS = {
     "lower_right": (0.65, 0.05),
     "upper_left": (0.05, 0.90),
     "upper_right": (0.65, 0.90),
+    "lower_edge": (0.35, 0.05),
+    "upper_edge": (0.35, 0.90),
+    "left_edge": (0.05, 0.50),
+    "right_edge": (0.65, 0.50),
 }
 
 # what MNE means by ``color=None``: "whatever the renderer draws by default",
@@ -106,48 +109,60 @@ def _lite_add_text(plotter, text, position, size, color):
     return actor
 
 
+def _lite_view_angles(plotter):
+    """Return the (azimuth, elevation) a plotter looks from, in degrees, or None.
+
+    ``view_vector`` stores the camera position, as a direction from the focal
+    point, on the plotter's renderer and leaves ``Plotter.camera`` unset,
+    which is deliberate: the vtk.js side then calls ``resetCamera()`` and
+    frames the scene, whereas a camera object would have to carry a distance,
+    and MNE asks for ``distance=None`` more often than not. The cost is that
+    ``Plotter.camera_position`` reads that unset camera and so stays ``None``;
+    the direction below is the scene's actual camera state, and inverting it
+    recovers the angles :func:`_lite_set_view` applied.
+    """
+    view_vector = plotter._renderer._view_vector  # pyvista-js 0.15
+    if view_vector is None:  # no view set yet, so vtk.js is choosing one
+        return None
+    _, phi, theta = _cart_to_sph(np.asarray(view_vector, float)[np.newaxis])[0]
+    return float(np.rad2deg(phi)) % 360, float(np.rad2deg(theta)) % 180
+
+
 def _lite_set_view(plotter, azimuth=None, elevation=None):
-    """Point a plotter along the requested azimuth and elevation."""
+    """Point a plotter along the requested azimuth and elevation.
+
+    Giving one angle leaves the other where it is, as ``_pyvista._set_3d_view``
+    does; before any view is set it defaults to 90 degrees, the anterior view
+    ``plot_alignment`` ends on.
+    """
     if azimuth is None and elevation is None:
         return None
-    phi = np.deg2rad(90.0 if azimuth is None else azimuth)
-    theta = np.deg2rad(90.0 if elevation is None else elevation)
-    position = _sph_to_cart(np.array([[1.0, phi, theta]]))[0]
+    current = _lite_view_angles(plotter) or (90.0, 90.0)
+    phi = np.deg2rad(current[0] if azimuth is None else azimuth)
+    theta = np.deg2rad(current[1] if elevation is None else elevation)
     # view up flips near the poles, matching the 5/175 threshold _set_3d_view
     # uses, because there the view plane normal runs parallel to the camera
-    if 5.0 <= abs(np.rad2deg(theta)) <= 175.0:
+    if elevation is None or 5.0 <= abs(elevation) <= 175.0:
         viewup = (0.0, 0.0, 1.0)
     else:
         viewup = (0.0, 1.0, 0.0)
-    plotter.view_vector(-position, viewup=viewup)
+    # the vector is the camera position: the vtk.js side sets it, aims the
+    # camera at the origin and then frames the scene with resetCamera(), so a
+    # unit direction from the focal point is exactly what it needs
+    position = _sph_to_cart(np.array([[1.0, phi, theta]]))[0]
+    plotter.view_vector(tuple(position), viewup=viewup)
     return None
 
 
 def _lite_get_view(plotter):
-    """Return the direction a plotter is looking along, as _get_3d_view orders it.
-
-    ``view_vector`` stores that direction on the plotter's renderer and leaves
-    ``Plotter.camera`` unset, which is deliberate: the vtk.js side then calls
-    ``resetCamera()`` and frames the scene, whereas a camera object would have
-    to carry a distance, and MNE asks for ``distance=None`` more often than not.
-    The cost is that ``Plotter.camera_position`` reads that unset camera and so
-    stays ``None``; the direction below is the scene's actual camera state, and
-    inverting it recovers the angles :func:`_lite_set_view` applied.
-    """
-    view_vector = plotter._renderer._view_vector  # pyvista-js 0.15
-    if view_vector is None:  # no view set yet, so vtk.js is choosing one
+    """Return the camera state, ordered the way _get_3d_view orders it."""
+    angles = _lite_view_angles(plotter)
+    if angles is None:
         return (0.0, 1.0, 0.0, 0.0, np.zeros(3))
-    _, phi, theta = _cart_to_sph(-np.asarray(view_vector, float)[np.newaxis])[0]
     # roll is 0 because the only camera roll _lite_set_view applies is the view
     # up flip at the poles; the distance and focalpoint are the ones the vtk.js
     # resetCamera() gives this path, a unit direction aimed at the origin
-    return (
-        0.0,
-        1.0,
-        float(np.rad2deg(phi)) % 360,
-        float(np.rad2deg(theta)) % 180,
-        np.zeros(3),
-    )
+    return (0.0, 1.0, angles[0], angles[1], np.zeros(3))
 
 
 # Every scene a notebook drew used to stay live for the kernel's lifetime,
@@ -179,10 +194,8 @@ def _lite_release_plotter(plotter):
     so that is what frees the memory, and it is the only teardown pyvista-js
     0.15 offers: there is no ``close()`` to tear the render window down as
     well, which is why closing a figure and clearing one do the same thing
-    here.
-
-    Collecting is left to the caller, so draining a whole registry sweeps once
-    rather than once per scene.
+    here. Nothing here holds a reference cycle, so dropping the actors is
+    enough, and a ``gc.collect()`` on top would only cost time.
     """
     if plotter is None:
         return None
@@ -205,7 +218,6 @@ _LITE_MAX_LIVE_SCENES = 2
 
 def _lite_trim_live_plotters():
     """Release everything but the most recent scenes."""
-    trimmed = False
     while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
         oldest = _lite_live_plotters[0]()
         if oldest is None:
@@ -213,10 +225,43 @@ def _lite_trim_live_plotters():
         else:
             # also drops it from the registry, so this terminates
             _lite_release_plotter(oldest)
-            trimmed = True
-    if trimmed:
-        gc.collect()
     return None
+
+
+def _lite_opacity(color, opacity):
+    """Fold the alpha of an RGBA color into the opacity.
+
+    ``_PyVistaRenderer`` hands instance colors to VTK as RGBA scalars, so the
+    alpha column is what makes MEG coils translucent (``sensor_alpha``); vtk.js
+    draws each mesh in one solid color and ``to_rgb`` drops the alpha, so the
+    group's alpha has to become its opacity instead.
+    """
+    opacity = 1.0 if opacity is None else float(opacity)
+    if not isinstance(color, str) and np.shape(color) == (4,):
+        opacity *= float(color[3])
+    return opacity
+
+
+class _LiteFigure(Figure3D):
+    """pyvista-js-based 3D figure, the object MNE's 3D functions hand back.
+
+    It carries the pyvista-js plotter as ``.plotter``, the way
+    ``PyVistaFigure`` carries PyVista's, so the module-level helpers
+    (``set_3d_view``, ``close_3d_figure``, ...) and ``isinstance(fig,
+    Figure3D)`` checks treat both backends alike.
+    """
+
+    def __init__(self):
+        pass
+
+    def _init(self, plotter):
+        self._plotter = plotter  # read through Figure3D.plotter
+        return self
+
+
+# figures made with an integer handle, so that create_3d_figure(handle=...)
+# draws into the same scene again, as _pyvista._FIGURES does
+_lite_figures = dict()
 
 
 class _LiteRenderer(_AbstractRenderer):
@@ -230,18 +275,42 @@ class _LiteRenderer(_AbstractRenderer):
     # API this one does not implement and fails first.
     _kind = "jupyterlite_notebook"
 
-    def __init__(self, fig=None, size=(600, 600), bgcolor="black", **kwargs):
-        # `size` is named to match _PyVistaRenderer but cannot be honoured:
-        # pv.Plotter takes only a lighting mode, and generate_standalone_html
-        # emits a fixed 600x400 canvas with no knob for it.
+    def __init__(
+        self,
+        fig=None,
+        size=(600, 600),
+        bgcolor="black",
+        *,
+        name=None,
+        show=False,
+        shape=(1, 1),
+        notebook=None,
+        smooth_shading=True,
+        splash=False,
+        multi_samples=None,
+    ):
+        # The signature is _PyVistaRenderer's, so every _get_renderer call
+        # binds the same way, but most of it cannot be honoured: pv.Plotter
+        # takes only a lighting mode and generate_standalone_html emits a
+        # fixed 600x400 canvas, so `size` and `shape` have no effect; there is
+        # no window to give `name` to; and `show` means nothing before anything
+        # is drawn, because the canvas is written when show() runs rather than
+        # kept live.
         #
         # plot_alignment(fig=...) and plot_dipole_locations(fig=...) composite
-        # into a scene the notebook already made, so draw into that plotter
+        # into a scene the notebook already made, so draw into that figure
         # rather than opening a second one and splitting the picture in two.
+        # An int is a handle naming a figure to make now and reuse later.
+        _validate_type(fig, (None, int, _LiteFigure), "fig")
+        handle = fig if isinstance(fig, int) else None
+        if handle is not None:
+            fig = _lite_figures.get(handle)
         if fig is not None:
-            self.plotter = fig
+            self._figure = fig
             return
-        self.plotter = pv.Plotter()
+        self._figure = _LiteFigure()._init(pv.Plotter())
+        if handle is not None:
+            _lite_figures[handle] = self._figure
         _lite_live_plotters.append(weakref.ref(self.plotter))
         # trim after appending, so the new scene counts towards the cap and
         # _LITE_MAX_LIVE_SCENES is the number that actually stays live
@@ -269,6 +338,11 @@ class _LiteRenderer(_AbstractRenderer):
             )
 
     # -- helpers ------------------------------------------------------------
+    @property
+    def plotter(self):
+        """The pyvista-js plotter the figure draws into."""
+        return self._figure.plotter
+
     def _glyph_template(
         self, kind, radius=None, height=None, center=None, resolution=None, **kwargs
     ):
@@ -360,9 +434,12 @@ class _LiteRenderer(_AbstractRenderer):
         all of them.
         """
         # float32 halves what the merged glyph meshes cost in the WASM heap,
-        # and vtk.js uses single precision on the GPU regardless
+        # and vtk.js uses single precision on the GPU regardless. The faces go
+        # over flat: pyvista-js serialises them as given, and vtk.js reads the
+        # result as one VTK cell array, not as rows.
         mesh = pv.PolyData(
-            points=np.asarray(points, dtype=np.float32), faces=_vtk_faces(tris)
+            points=np.asarray(points, dtype=np.float32),
+            faces=_vtk_faces(tris).ravel(),
         )
         actor = self.plotter.add_mesh(
             mesh,
@@ -374,8 +451,7 @@ class _LiteRenderer(_AbstractRenderer):
 
     def _rots_from_dirs(self, dirs):
         """Rotations carrying +x onto each direction, as the glyphs assume."""
-        x_axis = np.array([1.0, 0.0, 0.0])
-        return np.asarray([_find_vector_rotation(x_axis, d) for d in dirs], dtype=float)
+        return _find_vector_rotation(np.array([1.0, 0.0, 0.0]), dirs)
 
     def _tile(self, rr, tris, positions, scales=None, rots=None, axis_scales=None):
         """Stamp one template mesh at many positions as a single mesh.
@@ -419,18 +495,29 @@ class _LiteRenderer(_AbstractRenderer):
     # representation, shading and edges), it recomputes normals itself with
     # vtkPolyDataNormals rather than taking an array, and it has no actor
     # registry to look a `name` up in later. The visible cost is that a
-    # transparent surface shows its own inside.
+    # transparent surface shows its own inside. Scalars and colormaps are
+    # accepted and ignored for the reason given at the top of the module. The
+    # signatures otherwise follow _PyVistaRenderer's, so that a positional
+    # call binds the same argument on both backends.
     def mesh(
         self,
         x,
         y,
         z,
         triangles,
-        color=None,
+        color,
         opacity=1.0,
+        *,
         backface_culling=False,
+        scalars=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        interpolate_before_map=True,
+        representation="surface",
+        line_width=1.0,
         normals=None,
-        *args,
+        name=None,
         **kwargs,
     ):
         points = np.column_stack(
@@ -443,10 +530,14 @@ class _LiteRenderer(_AbstractRenderer):
         surface,
         color=None,
         opacity=1.0,
+        vmin=None,
+        vmax=None,
+        colormap=None,
+        normalized_colormap=False,
+        scalars=None,
         backface_culling=False,
+        *,
         name=None,
-        *args,
-        **kwargs,
     ):
         return self._add(surface["rr"], surface["tris"], color, opacity)
 
@@ -459,7 +550,6 @@ class _LiteRenderer(_AbstractRenderer):
         resolution=8,
         backface_culling=False,
         radius=None,
-        **kwargs,
     ):
         # `resolution` has no equivalent here: _pyvista.py asks pyvista.Sphere
         # for that many theta and phi bands, while this template comes from a
@@ -483,11 +573,18 @@ class _LiteRenderer(_AbstractRenderer):
         origin,
         destination,
         radius=0.001,
-        color=None,
-        opacity=1.0,
-        *args,
-        **kwargs,
+        color="white",
+        scalars=None,
+        vmin=None,
+        vmax=None,
+        colormap="RdBu",
+        normalized_colormap=False,
+        reverse_lut=False,
+        opacity=None,
     ):
+        # `color` defaults to white as _PyVistaRenderer's does, and not to
+        # _DEFAULT_COLOR: plot_alignment draws the fNIRS source-detector pairs
+        # with no color on a (0.5, 0.5, 0.5) background, which is that gray
         origin = np.atleast_2d(np.asarray(origin, dtype=float))[:, :3]
         destination = np.atleast_2d(np.asarray(destination, dtype=float))[:, :3]
         n_seg = min(len(origin), len(destination))
@@ -524,20 +621,21 @@ class _LiteRenderer(_AbstractRenderer):
         u,
         v,
         w,
-        color=None,
-        scale=1.0,
-        mode="arrow",
-        opacity=1.0,
+        color,
+        scale,
+        mode,
         *,
-        scale_mode="none",
-        scalars=None,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
+        opacity=1.0,
+        scale_mode="none",
+        scalars=None,
+        colormap=None,
+        backface_culling=False,
         glyph_radius=0.15,
         solid_transform=None,
-        backface_culling=False,
-        **kwargs,
+        clim=None,
     ):
         """Draw one merged glyph mesh, the way the glyph filter would.
 
@@ -566,6 +664,7 @@ class _LiteRenderer(_AbstractRenderer):
         # other mode gets whatever scale_mode asks for. plot_alignment's
         # show_axes draws its three axis arrows at 1/3, 2/3 and full length this
         # way, so ignoring it would make the coordinate frames wrong.
+        _check_option("mode", mode, ALLOWED_QUIVER_MODES)
         _check_option("scale_mode", scale_mode, ("none", "scalar", "vector"))
         if mode == "arrow":
             scale_mode = "scalar"
@@ -634,9 +733,8 @@ class _LiteRenderer(_AbstractRenderer):
         scales=None,
         opacity=1.0,
         backface_culling=False,
+        *,
         name=None,
-        *args,
-        **kwargs,
     ):
         """Stamp the template at every position, merged per distinct color.
 
@@ -658,12 +756,14 @@ class _LiteRenderer(_AbstractRenderer):
             return None, _lite_instance_cloud(positions)
         rots = None
         if quats is not None:
-            rots = np.asarray(
-                quat_to_rot(np.atleast_2d(np.asarray(quats, dtype=float))), dtype=float
-            )
+            quats = np.atleast_2d(np.asarray(quats, dtype=float))
+            # MNE's (x, y, z) with w implied, as _PyVistaRenderer also insists:
+            # a (w, x, y, z) row would silently be read as a half turn
+            assert quats.shape[-1] == 3, quats.shape
+            rots = quat_to_rot(quats)
         idx = np.arange(n_pos)
         if colors is not None and np.ndim(colors) > 1:
-            colors = np.asarray(colors)
+            colors = np.asarray(colors, dtype=float)
             uniq, inverse = np.unique(
                 colors[idx % len(colors)], axis=0, return_inverse=True
             )
@@ -683,7 +783,7 @@ class _LiteRenderer(_AbstractRenderer):
             points, faces = self._tile(
                 rr, tris, positions[sel], scales=group_scales, rots=group_rots
             )
-            actor, _ = self._add(points, faces, color, opacity)
+            actor, _ = self._add(points, faces, color, _lite_opacity(color, opacity))
             actors.append(actor)
         # one group is the common case and matches _PyVistaRenderer, which
         # colors per instance inside a single actor; hand that actor back on
@@ -715,22 +815,22 @@ class _LiteRenderer(_AbstractRenderer):
     # These are reached while drawing the figures the docs render, and there is
     # genuinely nothing for them to do here, so each says why rather than
     # raising and taking a working page down with it.
-    def set_interaction(self, *args, **kwargs):
+    def set_interaction(self, interaction):
         # plot_alignment sets this unconditionally (mne/viz/_3d.py); vtk.js
         # ships one trackball style and no way to swap it
         return None
 
-    def _update(self, *args, **kwargs):
+    def _update(self):
         # plot_alignment calls this to force a repaint of a window already up;
         # the browser paints from the JS side, after the cell has finished
         return None
 
-    def _window_close_connect(self, *args, **kwargs):
+    def _window_close_connect(self, func, *, after=True):
         # mne/viz/ui_events.py asks to be told when the window closes, and a
         # canvas in an output cell has no close event to connect to
         return None
 
-    def text3d(self, *args, **kwargs):
+    def text3d(self, x, y, z, text, scale, color="white"):
         # plot_alignment(show_channel_names=True) labels each sensor, which
         # needs a follow-the-camera 3D text actor. pyvista-js 0.15 has only
         # Text, positioned in normalized window coordinates, and projecting the
@@ -739,7 +839,20 @@ class _LiteRenderer(_AbstractRenderer):
         return None
 
     def close(self):
-        _lite_release_plotter(self.plotter)
+        _close_3d_figure(self._figure)
+        return None
+
+    def remove_mesh(self, mesh_data):
+        # add_mesh hands back the dict the renderer keeps, and the plotter
+        # keeps a second dict pointing at it, so drop both; instanced_mesh
+        # hands back one dict per color group
+        actor, _ = mesh_data
+        actors = actor if isinstance(actor, list) else [actor]
+        plotter = self.plotter
+        plotter.actors[:] = [a for a in plotter.actors if a["actor"] not in actors]
+        plotter._renderer.actors[:] = [
+            a for a in plotter._renderer.actors if a not in actors
+        ]
         return None
 
     # -- things pyvista-js cannot do ----------------------------------------
@@ -776,14 +889,6 @@ class _LiteRenderer(_AbstractRenderer):
             "Subplots are not supported in the browser: a scene is one canvas."
         )
 
-    def remove_mesh(self, *args, **kwargs):
-        # add_mesh hands back a dict describing the actor rather than a handle
-        # the plotter can look up again
-        raise NotImplementedError(
-            "Removing a mesh is not supported in the browser: pyvista-js draws "
-            "the scene as a whole and cannot take one mesh back out of it."
-        )
-
     def _process_events(self, *args, **kwargs):
         # the kernel and the canvas are different threads here, and the Pyodide
         # worker cannot drive the page's event loop
@@ -817,17 +922,11 @@ class _LiteRenderer(_AbstractRenderer):
             "Projecting 3D positions onto the scene is not supported in the browser."
         )
 
-    def screenshot(self, mode="rgb", filename=None, **kwargs):
-        # Plotter.screenshot does exist, but it renders the scene by driving a
-        # headless browser with Playwright from outside the page, which is not
-        # something the page can do to itself
-        raise NotImplementedError(
-            "Taking a screenshot is not supported in the browser: vtk.js draws "
-            "to a live canvas that cannot be read back as an array."
-        )
+    def screenshot(self, mode="rgb", filename=None):
+        return _take_3d_screenshot(self._figure, mode=mode, filename=filename)
 
     # -- camera and scene ---------------------------------------------------
-    def get_camera(self, *args, **kwargs):
+    def get_camera(self, *, rigid=None):
         # Same order as _get_3d_view: roll, distance, azimuth, elevation and
         # then the focalpoint. Brain unpacks positions 3 and 4 as the angles,
         # so the focalpoint has to be the last element rather than the fourth.
@@ -840,12 +939,13 @@ class _LiteRenderer(_AbstractRenderer):
         distance=None,
         focalpoint=None,
         roll=None,
-        *args,
-        **kwargs,
+        *,
+        rigid=None,
+        update=True,
     ):
         # distance, focalpoint and roll go unused: vtk.js frames the scene with
         # resetCamera() on this path, which is what lets it handle the
-        # distance=None that MNE asks for far more often. See _lite_get_view.
+        # distance=None that MNE asks for far more often. See _lite_view_angles.
         return _lite_set_view(self.plotter, azimuth, elevation)
 
     @property
@@ -857,10 +957,10 @@ class _LiteRenderer(_AbstractRenderer):
         ``create_3d_figure(scene=False)`` and then passes ``renderer.figure``
         to ``set_3d_view``, so the two have to stay the same thing here too.
         """
-        return self.plotter
+        return self._figure
 
     def scene(self):
-        return self.plotter
+        return self._figure
 
     def show(self):
         self.plotter.show()
@@ -870,7 +970,7 @@ class _LiteRenderer(_AbstractRenderer):
 # -- the module surface renderer.py expects of a 3D backend -----------------
 # set_3d_view, set_3d_title and the close_* helpers reach for these on the
 # ``renderer.backend`` global rather than going through _get_renderer, and the
-# figure they hand over is the pyvista-js plotter _LiteRenderer.scene returns.
+# figure they hand over is the _LiteFigure _LiteRenderer.scene returns.
 _Renderer = _LiteRenderer
 
 # nothing here draws differently under test, the way an on-screen window does
@@ -878,32 +978,54 @@ _testing_context = nullcontext
 
 
 def _set_3d_view(
-    figure, azimuth=None, elevation=None, focalpoint=None, distance=None, roll=None
+    figure,
+    azimuth=None,
+    elevation=None,
+    focalpoint=None,
+    distance=None,
+    roll=None,
+    rigid=None,
+    update=True,
 ):
     # distance, focalpoint and roll go unused here for the same reason they do
     # in _LiteRenderer.set_camera: vtk.js frames the scene with resetCamera()
-    # on this path. See _lite_get_view.
-    return _lite_set_view(figure, azimuth, elevation)
+    # on this path. See _lite_view_angles.
+    return _lite_set_view(figure.plotter, azimuth, elevation)
 
 
 def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
     if isinstance(position, str):
         _check_option("position", position, sorted(_TITLE_POSITIONS))
         position = _TITLE_POSITIONS[position]
-    return _lite_add_text(figure, title, position, size, color)
+    return _lite_add_text(figure.plotter, title, position, size, color)
+
+
+def _check_3d_figure(figure):
+    _validate_type(figure, _LiteFigure, "figure")
+
+
+def _take_3d_screenshot(figure, mode="rgb", filename=None):
+    # Plotter.screenshot does exist, but it renders the scene by driving a
+    # headless browser with Playwright from outside the page, which is not
+    # something the page can do to itself
+    raise NotImplementedError(
+        "Taking a screenshot is not supported in the browser: vtk.js draws "
+        "to a live canvas that cannot be read back as an array."
+    )
 
 
 def _clear_3d_figure(figure):
-    _lite_release_plotter(figure)
-    gc.collect()
+    _lite_release_plotter(figure.plotter)
     return None
 
 
 def _close_3d_figure(figure):
     # the same as clearing: vtk.js draws into a canvas in an output cell, so
-    # there is no window left to close once the geometry is gone
-    _lite_release_plotter(figure)
-    gc.collect()
+    # there is no window left to close once the geometry is gone. The handle
+    # is forgotten too, so the next create_3d_figure with it starts afresh.
+    _lite_release_plotter(figure.plotter)
+    for handle in [key for key, fig in _lite_figures.items() if fig is figure]:
+        del _lite_figures[handle]
     return None
 
 
@@ -917,5 +1039,5 @@ def _close_all():
             _lite_live_plotters.pop()
         else:
             _lite_release_plotter(plotter)
-    gc.collect()  # once for the whole registry, not once per scene
+    _lite_figures.clear()
     return None

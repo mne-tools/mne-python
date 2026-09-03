@@ -1418,21 +1418,62 @@ def _skew_symmetric_cross(a):
 
 
 def _find_vector_rotation(a, b):
-    """Find the rotation matrix that maps unit vector a to b."""
+    """Find the rotation matrix that maps unit vector a to unit vector(s) b.
+
+    Parameters
+    ----------
+    a : array, shape (3,)
+        The unit vector to rotate.
+    b : array, shape (3,) | shape (..., 3)
+        The unit vector(s) to rotate ``a`` onto.
+
+    Returns
+    -------
+    R : array, shape (3, 3) | shape (..., 3, 3)
+        The rotation(s) about ``a x b`` by the angle between them, so that
+        ``R @ a`` is ``b``. Antiparallel vectors, where that axis vanishes,
+        get a half turn about an arbitrary axis perpendicular to ``a``.
+
+    Notes
+    -----
+    Mapping one vector onto another leaves a free parameter: the roll about
+    ``b``. Any rotation about ``b`` composed with the result maps ``a`` onto
+    ``b`` just as well, and this function settles it by taking the minimal
+    rotation, about ``a x b``. So it is right for things that look the same
+    however they are rolled about their axis, like arrows, tubes and the EEG
+    electrode cylinders, and wrong for a flat MEG coil, whose orientation
+    needs the full rotation from ``_loc_to_coil_trans``.
+    """
     # Rodrigues' rotation formula:
     #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
     #   http://math.stackexchange.com/a/476311
+    a = np.asarray(a, float)
+    b = np.asarray(b, float)
+    assert a.shape == (3,), a.shape
     assert np.isclose(np.linalg.norm(a), 1.0), np.linalg.norm(a)
-    assert np.isclose(np.linalg.norm(b), 1.0), np.linalg.norm(b)
-    R = np.eye(3)
-    v = np.cross(a, b)
-    if np.allclose(v, 0.0):  # identical
-        return R
-    s = np.dot(v, v)  # sine of the angle between them
-    c = np.dot(a, b)  # cosine of the angle between them
-    vx = _skew_symmetric_cross(v)
-    R += vx + np.dot(vx, vx) * (1 - c) / s
-    # Now we have: np.allclose(R @ a, b)
+    assert b.shape[-1:] == (3,), b.shape
+    assert np.allclose(np.linalg.norm(b, axis=-1), 1.0), np.linalg.norm(b, axis=-1)
+    v = np.cross(a, b)  # rotation axis, with the sine of the angle as its length
+    s = (v * v).sum(-1)  # sine squared
+    c = b @ a  # cosine
+    # skew-symmetric cross-product matrices, one per b
+    vx = np.zeros(b.shape[:-1] + (3, 3))
+    vx[..., 0, 1], vx[..., 0, 2] = -v[..., 2], v[..., 1]
+    vx[..., 1, 0], vx[..., 1, 2] = v[..., 2], -v[..., 0]
+    vx[..., 2, 0], vx[..., 2, 1] = -v[..., 1], v[..., 0]
+    # (1 - c) / s is 1 / (1 + c), but written this way it stays accurate as b
+    # approaches -a, where 1 + c cancels and s does not. Only an s that has
+    # vanished outright needs special handling below.
+    degenerate = s < np.finfo(float).tiny
+    factor = (1.0 - c) / np.where(degenerate, 1.0, s)
+    R = np.eye(3) + vx + vx @ vx * factor[..., np.newaxis, np.newaxis]
+    if degenerate.any():
+        # parallel is the identity (vx is zero); antiparallel is a half turn
+        # about a unit vector k perpendicular to a, for which the coordinate
+        # axis least aligned with a serves, since it is never parallel to it
+        k = np.cross(a, np.eye(3)[np.argmin(np.abs(a))])
+        k /= np.linalg.norm(k)
+        R[degenerate & (c < 0)] = 2 * np.outer(k, k) - np.eye(3)
     return R
 
 

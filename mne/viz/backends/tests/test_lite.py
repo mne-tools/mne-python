@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from mne.viz import Figure3D
 from mne.viz.backends._abstract import _AbstractRenderer
 
 # imported this way rather than with a plain import so that the whole file
@@ -30,6 +31,13 @@ def _drawn(renderer):
     actually reached the plotter instead of the return value.
     """
     return renderer.plotter.actors[-1]["mesh"]
+
+
+def _serialized(renderer):
+    """Return the actor sources as the vtk.js page will receive them."""
+    return [
+        a["source"] for a in renderer.plotter._renderer._build_scene_data()["actors"]
+    ]
 
 
 def test_is_a_registered_backend(renderer_lite):
@@ -129,13 +137,32 @@ def test_set_view_reaches_the_camera(azimuth, elevation, renderer_lite):
         # no angle to point at, so the camera is left for vtk.js to frame
         assert (roll, distance, got_azimuth, got_elevation) == (0.0, 1.0, 0.0, 0.0)
         return
-    # one angle given means "leave the other alone", which _lite_set_view
-    # spells 90; 2 and 90 degrees sit either side of the 5/175 view-up flip
+    # one angle given means "leave the other alone", which before any view is
+    # set means 90; 2 and 90 degrees sit either side of the 5/175 view-up flip
     assert got_azimuth == pytest.approx(90.0 if azimuth is None else azimuth % 360)
     assert got_elevation == pytest.approx(
         90.0 if elevation is None else elevation % 180
     )
     assert (roll, distance) == (0.0, 1.0)
+
+
+def test_set_view_matches_pyvista(renderer_lite):
+    """The camera has to end up where _pyvista._set_3d_view would put it.
+
+    vtk.js reads ``view_vector`` as the camera *position*, so the anterior view
+    plot_alignment ends on (azimuth and elevation both 90) must put the camera
+    on +y and looking back at the head, not on -y looking at its back. And
+    giving one angle must leave the other alone, rather than reset it to 90.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    r.set_camera(azimuth=90, elevation=90)
+    assert_allclose(r.plotter._renderer._view_vector, [0, 1, 0], atol=1e-12)
+    r.set_camera(elevation=0)  # top view
+    assert_allclose(r.plotter._renderer._view_vector, [0, 0, 1], atol=1e-12)
+    r.set_camera(azimuth=180)  # still a top view
+    assert r.get_camera()[2:4] == pytest.approx((180.0, 0.0))
+    r.set_camera(elevation=90)  # ... now from the left
+    assert_allclose(r.plotter._renderer._view_vector, [-1, 0, 0], atol=1e-12)
 
 
 def test_get_camera_matches_the_expected_order(renderer_lite):
@@ -160,9 +187,11 @@ def test_draws_every_primitive(renderer_lite):
     r = renderer_lite._get_renderer(size=(200, 200), bgcolor="white")
     assert len(r.plotter.actors) == 0
 
-    # a flat unit square, drawn as given
+    # a flat unit square, drawn as given, whose faces reach vtk.js as the flat
+    # cell array it reads (nested rows would serialise to an empty one)
     _, mesh = r.mesh(_RR[:, 0], _RR[:, 1], _RR[:, 2], _TRIS, color="red", opacity=0.5)
     assert_allclose(np.asarray(mesh.points), _RR, atol=1e-6)
+    assert _serialized(r)[-1]["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
 
     # the same square, reached through the surface dict
     _, mesh = r.surface(dict(rr=_RR, tris=_TRIS), color="#0000ff")
@@ -180,6 +209,7 @@ def test_draws_every_primitive(renderer_lite):
     assert points[:, 2].min() == pytest.approx(0.0)
     assert points[:, 2].max() == pytest.approx(1.0)
     assert np.linalg.norm(points[:, :2], axis=1).max() == pytest.approx(0.01)
+    assert r.plotter.actors[-1]["opacity"] == 1.0  # opacity=None is opaque
 
     # an arrow of length `scale` pointing the way it was given
     _, mesh = r.quiver3d(
@@ -199,6 +229,39 @@ def test_draws_every_primitive(renderer_lite):
     assert np.linalg.norm(points[:, [0, 2]], axis=1).max() <= 0.01 + 1e-9
 
     assert len(r.plotter.actors) == 5
+
+
+def test_tube_defaults_to_white(renderer_lite):
+    """An uncolored tube is white, as _PyVistaRenderer draws it.
+
+    plot_alignment draws fNIRS source-detector pairs with no color on a
+    (0.5, 0.5, 0.5) background, and that gray is this backend's fallback for
+    ``color=None`` elsewhere, so the wrong default makes the pairs vanish.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    r.tube([[0.0, 0, 0]], [[1.0, 0, 0]], radius=0.01, opacity=0.5)
+    assert r.plotter.actors[-1]["color"] == (1.0, 1.0, 1.0)
+    assert r.plotter.actors[-1]["opacity"] == 0.5
+
+
+@pytest.mark.parametrize("mode", ("arrow", "cone", "cylinder"))
+def test_glyphs_point_backwards(mode, renderer_lite):
+    """A glyph along -x must point along -x, not +x.
+
+    The templates are built along +x and turned onto their direction, and the
+    antiparallel case has no rotation axis to speak of; it used to come out as
+    the identity, so every such glyph pointed the wrong way.
+    """
+    _, mesh = renderer_lite._get_renderer(size=(200, 200)).quiver3d(
+        [0.0], [0.0], [0.0], [-1.0], [0.0], [0.0], color="red", scale=1.0, mode=mode
+    )
+    x = np.asarray(mesh.points)[:, 0]
+    if mode == "cylinder":  # centered on its position
+        assert (x.min(), x.max()) == pytest.approx((-0.5, 0.5))
+    else:  # base at the position, tip along the direction
+        assert (x.min(), x.max()) == pytest.approx((-1.0, 0.0))
+    if mode == "cone":  # the apex is the single point furthest along
+        assert (x == x.min()).sum() == 1
 
 
 def test_tube_stretches_each_segment_on_its_own(renderer_lite):
@@ -306,7 +369,7 @@ def test_instances_are_merged_per_color(renderer_lite):
     one actor and several give the list of them. The second return value is the
     instance cloud either way, matching ``_PyVistaRenderer``.
     """
-    quats = np.tile([1.0, 0, 0, 0], (3, 1))
+    quats = np.zeros((3, 3))  # identity, in MNE's (x, y, z) convention
     positions = np.array([[0.0, 0, 0], [1.0, 0, 0], [2.0, 0, 0]])
 
     # one color: a single actor
@@ -330,6 +393,29 @@ def test_instances_are_merged_per_color(renderer_lite):
     # keep handing back the pair its own callers unpack
     actor, cloud = r.sphere(np.zeros((1, 3)), "red", 0.01)
     assert not isinstance(actor, list) and not isinstance(cloud, list)
+
+    # a (w, x, y, z) quaternion would silently be read as a half turn
+    with pytest.raises(AssertionError, match=r"\(3, 4\)"):
+        r.instanced_mesh(_RR, _TRIS, positions, np.zeros((3, 4)), colors=colors)
+
+
+def test_instance_alpha_becomes_opacity(renderer_lite):
+    """The alpha of RGBA instance colors sets the opacity of that group.
+
+    ``plot_alignment`` makes MEG coils translucent (``sensor_alpha``) by
+    scaling the alpha column of the colors it hands ``instanced_mesh``, which
+    _PyVistaRenderer draws as RGBA scalars; here each color group is one solid
+    mesh, so its alpha has to become the mesh opacity or every coil is opaque.
+    """
+    r = renderer_lite._get_renderer(size=(200, 200))
+    positions = np.array([[0.0, 0, 0], [1.0, 0, 0], [2.0, 0, 0]])
+    colors = np.array([[1.0, 0, 0, 0.25], [0, 1.0, 0, 1.0], [1.0, 0, 0, 0.25]])
+    actors, _ = r.instanced_mesh(_RR, _TRIS, positions, colors=colors, opacity=0.5)
+    got = {a["color"]: a["opacity"] for a in actors}
+    assert got == {(1.0, 0.0, 0.0): 0.125, (0.0, 1.0, 0.0): 0.5}
+    # and a bare RGB row is drawn at the opacity asked for
+    r.sphere(np.zeros((1, 3)), (0.0, 0.0, 1.0), 0.01, opacity=0.5)
+    assert r.plotter.actors[-1]["opacity"] == 0.5
 
 
 def test_instance_cloud_takes_channel_names(renderer_lite):
@@ -357,11 +443,27 @@ def test_instance_cloud_takes_channel_names(renderer_lite):
 def test_draws_into_an_existing_figure(renderer_lite):
     """``fig=`` composites into a scene rather than opening a second one."""
     first = renderer_lite._get_renderer(size=(200, 200))
-    second = renderer_lite._get_renderer(fig=first.plotter)
+    fig = first.scene()
+    assert isinstance(fig, Figure3D)
+    assert fig is first.figure  # the tutorials reach for it under both names
+    second = renderer_lite._get_renderer(fig=fig)
     assert second.plotter is first.plotter
 
     second.sphere(np.array([[0.0, 0, 0]]), "red", 1.0)
     assert len(first.plotter.actors) == 1
+
+    # an int handle names a scene to make now and draw into again later, as
+    # create_3d_figure(handle=...) does; closing it forgets the handle
+    third = renderer_lite._get_renderer(fig=7)
+    assert third.plotter is not first.plotter
+    assert renderer_lite._get_renderer(fig=7).plotter is third.plotter
+    renderer_lite.close_3d_figure(third.scene())
+    assert renderer_lite._get_renderer(fig=7).plotter is not third.plotter
+
+    with pytest.raises(TypeError, match="instance of None, int, or _LiteFigure"):
+        renderer_lite._get_renderer(fig=first.plotter)
+    with pytest.raises(TypeError, match="instance of _LiteFigure"):
+        renderer_lite.backend._check_3d_figure(first.plotter)
 
 
 def test_live_scenes_are_capped(renderer_lite):
@@ -388,7 +490,6 @@ def test_live_scenes_are_capped(renderer_lite):
         ("scalarbar", ()),
         ("legend", ()),
         ("subplot", ()),
-        ("remove_mesh", ()),
         ("_process_events", ()),
         ("_window_set_cursor", ()),
         ("_enable_time_interaction", ()),
@@ -406,6 +507,21 @@ def test_unsupported_methods_raise(method, args, renderer_lite):
         getattr(r, method)(*args)
 
 
+def test_remove_mesh(renderer_lite):
+    """``remove_mesh`` takes a drawn mesh, or a color-split set of them, back out."""
+    r = renderer_lite._get_renderer(size=(200, 200))
+    kept = r.mesh(_RR[:, 0], _RR[:, 1], _RR[:, 2], _TRIS, color="red")
+    gone = r.mesh(_RR[:, 0], _RR[:, 1], _RR[:, 2], _TRIS, color="blue")
+    positions = np.array([[0.0, 0, 0], [1.0, 0, 0]])
+    split = r.instanced_mesh(_RR, _TRIS, positions, colors=np.eye(2, 3))
+    assert len(r.plotter.actors) == 4
+    r.remove_mesh(gone)
+    r.remove_mesh(split)
+    assert len(r.plotter.actors) == 1
+    assert r.plotter.actors[0]["actor"] is kept[0]
+    assert len(_serialized(r)) == 1  # and the page does not get it either
+
+
 def test_text_is_drawn(renderer_lite):
     """Text lands on the canvas with the size and color that was asked for."""
     r = renderer_lite._get_renderer(size=(200, 200))
@@ -415,6 +531,12 @@ def test_text_is_drawn(renderer_lite):
 
     title = renderer_lite.set_3d_title(figure=r.scene(), title="a title", size=20)
     assert title.input == "a title"
+    # every position name PyVista's add_text takes, since set_3d_title passes
+    # them through
+    for position in ("lower_edge", "right_edge"):
+        renderer_lite.set_3d_title(figure=r.scene(), title="t", position=position)
+    with pytest.raises(ValueError, match="Invalid value for the 'position'"):
+        renderer_lite.set_3d_title(figure=r.scene(), title="t", position="middle")
     # justification and a font file are the two things vtk.js cannot honour
     with pytest.raises(NotImplementedError, match="browser"):
         r.text2d(0.1, 0.9, "hello", justification="center")
@@ -483,8 +605,10 @@ def test_renders_in_a_notebook_kernel(nbexec):
 
     rr = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
     tris = np.array([[0, 1, 2], [0, 2, 3]])
+    fig = r.scene()
     r.mesh(rr[:, 0], rr[:, 1], rr[:, 2], tris, color="red")
     assert len(r.plotter.actors) == 1
+    renderer.set_3d_view(fig, azimuth=90, elevation=90)
 
     # the html must carry this mesh, not merely be a vtk.js page: an empty
     # scene still ships the script tag, so look for the points themselves
@@ -495,5 +619,8 @@ def test_renders_in_a_notebook_kernel(nbexec):
     drawn = np.asarray(scene["actors"][0]["source"]["points"], float).reshape(-1, 3)
     assert drawn.shape == rr.shape
     np.testing.assert_allclose(drawn, rr, atol=1e-6)
+    # the flat VTK cell array vtk.js reads, and the camera on +y looking back
+    assert scene["actors"][0]["source"]["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
+    np.testing.assert_allclose(scene["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
     packed = json.dumps(scene["actors"][0]["source"]["points"]).replace(" ", "")
     assert packed in html.replace(" ", "")  # whatever spacing json chose

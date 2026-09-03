@@ -185,6 +185,7 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
     evoked.pick(evoked.ch_names[::10])  # speed
+    lite = renderer.get_3d_backend() == "jupyterlite_notebook"
     for t, n_contours, up in zip(["meg", None], [21, 0], [2, 1]):
         with pytest.warns(RuntimeWarning, match="projection"), catch_logging() as log:
             maps = make_field_map(
@@ -203,8 +204,14 @@ def test_plot_evoked_field(renderer):
             assert "Upsampling" not in log
         else:
             assert "Upsampling" in log
+        if lite:  # field maps need contours, which the browser cannot color
+            with pytest.raises(NotImplementedError, match="browser"):
+                evoked.plot_field(maps, time=0.1, n_contours=n_contours)
+            continue
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
     renderer.backend._close_all()
+    if lite:  # and Brain needs the dock widgets the browser does not draw
+        return
 
     # Test plotting inside an existing Brain figure. Check that units are taken into
     # account.
@@ -311,7 +318,7 @@ def test_plot_evoked_field_notebook(renderer_notebook, nbexec):
 def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
-    assert len(fig.plotter.renderer.actors) == n_actors
+    assert len(fig.plotter.actors) == n_actors
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -546,7 +553,12 @@ def test_plot_alignment_meg(renderer, system):
             eeg=False,
             sensor_colors=dict(meg=rng.random((n_meg, 4))),
         )
-        _assert_n_actors(fig2, renderer, n_shapes + 2)
+        # ... except in the browser, which cannot color per instance and so
+        # draws one solid mesh per distinct color
+        if renderer.get_3d_backend() == "jupyterlite_notebook":
+            _assert_n_actors(fig2, renderer, n_meg + 2)
+        else:
+            _assert_n_actors(fig2, renderer, n_shapes + 2)
 
     # check error raising for wrong meg value:
     info = read_info(evoked_fname)
@@ -568,18 +580,16 @@ def test_plot_alignment_meg_coil_orientation(renderer, monkeypatch):
     so the per-instance quaternion must encode the full rotation from
     ``_loc_to_coil_trans``, not just the coil normal direction.
     """
-    from mne.viz.backends._pyvista import _PyVistaRenderer
-
     info = read_info(evoked_fname)
     info = pick_info(info, pick_types(info, meg="grad")[:4])
     calls = list()
-    orig = _PyVistaRenderer.instanced_mesh
+    orig = renderer.backend._Renderer.instanced_mesh
 
     def capture(self, *args, **kwargs):
         calls.append((kwargs["positions"], kwargs["quats"]))
         return orig(self, *args, **kwargs)
 
-    monkeypatch.setattr(_PyVistaRenderer, "instanced_mesh", capture)
+    monkeypatch.setattr(renderer.backend._Renderer, "instanced_mesh", capture)
     plot_alignment(info, meg="sensors", coord_frame="meg")
     # all four grads share one coil shape, so they form a single instanced
     # actor whose instance order follows the channel order
@@ -672,11 +682,12 @@ def test_plot_alignment_info(renderer, evoked):
     fig = plot_alignment(info)  # works: surfaces='auto' default
     # set_view=False keeps the view of the figure it is given, True resets it
     set_3d_view(fig, azimuth=11, elevation=22, distance=0.33)
-    pos = np.array(fig.plotter.camera.position, float)
+    view = renderer.backend._Renderer(fig=fig).get_camera()[2:4]
+    assert_allclose(view, (11, 22), atol=1e-4)
     plot_alignment(info, fig=fig, set_view=False)
-    assert_allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    assert_allclose(renderer.backend._Renderer(fig=fig).get_camera()[2:4], view)
     plot_alignment(info, fig=fig)
-    assert not np.allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    assert not np.allclose(renderer.backend._Renderer(fig=fig).get_camera()[2:4], view)
     # check error raised if incorrect info provided
     with pytest.raises(TypeError, match="instance of Info"):
         plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)

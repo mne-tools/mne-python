@@ -1442,8 +1442,7 @@ def _plot_glyphs(
         )
         x_axis = np.array([1.0, 0.0, 0.0])
         nn = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
-        rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
-        quats = rot_to_quat(rots)
+        quats = rot_to_quat(_find_vector_rotation(x_axis, nn))
     rr, tris = renderer._glyph_template(kind, **template_kw)
     actor, cloud = renderer.instanced_mesh(
         rr=rr,

@@ -386,6 +386,26 @@ def test_vector_rotation():
     quat_1 = rot_to_quat(rot)
     quat_2 = rot_to_quat(np.eye(3))
     assert_allclose(_angle_between_quats(quat_1, quat_2), np.pi / 2.0)
+    # many at once, including the parallel and antiparallel cases, which
+    # have no rotation axis of their own
+    rng = np.random.default_rng(0)
+    b = rng.normal(size=(50, 3))
+    b /= np.linalg.norm(b, axis=1, keepdims=True)
+    b = np.concatenate([b, [x, -x, [-1, 1e-8, 0]]])
+    b /= np.linalg.norm(b, axis=1, keepdims=True)
+    rots = _find_vector_rotation(x, b)
+    assert rots.shape == (len(b), 3, 3)
+    assert_allclose(rots @ x, b, atol=1e-12)
+    assert_allclose(np.linalg.det(rots), 1.0, atol=1e-12)
+    eye = np.broadcast_to(np.eye(3), rots.shape)
+    assert_allclose(rots @ rots.transpose(0, 2, 1), eye, atol=1e-12)
+    assert_allclose(rots[-3], np.eye(3), atol=1e-12)
+    assert_allclose(rots[-2], np.diag([-1, -1, 1]), atol=1e-12)
+    # each is the minimal rotation, so its axis is perpendicular to both
+    for rot, this_b in zip(rots[:50], b[:50]):
+        assert_allclose(rot, _find_vector_rotation(x, this_b))
+        angle = _angle_between_quats(rot_to_quat(rot), np.zeros(3))
+        assert_allclose(angle, np.arccos(np.dot(x, this_b)))
 
 
 def test_average_quats():

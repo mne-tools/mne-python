@@ -208,9 +208,9 @@ def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_routines(renderer, brain_gc):
+def test_brain_routines(renderer_pyvistaqt, brain_gc):
     """Test backend agnostic Brain routines."""
-    brain_klass = renderer.get_brain_class()
+    brain_klass = renderer_pyvistaqt.get_brain_class()
     from mne.viz._brain import Brain
 
     assert brain_klass == Brain
@@ -981,7 +981,7 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize("interactive_state", (False, True))
-def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
+def test_brain_save_movie(tmp_path, renderer_pyvistaqt, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
     pytest.importorskip("imageio")
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")

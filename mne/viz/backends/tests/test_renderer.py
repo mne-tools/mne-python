@@ -5,6 +5,7 @@
 import os
 import platform
 import sys
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -16,6 +17,13 @@ from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 from mne.viz.backends.renderer import _get_renderer
+
+
+def _unsupported(renderer):
+    """Return a context for what the browser backend says it cannot draw."""
+    if renderer.get_3d_backend() == "jupyterlite_notebook":
+        return pytest.raises(NotImplementedError, match="browser")
+    return nullcontext()
 
 
 @pytest.mark.parametrize(
@@ -57,13 +65,14 @@ def test_3d_functions(renderer):
         distance=None,
     )
     renderer.set_3d_title(figure=fig, title="foo")
-    renderer.backend._take_3d_screenshot(figure=fig)
-    assert len(fig.plotter.renderer.actors) > 0
+    with _unsupported(renderer):
+        renderer.backend._take_3d_screenshot(figure=fig)
+    assert len(fig.plotter.actors) > 0
     renderer.clear_3d_figure(fig)
-    assert len(fig.plotter.renderer.actors) == 0
+    assert len(fig.plotter.actors) == 0
     # the (empty) figure can be reused
     renderer.backend._Renderer(fig=fig).sphere(np.array([0.0, 0.0, 0.0]), "w", 1.0)
-    assert len(fig.plotter.renderer.actors) > 0
+    assert len(fig.plotter.actors) > 0
     renderer.close_3d_figure(fig)
     renderer.close_all_3d_figures()
 
@@ -130,12 +139,11 @@ def test_3d_backend(renderer):
     rend.remove_mesh(mesh_data)
 
     # use contour
-    rend.contour(
-        surface=ct_surface, scalars=ct_scalars, contours=ct_levels, kind="line"
-    )
-    rend.contour(
-        surface=ct_surface, scalars=ct_scalars, contours=ct_levels, kind="tube"
-    )
+    for kind in ("line", "tube"):
+        with _unsupported(renderer):
+            rend.contour(
+                surface=ct_surface, scalars=ct_scalars, contours=ct_levels, kind=kind
+            )
 
     # use sphere
     rend.sphere(center=sph_center, color=sph_color, scale=sph_scale, radius=1.0)
@@ -159,17 +167,6 @@ def test_3d_backend(renderer):
         rend.quiver3d(mode="foo", **kwargs)
 
     # use instanced_mesh
-    # VTK must interpret our wxyz quaternions with the same convention as
-    # quat_to_rot, otherwise instanced sensors render with wrong rotations
-    from vtkmodules.vtkCommonCore import vtkMath
-
-    from mne.viz.backends._pyvista import _quat_to_vtk_wxyz
-
-    quat = np.array([0.1, -0.2, 0.3])
-    mat = [[0.0] * 3 for _ in range(3)]
-    vtkMath.QuaternionToMatrix3x3(_quat_to_vtk_wxyz(quat[np.newaxis])[0], mat)
-    assert_allclose(mat, quat_to_rot(quat), atol=1e-12)
-
     inst_positions = np.array([[0.0, 0.0, 0.0], [tet_size, 0.0, 0.0]])
     inst_quats = np.array([rot_to_quat(np.eye(3)), rot_to_quat(np.eye(3))])
     inst_colors = np.array([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]])
@@ -181,9 +178,12 @@ def test_3d_backend(renderer):
         colors=inst_colors,
     )
     # colors can be updated in place (e.g. for future sensor
-    # highlighting/hover) without rebuilding the actor or its geometry
-    inst_cloud.point_data["colors"][0] = [0, 0, 255, 255]
-    inst_cloud.Modified()
+    # highlighting/hover) without rebuilding the actor or its geometry; the
+    # browser backend merges instances into solid meshes, so it has no such
+    # per-instance colors to update
+    if renderer.get_3d_backend() != "jupyterlite_notebook":
+        inst_cloud.point_data["colors"][0] = [0, 0, 255, 255]
+        inst_cloud.Modified()
 
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]), destination=np.array([[0, 1, 0]]))
@@ -194,24 +194,27 @@ def test_3d_backend(renderer):
     )
 
     # scalar bar
-    rend.scalarbar(source=tube, title="Scalar Bar", bgcolor=[1, 1, 1])
+    with _unsupported(renderer):
+        rend.scalarbar(source=tube, title="Scalar Bar", bgcolor=[1, 1, 1])
 
     # use text
-    rend.text2d(
-        x_window=txt_x,
-        y_window=txt_y,
-        text=txt_text,
-        size=txt_size,
-        justification="right",
-    )
+    with _unsupported(renderer):
+        rend.text2d(
+            x_window=txt_x,
+            y_window=txt_y,
+            text=txt_text,
+            size=txt_size,
+            justification="right",
+        )
     # test font_file passthrough with a real font from matplotlib
     font_path = findfont("serif")
-    rend.text2d(
-        x_window=txt_x + 0.1,
-        y_window=txt_y + 0.1,
-        text="font test",
-        font_file=font_path,
-    )
+    with _unsupported(renderer):
+        rend.text2d(
+            x_window=txt_x + 0.1,
+            y_window=txt_y + 0.1,
+            text="font test",
+            font_file=font_path,
+        )
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(
         azimuth=180.0, elevation=90.0, distance=cam_distance, focalpoint=center
@@ -219,8 +222,23 @@ def test_3d_backend(renderer):
     rend.show()
 
 
-def test_renderer_internal_helpers(renderer):
+def test_quat_to_vtk_wxyz():
+    """Test that VTK reads our quaternions the way quat_to_rot does.
+
+    Otherwise instanced sensors render with wrong rotations.
+    """
+    vtkMath = pytest.importorskip("vtkmodules.vtkCommonCore").vtkMath
+    from mne.viz.backends._pyvista import _quat_to_vtk_wxyz
+
+    quat = np.array([0.1, -0.2, 0.3])
+    mat = [[0.0] * 3 for _ in range(3)]
+    vtkMath.QuaternionToMatrix3x3(_quat_to_vtk_wxyz(quat[np.newaxis])[0], mat)
+    assert_allclose(mat, quat_to_rot(quat), atol=1e-12)
+
+
+def test_renderer_internal_helpers(renderer_pyvistaqt):
     """Test internal helper methods used by mne.gui.coregistration."""
+    renderer = renderer_pyvistaqt
     rend = renderer.create_3d_figure((300, 300), scene=False)
 
     # _remove_actors accepts a single actor or a list of actors
