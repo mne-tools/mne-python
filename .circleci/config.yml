@@ -528,6 +528,7 @@ jobs:
       - run:
           name: Deploy docs
           command: |
+            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@eb63c18f6a611e4da8d9f31b281b57438c610be4"
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
             ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
@@ -547,12 +548,10 @@ jobs:
               circleci-agent step halt;
             fi;
             echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
-            rm -Rf "${DIR}";
-            cp -a /tmp/build/html "${DIR}";
-            git add -A;
-            git commit -m "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
-              -m "Deployed-version: ${DIR}" -m "Source-sha: ${CIRCLE_SHA1}";
-            git push origin main;
+            python -m docstacks deploy /tmp/build/html "${DIR}" --no-manifest \
+              --source-sha "${CIRCLE_SHA1}" \
+              --message "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
+              --push;
       - save_cache:
           key: website-cache-1
           paths:
