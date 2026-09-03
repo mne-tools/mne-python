@@ -73,5 +73,5 @@ fi
 # loadscope scheduler deadlocking after a worker crash
 # (pytest-dev/pytest-xdist#1363)
 echo "::group::Installing pytest-xdist branch with worker-crash deadlock fix"
-python -m pip install --progress-bar off --upgrade "pytest-xdist @ git+https://github.com/larsoner/pytest-xdist@lock"
+python -m pip install --progress-bar off --upgrade "pytest-xdist @ https://github.com/larsoner/pytest-xdist/archive/refs/heads/lock.zip"
 echo "::endgroup::"

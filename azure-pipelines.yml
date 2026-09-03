@@ -50,6 +50,9 @@ stages:
           # See tools/github_actions_env_vars.sh for why these are set (this job
           # is on Python 3.14, so sys.monitoring can measure branches)
           COVERAGE_CORE: 'sysmon'
+          UV_CACHE_DIR: '/home/vsts/.cache/uv'
+          UV_SYSTEM_PYTHON: 'true'  # UsePythonVersion gives us a bare interpreter, not a venv
+          UV_NO_PROGRESS: 'true'
         steps:
           - bash: |
               set -xeo pipefail
@@ -69,11 +72,17 @@ stages:
               versionSpec: '3.14'
               architecture: 'x64'
               addToPath: true
+          - task: Cache@2
+            inputs:
+              key: '"uv" | "$(Agent.OS)" | pyproject.toml'
+              restoreKeys: '"uv" | "$(Agent.OS)"'
+              path: $(UV_CACHE_DIR)
+            displayName: Cache uv
           - bash: |
               set -xeo pipefail
-              python -m pip install --progress-bar off --upgrade pip
-              python -m pip install --progress-bar off --upgrade --only-binary=":all:" -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef openmeeg
-            displayName: Install dependencies with pip
+              python -m pip install --progress-bar off --upgrade "uv>=0.9"
+              uv pip install --upgrade --only-binary=":all:" --no-binary=mne --no-binary=mne-qt-browser -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef openmeeg
+            displayName: Install dependencies with uv
           - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
           - bash: |
@@ -183,6 +192,9 @@ stages:
           NUMBA_CACHE_DIR: 'C:\Users\VssAdministrator\.cache\mne-numba'
           NUMBA_CPU_NAME: 'generic'
           NUMBA_CPU_FEATURES: ''
+          UV_CACHE_DIR: 'C:\Users\VssAdministrator\.cache\uv'
+          UV_SYSTEM_PYTHON: 'true'  # UsePythonVersion gives us a bare interpreter, not a venv
+          UV_NO_PROGRESS: 'true'
           AZURE_CI_WINDOWS: 'true'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
@@ -225,9 +237,15 @@ stages:
               git clone --depth 1 https://github.com/pyvista/setup-headless-display-action.git
               MESA3D_VERSION=24.3.0 bash setup-headless-display-action/windows/install_opengl.sh
             displayName: Install OpenGL
+          - task: Cache@2
+            inputs:
+              key: '"uv" | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(TEST_MODE)" | pyproject.toml'
+              restoreKeys: '"uv" | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(TEST_MODE)"'
+              path: $(UV_CACHE_DIR)
+            displayName: Cache uv
           - bash: ./tools/azure_dependencies.sh
             displayName: Install dependencies
-          - script: pip install --only-binary=":all:" -e .
+          - script: uv pip install --only-binary=":all:" --no-binary=mne -e .
             displayName: Install mne
           - script: mne sys_info -pd
             displayName: Print config
