@@ -59,7 +59,7 @@ _dir_ignore_names = (
 )
 _tag_ignore_names = (
     # pending addition to fiff-constants, see mne-tools/mne-python#14130
-    "FIFFV_MNE_SURF_SUBCORTICAL_ID_BASE",
+    "FIFFV_MNE_SURF_SUBCORTICAL_OFFSET",
 )
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     "bem_surf_id",

@@ -314,7 +314,7 @@ class SourceSpaces(list):
             ids.append(s.get("id", FIFF.FIFFV_MNE_SURF_UNKNOWN))
         n = len(types)
         is_subcortical = [
-            t == "surf" and i >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_ID_BASE
+            t == "surf" and i >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
             for t, i in zip(types, ids)
         ]
         leading_surf_pair = n >= 2 and types[0] == "surf" and types[1] == "surf"
@@ -2150,7 +2150,7 @@ def setup_subcortical_source_space(
             rr = apply_trans(vox_mri_t, rr)
             s = _surf_from_mesh(rr, tris, subject)
             s["seg_name"] = seg_name
-            s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_ID_BASE + seg_id
+            s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + seg_id
             srcs.append(s)
         if len(srcs) == 0:
             raise ValueError(f"None of the requested labels were found in {mri}")
@@ -2167,7 +2167,7 @@ def setup_subcortical_source_space(
         if keep_largest_component:
             rr, tris = _keep_largest_component(rr, tris)
         s = _surf_from_mesh(rr, tris, subject)
-        s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_ID_BASE
+        s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
         srcs.append(s)
 
     src = SourceSpaces(srcs, dict(working_dir=os.getcwd(), command_line="None"))
@@ -3094,7 +3094,7 @@ def _get_hemi(s):
         return "lh", 0, s["id"]
     elif s["id"] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
         return "rh", 1, s["id"]
-    elif s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_ID_BASE:
+    elif s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
         return s.get("seg_name", "subcortical"), None, s["id"]
     else:
         raise ValueError(f"unknown surface ID {s['id']}")
