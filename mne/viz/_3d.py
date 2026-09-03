@@ -1703,6 +1703,8 @@ def _plot_sensors_3d(
             # colors/scales are requested (broadcasting handles 1-vs-N).
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
+            if not mask.any():  # e.g., CTF EEG/EOG channels with no digitized positions
+                continue
             loc = sens_loc[mask]
             these_colors = colors[mask] if len(colors) == len(mask) else colors
             these_scales = scales[mask] if len(scales) == len(mask) else scales
