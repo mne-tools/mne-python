@@ -112,5 +112,6 @@ uv.lock
 /gitlog.txt
 /merge.txt
 /misc_version.txt
+/numba_key.txt
 /pattern.txt
 /testing_version.txt

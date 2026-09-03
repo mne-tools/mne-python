@@ -23,6 +23,8 @@ jobs:
   bandit:
     name: Bandit
     runs-on: ubuntu-latest
+    # main is enough
+    if: ${{ github.event_name != 'pull_request' }}
     steps:
       - uses: davidslusser/actions_python_bandit@v1.0.1
         with:
@@ -155,11 +157,25 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v6.1.0
+        if: matrix.kind != 'minimal'
+      # The "minimal" kind never fetches the datasets, so don't try to cache them
+      # (or it could lead to an empty cache!)
+      - name: Cache testing data
+        uses: actions/cache@v6.1.0
         with:
-          key: mne_data-testing-${{ env.TESTING_VERSION }}-misc-${{ env.MISC_VERSION }}
+          key: mne_data-testing-${{ env.TESTING_VERSION }}-misc-${{ env.MISC_VERSION }}-1
           path: ~/mne_data
+        if: matrix.kind != 'minimal'
       - run: bash ./tools/github_actions_download.sh
+        if: matrix.kind != 'minimal'
+      - run: ./tools/get_numba_version.sh
+      - name: Cache numba
+        uses: actions/cache@v6.1.0
+        with:
+          key: mne_numba-${{ matrix.os }}-${{ matrix.python }}-${{ env.NUMBA_VERSION }}-${{ hashFiles('mne/**/*numba*.py') }}
+          path: ${{ env.NUMBA_CACHE_DIR }}
+        # nothing to cache, and an empty directory would just poison the key
+        if: env.NUMBA_VERSION != 'none'
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
       - uses: codecov/codecov-action@v7.0.0
         with:

@@ -697,18 +697,22 @@ def pg_backend(request, garbage_collect):
         # and hence its browser alive. Requiring *zero* browsers would then
         # blame the next test that uses this fixture for a browser it never
         # created, turning one real failure into a cascade of errors. Only
-        # report browsers this test itself leaked. Snapshot stores only ids,
-        # so it pins nothing alive.
-        snap = Snapshot(MNEQtBrowser, collect=False)
-        yield backend
-        backend._close_all()
-        # This shouldn't be necessary, but let's make sure nothing is stale
-        import mne_qt_browser
+        # report browsers this test itself leaked. Snapshot pins nothing alive.
+        # freeze=True: see brain_gc for why, and for the thaw() discipline it
+        # obliges us to.
+        snap = Snapshot(MNEQtBrowser, freeze=True)
+        try:
+            yield backend
+            backend._close_all()
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
 
-        mne_qt_browser._browser_instances.clear()
-        if not _test_passed(request):
-            return
-        snap.assert_no_new(f"Closure of {request.node.name}", request=request)
+            mne_qt_browser._browser_instances.clear()
+            if not _test_passed(request):
+                return
+            snap.assert_no_new(f"Closure of {request.node.name}", request=request)
+        finally:
+            snap.thaw()  # no-op once assert_no_new() has thawed
 
 
 @pytest.fixture(
@@ -1111,40 +1115,43 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
-    # Snapshot stores only ids (pins nothing alive) so VTK objects that
-    # pre-date the test (e.g. held by module-level state) are never reported.
-    # collect=False: a gc.collect() here would cost as much as the one that
-    # actually matters at teardown, and we only care about objects going *up*
-    # (new ones surviving), not down. Skipping it just means some snapshotted
-    # objects are already garbage and vanish by teardown, which is fine; the
-    # only cost is a slightly wider id-reuse window (a missed leak at worst,
-    # never a false report).
-    snap = Snapshot(_is_vtk, label="VTK", collect=False)
-    yield
-    close_func()
-    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
-    # (deleteLater) on close; until Qt processes it, the C++ window object
-    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
-    from qtpy.QtCore import QEvent
-    from qtpy.QtWidgets import QApplication
+    # Snapshot pins nothing alive, so VTK objects that pre-date the test (e.g.
+    # held by module-level state) are never reported. freeze=True moves the live
+    # heap into the permanent generation instead of recording ids
+    snap = Snapshot(_is_vtk, label="VTK", freeze=True)
+    try:
+        yield
+        close_func()
+        # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+        # (deleteLater) on close; until Qt processes it, the C++ window object
+        # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+        from qtpy.QtCore import QEvent
+        from qtpy.QtWidgets import QApplication
 
-    app = QApplication.instance()
-    if app is not None:
-        for _ in range(2):
-            app.processEvents()
-            app.sendPostedEvents(None, QEvent.DeferredDelete)
-    if not _test_passed(request):
-        return
-    # The collect must happen *before* list(Brain._instances) is evaluated:
-    # a Brain in a dead reference cycle is still in the WeakSet until
-    # collected, and the list would pin it alive and falsely report it.
-    gc_collect_once(request)
-    # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
-    # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
-    # scan of the whole process to check for lingering Brain instances.
-    assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
-    # VTK objects aren't individually tracked, so this one is a full heap scan.
-    snap.assert_no_new("after", request=request)
+        app = QApplication.instance()
+        if app is not None:
+            for _ in range(2):
+                app.processEvents()
+                app.sendPostedEvents(None, QEvent.DeferredDelete)
+        if not _test_passed(request):
+            return
+        # The collect must happen *before* list(Brain._instances) is evaluated:
+        # a Brain in a dead reference cycle is still in the WeakSet until
+        # collected, and the list would pin it alive and falsely report it.
+        gc_collect_once(request)
+        # VTK objects aren't individually tracked, so this is the check the
+        # freeze exists for. It has to run before the Brain check, because it is
+        # what thaws: a referrer chain built on a frozen heap cannot see any of
+        # the containers that pre-date the freeze.
+        snap.assert_no_new("after", request=request)
+        # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
+        # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
+        # scan of the whole process to check for lingering Brain instances.
+        assert_no_instances(
+            Brain, "after", request=request, objs=list(Brain._instances)
+        )
+    finally:
+        snap.thaw()  # no-op once assert_no_new() has thawed
 
 
 _files = list()
