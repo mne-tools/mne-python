@@ -26,11 +26,11 @@ from pyvista import (
 )
 from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
-from vtkmodules.util.numpy_support import numpy_to_vtk
+from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
-from vtkmodules.vtkFiltersCore import vtkGlyph3D
+from vtkmodules.vtkFiltersCore import vtkContourFilter, vtkGlyph3D, vtkTubeFilter
 from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
@@ -479,14 +479,32 @@ class _PyVistaRenderer(_AbstractRenderer):
         triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         mesh.point_data["scalars"] = scalars
-        contour = mesh.contour(isosurfaces=contours)
+        # Leave the contour filter connected to the mesh instead of computing the
+        # contours once (as `mesh.contour()` would): the rendering pipeline is then
+        # attached to the filter, so pushing new scalars in with `_update_contour`
+        # re-runs it on the next render, with no actor to rebuild.
+        alg = vtkContourFilter()
+        alg.SetInputDataObject(mesh)
+        alg.SetComputeNormals(False)
+        alg.SetComputeGradients(False)
+        alg.SetComputeScalars(True)
+        # args: (idx, port, connection, field, name), field 0 being point data
+        alg.SetInputArrayToProcess(0, 0, 0, 0, "scalars")
+        _set_contour_values(alg, contours, mesh)
+        source = alg
         line_width = width
         if kind == "tube":
-            contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
+            tube = vtkTubeFilter()
+            tube.SetInputConnection(alg.GetOutputPort())
+            tube.SetCapping(True)
+            tube.SetRadius(width)
+            tube.SetNumberOfSides(max(self.tube_n_sides, 3))
+            tube.SetRadiusFactor(10.0)
+            source = tube
             line_width = 1.0
         actor = _add_mesh(
             plotter=self.plotter,
-            mesh=contour,
+            mesh=source,
             show_scalar_bar=False,
             line_width=line_width,
             color=color,
@@ -495,7 +513,28 @@ class _PyVistaRenderer(_AbstractRenderer):
             opacity=opacity,
             smooth_shading=self.smooth_shading,
         )
-        return actor, contour
+        return actor, alg
+
+    def _update_contour(self, alg, *, scalars=None, contours=None):
+        """Update the data and/or the levels of a contour created by `contour`.
+
+        Parameters
+        ----------
+        alg : instance of vtkContourFilter
+            The contour filter returned by :meth:`contour`.
+        scalars : ndarray, shape (n_vertices,) | None
+            New scalar values for the vertices of the surface being contoured.
+        contours : int | list | None
+            New contour levels.
+        """
+        mesh = alg.GetInputDataObject(0, 0)
+        if scalars is not None:
+            array = mesh.GetPointData().GetArray("scalars")
+            vtk_to_numpy(array)[:] = scalars
+            array.Modified()
+            mesh.Modified()  # so that the filter re-runs on the next render
+        if contours is not None:
+            _set_contour_values(alg, contours, mesh)
 
     def surface(
         self,
@@ -1252,6 +1291,18 @@ def _quat_to_vtk_wxyz(quat):
     return np.concatenate([w[..., np.newaxis], quat], axis=-1)
 
 
+def _set_contour_values(alg, contours, mesh):
+    """Set the levels of a contour filter (mirroring ``PolyData.contour``)."""
+    if isinstance(contours, int):
+        rng = mesh.GetPointData().GetArray("scalars").GetRange()
+        alg.GenerateValues(contours, rng[0], rng[1])
+    else:
+        contours = np.asarray(contours, dtype=float)
+        alg.SetNumberOfContours(len(contours))
+        for idx, value in enumerate(contours):
+            alg.SetValue(idx, value)
+
+
 def _add_mesh(plotter, **kwargs):
     """Patch PyVista add_mesh."""
     mesh = kwargs.get("mesh")
@@ -1266,7 +1317,8 @@ def _add_mesh(plotter, **kwargs):
     if "reset_camera" not in kwargs:
         kwargs["reset_camera"] = False
     actor = plotter.add_mesh(**kwargs)
-    if smooth_shading and "Normals" in mesh.point_data:
+    # `mesh` can also be a vtkAlgorithm (see `contour`), which has no point data
+    if smooth_shading and "Normals" in getattr(mesh, "point_data", ()):
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
     _hide_testing_actor(actor)

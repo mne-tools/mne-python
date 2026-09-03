@@ -52,9 +52,14 @@ class EvokedField:
     %(n_jobs)s
     fig : instance of Figure3D | None
         If None (default), a new figure will be created, otherwise it will
-        plot into the given figure.
+        plot into the given figure. When a figure is given, the caller is in charge
+        of its presentation: the camera, the interaction style, and showing the
+        window.
 
         .. versionadded:: 0.20
+        .. versionchanged:: 1.13
+           When a figure is given, the camera and interaction style are no longer
+           changed, and the figure is no longer shown.
     vmax : float | dict | None
         Maximum intensity. Can be a dictionary with two entries ``"eeg"`` and ``"meg"``
         to specify separate values for EEG and MEG fields respectively. Can be
@@ -70,6 +75,10 @@ class EvokedField:
         .. versionadded:: 0.21
     contour_line_width : float
         The line_width of the contour lines.
+
+        .. versionadded:: 1.12
+    contour_line_opacity : float
+        The opacity of the contour lines (between 0 and 1).
 
         .. versionadded:: 1.12
     show_density : bool
@@ -127,6 +136,7 @@ class EvokedField:
         vmax=None,
         n_contours=21,
         contour_line_width=1,
+        contour_line_opacity=1.0,
         show_density=True,
         alpha=None,
         interpolation="nearest",
@@ -151,6 +161,7 @@ class EvokedField:
         self._vmax = _validate_type(vmax, (None, "numeric", dict), "vmax")
         self._n_contours = _ensure_int(n_contours, "n_contours")
         self._contour_line_width = contour_line_width
+        self._contour_line_opacity = contour_line_opacity
         self._time_interpolation = _check_option(
             "interpolation",
             interpolation,
@@ -204,9 +215,11 @@ class EvokedField:
 
         from ._brain import Brain
 
+        # When plotting into an existing figure (Brain or Figure3D), the caller owns
+        # the presentation: the camera, the interaction style and showing the window.
+        self._own_figure = fig is None
         if isinstance(fig, Brain):
             self._renderer = fig._renderer
-            self._in_brain_figure = True
             self._units = fig._units
             if _get_3d_backend() == "notebook":
                 raise NotImplementedError(
@@ -215,7 +228,6 @@ class EvokedField:
                 )
         else:
             self._renderer = _get_renderer(fig, bgcolor=background, size=(600, 600))
-            self._in_brain_figure = False
             self._units = "m"
 
         self.interaction = interaction
@@ -263,7 +275,7 @@ class EvokedField:
         subscribe(self, "colormap_range", self._on_colormap_range)
         subscribe(self, "contours", self._on_contours)
 
-        if not self._in_brain_figure:
+        if self._own_figure:
             self._renderer.set_interaction(interaction)
             self._renderer.set_camera(azimuth=10, elevation=60, distance="auto")
             self._renderer.show()
@@ -341,7 +353,7 @@ class EvokedField:
         # And the field lines on top
         if self._n_contours > 1:
             contours = np.linspace(-map_vmax, map_vmax, self._n_contours)
-            contours_actor, _ = self._renderer.contour(
+            contours_actor, contours_alg = self._renderer.contour(
                 surface=surf,
                 scalars=current_data,
                 contours=contours,
@@ -349,10 +361,11 @@ class EvokedField:
                 vmax=map_vmax,
                 colormap=self._colormap_lines,
                 width=self._contour_line_width,
+                opacity=self._contour_line_opacity,
             )
         else:
             contours = None  # noqa
-            contours_actor = None
+            contours_actor = contours_alg = None
 
         return dict(
             pick=pick,
@@ -362,6 +375,7 @@ class EvokedField:
             mesh=mesh,
             contours=contours,
             contours_actor=contours_actor,
+            contours_alg=contours_alg,
             surf=surf,
             map_vmax=map_vmax,
         )
@@ -372,18 +386,39 @@ class EvokedField:
             current_data = surf_map["data_interp"](self._current_time)
             surf_map["mesh"].update_overlay(name="field", scalars=current_data)
 
-            if surf_map["contours"] is not None:
+            show_contours = surf_map["contours"] is not None and self._n_contours > 1
+            if show_contours and surf_map["contours_alg"] is not None:
+                # The filter is still connected to its surface, so pushing the new
+                # values in re-runs it on the next render: no need to build a new
+                # actor for every time point.
+                self._renderer._update_contour(
+                    surf_map["contours_alg"],
+                    scalars=current_data,
+                    contours=surf_map["contours"],
+                )
+                actor = surf_map["contours_actor"]
+                actor.prop.line_width = self._contour_line_width
+                actor.prop.opacity = self._contour_line_opacity
+            elif show_contours or surf_map["contours_actor"] is not None:
+                # The contours appeared or disappeared entirely, which needs a
+                # new actor (or none at all).
                 self._renderer.plotter.remove_actor(
                     surf_map["contours_actor"], render=False
                 )
-                if self._n_contours > 1:
-                    surf_map["contours_actor"], _ = self._renderer.contour(
+                surf_map["contours_actor"] = surf_map["contours_alg"] = None
+                if show_contours:
+                    (
+                        surf_map["contours_actor"],
+                        surf_map["contours_alg"],
+                    ) = self._renderer.contour(
                         surface=surf_map["surf"],
                         scalars=current_data,
                         contours=surf_map["contours"],
                         vmin=-surf_map["map_vmax"],
                         vmax=surf_map["map_vmax"],
                         colormap=self._colormap_lines,
+                        width=self._contour_line_width,
+                        opacity=self._contour_line_opacity,
                     )
         if self._time_label is not None:
             if hasattr(self, "_time_label_actor"):
@@ -403,11 +438,12 @@ class EvokedField:
         """Configure the widgets shown in the dock on the left."""
         r = self._renderer
 
-        if not hasattr(r, "_dock"):
+        existing_dock = hasattr(r, "_dock")
+        if not existing_dock:
             r._dock_initialize()
 
         # Fieldline configuration
-        layout = r._dock_add_group_box("Fieldlines", collapse=True)
+        layout = r._dock_add_group_box("Fieldlines", collapse=False)
 
         r._dock_add_label(value="max value", align=True, layout=layout)
 
@@ -479,12 +515,27 @@ class EvokedField:
         self._widgets["contour_line_width"] = r._dock_add_slider(
             name="Thickness",
             value=self._contour_line_width,
-            rng=[0, 10],
+            rng=[0, 5],
             callback=_set_contour_line_width,
             double=True,
             layout=layout,
         )
-        r._dock_finalize()
+
+        @_auto_weakref
+        def _set_contour_line_opacity(opacity):
+            self.set_contour_line_opacity(opacity)
+
+        self._widgets["contour_line_opacity"] = r._dock_add_slider(
+            name="Opacity",
+            value=self._contour_line_opacity,
+            rng=[0, 1],
+            callback=_set_contour_line_opacity,
+            double=True,
+            layout=layout,
+        )
+
+        if not existing_dock:
+            r._dock_finalize()
 
     def _on_time_change(self, event):
         """Respond to time_change UI event."""
@@ -632,3 +683,19 @@ class EvokedField:
         """
         self._contour_line_width = line_width
         self.set_contours(self._n_contours)
+
+    def set_contour_line_opacity(self, opacity):
+        """Set the opacity of the contour lines.
+
+        Parameters
+        ----------
+        opacity : float
+            The desired opacity of the contour lines (between 0 and 1).
+        """
+        self._contour_line_opacity = opacity
+        widget = self._widgets.get("contour_line_opacity", None)
+        if widget is not None and widget.get_value() != opacity:
+            # this re-enters this method through the widget callback, which is where
+            # the redraw below then happens
+            widget.set_value(opacity)
+        self._update()

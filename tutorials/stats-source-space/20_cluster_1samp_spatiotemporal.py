@@ -216,7 +216,7 @@ T_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_1samp_test
 # %%
 # Selecting "significant" clusters
 # --------------------------------
-# After performing the cluster-based permutationt test, you may wish to
+# After performing the cluster-based permutation test, you may wish to
 # select the observed clusters that can be considered statistically
 # significant under the permutation distribution. This can easily be
 # done using the code snippet below.

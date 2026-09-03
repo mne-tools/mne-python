@@ -21,8 +21,10 @@ _check_skip: &check_skip
       circleci-agent step halt;
     fi
 
+# gen3 resource classes are only valid with the `current` tag, not a pinned
+# dated tag -- a pinned tag is rejected with "is not a valid resource class"
 _machine_image: &machine_image
-  image: ubuntu-2604:2026.05.1
+  image: ubuntu-2604:current
 
 jobs:
   build_docs:
@@ -32,9 +34,11 @@ jobs:
         default: "false"
     machine:
       <<: *machine_image
-    # large 4 vCPUs 15GB mem
+    # large.gen3 4 vCPUs 16GiB mem -- gen3 is an open beta, and is both faster
+    # and cheaper per minute than gen1 large (14 vs 20 credits/min); revert to
+    # `large` if beta queue times or reliability become a problem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
-    resource_class: large
+    resource_class: large.gen3
     steps:
       - restore_cache:
           keys:
@@ -100,6 +104,14 @@ jobs:
           name: Set BASH_ENV
           command: ./tools/circleci_bash_env.sh
 
+      # Writes testing_version.txt and misc_version.txt, used in the cache keys of
+      # the two datasets whose versions actually change on a regular basis. Caches
+      # are immutable on CircleCI, so a dataset with a fixed key would be pinned to
+      # whatever was first cached and re-downloaded in full on every later run.
+      - run:
+          name: Get dataset versions
+          command: ./tools/get_testing_version.sh
+
       - run:
           name: Install fonts needed for diagrams
           command: |
@@ -110,13 +122,15 @@ jobs:
             curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
             fc-cache -f
 
-      # Load uv cache
+      # Load uv cache. Caches are immutable on CircleCI, so a fixed key would freeze
+      # the cache at whatever the dependencies looked like the first time it was
+      # written; keying on pyproject.toml refreshes it when the dependencies change,
+      # and the prefix-only fallback still gets a warm (if slightly stale) cache in
+      # between.
       - restore_cache:
           keys:
-            - uv-cache-0
-      - restore_cache:
-          keys:
-            - user-install-bin-cache-311
+            - uv-cache-1-{{ checksum "pyproject.toml" }}
+            - uv-cache-1-
 
       # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
       - run:
@@ -125,14 +139,19 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: uv-cache-0
+          key: uv-cache-1-{{ checksum "pyproject.toml" }}
           paths:
             - ~/.cache/uv
-      - save_cache:
-          key: user-install-bin-cache-311
-          paths:
-            - ~/.local/lib/python3.11/site-packages
-            - ~/.local/bin
+
+      # Load numba's JIT cache
+      - run:
+          name: Get numba cache key
+          command: |
+            { ./tools/get_numba_version.sh; find mne -name "*numba*.py" | sort | xargs cat; } | sha256sum > numba_key.txt
+            cat numba_key.txt
+      - restore_cache:
+          keys:
+            - mne-numba-1-{{ checksum "numba_key.txt" }}-
 
       - run:
           name: Check Qt
@@ -142,7 +161,7 @@ jobs:
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:
-            - data-cache-tiny-0
+            - data-cache-tiny-0-{{ checksum "misc_version.txt" }}
 
       # Look at what we have and fail early if there is some library conflict
       - run:
@@ -211,7 +230,7 @@ jobs:
             - data-cache-spm-face
       - restore_cache:
           keys:
-            - data-cache-testing
+            - data-cache-testing-{{ checksum "testing_version.txt" }}
       - restore_cache:
           keys:
             - data-cache-visual-1
@@ -239,87 +258,12 @@ jobs:
             echo "BUILD=$(cat build.txt)"
             ls -al ~/mne_data;
 
-      # Run doctest (if it's full or front) before building the docs
-      - run:
-          name: make test-doc
-          command: |
-            if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
-              make test-doc;
-              mkdir -p doc/_build/test-results/test-doc;
-              cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
-              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
-            fi;
-      # Build docs
-      - run:
-          name: make html
-          command: |  # we have -o pipefail in #BASH_ENV so we should be okay
-            set -x
-            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
-      - run:
-          name: Check sphinx log for warnings (which are treated as errors)
-          when: always
-          command: |
-            ! grep "^.*\(WARNING\|ERROR\): " sphinx_log.txt
-      - run:
-          name: Show profiling output
-          when: always
-          command: |
-            if compgen -G "doc/*.dat" > /dev/null; then
-              mkdir -p doc/generated
-              mprof plot doc/*.dat --output doc/generated/memory.png
-            else
-              echo "No profile data found in doc/"
-            fi
-      - run:
-          name: Sanity check system state
-          command: |
-            python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
-
-      # Reduce upload time of artifacts we will (almost) never look at
-      - run:
-          name: Reduce artifact upload time
-          command: |
-            if grep -q html-pattern-memory build.txt; then
-              zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
-            fi
-            for NAME in generated auto_tutorials auto_examples; do
-              zip -rm doc/${NAME}.zip doc/${NAME}
-            done
-
-      # Save the JUnit file
-      - store_test_results:
-          path: doc/_build/test-results
-      - store_artifacts:
-          path: doc/_build/test-results
-          destination: test-results
-      # Upload test results to Codecov
-      - run:
-          name: Upload test results to Codecov
-          environment:
-            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
-          command: |
-            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
-              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
-            fi
-      # Save the SG RST
-      - store_artifacts:
-          path: doc/auto_examples.zip
-      - store_artifacts:
-          path: doc/auto_tutorials.zip
-      - store_artifacts:
-          path: doc/generated.zip
-      # Save the HTML
-      - store_artifacts:
-          path: doc/_build/html/
-          destination: html
-      - persist_to_workspace:
-          root: doc/_build
-          paths:
-            - html
-
-      # Keep these separate, maybe better in terms of size limitations (?)
+      # Saved here rather than at the end of the job: everything above has
+      # finished downloading, and a failure in the (long, flaky) doc build below
+      # should not throw the downloads away. Kept as separate caches, maybe
+      # better in terms of size limitations (?)
       - save_cache:
-          key: data-cache-tiny-0  # < 100 M, might as well combine
+          key: data-cache-tiny-0-{{ checksum "misc_version.txt" }}  # < 100 M, might as well combine
           paths:
             - ~/.mne
             - ~/mne_data/MNE-kiloword-data  # (28 M)
@@ -394,7 +338,7 @@ jobs:
           paths:
             - ~/mne_data/MNE-spm-face  # (1.5 G)
       - save_cache:
-          key: data-cache-testing
+          key: data-cache-testing-{{ checksum "testing_version.txt" }}
           paths:
             - ~/mne_data/MNE-testing-data  # (2.5 G)
       - save_cache:
@@ -414,6 +358,90 @@ jobs:
           paths:
             - ~/mne_data/ds004388  # (1.8 G)
 
+      # Run doctest (if it's full or front) before building the docs
+      - run:
+          name: make test-doc
+          command: |
+            if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
+              make test-doc;
+              mkdir -p doc/_build/test-results/test-doc;
+              cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
+              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
+            fi;
+      # Build docs
+      - run:
+          name: make html
+          command: |  # we have -o pipefail in #BASH_ENV so we should be okay
+            set -x
+            PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
+      # Only on success: a failed build compiles an arbitrary subset of the
+      # kernels, and there is no point saving that.
+      - save_cache:
+          key: mne-numba-1-{{ checksum "numba_key.txt" }}-{{ epoch }}
+          paths:
+            - ~/.cache/mne-numba
+      - run:
+          name: Check sphinx log for warnings (which are treated as errors)
+          when: always
+          command: |
+            ! grep "^.*\(WARNING\|ERROR\): " sphinx_log.txt
+      - run:
+          name: Show profiling output
+          when: always
+          command: |
+            if compgen -G "doc/*.dat" > /dev/null; then
+              mkdir -p doc/generated
+              mprof plot doc/*.dat --output doc/generated/memory.png
+            else
+              echo "No profile data found in doc/"
+            fi
+      - run:
+          name: Sanity check system state
+          command: |
+            python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
+
+      # Reduce upload time of artifacts we will (almost) never look at
+      - run:
+          name: Reduce artifact upload time
+          command: |
+            if grep -q html-pattern-memory build.txt; then
+              zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
+            fi
+            for NAME in generated auto_tutorials auto_examples; do
+              zip -rm doc/${NAME}.zip doc/${NAME}
+            done
+
+      # Save the JUnit file
+      - store_test_results:
+          path: doc/_build/test-results
+      - store_artifacts:
+          path: doc/_build/test-results
+          destination: test-results
+      # Upload test results to Codecov
+      - run:
+          name: Upload test results to Codecov
+          environment:
+            CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
+          command: |
+            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            fi
+      # Save the SG RST
+      - store_artifacts:
+          path: doc/auto_examples.zip
+      - store_artifacts:
+          path: doc/auto_tutorials.zip
+      - store_artifacts:
+          path: doc/generated.zip
+      # Save the HTML
+      - store_artifacts:
+          path: doc/_build/html/
+          destination: html
+      - persist_to_workspace:
+          root: doc/_build
+          paths:
+            - html
+
 
   linkcheck:
     # there are a few files excluded from this for expediency, see Makefile
@@ -423,7 +451,7 @@ jobs:
         default: "false"
     machine:
       <<: *machine_image
-    resource_class: large
+    resource_class: large.gen3
     steps:
       - restore_cache:
           keys:
@@ -442,7 +470,8 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - uv-cache-0
+            - uv-cache-1-{{ checksum "pyproject.toml" }}
+            - uv-cache-1-
       - run:
           name: Get Python running
           command: |

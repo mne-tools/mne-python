@@ -106,3 +106,12 @@ venv/
 .ipynb_checkpoints/
 /.claude/
 uv.lock
+
+# written into the repo root by the CI helper scripts in tools/
+/build.txt
+/gitlog.txt
+/merge.txt
+/misc_version.txt
+/numba_key.txt
+/pattern.txt
+/testing_version.txt

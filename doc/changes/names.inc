@@ -364,6 +364,7 @@
 .. _Ram Pari: https://github.com/ramkpari
 .. _Ramiro Gatti: https://github.com/ragatti
 .. _ramonapariciog: https://github.com/ramonapariciog
+.. _Raphaël Bordas: https://github.com/raphbrd
 .. _Rasmus Aagaard: https://github.com/rasgaard
 .. _Rasmus Zetter: https://github.com/rzetter
 .. _Reza Nasri: https://github.com/rznas
@@ -424,6 +425,7 @@
 .. _Simon Kornblith: https://simonster.com
 .. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Simon-Shlomo Poil: https://github.com/simon-shlomo
+.. _Sina Esmaeili: https://github.com/snesmaeili
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Sourav Singh: https://github.com/souravsingh
@@ -458,6 +460,7 @@
 .. _Thomas Jochmann: https://github.com/tjochmann
 .. _Thomas Moreau: https://github.com/tomMoral
 .. _Thomas Radman: https://github.com/tradman
+.. _Tim Anderson: https://github.com/timothyanderson096-ocdealcheck
 .. _Tim Gates: https://github.com/timgates42
 .. _Timon Merk: https://github.com/timonmerk
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199

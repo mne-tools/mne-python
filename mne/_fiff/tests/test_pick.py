@@ -762,3 +762,28 @@ def test_get_channel_types_equiv(meg, eeg, ordered):
     types = np.array(raw.get_channel_types(picks=picks))
     types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
     assert_array_equal(types, types_iter)
+
+
+def test_pick_channels_matches_by_name():
+    """Test picking maps names to positions regardless of the order given."""
+    ch_names = ["a", "b", "c", "d"]
+    # include is out of order, repeats a name, and names one that is excluded
+    sel = pick_channels(ch_names, ["d", "b", "b", "c"], exclude=["c"], ordered=False)
+    assert_array_equal(sel, [1, 3])
+    # with ordered=True the caller's order is kept, duplicates and all
+    sel = pick_channels(ch_names, ["d", "b", "b"], ordered=True)
+    assert_array_equal(sel, [3, 1, 1])
+    # a name that is not present is an error, not a silent skip
+    with pytest.raises(ValueError, match="Missing channels"):
+        pick_channels(ch_names, ["a", "nope"], ordered=True)
+
+
+def test_picks_to_idx_duplicate_names():
+    """Test a repeated channel name resolves to its first position."""
+    with pytest.warns(RuntimeWarning, match="not unique"):
+        info = create_info(["a", "b", "a"], 100.0, "eeg")
+    # "b" is unambiguous; picking it must not be shifted by the duplicate "a"
+    assert_array_equal(_picks_to_idx(info, ["b"]), [1])
+    # an ambiguous name is rejected rather than silently resolved
+    with pytest.raises(ValueError, match="could not be interpreted"):
+        _picks_to_idx(info, ["a"])

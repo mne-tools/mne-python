@@ -319,13 +319,17 @@ def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
         include = list(ch_names)
     if not isinstance(exclude, list):
         exclude = list(exclude)
+    # ch_names is unique (checked above), so a lookup table is safe here; the
+    # list scans this replaces made the loop quadratic in the channel count
+    name_to_idx = {name: ii for ii, name in enumerate(ch_names)}
+    exclude_set = set(exclude)
     sel, missing = list(), list()
     for name in include:
-        if name in ch_names:
-            if name not in exclude:
-                sel.append(ch_names.index(name))
-        else:
+        idx = name_to_idx.get(name)
+        if idx is None:
             missing.append(name)
+        elif name not in exclude_set:
+            sel.append(idx)
     if len(missing) and ordered:
         raise ValueError(
             f"Missing channels from ch_names required by include:\n{missing}"
@@ -1408,13 +1412,20 @@ def _picks_str_to_idx(
     # second: match all to channel names
     #
 
+    # setdefault keeps the first occurrence, so this matches list.index()
+    # exactly even for duplicate names (which are rejected further down, so
+    # the difference is not reachable today -- it just keeps the swap honest)
+    name_to_idx = {}
+    for ii, name in enumerate(info["ch_names"]):
+        name_to_idx.setdefault(name, ii)
     bad_names = []
     picks_name = list()
     for pick in picks:
-        try:
-            picks_name.append(info["ch_names"].index(pick))
-        except ValueError:
+        idx = name_to_idx.get(pick)
+        if idx is None:
             bad_names.append(pick)
+        else:
+            picks_name.append(idx)
 
     #
     # third: match all to types

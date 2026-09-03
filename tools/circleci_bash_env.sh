@@ -29,6 +29,11 @@ echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
 echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
 echo "export MNE_ADD_CONTRIBUTOR_IMAGE=true" >> $BASH_ENV
 echo "export MNE_REQUIRE_RELATED_SOFTWARE_INSTALLED=true" >> $BASH_ENV
+# Persist numba's on-disk JIT cache across runs, with generic CPU to make the
+# cached objects portable
+echo "export NUMBA_CACHE_DIR=$HOME/.cache/mne-numba" >> $BASH_ENV
+echo "export NUMBA_CPU_NAME=generic" >> $BASH_ENV
+echo "export NUMBA_CPU_FEATURES=" >> $BASH_ENV
 echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
 echo "export DISPLAY=:99" >> $BASH_ENV
 echo "source ~/python_env/bin/activate" >> $BASH_ENV
@@ -37,4 +42,6 @@ ln -s ~/python_env/bin/python ~/.local/bin/python
 echo "BASH_ENV:"
 cat $BASH_ENV
 mkdir -p ~/mne_data
+# Must exist before save_cache runs, even if nothing ever compiles into it
+mkdir -p ~/.cache/mne-numba
 touch pattern.txt
