@@ -74,6 +74,11 @@ test_extra = [
   "nbclient",  # requires jupyter_client
   "nitime >= 0.7",
   "pymef",
+  # drawing backend for the browser docs, see mne/viz/backends/_lite.py. The
+  # marker is pyvista-js's own requires-python (>= 3.12, < 3.15) rather than
+  # anything about JupyterLite: without it this group cannot resolve at all on
+  # the 3.11 MNE still supports. Every CI job that installs it is on 3.12+.
+  "pyvista-js >= 0.15; python_version >= '3.12'",
   "statsmodels",
   {include-group = "test_extra_ft"},
 ]

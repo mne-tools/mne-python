@@ -62,6 +62,7 @@ from ._utils import (
     _alpha_blend_background,
     _get_colormap_from_array,
     _init_mne_qtapp,
+    _vtk_faces,
 )
 
 try:
@@ -438,7 +439,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         **kwargs,
     ):
         vertices = np.c_[x, y, z].astype(float)
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         return self.polydata(
             mesh=mesh,
@@ -475,8 +476,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             colormap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface["rr"])
         triangles = np.array(surface["tris"])
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         mesh.point_data["scalars"] = scalars
         # Leave the contour filter connected to the mesh instead of computing the
@@ -553,7 +553,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         normals = surface.get("nn", None)
         vertices = np.array(surface["rr"])
         triangles = np.array(surface["tris"])
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         colormap = _get_colormap_from_array(colormap, normalized_colormap)
         if scalars is not None:
@@ -744,7 +744,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         *,
         name=None,
     ):
-        faces = np.c_[np.full(len(tris), 3), tris]
+        faces = _vtk_faces(tris)
         geom = PolyData(np.asarray(rr, float), faces)
         _compute_normals(geom)
 

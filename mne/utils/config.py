@@ -942,6 +942,7 @@ def sys_info(
             "nbclient",
             "nbformat",
             "nitime",
+            "pyvista-js",
             "imageio",
             "imageio-ffmpeg",
             "snirf",

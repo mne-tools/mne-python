@@ -740,7 +740,12 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
+@pytest.fixture(
+    params=[
+        pytest.param("pyvistaqt", marks=pytest.mark.pvtest),
+        pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest),
+    ]
+)
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -757,6 +762,13 @@ def renderer_pyvistaqt(request, options_3d, garbage_collect):
 @pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(params=[pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest)])
+def renderer_lite(request, options_3d):
+    """Yield the JupyterLite (vtk.js) renderer alone, for its own tests."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
@@ -788,15 +800,21 @@ def _use_backend(backend_name, interactive):
     # figure-count test (in other modules) fails. Restore it on teardown.
     mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
+    from mne.viz.backends import renderer
+
+    # use_3d_backend only puts a backend back if one was already selected, so
+    # the first renderer test of a session would otherwise decide the backend
+    # every later test inherits; the JupyterLite one draws for a browser, so
+    # that must never be it
+    was = (renderer.MNE_3D_BACKEND, renderer.backend)
     try:
         with _use_test_3d_backend(backend_name, interactive=interactive):
-            from mne.viz.backends import renderer
-
             try:
                 yield renderer
             finally:
                 renderer.backend._close_all()
     finally:
+        renderer.MNE_3D_BACKEND, renderer.backend = was
         if matplotlib.get_backend() != mpl_backend:
             matplotlib.use(mpl_backend, force=True)
 
@@ -804,6 +822,10 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
 
+    if name == "jupyterlite_notebook":
+        # draws with vtk.js in a browser: no VTK, no Qt, no ffmpeg
+        pytest.importorskip("pyvista_js")
+        return
     pytest.importorskip("pyvista")
     pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":

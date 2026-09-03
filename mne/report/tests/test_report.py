@@ -401,7 +401,7 @@ def test_report_raw_psd_and_date(tmp_path):
 
 @pytest.mark.slowtest  # slow on Azure
 @testing.requires_testing_data
-def test_render_add_sections(renderer, tmp_path):
+def test_render_add_sections(renderer_pyvistaqt, tmp_path):
     """Test adding figures/images to section."""
     pytest.importorskip("nibabel")
     try:
@@ -451,7 +451,7 @@ def test_render_add_sections(renderer, tmp_path):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_render_mri(renderer, tmp_path):
+def test_render_mri(renderer_pyvistaqt, tmp_path):
     """Test rendering MRI for mne report."""
     pytest.importorskip("nibabel")
     trans_fname_new = tmp_path / "temp-trans.fif"
@@ -1247,7 +1247,7 @@ def test_report_backward_compat(tmp_path):
 
 @pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
-def test_manual_report_3d(tmp_path, renderer):
+def test_manual_report_3d(tmp_path, renderer_pyvistaqt):
     """Simulate adding 3D sections."""
     pytest.importorskip("nibabel")
     r = Report(title="My Report")
