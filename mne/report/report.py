@@ -514,8 +514,6 @@ def _fig_to_img(
         # reshaped from the figure's own bbox
         mpl_format = "png"
     else:
-        # Raw RGBA: the pixels are all that is wanted below, so encoding them as PNG
-        # only to decode them again is pure overhead.
         mpl_format = "rgba"
         # Agg truncates the figure size to whole pixels (`RendererAgg.__init__`),
         # so rounding here would mis-shape the buffer at fractional DPI
@@ -530,6 +528,7 @@ def _fig_to_img(
         from PIL import Image
 
         if mpl_format == "rgba":
+            # Raw RGBA: the pixels can be decoded directly
             orig = Image.frombuffer(
                 "RGBA", shape[1::-1], output.getbuffer(), "raw", "RGBA", 0, 1
             )
