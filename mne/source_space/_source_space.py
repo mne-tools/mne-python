@@ -2087,6 +2087,15 @@ def setup_subcortical_source_space(
     package such as CMB). Exactly one of ``label`` or ``surface`` must be
     provided.
 
+    .. warning::
+        This is **experimental** functionality. :class:`~mne.SourceSpaces`
+        created by this function are not (yet) compatible with morphing
+        (:class:`~mne.SourceMorph`), :func:`mne.extract_label_time_course`
+        does not yet know how to select vertices within a subcortical-surface
+        label, and plotting support is limited (for example, the
+        :meth:`~mne.MixedSourceEstimate.plot` method does not yet support
+        these source spaces).
+
     Parameters
     ----------
     subject : str
@@ -2139,11 +2148,8 @@ def setup_subcortical_source_space(
     Notes
     -----
     This is a first, deliberately narrow proof of concept: it has been
-    validated interactively on the ``sample`` subject. Known gaps, to be
-    addressed in follow-up work: morphing (:class:`~mne.SourceMorph`) does
-    not yet support these source spaces, and
-    :func:`mne.extract_label_time_course` does not yet know how to select
-    vertices within a subcortical-surface label.
+    validated interactively on the ``sample`` subject. See the warning above
+    for known gaps, to be addressed in follow-up work.
 
     .. versionadded:: 1.12
     """
