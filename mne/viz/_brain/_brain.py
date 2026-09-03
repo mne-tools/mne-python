@@ -1056,7 +1056,7 @@ class Brain:
             self._configure_vertex_time_course()
             return
 
-        layout = self._renderer._dock_add_group_box(name, collapse=False)
+        layout = self._renderer._dock_add_group_box(name, collapse=True)
 
         # setup candidate annots
         @safe_event
