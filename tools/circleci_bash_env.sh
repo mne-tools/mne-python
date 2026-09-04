@@ -3,7 +3,15 @@
 set -e
 set -o pipefail
 
-curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/setup_xvfb.sh | bash
+# The regional EC2 mirror started 503ing on 2026-09-04 and apt spins on it for ~10 min before
+# giving up, so fall back to the canonical one; self-healing, and removable once it is reliable
+if ! curl -fsS --max-time 10 -o /dev/null "http://us-east-1.ec2.archive.ubuntu.com/ubuntu/dists/$(lsb_release -cs)/Release"; then
+    echo "Regional apt mirror is unhealthy, falling back to archive.ubuntu.com"
+    sudo sed -i 's|//[a-z0-9-]*\.ec2\.archive\.ubuntu\.com|//archive.ubuntu.com|g' \
+        /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null || true
+fi
+# timeout: setup_xvfb.sh runs apt itself, so it can stall the same way the calls below can
+curl -fsSL https://raw.githubusercontent.com/mne-tools/mne-tools/main/tools/setup_xvfb.sh | timeout 600 bash
 # Need different installs for 24.04 and 26.04
 if [[ $(lsb_release -rs) == "26.04" ]]; then
     EXTRA_DEPS="libgvplugin-neato-layout8"
