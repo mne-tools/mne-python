@@ -135,7 +135,7 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 # other. Which in a well-designed rigid helmet is the case.
 
 
-# include gradients by setting order to 2, set to 1 for homogenous components
+# include gradients by setting order to 2, set to 1 for homogeneous components
 projs = mne.preprocessing.compute_proj_hfc(raw.info, order=2)
 raw.add_proj(projs).apply_proj(verbose="error")
 
