@@ -4,6 +4,7 @@
 
 import datetime as dt
 import re
+from typing import cast
 
 import numpy as np
 
@@ -311,7 +312,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         info_extra["subject_info"] = subject_info
 
     # Create mne structure
-    info = create_info(ch_names, sfreq, ch_types=ch_types)
+    info = create_info(ch_names, cast(float, sfreq), ch_types=ch_types)
     with info._unlock():
         info.update(info_extra)
         info["meas_date"] = meas_date

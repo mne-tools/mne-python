@@ -9,14 +9,23 @@ import re
 import string
 import weakref
 from collections import Counter, OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from copy import deepcopy
 from functools import partial
 from io import BytesIO
+from os import PathLike
 from textwrap import shorten
+from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Self
 
 import numpy as np
 
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+    from ..channels.montage import DigMontage
+
+from ..bem import ConductorModel
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
 from ..utils import (
@@ -37,6 +46,7 @@ from ..utils import (
     warn,
 )
 from ..utils._bunch import NamedFloat, NamedInt
+from ..utils._typing import CoordFrameStr, LogLevel, RaiseWarnIgnore
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -117,6 +127,12 @@ _SCALAR_CH_KEYS = (
 _ALL_CH_KEYS_SET = set(_SCALAR_CH_KEYS + ("loc", "ch_name"))
 # XXX we need to require these except when doing simplify_info
 _MIN_CH_KEYS_SET = set(("kind", "cal", "unit", "loc", "ch_name"))
+
+
+def _get_info_or_self(obj: Any) -> "Info":
+    """Get Info from MNE objects, unless `obj` itself is an Info object."""
+    info = getattr(obj, "info", obj)
+    return info
 
 
 def _get_valid_units():
@@ -321,7 +337,7 @@ class MontageMixin:
     """Mixin for Montage getting and setting."""
 
     @fill_doc
-    def get_montage(self):
+    def get_montage(self) -> "DigMontage | None":
         """Get a DigMontage from instance.
 
         Returns
@@ -332,7 +348,7 @@ class MontageMixin:
         from ..channels.montage import make_dig_montage
         from ..transforms import _frame_to_str
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         if info["dig"] is None:
             return None
         # obtain coord_frame, and landmark coords
@@ -385,12 +401,12 @@ class MontageMixin:
     @verbose
     def set_montage(
         self,
-        montage,
-        match_case=True,
-        match_alias=False,
-        on_missing="raise",
-        verbose=None,
-    ):
+        montage: "DigMontage | str | None",
+        match_case: bool = True,
+        match_alias: bool | dict[str, str] = False,
+        on_missing: RaiseWarnIgnore = "raise",
+        verbose: LogLevel = None,
+    ) -> Self:
         """Set %(montage_types)s channel positions and digitization points.
 
         Parameters
@@ -431,12 +447,14 @@ class MontageMixin:
 
         from ..channels.montage import _set_montage
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         _set_montage(info, montage, match_case, match_alias, on_missing)
         return self
 
 
-channel_type_constants = get_channel_type_constants(include_defaults=True)
+channel_type_constants: dict[str, dict[str, NamedInt]] = get_channel_type_constants(
+    include_defaults=True
+)
 _human2fiff = {
     k: v.get("kind", FIFF.FIFFV_COIL_NONE) for k, v in channel_type_constants.items()
 }
@@ -484,7 +502,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         picks = _picks_to_idx(info, picks)
         chs = info["chs"]
         pos = np.array([chs[k]["loc"][:3] for k in picks])
@@ -509,7 +527,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         if len(pos) != len(names):
             raise ValueError(
                 "Number of channel positions not equal to the number of names given."
@@ -521,15 +539,21 @@ class SetChannelsMixin(MontageMixin):
             )
             raise ValueError(msg)
         for name, p in zip(names, pos):
-            if name in self.ch_names:
-                idx = self.ch_names.index(name)
+            if name in info.ch_names:
+                idx = info.ch_names.index(name)
                 info["chs"][idx]["loc"][:3] = p
             else:
                 msg = f"{name} was not found in the info. Cannot be updated."
                 raise ValueError(msg)
 
     @verbose
-    def set_channel_types(self, mapping, *, on_unit_change="warn", verbose=None):
+    def set_channel_types(
+        self,
+        mapping: dict[str, str],
+        *,
+        on_unit_change: RaiseWarnIgnore = "warn",
+        verbose: LogLevel = None,
+    ) -> Self:
         """Specify the sensor types of channels.
 
         Parameters
@@ -566,7 +590,7 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.9.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         ch_names = info["ch_names"]
 
         # first check and assemble clean mappings of index and name
@@ -635,8 +659,13 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def rename_channels(
-        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
-    ):
+        self,
+        mapping: dict[str, str] | Callable[[str], str],
+        allow_duplicates: bool = False,
+        *,
+        on_missing: RaiseWarnIgnore = "raise",
+        verbose: LogLevel = None,
+    ) -> Self:
         """Rename channels.
 
         Parameters
@@ -662,7 +691,7 @@ class SetChannelsMixin(MontageMixin):
         from ..channels.channels import rename_channels
         from ..io import BaseRaw
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
 
         ch_names_orig = list(info["ch_names"])
         rename_channels(info, mapping, allow_duplicates, on_missing=on_missing)
@@ -683,19 +712,27 @@ class SetChannelsMixin(MontageMixin):
     @verbose
     def plot_sensors(
         self,
-        kind="topomap",
-        ch_type=None,
-        title=None,
-        show_names=False,
-        ch_groups=None,
-        to_sphere=True,
-        axes=None,
-        block=None,
-        show=True,
-        sphere=None,
+        kind: Literal["topomap", "3d", "select"] = "topomap",
+        ch_type: Literal["mag", "grad", "eeg", "seeg", "dbs", "ecog", "all"]
+        | None = None,
+        title: str | None = None,
+        show_names: bool | Sequence[str] = False,
+        ch_groups: Literal["position"]
+        | np.ndarray[tuple[int, int], np.dtype[np.integer]]
+        | None = None,
+        to_sphere: bool = True,
+        axes: "Axes | Axes3D | None" = None,
+        block: bool | None = None,
+        show: bool = True,
+        sphere: float  # radius
+        | Annotated[Sequence[float], 4]  # x, y, z, radius
+        | ConductorModel
+        | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
+        | Sequence[Literal["cardinal", "eeg", "extra", "hpi"]]
+        | None = None,
         *,
-        verbose=None,
-    ):
+        verbose: LogLevel = None,
+    ) -> "Any":
         """Plot sensor positions.
 
         Parameters
@@ -775,7 +812,7 @@ class SetChannelsMixin(MontageMixin):
         from ..viz.utils import plot_sensors
 
         return plot_sensors(
-            self if isinstance(self, Info) else self.info,
+            _get_info_or_self(self),
             kind=kind,
             ch_type=ch_type,
             title=title,
@@ -790,7 +827,14 @@ class SetChannelsMixin(MontageMixin):
         )
 
     @verbose
-    def anonymize(self, daysback=None, keep_his=False, verbose=None):
+    def anonymize(
+        self,
+        daysback: int | None = None,
+        keep_his: bool
+        | Literal["his_id", "sex", "hand"]
+        | Sequence[Literal["his_id", "sex", "hand"]] = False,
+        verbose: LogLevel = None,
+    ) -> Self:
         """Anonymize measurement information in place.
 
         Parameters
@@ -810,12 +854,15 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.13.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
+        assert isinstance(info, Info)
         anonymize_info(info, daysback=daysback, keep_his=keep_his, verbose=verbose)
         self.set_meas_date(info["meas_date"])  # unify annot update
         return self
 
-    def set_meas_date(self, meas_date):
+    def set_meas_date(
+        self, meas_date: datetime.datetime | float | tuple[int, int] | None
+    ) -> Self:
         """Set the measurement start date.
 
         Parameters
@@ -851,7 +898,7 @@ class SetChannelsMixin(MontageMixin):
             meas_date, (datetime.datetime, "numeric", tuple, None), "meas_date"
         )
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
 
         meas_date = _handle_meas_date(meas_date)
         with info._unlock():
@@ -872,14 +919,14 @@ class SetChannelsMixin(MontageMixin):
                     value["machid"] = _tmp
 
         if hasattr(self, "annotations"):
-            self.annotations._orig_time = meas_date
+            self.annotations._orig_time = meas_date  # type: ignore (until annotations is typed)
         return self
 
 
 class ContainsMixin:
     """Mixin class for Raw, Evoked, Epochs and Info."""
 
-    def __contains__(self, ch_type):
+    def __contains__(self, ch_type: str, /) -> bool:
         """Check channel type membership.
 
         Parameters
@@ -906,22 +953,28 @@ class ContainsMixin:
         # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
         # to check for the presence of a key:
         # >>> 'bads' in info
+        info = _get_info_or_self(self)
         if ch_type == "meg":
-            has_ch_type = _contains_ch_type(self.info, "mag") or _contains_ch_type(
-                self.info, "grad"
+            has_ch_type = _contains_ch_type(info, "mag") or _contains_ch_type(
+                info, "grad"
             )
         else:
-            has_ch_type = _contains_ch_type(self.info, ch_type)
+            has_ch_type = _contains_ch_type(info, ch_type)
         return has_ch_type
 
     @property
-    def compensation_grade(self):
+    def compensation_grade(self) -> int:
         """The current gradient compensation grade."""
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         return get_current_comp(info)
 
     @fill_doc
-    def get_channel_types(self, picks=None, unique=False, only_data_chs=False):
+    def get_channel_types(
+        self,
+        picks: str | Sequence[str] | Sequence[int] | slice | None = None,
+        unique: bool = False,
+        only_data_chs: bool = False,
+    ) -> list[str]:
         """Get a list of channel type for each channel.
 
         Parameters
@@ -937,7 +990,7 @@ class ContainsMixin:
         channel_types : list
             The channel types.
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         none = "data" if only_data_chs else "all"
         picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
         ch_types = [channel_type(info, pick) for pick in picks]
@@ -955,22 +1008,22 @@ class ContainsMixin:
 
 
 class ValidatedDict(dict):
-    _attributes = {}  # subclasses should set this to validated attributes
+    _attributes: dict[str, Any] = {}  # subclasses should set this to validated attrs
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._unlocked = True
         super().__init__(*args, **kwargs)
         self._unlocked = False
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, bool]:
         """Get state (for pickling)."""
         return {"_unlocked": self._unlocked}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Set state (for pickling)."""
         self._unlocked = state["_unlocked"]
 
-    def __setitem__(self, key, val):
+    def __setitem__(self, key: str, val: Any) -> None:
         """Attribute setter."""
         # During unpickling, the _unlocked attribute has not been set, so
         # let __setstate__ do it later and act unlocked now
@@ -999,7 +1052,12 @@ class ValidatedDict(dict):
             )
         super().__setitem__(key, val)
 
-    def update(self, other=None, **kwargs):
+    def update(
+        self,
+        other: Mapping[str, Any] | Iterable[tuple[str, Any]] = (),
+        /,
+        **kwargs: Any,
+    ) -> None:  # type: ignore ([invalid-method-override] we'd need overloads I think)
         """Update the instance, validating each key like ``__setitem__``.
 
         Parameters
@@ -1010,13 +1068,13 @@ class ValidatedDict(dict):
             Additional entries to set, as keyword arguments.
         """
         iterable = other.items() if isinstance(other, Mapping) else other
-        if other is not None:
-            for key, val in iterable:
-                self[key] = val
+        for key, val in iterable:
+            assert isinstance(key, str)  # type checking
+            self[key] = val
         for key, val in kwargs.items():
             self[key] = val
 
-    def copy(self):
+    def copy(self) -> Self:
         """Copy the instance.
 
         Returns
@@ -1026,7 +1084,7 @@ class ValidatedDict(dict):
         """
         return deepcopy(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation."""
         mapping = ", ".join(f"{key}: {val}" for key, val in self.items())
         return f"<{_camel_to_snake(self.__class__.__name__)} | {mapping}>"
@@ -1077,7 +1135,7 @@ class SubjectInfo(ValidatedDict):
         ),
     }
 
-    def __init__(self, initial):
+    def __init__(self, initial: dict[str, Any]) -> None:
         _validate_type(initial, dict, "subject_info")
         super().__init__()
         for key, val in initial.items():
@@ -1114,7 +1172,7 @@ class HeliumInfo(ValidatedDict):
         ),
     }
 
-    def __init__(self, initial):
+    def __init__(self, initial: dict[str, Any]) -> None:
         _validate_type(initial, dict, "helium_info")
         super().__init__()
         for key, val in initial.items():
@@ -1165,13 +1223,13 @@ def _check_bads_info_compat(bads, info):
 class MNEBadsList(list):
     """Subclass of bads that checks inplace operations."""
 
-    def __init__(self, *, bads, info):
+    def __init__(self, *, bads: Iterable[str], info: "Info") -> None:
         _check_bads_info_compat(bads, info)
         # avoid an info <-> bads reference cycle
         self._mne_info = weakref.ref(info)
         super().__init__(bads)
 
-    def extend(self, iterable):
+    def extend(self, iterable: Iterable[str]) -> None:
         if not isinstance(iterable, list):
             iterable = list(iterable)
         # info may be absent (during unpickling) or already gone (dead weakref)
@@ -1181,14 +1239,14 @@ class MNEBadsList(list):
             _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
-    def append(self, x):
+    def append(self, x: str) -> None:
         return self.extend([x])
 
-    def __iadd__(self, x):
+    def __iadd__(self, x: Iterable[str]) -> Self:
         self.extend(x)
         return self
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type, tuple[list[str]]]:
         # The weakref is not picklable, and the parent Info re-wraps it as an
         # MNEBadsList (via __setitem__) on load.
         return (list, (list(self),))
@@ -1807,12 +1865,12 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "xplotter_layout": "xplotter_layout cannot be set directly.",
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         with self._unlock():
             _restore_mne_types(self)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Set state (for pickling)."""
         super().__setstate__(state)
         self["bads"] = MNEBadsList(bads=self["bads"], info=self)
@@ -1849,7 +1907,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         finally:
             self._no_check = prev
 
-    def normalize_proj(self):
+    def normalize_proj(self) -> None:
         """(Re-)Normalize projection vectors after subselection.
 
         Applying projection after sub-selecting a set of channels that
@@ -1865,7 +1923,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         _normalize_proj(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
         from ..transforms import Transform, _coord_frame_name
@@ -1959,7 +2017,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         st %= non_empty
         return st
 
-    def __deepcopy__(self, memodict):
+    def __deepcopy__(self, memodict: dict[int, Any]) -> "Info":
         """Make a deepcopy."""
         result = Info.__new__(Info)
         result._unlocked = True
@@ -2076,7 +2134,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             self["nchan"] = len(self["chs"])
 
     @property
-    def ch_names(self):
+    def ch_names(self) -> list[str]:
         try:
             ch_names = self["ch_names"]
         except KeyError:
@@ -2095,7 +2153,13 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return info_template.render(info=self)
 
     @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
+    def save(
+        self,
+        fname: str | PathLike,
+        *,
+        overwrite: bool = False,
+        verbose: LogLevel = None,
+    ) -> None:
         """Write measurement info in fif file.
 
         Parameters
@@ -2113,7 +2177,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         write_info(fname, self, overwrite=overwrite)
 
-    def to_json_dict(self) -> dict:
+    def to_json_dict(self) -> dict[str, Any]:
         """Convert Info to a JSON-serializable dictionary.
 
         This method converts the Info object to a standard Python dictionary
@@ -2145,7 +2209,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return _make_serializable(self)
 
     @classmethod
-    def from_json_dict(cls, data_dict) -> "Info":
+    def from_json_dict(cls, data_dict: dict[str, Any]) -> "Info":
         """Reconstruct Info object from a dictionary.
 
         Parameters
@@ -2175,7 +2239,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         info = cls()
         with info._unlock():
-            info.update(restored_dict)
+            info.update(restored_dict)  # type: ignore (restored dict has nasty type)
             _restore_mne_types(info)
 
         return info
@@ -2289,7 +2353,9 @@ def _simplify_info(info, *, keep=()):
 
 
 @verbose
-def read_fiducials(fname, *, verbose=None):
+def read_fiducials(
+    fname: str | PathLike, *, verbose: LogLevel = None
+) -> tuple[list[dict[str, Any]], NamedInt]:
     """Read fiducials from a fiff file.
 
     Parameters
@@ -2315,8 +2381,13 @@ def read_fiducials(fname, *, verbose=None):
 
 @verbose
 def write_fiducials(
-    fname, pts, coord_frame="unknown", *, overwrite=False, verbose=None
-):
+    fname: str | PathLike,
+    pts: Iterable[dict[str, Any]],
+    coord_frame: CoordFrameStr | int = "unknown",
+    *,
+    overwrite: bool = False,
+    verbose: LogLevel = None,
+) -> None:
     """Write fiducials to a fiff file.
 
     Parameters
@@ -2342,7 +2413,7 @@ def write_fiducials(
 
 
 @verbose
-def read_info(fname, verbose=None):
+def read_info(fname: str | PathLike, verbose: LogLevel = None) -> "Info":
     """Read measurement info from a file.
 
     Parameters
@@ -2361,24 +2432,6 @@ def read_info(fname, verbose=None):
     with f as fid:
         info = read_meas_info(fid, tree)[0]
     return info
-
-
-def read_bad_channels(fid, node):
-    """Read bad channels.
-
-    Parameters
-    ----------
-    fid : file
-        The file descriptor.
-    node : dict
-        The node of the FIF tree that contains info on the bad channels.
-
-    Returns
-    -------
-    bads : list
-        A list of bad channel's names.
-    """
-    return _read_bad_channels(fid, node)
 
 
 def _read_bad_channels(fid, node, ch_names_mapping):
@@ -2405,7 +2458,12 @@ def _write_bad_channels(fid, bads, ch_names_mapping):
 
 
 @verbose
-def read_meas_info(fid, tree, clean_bads=False, verbose=None):
+def read_meas_info(
+    fid: IO[bytes],
+    tree: dict[str, Any],
+    clean_bads: bool = False,
+    verbose: LogLevel = None,
+) -> tuple["Info", Any]:
     """Read the measurement info.
 
     Parameters
@@ -3004,7 +3062,12 @@ def _check_dates(info, prepend_error=""):
 
 
 @fill_doc
-def write_meas_info(fid, info, data_type=None, reset_range=True):
+def write_meas_info(
+    fid: IO[bytes],
+    info: Info,
+    data_type: Literal[4, 5, 16] | None = None,
+    reset_range: bool = True,
+) -> None:
     """Write measurement info into a file id (from a fif file).
 
     Parameters
@@ -3255,8 +3318,14 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
 
 @verbose
 def write_info(
-    fname, info, *, data_type=None, reset_range=True, overwrite=False, verbose=None
-):
+    fname: str | PathLike,
+    info: Info,
+    *,
+    data_type: Literal[4, 5, 16] | None = None,
+    reset_range: bool = True,
+    overwrite: bool = False,
+    verbose: LogLevel = None,
+) -> None:
     """Write measurement info in fif file.
 
     Parameters
@@ -3509,7 +3578,12 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
 
 @verbose
-def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
+def create_info(
+    ch_names: int | Iterable[str],
+    sfreq: float,
+    ch_types: str | Sequence[str] = "misc",
+    verbose: LogLevel = None,
+) -> "Info":
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
@@ -3561,11 +3635,13 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     * AU: misc, stim, eyegaze, pupil
     """
     try:
-        ch_names = operator.index(ch_names)  # int-like
+        ch_names = operator.index(ch_names)  # type: ignore (try-block makes it safe)
     except TypeError:
         pass
     else:
         ch_names = list(np.arange(ch_names).astype(str))
+    if TYPE_CHECKING:
+        assert isinstance(ch_names, Sequence)
     _validate_type(ch_names, (list, tuple), "ch_names", ("list, tuple, or int"))
     sfreq = float(sfreq)
     if sfreq <= 0:
@@ -3573,7 +3649,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     nchan = len(ch_names)
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    ch_types = np.atleast_1d(np.array(ch_types, np.str_))
+    ch_types: np.ndarray = np.atleast_1d(np.array(ch_types, np.str_))
     if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError(
             f"ch_types and ch_names must be the same length ({len(ch_types)} != "
@@ -3615,7 +3691,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     return info
 
 
-RAW_INFO_FIELDS = (
+RAW_INFO_FIELDS: tuple[str, ...] = (
     "acq_pars",
     "acq_stim",
     "bads",
@@ -3745,7 +3821,14 @@ def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
 
 
 @verbose
-def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
+def anonymize_info(
+    info: Info,
+    daysback: int | None = None,
+    keep_his: bool
+    | Literal["his_id", "sex", "hand"]
+    | Sequence[Literal["his_id", "sex", "hand"]] = False,
+    verbose: LogLevel = None,
+) -> "Info":
     """Anonymize measurement information in place.
 
     .. warning:: If ``info`` is part of an object like
