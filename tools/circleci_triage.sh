@@ -3,55 +3,29 @@
 set -o pipefail
 
 # Works out what this build needs, before anything is restored or downloaded:
-# build.txt and pattern.txt for the doc build, datasets.txt for
+# build.txt and pattern.txt for the doc build, wanted_datasets.txt for
 # circleci_download.sh, and cache_keys/<cache>.txt for the cache keys in
 # .circleci/config.yml. A cache marked noop hashes to a key nothing has ever
 # saved, so its restore misses and costs nothing -- which is what most PRs want,
 # since they touch no example and so need no dataset at all.
 
-# dataset | cache holding it | an example needs the dataset if this matches one
-# of its lines in full
-DATASETS="
-sample|sample|.*datasets.*sample.*
-hcp_mmp_parcellation|sample|.*datasets.*hcp_mmp_parcellation.*
-fsaverage|fsaverage|.*datasets.*fetch_fsaverage.*
-spm_face|spm-face|.*datasets.*spm_face.*
-somato|somato|.*datasets.*somato.*
-eegbci|tiny|.*datasets.*eegbci.*
-misc|tiny|.*datasets.*misc.*
-kiloword|tiny|.*datasets.*kiloword.*
-mtrf|tiny|.*datasets.*mtrf.*
-phantom_4dbti|tiny|.*datasets.*phantom_4dbti.*
-sleep_physionet|tiny|.*datasets.*sleep_physionet.*
-fnirs_motor|tiny|.*datasets.*fnirs_motor.*
-refmeg_noise|tiny|.*datasets.*refmeg_noise.*
-hf_sef|hf-sef|.*datasets.*hf_sef.*
-bst_auditory|bst-auditory|.*brainstorm.*bst_auditory.*
-bst_resting|bst-resting|.*brainstorm.*bst_resting.*
-bst_raw|bst-raw|.*brainstorm.*bst_raw.*
-bst_phantom_ctf|bst-phantom-ctf|.*brainstorm.*bst_phantom_ctf.*
-bst_phantom_elekta|bst-phantom-elekta|.*brainstorm.*bst_phantom_elekta.*
-phantom_kernel|bst-phantom-kernel|.*datasets.*phantom_kernel.*
-testing|testing|.*datasets.*testing.*
-fieldtrip_cmc|fieldtrip|.*datasets.*fieldtrip_cmc.*
-multimodal|multimodal|.*datasets.*multimodal.*
-opm|opm|.*datasets[^_]*opm.*
-limo|limo|.*datasets.*limo.*
-ucl_opm_auditory|ucl-opm-auditory|.*datasets.*ucl_opm_auditory.*
-phantom_kit|phantom-kit|.*datasets.*phantom_kit.*
-visual_92_categories|visual|.*datasets.*visual_92_categories.*
-ds004388|ds004388|.*ds004388.*
-ssvep|ssvep|.*datasets.*ssvep.*
-epilepsy_ecog|epilepsy-ecog|.*datasets.*epilepsy_ecog.*
-erp_core|erp-core|.*datasets.*erp_core.*
-eyelink|eyelink|.*datasets.*eyelink.*
-"
+DATASETS=.circleci/datasets.txt
+WANTED=wanted_datasets.txt
+
+# config.yml cannot read $DATASETS, so make sure nobody has let the two drift:
+# a path only in config.yml is archived but never checked, and one only here is
+# checked but never archived
+if ! diff <(awk '!/^#/ && NF {print $3}' $DATASETS | sort -u) \
+          <(grep -o '~/mne_data/[^ ]*' .circleci/config.yml | sed 's|~/mne_data/||' | sort -u); then
+    echo "The directories in $DATASETS and the save_cache paths in config.yml disagree."
+    exit 1
+fi
 
 want() {
-    grep -qxF "$1" datasets.txt || echo "$1" >> datasets.txt
+    grep -qxF "$1" $WANTED || echo "$1" >> $WANTED
 }
 
-: > datasets.txt
+: > $WANTED
 echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
 echo "export MNE_DOC_BUILD_N_JOBS=1" >> $BASH_ENV
 
@@ -75,11 +49,11 @@ else
         if [[ $(echo "$FNAME" | grep -P '^(tutorials|examples)(/.*)?/((?!sgskip).)*\.py$') ]] ; then
             echo "Checking example $FNAME ...";
             PATTERN=$(basename $FNAME)"\\|"$PATTERN;
-            while IFS='|' read -r NAME CACHE MATCH; do
-                if [[ -n "$NAME" ]] && grep -qx "$MATCH" $FNAME; then
+            while read -r NAME CACHE DIR MATCH; do
+                if [[ $NAME != \#* ]] && grep -qx "$MATCH" $FNAME; then
                     want $NAME
                 fi
-            done <<< "$DATASETS"
+            done < $DATASETS
         fi;
     done;
     echo PATTERN="$PATTERN";
@@ -93,14 +67,14 @@ fi;
 echo "$PATTERN" > pattern.txt;
 
 mkdir -p cache_keys
-for CACHE in $(echo "$DATASETS" | cut -d '|' -f 2 | sort -u); do
+for CACHE in $(awk '!/^#/ && NF {print $2}' $DATASETS | sort -u); do
     echo noop > cache_keys/$CACHE.txt
 done
-while IFS='|' read -r NAME CACHE MATCH; do
-    if [[ -n "$NAME" ]] && grep -qxF -e "$NAME" -e all datasets.txt; then
+while read -r NAME CACHE DIR MATCH; do
+    if [[ $NAME != \#* ]] && grep -qxF -e "$NAME" -e all $WANTED; then
         echo real > cache_keys/$CACHE.txt
     fi
-done <<< "$DATASETS"
+done < $DATASETS
 
-echo "Datasets wanted: $(tr '\n' ' ' < datasets.txt)"
+echo "Datasets wanted: $(tr '\n' ' ' < $WANTED)"
 grep -H . cache_keys/*.txt
