@@ -1,0 +1,1 @@
+Sped up various evoked plotting functions by taking advantage of blitting, and :class:`mne.Report` image embedding by compressing rendered pixels directly, by `Eric Larson`_

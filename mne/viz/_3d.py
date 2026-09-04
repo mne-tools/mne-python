@@ -841,7 +841,7 @@ def plot_alignment(
 
     # initialize figure
     renderer = _get_renderer(
-        fig,
+        fig=fig,
         name=f"Sensor alignment: {subject}",
         bgcolor=(0.5, 0.5, 0.5),
         size=(800, 800),
@@ -1442,8 +1442,7 @@ def _plot_glyphs(
         )
         x_axis = np.array([1.0, 0.0, 0.0])
         nn = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
-        rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
-        quats = rot_to_quat(rots)
+        quats = rot_to_quat(_find_vector_rotation(x_axis, nn))
     rr, tris = renderer._glyph_template(kind, **template_kw)
     actor, cloud = renderer.instanced_mesh(
         rr=rr,
@@ -1703,6 +1702,8 @@ def _plot_sensors_3d(
             # colors/scales are requested (broadcasting handles 1-vs-N).
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
+            if not mask.any():  # e.g., CTF EEG/EOG channels with no digitized positions
+                continue
             loc = sens_loc[mask]
             these_colors = colors[mask] if len(colors) == len(mask) else colors
             these_scales = scales[mask] if len(scales) == len(mask) else scales
@@ -3951,7 +3952,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         )
 
     # initialize figure
-    renderer = _get_renderer(fig, show=True)
+    renderer = _get_renderer(fig=fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
