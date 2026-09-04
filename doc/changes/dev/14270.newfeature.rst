@@ -1,0 +1,1 @@
+The :class:`mne.viz.Brain` GUI now gives label-mode traces the same as vertex traces, and autoscales the traces plot's y-axis whenever a new trace is picked, by `Payam Sadeghi-Shabestari`_.
