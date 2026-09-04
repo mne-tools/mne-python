@@ -1,0 +1,1 @@
+Add support for applying selected SSP projectors and reconstructing projected data in sensor space on :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked` objects via ``apply_proj(projs=...)`` and the new public ``reconstruct_proj(projs=...)`` method, by `Hamza Abdelhedi`_.

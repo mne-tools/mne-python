@@ -9,6 +9,7 @@ https://github.com/jendrikseipp/vulture/blob/main/README.md#whitelists
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+fail_if_times_materialized
 numba_conditional
 options_3d
 invisible_fig
@@ -16,6 +17,7 @@ brain_gc
 windows_like_datetime
 garbage_collect
 renderer_notebook
+renderer_lite
 qt_windows_closed
 download_is_error
 exitstatus
@@ -189,3 +191,9 @@ _sigint_impl
 
 # Read by numpydoc's ClassDoc (also set in doc/conf.py)
 _.extra_public_methods
+
+# Accessed through an attribute-path string by the _qt_safe_window decorator
+_._init_renderer
+
+# Called by Matplotlib on the _NoOpAxes a ContourSet attaches itself to
+_.update_datalim

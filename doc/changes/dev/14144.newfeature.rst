@@ -1,0 +1,1 @@
+Add a vtk.js drawing backend for MNE's 3D renderer, selected with ``mne.viz.set_3d_backend("jupyterlite_notebook")`` and used by the JupyterLite documentation where VTK cannot load, by `Natneal B`_.

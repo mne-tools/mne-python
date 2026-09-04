@@ -21,8 +21,17 @@ _check_skip: &check_skip
       circleci-agent step halt;
     fi
 
+# Runs that download every dataset and build every example, and so are the only
+# ones whose caches are worth writing; see the data save_cache comment below
+_full_build: &full_build
+  matches:
+    pattern: "^(main|maint/.*)$"
+    value: << pipeline.git.branch >>
+
+# gen3 resource classes are only valid with the `current` tag, not a pinned
+# dated tag -- a pinned tag is rejected with "is not a valid resource class"
 _machine_image: &machine_image
-  image: ubuntu-2604:2026.05.1
+  image: ubuntu-2604:current
 
 jobs:
   build_docs:
@@ -32,9 +41,11 @@ jobs:
         default: "false"
     machine:
       <<: *machine_image
-    # large 4 vCPUs 15GB mem
+    # large.gen3 4 vCPUs 16GiB mem -- gen3 is an open beta, and is both faster
+    # and cheaper per minute than gen1 large (14 vs 20 credits/min); revert to
+    # `large` if beta queue times or reliability become a problem
     # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
-    resource_class: large
+    resource_class: large.gen3
     steps:
       - restore_cache:
           keys:
@@ -100,6 +111,22 @@ jobs:
           name: Set BASH_ENV
           command: ./tools/circleci_bash_env.sh
 
+      # Writes testing_version.txt and misc_version.txt, used in the cache keys of
+      # the two datasets whose versions actually change on a regular basis, so
+      # that a version bump misses the cache outright rather than restoring the
+      # stale copy and then re-downloading it.
+      - run:
+          name: Get dataset versions
+          command: ./tools/get_testing_version.sh
+
+      # Works out which examples run and therefore which datasets are needed,
+      # writing cache_keys/<cache>.txt = real|noop for the restores below. Has to
+      # come before them: most PRs touch no example at all and so need no dataset,
+      # and restoring every cache unconditionally would pull ~35 G to no purpose.
+      - run:
+          name: Triage examples and datasets
+          command: ./tools/circleci_triage.sh
+
       - run:
           name: Install fonts needed for diagrams
           command: |
@@ -110,13 +137,15 @@ jobs:
             curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
             fc-cache -f
 
-      # Load uv cache
+      # Load uv cache. Caches are immutable on CircleCI, so a fixed key would freeze
+      # the cache at whatever the dependencies looked like the first time it was
+      # written; keying on pyproject.toml refreshes it when the dependencies change,
+      # and the prefix-only fallback still gets a warm (if slightly stale) cache in
+      # between.
       - restore_cache:
           keys:
-            - uv-cache-0
-      - restore_cache:
-          keys:
-            - user-install-bin-cache-311
+            - uv-cache-1-{{ checksum "pyproject.toml" }}
+            - uv-cache-1-
 
       # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
       - run:
@@ -125,14 +154,19 @@ jobs:
             ./tools/circleci_dependencies.sh
 
       - save_cache:
-          key: uv-cache-0
+          key: uv-cache-1-{{ checksum "pyproject.toml" }}
           paths:
             - ~/.cache/uv
-      - save_cache:
-          key: user-install-bin-cache-311
-          paths:
-            - ~/.local/lib/python3.11/site-packages
-            - ~/.local/bin
+
+      # Load numba's JIT cache
+      - run:
+          name: Get numba cache key
+          command: |
+            { ./tools/get_numba_version.sh; find mne -name "*numba*.py" | sort | xargs cat; } | sha256sum > numba_key.txt
+            cat numba_key.txt
+      - restore_cache:
+          keys:
+            - mne-numba-1-{{ checksum "numba_key.txt" }}-
 
       - run:
           name: Check Qt
@@ -142,7 +176,7 @@ jobs:
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:
-            - data-cache-tiny-0
+            - data-cache-tiny-v1-{{ checksum "misc_version.txt" }}-{{ checksum "cache_keys/tiny.txt" }}
 
       # Look at what we have and fail early if there is some library conflict
       - run:
@@ -160,72 +194,82 @@ jobs:
           name: List packages
           command: python -m pip list
 
-      # Figure out if we should run a full build or specify a pattern
+      # A cache whose marker says noop hashes to a key nothing ever saved, so
+      # the restore misses and costs nothing
       - restore_cache:
           keys:
-            - data-cache-tiny-1
+            - data-cache-ssvep-v1-{{ checksum "cache_keys/ssvep.txt" }}
       - restore_cache:
           keys:
-            - data-cache-multimodal
+            - data-cache-epilepsy-ecog-v1-{{ checksum "cache_keys/epilepsy-ecog.txt" }}
       - restore_cache:
           keys:
-            - data-cache-limo
+            - data-cache-erp-core-v1-{{ checksum "cache_keys/erp-core.txt" }}
       - restore_cache:
           keys:
-            - data-cache-fsaverage
+            - data-cache-eyelink-v1-{{ checksum "cache_keys/eyelink.txt" }}
       - restore_cache:
           keys:
-            - data-cache-bst-raw
+            - data-cache-multimodal-v1-{{ checksum "cache_keys/multimodal.txt" }}
       - restore_cache:
           keys:
-            - data-cache-bst-phantom-ctf
+            - data-cache-limo-v1-{{ checksum "cache_keys/limo.txt" }}
       - restore_cache:
           keys:
-            - data-cache-bst-phantom-elekta
+            - data-cache-fsaverage-v1-{{ checksum "cache_keys/fsaverage.txt" }}
       - restore_cache:
           keys:
-            - data-cache-bst-phantom-kernel
+            - data-cache-bst-raw-v1-{{ checksum "cache_keys/bst-raw.txt" }}
       - restore_cache:
           keys:
-            - data-cache-bst-auditory
+            - data-cache-bst-phantom-ctf-v1-{{ checksum "cache_keys/bst-phantom-ctf.txt" }}
       - restore_cache:
           keys:
-            - data-cache-bst-resting
+            - data-cache-bst-phantom-elekta-v1-{{ checksum "cache_keys/bst-phantom-elekta.txt" }}
       - restore_cache:
           keys:
-            - data-cache-fieldtrip
+            - data-cache-bst-phantom-kernel-v1-{{ checksum "cache_keys/bst-phantom-kernel.txt" }}
       - restore_cache:
           keys:
-            - data-cache-somato
+            - data-cache-bst-auditory-v1-{{ checksum "cache_keys/bst-auditory.txt" }}
       - restore_cache:
           keys:
-            - data-cache-hf-sef
+            - data-cache-bst-resting-v1-{{ checksum "cache_keys/bst-resting.txt" }}
       - restore_cache:
           keys:
-            - data-cache-opm
+            - data-cache-fieldtrip-v1-{{ checksum "cache_keys/fieldtrip.txt" }}
       - restore_cache:
           keys:
-            - data-cache-sample
+            - data-cache-somato-v1-{{ checksum "cache_keys/somato.txt" }}
       - restore_cache:
           keys:
-            - data-cache-spm-face
+            - data-cache-hf-sef-v2-{{ checksum "cache_keys/hf-sef.txt" }}
       - restore_cache:
           keys:
-            - data-cache-testing
+            - data-cache-opm-v1-{{ checksum "cache_keys/opm.txt" }}
       - restore_cache:
           keys:
-            - data-cache-visual-1
+            - data-cache-sample-v1-{{ checksum "cache_keys/sample.txt" }}
       - restore_cache:
           keys:
-            - data-cache-ucl-opm-auditory
+            - data-cache-spm-face-v1-{{ checksum "cache_keys/spm-face.txt" }}
       - restore_cache:
           keys:
-            - data-cache-phantom-kit
+            - data-cache-testing-v1-{{ checksum "testing_version.txt" }}-{{ checksum "cache_keys/testing.txt" }}
       - restore_cache:
           keys:
-            - data-cache-ds004388
+            - data-cache-visual-v1-{{ checksum "cache_keys/visual.txt" }}
+      - restore_cache:
+          keys:
+            - data-cache-ucl-opm-auditory-v1-{{ checksum "cache_keys/ucl-opm-auditory.txt" }}
+      - restore_cache:
+          keys:
+            - data-cache-phantom-kit-v1-{{ checksum "cache_keys/phantom-kit.txt" }}
+      - restore_cache:
+          keys:
+            - data-cache-ds004388-v1-{{ checksum "cache_keys/ds004388.txt" }}
       - run:
-          name: Get data and triage examples to run
+          name: Get the datasets the triage step marked as needed
           # This limit could be increased, but this is helpful for finding slow ones
           # (even ~2GB datasets should be downloadable in this time from good
           # providers)
@@ -239,6 +283,131 @@ jobs:
             echo "BUILD=$(cat build.txt)"
             ls -al ~/mne_data;
 
+      # Saved here rather than at the end of the job: everything above has
+      # finished downloading, and a failure in the (long, flaky) doc build below
+      # should not throw the downloads away. Kept as separate caches, maybe
+      # better in terms of size limitations (?)
+      #
+      # Only saved on main and maint/*, which is exactly the set of runs that
+      # download every dataset: getting this far on those branches means either
+      # the scheduled build or [circle deploy], and both take the full branch of
+      # circleci_triage.sh -- any other push to them halts in the triage step
+      # above. A PR fetches only what its changed examples need, and save_cache
+      # writes an empty 16 B archive for the paths that do not exist. Caches are
+      # immutable and the first write to a key wins, so those empty archives
+      # would pin the key forever and no later build could replace them.
+      - when:
+          condition: *full_build
+          steps:
+            - save_cache:
+                key: data-cache-tiny-v1-{{ checksum "misc_version.txt" }}-{{ checksum "cache_keys/tiny.txt" }}  # the small ones, combined
+                paths:
+                  - ~/.mne
+                  - ~/mne_data/MNE-kiloword-data  # (28 M)
+                  - ~/mne_data/MNE-eegbci-data  # (35 M)
+                  - ~/mne_data/MNE-misc-data  # (39 M)
+                  - ~/mne_data/mTRF_1.5  # (56 M)
+                  - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
+                  - ~/mne_data/MNE-fNIRS-motor-data  # (71 M)
+                  - ~/mne_data/MNE-refmeg-noise-data  # (93 M)
+                  - ~/mne_data/physionet-sleep-data  # (95 M)
+            - save_cache:
+                key: data-cache-ssvep-v1-{{ checksum "cache_keys/ssvep.txt" }}
+                paths:
+                  - ~/mne_data/ssvep-example-data  # (57 M)
+            - save_cache:
+                key: data-cache-epilepsy-ecog-v1-{{ checksum "cache_keys/epilepsy-ecog.txt" }}
+                paths:
+                  - ~/mne_data/MNE-epilepsy-ecog-data  # (101 M)
+            - save_cache:
+                key: data-cache-erp-core-v1-{{ checksum "cache_keys/erp-core.txt" }}
+                paths:
+                  - ~/mne_data/MNE-ERP-CORE-data  # (118 M)
+            - save_cache:
+                key: data-cache-eyelink-v1-{{ checksum "cache_keys/eyelink.txt" }}
+                paths:
+                  - ~/mne_data/MNE-eyelink-data  # (154 M)
+            - save_cache:
+                key: data-cache-multimodal-v1-{{ checksum "cache_keys/multimodal.txt" }}
+                paths:
+                  - ~/mne_data/MNE-multimodal-data  # (240 M)
+            - save_cache:
+                key: data-cache-limo-v1-{{ checksum "cache_keys/limo.txt" }}
+                paths:
+                  - ~/mne_data/MNE-limo-data  # (244 M)
+            - save_cache:
+                key: data-cache-fsaverage-v1-{{ checksum "cache_keys/fsaverage.txt" }}
+                paths:
+                  - ~/mne_data/MNE-fsaverage-data  # (762 M)
+            - save_cache:
+                key: data-cache-bst-raw-v1-{{ checksum "cache_keys/bst-raw.txt" }}
+                paths:
+                  - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
+            - save_cache:
+                key: data-cache-bst-phantom-ctf-v1-{{ checksum "cache_keys/bst-phantom-ctf.txt" }}
+                paths:
+                  - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
+            - save_cache:
+                key: data-cache-bst-phantom-elekta-v1-{{ checksum "cache_keys/bst-phantom-elekta.txt" }}
+                paths:
+                  - ~/mne_data/MNE-brainstorm-data/bst_phantom_elekta  # (1.4 G)
+            - save_cache:
+                key: data-cache-bst-phantom-kernel-v1-{{ checksum "cache_keys/bst-phantom-kernel.txt" }}
+                paths:
+                  - ~/mne_data/MNE-phantom-kernel-data  # (362 M)
+            - save_cache:
+                key: data-cache-bst-auditory-v1-{{ checksum "cache_keys/bst-auditory.txt" }}
+                paths:
+                  - ~/mne_data/MNE-brainstorm-data/bst_auditory  # (2.9 G)
+            - save_cache:
+                key: data-cache-bst-resting-v1-{{ checksum "cache_keys/bst-resting.txt" }}
+                paths:
+                  - ~/mne_data/MNE-brainstorm-data/bst_resting  # (4.5 G)
+            - save_cache:
+                key: data-cache-fieldtrip-v1-{{ checksum "cache_keys/fieldtrip.txt" }}
+                paths:
+                  - ~/mne_data/MNE-fieldtrip_cmc-data  # (699 M)
+            - save_cache:
+                key: data-cache-somato-v1-{{ checksum "cache_keys/somato.txt" }}
+                paths:
+                  - ~/mne_data/MNE-somato-data  # (750 M)
+            - save_cache:
+                key: data-cache-hf-sef-v2-{{ checksum "cache_keys/hf-sef.txt" }}
+                paths:
+                  - ~/mne_data/hf_sef  # (1.3 G)
+            - save_cache:
+                key: data-cache-opm-v1-{{ checksum "cache_keys/opm.txt" }}
+                paths:
+                  - ~/mne_data/MNE-OPM-data  # (1.9 G)
+            - save_cache:
+                key: data-cache-sample-v1-{{ checksum "cache_keys/sample.txt" }}
+                paths:
+                  - ~/mne_data/MNE-sample-data  # (3.2 G)
+            - save_cache:
+                key: data-cache-spm-face-v1-{{ checksum "cache_keys/spm-face.txt" }}
+                paths:
+                  - ~/mne_data/MNE-spm-face  # (1.5 G)
+            - save_cache:
+                key: data-cache-testing-v1-{{ checksum "testing_version.txt" }}-{{ checksum "cache_keys/testing.txt" }}
+                paths:
+                  - ~/mne_data/MNE-testing-data  # (2.5 G)
+            - save_cache:
+                key: data-cache-visual-v1-{{ checksum "cache_keys/visual.txt" }}
+                paths:
+                  - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
+            - save_cache:
+                key: data-cache-ucl-opm-auditory-v1-{{ checksum "cache_keys/ucl-opm-auditory.txt" }}
+                paths:
+                  - ~/mne_data/auditory_OPM_stationary  # (4 G)
+            - save_cache:
+                key: data-cache-phantom-kit-v1-{{ checksum "cache_keys/phantom-kit.txt" }}
+                paths:
+                  - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
+            - save_cache:
+                key: data-cache-ds004388-v1-{{ checksum "cache_keys/ds004388.txt" }}
+                paths:
+                  - ~/mne_data/ds004388  # (1.8 G)
+
       # Run doctest (if it's full or front) before building the docs
       - run:
           name: make test-doc
@@ -246,8 +415,9 @@ jobs:
             if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
               make test-doc;
               mkdir -p doc/_build/test-results/test-doc;
+              # coverage.xml stays out of test-results: store_test_results parses
+              # every XML it finds there and rejects anything that is not JUnit
               cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
-              cp coverage.xml doc/_build/test-results/test-doc/coverage.xml;
             fi;
       # Build docs
       - run:
@@ -255,6 +425,17 @@ jobs:
           command: |  # we have -o pipefail in #BASH_ENV so we should be okay
             set -x
             PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt) 2>&1 | tee sphinx_log.txt
+      # Only on success, and only on a full build: anything else compiles an
+      # arbitrary subset of the kernels and there is no point saving that. The
+      # restore above stays unconditional -- it is small, and a PR is happy with
+      # whatever the last full build compiled.
+      - when:
+          condition: *full_build
+          steps:
+            - save_cache:
+                key: mne-numba-1-{{ checksum "numba_key.txt" }}-{{ epoch }}
+                paths:
+                  - ~/.cache/mne-numba
       - run:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
@@ -298,8 +479,8 @@ jobs:
           environment:
             CODECOV_TOKEN: fb4c4a94-72d7-4743-bb08-af25b623a29a
           command: |
-            if [[ -f doc/_build/test-results/test-doc/coverage.xml ]]; then
-              bash <(curl -s https://codecov.io/bash) -f doc/_build/test-results/test-doc/coverage.xml || true
+            if [[ -f coverage.xml ]]; then
+              bash <(curl -s https://codecov.io/bash) -f coverage.xml || true
             fi
       # Save the SG RST
       - store_artifacts:
@@ -317,103 +498,6 @@ jobs:
           paths:
             - html
 
-      # Keep these separate, maybe better in terms of size limitations (?)
-      - save_cache:
-          key: data-cache-tiny-0  # < 100 M, might as well combine
-          paths:
-            - ~/.mne
-            - ~/mne_data/MNE-kiloword-data  # (28 M)
-            - ~/mne_data/MNE-eegbci-data  # (35 M)
-            - ~/mne_data/MNE-misc-data  # (39 M)
-            - ~/mne_data/mTRF_1.5  # (56 M)
-            - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
-      - save_cache:
-          key: data-cache-tiny-1  # more to combine
-          paths:
-            - ~/mne_data/MNE-fNIRS-motor-data  # (71 M)
-            - ~/mne_data/MNE-refmeg-noise-data  # (93 M)
-            - ~/mne_data/physionet-sleep-data  # (95 M)
-      - save_cache:
-          key: data-cache-multimodal
-          paths:
-            - ~/mne_data/MNE-multimodal-data  # (240 M)
-      - save_cache:
-          key: data-cache-limo
-          paths:
-            - ~/mne_data/MNE-limo-data  # (244 M)
-      - save_cache:
-          key: data-cache-fsaverage
-          paths:
-            - ~/mne_data/MNE-fsaverage-data  # (762 M)
-      - save_cache:
-          key: data-cache-bst-raw
-          paths:
-            - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
-      - save_cache:
-          key: data-cache-bst-phantom-ctf
-          paths:
-            - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
-      - save_cache:
-          key: data-cache-bst-phantom-elekta
-          paths:
-            - ~/mne_data/MNE-brainstorm-data/bst_phantom_elekta  # (1.4 G)
-      - save_cache:
-          key: data-cache-bst-phantom-kernel
-          paths:
-            - ~/mne_data/MNE-phantom-kernel-data  # (362 M)
-      - save_cache:
-          key: data-cache-bst-auditory
-          paths:
-            - ~/mne_data/MNE-brainstorm-data/bst_auditory  # (2.9 G)
-      - save_cache:
-          key: data-cache-bst-resting
-          paths:
-            - ~/mne_data/MNE-brainstorm-data/bst_resting  # (4.5 G)
-      - save_cache:
-          key: data-cache-fieldtrip
-          paths:
-            - ~/mne_data/MNE-fieldtrip_cmc-data  # (699 M)
-      - save_cache:
-          key: data-cache-somato
-          paths:
-            - ~/mne_data/MNE-somato-data  # (750 M)
-      - save_cache:
-          key: data-cache-hf-sef
-          paths:
-            - ~/mne_data/HF_SEF  # (1.3 G)
-      - save_cache:
-          key: data-cache-opm
-          paths:
-            - ~/mne_data/MNE-OPM-data  # (1.9 G)
-      - save_cache:
-          key: data-cache-sample
-          paths:
-            - ~/mne_data/MNE-sample-data  # (3.2 G)
-      - save_cache:
-          key: data-cache-spm-face
-          paths:
-            - ~/mne_data/MNE-spm-face  # (1.5 G)
-      - save_cache:
-          key: data-cache-testing
-          paths:
-            - ~/mne_data/MNE-testing-data  # (2.5 G)
-      - save_cache:
-          key: data-cache-visual-1
-          paths:
-            - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
-      - save_cache:
-          key: data-cache-ucl-opm-auditory
-          paths:
-            - ~/mne_data/auditory_OPM_stationary  # (4 G)
-      - save_cache:
-          key: data-cache-phantom-kit
-          paths:
-            - ~/mne_data/MNE-phantom-KIT-data  # (1 G)
-      - save_cache:
-          key: data-cache-ds004388
-          paths:
-            - ~/mne_data/ds004388  # (1.8 G)
-
 
   linkcheck:
     # there are a few files excluded from this for expediency, see Makefile
@@ -423,7 +507,7 @@ jobs:
         default: "false"
     machine:
       <<: *machine_image
-    resource_class: large
+    resource_class: large.gen3
     steps:
       - restore_cache:
           keys:
@@ -442,7 +526,8 @@ jobs:
           command: ./tools/circleci_bash_env.sh
       - restore_cache:
           keys:
-            - uv-cache-0
+            - uv-cache-1-{{ checksum "pyproject.toml" }}
+            - uv-cache-1-
       - run:
           name: Get Python running
           command: |
@@ -499,6 +584,7 @@ jobs:
       - run:
           name: Deploy docs
           command: |
+            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@eb63c18f6a611e4da8d9f31b281b57438c610be4"
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
             ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
@@ -518,12 +604,10 @@ jobs:
               circleci-agent step halt;
             fi;
             echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
-            rm -Rf "${DIR}";
-            cp -a /tmp/build/html "${DIR}";
-            git add -A;
-            git commit -m "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
-              -m "Deployed-version: ${DIR}" -m "Source-sha: ${CIRCLE_SHA1}";
-            git push origin main;
+            python -m docstacks deploy /tmp/build/html "${DIR}" --no-manifest \
+              --source-sha "${CIRCLE_SHA1}" \
+              --message "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
+              --push;
       - save_cache:
           key: website-cache-1
           paths:

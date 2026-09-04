@@ -585,6 +585,18 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     assert inst_interp.info["bads"] == bads
 
 
+def test_interpolate_to_eeg_same_positions():
+    """Test that spline interpolate_to onto src pos is a no-op (gh-14153)."""
+    raw = read_raw_fif(raw_fname).pick("eeg").crop(0, 1).load_data()
+    montage = make_dig_montage(
+        ch_pos=dict(zip(raw.ch_names, raw.info._get_channel_positions())),
+        coord_frame="head",
+    )
+    raw_interp = raw.copy().interpolate_to(montage, method="spline")
+    assert raw_interp.ch_names == raw.ch_names
+    assert_allclose(raw_interp.get_data(), raw.get_data(), rtol=1e-5, atol=1e-12)
+
+
 @pytest.mark.slowtest  # ~5s locally
 @pytest.mark.filterwarnings("ignore:Projection vector.* reduced .*:RuntimeWarning")
 def test_interpolate_to_meg(monkeypatch):

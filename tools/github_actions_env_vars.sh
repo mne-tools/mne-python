@@ -19,6 +19,34 @@ case "$MNE_CI_KIND" in
 esac
 echo "COV_ARGS=$COV_ARGS" | tee -a $GITHUB_ENV
 
+# Where we do measure coverage, use the sys.monitoring core rather than the C
+# tracer: it produces identical line and branch results for a fraction of the
+# overhead. It needs Python >= 3.14 to measure branches (we always pass
+# --cov-branch, see the pytest addopts), and coverage's free-threading support is
+# still settling, so those jobs stay on the C tracer. When sysmon is unusable
+# coverage falls back on its own, but only after a CoverageWarning that our
+# warning filters would turn into an error, so don't ask for it there.
+if [[ -n "$COV_ARGS" ]]; then
+    case "$PYTHON_VERSION" in
+        3.11 | 3.12 | 3.13 | *t) ;;
+        *) echo "COVERAGE_CORE=sysmon" | tee -a $GITHUB_ENV ;;
+    esac
+fi
+
+# Persist numba's on-disk JIT cache between runs (see the "Cache numba" step).
+# Without it every xdist worker recompiles all ~30 jitted kernels from scratch:
+# e.g. test_fit_chpi_quat_weighted takes 12 s cold and 0.3 s warm. The whole
+# cache is only ~1 MB.
+#
+# numba keys its cache index on the host CPU model, so on CI -- where the runner
+# pool hands out several different models -- a restored cache would usually miss.
+# Compiling for a generic CPU makes the cached objects portable between them; the
+# kernels are small enough that losing model-specific vectorization is nothing
+# next to the compile time it saves.
+echo "NUMBA_CACHE_DIR=$HOME/.cache/mne-numba" | tee -a $GITHUB_ENV
+echo "NUMBA_CPU_NAME=generic" | tee -a $GITHUB_ENV
+echo "NUMBA_CPU_FEATURES=" | tee -a $GITHUB_ENV
+
 # Number of pytest-xdist workers -- explicit ints (in the spirit of SciPy's CI)
 # rather than "auto". macOS has  fewer cores and less RAM
 if [[ "$CI_OS_NAME" == "macos"* ]]; then
@@ -38,7 +66,7 @@ if [[ "$MNE_CI_KIND" == "pip"* ]]; then
         echo "MNE_QT_BACKEND=PySide6" | tee -a $GITHUB_ENV
     elif [[ "$MNE_CI_KIND" == "pip" ]]; then
         if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|FreeSurfer|MNE-C|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
+            echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|FreeSurfer|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         else
             echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|CUDA not|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
         fi

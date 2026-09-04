@@ -841,7 +841,7 @@ def plot_alignment(
 
     # initialize figure
     renderer = _get_renderer(
-        fig,
+        fig=fig,
         name=f"Sensor alignment: {subject}",
         bgcolor=(0.5, 0.5, 0.5),
         size=(800, 800),
@@ -1442,8 +1442,7 @@ def _plot_glyphs(
         )
         x_axis = np.array([1.0, 0.0, 0.0])
         nn = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
-        rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
-        quats = rot_to_quat(rots)
+        quats = rot_to_quat(_find_vector_rotation(x_axis, nn))
     rr, tris = renderer._glyph_template(kind, **template_kw)
     actor, cloud = renderer.instanced_mesh(
         rr=rr,
@@ -1703,6 +1702,8 @@ def _plot_sensors_3d(
             # colors/scales are requested (broadcasting handles 1-vs-N).
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
+            if not mask.any():  # e.g., CTF EEG/EOG channels with no digitized positions
+                continue
             loc = sens_loc[mask]
             these_colors = colors[mask] if len(colors) == len(mask) else colors
             these_scales = scales[mask] if len(scales) == len(mask) else scales
@@ -2189,6 +2190,7 @@ def _plot_mpl_stc(
     time_viewer=False,
     colorbar=True,
     transparent=True,
+    block=False,
 ):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
@@ -2328,7 +2330,7 @@ def _plot_mpl_stc(
         cax.tick_params(labelsize=16)
         cb.ax.set_facecolor("0.5")
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt_show(True)
+    plt_show(True, block=block)
     return fig
 
 
@@ -2437,6 +2439,7 @@ def plot_source_estimates(
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
+    block=False,
     verbose=None,
 ):
     """Plot SourceEstimate.
@@ -2538,6 +2541,7 @@ def plot_source_estimates(
     %(view_layout)s
     %(add_data_kwargs)s
     %(brain_kwargs)s
+    %(block)s
     %(verbose)s
 
     Returns
@@ -2557,12 +2561,14 @@ def plot_source_estimates(
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    from .backends._utils import _qt_block
     from .backends.renderer import _get_3d_backend, use_3d_backend
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, "stc", "source estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     subject = _check_subject(stc.subject, subject)
+    _validate_type(block, bool, "block")
     _check_option("backend", backend, ["auto", "matplotlib", "pyvistaqt", "notebook"])
     plot_mpl = backend == "matplotlib"
     if not plot_mpl:
@@ -2593,10 +2599,10 @@ def plot_source_estimates(
         transparent=transparent,
     )
     if plot_mpl:
-        return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
+        return _plot_mpl_stc(stc, spacing=spacing, block=block, **kwargs)
     else:
         with use_3d_backend(backend):
-            return _plot_stc(
+            brain = _plot_stc(
                 stc,
                 overlay_alpha=alpha,
                 brain_alpha=alpha,
@@ -2614,6 +2620,9 @@ def plot_source_estimates(
                 title=title,
                 **kwargs,
             )
+        if block and brain._renderer._kind == "qt":
+            _qt_block(brain.plotter.app_window)
+        return brain
 
 
 def _plot_stc(
@@ -2709,6 +2718,10 @@ def _plot_stc(
     }
     if brain_kwargs is not None:
         kwargs.update(brain_kwargs)
+    # The window is shown at the end instead (unless the caller opted out entirely
+    # with ``brain_kwargs=dict(show=False)``, e.g. to embed the plot in a larger
+    # GUI whose window it shows itself, like mne.gui.dipolefit).
+    show = kwargs.get("show", True)
     kwargs["show"] = False
     kwargs["view_layout"] = view_layout
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -2771,7 +2784,7 @@ def _plot_stc(
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer, show_traces=show_traces)
-    else:
+    elif show:
         brain.show()
 
     return brain
@@ -3939,7 +3952,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         )
 
     # initialize figure
-    renderer = _get_renderer(fig, show=True)
+    renderer = _get_renderer(fig=fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)

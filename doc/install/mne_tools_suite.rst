@@ -14,9 +14,7 @@ Related software
   computing cortically constrained Minimum Norm Estimates from MEG and EEG
   data. These tools were written in C by Matti Hämäläinen, and are
   documented `here <MNE-C manual_>`_. See :ref:`install_mne_c` for installation
-  instructions.
-
-- MNE-Python reimplements the functionality of MNE-C, extends considerably the
+  instructions. MNE-Python reimplements the functionality of MNE-C, extends considerably the
   analysis and visualization capabilities, and adds support for additional data
   types like functional near-infrared spectroscopy (fNIRS). MNE-Python is
   collaboratively developed and has more than 200 contributors.
@@ -28,6 +26,12 @@ Related software
 
 - :ref:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in
   C++ and is primarily intended for embedded and real-time applications.
+
+
+.. _related-python-packages:
+
+Related Python packages
+^^^^^^^^^^^^^^^^^^^^^^^
 
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including:

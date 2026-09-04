@@ -1030,11 +1030,20 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
 
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = HTML(value=value, disabled=True)
         widget.layout.width = "100px"
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _IpyWidget(widget)
 
     def _dock_add_button(
@@ -1080,6 +1089,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         klass = FloatSlider if double else IntSlider
@@ -1090,15 +1101,17 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names="value")
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _IpyWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = Checkbox(value=value, description=name, indent=False, disabled=False)
         hbox = HBox([widget])  # fix stretching to the right
         widget.observe(_generate_callback(callback), names="value")
-        self._layout_add_widget(layout, hbox)
+        self._layout_add_widget(layout, hbox, row=row, col=col)
         return _IpyWidget(widget)
 
     def _dock_add_spin_box(

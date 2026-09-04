@@ -1163,3 +1163,23 @@ def test_ahdr_format():
     assert raw.info["nchan"] == expected_num_channels
     assert raw.info["highpass"] == expected_hp
     assert raw.info["lowpass"] == expected_lp
+
+
+@pytest.mark.parametrize("max_block_samples", (2, 1))
+def test_read_block_size_does_not_change_data(max_block_samples, monkeypatch):
+    """Test the size of the read blocks does not change the decoded data."""
+    want = read_raw_brainvision(vhdr_path, preload=True).get_data()
+    raw = read_raw_brainvision(vhdr_path, preload=False)
+    raw._raw_extras[0]["max_block_samples"] = max_block_samples
+    n_channels = raw._raw_extras[0]["orig_nchan"]
+    counts = []
+    fromfile = np.fromfile
+
+    def _fromfile(fid, dtype, count):
+        counts.append(count)
+        return fromfile(fid, dtype, count)
+
+    monkeypatch.setattr(np, "fromfile", _fromfile)
+    got = raw.load_data().get_data()
+    assert max(counts) == max_block_samples * n_channels
+    assert_array_equal(want, got)

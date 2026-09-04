@@ -819,6 +819,8 @@ def test_own_data():
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
     assert not epochs._data.flags["OWNDATA"]
+    # in-place selection must own its data too, so it stays resizable (gh-14260)
+    assert epochs.copy()._getitem(slice(2), copy=False)._data.flags["OWNDATA"]
 
     # data ownership value error
     epochs.drop_bad(flat=dict(eeg=8e-6))
@@ -2350,7 +2352,7 @@ def test_preload_epochs():
     assert_array_almost_equal(epochs_preload.average().data, epochs.average().data, 18)
 
 
-def test_indexing_slicing():
+def test_indexing_slicing(monkeypatch):
     """Test of indexing and slicing operations."""
     raw, events, picks = _get_data()
     epochs = Epochs(
@@ -2388,6 +2390,14 @@ def test_indexing_slicing():
 
         data_epochs2_sliced = epochs2_sliced.get_data()
         assert_array_equal(data_epochs2_sliced, data_normal[start_index:end_index])
+
+        if preload:  # gh-14260
+            assert not np.shares_memory(epochs2_sliced._data, epochs2._data)
+            with monkeypatch.context() as m:
+                m.setattr(BaseEpochs, "copy", None)  # make copy() fail mid-getitem
+                with pytest.raises(TypeError, match="not callable"):
+                    epochs2[0]
+            assert_array_equal(epochs2._data, data_normal)  # placeholder not left
 
         # using indexing
         pos = 0
@@ -2748,6 +2758,10 @@ def test_epochs_copy():
     )
     copied = epochs.copy()
     assert_array_equal(epochs._data, copied._data)
+    # a self-referencing attribute must terminate and remap to the copy (gh-14260)
+    epochs.circular = epochs
+    copied = epochs.copy()
+    assert copied.circular is copied
 
     epochs = Epochs(
         raw,

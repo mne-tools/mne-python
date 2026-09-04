@@ -95,6 +95,8 @@ def pytest_configure(config: pytest.Config):
         "slowtest: mark a test as slow",
         "ultraslowtest: mark a test as ultraslow or to be run rarely",
         "pgtest: mark a test as relevant for mne-qt-browser",
+        "mne_c: mark a test as requiring the MNE-C command line tools",
+        "freesurfer: mark a test as requiring the FreeSurfer command line tools",
         # used by PyVista's MNE integration tests (but also useful in some testing):
         "pvtest: mark a test as relevant for pyvista",
     ):
@@ -695,18 +697,22 @@ def pg_backend(request, garbage_collect):
         # and hence its browser alive. Requiring *zero* browsers would then
         # blame the next test that uses this fixture for a browser it never
         # created, turning one real failure into a cascade of errors. Only
-        # report browsers this test itself leaked. Snapshot stores only ids,
-        # so it pins nothing alive.
-        snap = Snapshot(MNEQtBrowser, collect=False)
-        yield backend
-        backend._close_all()
-        # This shouldn't be necessary, but let's make sure nothing is stale
-        import mne_qt_browser
+        # report browsers this test itself leaked. Snapshot pins nothing alive.
+        # freeze=True: see brain_gc for why, and for the thaw() discipline it
+        # obliges us to.
+        snap = Snapshot(MNEQtBrowser, freeze=True)
+        try:
+            yield backend
+            backend._close_all()
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
 
-        mne_qt_browser._browser_instances.clear()
-        if not _test_passed(request):
-            return
-        snap.assert_no_new(f"Closure of {request.node.name}", request=request)
+            mne_qt_browser._browser_instances.clear()
+            if not _test_passed(request):
+                return
+            snap.assert_no_new(f"Closure of {request.node.name}", request=request)
+        finally:
+            snap.thaw()  # no-op once assert_no_new() has thawed
 
 
 @pytest.fixture(
@@ -734,7 +740,12 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
+@pytest.fixture(
+    params=[
+        pytest.param("pyvistaqt", marks=pytest.mark.pvtest),
+        pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest),
+    ]
+)
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -751,6 +762,13 @@ def renderer_pyvistaqt(request, options_3d, garbage_collect):
 @pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(params=[pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest)])
+def renderer_lite(request, options_3d):
+    """Yield the JupyterLite (vtk.js) renderer alone, for its own tests."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
@@ -782,15 +800,21 @@ def _use_backend(backend_name, interactive):
     # figure-count test (in other modules) fails. Restore it on teardown.
     mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
+    from mne.viz.backends import renderer
+
+    # use_3d_backend only puts a backend back if one was already selected, so
+    # the first renderer test of a session would otherwise decide the backend
+    # every later test inherits; the JupyterLite one draws for a browser, so
+    # that must never be it
+    was = (renderer.MNE_3D_BACKEND, renderer.backend)
     try:
         with _use_test_3d_backend(backend_name, interactive=interactive):
-            from mne.viz.backends import renderer
-
             try:
                 yield renderer
             finally:
                 renderer.backend._close_all()
     finally:
+        renderer.MNE_3D_BACKEND, renderer.backend = was
         if matplotlib.get_backend() != mpl_backend:
             matplotlib.use(mpl_backend, force=True)
 
@@ -798,6 +822,10 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
 
+    if name == "jupyterlite_notebook":
+        # draws with vtk.js in a browser: no VTK, no Qt, no ffmpeg
+        pytest.importorskip("pyvista_js")
+        return
     pytest.importorskip("pyvista")
     pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
@@ -1109,43 +1137,62 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
-    # Snapshot stores only ids (pins nothing alive) so VTK objects that
-    # pre-date the test (e.g. held by module-level state) are never reported.
-    # collect=False: a gc.collect() here would cost as much as the one that
-    # actually matters at teardown, and we only care about objects going *up*
-    # (new ones surviving), not down. Skipping it just means some snapshotted
-    # objects are already garbage and vanish by teardown, which is fine; the
-    # only cost is a slightly wider id-reuse window (a missed leak at worst,
-    # never a false report).
-    snap = Snapshot(_is_vtk, label="VTK", collect=False)
-    yield
-    close_func()
-    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
-    # (deleteLater) on close; until Qt processes it, the C++ window object
-    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
-    from qtpy.QtCore import QEvent
-    from qtpy.QtWidgets import QApplication
+    # Snapshot pins nothing alive, so VTK objects that pre-date the test (e.g.
+    # held by module-level state) are never reported. freeze=True moves the live
+    # heap into the permanent generation instead of recording ids
+    snap = Snapshot(_is_vtk, label="VTK", freeze=True)
+    try:
+        yield
+        close_func()
+        # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+        # (deleteLater) on close; until Qt processes it, the C++ window object
+        # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+        from qtpy.QtCore import QEvent
+        from qtpy.QtWidgets import QApplication
 
-    app = QApplication.instance()
-    if app is not None:
-        for _ in range(2):
-            app.processEvents()
-            app.sendPostedEvents(None, QEvent.DeferredDelete)
-    if not _test_passed(request):
-        return
-    # The collect must happen *before* list(Brain._instances) is evaluated:
-    # a Brain in a dead reference cycle is still in the WeakSet until
-    # collected, and the list would pin it alive and falsely report it.
-    gc_collect_once(request)
-    # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
-    # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
-    # scan of the whole process to check for lingering Brain instances.
-    assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
-    # VTK objects aren't individually tracked, so this one is a full heap scan.
-    snap.assert_no_new("after", request=request)
+        app = QApplication.instance()
+        if app is not None:
+            for _ in range(2):
+                app.processEvents()
+                app.sendPostedEvents(None, QEvent.DeferredDelete)
+        if not _test_passed(request):
+            return
+        # The collect must happen *before* list(Brain._instances) is evaluated:
+        # a Brain in a dead reference cycle is still in the WeakSet until
+        # collected, and the list would pin it alive and falsely report it.
+        gc_collect_once(request)
+        # VTK objects aren't individually tracked, so this is the check the
+        # freeze exists for. It has to run before the Brain check, because it is
+        # what thaws: a referrer chain built on a frozen heap cannot see any of
+        # the containers that pre-date the freeze.
+        snap.assert_no_new("after", request=request)
+        # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
+        # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
+        # scan of the whole process to check for lingering Brain instances.
+        assert_no_instances(
+            Brain, "after", request=request, objs=list(Brain._instances)
+        )
+    finally:
+        snap.thaw()  # no-op once assert_no_new() has thawed
 
 
 _files = list()
+# Per-nodeid total duration (setup + call + teardown) and whether any phase was an
+# unexpected skip. Accumulated in pytest_runtest_logreport because under pytest-xdist
+# the tests run in worker processes, and xdist replays every TestReport through
+# pytest_runtest_logreport on the controller
+_durations: dict[str, float] = defaultdict(float)
+_bad_skips: set[str] = set()
+
+
+def pytest_runtest_logreport(report: pytest.TestReport):
+    """Accumulate per-test durations and unexpected skips."""
+    _durations[report.nodeid] += report.duration
+    if (
+        report.outcome in ("error", "failed")
+        and "UNEXPECTED SKIP" in report.longreprtext
+    ):
+        _bad_skips.add(report.nodeid)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
@@ -1156,13 +1203,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     print("\n")
     # get the number to print
     files = defaultdict(lambda: 0.0)
-    bad_skip = False
-    for item in session.items:
-        if _phase_report_key not in item.stash:
-            continue
-        report = item.stash[_phase_report_key]
-        dur = sum(x.duration for x in report.values())
-        parts = Path(item.nodeid.split(":")[0]).parts
+    for nodeid, dur in _durations.items():
+        parts = Path(nodeid.split(":")[0]).parts
         # split mne/tests/test_whatever.py into separate categories since these
         # are essentially submodule-level tests. Keeping just [:3] works,
         # except for mne/viz where we want level-4 granulatity
@@ -1172,18 +1214,11 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
             parts = parts + ("",)
         file_key = "/".join(parts)
         files[file_key] += dur
-        # detect if there were any bad skips
-        for _phase, result in report.items():
-            if (
-                result.outcome in ("error", "failed")
-                and "UNEXPECTED SKIP" in result.longreprtext
-            ):
-                bad_skip = True
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
     # Now handle exit status modification
-    if exitstatus == pytest.ExitCode.OK and bad_skip:
+    if exitstatus == pytest.ExitCode.OK and _bad_skips:
         session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 

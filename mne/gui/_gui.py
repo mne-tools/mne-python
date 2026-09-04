@@ -437,6 +437,11 @@ class _GUIScraper:
                     plotter = gui._renderer.plotter
                     plotter.screenshot(img_fname)
                     sub_pixmap = QtGui.QPixmap(img_fname)
+                    # The screenshot is in physical pixels, but QPainter works in
+                    # logical pixels, so on HiDPI displays (e.g., Retina, where
+                    # devicePixelRatio == 2) the screenshot must be marked with the
+                    # window's scale factor or it is composited at twice its size.
+                    sub_pixmap.setDevicePixelRatio(window.devicePixelRatio())
                     # https://doc.qt.io/qt-5/qwidget.html#mapTo
                     # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
                     QtGui.QPainter(pixmap).drawPixmap(

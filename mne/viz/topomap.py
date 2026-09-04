@@ -7,10 +7,13 @@
 import copy
 import itertools
 import warnings
-from functools import partial
+from functools import cache, partial
 from numbers import Integral
 
 import matplotlib.artist
+import matplotlib.axes
+import matplotlib.contour
+import matplotlib.figure
 import matplotlib.patches
 import numpy as np
 
@@ -419,24 +422,44 @@ def _plot_update_evoked_topomap(params, bools):
     ):
         Zi = interp.set_values(d)()
         im.set_data(Zi)
-        new_contours.append(_update_contours(cont, ax, Xi, Yi, Zi, params["contours"]))
+        new_contours.append(_update_contours(cont, Xi, Yi, Zi, params["contours"]))
     params["contours_"][:] = new_contours
     params["fig"].canvas.draw()
 
 
-def _update_contours(cont, ax, Xi, Yi, Zi, contours):
+class _NoOpAxes(matplotlib.axes.Axes):
+    """Axes that throws away whatever is drawn on it.
+
+    `~matplotlib.contour.QuadContourSet` attaches itself to an Axes on construction,
+    but :func:`_update_contours` only wants the geometry it computes.
+    """
+
+    def add_collection(self, collection, *args, **kwargs):
+        return collection
+
+    def update_datalim(self, *args, **kwargs):
+        pass
+
+    def autoscale_view(self, *args, **kwargs):
+        pass
+
+
+@cache
+def _no_op_axes():
+    """Get the one throwaway Axes used to compute contour geometry."""
+    return _NoOpAxes(matplotlib.figure.Figure(), [0, 0, 1, 1])
+
+
+def _update_contours(cont, Xi, Yi, Zi, contours):
     if cont is None:
         return cont
-    lw = cont.get_linewidth()
-    visible = cont.get_visible()
-    patch_ = cont.get_clip_path()
-    color = cont.get_edgecolors()
-    zorder = _TOPOMAP_ZORDER["contours"]
-    if cont in ax.collections:
-        cont.remove()
-    cont = ax.contour(Xi, Yi, Zi, contours, colors=color, linewidths=lw, zorder=zorder)
-    cont.set_visible(visible)
-    cont.set_clip_path(patch_)
+    # Swap the new geometry into the existing artist rather than replacing it: adding
+    # an artist marks the figure stale, and an interactive backend then services that
+    # pending draw from inside ``canvas.blit()`` -- a full redraw, which omits every
+    # animated artist and so undoes the blit. Keeping the artist also keeps its color,
+    # linewidth, zorder and clip path, which used to have to be copied over.
+    new = matplotlib.contour.QuadContourSet(_no_op_axes(), Xi, Yi, Zi, levels=contours)
+    cont.set_paths(new.get_paths())
     return cont
 
 
@@ -2519,7 +2542,7 @@ def _plot_evoked_topomap(
     if proj is True and not evoked.proj:
         evoked.apply_proj()
     elif proj == "reconstruct":
-        evoked._reconstruct_proj()
+        evoked.reconstruct_proj()
 
     # remove compensation matrices (safe: only plotting & already made copy)
     with evoked.info._unlock():
@@ -3644,9 +3667,21 @@ def _topomap_animation(
     if butterfly:
         ax_line.plot(all_times, all_data.T, color="k", lw=0.5, alpha=0.5)
         ax_line.set_xlim(all_times[0], all_times[-1])
-        butterfly_vline = ax_line.axvline(used_times[0], color="r")
+        # zorder: above the axes spines, otherwise drawing the cursor on top of a
+        # cached background (blitting) does not match a full redraw
+        butterfly_vline = ax_line.axvline(used_times[0], color="r", zorder=3)
 
     params = dict(frame=0, frames=list(range(len(used_times))), pause=False, cont=cont)
+    # Blitting draws only the artists that ``animate`` returns, on top of a cached
+    # background, so everything sitting on top of the topomap image (time label, head
+    # outlines, sensor markers, channel names, ...) has to be redrawn along with it.
+    overdrawn = [
+        artist
+        for artist in ax.lines + ax.collections + ax.texts
+        if artist.get_zorder() > im.get_zorder() and artist is not cont
+    ]
+    if butterfly:
+        overdrawn.append(butterfly_vline)
     del cont
 
     def animate(frame):
@@ -3655,10 +3690,12 @@ def _topomap_animation(
         im.set_data(Zi)
         if time_format:
             text.set_text(time_format % (used_times[frame] * scaling_time))
-        params["cont"] = _update_contours(params["cont"], ax, Xi, Yi, Zi, contours)
-        items = [im]
+        params["cont"] = _update_contours(params["cont"], Xi, Yi, Zi, contours)
         if butterfly:
             butterfly_vline.set_xdata([used_times[frame]])
+        items = [im] + overdrawn
+        if params["cont"] is not None:
+            items.append(params["cont"])
         return _validate_artists(items)
 
     interval = 1000 / frame_rate  # interval is in ms
@@ -3696,6 +3733,9 @@ def _topomap_animation(
     fig.canvas.mpl_connect("key_press_event", key_press)
 
     fig.mne_animation = anim  # to make sure anim is not garbage collected
+    # Matplotlib only keeps the frame function privately (as ``anim._func``), and
+    # drawing a single frame without the timer is useful (e.g. in Report)
+    anim.mne_frame_func = animate
     plt_show(show, block=False)
 
     return fig, anim

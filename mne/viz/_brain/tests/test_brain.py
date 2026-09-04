@@ -190,6 +190,21 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
             opacity=np.array([0.1, 0.2, 0.3]),
             name="bad-opacity",
         )
+
+    # alpha compositing: transparent top keeps the bottom color, opaque top wins,
+    # and a half-transparent white over opaque black is grey
+    bottom = np.array([[0.0, 0, 0, 1]] * 3)
+    top = np.array([[1.0, 1, 1, 0], [1, 1, 1, 1], [1, 1, 1, 0.5]])
+    assert_allclose(
+        mesh._compute_over(bottom, top),
+        [[0, 0, 0, 1], [1, 1, 1, 1], [0.5, 0.5, 0.5, 1]],
+    )
+    # a fully transparent result is black, and the inputs are left alone
+    bottom, top = np.zeros((1, 4)), np.zeros((1, 4))
+    assert_allclose(mesh._compute_over(bottom, top), [[0, 0, 0, 0]])
+    assert_allclose(bottom, 0)
+    assert_allclose(top, 0)
+
     mesh._clean()
 
 
@@ -208,9 +223,9 @@ def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_routines(renderer, brain_gc):
+def test_brain_routines(renderer_pyvistaqt, brain_gc):
     """Test backend agnostic Brain routines."""
-    brain_klass = renderer.get_brain_class()
+    brain_klass = renderer_pyvistaqt.get_brain_class()
     from mne.viz._brain import Brain
 
     assert brain_klass == Brain
@@ -981,7 +996,7 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize("interactive_state", (False, True))
-def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
+def test_brain_save_movie(tmp_path, renderer_pyvistaqt, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
     pytest.importorskip("imageio")
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
@@ -1659,6 +1674,36 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     peak_line3 = brain._picked_points[("lh", peak1)][0]["line"]
     assert peak_line3 is peak_line1  # refreshed in place, not re-added
     assert_allclose(peak_line3.get_ydata(), 2.0 * y1)
+
+
+@testing.requires_testing_data
+def test_brain_time_line_blitting(renderer_interactive_pyvistaqt, brain_gc):
+    """Test that moving the time line blits instead of redrawing the traces."""
+    brain = _create_testing_brain(hemi="lh", show_traces=True, initial_time=0)
+    canvas = brain.mpl_canvas
+    assert canvas.canvas.supports_blit
+    assert brain.time_line in canvas._blit._artists
+
+    n_draws = list()
+    canvas.canvas.mpl_connect("draw_event", lambda event: n_draws.append(event))
+    brain.set_time(brain._times[-1])  # one redraw caches the background ...
+    assert brain.time_line.get_xdata()[0] == brain._times[-1]
+    assert canvas._blit._background is not None
+    assert len(n_draws) == 1
+
+    brain.set_time(brain._times[len(brain._times) // 2])  # ... then it only blits
+    assert len(n_draws) == 1
+
+    # a full redraw invalidates the background, and anything can be blitted
+    text = canvas.axes.text(0, 0, "hello")
+    canvas.add_blit_artist(text)
+    canvas.update_blit_artists()  # the background was dropped, so this redraws
+    assert len(n_draws) == 2
+
+    canvas.remove_blit_artist(text)
+    assert text not in canvas._blit._artists
+    assert len(n_draws) == 3  # restored to the background by a full redraw
+    brain.close()
 
 
 def _send_mouse_move(widget, point, buttons=None):
