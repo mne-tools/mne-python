@@ -1001,7 +1001,7 @@ FIFF.FIFF_UNITM_N = -9
 FIFF.FIFF_UNITM_P = -12
 FIFF.FIFF_UNITM_F = -15
 FIFF.FIFF_UNITM_A = -18
-_ch_unit_mul_named: dict[int | NamedInt, int] = {
+_ch_unit_mul_named: dict[NamedInt, NamedInt] = {
     key: key
     for key in (
         FIFF.FIFF_UNITM_E,
