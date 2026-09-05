@@ -326,6 +326,7 @@ numpydoc_xref_aliases = {
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
     "Calibration": "mne.preprocessing.eyetracking.Calibration",
+    "ClusterResult": "mne.stats.ClusterResult",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",

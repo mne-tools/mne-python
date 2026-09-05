@@ -176,6 +176,7 @@ full-no-qt = [
   "edfio >= 0.4.10",
   "eeglabio",
   "filelock >= 3.18.0",
+  "formulaic",
   "h5py >= 2.4",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",

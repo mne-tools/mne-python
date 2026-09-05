@@ -39,6 +39,8 @@ Non-parametric (clustering) resampling methods:
 .. autosummary::
    :toctree: ../generated/
 
+   ClusterResult
+   cluster_test
    combine_adjacency
    permutation_cluster_test
    permutation_cluster_1samp_test
