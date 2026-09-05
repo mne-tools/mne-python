@@ -32,6 +32,7 @@ from .._fiff.write import (
 )
 from .._freesurfer import (
     _check_mri,
+    _get_aseg,
     _get_atlas_values,
     _get_mri_info_data,
     get_volume_labels_from_aseg,
@@ -47,6 +48,8 @@ from ..surface import (
     _create_surf_spacing,
     _get_ico_surface,
     _get_surf_neighbors,
+    _keep_largest_component,
+    _marching_cubes,
     _normalize_vectors,
     _tessellate_sphere_surf,
     _triangle_neighbors,
@@ -295,6 +298,7 @@ class SourceSpaces(list):
     @property
     def kind(self):
         types = list()
+        ids = list()
         for si, s in enumerate(self):
             _validate_type(s, dict, f"source_spaces[{si}]")
             types.append(s.get("type", None))
@@ -303,19 +307,40 @@ class SourceSpaces(list):
                 types[-1],
                 ("surf", "discrete", "vol"),
             )
-        if all(k == "surf" for k in types[:2]):
+            ids.append(s.get("id", FIFF.FIFFV_MNE_SURF_UNKNOWN))
+        n = len(types)
+        is_subcortical = [
+            t == "surf" and i >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+            for t, i in zip(types, ids)
+        ]
+        leading_surf_pair = n >= 2 and types[0] == "surf" and types[1] == "surf"
+        leading_subcortical_pair = (
+            leading_surf_pair and is_subcortical[0] and is_subcortical[1]
+        )
+        if leading_surf_pair and not leading_subcortical_pair:
             surf_check = 2
-            if len(types) == 2:
-                kind = "surface"
-            else:
-                kind = "mixed"
+            kind = "surface" if n == 2 else "mixed"
+        elif n == 1 and types[0] == "surf" and not is_subcortical[0]:
+            surf_check = 1
+            kind = "mixed"
+        elif n == 0:
+            surf_check = 0
+            kind = "mixed"
+        elif all(is_subcortical):
+            surf_check = 0
+            kind = "subcortical_surf"
+        elif any(is_subcortical):
+            surf_check = 0
+            kind = "mixed"
+        elif all(k == "discrete" for k in types):
+            surf_check = 0
+            kind = "discrete"
         else:
             surf_check = 0
-            if all(k == "discrete" for k in types):
-                kind = "discrete"
-            else:
-                kind = "volume"
-        if any(k == "surf" for k in types[surf_check:]):
+            kind = "volume"
+        if any(
+            types[i] == "surf" and not is_subcortical[i] for i in range(surf_check, n)
+        ):
             raise RuntimeError(f"Invalid source space with kinds {types}")
         return kind
 
@@ -1065,6 +1090,7 @@ def _read_one_source_space(fid, this):
                 offset += n
             res["neighbor_vert"] = neighbors
 
+    if res["type"] in ("vol", "surf"):
         tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
         if tag is not None:
             res["seg_name"] = tag.data
@@ -1461,7 +1487,7 @@ def _write_one_source_space(fid, this, verbose=None):
         )
 
     #   Segmentation data
-    if this["type"] == "vol" and ("seg_name" in this):
+    if this["type"] in ("vol", "surf") and ("seg_name" in this):
         # Save the name of the segment
         write_string(fid, FIFF.FIFF_COMMENT, this["seg_name"])
 
@@ -2009,6 +2035,182 @@ def _complete_vol_src(sp, subject=None):
 
     sp = SourceSpaces(sp, dict(working_dir=os.getcwd(), command_line="None"))
     return sp
+
+
+def _surf_from_mesh(rr, tris, subject):
+    """Build a source-space-ready surf dict from vertices/triangles (in m)."""
+    surf = dict(rr=np.asarray(rr, float), tris=np.asarray(tris, np.int64))
+    complete_surface_info(surf, do_neighbor_vert=False, copy=False)
+    surf["inuse"] = np.ones(surf["np"], int)
+    sizes = _normalize_vectors(surf["nn"])
+    surf["inuse"][sizes <= 0] = False
+    surf["nuse"] = int(surf["inuse"].sum())
+    surf["vertno"] = np.where(surf["inuse"])[0]
+    surf["use_tris"] = None
+    surf["nuse_tri"] = 0
+    surf["subject_his_id"] = subject
+    for key in ("tri_area", "tri_cent", "tri_nn", "neighbor_tri"):
+        del surf[key]
+    surf.update(
+        dist=None,
+        dist_limit=None,
+        nearest=None,
+        nearest_dist=None,
+        pinfo=None,
+        patch_inds=None,
+        type="surf",
+        coord_frame=FIFF.FIFFV_COORD_MRI,
+    )
+    return surf
+
+
+@verbose
+def setup_subcortical_source_space(
+    subject,
+    label=None,
+    surface=None,
+    aseg="auto",
+    subjects_dir=None,
+    keep_largest_component=True,
+    smooth=0,
+    fill_hole_size=None,
+    add_dist=False,
+    *,
+    verbose=None,
+):
+    """Set up a subcortical or cerebellar surface source space.
+
+    This builds a :class:`~mne.SourceSpaces` from a triangulated mesh of a subcortical
+    or cerebellar structure, either tessellated directly from an
+    anatomical segmentation (``label``) or supplied as an
+    externally-produced mesh (``surface``, e.g. one fitted by another
+    package such as CMB). Exactly one of ``label`` or ``surface`` must be
+    provided.
+
+    .. warning::
+        This is **experimental** functionality. :class:`~mne.SourceSpaces`
+        created by this function are not (yet) compatible with morphing
+        (:class:`~mne.SourceMorph`), :func:`mne.extract_label_time_course`
+        does not yet know how to select vertices within a subcortical-surface
+        label, and plotting support is limited (for example, the
+        :meth:`~mne.MixedSourceEstimate.plot` method does not yet support
+        these source spaces).
+
+    Parameters
+    ----------
+    subject : str
+        Subject to process.
+    label : str | list | dict | None
+        Region(s) of interest to tessellate from the anatomical
+        segmentation given by ``aseg``. One source space is created per
+        entry (a single str is turned into a one-element list). If dict,
+        maps region names to atlas id numbers, allowing the use of other
+        atlases. Mutually exclusive with ``surface``.
+    surface : path-like | dict | None
+        A FreeSurfer-compatible surface file (e.g. a ``.surf`` file), or a
+        dict with ``'rr'`` and ``'tris'`` entries in FreeSurfer surface RAS
+        coordinates (mm), such as those returned by :func:`mne.read_surface`
+        or produced by an external mesh-fitting tool. Creates a single
+        source space. Mutually exclusive with ``label``.
+    %(aseg)s
+
+        Only used when ``label`` is provided.
+    %(subjects_dir)s
+    keep_largest_component : bool
+        If True (default), keep only the largest connected component of
+        each tessellated mesh, discarding disconnected islands (the
+        marching-cubes equivalent of FreeSurfer's
+        ``mris_extract_main_component``).
+    %(smooth)s
+        Only used when ``label`` is provided.
+    fill_hole_size : int | None
+        The size of holes to remove in the mesh in voxels. Default is None,
+        no holes are removed. This dilates the boundaries of the surface by
+        ``fill_hole_size`` voxels, so use the minimal size needed. Only used
+        when ``label`` is provided.
+    add_dist : bool
+        If True, compute inter-source distances along the mesh (see
+        :func:`mne.add_source_space_distances`). Default False, as this can
+        be slow and is not needed for a forward solution.
+    %(verbose)s
+
+    Returns
+    -------
+    src : instance of SourceSpaces
+        The subcortical/cerebellar surface source space(s), one per
+        ``label`` entry, or a single one if ``surface`` was used.
+
+    See Also
+    --------
+    setup_volume_source_space
+    setup_source_space
+
+    Notes
+    -----
+    This is a first, deliberately narrow proof of concept: it has been
+    validated interactively on the ``sample`` subject. See the warning above
+    for known gaps, to be addressed in follow-up work.
+
+    .. versionadded:: 1.12
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    _validate_type(label, (str, list, tuple, dict, None), "label")
+    _validate_type(surface, ("path-like", dict, None), "surface")
+    if (label is None) == (surface is None):
+        raise ValueError(
+            "Exactly one of `label` or `surface` must be provided, got "
+            f"label={label!r}, surface={surface!r}"
+        )
+
+    srcs = list()
+    if label is not None:
+        aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+        mri = aseg_img.get_filename()
+        volume_label = _check_volume_labels(label, mri, name="label")
+        vox_mri_t = np.array(aseg_img.header.get_vox2ras_tkr(), float)
+        vox_mri_t[:3] *= 1e-3  # mm -> m
+        meshes = _marching_cubes(
+            aseg_data,
+            list(volume_label.values()),
+            smooth=smooth,
+            fill_hole_size=fill_hole_size,
+        )
+        for (seg_name, seg_id), (rr, tris) in zip(volume_label.items(), meshes):
+            if len(rr) == 0:
+                warn(
+                    f"Value {seg_id} not found for label {seg_name!r} in "
+                    f"anatomical segmentation file {mri}, skipping"
+                )
+                continue
+            if keep_largest_component:
+                rr, tris = _keep_largest_component(rr, tris)
+            rr = apply_trans(vox_mri_t, rr)
+            s = _surf_from_mesh(rr, tris, subject)
+            s["seg_name"] = seg_name
+            s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + seg_id
+            srcs.append(s)
+        if len(srcs) == 0:
+            raise ValueError(f"None of the requested labels were found in {mri}")
+    else:
+        if isinstance(surface, dict):
+            rr, tris = surface["rr"], surface["tris"]
+        else:
+            surface = str(
+                _check_fname(surface, overwrite="read", must_exist=True, name="surface")
+            )
+            rr, tris = read_surface(surface)[:2]
+        rr = np.array(rr, float) / 1000.0  # mm -> m
+        tris = np.array(tris, np.int64)
+        if keep_largest_component:
+            rr, tris = _keep_largest_component(rr, tris)
+        s = _surf_from_mesh(rr, tris, subject)
+        s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+        srcs.append(s)
+
+    src = SourceSpaces(srcs, dict(working_dir=os.getcwd(), command_line="None"))
+    if add_dist:
+        add_source_space_distances(src, dist_limit=np.inf)
+    return src
 
 
 def _make_voxel_ras_trans(move, ras, voxel_size):
@@ -2948,6 +3150,8 @@ def _get_hemi(s):
         return "lh", 0, s["id"]
     elif s["id"] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
         return "rh", 1, s["id"]
+    elif s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
+        return s.get("seg_name", "subcortical"), None, s["id"]
     else:
         raise ValueError(f"unknown surface ID {s['id']}")
 

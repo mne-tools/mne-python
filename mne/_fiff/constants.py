@@ -401,6 +401,7 @@ FIFF.FIFFV_MNE_SURF_UNKNOWN = -1
 FIFF.FIFFV_MNE_SURF_LEFT_HEMI = 101
 FIFF.FIFFV_MNE_SURF_RIGHT_HEMI = 102
 FIFF.FIFFV_MNE_SURF_MEG_HELMET = 201  # Use this irrespective of the system
+FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET = 1000  # + aseg value, e.g. hippocampus
 #
 #   These relate to the Isotrak data (enum(point))
 #

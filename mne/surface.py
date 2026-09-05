@@ -1929,6 +1929,23 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     return out
 
 
+def _keep_largest_component(rr, tris):
+    """Keep only the largest connected component of a triangulated mesh."""
+    from scipy.sparse.csgraph import connected_components
+
+    if len(tris) == 0:
+        return rr, tris
+    n_comp, labels = connected_components(mesh_edges(tris), directed=False)
+    if n_comp == 1:
+        return rr, tris
+    largest = np.argmax(np.bincount(labels))
+    keep = labels == largest
+    new_index = np.full(len(rr), -1, int)
+    new_index[keep] = np.arange(keep.sum())
+    tris = new_index[tris[keep[tris].all(axis=1)]]
+    return rr[keep], tris
+
+
 @verbose
 def _vtk_smooth(pd, smooth, *, verbose=None):
     _validate_type(smooth, "numeric", smooth)
