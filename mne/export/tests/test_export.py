@@ -94,7 +94,8 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
 def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
     pytest.importorskip("eeglabio")
-    raw = read_raw_fif(fname_raw, preload=True)
+    # a couple of seconds is enough, and the file gets exported four times below
+    raw = read_raw_fif(fname_raw).crop(0, 2).load_data()
     raw.apply_proj()
     temp_fname = tmp_path / "test.set"
     raw.export(temp_fname)
@@ -119,7 +120,7 @@ def test_export_raw_eeglab(tmp_path):
     raw.export(Path(temp_fname), overwrite=True)
 
     # test warning with unapplied projectors
-    raw = read_raw_fif(fname_raw, preload=True)
+    raw = read_raw_fif(fname_raw).crop(0, 2).load_data()
     with pytest.warns(RuntimeWarning, match="Raw instance has unapplied projectors."):
         raw.export(temp_fname, overwrite=True)
 
@@ -133,14 +134,14 @@ def test_export_raw_eeglab_annotations(tmp_path, tmin):
     pytest.importorskip("eeglabio")
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
-    annotations = Annotations(
+    annotations = Annotations(  # all onsets are < 1.1 s
         onset=[0.01, 0.05, 0.90, 1.05],
         duration=[0, 1, 0, 0],
         description=["test1", "test2", "test3", "test4"],
         ch_names=[["MEG 0113"], ["MEG 0113", "MEG 0132"], [], ["MEG 0143"]],
     )
     raw.set_annotations(annotations)
-    raw.crop(tmin)
+    raw.crop(tmin, tmin + 1.5)  # tmax keeps the exported file small
 
     # export
     temp_fname = tmp_path / "test.set"
@@ -545,6 +546,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
     raw.load_data()
+    events = events[:5]  # a handful of epochs is plenty, and the file is written 4x
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = tmp_path / "test.set"
     # TODO: eeglabio 0.2 warns about invalid events
