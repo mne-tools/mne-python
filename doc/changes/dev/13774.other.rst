@@ -1,0 +1,1 @@
+- Clarify that the default minimum number of neighbors for clusters is 0 in :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_test`, by `Athish M`_.
