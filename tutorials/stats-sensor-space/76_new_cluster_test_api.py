@@ -6,8 +6,8 @@ New cluster test API that allows for Wilkinson style formulas
 ===============================================================
 
 This tutorial shows how to use the new API for cluster testing.
-The new API allows for Wilkinson style formulas and allows for more flexibility in
-the design of the test. Here we will demonstrate how to use the new API for
+The new API allows for R style formulas.
+Here we will demonstrate how to use the new API for
 a standard paired t-test on evoked data from multiple subjects.
 It uses a non-parametric statistical procedure based on permutations and
 cluster level statistics.
@@ -96,7 +96,7 @@ mne.grand_average(diff_evoked).plot_topomap()
 # %% Prepare the dataframe for the new cluster test API
 
 # the dataframe should contain the contrast evoked data and the subject index
-# each row in the dataframe should represent one observation (evoked data)
+# each row in the dataframe represents one observation (evoked data of one participant)
 
 # save the evoked data for both conditions in one list
 evokeds_conditions = target_only + non_target_only
@@ -123,7 +123,8 @@ df
 # %% run the cluster test function with formulaic input
 
 # we will use the new API that allows for Wilkinson style formulas
-# the formula should be a string in Wilkinson notation
+# the formula should be a string in Wilkinson notation similar to R-style
+# (lmer and glmer package in R)
 
 # we want to test whether there is a significant difference between
 # target and non-target stimuli in the post-stimulus window
