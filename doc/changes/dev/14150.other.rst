@@ -1,0 +1,1 @@
+Add the setup cell that installs MNE into the browser kernel for the JupyterLite documentation, by `Natneal B`_.
