@@ -118,6 +118,36 @@ def _make_xy_sfunc(func, ndim_output=False):
     return sfunc
 
 
+def _compute_ctps_threshold(n_trials, pk_threshold=20):
+    """Compute the normalized Kuiper-index threshold for CTPS.
+
+    Parameters
+    ----------
+    n_trials : int
+        Number of trials used to compute the cross-trial phase statistics.
+    pk_threshold : float
+        Significance threshold expressed as ``-log10(Pk)``.
+
+    Returns
+    -------
+    threshold : float
+        Kuiper-index threshold corresponding to ``pk_threshold``.
+    """
+    if not isinstance(n_trials, Integral):
+        raise TypeError("n_trials must be an integer")
+    if n_trials < 1:
+        raise ValueError("n_trials must be at least 1")
+
+    Vs = np.arange(1, 100) / 100
+    C = math.sqrt(n_trials) + 0.155 + 0.24 / math.sqrt(n_trials)
+    # In formula (13), when k gets large, only k=1 matters for the
+    # summation. k*V*C thus becomes V*C.
+    Pks = 2 * (4 * (Vs * C) ** 2 - 1) * (np.exp(-2 * (Vs * C) ** 2))
+    # NOTE: the threshold of pk is transformed to Pk for comparison:
+    # pk = -log10(Pk).
+    return Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
+
+
 # Violate our assumption that the output is 1D so can't be used.
 # Could eventually be added but probably not worth the effort unless someone
 # requests it.
@@ -1617,29 +1647,29 @@ class ICA(ContainsMixin):
 
         return labels, scores
 
-    def _get_ctps_threshold(self, pk_threshold=20):
+    def _get_ctps_threshold(self, n_trials, pk_threshold=20):
         """Automatically decide the threshold of Kuiper index for CTPS method.
 
         This function finds the threshold of Kuiper index based on the
         threshold of pk. Kuiper statistic that minimizes the difference between
         pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
-        is returned. It is assumed that the data are appropriately filtered and
-        bad data are rejected at least based on peak-to-peak amplitude
-        when/before running the ICA decomposition on data.
+        is returned. ``n_trials`` is the number of trials used by CTPS. It is
+        assumed that the data are appropriately filtered and bad data are
+        rejected at least based on peak-to-peak amplitude when/before running
+        the ICA decomposition on data.
+
+        Parameters
+        ----------
+        n_trials : int
+            Number of trials used to compute the cross-trial phase statistics.
+        pk_threshold : float
+            Significance threshold expressed as ``-log10(Pk)``.
 
         References
         ----------
         .. footbibliography::
         """
-        N = self.info["sfreq"]
-        Vs = np.arange(1, 100) / 100
-        C = math.sqrt(N) + 0.155 + 0.24 / math.sqrt(N)
-        # in formula (13), when k gets large, only k=1 matters for the
-        # summation. k*V*C thus becomes V*C
-        Pks = 2 * (4 * (Vs * C) ** 2 - 1) * (np.exp(-2 * (Vs * C) ** 2))
-        # NOTE: the threshold of pk is transformed to Pk for comparison
-        # pk = -log10(Pk)
-        return Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
+        return _compute_ctps_threshold(n_trials, pk_threshold)
 
     @verbose
     def find_bads_ecg(
@@ -1716,7 +1746,8 @@ class ICA(ContainsMixin):
 
         - If ``method='ctps'``, ``threshold`` refers to the significance value
           of a Kuiper statistic, and ``threshold='auto'`` will compute the
-          threshold automatically based on the sampling frequency.
+          threshold automatically based on the number of trials supplied to
+          CTPS.
         - If ``method='correlation'`` and ``measure='correlation'``,
           ``threshold`` refers to the Pearson correlation value, and
           ``threshold='auto'`` sets the threshold to 0.9.
@@ -1747,9 +1778,6 @@ class ICA(ContainsMixin):
             ecg = inst.ch_names[idx_ecg]
 
         if method == "ctps":
-            if threshold == "auto":
-                threshold = self._get_ctps_threshold()
-                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(
                     create_ecg_epochs(
@@ -1771,6 +1799,9 @@ class ICA(ContainsMixin):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
                 raise ValueError("With `ctps` only Raw and Epochs input is supported")
+            if threshold == "auto":
+                threshold = self._get_ctps_threshold(sources.shape[0])
+                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]

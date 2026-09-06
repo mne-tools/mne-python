@@ -49,6 +49,7 @@ from mne.preprocessing import (
     read_ica,
 )
 from mne.preprocessing.ica import (
+    _compute_ctps_threshold,
     _ica_explained_variance,
     _sort_components,
     corrmap,
@@ -762,6 +763,36 @@ def short_raw_epochs():
     return raw, epochs, epochs_eog
 
 
+def test_ctps_threshold_uses_trial_count(monkeypatch):
+    """Check CTPS auto threshold uses the number of input epochs."""
+    assert_allclose(_compute_ctps_threshold(100), 0.5)
+    assert _compute_ctps_threshold(100) > _compute_ctps_threshold(400)
+    with pytest.raises(ValueError, match="at least 1"):
+        _compute_ctps_threshold(0)
+    with pytest.raises(TypeError, match="integer"):
+        _compute_ctps_threshold(1.5)
+
+    info = create_info(["EEG 001", "ECG"], 100.0, ["eeg", "ecg"])
+    events = np.column_stack([np.arange(4), np.zeros(4, int), np.ones(4, int)])
+    epochs = EpochsArray(np.zeros((4, 2, 20)), info, events)
+    ica = _ICA(n_components=2, random_state=0)
+    sources = MagicMock()
+    sources.get_data.return_value = np.zeros((4, 2, 20))
+    monkeypatch.setattr(ica, "get_sources", lambda inst: sources)
+    monkeypatch.setattr(
+        "mne.preprocessing.ica.ctps",
+        lambda data: (np.zeros((2, 20)), np.zeros((2, 20)), None),
+    )
+    seen_trials = []
+    monkeypatch.setattr(
+        ica,
+        "_get_ctps_threshold",
+        lambda n_trials: seen_trials.append(n_trials) or 0.5,
+    )
+    ica.find_bads_ecg(epochs, ch_name="ECG", threshold="auto")
+    assert seen_trials == [4]
+
+
 @pytest.mark.slowtest
 @pytest.mark.parametrize("method", ["picard", "fastica"])
 def test_ica_additional(method, tmp_path, short_raw_epochs):
@@ -794,7 +825,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     _assert_ica_attributes(ica, raw.get_data(np.arange(1, 6)))
 
     # check Kuiper index threshold
-    assert_allclose(ica._get_ctps_threshold(), 0.5)
+    assert_allclose(ica._get_ctps_threshold(n_trials=100), 0.5)
     with pytest.raises(TypeError, match="str or numeric"):
         ica.find_bads_ecg(raw, threshold=None)
     with pytest.warns(RuntimeWarning, match="is longer than the signal"):

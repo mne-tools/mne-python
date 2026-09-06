@@ -1,0 +1,1 @@
+Use the number of accepted trials, rather than the sampling frequency, when computing the automatic CTPS ECG threshold, by :newcontrib:`Amirali Moradniaei`.
