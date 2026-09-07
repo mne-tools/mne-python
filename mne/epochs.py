@@ -1920,12 +1920,9 @@ class BaseEpochs(
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
-                if data.flags["OWNDATA"] and data.flags["C_CONTIGUOUS"]:
-                    data.resize((n_out,) + data.shape[1:], refcheck=False)
-                else:
-                    data = data[:n_out]
-                    if self.preload:
-                        self._data = data
+                data = data[:n_out]
+                if self.preload:
+                    self._data = data
 
             # Now update our properties (excepd data, which is already fixed)
             self._getitem(

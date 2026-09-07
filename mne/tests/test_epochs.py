@@ -814,7 +814,8 @@ def test_own_data():
     events = events[:n_epochs]
     epochs = mne.Epochs(raw, events, preload=True)
     assert epochs._data.flags["C_CONTIGUOUS"]
-    assert epochs._data.flags["OWNDATA"]
+    # inplace resize no longer supported in NumPy 2.5
+    assert not epochs._data.flags["OWNDATA"]
     epochs.crop(tmin=-0.1, tmax=0.4)
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
