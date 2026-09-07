@@ -11,4 +11,5 @@ cross-domain-saliency-maps  # tensorflow # categories: stats
 fsleyes  # wxPython # categories: modalities, visu
 mne-kit-gui # mayavi # categories: preproc
 mne-videobrowser # opencv # categories: visu
+osl-dynamics # tensorflow # categories: connectivity, stats, oscillations
 zuna # requires pytorch # categories: stats
