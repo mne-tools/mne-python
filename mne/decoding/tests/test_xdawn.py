@@ -7,9 +7,9 @@ import pytest
 from numpy.testing import assert_array_almost_equal
 
 pytest.importorskip("sklearn")
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import XdawnTransformer, read_xdawn_transformer
+from mne.decoding.tests import parametrize_with_checks
 
 
 @pytest.mark.filterwarnings("ignore:.*Only one sample available.*")

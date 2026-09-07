@@ -40,7 +40,6 @@ from sklearn.model_selection import (
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import EpochsArray, create_info
 from mne.decoding import GeneralizingEstimator, Scaler, TransformerMixin, Vectorizer
@@ -52,6 +51,7 @@ from mne.decoding.base import (
     get_coef,
 )
 from mne.decoding.search_light import SlidingEstimator
+from mne.decoding.tests import parametrize_with_checks
 from mne.utils import check_version
 
 

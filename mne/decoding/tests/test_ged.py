@@ -14,7 +14,6 @@ pytest.importorskip("sklearn")
 
 from sklearn.model_selection import ParameterGrid
 from sklearn.utils._testing import assert_allclose
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
@@ -29,6 +28,7 @@ from mne.decoding._ged import (
 )
 from mne.decoding._mod_ged import _no_op_mod
 from mne.decoding.base import _GEDTransformer
+from mne.decoding.tests import parametrize_with_checks
 from mne.io import read_raw
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
