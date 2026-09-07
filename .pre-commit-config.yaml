@@ -35,7 +35,6 @@ repos:
           - h5py  # for mne/io/snirf
           - lazy_loader  # for mne/io/__init__.py
           - matplotlib
-          - mne-qt-browser  >=0.7
           - mffpy  # for mne/io/egi
           - neo  # for mne/io/neuralynx
           - numpy
