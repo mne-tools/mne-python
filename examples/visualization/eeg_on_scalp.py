@@ -5,7 +5,8 @@
 Plotting EEG sensors on the scalp
 =================================
 
-In this example, digitized EEG sensor locations are shown on the scalp surface.
+In this example, digitized EEG sensor locations and their channel names are
+shown on the scalp surface.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -25,7 +26,7 @@ meg_path = data_path / "MEG" / "sample"
 trans = mne.read_trans(meg_path / "sample_audvis_raw-trans.fif")
 raw = mne.io.read_raw_fif(meg_path / "sample_audvis_raw.fif")
 
-# Plot electrode locations on scalp
+# Plot electrode locations and names on the scalp
 fig = plot_alignment(
     raw.info,
     trans,
@@ -35,7 +36,6 @@ fig = plot_alignment(
     meg=[],
     coord_frame="head",
     subjects_dir=subjects_dir,
-    # show_channel_names uses shadow and outward offset for improved readability
     show_channel_names=True,
 )
 

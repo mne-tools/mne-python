@@ -754,19 +754,23 @@ class _PyVistaRenderer(_AbstractRenderer):
         _hide_testing_actor(actor)
         return actor
 
-    def text3d(self, x, y, z, text, scale, color="white"):
-        kwargs = dict(
-            points=np.array([x, y, z]).astype(float),
-            labels=[text],
-            point_size=scale,
+    def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
+        # x, y, z can be scalars (one label) or arrays (one label per point)
+        single = isinstance(text, str)
+        actor = self.plotter.add_point_labels(
+            points=np.array([x, y, z], float).T,
+            labels=[text] if single else list(text),
+            font_size=font_size,
             text_color=color,
             font_family=self.font_family,
-            name=text,
+            name=text if single else None,
             shape_opacity=0,
+            shadow=shadow,
+            show_points=False,
+            always_visible=True,
         )
-        if "always_visible" in signature(self.plotter.add_point_labels).parameters:
-            kwargs["always_visible"] = True
-        actor = self.plotter.add_point_labels(**kwargs)
+        # otherwise vtkLabelPlacementMapper silently drops labels that would overlap
+        actor.GetMapper().SetPlaceAllLabels(True)
         _hide_testing_actor(actor)
         return actor
 

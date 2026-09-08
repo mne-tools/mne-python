@@ -527,25 +527,27 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def text3d(self, x, y, z, text, width, color="white"):
-        """Add 2d text in the scene.
+    def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
+        """Add text at 3D positions in the scene.
 
         Parameters
         ----------
-        x : float
-            The X component to use as position of the text.
-        y : float
-            The Y component to use as position of the text.
-        z : float
-            The Z component to use as position of the text.
-        text : str
-            The content of the text.
-        width : float
-            The width of the text.
+        x : float | array-like
+            The X component(s) to use as position of the text.
+        y : float | array-like
+            The Y component(s) to use as position of the text.
+        z : float | array-like
+            The Z component(s) to use as position of the text.
+        text : str | list of str
+            The content of the text, one per position.
+        font_size : int
+            The font size in points.
         color : tuple | str
             The color of the text as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
+        shadow : bool
+            If True, draw a shadow behind the text.
         """
         pass
 

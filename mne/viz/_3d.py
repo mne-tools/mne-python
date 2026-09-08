@@ -963,19 +963,7 @@ def plot_alignment(
         offsets = pos + 0.01 * directions / norms
 
         labels = [ch["ch_name"] for ch in chs]
-        renderer.plotter.add_point_labels(
-            offsets,
-            labels,
-            font_size=10,
-            text_color=(1.0, 1.0, 1.0),
-            font_family=renderer.font_family,
-            shadow=True,
-            show_points=False,
-            shape=None,
-            always_visible=True,
-            render=False,
-            reset_camera=False,
-        )
+        renderer.text3d(*offsets.T, labels, font_size=10, color="white", shadow=True)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
