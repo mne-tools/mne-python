@@ -935,13 +935,15 @@ def plot_alignment(
         # transform to current coord frame
         pos = apply_trans(to_cf_t["head"], pos)
 
-        for ch, xyz in zip(chs, pos):
-            renderer.text3d(
-                *xyz,
-                ch["ch_name"],
-                scale=0.005,
-                color=(1.0, 1.0, 1.0),
-            )
+        # offset labels outward from centroid so they clear the sensor glyphs
+        centroid = pos.mean(axis=0)
+        directions = pos - centroid
+        norms = np.linalg.norm(directions, axis=1, keepdims=True)
+        norms = np.where(norms > 0, norms, 1)
+        offsets = pos + 0.01 * directions / norms
+
+        labels = [ch["ch_name"] for ch in chs]
+        renderer.text3d(*offsets.T, labels, font_size=10, color="white", shadow=True)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()

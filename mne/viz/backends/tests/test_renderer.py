@@ -215,7 +215,7 @@ def test_3d_backend(renderer):
             text="font test",
             font_file=font_path,
         )
-    rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
+    rend.text3d(x=0, y=0, z=0, text=txt_text, font_size=12)
     rend.set_camera(
         azimuth=180.0, elevation=90.0, distance=cam_distance, focalpoint=center
     )
