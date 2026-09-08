@@ -13,7 +13,6 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 pytest.importorskip("sklearn")
 
 from sklearn.linear_model import Ridge
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (
@@ -22,6 +21,7 @@ from mne.decoding.receptive_field import (
     _delays_to_slice,
     _times_to_delays,
 )
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
