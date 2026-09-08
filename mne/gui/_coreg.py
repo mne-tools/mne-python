@@ -1642,6 +1642,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["reload_mri_fids"] = self._renderer._dock_add_button(
             name="Reload MRI Fid.",
             callback=lambda: self._set_fiducials_file(self._fiducials_file),
+            icon="restore",
             tooltip="Reload MRI fiducials from the standard location",
             layout=mri_fiducials_button_layout,
         )
@@ -1655,7 +1656,7 @@ class CoregistrationUI(HasTraits):
                 fid_fname.format(subjects_dir=self._subjects_dir, subject=self._subject)
             ),
             tooltip="Save MRI fiducials to the standard location. Fiducials "
-            "must be locked first!",
+            "must be locked first.",
             layout=mri_fiducials_button_layout,
         )
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
@@ -1742,6 +1743,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
+            icon="reset",
             tooltip="Reset all excluded head shape points",
             layout=omit_hsp_layout_2,
         )
@@ -1828,6 +1830,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit fiducials with scaling",
             callback=self._fits_fiducials,
+            icon="scale",
             tooltip="Find MRI scaling, rotation, and translation to fit all "
             "3 fiducials",
             layout=fit_scale_layout,
@@ -1835,6 +1838,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
             callback=self._fits_icp,
+            icon="scale",
             tooltip="Find MRI scaling, rotation, and translation to match the "
             "head shape points",
             layout=fit_scale_layout,
@@ -1851,7 +1855,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save scaled anatomy",
             callback=self._task_save_subject,
-            tooltip="Save scaled anatomy",
+            tooltip="Save the scaled MRI anatomy as a new FreeSurfer subject",
             layout=subject_to_layout,
         )
         self._renderer._layout_add_widget(mri_scaling_layout, subject_to_layout)
@@ -1908,6 +1912,7 @@ class CoregistrationUI(HasTraits):
             desc="Save...",
             save=True,
             func=self._save_trans,
+            icon=True,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
@@ -1917,6 +1922,7 @@ class CoregistrationUI(HasTraits):
             name="load_trans",
             desc="Load...",
             func=self._load_trans,
+            icon=True,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
@@ -1926,6 +1932,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
             name="Reset Parameters",
             callback=self._reset,
+            icon="reset",
             tooltip="Reset all the parameters affecting the coregistration",
             layout=trans_layout,
         )
@@ -1992,7 +1999,8 @@ class CoregistrationUI(HasTraits):
         self._widgets["reset_fitting_options"] = self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
-            tooltip="Reset all the fitting parameters to default value",
+            icon="reset",
+            tooltip="Reset all the fitting parameters to their default values",
             layout=fitting_options_layout,
         )
         self._renderer._dock_add_stretch()
