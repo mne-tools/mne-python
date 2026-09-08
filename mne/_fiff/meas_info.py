@@ -718,7 +718,7 @@ class SetChannelsMixin(MontageMixin):
         | None = None,
         title: str | None = None,
         show_names: bool
-        | np.ndarray  # [tuple[int], np.dtype[np.str_]]  # 1D array of str
+        | np.ndarray[tuple[int], np.dtype[np.str_]]  # 1D array of str
         | Sequence[str] = False,
         ch_groups: Literal["position"]
         | np.ndarray[tuple[int, int], np.dtype[np.integer]]
@@ -729,7 +729,7 @@ class SetChannelsMixin(MontageMixin):
         show: bool = True,
         sphere: float  # radius
         | Annotated[Sequence[float], 4]  # x, y, z, radius
-        | np.ndarray  # [tuple[Literal[4]], np.dtype[np.float_]]  # x, y, z, radius
+        | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]]  # x, y, z, radius
         | ConductorModel
         | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
         | list[Literal["cardinal", "eeg", "extra", "hpi"]]
@@ -976,7 +976,7 @@ class ContainsMixin:
     def get_channel_types(
         self,
         picks: str
-        | np.ndarray  # [tuple[int], np.dtype[np.int_]]  # 1D array of int
+        | np.ndarray[tuple[int], np.dtype[np.integer]]  # 1D array of int
         | Sequence[str]
         | Sequence[int]
         | slice
