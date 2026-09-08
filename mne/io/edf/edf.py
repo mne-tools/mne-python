@@ -833,15 +833,17 @@ def _get_info(
     else:
         n_samps = edf_info["n_samps"][sel]
     nchan = edf_info["nchan"]
+    # handle channels where the physical range is 0 or
+    # the digital_max is not strictly greater than digital_min
     physical_ranges = edf_info["physical_max"] - edf_info["physical_min"]
-    cals = edf_info["digital_max"] - edf_info["digital_min"]
-    bad_idx = np.where((~np.isfinite(cals)) | (cals == 0))[0]
+    digital_ranges = edf_info["digital_max"] - edf_info["digital_min"]
+    bad_idx = np.where((~np.isfinite(digital_ranges)) | (digital_ranges == 0))[0]
     if len(bad_idx) > 0:
         warn(
-            "Scaling factor is not defined in following channels:\n"
+            "Scaling factor will not be defined in the following channels:\n"
             + ", ".join(ch_names[i] for i in bad_idx)
         )
-        cals[bad_idx] = 1
+        digital_ranges[bad_idx] = 1
     bad_idx = np.where(physical_ranges == 0)[0]
     if len(bad_idx) > 0:
         warn(
@@ -1005,7 +1007,7 @@ def _get_info(
     info._update_redundant()
 
     # Later used for reading. Unit is uV per bit
-    edf_info["cal"] = physical_ranges / cals
+    edf_info["cal"] = physical_ranges / digital_ranges
 
     # physical dimension in µV. Difference between attested lowest uV value and lowest
     # possible stored uV value (in light of what digital_min is)
