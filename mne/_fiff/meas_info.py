@@ -15,7 +15,7 @@ from functools import partial
 from io import BytesIO
 from os import PathLike
 from textwrap import shorten
-from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Self, cast
 
 import numpy as np
 
@@ -624,7 +624,7 @@ class SetChannelsMixin(MontageMixin):
                     unit_changes[this_change] = list()
                 unit_changes[this_change].append(ch_name)
                 # reset unit multiplication factor since the unit has now changed
-                info["chs"][c_ind]["unit_mul"] = _ch_unit_mul_named[0]
+                info["chs"][c_ind]["unit_mul"] = _ch_unit_mul_named[cast(NamedInt, 0)]
             info["chs"][c_ind]["unit"] = _human2unit[ch_type]
             if ch_type in ["eeg", "seeg", "ecog", "dbs"]:
                 coil_type = FIFF.FIFFV_COIL_EEG
