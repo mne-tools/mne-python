@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
+          # ty resolves the project metadata, and mne-qt-browser requires mne>=1.0,
+          # so hatch-vcs needs the tags to compute a satisfying version
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v7.0.0
       - run: pip install --upgrade towncrier pygithub gitpython numpy vulture

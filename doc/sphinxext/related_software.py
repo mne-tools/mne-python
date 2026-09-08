@@ -37,6 +37,7 @@ PYPI_PACKAGES = {
     "cross-domain-saliency-maps",
     "meggie",
     "niseq",
+    "osl-dynamics",
     "sesameeg",
     "zuna",
 }

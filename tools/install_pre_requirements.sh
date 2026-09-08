@@ -55,16 +55,12 @@ uv pip install $STD_ARGS --only-binary ":all:" --index-strategy unsafe-best-matc
 python -c "import vtk"
 echo "::endgroup::"
 
-# nilearn and edfio version via hatch-vcs and shipped no .git_archival.txt, so a
-# codeload archive had no version to resolve and the build failed outright; the
-# forks below exist only to carry that file. TODO: point both back at upstream
-# main once those PRs merge (nilearn's clone alone was ~150 MB of the uv cache).
 echo "::group::Everything else"
 uv pip install $STD_ARGS \
 	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
 	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
-	"nilearn @ https://github.com/larsoner/nilearn/archive/refs/heads/gitattr.zip" \
-	"edfio @ https://github.com/larsoner/edfio/archive/refs/heads/gitattr.zip" \
+	"nilearn @ https://github.com/nilearn/nilearn/archive/refs/heads/main.zip" \
+	"edfio @ https://github.com/the-siesta-group/edfio/archive/refs/heads/main.zip" \
 	"python-picard @ https://github.com/pierreablin/picard/archive/refs/heads/master.zip" \
 	"pymatreader @ https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip" \
 	"pyqtgraph @ https://github.com/pyqtgraph/pyqtgraph/archive/refs/heads/master.zip" \
