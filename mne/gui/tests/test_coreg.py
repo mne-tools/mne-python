@@ -71,6 +71,37 @@ def test_coreg_worker_survives_failing_job():
     assert "RuntimeError: not today" in log.getvalue()
 
 
+def test_coreg_distance_and_fit_quality_helpers():
+    """Test the small, renderer-free helpers backing the coreg GUI's dock UI."""
+    from mne.gui._coreg import (
+        _HSP_INSIDE_COLOR,
+        _HSP_OUTSIDE_COLOR,
+        _convert_distance,
+        _fit_quality,
+    )
+
+    # unit conversion is exact and round-trips
+    assert_allclose(_convert_distance(15.0, "mm", "cm"), 1.5)
+    assert_allclose(_convert_distance(1.5, "cm", "mm"), 15.0)
+    assert_allclose(_convert_distance(0.015, "m", "mm"), 15.0)
+    assert_allclose(_convert_distance(15.0, "mm", "m"), 0.015)
+    assert_allclose(_convert_distance(15.0, "mm", "mm"), 15.0)
+
+    # fit-quality thresholds (heuristic, see _fit_quality's docstring)
+    assert _fit_quality(5.0)[0] == "Good"
+    assert _fit_quality(5.01)[0] == "Fair"
+    assert _fit_quality(10.0)[0] == "Fair"
+    assert _fit_quality(10.01)[0] == "Poor"
+
+    # colorblind-safe HSP colors are distinct from each other and from the
+    # shared mne.viz default (white outside / darkslategray inside)
+    assert _HSP_OUTSIDE_COLOR != _HSP_INSIDE_COLOR
+    assert _HSP_OUTSIDE_COLOR != (1.0, 1.0, 1.0)
+    for color in (_HSP_OUTSIDE_COLOR, _HSP_INSIDE_COLOR):
+        assert len(color) == 3
+        assert all(0.0 <= c <= 1.0 for c in color)
+
+
 class TstVTKPicker:
     """Class to test cell picking."""
 
@@ -274,6 +305,24 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     assert_allclose(norm, 6.555220, atol=1e-3)  # outward
     log = log.getvalue()
     assert "Total 8/78 points inside the surface" in log  # more outside now
+
+    coreg._set_grow_hair(5.0)
+    assert coreg._grow_hair == 5.0
+    assert coreg._distance_unit == "mm"
+    assert coreg._widgets["grow_hair_label"].get_value() == "Grow Hair (mm)"
+    coreg._set_distance_unit("cm")
+    assert coreg._widgets["grow_hair_label"].get_value() == "Grow Hair (cm)"
+    assert_allclose(coreg._widgets["grow_hair"].get_value(), 0.5, atol=1e-6)
+    coreg._set_grow_hair(0.5)  # same 5 mm value, just re-entered in cm
+    assert_allclose(coreg._grow_hair, 5.0)  # always stored internally in mm
+    coreg._set_distance_unit("mm")
+    assert coreg._widgets["grow_hair_label"].get_value() == "Grow Hair (mm)"
+    assert_allclose(coreg._widgets["grow_hair"].get_value(), 5.0)
+
+    # fit-quality badge: a colored HTML span embedded in the RMS label
+    fit_label_html = coreg._widgets["fit_label"].get_value()
+    assert "<span style=" in fit_label_html
+    assert any(word in fit_label_html for word in ("Good", "Fair", "Poor"))
 
     # visualization
     assert not coreg._helmet
