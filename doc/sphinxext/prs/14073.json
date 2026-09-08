@@ -1,0 +1,56 @@
+{
+  "merge_commit_sha": "cb06d9d03f251902be05321e088cd67436fd93c2",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/meas_info.py": {
+      "a": 39,
+      "d": 7
+    },
+    "mne/_fiff/pick.py": {
+      "a": 10,
+      "d": 3
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/beamformer/_dics.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_lcmv.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/beamformer/resolution_matrix.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/utils/check.py": {
+      "a": 15,
+      "d": 1
+    }
+  }
+}

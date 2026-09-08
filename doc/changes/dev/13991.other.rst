@@ -1,0 +1,1 @@
+Replace ``defusedxml``-backed implementations of ``_get_ep_info`` and ``_get_signalfname`` in the EGI MFF reader with ``mffpy``-backed parsing via :func:`mne.io.read_raw_egi`, by `Pragnya Khandelwal`_.

@@ -1,0 +1,1 @@
+Speed up :func:`mne.filter.notch_filter` and related methods when ``method="spectrum_fit"`` by caching repeated multitaper window setup, by `Clemens Brunner`_. (:gh:`14116`)

@@ -1,0 +1,1 @@
+When concatenating :class:`~mne.io.Raw` objects containing annotations, also merge the ``extras`` fields, by `Marijn van Vliet`_

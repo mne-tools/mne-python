@@ -5,7 +5,6 @@
 import numbers
 
 import numpy as np
-from scipy.stats import pearsonr
 from sklearn.base import (
     BaseEstimator,
     MetaEstimatorMixin,
@@ -15,7 +14,6 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
-from ..fixes import _reshape_view
 from ..utils import _validate_type, fill_doc, pinv
 from ._fixes import _check_n_features_3d, validate_data
 from .base import _check_estimator, get_coef
@@ -362,7 +360,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         else:
             extra = 1
         shape = shape[: self._y_dim + extra]
-        y_pred = _reshape_view(y_pred, shape)
+        y_pred = y_pred.reshape(shape, copy=False)
         return y_pred
 
     def score(self, X, y):
@@ -554,6 +552,8 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
+    from scipy.stats import pearsonr
+
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
         if this_y.ndim != 2:

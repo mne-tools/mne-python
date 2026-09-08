@@ -358,7 +358,7 @@ _CHECK_ADJ = [adj for adj in _BUILTIN_CHANNEL_ADJACENCIES if adj.source_url is n
 
 # This test is ~15s long across all montages, and we shouldn't need to check super
 # often for mismatches. So let's mark it ultraslowtest so only one CI runs it.
-@pytest.mark.flaky
+@pytest.mark.flaky(reruns=3, reruns_delay=5)
 @pytest.mark.ultraslowtest
 @requires_good_network
 @pytest.mark.parametrize("adj", _CHECK_ADJ)
@@ -696,3 +696,13 @@ def test_combine_channels_metadata():
     good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
     combined_epochs = combine_channels(epochs, good)
     pd.testing.assert_frame_equal(epochs.metadata, combined_epochs.metadata)
+
+
+def test_pick_channels_orig_units_none():
+    """Picking channels must not crash when _orig_units is None (gh-11314)."""
+    info = create_info(["Fp1", "Fp2", "F3", "F4"], 100.0, "eeg")
+    raw = RawArray(np.zeros((4, 100)), info)
+    raw._orig_units = None  # the state reported by some readers / RawArray flows
+    raw.pick(["Fp1", "Fp2"])  # previously raised AttributeError on None.items()
+    assert raw.ch_names == ["Fp1", "Fp2"]
+    assert raw._orig_units is None

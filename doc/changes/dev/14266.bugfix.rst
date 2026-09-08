@@ -1,0 +1,1 @@
+Fix bug where :meth:`mne.io.Raw.interpolate_to` and related methods with ``method="spline"`` did not center the target sensor positions on the fitted sphere origin, by `Eric Larson`_.

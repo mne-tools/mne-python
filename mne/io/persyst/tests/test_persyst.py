@@ -12,6 +12,7 @@ from numpy.testing import assert_array_equal
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _chmod_rw_R
 
 testing_path = data_path(download=False)
 fname_lay = (
@@ -144,6 +145,7 @@ def test_persyst_moved_file(tmp_path):
     new_fname_lay = tmp_path / fname_lay.name
     new_fname_dat = tmp_path / fname_dat.name
     shutil.copy(fname_lay, new_fname_lay)
+    _chmod_rw_R(tmp_path)
 
     # original file read should work
     read_raw_persyst(fname_lay)

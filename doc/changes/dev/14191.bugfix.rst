@@ -1,0 +1,1 @@
+Fix reading CTF datasets whose ``.hc`` file spells the head coils ``Nasion``/``LPA``/``RPA``, by `Seyed Yahya Shirazi`_.

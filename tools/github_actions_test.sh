@@ -2,10 +2,27 @@
 
 set -eo pipefail
 
+# An unset value disables the check in conftest entirely, so every job has to say what it
+# is allowed to skip rather than silently skipping anything
+test -n "${MNE_TEST_ALLOW_SKIP}" || {
+  echo "::error::MNE_TEST_ALLOW_SKIP is unset, so skips would go untracked"
+  exit 1
+}
+
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
-else  # macOS or Windows
+elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
+  # detect arch and run slowtest on arm64 only (pgtest is already ultraslow on macOS)
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    CONDITION="not (ultraslowtest or pgtest)"
+  else
+    CONDITION="not (slowtest or pgtest)"
+  fi
+elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
   CONDITION="not (slowtest or pgtest)"
+else
+  echo "::error::Unrecognized CI_OS_NAME=${CI_OS_NAME}"
+  exit 1
 fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then
   USE_DIRS=mne/viz/
@@ -13,7 +30,7 @@ else
   USE_DIRS="mne/"
 fi
 JUNIT_PATH="junit-results.xml"
-if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
+if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_CI_KIND}" != "minimal" ]] && [[ "${MNE_CI_KIND}" != "old" ]]; then
   PROJ_PATH="$(pwd)"
   JUNIT_PATH="$PROJ_PATH/${JUNIT_PATH}"
   # Use the installed version after adding all (excluded) test files
@@ -34,6 +51,5 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${RUNNER_OS}" != "Windows" ]] && [[ "${MNE_CI_
   echo "::endgroup::"
 fi
 
-set -x
-pytest -m "${CONDITION}" --cov=mne --cov-report xml --color=yes --continue-on-collection-errors --junit-xml=$JUNIT_PATH -vv ${USE_DIRS}
-echo "Exited with code $?"
+# $COV_ARGS is set in github_actions_env_vars.sh (coverage only on Python >= 3.14)
+pytest -m "${CONDITION}" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 ${COV_ARGS} --color=yes --continue-on-collection-errors --junit-xml="$JUNIT_PATH" -vv ${USE_DIRS}

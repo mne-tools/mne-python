@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "102939daacf08bd62ef35ed694000351cb80198d",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 111,
+      "d": 41
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 48,
+      "d": 2
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Added a ``only_if_changed=True`` parameter to :meth:`mne.Report.save` to skip writing an already up-to-date file, by `Eric Larson`_.

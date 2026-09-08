@@ -1,0 +1,1 @@
+Add support for interactive label browsing using ``hover=True`` in :meth:`mne.viz.Brain.add_annotation`, by `Eric Larson`_.

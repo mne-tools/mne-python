@@ -1,0 +1,1 @@
+Allow :func:`mne.read_epochs_eeglab` to read epoched ``.set`` files without event information, by `Daria Agafonova`_.

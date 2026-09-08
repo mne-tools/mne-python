@@ -19,14 +19,21 @@ fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 
 _no_parse = pytest.warns(RuntimeWarning, match="Could not parse")
+omitted = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
 
 
 @testing.requires_testing_data
 def test_old_data():
     """Test reading raw cnt files."""
-    with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
+    with _no_parse, pytest.raises(RuntimeError, match="number of bytes"):
+        read_raw_cnt(input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"])
+    with _no_parse:
         raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+            read_raw_cnt,
+            input_fname=fname,
+            eog="auto",
+            misc=["NA1", "LEFT_EAR"],
+            data_format="int16",
         )
 
     # make sure we use annotations event if we synthesized stim
@@ -43,8 +50,10 @@ def test_old_data():
 @testing.requires_testing_data
 def test_new_data():
     """Test reading raw cnt files with different header."""
-    with pytest.warns(RuntimeWarning):
-        raw = read_raw_cnt(input_fname=fname_bad_spans, header="new")
+    with omitted:
+        raw = read_raw_cnt(
+            input_fname=fname_bad_spans, header="new", data_format="int32"
+        )
 
     assert raw.info["bads"] == ["F8"]  # test bads
 
@@ -52,18 +61,24 @@ def test_new_data():
 @testing.requires_testing_data
 def test_auto_data():
     """Test reading raw cnt files with automatic header."""
-    first = pytest.warns(RuntimeWarning, match="Could not define the number of bytes.*")
-    second = pytest.warns(RuntimeWarning, match="Annotations are outside")
-    third = pytest.warns(RuntimeWarning, match="Omitted 6 annot")
-    with first, second, third:
-        raw = read_raw_cnt(input_fname=fname_bad_spans)
+    # Be strict: if it can't be computed, don't guess one or the other
+    with pytest.raises(RuntimeError, match="Could not automatically compute"):
+        read_raw_cnt(input_fname=fname_bad_spans)
+    with omitted:
+        raw = read_raw_cnt(
+            input_fname=fname_bad_spans, data_format="int32", verbose="debug"
+        )
     # Test that responses are read properly
     assert "KeyPad Response 1" in raw.annotations.description
     assert raw.info["bads"] == ["F8"]
 
-    with _no_parse, pytest.warns(RuntimeWarning, match="number of bytes"):
+    with _no_parse:
         raw = _test_raw_reader(
-            read_raw_cnt, input_fname=fname, eog="auto", misc=["NA1", "LEFT_EAR"]
+            read_raw_cnt,
+            input_fname=fname,
+            eog="auto",
+            misc=["NA1", "LEFT_EAR"],
+            data_format="int16",
         )
 
     # make sure we use annotations event if we synthesized stim
@@ -80,33 +95,59 @@ def test_auto_data():
 @testing.requires_testing_data
 def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
-    with _no_parse, pytest.warns(RuntimeWarning, match="Could not define the num"):
-        raw = read_raw_cnt(fname)
+    with _no_parse:
+        raw = read_raw_cnt(fname, data_format="int16")
     events = np.array(
         [[333, 0, 7], [1010, 0, 7], [1664, 0, 109], [2324, 0, 7], [2984, 0, 109]]
     )
 
-    annot = read_annotations(fname)
+    annot = read_annotations(fname, data_format="int16")
     assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info["sfreq"])
     assert "STI 014" not in raw.info["ch_names"]
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_reading_bytes():
     """Test reading raw cnt files with different header."""
-    raw_16 = read_raw_cnt(fname, preload=True)
-    raw_32 = read_raw_cnt(fname_bad_spans, preload=True)
+    with _no_parse:
+        raw_16 = read_raw_cnt(fname, preload=True, data_format="int16")
+    with omitted:
+        raw_32 = read_raw_cnt(fname_bad_spans, preload=True, data_format="int32")
 
     # Verify that the number of bytes read is correct
     assert len(raw_16) == 3070
+    assert raw_16.info["nchan"] == 128
+    assert raw_16.info["sfreq"] == 400
     assert len(raw_32) == 90000
+    assert raw_32.info["nchan"] == 2
+    assert raw_32.info["sfreq"] == 1000
+
+    # Smoke test that recomputing the number of channels is possible.
+    # For this data it gives an incorrect result, but for others (like
+    # 945flankers_ready.cnt from https://github.com/mne-tools/mne-python/issues/13547)
+    # it's necessary!
+    with (
+        pytest.warns(RuntimeWarning, match="Omitted 4 annot"),
+        pytest.warns(RuntimeWarning, match="Inconsistent file information"),
+        pytest.warns(RuntimeWarning, match="Limited 1 annot"),
+    ):
+        raw_32_wrong = read_raw_cnt(
+            fname_bad_spans,
+            preload=True,
+            data_format="int32",
+            recompute_n_samples=True,
+        )
+    assert len(raw_32_wrong) == 143765
+    assert_array_equal(
+        raw_32.get_data(stop=len(raw_32)),
+        raw_32_wrong.get_data(stop=len(raw_32)),
+    )
 
 
 @testing.requires_testing_data
 def test_bad_spans():
     """Test reading raw cnt files with bad spans."""
-    annot = read_annotations(fname_bad_spans)
+    annot = read_annotations(fname_bad_spans, data_format="int32")
     temp = "\t".join(annot.description)
     assert "BAD" in temp

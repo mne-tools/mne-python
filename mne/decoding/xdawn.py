@@ -34,9 +34,9 @@ class XdawnTransformer(_GEDTransformer):
 
     Parameters
     ----------
-    n_components : int (default 2)
+    n_components : int
         The number of components to decompose the signals.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).

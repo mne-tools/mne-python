@@ -1,0 +1,1 @@
+Add a build script and ``make`` target that produce the MNE wheel the JupyterLite browser kernel installs, by `Natneal B`_.

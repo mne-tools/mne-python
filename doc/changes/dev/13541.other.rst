@@ -1,1 +1,0 @@
-Improved docs for :func:`mne.io.read_raw_nirx`, by :newcontrib:`Natneal B`.

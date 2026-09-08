@@ -1,0 +1,1 @@
+Fix a bug that caused :meth:`mne.io.Raw.pick` and :meth:`mne.io.Raw.drop_channels` to fail on the result of :func:`mne.preprocessing.maxwell_filter` when movement compensation was enabled with ``head_pos``, by `Christian Brodbeck`_.

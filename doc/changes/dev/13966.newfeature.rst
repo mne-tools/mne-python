@@ -1,0 +1,1 @@
+Added a ``volume_options["interpolation"]`` option to :func:`mne.viz.plot_source_estimates` and :meth:`mne.viz.Brain.add_data` to control the interpolation method used for volume rendering. It can be ``"linear"`` (default) or ``"nearest"``. Changes by `Eric Larson`_.

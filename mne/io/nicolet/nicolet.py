@@ -5,6 +5,8 @@
 import calendar
 import datetime
 from os import path
+from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 
@@ -17,7 +19,14 @@ from ..base import BaseRaw
 
 @fill_doc
 def read_raw_nicolet(
-    input_fname, ch_type, eog=(), ecg=(), emg=(), misc=(), preload=False, verbose=None
+    input_fname: Path | str,
+    ch_type: str,
+    eog: list | tuple | Literal["auto"] = (),
+    ecg: list | tuple | Literal["auto"] = (),
+    emg: list | tuple | Literal["auto"] = (),
+    misc: list | tuple = (),
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
@@ -53,7 +62,7 @@ def read_raw_nicolet(
 
     Returns
     -------
-    raw : instance of Raw
+    raw : instance of RawNicolet
         A Raw object containing the data.
 
     See Also
@@ -82,7 +91,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     header = fname + ".head"
 
     logger.info("Reading header...")
-    header_info = dict()
+    header_info: dict[str, Any] = dict()
     with open(header) as fid:
         for line in fid:
             var, value = line.split("=")

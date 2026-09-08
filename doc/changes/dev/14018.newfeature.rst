@@ -1,0 +1,1 @@
+Add a ``show_zero_line`` parameter (and :kbd:`0` keyboard shortcut) to :func:`mne.io.Raw.plot` and :func:`mne.Epochs.plot` to show a reference line at each channel's zero, by `Clemens Brunner`_.

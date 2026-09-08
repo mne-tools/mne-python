@@ -1,0 +1,1 @@
+Add :func:`mne.preprocessing.eyetracking.find_blinks` to detect blinks in eye-tracking data from pupil dropouts and return them as :class:`~mne.Annotations`, by `Stefan Appelhoff`_.

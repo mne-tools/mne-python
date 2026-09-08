@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "454a803b95dbd1e669bba08027f258e1636d2f56",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": "4377312+cbrnr@users.noreply.github.com",
+      "l": "cbrnr"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14058.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 20,
+      "d": 5
+    }
+  }
+}

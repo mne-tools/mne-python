@@ -26,7 +26,6 @@ from ..utils import (
     verbose,
     warn,
 )
-from ..viz.misc import plot_csd
 from .tfr import EpochsTFR, _cwt_array, _get_nfft, morlet
 
 
@@ -419,7 +418,7 @@ class CrossSpectralDensity:
         else:
             return data
 
-    @copy_function_doc_to_method_doc(plot_csd)
+    @copy_function_doc_to_method_doc("func:mne.viz.misc.plot_csd")
     def plot(
         self,
         info=None,
@@ -429,6 +428,8 @@ class CrossSpectralDensity:
         n_cols=None,
         show=True,
     ):
+        from ..viz.misc import plot_csd
+
         return plot_csd(
             self,
             info=info,

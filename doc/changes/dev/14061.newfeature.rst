@@ -1,0 +1,1 @@
+Speed up and slightly improved the accuracy of :func:`mne.make_forward_solution`, by `Eric Larson`_.

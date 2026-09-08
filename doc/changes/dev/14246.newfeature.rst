@@ -1,0 +1,1 @@
+Speed up reading large Artemis123, Curry, EEGLAB, Eximia, FIL and NSx files by reading them in cache-sized blocks, by `Bruno Aristimunha`_.

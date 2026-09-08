@@ -18,10 +18,15 @@ import contextlib
 import re
 import weakref
 from dataclasses import dataclass
-
-from matplotlib.colors import Colormap
+from functools import partial
+from typing import TYPE_CHECKING
 
 from ..utils import _validate_type, fill_doc, logger, verbose, warn
+
+if TYPE_CHECKING:
+    # matplotlib is ~40 ms to import and this module is on the import path of
+    # mne.viz.utils (see mne/tests/test_import_nesting.py)
+    from matplotlib.colors import Colormap
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -151,7 +156,7 @@ class ColormapRange(UIEvent):
     fmid: float | None = None
     fmax: float | None = None
     alpha: bool | None = None
-    cmap: Colormap | str | None = None
+    cmap: "Colormap | str | None" = None
 
 
 @dataclass
@@ -166,6 +171,9 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
 
     Attributes
     ----------
@@ -175,10 +183,14 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
     """
 
     hemi: str
     vertex_id: int
+    source_id: int = None
 
 
 @dataclass
@@ -194,6 +206,9 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
 
     Attributes
     ----------
@@ -204,10 +219,14 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
     """
 
     kind: str
     contours: list[str]
+    line_width: float | None = None
 
 
 @dataclass
@@ -230,6 +249,22 @@ class ChannelsSelect(UIEvent):
     ch_names: list[str]
 
 
+def _delete_event_channel(event=None, *, weakfig):
+    """Delete the event channel (callback function)."""
+    fig = weakfig()
+    if fig is None:
+        return
+    publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
+    logger.debug(f"unlink(({fig})")
+    unlink(fig)  # Remove channel from the _event_channel_links dict
+    if fig in _event_channels:
+        logger.debug(f"  del _event_channels[{fig}]")
+        del _event_channels[fig]
+    if fig in _disabled_event_channels:
+        logger.debug(f"  _disabled_event_channels.remove({fig})")
+        _disabled_event_channels.remove(fig)
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -243,10 +278,10 @@ def _get_event_channel(fig):
 
     Returns
     -------
-    channel : dict[event -> list]
-        The event channel. An event channel is a list mapping string event
-        names to a list of callback representing all subscribers to the
-        channel.
+    channel : dict[event -> dict]
+        The event channel. An event channel is a dict mapping string event
+        names to a dict of callbacks (used as an ordered set) representing all
+        subscribers to the channel, in the order in which they subscribed.
     """
     import matplotlib
 
@@ -263,30 +298,17 @@ def _get_event_channel(fig):
 
         # When the figure is closed, its associated event channel should be
         # deleted. This is a good time to set this up.
-        def delete_event_channel(event=None, *, weakfig=weakfig):
-            """Delete the event channel (callback function)."""
-            fig = weakfig()
-            if fig is None:
-                return
-            publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
-            logger.debug(f"unlink(({fig})")
-            unlink(fig)  # Remove channel from the _event_channel_links dict
-            if fig in _event_channels:
-                logger.debug(f"  del _event_channels[{fig}]")
-                del _event_channels[fig]
-            if fig in _disabled_event_channels:
-                logger.debug(f"  _disabled_event_channels.remove({fig})")
-                _disabled_event_channels.remove(fig)
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
         _validate_type(fig, (matplotlib.figure.Figure, Brain, EvokedField), "fig")
+        this_delete_event_channel = partial(_delete_event_channel, weakfig=weakfig)
         if isinstance(fig, matplotlib.figure.Figure):
-            fig.canvas.mpl_connect("close_event", delete_event_channel)
+            fig.canvas.mpl_connect("close_event", this_delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
-            fig._renderer._window_close_connect(delete_event_channel, after=False)
+            fig._renderer._window_close_connect(this_delete_event_channel, after=False)
 
     # Now the event channel exists for sure.
     return _event_channels[fig]
@@ -327,7 +349,7 @@ def publish(fig, event, *, verbose=None):
     logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
-            channel[event.name] = set()
+            channel[event.name] = dict()
         for callback in channel[event.name]:
             callback(event=event)
 
@@ -345,12 +367,18 @@ def subscribe(fig, event_name, callback, *, verbose=None):
     callback : callable
         The function that should be called whenever the event is published.
     %(verbose)s
+
+    Notes
+    -----
+    Subscribers are called in the order in which they subscribed when the event
+    is published.
     """
     channel = _get_event_channel(fig)
     logger.debug(f"Subscribing to channel {channel}")
     if event_name not in channel:
-        channel[event_name] = set()
-    channel[event_name].add(callback)
+        channel[event_name] = dict()
+    # use a dict as an ordered set: subscribers are called in subscription order
+    channel[event_name][callback] = None
 
 
 @verbose
@@ -396,7 +424,7 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
             # Unsubscribe specific callback function.
             subscribers = channel[event_name]
             if callback in subscribers:
-                subscribers.remove(callback)
+                del subscribers[callback]
             else:
                 warn(
                     f'Cannot unsubscribe {callback} from event "{event_name}" '
@@ -407,7 +435,9 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
 
 
 @verbose
-def link(*figs, include_events=None, exclude_events=None, verbose=None):
+def link(
+    *figs, include_events=None, exclude_events=None, recursive=False, verbose=None
+):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
@@ -426,6 +456,9 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
     exclude_events : list of str | None
         Select which events not to publish across figures. By default (``None``),
         no events are excluded.
+    recursive : bool
+        If ``True``, also link the existing link-groups that figs already belong
+        to, so all members are mutually linked.
     %(verbose)s
     """
     if include_events is not None:
@@ -439,7 +472,17 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
         if fig not in _event_channel_links:
             _event_channel_links[fig] = weakref.WeakKeyDictionary()
 
-    # Link the event channels
+    if recursive:
+        # Also link to anything that is linked to any of the figures in `figs`.
+        figs_set = weakref.WeakSet()
+        for fig in figs:
+            figs_set.add(fig)
+            for linked_fig in _event_channel_links[fig].keys():
+                figs_set.add(linked_fig)
+        # Deliberately let current include and exclude events dominate over past ones.
+        figs = figs_set
+
+    # Do the actual linking.
     for fig1 in figs:
         for fig2 in figs:
             if fig1 is not fig2:
@@ -468,7 +511,7 @@ def unlink(fig, *, verbose=None):
 
 
 @contextlib.contextmanager
-def disable_ui_events(fig):
+def disable_ui_events(fig):  # numpydoc ignore=YD01
     """Temporarily disable generation of UI events. Use as context manager.
 
     Parameters
@@ -485,14 +528,11 @@ def disable_ui_events(fig):
 
 def _cleanup_agg():
     """Call close_event for Agg canvases to help our doc build."""
-    import matplotlib.backends.backend_agg
     import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
         if isinstance(key, matplotlib.figure.Figure):
-            canvas = key.canvas
-            if isinstance(canvas, matplotlib.backends.backend_agg.FigureCanvasAgg):
-                for cb in key.canvas.callbacks.callbacks["close_event"].values():
-                    cb = cb()  # get the true ref
-                    if cb is not None:
-                        cb()
+            for cb in key.canvas.callbacks.callbacks["close_event"].values():
+                cb = cb()  # get the true ref
+                if isinstance(cb, partial) and cb.func is _delete_event_channel:
+                    cb()

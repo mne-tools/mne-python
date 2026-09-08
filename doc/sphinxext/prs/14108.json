@@ -1,0 +1,136 @@
+{
+  "merge_commit_sha": "e1da4c0686f3b2bc810ff59a0b4268111609a417",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14108.bugfix.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/dev/14108.dependency.rst": {
+      "a": 9,
+      "d": 0
+    },
+    "doc/sphinxext/gh_substitutions.py": {
+      "a": 1,
+      "d": 17
+    },
+    "environment.yml": {
+      "a": 5,
+      "d": 5
+    },
+    "examples/decoding/decoding_xdawn_eeg.py": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/stats/r_interop.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 18
+    },
+    "mne/decoding/base.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/search_light.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/io/eeglab/_eeglab.py": {
+      "a": 1,
+      "d": 6
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/morph.py": {
+      "a": 10,
+      "d": 14
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/utils/_testing.py": {
+      "a": 1,
+      "d": 13
+    },
+    "mne/utils/dataframe.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 27
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 45,
+      "d": 150
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/viz/utils.py": {
+      "a": 6,
+      "d": 16
+    },
+    "pyproject.toml": {
+      "a": 9,
+      "d": 7
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 7,
+      "d": 2
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Deprecate the ``epochs`` parameter of :func:`mne.compute_covariance` in favor of ``inst``, by `Hamza Abdelhedi`_.

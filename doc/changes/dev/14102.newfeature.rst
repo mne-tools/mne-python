@@ -1,0 +1,1 @@
+Added ``surf`` and ``cortex`` controls to the :class:`mne.viz.Brain` GUI, by `Payam Sadeghi-Shabestari`_.

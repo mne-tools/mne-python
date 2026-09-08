@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "67d92051ffd622cb5e339f273dc7cd5e18afce9a",
+  "authors": [
+    {
+      "n": "Anton Karpov",
+      "e": "30812217+karpovantonme@users.noreply.github.com",
+      "l": "karpovantonme"
+    }
+  ],
+  "changes": {
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

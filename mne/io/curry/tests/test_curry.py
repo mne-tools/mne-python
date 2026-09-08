@@ -3,7 +3,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from shutil import copyfile
 
@@ -632,7 +632,7 @@ def test_read_files_missing_channel(fname, expected_channel_list):
     [
         pytest.param(
             Ref_chan_omitted_file,
-            datetime(2018, 11, 21, 12, 53, 48, 525000, tzinfo=timezone.utc),
+            datetime(2018, 11, 21, 12, 53, 48, 525000, tzinfo=UTC),
             id="valid start date",
         ),
         pytest.param(curry7_rfDC_file, None, id="start date year is 0"),

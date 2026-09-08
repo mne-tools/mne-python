@@ -73,7 +73,8 @@ meg_data = meg_epochs.get_data(copy=False).reshape(len(labels), -1)
 # Decoding in sensor space using a LogisticRegression classifier
 # --------------------------------------------------------------
 
-clf = LogisticRegression(solver="liblinear")  # liblinear is faster than lbfgs
+# liblinear is faster than lbfgs
+clf = LogisticRegression(solver="liblinear", random_state=137)
 scaler = StandardScaler()
 
 # create a linear model with LogisticRegression
@@ -127,7 +128,7 @@ clf = make_pipeline(
     Vectorizer(),  # 1) vectorize across time and channels
     StandardScaler(),  # 2) normalize features across trials
     LinearModel(  # 3) fits a logistic regression
-        LogisticRegression(solver="liblinear")
+        LogisticRegression(solver="liblinear", random_state=139)
     ),
 )
 clf.fit(X, y)

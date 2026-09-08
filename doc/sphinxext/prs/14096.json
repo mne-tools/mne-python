@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "6693967f7906124a8af6deecdee2005dcaf8914a",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "doc/development/roadmap.rst": {
+      "a": 3,
+      "d": 8
+    },
+    "examples/visualization/brain.py": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

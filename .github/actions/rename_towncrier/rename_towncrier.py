@@ -11,9 +11,9 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from tomllib import loads
 
 from github import Github
-from tomllib import loads
 
 event_name = os.getenv("GITHUB_EVENT_NAME", "pull_request")
 if not event_name.startswith("pull_request"):

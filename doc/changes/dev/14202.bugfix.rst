@@ -1,0 +1,1 @@
+Fix bug where clicking on the brain in :class:`mne.viz.Brain` did not work with recent PyVista versions, by `Eric Larson`_.

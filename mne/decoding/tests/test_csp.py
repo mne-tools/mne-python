@@ -19,12 +19,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.svm import SVC
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
 from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef, read_csp, read_spoc
 from mne.decoding.csp import _ajd_pham
-from mne.utils import catch_logging
+from mne.decoding.tests._sklearn import parametrize_with_checks
+from mne.utils import catch_logging, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -42,12 +42,12 @@ def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
     modulated according to a target variable, before being mixed with a
     random mixing matrix.
     """
-    rs = np.random.RandomState(random_state)
+    rs = np.random.default_rng(random_state)
 
     # generate a orthogonal mixin matrix
-    mixing_mat = np.linalg.svd(rs.randn(n_channels, n_channels))[0]
+    mixing_mat = np.linalg.svd(rs.standard_normal((n_channels, n_channels)))[0]
 
-    S = rs.randn(n_trials, n_channels, 50)
+    S = rs.standard_normal((n_trials, n_channels, 50))
     S[:, 0] *= np.atleast_2d(np.sqrt(target)).T
     S[:, 1:] *= 0.01  # less noise
 
@@ -320,8 +320,12 @@ def test_regularized_csp(ch_type, rank, reg):
     epochs_data = sc.fit_transform(epochs_data)
     csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=rank)
     if rank == "full" and reg is None:
-        with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
-            csp.fit(epochs_data, epochs.events[:, -1])
+        # TODO: Figure out why SciPy 1.18 is different:
+        # R_restr differs enough (but only by ~1e-13!) that it doesn't hit the
+        # "leading minor" error here...
+        if not check_version("scipy", "1.18.0.dev0"):
+            with pytest.raises(np.linalg.LinAlgError, match="leading minor"):
+                csp.fit(epochs_data, epochs.events[:, -1])
         return
     with catch_logging(verbose=True) as log:
         X = csp.fit_transform(epochs_data, epochs.events[:, -1])
@@ -361,7 +365,7 @@ def test_regularized_csp(ch_type, rank, reg):
     clf = make_pipeline(
         sc,
         csp,
-        LinearModel(LogisticRegression(solver="liblinear")),
+        LinearModel(LogisticRegression(solver="liblinear", random_state=0)),
     )
     score = cross_val_score(clf, epochs_data_orig, y, cv=cv, scoring="roc_auc").mean()
     assert 0.75 <= score <= 1.0
@@ -383,7 +387,7 @@ def test_regularized_csp(ch_type, rank, reg):
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
     csp = CSP(reg=1, norm_trace=False)
-    svc = SVC()
+    svc = SVC(random_state=0)
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
     assert pipe.get_params()["CSP__reg"] == 0.2
@@ -395,9 +399,10 @@ def test_ajd():
     # results as the Matlab implementation by Pham Dinh-Tuan.
     # Generate a set of cavariances matrices for test purpose
     n_times, n_channels = 10, 3
+    # RandomState (not default_rng): V_matlab below was computed from this exact stream
     seed = np.random.RandomState(0)
-    diags = 2.0 + 0.1 * seed.randn(n_times, n_channels)
-    A = 2 * seed.rand(n_channels, n_channels) - 1
+    diags = seed.normal(loc=2.0, scale=0.1, size=(n_times, n_channels))
+    A = 2 * seed.random((n_channels, n_channels)) - 1
     A /= np.atleast_2d(np.sqrt(np.sum(A**2, 1))).T
     covmats = np.empty((n_times, n_channels, n_channels))
     for i in range(n_times):
@@ -414,8 +419,9 @@ def test_ajd():
 
 def test_spoc():
     """Test SPoC."""
-    X = np.random.randn(10, 10, 20)
-    y = np.random.randn(10)
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((10, 10, 20))
+    y = rng.standard_normal(10)
 
     spoc = SPoC(n_components=4)
     spoc.fit(X, y)
@@ -435,8 +441,8 @@ def test_spoc():
     pytest.raises(TypeError, SPoC, cov_est="epoch")
 
     # Check mixing matrix on simulated data
-    rs = np.random.RandomState(42)
-    y = rs.rand(100) * 50 + 1
+    rs = np.random.default_rng(42)
+    y = rs.random(100) * 50 + 1
     X, A = simulate_data(y)
 
     # fit spoc
@@ -495,7 +501,7 @@ def test_csp_component_ordering():
 @parametrize_with_checks([CSP(), SPoC()])
 def test_sklearn_compliance(estimator, check):
     """Test compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.5")  # TODO VERSION remove on 1.5+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     check(estimator)
 
 
@@ -503,17 +509,17 @@ def test_sklearn_compliance(estimator, check):
 def test_io_roundtrip(tmp_path, Estimator):
     """Test that CSP/SPoC can be saved to disk and loaded back correctly."""
     h5io = pytest.importorskip("h5io")
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
 
     # Generate class-specific data
     if Estimator is CSP:
-        X = rng.randn(40, 10, 50)
+        X = rng.standard_normal((40, 10, 50))
         y = np.array([0] * 20 + [1] * 20)
         read_func = read_csp
         extra_attrs = ["component_order", "norm_trace"]
     else:  # SPoC
-        X = rng.randn(10, 10, 20)
-        y = rng.randn(10)
+        X = rng.standard_normal((10, 10, 20))
+        y = rng.standard_normal(10)
         read_func = read_spoc
         extra_attrs = []
 

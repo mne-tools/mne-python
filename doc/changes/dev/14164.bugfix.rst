@@ -1,0 +1,1 @@
+Add CUDA support to :meth:`mne.io.Raw.apply_hilbert` and related data classes, allowing :func:`mne.preprocessing.annotate_muscle_zscore` to use ``n_jobs='cuda'``, by `Daria Agafonova`_.

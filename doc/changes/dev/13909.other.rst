@@ -1,0 +1,4 @@
+Batch and vectorise classifier estimation and scoring in
+:meth:`mne.decoding.GeneralizingEstimator.score` for ``scoring=None``,
+``"accuracy"``, ``"balanced_accuracy"`` and ``"roc_auc"``, by
+:newcontrib:`Mathias Sablé-Meyer`.

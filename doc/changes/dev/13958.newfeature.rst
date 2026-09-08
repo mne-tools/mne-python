@@ -1,0 +1,1 @@
+Added the ``n_components`` parameter to ICA plotting and report generation functions to allow dynamic control over the number of components displayed by Athish M.

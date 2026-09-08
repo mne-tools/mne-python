@@ -12,13 +12,14 @@ from ..utils import logger
 
 
 class _Overlay:
-    def __init__(self, scalars, colormap, rng, opacity, name):
+    def __init__(self, scalars, colormap, rng, opacity, name, smooth=False):
         self._scalars = scalars
         self._colormap = colormap
         assert rng is not None
         self._rng = rng
         self._opacity = opacity
         self._name = name
+        self._smooth = smooth
 
     def to_colors(self):
         from matplotlib.colors import Colormap, ListedColormap
@@ -74,7 +75,45 @@ class _Overlay:
         return (self._scalars - rng[0]) / factor
 
 
-class _LayeredMesh:
+class LayeredMesh:
+    """A mesh with support for layered RGBA overlays and optional smoothing.
+
+    This class manages a single brain-surface mesh and composites multiple
+    named overlays (e.g., curvature, data, labels) on top of each other using
+    alpha blending.  It is the object stored in
+    ``Brain.layered_meshes``.
+
+    .. warning::
+        This class is not meant to be instantiated directly, and the
+        initialization API could change at any time! Use
+        :meth:`mne.viz.Brain.add_data` to create instances.
+
+    Parameters
+    ----------
+    renderer : instance of _Renderer
+        The renderer used to create the underlying mesh polydata.
+    vertices : array, shape (n_vertices, 3)
+        Vertex coordinates in metres.
+    triangles : array, shape (n_triangles, 3)
+        Triangle indices into ``vertices``.
+    normals : array, shape (n_vertices, 3)
+        Vertex normals.
+
+    Attributes
+    ----------
+    smooth_mat : scipy.sparse.csr_array or None
+        Optional spatial smoother / upsampler applied to scalar data before
+        rendering.  When set (e.g., by
+        :meth:`~mne.viz.Brain.set_data_smoothing`), every call to
+        :meth:`update_overlay` will multiply the incoming scalars by this
+        matrix before storing them.  Shape must be
+        ``(n_surface_vertices, n_source_vertices)``.
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+
     def __init__(self, renderer, vertices, triangles, normals):
         self._renderer = renderer
         self._vertices = vertices
@@ -91,8 +130,9 @@ class _LayeredMesh:
 
         self._default_scalars = np.ones(vertices.shape)
         self._default_scalars_name = "Data"
+        self.smooth_mat = None
 
-    def map(self):
+    def _map(self):
         kwargs = {
             "color": None,
             "pickable": True,
@@ -111,17 +151,28 @@ class _LayeredMesh:
         self._is_mapped = True
 
     def _compute_over(self, B, A):
+        # Alpha-composite A ("over") on top of B, both RGBA in [0, 1].
+        #
+        # This runs on every time point of an interactive time course, on surfaces
+        # with >1e5 vertices, so it is written to touch the (n_vertices, 4) arrays
+        # as few times as possible and only ever whole: expressing it in terms of
+        # the RGB columns (``C[:, :3] *= ...``) makes every operation strided,
+        # which costs ~4x more than the same work on the full array. The alpha
+        # column is included in the arithmetic and simply overwritten at the end.
         assert A.ndim == B.ndim == 2
         assert A.shape[1] == B.shape[1] == 4
-        A_w = A[:, 3:]  # * 1
-        B_w = B[:, 3:] * (1 - A_w)
-        C = A.copy()
-        C[:, :3] *= A_w
-        C[:, :3] += B[:, :3] * B_w
-        C[:, 3:] += B_w
-        C_alpha_zero = C[:, 3] == 0
-        C[~C_alpha_zero, :3] /= C[~C_alpha_zero, 3:]
-        C[C_alpha_zero, :3] = 0
+        A_w = A[:, 3].copy()  # copy: column slices of a (n, 4) array are strided
+        B_w = B[:, 3].copy()
+        B_w *= 1 - A_w
+        C = A * A_w[:, None]
+        C += B * B_w[:, None]
+        alpha = A_w + B_w
+        # Where the composite is fully transparent the color is undefined: divide
+        # by one there instead, and zero those rows out afterwards.
+        opaque = alpha != 0
+        np.divide(C, np.where(opaque, alpha, 1)[:, None], out=C)
+        C *= opaque[:, None]
+        C[:, 3] = alpha
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
@@ -135,13 +186,37 @@ class _LayeredMesh:
                 B = self._compute_over(cache, A)
         return B, cache
 
-    def add_overlay(self, scalars, colormap, rng, opacity, name):
+    def add_overlay(self, scalars, colormap, rng, opacity, name, smooth=False):
+        """Add a named overlay to the mesh.
+
+        Parameters
+        ----------
+        scalars : array, shape (n_vertices,)
+            Scalar values to display. If ``smooth=True`` and
+            ``smooth_mat`` is set, shape must be ``(n_src_vertices,)``.
+        colormap : array, shape (n_colors, 4)
+            RGBA colormap table (values in ``[0, 255]``).
+        rng : array-like, shape (2,)
+            ``[min, max]`` range for colormap mapping.
+        opacity : float | None
+            Overlay opacity in ``[0, 1]``. ``None`` keeps the existing value.
+        name : str
+            Unique key identifying this overlay.
+        smooth : bool
+            If ``True`` and ``smooth_mat`` is set, multiply ``scalars``
+            by ``smooth_mat`` before rendering. Use ``True`` only for
+            source-space data; surface-space overlays (curvature, labels,
+            annotations) should use the default ``False``.
+        """
+        if smooth and self.smooth_mat is not None:
+            scalars = self.smooth_mat.dot(scalars)
         overlay = _Overlay(
             scalars=scalars,
             colormap=colormap,
             rng=rng,
             opacity=opacity,
             name=name,
+            smooth=smooth,
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
@@ -156,6 +231,13 @@ class _LayeredMesh:
         self._apply()
 
     def remove_overlay(self, names):
+        """Remove one or more overlays by name.
+
+        Parameters
+        ----------
+        names : str | list of str
+            Name(s) of the overlay(s) to remove.
+        """
         to_update = False
         if not isinstance(names, list):
             names = [names]
@@ -172,6 +254,14 @@ class _LayeredMesh:
         self._polydata[self._default_scalars_name] = self._current_colors
 
     def update(self, colors=None):
+        """Recompose all overlays and refresh the mesh texture.
+
+        Parameters
+        ----------
+        colors : array-like of shape (n_triangles, 4) | None
+            Pre-composited RGBA colors to blend over the cached layer stack.
+            If ``None``, all overlays are recomposed from scratch.
+        """
         if colors is not None and self._cached_colors is not None:
             self._current_colors = self._compute_over(self._cached_colors, colors)
         else:
@@ -186,11 +276,64 @@ class _LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None):
+    def update_geometry(self, vertices, normals):
+        """Update the mesh's vertex positions and normals in place.
+
+        Parameters
+        ----------
+        vertices : array, shape (n_vertices, 3)
+            New vertex coordinates. Must match the existing vertex count.
+        normals : array, shape (n_vertices, 3)
+            New vertex normals.
+        """
+        self._vertices = vertices
+        self._normals = normals
+        self._polydata.points = vertices
+        self._polydata.point_data["Normals"] = normals
+        self._polydata.GetPointData().SetActiveNormals("Normals")
+
+    def update_overlay(
+        self, name, scalars=None, colormap=None, opacity=None, rng=None, update=True
+    ):
+        """Update an existing overlay in-place.
+
+        Parameters
+        ----------
+        name : str
+            Key of the overlay to update (must already exist).
+        scalars : array, shape (n_vertices,) | None
+            New scalar values. If ``None``, scalars are unchanged.
+            If ``smooth_mat`` is set, smoothing is applied automatically
+            (matching the behaviour of the original :meth:`~mne.viz.Brain.add_data`
+            call that created the overlay).
+        colormap : array, shape (n_colors, 4) | None
+            New RGBA colormap table. If ``None``, colormap is unchanged.
+        opacity : float | None
+            New opacity in ``[0, 1]``. If ``None``, opacity is unchanged.
+        rng : array-like, shape (2,) | None
+            New ``[min, max]`` colormap range. If ``None``, range is unchanged.
+        update : bool
+            If ``True`` (default), recompose overlays and refresh the mesh
+            immediately.  Pass ``False`` to stage the change without
+            triggering a recompose; the caller is then responsible for
+            calling :meth:`update` once all overlays have been staged.
+        """
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
         if scalars is not None:
+            scalars = np.asarray(scalars)
+            smooth = overlay._smooth and self.smooth_mat is not None
+            if smooth:
+                expected = self.smooth_mat.shape[1]
+            else:
+                expected = len(overlay._scalars)
+            if scalars.shape != (expected,):
+                raise ValueError(
+                    f"scalars must have shape ({expected},), got {scalars.shape}"
+                )
+            if smooth:
+                scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
         if colormap is not None:
             overlay._colormap = colormap
@@ -198,6 +341,8 @@ class _LayeredMesh:
             overlay._opacity = opacity
         if rng is not None:
             overlay._rng = rng
+        if not update:
+            return
         # partial update: use cache if possible
         if name == list(self._overlays.keys())[-1]:
             self.update(colors=overlay.to_colors())

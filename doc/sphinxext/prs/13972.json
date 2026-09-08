@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "b4decce6c365ed5b431c391b35a69f412e1a59a5",
+  "authors": [
+    {
+      "n": "Frankie Robertson",
+      "e": "299380+frankier@users.noreply.github.com",
+      "l": "frankier"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13972.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 23,
+      "d": 19
+    }
+  }
+}

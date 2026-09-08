@@ -117,21 +117,22 @@ def test_interpolate_bridged_electrodes():
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
     # test bad_limit
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1005")
     ch_names = [
         ch
         for ch in montage.ch_names
         if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]
     ]
     info = create_info(ch_names, sfreq=1024, ch_types="eeg")
-    data = np.random.randn(len(ch_names), 1024)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 1024))
     data[:5, :] = np.ones((5, 1024))
     raw = io.RawArray(data, info)
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
     bridged_idx = list(itertools.combinations(range(5), 2))
     with pytest.raises(
         RuntimeError,
-        match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
+        match="The channels AF1, AF10, AF10h, AF1h, AF2 are bridged "
         "together and form a large area of bridged electrodes.",
     ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
@@ -146,7 +147,7 @@ def test_interpolate_bridged_electrodes():
 
 def test_find_centroid():
     """Test that the centroid is correct."""
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1005")
     ch_names = [
         ch
         for ch in montage.ch_names
@@ -172,7 +173,7 @@ def test_find_centroid():
         ("Fpz", "AFz"),
         ("AF7", "F7"),
         ("O1", "O2"),
-        ("M2", "A2"),
+        ("TP9", "TP9h"),
         ("P5", "P9"),
     ]
     for ch_names in pairs:

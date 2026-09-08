@@ -1,0 +1,1 @@
+Fixed two bugs in how SSS information is stored and read: :func:`mne.preprocessing.maxwell_filter` recorded which multipole moments it had kept in the wrong order (the filtered data itself was unaffected), and :func:`mne.compute_rank` reported the full MEG rank rather than the reduced SSS rank for data processed with MaxFilter™-3.0, by `Eric Larson`_.

@@ -1,0 +1,1 @@
+Replace manual binary block reader ``_get_blocks`` with ``mffpy.Reader`` API in ``_read_mff_header``, removing low-level EGI binary parsing in favour of the existing mffpy dependency, by `Pragnya Khandelwal`_.

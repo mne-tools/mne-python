@@ -1,0 +1,1 @@
+Added a ``rank`` parameter to :class:`mne.preprocessing.Xdawn` for using Xdawn with rank-deficient data without regularization, by `Eric Larson`_.

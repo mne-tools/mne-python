@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.preprocessing.write_fine_calibration` wrote internal ``MEG`` channel names (e.g. ``MEG0113``) instead of the bare channel numbers (e.g. ``113``) that MaxFilter expects, breaking round trips of Neuromag calibration files, by :newcontrib:`Apoorva Verma`.

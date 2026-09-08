@@ -1,1 +1,0 @@
-Clarified an internal forward-model invariant in ``mne.forward._lead_dots`` by asserting that ``rref`` is ``None`` on the current code path, by `Pragnya Khandelwal`_.

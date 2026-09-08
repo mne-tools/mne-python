@@ -1,0 +1,1 @@
+Replace the internal binary-block EEG sample reader in :func:`mne.io.read_raw_egi` with ``mffpy``-backed reading via ``mffpy.Reader.get_physical_samples_from_epoch``, removing manual block-header parsing and ``np.fromfile`` calls, by `Pragnya Khandelwal`_.

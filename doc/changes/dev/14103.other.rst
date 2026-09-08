@@ -1,0 +1,1 @@
+Decomposition-heavy operations such as :func:`mne.preprocessing.maxwell_filter`, :func:`mne.compute_covariance` and :meth:`mne.preprocessing.ICA.fit` now limit how many BLAS threads they use, which is often much faster; see :ref:`faq_cpu` to control this yourself, by `Eric Larson`_.

@@ -106,7 +106,7 @@ fig = raw.plot_sensors("3d")
 # %%
 # If you're working with a standard montage like the `10–20 <ten_twenty_>`_
 # system, you can add sensor locations to the data with
-# ``raw.set_montage('standard_1020')`` (see :ref:`tut-sensor-locations` for
+# ``raw.set_montage('spherical_1020')`` (see :ref:`tut-sensor-locations` for
 # information on other standard montages included with MNE-Python).
 #
 # If you have digitized realistic sensor locations, there are dedicated

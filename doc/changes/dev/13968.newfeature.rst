@@ -1,0 +1,2 @@
+Add ``TimeChange`` behaviour for :func:`mne.viz.plot_evoked_topo`, where time is marked with solid vertical line after clicking on subfigure axis. 
+Add ``recursive`` parameter to :func:`mne.viz.ui_events.link` that enables linking to a target figure, as well as all figures that the target figure links to, by `Lifeng Qiu Lin`_.

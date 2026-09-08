@@ -50,7 +50,7 @@ raw.resample(100, npad="auto")
 
 # Get cHPI time series and compute average
 chpi_locs = mne.chpi.extract_chpi_locs_ctf(raw)
-head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs)
+head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, weighted=True)
 original_head_dev_t = mne.transforms.invert_transform(raw.info["dev_head_t"])
 average_head_dev_t = mne.transforms.invert_transform(
     compute_average_dev_head_t(raw, head_pos)

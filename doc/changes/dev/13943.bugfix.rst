@@ -1,0 +1,1 @@
+Fix channel ordering bug in :func:`mne.viz.plot_compare_evokeds` when ``axes="topo"``, by `Lifeng Qiu Lin`_.

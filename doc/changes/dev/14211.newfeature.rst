@@ -1,0 +1,3 @@
+Added :ref:`tut-gal-decoding`, a tutorial on Generalization Across Location
+(GAL) and Time-GAL decoding of EEG data, by `Bruno Aristimunha`_ and
+:newcontrib:`Alejandro Santos Mayo`.

@@ -18,7 +18,6 @@ from functools import partial
 
 import numpy as np
 from decorator import decorator
-from scipy.signal import argrelmax
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
@@ -157,7 +156,12 @@ def plt_show(show=True, fig=None, **kwargs):
         backend = get_backend()
     if show and backend != "agg":
         logger.debug(f"Showing plot for backend {repr(backend)}")
-        (fig or plt).show(**kwargs)
+        # if backend is inline and therefore non-interactive,
+        # fig.show() fails with UserWarning. See gh-14076
+        if "inline" in str(backend).lower():
+            plt.show(**kwargs)
+        else:
+            (fig or plt).show(**kwargs)
 
 
 def _show_browser(show=True, block=True, fig=None, **kwargs):
@@ -185,9 +189,8 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         plt_show(show, block=block, **kwargs)
     else:
         from qtpy.QtCore import Qt
-        from qtpy.QtWidgets import QApplication
 
-        from .backends._utils import _qt_app_exec
+        from .backends._utils import _qt_block
 
         if fig is not None and os.getenv("_MNE_BROWSER_BACK", "").lower() == "true":
             fig.setWindowFlags(fig.windowFlags() | Qt.WindowStaysOnBottomHint)
@@ -196,7 +199,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         # If block=False, a Qt-Event-Loop has to be started
         # somewhere else in the calling code.
         if block:
-            _qt_app_exec(QApplication.instance())
+            _qt_block(fig)
 
 
 def _check_delayed_ssp(container):
@@ -497,24 +500,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     # make edges around checkbox areas and change already-applied projectors
     # to red
-    from ._mpl_figure import _OLD_BUTTONS
-
-    check_kwargs = dict()
-    if not _OLD_BUTTONS:
-        checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
-        check_kwargs["check_props"] = dict(facecolor=checkcolor)
-        check_kwargs["frame_props"] = dict(edgecolor="0.5", linewidth=1)
+    checkcolor = ["#ff0000" if p["active"] else "k" for p in projs]
     proj_checks = widgets.CheckButtons(
-        ax_temp, labels=labels, actives=actives, **check_kwargs
+        ax_temp,
+        labels=labels,
+        actives=actives,
+        check_props=dict(facecolor=checkcolor),
+        frame_props=dict(edgecolor="0.5", linewidth=1),
     )
-    if _OLD_BUTTONS:
-        for rect in proj_checks.rectangles:
-            rect.set_edgecolor("0.5")
-            rect.set_linewidth(1.0)
-        for ii, p in enumerate(projs):
-            if p["active"]:
-                for x in proj_checks.lines[ii]:
-                    x.set_color("#ff0000")
 
     # make minimal size
     # pass key presses from option dialog over
@@ -681,6 +674,137 @@ def _key_press(event):
 
     if event.key == "escape":
         plt.close(event.canvas.figure)
+
+
+class _BlitManager:
+    """Redraw a few fast-changing artists without redrawing the whole figure.
+
+    Artists added with :meth:`add` are left out of the cached figure background, so
+    that moving them (a time cursor, a label that travels with it, ...) costs a blit
+    of that background rather than a full redraw of the figure. They are drawn on top
+    of that background, so they should be the topmost artists of their axes for the
+    blitted figure to match a full redraw.
+
+    Parameters
+    ----------
+    fig : instance of matplotlib.figure.Figure
+        The figure to blit.
+    draw : callable | None
+        What to call for a full, *synchronous* redraw of the figure. Defaults to the
+        figure canvas' ``draw``.
+    """
+
+    def __init__(self, fig, draw=None):
+        self._fig = fig
+        self._draw = fig.canvas.draw if draw is None else draw
+        self._artists = list()
+        self._background = None
+        self._capturing = False
+        self._cid = None
+        # Connect as early as possible: Matplotlib's blitting widgets redraw the
+        # figure from inside their own draw_event callback (see
+        # `SpanSelector.update_background`), so a manager connected after one of
+        # those would see a canvas they had already drawn on.
+        self._connect()
+
+    def add(self, artist):
+        """Mark an artist as fast-updating, to be drawn by :meth:`update`.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to draw separately.
+        """
+        self._connect()
+        if not self._fig.canvas.supports_blit:  # e.g. ipympl in a notebook
+            return
+        if artist in self._artists:
+            return
+        self._artists.append(artist)
+        self._background = None  # the cached background may contain this artist
+
+    def remove(self, artist):
+        """Stop drawing an artist separately, putting it back in the background.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to stop drawing separately. Artists that were never added
+            are ignored.
+        """
+        if artist not in self._artists:
+            return
+        self._artists.remove(artist)
+        self._background = None
+        self._draw()
+
+    def update(self, artists=None):
+        """Redraw only the artists added with :meth:`add`.
+
+        This is the fast path taken while the artists move; any other change to the
+        figure needs a full redraw instead.
+
+        Parameters
+        ----------
+        artists : list of matplotlib.artist.Artist | None
+            Artists to draw instead of the ones added so far, for callers that
+            rebuild some of them for every frame (e.g. a contour set, which
+            Matplotlib cannot update in place). The cached background stays valid,
+            as it never contained any of them.
+        """
+        if artists is not None and self._fig.canvas.supports_blit:
+            self._artists = list(artists)
+        if not self._artists:  # nothing to draw fast (e.g. blitting unsupported)
+            self._draw()
+            return
+        if self._background is None:
+            self._capture()
+        self._fig.canvas.restore_region(self._background)
+        self._draw_artists()
+        self._fig.canvas.blit(self._fig.bbox)
+
+    def close(self):
+        """Forget the artists and stop tracking the figure background."""
+        if self._cid is not None:
+            self._fig.canvas.mpl_disconnect(self._cid)
+            self._cid = None
+        self._artists.clear()  # the artists go away with the figure
+        self._background = None
+
+    def _connect(self):
+        # Drop the cached background after every full redraw, whatever caused it (an
+        # explicit draw, a resize, a DPI change, ...). The canvas can still be missing
+        # when the manager is built alongside its figure, hence the retry from
+        # :meth:`add`.
+        if self._cid is None and self._fig.canvas is not None:
+            self._cid = self._fig.canvas.mpl_connect("draw_event", self._on_draw)
+
+    def _capture(self):
+        """Cache a picture of the figure without the fast-updating artists."""
+        # Hiding the artists for one redraw is how Matplotlib's own blitting widgets
+        # keep themselves out of their background, see `SpanSelector.update_background`.
+        # Marking them ``animated`` instead would keep them out of *every* redraw,
+        # which costs those same widgets a full redraw of the figure per draw event.
+        visible = [artist.get_visible() for artist in self._artists]
+        self._capturing = True
+        try:
+            for artist in self._artists:
+                artist.set_visible(False)
+            self._draw()
+            self._background = self._fig.canvas.copy_from_bbox(self._fig.bbox)
+        finally:
+            for artist, was_visible in zip(self._artists, visible):
+                artist.set_visible(was_visible)
+            self._capturing = False
+
+    def _draw_artists(self):
+        for artist in sorted(self._artists, key=lambda artist: artist.get_zorder()):
+            self._fig.draw_artist(artist)
+
+    def _on_draw(self, event=None):
+        """Drop the cached background after a full redraw (draw_event callback)."""
+        if not self._capturing:  # ... except the one :meth:`_capture` just asked for
+            self._background = None
 
 
 class ClickableImage:
@@ -879,6 +1003,8 @@ def _find_peaks(evoked, npeaks):
 
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
+    from scipy.signal import argrelmax
+
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:
@@ -936,7 +1062,7 @@ def plot_sensors(
     ch_groups=None,
     to_sphere=True,
     axes=None,
-    block=False,
+    block=None,
     show=True,
     sphere=None,
     pointsize=None,
@@ -987,11 +1113,17 @@ def plot_sensors(
     %(axes_montage)s
 
         .. versionadded:: 0.13.0
-    block : bool
-        Whether to halt program execution until the figure is closed. Defaults
-        to False.
+    block : bool | None
+        Whether to halt program execution until the figure is closed. By default
+        (``None``) this follows :func:`matplotlib.pyplot.show`: it blocks unless
+        Matplotlib's interactive mode is on (see :func:`matplotlib.pyplot.ion`), in
+        which case it returns immediately. Set to ``True`` to force blocking, which is
+        useful with ``kind="select"`` to collect the interactive selection synchronously
+        when interactive mode is on.
 
         .. versionadded:: 0.13.0
+        .. versionchanged:: 1.13
+           The default changed from ``False`` to ``None`` (follow Matplotlib).
     show : bool
         Show figure if True. Defaults to True.
     %(sphere_topomap_auto)s
@@ -1402,7 +1534,9 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
             n_epochs = int(np.clip(n_epochs, 1, len(inst)))
-            ixs_epochs = np.random.choice(range(len(inst)), n_epochs, False)
+            ixs_epochs = np.random.default_rng(0).choice(
+                len(inst), n_epochs, replace=False
+            )
             inst = inst.copy()[ixs_epochs].load_data()
     else:
         data = inst._data
@@ -1806,6 +1940,28 @@ def _get_color_list(*, remove=None):
             logger.debug(f"Removing from color cycle: {colors[idx]}")
             colors.pop(idx)
     return colors
+
+
+# sRGB -> LMS and LMS -> Oklab. Adapted from https://bottosson.github.io/posts/oklab/
+# by Björn Ottosson, released to the public domain (or MIT), BSD-compatible
+_M_SRGB_TO_LMS = np.array(
+    [
+        [0.4122214708, 0.5363325363, 0.0514459929],
+        [0.2119034982, 0.6806995451, 0.1073969566],
+        [0.0883024619, 0.2817188376, 0.6299787005],
+    ]
+)
+_V_LMS_TO_OKLAB_L = np.array([0.2104542553, 0.7936177850, -0.0040720468])
+
+
+def _is_dark(color, *, name="color"):
+    """Check whether a background color calls for light foreground colors."""
+    # Oklab lightness below 0.5, which is what mne-qt-browser uses
+    rgb = np.array(_to_rgb(color, name=name), float)
+    mask = rgb > 0.04045  # sRGB -> linear sRGB
+    rgb[mask] = ((rgb[mask] + 0.055) / 1.055) ** 2.4
+    rgb[~mask] /= 12.92
+    return bool(_V_LMS_TO_OKLAB_L @ np.cbrt(_M_SRGB_TO_LMS @ rgb) < 0.5)
 
 
 def _merge_annotations(start, stop, description, annotations, current=()):
@@ -2866,3 +3022,34 @@ def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
                 f"No plottable channel types found. Allowed types are: {allowed_types}"
             )
     return ch_type
+
+
+def _normalize_annotation_colors(annotation_colors, annotations):
+    """Normalize annotation_colors and check that keys match annotation descriptions.
+
+    Parameters
+    ----------
+    annotation_colors : dict[str, color]
+        The annotation colors to normalize (``color`` can be any valid Matplotlib color
+        specification).
+    annotations : mne.Annotations
+        The Annotations object to check against.
+    """
+    from matplotlib.colors import to_hex
+
+    _validate_type(annotation_colors, dict, "annotation_colors")
+    normalized = {}
+    for k, v in annotation_colors.items():
+        try:
+            normalized[k] = to_hex(v)
+        except ValueError:
+            raise ValueError(
+                f"annotation_colors[{k!r}] is not a valid matplotlib color: {v!r}"
+            ) from None
+    unknown = set(normalized) - set(annotations.description)
+    if unknown:
+        warn(
+            "The following annotation_colors keys do not match any annotation "
+            f"description in the data: {sorted(unknown)}"
+        )
+    return normalized

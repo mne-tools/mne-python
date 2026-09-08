@@ -1,0 +1,1 @@
+Move default values out of parameter type descriptions and remove ``optional`` from docstrings, by `Daria Agafonova`_.

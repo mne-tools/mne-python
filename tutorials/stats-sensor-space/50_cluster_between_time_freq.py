@@ -131,7 +131,7 @@ F_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
     n_permutations=100,
     threshold=threshold,
     tail=0,
-    seed=np.random.default_rng(seed=8675309),
+    rng=np.random.default_rng(seed=8675309),
 )
 
 # %%

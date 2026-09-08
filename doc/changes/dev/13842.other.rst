@@ -1,0 +1,1 @@
+Added regression coverage for colocated triaxial OPM topomap handling in ``plot_joint()`` and ``ICA.plot_components()``, by `Pragnya Khandelwal`_.

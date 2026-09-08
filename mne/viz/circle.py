@@ -268,7 +268,7 @@ def _plot_connectivity_circle(
         nodes_n_con[j] += 1
 
     # initialize random number generator so plot is reproducible
-    rng = np.random.mtrand.RandomState(0)
+    rng = np.random.default_rng(0)
 
     n_con = len(indices[0])
     noise_max = 0.25 * node_width
@@ -338,7 +338,9 @@ def _plot_connectivity_circle(
     # Draw node labels
     angles_deg = 180 * node_angles / np.pi
     for name, angle_rad, angle_deg in zip(node_names, node_angles, angles_deg):
-        if angle_deg >= 270:
+        if (
+            angle_deg >= 270 or angle_deg < 90
+        ):  # [0, 90] and [270, 360] cover right half
             ha = "left"
         else:
             # Flip the label, so text is always upright
@@ -406,7 +408,7 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
         The color (value) for each label (key).
     picks : list | tuple
         The channels to consider.
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments for
         :func:`mne_connectivity.viz.plot_connectivity_circle`.
 

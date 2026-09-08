@@ -1,0 +1,1 @@
+PyQt5 is no longer an officially supported Qt binding, by `Eric Larson`_.

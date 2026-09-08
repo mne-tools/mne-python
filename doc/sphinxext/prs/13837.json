@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "844eb4842882884078b902ccf5f7b7a5481f3472",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 42,
+      "d": 9
+    },
+    "doc/development/index.rst": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

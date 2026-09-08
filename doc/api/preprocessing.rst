@@ -119,6 +119,8 @@ Projections:
    read_fine_calibration
    write_fine_calibration
    apply_pca_obs
+   remove_fmri_gradient_artifact
+   GradientRemover
 
 :py:mod:`mne.preprocessing.nirs`:
 
@@ -168,6 +170,7 @@ Projections:
    read_eyelink_calibration
    set_channel_types_eyetrack
    convert_units
+   find_blinks
    get_screen_visual_angle
    interpolate_blinks
 

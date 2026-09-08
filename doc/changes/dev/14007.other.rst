@@ -1,0 +1,1 @@
+Replace ``defusedxml``-backed ``_get_gains`` with ``mffpy``-backed parsing via :func:`mne.io.read_raw_egi` and remove the internal ``_extract`` helper, fully eliminating ``defusedxml`` from the EGI MFF reader, by `Pragnya Khandelwal`_.

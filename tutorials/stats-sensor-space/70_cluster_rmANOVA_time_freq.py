@@ -239,7 +239,7 @@ F_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     n_permutations=n_permutations,
     buffer_size=None,
     out_type="mask",
-    seed=0,
+    rng=101,
 )
 
 # %%

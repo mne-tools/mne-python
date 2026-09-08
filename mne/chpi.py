@@ -4,9 +4,11 @@
 
 1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
    remain, abandon fitting for the chunk.
-2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
-   iteratively dropping coils (as long as 3 remain) to find the best GOF
-   (using ``_fit_chpi_quat``).
+2. Fit dev_head_t quaternion. With ``weighted=False`` this uses
+   ``_fit_chpi_quat_subset``, iteratively dropping coils (as long as 3 remain)
+   to find the best GOF. With ``weighted=True`` all remaining coils are fit at
+   once, smoothly down-weighting each coil by its GOF and inter-coil distance error
+   so that coils do not switch in and out of the fit discontinuously (see :gh:`11330`).
 3. If fewer than 3 coils meet the ``dist_limit`` criteria following
    projection of the fitted device coil locations into the head frame,
    abandon fitting for the chunk.
@@ -25,8 +27,6 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import orth
-from scipy.optimize import fmin_cobyla
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import Info, _simplify_info
@@ -38,12 +38,12 @@ from ._fiff.pick import (
     pick_types,
 )
 from ._fiff.proj import Projection, setup_proj
+from ._ola import _Interp2
 from .bem import ConductorModel
 from .channels.channels import _get_meg_system
 from .cov import compute_whitener, make_ad_hoc_cov
 from .dipole import _make_guesses
 from .event import find_events
-from .fixes import _reshape_view, jit
 from .forward import _concatenate_coils, _create_meg_coils, _magnetic_dipole_field_vec
 from .io import BaseRaw, RawArray
 from .io.ctf.trans import _make_ctf_coord_trans_set
@@ -58,7 +58,6 @@ from .preprocessing.maxwell import (
 from .transforms import (
     Transform,
     _angle_between_quats,
-    _fit_matched_points,
     _quat_to_affine,
     als_ras_trans,
     angle_distance_between_rigid,
@@ -117,7 +116,9 @@ def read_head_pos(fname):
     """
     _check_fname(fname, must_exist=True, overwrite="read")
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
-    data = _reshape_view(data, (-1, 10))  # ensure it's the right size even if empty
+    data = data.reshape(
+        (-1, 10), copy=False
+    )  # ensure it's the right size even if empty
     if np.isnan(data).any():  # make sure we didn't do something dumb
         raise RuntimeError(f"positions could not be read properly from {fname}")
     return data
@@ -518,36 +519,30 @@ def _magnetic_dipole_objective(
     x, B, B2, coils, whitener, too_close, return_moment=False
 ):
     """Project data onto right eigenvectors of whitened forward."""
+    from ._chpi_numba import _magnetic_dipole_delta
+
     fwd = _magnetic_dipole_field_vec(x[np.newaxis], coils, too_close)
     out, u, s, one = _magnetic_dipole_delta(fwd, whitener, B, B2)
     if return_moment:
         one /= s
-        Q = np.dot(one, u.T)
+        Q = one @ u.T
         out = (out, Q)
     return out
 
 
-@jit()
-def _magnetic_dipole_delta(fwd, whitener, B, B2):
-    # Here we use .T to get whitener to Fortran order, which speeds things up
-    fwd = np.dot(fwd, whitener.T)
-    u, s, v = np.linalg.svd(fwd, full_matrices=False)
-    one = np.dot(v, B)
-    Bm2 = np.dot(one, one)
-    return B2 - Bm2, u, s, one
-
-
 def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
     # Here we use .T to get whitener to Fortran order, which speeds things up
-    one = np.matmul(whitened_fwd_svd, B)
+    one = whitened_fwd_svd @ B
     Bm2 = np.sum(one * one, axis=1)
     return B2 - Bm2
 
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
-    B = np.dot(whitener, B_orig)
-    B2 = np.dot(B, B)
+    from scipy.optimize import fmin_cobyla
+
+    B = whitener @ B_orig
+    B2 = B @ B
     objective = partial(
         _magnetic_dipole_objective,
         B=B,
@@ -563,32 +558,36 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
         idx = np.argmin(res)
         if res[idx] < res0:
             x0 = guesses["rr"][idx]
+    # x0 is the previous time point's coil position (or a better guess-grid point), so a
+    # rhobeg (initial trust-region radius) of 1 mm covers typical between-window motion.
+    # rhoend (final radius) sets the position resolution; 10 um is finer than cHPI
+    # accuracy but still converges in a few dozen evaluations
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
     gof, moment = objective(x, return_moment=True)
     gof = 1.0 - gof / B2
     return x, gof, moment
 
 
-@jit()
-def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
-    """Compute objective function."""
-    d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
-    d += x[3:]
-    d -= coil_head_rrs
-    d *= d
-    return d.sum()
+def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, weights=None, quat=None):
+    """Fit rotation and translation (quaternion) parameters for cHPI coils.
 
+    ``weights`` optionally down-weights individual coils (e.g. by goodness of fit
+    and inter-coil distance error) so that coils can smoothly enter or leave the
+    fit rather than switching in and out discontinuously; see :gh:`11330`.
+    """
+    from ._chpi_numba import _chpi_objective
+    from ._transforms_numba import _fit_matched_points
 
-def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, *, quat=None):
-    """Fit rotation and translation (quaternion) parameters for cHPI coils."""
-    denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
-    denom *= denom
-    # We could try to solve it the analytic way:
-    # TODO someday we could choose to weight these points by their goodness
-    # of fit somehow, see also https://github.com/mne-tools/mne-python/issues/11330
+    if weights is None:
+        weights = np.ones(len(coil_head_rrs))
+    # The GOF ratio is invariant to the overall weight scale, so we can pass the
+    # (possibly zero-containing) weights through unnormalized to keep the
+    # unweighted case bit-for-bit identical to before.
+    mu = (weights @ coil_head_rrs) / weights.sum()
+    denom = ((coil_head_rrs - mu) ** 2).sum(axis=1) @ weights
     if quat is None:
-        quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)[0]
-    gof = 1.0 - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
+        quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs, weights=weights)[0]
+    gof = 1.0 - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs, weights) / denom
     return quat, gof
 
 
@@ -660,6 +659,8 @@ def _setup_hpi_amplitude_fitting(
     info, t_window, remove_aliased=False, ext_order=1, allow_empty=False, verbose=None
 ):
     """Generate HPI structure for HPI localization."""
+    from ._chpi_numba import _reorder_inv_model
+
     # grab basic info.
     on_missing = "raise" if not allow_empty else "ignore"
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing=on_missing)
@@ -757,13 +758,6 @@ def _setup_hpi_glm(hpi_freqs, line_freqs, sfreq, window_nsamp):
     return np.hstack(model)
 
 
-@jit()
-def _reorder_inv_model(inv_model, n_freqs):
-    # Reorder for faster computation
-    idx = np.arange(2 * n_freqs).reshape(2, n_freqs).T.ravel()
-    return inv_model[idx]
-
-
 def _setup_ext_proj(info, ext_order):
     meg_picks = pick_types(info, meg=True, eeg=False, exclude="bads")
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
@@ -814,6 +808,8 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
     snr : ndarray, shape (n_freqs, 2)
         Estimated SNR for this window, separately for mag and grad channels.
     """
+    from ._chpi_numba import _fast_fit, _fast_fit_snr
+
     # No need to detrend the data because our model has a DC term
     with use_log_level(False):
         # loads good channels
@@ -847,53 +843,6 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
         hpi["model"],
         hpi["inv_model_reord"],
     )
-
-
-@jit()
-def _fast_fit(this_data, proj, n_freqs, model, inv_model_reord):
-    # first or last window
-    if this_data.shape[1] != model.shape[0]:
-        model = model[: this_data.shape[1]]
-        inv_model_reord = _reorder_inv_model(np.linalg.pinv(model), n_freqs)
-    proj_data = proj @ this_data
-    X = inv_model_reord @ proj_data.T
-
-    sin_fit = np.zeros((n_freqs, X.shape[1]))
-    for fi in range(n_freqs):
-        # use SVD across all sensors to estimate the sinusoid phase
-        u, s, vt = np.linalg.svd(X[2 * fi : 2 * fi + 2], full_matrices=False)
-        # the first component holds the predominant phase direction
-        # (so ignore the second, effectively doing s[1] = 0):
-        sin_fit[fi] = vt[0] * s[0]
-    return sin_fit
-
-
-@jit()
-def _fast_fit_snr(this_data, n_freqs, model, inv_model, mag_picks, grad_picks):
-    # first or last window
-    if this_data.shape[1] != model.shape[0]:
-        model = model[: this_data.shape[1]]
-        inv_model = np.linalg.pinv(model)
-    coefs = np.ascontiguousarray(inv_model) @ np.ascontiguousarray(this_data.T)
-    # average sin & cos terms (special property of sinusoids: power=A²/2)
-    hpi_power = (coefs[:n_freqs] ** 2 + coefs[n_freqs : (2 * n_freqs)] ** 2) / 2
-    resid = this_data - np.ascontiguousarray((model @ coefs).T)
-    # can't use np.var(..., axis=1) with Numba, so do it manually:
-    resid_mean = np.atleast_2d(resid.sum(axis=1) / resid.shape[1]).T
-    squared_devs = np.abs(resid - resid_mean) ** 2
-    resid_var = squared_devs.sum(axis=1) / squared_devs.shape[1]
-    # output array will be (n_freqs, 3 * n_ch_types). The 3 columns for each
-    # channel type are the SNR, the mean cHPI power and the residual variance
-    # (which gets tiled to shape (n_freqs,) because it's a scalar).
-    snrs = np.empty((n_freqs, 0))
-    # average power & compute residual variance separately for each ch type
-    for _picks in (mag_picks, grad_picks):
-        if len(_picks):
-            avg_power = hpi_power[:, _picks].sum(axis=1) / len(_picks)
-            avg_resid = resid_var[_picks].mean() * np.ones(n_freqs)
-            snr = 10 * np.log10(avg_power / avg_resid)
-            snrs = np.hstack((snrs, np.stack((snr, avg_power, avg_resid), 1)))
-    return snrs
 
 
 def _check_chpi_param(chpi_, name):
@@ -954,7 +903,14 @@ def _check_chpi_param(chpi_, name):
 
 @verbose
 def compute_head_pos(
-    info, chpi_locs, dist_limit=0.005, gof_limit=0.98, adjust_dig=False, verbose=None
+    info,
+    chpi_locs,
+    dist_limit=0.005,
+    gof_limit=0.98,
+    adjust_dig=False,
+    *,
+    weighted=None,
+    verbose=None,
 ):
     """Compute time-varying head positions.
 
@@ -969,6 +925,15 @@ def compute_head_pos(
     gof_limit : float
         Minimum goodness of fit to accept for each coil.
     %(adjust_dig_chpi)s
+    weighted : bool
+        If ``True``, fit all coils that pass the ``gof_limit`` and ``dist_limit``
+        criteria simultaneously, weighting each coil by its goodness of fit and its
+        inter-coil distance error. If ``False``, subselect the three coils that yield
+        the best fit. Weighting avoids discontinuous jumps in the estimated head
+        position caused by coils switching in and out of the fit (see :gh:`11330`).
+        The default (False) will change to True in 1.14.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -988,10 +953,21 @@ def compute_head_pos(
     -----
     .. versionadded:: 0.20
     """
+    from scipy.spatial.distance import cdist
+
     _check_chpi_param(chpi_locs, "chpi_locs")
     _validate_type(info, Info, "info")
+    if weighted is None:
+        warn(
+            "The default for weighted will change from False to True in 1.14, set it "
+            "explicitly to avoid this warning. Using False.",
+            FutureWarning,
+        )
+        weighted = False
     hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig, verbose="error")
     n_coils = len(hpi_dig_head_rrs)
+    # reference inter-coil distances (rigid, so invariant to the dev_head_t we fit)
+    hpi_coil_dists = cdist(hpi_dig_head_rrs, hpi_dig_head_rrs)
     coil_dev_rrs = apply_trans(invert_transform(info["dev_head_t"]), hpi_dig_head_rrs)
     dev_head_t = info["dev_head_t"]["trans"]
     pos_0 = dev_head_t[:3, 3]
@@ -1021,12 +997,38 @@ def compute_head_pos(
 
         #
         # 2. Fit the head translation and rotation params (minimize error
-        #    between coil positions and the head coil digitization
-        #    positions) iteratively using different sets of coils.
+        #    between coil positions and the head coil digitization positions).
         #
-        this_quat, g, use_idx = _fit_chpi_quat_subset(
-            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx
-        )
+        if weighted:
+            # Fit all good coils at once, smoothly down-weighting each coil by its
+            # GOF and its inter-coil distance error, so that coils enter and leave
+            # the fit continuously rather than switching in and out (gh-11330).
+            these_dists = cdist(this_coil_dev_rrs, this_coil_dev_rrs)
+            dist_err = np.abs(hpi_coil_dists - these_dists).sum(axis=1) / max(
+                n_coils - 1, 1
+            )
+            w_gof = np.clip(
+                (g_coils - gof_limit) / max(1.0 - gof_limit, 1e-12), 0.0, 1.0
+            )
+            w_dist = np.clip(1.0 - dist_err / dist_limit, 0.0, 1.0)
+            weights = w_gof * w_dist
+            use_idx = np.where(weights > 0)[0]
+            if len(use_idx) < 3:
+                gofs = ", ".join(f"{g:0.2f}" for g in g_coils)
+                warn(
+                    f"{_time_prefix(fit_time)}{len(use_idx)}/{n_coils} "
+                    "usable HPI coils, cannot determine the transformation "
+                    f"({gofs} GOF)!"
+                )
+                continue
+            this_quat, g = _fit_chpi_quat(
+                this_coil_dev_rrs, hpi_dig_head_rrs, weights=weights
+            )
+        else:
+            # iteratively drop coils (keeping the best-GOF subset of >= 3)
+            this_quat, g, use_idx = _fit_chpi_quat_subset(
+                this_coil_dev_rrs, hpi_dig_head_rrs, use_idx
+            )
 
         #
         # 3. Stop if < 3 good
@@ -1293,7 +1295,6 @@ def _compute_chpi_amp_or_snr(
             # note that mean residual is a scalar (same for all HPI freqs) but
             # is returned as a (tiled) vector (again, because Numba) so that's
             # why below we take amps_or_snrs[0, 2] instead of [:, 2]
-            ch_types = raw.get_channel_types()
             if "mag" in ch_types:
                 sin_fits["mag_snr"][mi] = amps_or_snrs[:, 0]  # SNR
                 sin_fits["mag_power"][mi] = amps_or_snrs[:, 1]  # mean power
@@ -1389,8 +1390,8 @@ def compute_chpi_locs(
         f"(1 cm grid in a {R * 100:.1f} cm sphere)"
     )
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
-    fwd = np.dot(fwd, whitener.T)
-    fwd = _reshape_view(fwd, (guesses.shape[0], 3, -1))
+    fwd = fwd @ whitener.T
+    fwd = fwd.reshape((guesses.shape[0], 3, -1), copy=False)
     fwd = np.linalg.svd(fwd, full_matrices=False)[2]
     guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
     del fwd, R
@@ -1485,6 +1486,8 @@ def filter_chpi(
     t_window="auto",
     ext_order=1,
     allow_line_only=False,
+    *,
+    interp="hann",
     verbose=None,
 ):
     """Remove cHPI and line noise from data.
@@ -1507,6 +1510,14 @@ def filter_chpi(
         which only allows the function to run when cHPI information is present.
 
         .. versionadded:: 0.20
+    interp : str | None
+        How the fitted cHPI/line amplitude envelope is interpolated between the
+        fitting windows before subtraction. ``"hann"`` (default) smoothly interpolates,
+        avoiding small step discontinuities (and associated broadband spectral
+        leakage) produced by ``None``, which holds each window's amplitudes constant
+        over its central ``t_step``. ``"linear"`` interpolation is also supported.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -1544,57 +1555,103 @@ def filter_chpi(
         verbose=_verbose_safe_false(),
     )
 
-    fit_idxs = np.arange(0, len(raw.times) + hpi["n_window"] // 2, n_step)
+    _check_option("interp", interp, (None, "hann", "cos2", "linear"))
     n_freqs = len(hpi["freqs"])
     n_remove = 2 * n_freqs
     meg_picks = pick_types(raw.info, meg=True, exclude=())  # filter all chs
-    n_times = len(raw.times)
 
     msg = f"Removing {n_freqs} cHPI"
     if include_line:
         n_remove += 2 * len(hpi["line_freqs"])
         msg += f" and {len(hpi['line_freqs'])} line harmonic"
     msg += f" frequencies from {len(meg_picks)} MEG channels"
-
-    recon = np.dot(hpi["model"][:, :n_remove], hpi["inv_model"][:n_remove]).T
     logger.info(msg)
-    chunks = list()  # the chunks to subtract
-    last_endpt = 0
-    pb = ProgressBar(fit_idxs, mesg="Filtering")
-    for ii, midpt in enumerate(pb):
-        left_edge = midpt - hpi["n_window"] // 2
-        time_sl = slice(
-            max(left_edge, 0), min(left_edge + hpi["n_window"], len(raw.times))
-        )
-        this_len = time_sl.stop - time_sl.start
-        if this_len == hpi["n_window"]:
-            this_recon = recon
-        else:  # first or last window
-            model = hpi["model"][:this_len]
-            inv_model = np.linalg.pinv(model)
-            this_recon = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
-        this_data = raw._data[meg_picks, time_sl]
-        subt_pt = min(midpt + n_step, n_times)
-        if last_endpt != subt_pt:
-            fit_left_edge = left_edge - time_sl.start + hpi["n_window"] // 2
-            fit_sl = slice(fit_left_edge, fit_left_edge + (subt_pt - last_endpt))
-            chunks.append((subt_pt, np.dot(this_data, this_recon[:, fit_sl])))
-        last_endpt = subt_pt
 
-        # Consume (trailing) chunks that are now safe to remove because
-        # our windows will no longer touch them
-        if ii < len(fit_idxs) - 1:
-            next_left_edge = fit_idxs[ii + 1] - hpi["n_window"] // 2
-        else:
-            next_left_edge = np.inf
-        while len(chunks) > 0 and chunks[0][0] <= next_left_edge:
-            right_edge, chunk = chunks.pop(0)
-            raw._data[meg_picks, right_edge - chunk.shape[1] : right_edge] -= chunk
+    # interp=None reproduces the pre-1.13 zero-order-hold subtraction
+    _subtract_chpi(
+        raw,
+        hpi,
+        meg_picks,
+        n_step,
+        n_remove,
+        include_line,
+        "zero" if interp is None else interp,
+    )
     return raw
+
+
+def _chpi_fit_coeffs(
+    midpt, *, raw, meg_picks, hpi, freqs, n_freqs, n_line, n_remove, inv_cache
+):
+    """Fit absolute-phase sin/cos amplitudes for one control point."""
+    n_window = hpi["n_window"]
+    n_times = len(raw.times)
+    sfreq = raw.info["sfreq"]
+    # window centered on the control point, clamped (shorter) at the edges, to
+    # match the legacy per-window fit so that interp="zero" reproduces it
+    left_edge = midpt - n_window // 2
+    start = max(left_edge, 0)
+    stop = min(left_edge + n_window, n_times)
+    this_len = stop - start
+    if this_len not in inv_cache:
+        inv_cache[this_len] = np.linalg.pinv(hpi["model"][:this_len])[:n_remove]
+    coef = inv_cache[this_len] @ raw._data[meg_picks, start:stop].T  # (n_remove, n_ch)
+    # model columns of the removable subspace: [sin_hpi, cos_hpi, sin_line, cos_line]
+    sin_sl = slice(0, n_freqs)
+    sin_sl_line = slice(2 * n_freqs, 2 * n_freqs + n_line)
+    cos_sl = slice(n_freqs, 2 * n_freqs)
+    cos_sl_line = slice(2 * n_freqs + n_line, 2 * n_freqs + 2 * n_line)
+    sin_c = np.concatenate([coef[sin_sl], coef[sin_sl_line]])
+    cos_c = np.concatenate([coef[cos_sl], coef[cos_sl_line]])
+    # rotate window-relative phase (0 at window start) to absolute time
+    theta0 = (2 * np.pi * freqs * start / sfreq)[:, np.newaxis]
+    # one-element list (for _Interp2) with array of shape ``(2, n_freq, n_ch)``
+    s_t_0 = np.sin(theta0)
+    c_t_0 = np.cos(theta0)
+    return [np.stack([sin_c * c_t_0 + cos_c * s_t_0, cos_c * c_t_0 - sin_c * s_t_0])]
+
+
+def _subtract_chpi(raw, hpi, meg_picks, n_step, n_remove, include_line, interp):
+    """Subtract cHPI/line noise from the data."""
+    # Fits amplitudes on then uses _Interp2 to interpolate the amplitude envelope
+    # before reconstructing and subtracting.
+    sfreq = raw.info["sfreq"]
+    n_times = len(raw.times)
+    n_freqs = len(hpi["freqs"])
+    n_line = len(hpi["line_freqs"]) if include_line else 0
+    freqs = np.concatenate([hpi["freqs"], hpi["line_freqs"][:n_line]])
+    fit = partial(
+        _chpi_fit_coeffs,
+        raw=raw,
+        meg_picks=meg_picks,
+        hpi=hpi,
+        freqs=freqs,
+        n_freqs=n_freqs,
+        n_line=n_line,
+        n_remove=n_remove,
+        inv_cache={},
+    )
+    interp2 = _Interp2(np.arange(0, n_times, n_step), fit, interp=interp)
+    chunk = max(2 * hpi["n_window"], 1000)
+    prev = None  # (start, stop, recon) subtracted one chunk late (see docstring)
+    for start in ProgressBar(range(0, n_times, chunk), mesg="Filtering"):
+        stop = min(start + chunk, n_times)
+        vals = interp2.feed(stop - start)[0]  # (2, n_freq, n_ch, n_pts)
+        phase = 2 * np.pi * np.outer(freqs, np.arange(start, stop)) / sfreq
+        recon = np.einsum("fct,ft->ct", vals[0], np.sin(phase)) + np.einsum(
+            "fct,ft->ct", vals[1], np.cos(phase)
+        )
+        if prev is not None:
+            raw._data[meg_picks, prev[0] : prev[1]] -= prev[2]
+        prev = (start, stop, recon)
+    if prev is not None:
+        raw._data[meg_picks, prev[0] : prev[1]] -= prev[2]
 
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     """Compute good coils based on distances."""
+    from scipy.spatial.distance import cdist
+
     these_dists = cdist(new_pos, new_pos)
     these_dists = np.abs(hpi_coil_dists - these_dists)
     # there is probably a better algorithm for finding the bad ones...
@@ -1948,7 +2005,7 @@ def refit_hpi(
     # entry. At some point we should try recording data where multiple fits are stored
     # (maybe there actually aren't any...)
     info["hpi_meas"][-1] = meas
-    info["hpi_results"][-1] = result
+    info["hpi_results"][-1] = results
     return info
 
 

@@ -41,8 +41,8 @@ raw.compute_psd().plot(picks="data", exclude="bads", amplitude=False)
 
 # %%
 # We can use `mne.chpi.get_chpi_info` to retrieve the coil frequencies,
-# the index of the channel indicating when which coil was switched on, and the
-# respective "event codes" associated with each coil's activity.
+# the index of the ``STIM`` channel indicating when each coil was switched on,
+# and the respective "event codes" associated with each coil's activity.
 
 chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(info=raw.info)
 print(f"cHPI coil frequencies extracted from raw: {chpi_freqs} Hz")
@@ -63,7 +63,7 @@ chpi_locs = mne.chpi.compute_chpi_locs(raw.info, chpi_amplitudes)
 # %%
 # Lastly, compute head positions from the coil locations:
 
-head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
+head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, weighted=True, verbose=True)
 
 # %%
 # Note that these can then be written to disk or read from disk with

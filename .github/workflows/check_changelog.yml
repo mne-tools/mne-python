@@ -13,10 +13,12 @@ jobs:
     name: Check towncrier entry in doc/changes/dev/
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: scientific-python/action-towncrier-changelog@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BOT_USERNAME: changelog-bot
+      - uses: actions/setup-python@v7.0.0
+      - run: python tools/check_changelog_names.py  # faster than CircleCI

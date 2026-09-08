@@ -1,0 +1,1 @@
+Speed up channel selection and projector construction by replacing linear channel-name lookups with dictionaries, by `Bruno Aristimunha`_.

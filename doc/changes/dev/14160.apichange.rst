@@ -1,0 +1,1 @@
+The ``matplotlib`` 3D backend for plotting source estimates (``backend="matplotlib"`` in :func:`mne.viz.plot_source_estimates`, along with the ``spacing`` argument that only affects it) has been deprecated and will be removed in 1.15; use a proper 3D backend such as ``pyvistaqt`` instead, by `Eric Larson`_.

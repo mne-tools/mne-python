@@ -14,6 +14,7 @@ from mne._fiff.constants import FIFF
 from mne.datasets import testing
 from mne.io import BaseRaw, read_raw, read_raw_ant, read_raw_brainvision
 from mne.io.ant.ant import RawANT
+from mne.io.tests.test_raw import _test_raw_reader
 
 pytest.importorskip("antio", minversion="0.5.0")
 data_path = testing.data_path(download=False) / "antio"
@@ -426,6 +427,12 @@ def test_annotations_and_preload(ca_208: TypeDataset):
     raw_cnt.crop(0, onset - 1)
     assert len(raw_cnt.annotations) == 1  # initial impedance measurement
     assert raw_cnt.annotations.description[0] == "impedance"
+
+
+@testing.requires_testing_data
+def test_ant_raw_reader(ca_208: TypeDataset):
+    """Test the generic reader checks, including projected lazy reads."""
+    _test_raw_reader(read_raw_ant, fname=ca_208["cnt"]["short"])
 
 
 @testing.requires_testing_data

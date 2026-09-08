@@ -47,4 +47,4 @@ MNE_ADD_CONTRIBUTOR_IMAGE=true in your environment to generate it.</p>"""
 def setup(app):
     """Set up the Sphinx app."""
     app.connect("config-inited", generate_contrib_avatars)
-    return
+    return {"parallel_read_safe": True, "parallel_write_safe": True}

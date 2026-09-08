@@ -1,0 +1,1 @@
+Add an EGI section to the :ref:`ex-io-impedances` gallery example demonstrating how to read per-channel GCAL/ICAL calibration data from an MFF ``info1.xml`` file via ``mffpy`` and visualize impedances on a topographic map. By `Pragnya Khandelwal`_ (:gh:`14143`).

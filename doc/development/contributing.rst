@@ -5,6 +5,10 @@ Contributing guide
 
 .. highlight:: console
 
+.. important::
+   **AI Usage Policy:** Before submitting any code or documentation, please make sure to review our AI usage policy outlined in the repository `CONTRIBUTING.md file <https://github.com/mne-tools/mne-python/blob/main/CONTRIBUTING.md>`_.
+
+
 Thanks for taking the time to contribute! MNE-Python is an open-source project
 sustained mostly by volunteer effort. We welcome contributions from anyone as
 long as they abide by our `Code of Conduct`_.
@@ -453,8 +457,8 @@ commits to your fork anyway and open a pull request (as described above), then
 in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
-To learn more about git, check out the `GitHub help`_ website, the `GitHub
-skills`_ tutorial series, and the `pro git book`_.
+To learn more about git, check out the `GitHub help <https://help.github.com>`__ website, the `GitHub skills <https://skills.github.com/>`__
+tutorial series, and the `pro git book <https://git-scm.com/book/>`__.
 
 
 .. _github-ssh:
@@ -587,12 +591,14 @@ deprecation period when the stated release is being prepared:
   parameter, and (if found) update them to use the new function / parameter.
 
 
+.. _`changelog-guide`:
+
 Describe your changes in the changelog
 --------------------------------------
 
-Include in your changeset a brief description of the change in the
-:ref:`changelog <whats_new>` using towncrier_ format, which aggregates small,
-properly-named ``.rst`` files to create a changelog. This can be
+Include in your changeset a brief description of the changes, which will appear in the
+:ref:`changelog <whats_new>`, using towncrier_ format. This aggregates small,
+properly named ``.rst`` files to create a changelog. This can be
 skipped for very minor changes like correcting typos in the documentation.
 
 There are six separate sections for changes, based on change type.
@@ -607,9 +613,12 @@ dependency
 bugfix
     For bug fixes. Can change code behavior with no deprecation period.
 apichange
-    Code behavior changes that require a deprecation period.
+    Changes to existing code behavior that require a deprecation period. Can include the
+    addition of new features only if existing code behavior is changed alongside this.
 newfeature
-    For new features.
+    For new features that do not change existing code behavior. If existing code
+    behavior is changed alongside the addition of these features, the changes should
+    instead be labelled as ``apichange``.
 other
     For changes that don't fit into any of the above categories, e.g.,
     internal refactorings.
@@ -639,7 +648,8 @@ contain:
       Short description of the changes, by `Firstname Lastname`_.
 
 Make sure that your name is included in the list of authors in
-:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+:file:`doc/changes/names.inc`, otherwise the changelog check on your pull
+request (and later the documentation build) will fail.
 To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
 
@@ -658,17 +668,95 @@ change, and append additional PR numbers in parentheticals with the ``:gh:`` rol
 
     Short description of the changes, by `Firstname Lastname`_. (:gh:`12346`)
 
-Test locally before opening pull requests (PRs)
------------------------------------------------
 
-MNE-Python uses `continuous integration`_ (CI) to ensure code quality and
-test across multiple installation targets. However, the CIs are often slower
-than testing locally, especially when other contributors also have open PRs
-(which is basically always the case). Therefore, do not rely on the CIs to
-catch bugs and style errors for you; :ref:`run the tests locally <run-tests>`
+.. _taking-over-a-stale-pr:
+
+Taking over a stale pull request
+--------------------------------
+
+If a pull request has been abandoned, someone else can take it over. A PR is generally
+considered abandoned when there have been no commits for several weeks, and the original
+author has not already indicated that they plan to continue at a later time. In this
+case, first ping the author in a comment on the PR, asking if they intend to continue
+working on it. If the original author replies that they do not intend to continue the
+work, or there is no reply after at least 2 weeks, you can take over the PR.
+
+To build on top of the original author's existing work, you can add a copy of the branch
+they were working on to your fork:
+
+.. code-block:: bash
+
+    git remote add original-author https://github.com/original-author/mne-python.git
+    git fetch original-author
+    git checkout -b some-new-feature original-author/some-new-feature
+
+You can then push any further commits to, and open a PR from, this new branch on your
+fork.
+
+Reference the original PR number in the description of the new PR (e.g., "Closes
+#12345 (supersedes)"), and keep any links to the corresponding issue (e.g., "Fixes #12340").
+
+Before the PR is merged, make sure the original author is credited for their existing
+work. To credit them in the documentation, add their name to ``doc/changes/names.inc``,
+if not already included, and add them as an author in the changelog entry, e.g.:
+
+.. code-block:: rst
+
+    Short description of the changes, by `Your Name`_ and `Original Author Name`_.
+
+To credit the original author in the code, add their name and email as a co-author to
+the end of at least one commit message (e.g., the commit that adds the changelog
+entry):
+
+.. code-block:: rst
+
+    Your commit message
+
+    Co-authored-by: Original Author Name <original-author-email@example.com>
+
+Continuous integration (CI) and local testing before opening a PR
+-----------------------------------------------------------------
+
+Continuous integration (CI) uses automated systems to run tests and checks on your code
+whenever you open or update a pull request.
+MNE-Python uses `continuous integration`_ (CI) to ensure code quality,
+test across multiple platforms, and automatically validate pull requests.
+However, CI runs are slower than testing locally and some of them cost money to run.
+Therefore, *do not rely on the CIs to catch bugs and style errors for you*;
+:ref:`run the tests locally <run-tests>`
 instead before opening a new PR and before each time you push additional
 changes to an already-open PR.
 
+MNE-Python uses the following CI services:
+
+- `GitHub Actions`_ and `Azure`_ for testing code across platforms
+- `CodeCov`_ checks how much of the code is tested
+- `CircleCI`_ for building the documentation
+
+If you are contributing for the first time, you may notice that `Github Actions`_
+jobs do not start automatically, or appear as "pending".
+This is expected behavior. Github Actions requires **manual approval from a
+maintainer** before running jobs submitted by new contributors. This is a
+security measure to prevent misuse of CI resources.
+
+As a result:
+
+- Github Actions jobs may remain in a *pending* or *not running* state
+- This does **not** indicate a problem with your code
+
+Once you have at least one PR merged into the MNE-Python repository, future
+contributions will not require manual approval.
+
+`CircleCI`_ will not build the documentation unless the GitHub account of the PR's most recent commit
+is associated with a CircleCI account. Creating one is easy and free,
+choose "login with GitHub" on `CircleCI`_ to get started.
+If you do not do this, it will show up as a failing CI job.
+
+Before opening or updating a PR, check locally:
+
+- that all tests pass (see :ref:`run-tests`)
+- the documentation is built without errors if your changes affect it (see :ref:`build-docs`)
+- style checks pass (see :ref:`code-style`)
 
 Make tests fast and thorough
 ----------------------------
@@ -728,7 +816,7 @@ We (mostly) follow NumPy style for docstrings
 
 In most cases you can look at existing MNE-Python docstrings to figure out how
 yours should be formatted. If you can't find a relevant example, consult the
-`Numpy docstring style guidelines`_ for examples of more complicated formatting
+`Numpy docstring style guidelines <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`__ for examples of more complicated formatting
 such as embedding example code, citing references, or including rendered
 mathematics.  Note that we diverge from the NumPy docstring standard in a few
 ways:
@@ -899,7 +987,7 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Our documentation (including docstrings in code files) is in
-reStructuredText_ format and is built using Sphinx_ and `Sphinx-Gallery`_.
+reStructuredText_ format and is built using `Sphinx <https://www.sphinx-doc.org/>`__ and `Sphinx-Gallery`_.
 The easiest way to ensure that your contributions to the documentation are
 properly formatted is to follow the style guidelines on this page, imitate
 existing documentation examples, refer to the Sphinx and Sphinx-Gallery
@@ -989,8 +1077,9 @@ down the road. Here are the guidelines:
   you are specifically asked by a maintainer to PR into another branch (e.g.,
   for backports or maintenance bugfixes to the current stable version).
 
-- Don't forget to include in your PR a brief description of the change in the
-  :ref:`changelog <whats_new>` (:file:`doc/whats_new.rst`).
+- Don't forget to include in your PR a brief description of the change in a
+  changelog entry (see :ref:`the changelog section <changelog-guide>` above
+  for instructions).
 
 - Our community uses the following commit tags and conventions:
 
@@ -1046,9 +1135,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. MNE
 
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
-.. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
-.. _our user forum: https://mne.discourse.group
+.. _our user forum: `MNE Forum`_
 .. _sg_execution_times page: https://mne.tools/dev/sg_execution_times.html
 .. _sg_api_usage page: https://mne.tools/dev/sg_api_usage.html
 
@@ -1103,13 +1191,11 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. misc
 
-.. _miniconda: https://conda.io/en/latest/miniconda.html
-.. _Spyder: https://www.spyder-ide.org/
-.. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
-.. _matplotlib: https://matplotlib.org/
+.. _continuous integration: https://about.gitlab.com/topics/ci-cd/
 .. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _CircleCI: https://circleci.com/gh/mne-tools/mne-python
+.. _CodeCov: https://about.codecov.io/
 
 .. optipng
 

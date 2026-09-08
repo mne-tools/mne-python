@@ -6,12 +6,14 @@ import numpy as np
 from scipy import linalg
 
 from .._fiff.pick import _pick_data_channels, pick_info
-from ..cov import Covariance, _regularized_covariance
+from ..cov import Covariance, _compute_rank_raw_array, _regularized_covariance
+from ..decoding._covs_ged import _handle_info_rank
+from ..decoding._ged import _get_restr_mat, _smart_ged
 from ..decoding.xdawn import XdawnTransformer
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..utils import _check_option, logger, pinv
+from ..utils import _check_option, fill_doc, logger, pinv, warn
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -106,6 +108,7 @@ def _fit_xdawn(
     sfreq=1.0,
     method_params=None,
     info=None,
+    rank="full",
 ):
     """Fit filters and coefs using Xdawn Algorithm.
 
@@ -121,9 +124,9 @@ def _fit_xdawn(
         The epochs data.
     y : array, shape (n_epochs)
         The epochs class.
-    n_components : int (default 2)
+    n_components : int
         The number of components to decompose the signals signals.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).
@@ -140,31 +143,34 @@ def _fit_xdawn(
     sfreq : float
         Sampling frequency.  Only used if events is passed to correct for
         epochs overlap.
+    rank : None | 'full' | 'info' | dict
+        The rank of the data. If not ``'full'``, the covariances are restricted
+        to their ``rank``-dimensional principal subspace before the generalized
+        eigendecomposition, and the resulting filters and patterns are
+        projected back out to the full sensor space.
 
     Returns
     -------
-    filters : array, shape (n_channels, n_channels)
+    filters : array, shape (n_class * n_filters, n_channels)
         The Xdawn components used to decompose the data for each event type.
-        Each row corresponds to one component.
-    patterns : array, shape (n_channels, n_channels)
+        Each row corresponds to one component. ``n_filters`` is ``n_channels``
+        unless ``rank`` restricts the decomposition, in which case it is the
+        rank of the data.
+    patterns : array, shape (n_class * n_filters, n_channels)
         The Xdawn patterns used to restore the signals for each event type.
-    evokeds : array, shape (n_class, n_components, n_times)
+    evokeds : array, shape (n_class, n_channels, n_times)
         The independent evoked responses per condition.
     """
     if not isinstance(epochs_data, np.ndarray) or epochs_data.ndim != 3:
         raise ValueError("epochs_data must be 3D ndarray")
 
     classes = np.unique(y)
-
-    # XXX Eventually this could be made to deal with rank deficiency properly
-    # by exposing this "rank" parameter, but this will require refactoring
-    # the linalg.eigh call to operate in the lower-dimension
-    # subspace, then project back out.
+    info, rank = _handle_info_rank(epochs_data, info, rank)
 
     # Retrieve or compute whitening covariance
     if signal_cov is None:
         signal_cov = _regularized_covariance(
-            np.hstack(epochs_data), reg, method_params, info, rank="full"
+            np.hstack(epochs_data), reg, method_params, info, rank=rank
         )
     elif isinstance(signal_cov, Covariance):
         signal_cov = signal_cov.data
@@ -175,6 +181,22 @@ def _fit_xdawn(
             "signal_cov must be None, a covariance instance, "
             "or an array of shape (n_chans, n_chans)"
         )
+
+    # Restriction to the rank-dimensional principal subspace of signal_cov,
+    # in which the generalized eigendecomposition below is well posed
+    if isinstance(rank, str) and rank == "full":
+        restr_mat = None
+    else:
+        if not isinstance(rank, dict):
+            rank = _compute_rank_raw_array(
+                np.hstack(epochs_data),
+                info,
+                rank=rank,
+                scalings=None,
+                log_ch_type="data",
+                on_few_samples="ignore",
+            )
+        restr_mat = _get_restr_mat(signal_cov, info, rank)
 
     # Get prototype events
     if events is not None:
@@ -191,11 +213,11 @@ def _fit_xdawn(
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
-        evo_cov = _regularized_covariance(evo, reg, method_params, info, rank="full")
+        evo_cov = _regularized_covariance(evo, reg, method_params, info, rank=rank)
 
         # Fit spatial filters
         try:
-            evals, evecs = linalg.eigh(evo_cov, signal_cov)
+            evals, evecs = _smart_ged(evo_cov, signal_cov, restr_mat)
         except np.linalg.LinAlgError as exp:
             raise ValueError(
                 f"Could not compute eigenvalues, ensure proper regularization ({exp})"
@@ -212,6 +234,7 @@ def _fit_xdawn(
     return filters, patterns, evokeds
 
 
+@fill_doc
 class Xdawn(XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
@@ -224,28 +247,37 @@ class Xdawn(XdawnTransformer):
 
     Parameters
     ----------
-    n_components : int, (default 2)
+    n_components : int
         The number of components to decompose the signals.
     signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         (default None). The signal covariance used for whitening of the data.
         if None, the covariance is estimated from the epochs signal.
-    correct_overlap : 'auto' or bool (default 'auto')
+    correct_overlap : 'auto' | bool
         Compute the independent evoked responses per condition, while
         correcting for event overlaps if any. If 'auto', then
         overlapp_correction = True if the events do overlap.
-    reg : float | str | None (default None)
+    reg : float | str | None
         If not None (same as ``'empirical'``, default), allow
         regularization for covariance estimation.
         If float, shrinkage is used (0 <= shrinkage <= 1).
         For str options, ``reg`` will be passed as ``method`` to
         :func:`mne.compute_covariance`.
+    %(rank_full)s
+        If not ``'full'``, the covariances are restricted to their
+        ``rank``-dimensional principal subspace before computing the spatial
+        filters, which are then projected back out to the full sensor space.
+        This is useful for rank-deficient data, e.g., data with SSP projectors
+        applied or that has been Maxwell filtered.
+
+        .. versionadded:: 1.13
 
     Attributes
     ----------
     filters_ : dict of ndarray
         If fit, the Xdawn components used to decompose the data for each event
         type, else empty. For each event type, the filters are in the rows of
-        the corresponding array.
+        the corresponding array (``n_channels`` rows, or ``rank`` rows if
+        ``rank`` is not ``'full'``).
     patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore the signals for each event
         type, else empty.
@@ -270,10 +302,18 @@ class Xdawn(XdawnTransformer):
     """
 
     def __init__(
-        self, n_components=2, signal_cov=None, correct_overlap="auto", reg=None
+        self,
+        n_components=2,
+        signal_cov=None,
+        correct_overlap="auto",
+        reg=None,
+        *,
+        rank="full",
     ):
         """Init."""
-        super().__init__(n_components=n_components, signal_cov=signal_cov, reg=reg)
+        super().__init__(
+            n_components=n_components, signal_cov=signal_cov, reg=reg, rank=rank
+        )
         self.correct_overlap = _check_option(
             "correct_overlap", correct_overlap, ["auto", True, False]
         )
@@ -285,7 +325,7 @@ class Xdawn(XdawnTransformer):
         ----------
         epochs : instance of Epochs
             An instance of Epoch on which Xdawn filters will be fitted.
-        y : ndarray | None (default None)
+        y : ndarray | None
             If None, used epochs.events[:, 2].
 
         Returns
@@ -322,7 +362,8 @@ class Xdawn(XdawnTransformer):
         self.correct_overlap_ = correct_overlap
 
         # Note: In this original version of Xdawn we compute and keep all
-        # components. The selection comes at transform().
+        # components (or all components of the rank-restricted subspace).
+        # The selection comes at transform().
         n_components = X.shape[1]
 
         # Main fitting function
@@ -337,11 +378,20 @@ class Xdawn(XdawnTransformer):
             sfreq=sfreq,
             method_params=self.cov_method_params,
             info=use_info,
+            rank=self.rank,
         )
 
+        # rank restriction can leave fewer filters than channels
+        n_filters = filters.shape[0] // len(evokeds)
+        if n_filters < min(self.n_components, X.shape[1]):
+            warn(
+                f"Rank restriction left {n_filters} components, which is fewer than "
+                f"n_components ({self.n_components}), consider using a larger rank."
+            )
+
         # Re-order filters and patterns according to event_id
-        filters = filters.reshape(-1, n_components, filters.shape[-1])
-        patterns = patterns.reshape(-1, n_components, patterns.shape[-1])
+        filters = filters.reshape(-1, n_filters, filters.shape[-1])
+        patterns = patterns.reshape(-1, n_filters, patterns.shape[-1])
         self.filters_, self.patterns_, self.evokeds_ = dict(), dict(), dict()
         idx = np.argsort([value for _, value in epochs.event_id.items()])
         for eid, this_filter, this_pattern, this_evo in zip(
@@ -399,14 +449,14 @@ class Xdawn(XdawnTransformer):
         ----------
         inst : instance of Raw | Epochs | Evoked
             The data to be processed.
-        event_id : dict | list of str | None (default None)
+        event_id : dict | list of str | None
             The kind of event to apply. if None, a dict of inst will be return
             one for each type of event xdawn has been fitted.
-        include : array_like of int | None (default None)
+        include : array_like of int | None
             The indices referring to columns in the ummixing matrix. The
             components to be kept. If None, the first n_components (as defined
             in the Xdawn constructor) will be kept.
-        exclude : array_like of int | None (default None)
+        exclude : array_like of int | None
             The indices referring to columns in the ummixing matrix. The
             components to be zeroed out. If None, all the components except the
             first n_components will be exclude.
@@ -425,7 +475,8 @@ class Xdawn(XdawnTransformer):
         picks = _pick_data_channels(inst.info)
 
         # Define the components to keep
-        default_exclude = list(range(self.n_components, len(inst.ch_names)))
+        n_filters = len(next(iter(self.filters_.values())))
+        default_exclude = list(range(self.n_components, n_filters))
         if exclude is None:
             exclude = default_exclude
         else:

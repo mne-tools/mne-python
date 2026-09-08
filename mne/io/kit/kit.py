@@ -12,6 +12,7 @@ from math import cos, sin
 from os import SEEK_CUR, PathLike
 from os import path as op
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -21,7 +22,6 @@ from ..._fiff.pick import pick_types
 from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ...event import read_events
-from ...fixes import _reshape_view
 from ...transforms import Transform, als_ras_trans, apply_trans
 from ...utils import (
     _check_fname,
@@ -149,6 +149,10 @@ class RawKIT(BaseRaw):
         )
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
+        # Each block is cast to float64 and scaled, so a smaller one stays in cache
+        kit_info["max_block_samples"] = max(
+            1, 2 * 1024**2 // kit_info["dtype"].itemsize // kit_info["nchan"]
+        )
         if kit_info["acq_type"] != KIT.CONTINUOUS:
             raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
@@ -177,15 +181,15 @@ class RawKIT(BaseRaw):
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         buffer_size : int
             The size of chunk to by which the data are scanned.
 
         Returns
         -------
-        events : array, [samples]
-           The event vector (1 x samples).
+        events : array, shape (n_samples,)
+            The event vector.
         """
         buffer_size = int(buffer_size)
         start = int(self.first_samp)
@@ -209,8 +213,7 @@ class RawKIT(BaseRaw):
 
         n_bytes = sqd["dtype"].itemsize
         assert n_bytes in (2, 4)
-        # Read up to 100 MB of data at a time.
-        blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
+        blk_size = min(data_left, sqd["max_block_samples"] * nchan)
         with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
@@ -673,7 +676,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]["offset"])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
         sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
-        sensitivity = _reshape_view(sensitivity, (channel_count, 2))
+        sensitivity = sensitivity.reshape((channel_count, 2), copy=False)
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
 
@@ -911,20 +914,20 @@ def _read_name(fid, ch_type=None, n=None):
 
 @fill_doc
 def read_raw_kit(
-    input_fname,
-    mrk=None,
-    elp=None,
-    hsp=None,
-    stim=">",
-    slope="-",
-    stimthresh=1,
-    preload=False,
-    stim_code="binary",
-    allow_unknown_format=False,
-    standardize_names=False,
+    input_fname: Path | str,
+    mrk: Path | str | np.ndarray | list | None = None,
+    elp: Path | str | np.ndarray | None = None,
+    hsp: Path | str | np.ndarray | None = None,
+    stim: list[int] | Literal["<", ">"] | None = ">",
+    slope: Literal["+", "-"] = "-",
+    stimthresh: float | None = 1,
+    preload: bool | str = False,
+    stim_code: Literal["binary", "channel"] = "binary",
+    allow_unknown_format: bool = False,
+    standardize_names: bool = False,
     *,
-    bad_coils=(),
-    verbose=None,
+    bad_coils: np.ndarray | tuple | None = (),
+    verbose: bool | str | int | None = None,
 ) -> RawKIT:
     r"""Reader function for Ricoh/KIT conversion to FIF.
 
@@ -986,15 +989,15 @@ def read_raw_kit(
 
 @fill_doc
 def read_epochs_kit(
-    input_fname,
-    events,
-    event_id=None,
-    mrk=None,
-    elp=None,
-    hsp=None,
-    allow_unknown_format=False,
-    standardize_names=False,
-    verbose=None,
+    input_fname: Path | str,
+    events: np.ndarray | Path | str,
+    event_id: int | list[int] | dict | str | list[str] | None = None,
+    mrk: Path | str | np.ndarray | list | None = None,
+    elp: Path | str | np.ndarray | None = None,
+    hsp: Path | str | np.ndarray | None = None,
+    allow_unknown_format: bool = False,
+    standardize_names: bool = False,
+    verbose: bool | str | int | None = None,
 ) -> EpochsKIT:
     """Reader function for Ricoh/KIT epochs files.
 
@@ -1021,7 +1024,7 @@ def read_epochs_kit(
 
     Returns
     -------
-    EpochsKIT : instance of BaseEpochs
+    EpochsKIT : instance of EpochsKIT
         The epochs.
 
     See Also

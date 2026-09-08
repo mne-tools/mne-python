@@ -4,9 +4,7 @@
 
 
 import numpy as np
-from scipy.ndimage import distance_transform_edt, label
 from scipy.signal import find_peaks
-from scipy.stats import zscore
 
 from ..annotations import (
     Annotations,
@@ -75,7 +73,10 @@ def annotate_muscle_zscore(
     filter_freq : array-like, shape (2,)
         The lower and upper frequencies of the band-pass filter.
         Default is ``(110, 140)``.
-    %(n_jobs)s
+    %(n_jobs_cuda)s
+
+        .. versionchanged:: 1.13
+           Added support for CUDA.
     %(verbose)s
 
     Returns
@@ -89,6 +90,9 @@ def annotate_muscle_zscore(
     ----------
     .. footbibliography::
     """
+    from scipy.ndimage import label
+    from scipy.stats import zscore
+
     raw_copy = raw.copy()
 
     if ch_type is None:
@@ -176,7 +180,7 @@ def annotate_movement(
         Head translation velocity limit in meters per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
-    use_dev_head_trans : 'average' (default) | 'info'
+    use_dev_head_trans : 'average' | 'info'
         Identify the device to head transform used to define the
         fixed HPI locations for computing moving distances.
         If ``average`` the average device to head transform is
@@ -406,6 +410,8 @@ def _raw_hp_weights(raw, pos):
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
+    from scipy.ndimage import distance_transform_edt
+
     mask_tf = distance_transform_edt(mask)
     # Overcome the shortcoming of find_peaks
     # in finding a marginal peak, by

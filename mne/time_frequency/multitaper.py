@@ -5,12 +5,7 @@
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import numpy as np
-from scipy.fft import rfft, rfftfreq
-from scipy.integrate import trapezoid
-from scipy.signal import get_window
-from scipy.signal.windows import dpss as sp_dpss
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
 from ..utils import _check_option, logger, verbose, warn
 
@@ -66,6 +61,8 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     """
     # TODO VERSION can be removed with SciPy 1.16 is min,
     # workaround for https://github.com/scipy/scipy/pull/22344
+    from scipy.signal.windows import dpss as sp_dpss
+
     if N <= 1:
         dpss, eigvals = np.ones((1, 1)), np.ones(1)
     else:
@@ -113,6 +110,8 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250, return_weights
     The weights to use for making the multitaper estimate, such that
     :math:`S_{mt} = \sum_{k} |w_k|^2S_k^{mt} / \sum_{k} |w_k|^2`
     """
+    from scipy.integrate import trapezoid
+
     n_signals, n_tapers, n_freqs = x_mt.shape
 
     if len(eigvals) != n_tapers:
@@ -264,6 +263,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
+    from scipy.fft import rfft, rfftfreq
+
     if n_fft is None:
         n_fft = x.shape[-1]
 
@@ -291,6 +292,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
+    from scipy.signal import get_window
+
     if isinstance(bandwidth, str):
         logger.info(f'    Using standard spectrum estimation with "{bandwidth}" window')
         window_fun = get_window(bandwidth, n_times)[np.newaxis]
@@ -404,6 +407,8 @@ def psd_array_multitaper(
     ----------
     .. footbibliography::
     """
+    from scipy.fft import rfftfreq
+
     _check_option("normalization", normalization, ["length", "full"])
 
     # Reshape data so its 2-D for parallelization
@@ -456,7 +461,7 @@ def psd_array_multitaper(
 
     # Combining/reshaping to original data shape
     last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
-    psd = _reshape_view(psd, dshape + last_dims)
+    psd = psd.reshape(dshape + last_dims, copy=False)
     if ndim_in == 1:
         psd = psd[0]
 
@@ -502,7 +507,7 @@ def tfr_array_multitaper(
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
     %(decim_tfr)s
-    output : str, default 'complex'
+    output : str
 
         * ``'complex'`` : single trial per taper complex values.
         * ``'power'`` : single trial power.
@@ -513,7 +518,7 @@ def tfr_array_multitaper(
           coherence across trials.
     %(n_jobs)s
         The parallelization is implemented across channels.
-    return_weights : bool, default False
+    return_weights : bool
         If True, return the taper weights. Only applies if ``output='complex'`` or
         ``'phase'``.
 

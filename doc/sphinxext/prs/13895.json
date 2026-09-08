@@ -1,0 +1,15 @@
+{
+  "merge_commit_sha": "82c2d68d10c13e4290bebb39122f5affd8c2beaa",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 8,
+      "d": 5
+    }
+  }
+}

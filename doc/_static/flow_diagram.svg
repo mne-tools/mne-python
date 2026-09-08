@@ -49,7 +49,7 @@
 <!-- recon -->
 <g id="node3" class="node"><title>recon</title>
 <polygon fill="#ff6347" stroke="none" points="430.153,-352.6 310.087,-352.6 310.087,-316.6 430.153,-316.6 430.153,-352.6"/>
-<text text-anchor="start" x="318.103" y="-331.899" font-family="Arial" font-size="12.00">Freesurfer surfaces</text>
+<text text-anchor="start" x="318.103" y="-331.899" font-family="Arial" font-size="12.00">FreeSurfer surfaces</text>
 </g>
 <!-- recon&#45;&gt;src -->
 <g id="edge1" class="edge"><title>recon&#45;&gt;src</title>

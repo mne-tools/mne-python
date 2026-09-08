@@ -123,3 +123,5 @@ of commits):
 *   6  Daniel Strohmeier
 *   4  Teon Brooks
 *   1  Dan G. Wakeman
+
+.. include:: names.inc

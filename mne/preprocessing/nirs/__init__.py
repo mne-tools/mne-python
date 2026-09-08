@@ -5,6 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 from .nirs import (
+    _has_source_detector_distances,
     short_channels,
     source_detector_distances,
     _check_channels_ordered,

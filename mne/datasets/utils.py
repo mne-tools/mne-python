@@ -136,7 +136,7 @@ def _get_path(path, key, name):
     if not path.is_dir():
         logger.info(f"Creating {path}")
         try:
-            path.mkdir()
+            path.mkdir(exist_ok=True)  # exist_ok for parallel calls
         except OSError:
             raise OSError(
                 "User does not have write permissions "
@@ -346,7 +346,7 @@ def _download_all_example_data(verbose=True):
         "refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink "
         "erp_core brainstorm.bst_raw brainstorm.bst_auditory "
         "brainstorm.bst_resting brainstorm.bst_phantom_ctf "
-        "brainstorm.bst_phantom_elekta phantom_kernel"
+        "brainstorm.bst_phantom_elekta phantom_kernel visual_92_categories"
     ).split():
         mod = importlib.import_module(f"mne.datasets.{kind}")
         data_path_func = getattr(mod, "data_path")
@@ -366,10 +366,16 @@ def _download_all_example_data(verbose=True):
         limo,
         sleep_physionet,
     )
+    from .erp_core import fetch_file as fetch_erp_core_file
 
     eegbci.load_data(subjects=1, runs=[6, 10, 14], update_path=True)
     eegbci.load_data(subjects=range(1, 5), runs=[3], update_path=True)
     logger.info("[done eegbci]")
+
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_eeg.fdt")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_eeg.set")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_events.tsv")
+    logger.info("[done erp_core N170]")
 
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
     logger.info("[done sleep_physionet]")

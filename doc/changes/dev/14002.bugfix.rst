@@ -1,0 +1,1 @@
+Fix :func:`mne.preprocessing.eyetracking.read_eyelink_calibration` to decode ``.asc`` files as UTF-8 instead of ASCII, so non-ASCII characters in ``MSG`` lines no longer raise a ``UnicodeDecodeError``, by :newcontrib:`Cedric Conday`.

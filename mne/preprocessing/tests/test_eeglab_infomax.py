@@ -33,7 +33,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
 
     # select a small number of channels for the test
     number_of_channels_to_use = 5
-    idx_perm = random_permutation(picks.shape[0], random_state)
+    idx_perm = random_permutation(picks.shape[0], random_state=random_state)
     picks = picks[idx_perm[:number_of_channels_to_use]]
 
     raw.filter(

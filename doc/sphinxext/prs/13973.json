@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "34d9c7e6c9ca002bdee0db0fba3b5334659f1bba",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13973.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 53,
+      "d": 59
+    }
+  }
+}

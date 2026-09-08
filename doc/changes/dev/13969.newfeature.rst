@@ -1,0 +1,1 @@
+Add ``mask_label_params`` parameter to :func:`~mne.viz.plot_topomap` and :func:`~mne.viz.plot_evoked_topomap` to allow for customisation of masked channel labels, by `Carina Forster`_.

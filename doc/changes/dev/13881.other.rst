@@ -1,0 +1,1 @@
+Fixed typos in error messages when reading measurement info, by :newcontrib:`Seth Bashford`.

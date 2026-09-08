@@ -1,0 +1,1 @@
+The auto-picked peak vertex and its activity trace in the :class:`mne.viz.Brain` GUI now follow the active overlay, by `Payam Sadeghi-Shabestari`_.

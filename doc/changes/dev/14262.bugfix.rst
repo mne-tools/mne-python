@@ -1,0 +1,1 @@
+Fix bug where selecting epochs (e.g., :meth:`epochs[0] <mne.Epochs.__getitem__>`) copied the entire data array, by `Eric Larson`_.

@@ -1,0 +1,240 @@
+{
+  "merge_commit_sha": "6bd165d94192399753dcf404f7da1718a68df1ca",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 6,
+      "d": 2
+    },
+    ".github/workflows/automerge.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/autopush.yml": {
+      "a": 2,
+      "d": 3
+    },
+    ".github/workflows/spec_zero.yml": {
+      "a": 9,
+      "d": 7
+    },
+    ".github/workflows/tests.yml": {
+      "a": 0,
+      "d": 18
+    },
+    ".pre-commit-config.yaml": {
+      "a": 26,
+      "d": 6
+    },
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 38
+    },
+    "doc/changes/dev/14036.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 22,
+      "d": 10
+    },
+    "mne/defaults.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 14,
+      "d": 8
+    },
+    "mne/evoked.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/io/_read_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ant/ant.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/base.py": {
+      "a": 45,
+      "d": 17
+    },
+    "mne/io/besa/besa.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/boxy/boxy.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/io/bti/bti.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/cnt/cnt.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/eeg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/ctf/hc.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/ctf/info.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/ctf/res4.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/io/curry/curry.py": {
+      "a": 21,
+      "d": 30
+    },
+    "mne/io/edf/edf.py": {
+      "a": 9,
+      "d": 5
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/egi/general.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/io/fieldtrip/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/mef/mef.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/nicolet/nicolet.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_bunch.py": {
+      "a": 47,
+      "d": 18
+    },
+    "mne/utils/_typing.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 3,
+      "d": 3
+    },
+    "pyproject.toml": {
+      "a": 17,
+      "d": 40
+    },
+    "tools/check_pyproject_helpers.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_check_old_env.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 2,
+      "d": 1
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 1,
+      "d": 167
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Improved colocated OPM topomap handling by recognizing additional OPM coil types (FieldLine and Kernel), by `Pragnya Khandelwal`_.

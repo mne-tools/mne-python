@@ -16,7 +16,7 @@ sourced properly.
 This function extracts the BEM surfaces (outer skull, inner skull, and
 outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
 degrees. The multiecho FLASH data can be input as .mgz or .nii files.
-This function assumes that the Freesurfer segmentation of the subject
+This function assumes that the FreeSurfer segmentation of the subject
 has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
 should be, as usual, in the subject's mri directory.
 

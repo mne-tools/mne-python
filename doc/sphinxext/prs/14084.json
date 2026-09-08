@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "a2b236f933dae8a55aebdb7fbad592bc3d76e2db",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14084.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/annotations.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

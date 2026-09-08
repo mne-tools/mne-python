@@ -46,12 +46,13 @@ subjects_dir = data_path / "subjects"
 # You may also use the :meth:`~mne.Report.parse_folder` method to select
 # particular files to include in the report. But more on that later.
 #
-# .. sidebar: Viewing the report
+# .. sidebar:: Viewing the report
 #
 #    On successful creation of the report, the :meth:`~mne.Report.save` method
 #    will open the HTML in a new tab in your browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
-#
+
+# %%
 # Adding `~mne.io.Raw` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -155,11 +156,10 @@ report.save("report_evoked.html", overwrite=True)
 # Adding `~mne.Covariance`
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# (Noise) covariance objects can be added via
-# :meth:`mne.Report.add_covariance`. The method accepts `~mne.Covariance`
-# objects and the path to a file on disk. It also expects us to pass an
-# `~mne.Info` object or the path to a file to read the measurement info from,
-# as well as a title.
+# (Noise) covariance objects can be added via :meth:`mne.Report.add_covariance`. The
+# method accepts `~mne.Covariance` objects and the path to a file on disk. It also
+# expects us to pass an `~mne.Info` object or the path to a file to read the measurement
+# info from, as well as a title.
 
 cov_path = sample_dir / "sample_audvis-cov.fif"
 
@@ -192,6 +192,7 @@ ecg_evoked = mne.Epochs(
     tmin=-0.5,
     tmax=0.5,
     baseline=(None, None),
+    on_outside="ignore",
 ).average()
 report.img_max_width = None  # do not constrain image width
 report.add_projs(
@@ -231,6 +232,8 @@ del raw_full, events, ecg_evoked
 #
 # Lastly, by passing ``n_jobs``, you may largely speed up the generation of
 # the properties plots by enabling parallel execution.
+# To additionally include ICA source time-courses in the report, pass
+# ``plot_sources=True``. This requires ``inst`` to be provided.
 #
 # .. warning::
 #    In the following example, we request a small number of ICA components
@@ -242,6 +245,7 @@ del raw_full, events, ecg_evoked
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
     fit_params=dict(tol=0.01),  # assume very early on that ICA has converged
+    rng=97,
 )
 
 ica.fit(inst=raw)
@@ -262,6 +266,7 @@ report.add_ica(
     title="ICA cleaning",
     picks=ica.exclude,  # plot the excluded EOG components
     inst=raw,
+    plot_sources=True,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
     n_jobs=None,  # could be increased!
