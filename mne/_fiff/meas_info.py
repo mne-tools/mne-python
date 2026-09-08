@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 
     from ..channels.montage import DigMontage
 
-from ..bem import ConductorModel
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
 from ..utils import (
@@ -489,6 +488,8 @@ def _check_set(ch, projs, ch_type):
 
 class SetChannelsMixin(MontageMixin):
     """Mixin class for Raw, Evoked, Epochs."""
+
+    from ..bem import ConductorModel
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
