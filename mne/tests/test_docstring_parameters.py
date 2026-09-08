@@ -528,12 +528,23 @@ def _documented_callables():
             yield obj, cls
 
 
-def _annotation_to_str(ann):
+def _annotation_to_str(ann, *, expand_literals=False):
     """Render a type annotation as a module-stripped string."""
     origin = typing.get_origin(ann)
     # unions and ``Literal["a", "b"]`` both flatten to their ``a | b`` members
     if origin in (typing.Union, types.UnionType, typing.Literal):
-        return " | ".join(_annotation_to_str(a) for a in typing.get_args(ann))
+        lst = []
+        if expand_literals and origin is typing.Literal:
+            lst.extend(list(set(type(x).__name__ for x in typing.get_args(ann))))
+        return " | ".join(
+            [
+                *lst,
+                *[
+                    _annotation_to_str(a, expand_literals=expand_literals)
+                    for a in typing.get_args(ann)
+                ],
+            ]
+        )
     if origin is not None:  # e.g. list[Evoked], dict[str, int], tuple[int, ...]
         args = typing.get_args(ann)
         name = getattr(origin, "__name__", str(origin))
@@ -579,11 +590,15 @@ def _type_atoms(type_str):
     s = re.sub(r"\binstance of\b", "", s)
     s = re.sub(r",?\s*(?:of )?shape\s*\(?[^)|]*\)?", "", s)  # shape (n, m) suffixes
     s = re.sub(r"\btuple of length \d+\b", "tuple", s, flags=re.I)
+    s = re.sub(  # sequence of {'some', 'set', 'values'} -> sequence of str
+        r"\b(iterable|sequence) of \{[^}]*\}", r"\1", s, flags=re.I
+    )
     s = re.sub(  # list of X -> list ("X" may be hyphenated, e.g. "list of path-like")
-        r"\b(list|tuple|dict|set) of [\w.-]+", r"\1", s, flags=re.I
+        r"\b(list|tuple|dict|set|sequence|iterable) of [\w.-]+", r"\1", s, flags=re.I
     )
     s = re.sub(r"\barray(?:-?like)?\s+of\s+\w+", "array", s, flags=re.I)
     s = re.sub(r"\barray-?like\b", "array", s, flags=re.I)
+    s = re.sub(r"\bsequence\s+of\s+\w+", "sequence", s, flags=re.I)
     s = re.sub(  # textual Literal["a", "b"] (from string annotations) -> a | b
         r"\bLiteral\[([^\]]*)\]", lambda m: m.group(1).replace(",", " | "), s
     )
@@ -702,7 +717,14 @@ def _check_type_hints(func, *, cls):
                     "``instance of X``)"
                 )
             continue
-        ann_atoms = {a.lower() for a in _type_atoms(_annotation_to_str(annotation))}
+        ann_atoms = {
+            a.lower()
+            for a in _type_atoms(_annotation_to_str(annotation, expand_literals=True))
+        }
+        # skip for `verbose` parameters, where the type hint uses Literals extensively
+        # but it would be overkill to spell those out in the docstring
+        if target == "verbose":
+            continue
         # The annotation must cover every documented type, but may be broader:
         # ty rejects ``= None``/``= ()`` defaults unless the annotation admits
         # them, so an accurate hint sometimes adds ``None``/``tuple`` that the

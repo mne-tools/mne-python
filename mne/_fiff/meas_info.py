@@ -717,7 +717,9 @@ class SetChannelsMixin(MontageMixin):
         ch_type: Literal["mag", "grad", "eeg", "seeg", "dbs", "ecog", "all"]
         | None = None,
         title: str | None = None,
-        show_names: bool | Sequence[str] = False,
+        show_names: bool
+        | np.ndarray  # [tuple[int], np.dtype[np.str_]]  # 1D array of str
+        | Sequence[str] = False,
         ch_groups: Literal["position"]
         | np.ndarray[tuple[int, int], np.dtype[np.integer]]
         | None = None,
@@ -727,9 +729,10 @@ class SetChannelsMixin(MontageMixin):
         show: bool = True,
         sphere: float  # radius
         | Annotated[Sequence[float], 4]  # x, y, z, radius
+        | np.ndarray  # [tuple[Literal[4]], np.dtype[np.float_]]  # x, y, z, radius
         | ConductorModel
         | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
-        | Sequence[Literal["cardinal", "eeg", "extra", "hpi"]]
+        | list[Literal["cardinal", "eeg", "extra", "hpi"]]
         | None = None,
         *,
         verbose: LogLevel = None,
@@ -738,7 +741,7 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        kind : str
+        kind : 'topomap' | '3d' | 'select'
             Whether to plot the sensors as 3d, topomap or as an interactive
             sensor selection dialog. Available options 'topomap', '3d',
             'select'. If 'select', a set of channels can be selected
@@ -753,7 +756,7 @@ class SetChannelsMixin(MontageMixin):
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
             positions (%%s)' %% ch_type``.
-        show_names : bool | array of str
+        show_names : bool | array-like of str, shape (n_names,)
             Whether to display all channel names. If an array, only the channel
             names in the array are shown. Defaults to False.
         ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
@@ -972,7 +975,12 @@ class ContainsMixin:
     @fill_doc
     def get_channel_types(
         self,
-        picks: str | Sequence[str] | Sequence[int] | slice | None = None,
+        picks: str
+        | np.ndarray  # [tuple[int], np.dtype[np.int_]]  # 1D array of int
+        | Sequence[str]
+        | Sequence[int]
+        | slice
+        | None = None,
         unique: bool = False,
         only_data_chs: bool = False,
     ) -> list[str]:
@@ -1063,7 +1071,7 @@ class ValidatedDict(dict):
 
         Parameters
         ----------
-        other : dict | iterable of pair | None
+        other : mapping | iterable of {key, value pairs}
             The entries to set, as a mapping or as ``(key, value)`` pairs.
         **kwargs : dict
             Additional entries to set, as keyword arguments.
@@ -2383,7 +2391,7 @@ def read_fiducials(
 @verbose
 def write_fiducials(
     fname: str | PathLike,
-    pts: Iterable[dict[str, Any]],
+    pts: Iterable[dict[Literal["kind", "ident", "r"], Any]],
     coord_frame: CoordFrameStr | int = "unknown",
     *,
     overwrite: bool = False,
@@ -2395,8 +2403,8 @@ def write_fiducials(
     ----------
     fname : path-like
         Destination file name.
-    pts : iterator of dict
-        Iterator through digitizer points. Each point is a dictionary with
+    pts : iterable of dict
+        Iterable of digitizer points. Each point is a dictionary with
         the keys 'kind', 'ident' and 'r'.
     coord_frame : str | int
         The coordinate frame of the points. If a string, must be one of
@@ -3589,12 +3597,12 @@ def create_info(
 
     Parameters
     ----------
-    ch_names : list of str | int
+    ch_names : int | iterable of str
         Channel names. If an int, a list of channel names will be created
         from ``range(ch_names)``.
     sfreq : float
         Sample rate of the data.
-    ch_types : list of str | str
+    ch_types : str | sequence of str
         Channel types, default is ``'misc'`` which is a
         :term:`non-data channel <non-data channels>`.
         Currently supported fields are 'bio', 'chpi', 'csd', 'dbs', 'dipole',
