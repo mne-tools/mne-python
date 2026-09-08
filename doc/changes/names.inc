@@ -36,6 +36,7 @@
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Anton Karpov: https://github.com/karpovantonme
 .. _Anton Nikolas Waniek: https://github.com/antonwnk
+.. _Antonio Elias: https://github.com/sonoAESS
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
