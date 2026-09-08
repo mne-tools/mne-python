@@ -492,6 +492,7 @@ python-version = "3.11"  # minimum supported, keep in sync with requires-python
 [tool.ty.src]
 exclude = ["mne/io/**/tests"]
 include = [
+  "mne/_fiff/meas_info.py",
   "mne/annotations.py",
   "mne/epochs.py",
   "mne/evoked.py",
