@@ -87,7 +87,7 @@ from ..utils import (
     warn,
 )
 from .bads import _find_outliers
-from .ctps_ import ctps
+from .ctps_ import _prob_kuiper, ctps
 from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
 from .eog import _find_eog_events, _get_eog_channel_index
 from .infomax_ import infomax
@@ -126,12 +126,13 @@ def _compute_ctps_threshold(n_trials, pk_threshold=20):
     n_trials : int
         Number of trials used to compute the cross-trial phase statistics.
     pk_threshold : float
-        Significance threshold expressed as ``-log10(Pk)``.
+        Significance threshold expressed as ``-log10(Pk)`` before normalizing
+        by the number of trials.
 
     Returns
     -------
     threshold : float
-        Kuiper-index threshold corresponding to ``pk_threshold``.
+        Normalized Kuiper-index threshold corresponding to ``pk_threshold``.
     """
     if not isinstance(n_trials, Integral):
         raise TypeError("n_trials must be an integer")
@@ -145,7 +146,11 @@ def _compute_ctps_threshold(n_trials, pk_threshold=20):
     Pks = 2 * (4 * (Vs * C) ** 2 - 1) * (np.exp(-2 * (Vs * C) ** 2))
     # NOTE: the threshold of pk is transformed to Pk for comparison:
     # pk = -log10(Pk).
-    return Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
+    # Formula (13) gives a threshold for the raw Kuiper statistic V. Convert
+    # it to the normalized p_K score returned by ``ctps`` before comparing it
+    # with the scores in ``ICA.find_bads_ecg``.
+    v_threshold = Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
+    return _prob_kuiper(v_threshold, n_trials).item()
 
 
 # Violate our assumption that the output is 1D so can't be used.
@@ -1650,11 +1655,9 @@ class ICA(ContainsMixin):
     def _get_ctps_threshold(self, n_trials, pk_threshold=20):
         """Automatically decide the threshold of Kuiper index for CTPS method.
 
-        This function finds the threshold of Kuiper index based on the
-        threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
-        is returned. ``n_trials`` is the number of trials used by CTPS. It is
-        assumed that the data are appropriately filtered and bad data are
+        This function finds the normalized Kuiper-index threshold based on the
+        threshold of pk. ``n_trials`` is the number of trials used by CTPS. It
+        is assumed that the data are appropriately filtered and bad data are
         rejected at least based on peak-to-peak amplitude when/before running
         the ICA decomposition on data.
 
