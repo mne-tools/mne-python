@@ -991,8 +991,22 @@ def test_plot_alignment_mixed_src(renderer, evoked, mixed_fwd_cov_evoked):
         subject="sample",
         subjects_dir=subjects_dir,
         src=mixed_src,
+        show_channel_names=True,
     )
     assert isinstance(fig, Figure3D)
+    if renderer.get_3d_backend() != "jupyterlite_notebook":  # no 3D text in vtk.js
+        from vtkmodules.vtkRenderingCore import vtkActor2D
+
+        # one batched label actor covering every plotted (non-bad MEG/EEG) channel
+        label_actors = [
+            a for a in fig.plotter.renderer.actors.values() if isinstance(a, vtkActor2D)
+        ]
+        assert len(label_actors) == 1
+        mapper = label_actors[0].GetMapper()
+        assert mapper.GetPlaceAllLabels()
+        labels = mapper.GetInputAlgorithm().GetInput()["labels"]
+        want = [info["ch_names"][pi] for pi in pick_types(info, meg=True, eeg=True)]
+        assert_array_equal(labels, want)
     renderer.backend._close_all()
 
 

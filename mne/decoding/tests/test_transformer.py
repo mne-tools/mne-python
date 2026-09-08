@@ -19,7 +19,6 @@ from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, EpochsArray, create_info, io, pick_types, read_events
 from mne.decoding import (
@@ -31,6 +30,7 @@ from mne.decoding import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.defaults import DEFAULTS
 from mne.utils import use_log_level
 

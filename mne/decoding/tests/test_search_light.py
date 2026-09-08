@@ -20,9 +20,9 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding.search_light import GeneralizingEstimator, SlidingEstimator
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.transformer import Vectorizer
 from mne.utils import check_version, use_log_level
 

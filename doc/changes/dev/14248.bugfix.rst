@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.io.anonymize_info` could set an incorrect date in ``info["proc_history"]``, causing an ``OverflowError`` when writing FIF files anonymized with a large ``daysback``, by `Eric Larson`_.
