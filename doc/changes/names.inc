@@ -298,6 +298,7 @@
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Maureen Shader: https://github.com/mshader
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+.. _Maximilien Chaumon: https://github.com/dnacombo
 .. _Melih Yayli: https://github.com/yaylim
 .. _Michael Krause: https://github.com/octomike
 .. _Michael Straube: https://github.com/mistraube

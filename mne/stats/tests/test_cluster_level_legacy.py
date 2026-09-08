@@ -15,7 +15,12 @@ from numpy.testing import (
 )
 from scipy import linalg, sparse, stats
 
-from mne import MixedSourceEstimate, SourceEstimate, SourceSpaces, VolSourceEstimate
+from mne import (
+    MixedSourceEstimate,
+    SourceEstimate,
+    SourceSpaces,
+    VolSourceEstimate,
+)
 from mne.stats import combine_adjacency, ttest_ind_no_p
 from mne.stats.cluster_level import (
     _find_clusters,
@@ -30,31 +35,6 @@ from mne.stats.cluster_level import (
     ttest_1samp_no_p,
 )
 from mne.utils import _record_warnings, catch_logging
-
-n_space = 50
-
-
-def _get_conditions():
-    noise_level = 20
-    n_time_1 = 20
-    n_time_2 = 13
-    normfactor = np.hanning(20).sum()
-    rng = np.random.default_rng(42)
-    condition1_1d = rng.normal(scale=noise_level, size=(n_time_1, n_space))
-    for c in condition1_1d:
-        c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
-
-    condition2_1d = rng.normal(scale=noise_level, size=(n_time_2, n_space))
-    for c in condition2_1d:
-        c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
-
-    pseudoekp = 10 * np.hanning(25)[None, :]
-    condition1_1d[:, 25:] += pseudoekp
-    condition2_1d[:, 25:] -= pseudoekp
-
-    condition1_2d = condition1_1d[:, :, np.newaxis]
-    condition2_2d = condition2_1d[:, :, np.newaxis]
-    return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
 def test_thresholds(numba_conditional):
@@ -212,9 +192,9 @@ def test_permutation_step_down_p(numba_conditional):
     assert_allclose(p_next, 0.015625, atol=1e-6)
 
 
-def test_cluster_permutation_test(numba_conditional):
+def test_cluster_permutation_test(numba_conditional, stat_conditions):
     """Test cluster level permutations tests."""
-    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = stat_conditions
     for condition1, condition2 in zip(
         (condition1_1d, condition1_2d), (condition2_1d, condition2_2d)
     ):
@@ -258,9 +238,9 @@ def test_cluster_permutation_test(numba_conditional):
 @pytest.mark.parametrize(
     "stat_fun", [ttest_1samp_no_p, partial(ttest_1samp_no_p, sigma=1e-1)]
 )
-def test_cluster_permutation_t_test(numba_conditional, stat_fun):
+def test_cluster_permutation_t_test(numba_conditional, stat_conditions, stat_fun):
     """Test cluster level permutations T-test."""
-    condition1_1d, _, condition1_2d, _ = _get_conditions()
+    condition1_1d, _, condition1_2d, _ = stat_conditions
 
     # use a very large sigma to make sure Ts are not independent
     for condition1, p in ((condition1_1d, 0.01), (condition1_2d, 0.01)):
@@ -338,14 +318,17 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
             )
 
 
-def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
+def test_cluster_permutation_with_adjacency(
+    numba_conditional, monkeypatch, stat_conditions
+):
     """Test cluster level permutations with adjacency matrix."""
     pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
-    condition1_1d, condition2_1d, _, _ = _get_conditions()
+    condition1_1d, condition2_1d, _, _ = stat_conditions
 
     n_pts = condition1_1d.shape[1]
+    n_space = 50
     # we don't care about p-values in any of these, so do fewer permutations
     args = dict(
         rng=None,
@@ -751,12 +734,12 @@ def test_labels_to_clusters():
     assert_array_equal(got[0], active)
 
 
-def test_spatio_temporal_cluster_adjacency(numba_conditional):
+def test_spatio_temporal_cluster_adjacency(numba_conditional, stat_conditions):
     """Test spatio-temporal cluster permutations."""
     pytest.importorskip("sklearn")
     from sklearn.feature_extraction.image import grid_to_graph
 
-    condition1_1d, condition2_1d, condition1_2d, condition2_2d = _get_conditions()
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = stat_conditions
 
     rng = np.random.default_rng(0)
     noise1_2d = rng.standard_normal(

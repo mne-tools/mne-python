@@ -15,6 +15,7 @@ dependencies:
   - eeglabio
   - ffmpeg ==8.1.2
   - filelock >=3.18.0
+  - formulaic
   - h5io >=0.2.4
   - h5py >=2.4
   - imageio >=2.6.1

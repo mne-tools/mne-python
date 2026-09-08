@@ -4,23 +4,43 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from __future__ import annotations
+
+from functools import partial
+from string import ascii_uppercase
+from typing import TYPE_CHECKING, Literal
+
 import numpy as np
 
+from ..epochs import BaseEpochs
+from ..evoked import Evoked, combine_evoked
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
+from ..time_frequency import BaseTFR, EpochsTFR
 from ..utils import (
+    GetEpochsMixin,
     ProgressBar,
     _check_option,
+    _check_rng,
     _legacy_rng,
     _pl,
+    _soft_import,
     _validate_type,
+    legacy,
     logger,
     split_list,
     verbose,
     warn,
 )
-from .parametric import f_oneway, ttest_1samp_no_p
+from .parametric import f_mway_rm, f_oneway, f_threshold_mway_rm, ttest_1samp_no_p
+
+if TYPE_CHECKING:
+    from scipy import sparse  # Used in type hints for cluster_test
+
+# need this at top-level of file due to type hints
+pd = _soft_import("pandas", purpose="DataFrame integration", strict=False)
+DataFrame = getattr(pd, "DataFrame", None)
 
 
 def _get_labels_st(x_in, adjacency, max_step):
@@ -840,12 +860,17 @@ def _permutation_cluster_test(
     out_type,
     check_disjoint,
     buffer_size,
+    within_subject=False,
 ):
     """Aux Function.
 
     Note. X is required to be a list. Depending on the length of X
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
+
+    ``within_subject=True`` restricts multi-group permutations to swapping each
+    subject's observations across the groups (repeated-measures designs); rows
+    of each element of X must then be aligned by subject.
     """
     _check_option("out_type", out_type, ["mask", "indices"])
     _check_option("tail", tail, [-1, 0, 1])
@@ -871,7 +896,7 @@ def _permutation_cluster_test(
     sample_shape = X[0].shape[1:]
     for x in X:
         if x.shape[1:] != sample_shape:
-            raise ValueError("All samples mush have the same size")
+            raise ValueError("All samples must have the same size")
 
     # flatten the last dimensions in case the data is high dimensional
     X = [np.reshape(x, (x.shape[0], -1)) for x in X]
@@ -985,7 +1010,28 @@ def _permutation_cluster_test(
         n_samples_per_condition = [x.shape[0] for x in X]
         splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
         slices = [slice(splits_idx[k], splits_idx[k + 1]) for k in range(len(X))]
-        orders = [rng.permutation(len(X_full)) for _ in range(n_permutations - 1)]
+        if within_subject:
+            # Repeated-measures design: permute each subject's observations
+            # only across the conditions (cells), never across subjects -- the
+            # exchangeability assumption for repeated measures (FieldTrip's
+            # depsamples* statistics permute the same way).
+            n_cells, n_subjects = len(X), len(X[0])
+            assert all(len(x) == n_subjects for x in X)  # checked by callers
+            # a random permutation of the cells per (permutation, subject)
+            cell_orders = np.argsort(
+                rng.uniform(size=(n_permutations - 1, n_subjects, n_cells)), axis=-1
+            )
+            # the row index of (cell j, subject s) in X_full is
+            # j * n_subjects + s, so position (j, s) draws from row
+            # (cell_orders[:, s, j], s):
+            orders = list(
+                (
+                    cell_orders.transpose(0, 2, 1) * n_subjects
+                    + np.arange(n_subjects)[np.newaxis, np.newaxis]
+                ).reshape(n_permutations - 1, -1)
+            )
+        else:
+            orders = [rng.permutation(len(X_full)) for _ in range(n_permutations - 1)]
     del rng
     parallel, my_do_perm_func, n_jobs = parallel_func(
         do_perm_func, n_jobs, verbose=False
@@ -1073,7 +1119,23 @@ def _permutation_cluster_test(
     return t_obs, clusters, cluster_pv, H0
 
 
-def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
+def _rm_anova_stat_fun(*X, factor_levels, effects):
+    """Wrap `f_mway_rm` for use as a cluster-test ``stat_fun``.
+
+    ``X`` arrives as one 2D array (replications x flattened locations) per cell of
+    the design, ordered so that the first factor varies slowest (matching how
+    :func:`pandas.DataFrame.groupby` orders a multi-column group-by, and what
+    :func:`~mne.stats.f_mway_rm` expects).
+    """
+    data = np.stack(X, axis=1)  # subjects x conditions x locations
+    return f_mway_rm(
+        data, factor_levels=factor_levels, effects=effects, return_pvals=False
+    )[0]
+
+
+def _check_fun(
+    X, stat_fun, threshold, tail=0, kind="within", factor_levels=None, effects=None
+):
     """Check the stat_fun and threshold values."""
     from scipy.stats import f as fstat
     from scipy.stats import t as tstat
@@ -1092,6 +1154,22 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
                 threshold = -threshold
             logger.info(f"Using a threshold of {threshold:.6f}")
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
+    elif kind == "within_rm":
+        n_subjects = len(X[0])
+        if threshold is None:
+            if stat_fun is not None:
+                warn(
+                    "Automatic threshold is only valid for stat_fun=None "
+                    f"(uses f_mway_rm internally), got {stat_fun}"
+                )
+            elif tail != 1:
+                warn('Ignoring argument "tail", performing 1-tailed F-test')
+            threshold = f_threshold_mway_rm(n_subjects, factor_levels, effects=effects)
+            logger.info(f"Using a threshold of {threshold:.6f}")
+        if stat_fun is None:
+            stat_fun = partial(
+                _rm_anova_stat_fun, factor_levels=factor_levels, effects=effects
+            )
     else:
         assert kind == "between"
         if threshold is None:
@@ -1111,6 +1189,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind="within"):
     return stat_fun, threshold
 
 
+@legacy(alt="mne.stats.cluster_test(...)")
 @_legacy_rng("seed")
 @verbose
 def permutation_cluster_test(
@@ -1688,3 +1767,493 @@ def summarize_clusters_stc(
     data_summary[:, 0] = np.sum(data_summary, axis=1)
 
     return klass(data_summary, vertices, tmin, tstep, subject)
+
+
+def _validate_cluster_df(df: DataFrame, dv_name: str, iv_names: list[str]):
+    """Validate the input DataFrame for cluster tests."""
+    # check if all necessary columns are present
+    missing = ({dv_name} | set(iv_names)) - set(df.columns)  # should be empty
+    sep = '", "'
+    if missing:  # if not empty, there are missing columns
+        raise ValueError(
+            f"DataFrame must contain a column named for each term in `formula`. "
+            f"Column{_pl(missing)} missing for term{_pl(missing)} "  # _pl = pluralize
+            f'"{sep.join(missing)}".'
+        )
+    # check if the data column contains valid (and consistent) instance types
+    inst = df[dv_name].iloc[0]
+    valid_types = (
+        Evoked,
+        BaseEpochs,
+        BaseTFR,
+        np.ndarray,
+    )  # Base covers all Epochs and TFRs
+    _validate_type(inst, valid_types, f"Data in dependent variable column '{dv_name}'")
+    all_types = set(df[dv_name].map(type))
+    all_type_names = ", ".join([type(x).__name__ for x in all_types])
+    prologue = f"Data in dependent variable column '{dv_name}' must all have "
+    if len(all_types) > 1:
+        raise ValueError(
+            f"{prologue} the same type, but found types {{{all_type_names}}}."
+        )
+    # check if the shape of the data is consistent
+    if isinstance(inst, np.ndarray):
+        all_shapes = set(
+            df[dv_name].map(lambda x: x.shape[1:])
+        )  # first dim may vary (participants or epochs)
+    elif isinstance(inst, (BaseEpochs | EpochsTFR)):
+        all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape[1:]))
+    else:
+        all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
+    if len(all_shapes) > 1:
+        raise ValueError(
+            f"{prologue} consistent shape, but {len(all_shapes)} different "
+            f"shapes were found: {'; '.join(all_shapes)}."
+        )
+    obj_type = all_types.pop()
+    is_epo = GetEpochsMixin in obj_type.__mro__
+    is_tfr = BaseTFR in obj_type.__mro__
+    is_arr = np.ndarray in obj_type.__mro__
+    return is_epo, is_tfr, is_arr
+
+
+# TODO: design/analysis features FieldTrip's cluster stats support that
+# cluster_test does not (yet):
+# - continuous predictors / regression & correlation designs
+#   (ft_statfun_indepsamplesregrT, _depsamplesregrT, _correlationT); the
+#   formula right-hand side currently must be categorical
+# - multivariate within-subject F across conditions
+#   (ft_statfun_depsamplesFmultivariate)
+# - activation-versus-baseline tests (ft_statfun_actvsblT)
+# - control variables / stratified or blocked resampling (cfg.cvar, cfg.wvar)
+# - requiring a minimum number of neighboring channels for cluster membership
+#   (cfg.minnbchan)
+# - the weighted cluster mass statistic (cfg.clusterstatistic='wcm');
+#   ``t_power`` covers maxsum (t_power=1) and maxsize (t_power=0) only
+@verbose
+def cluster_test(
+    df: DataFrame,
+    formula: str,
+    *,  # end of positional-only parameters
+    within_id: str | None = None,
+    stat_fun: callable | None = None,
+    tail: Literal[-1, 0, 1] = 0,
+    threshold=None,
+    n_permutations: str | int = 1024,
+    adjacency: sparse.spmatrix
+    | None
+    | Literal[False] = None,  # should be None (default)
+    max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
+    exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
+    step_down_p: float = 0.0,
+    t_power: float = 1.0,
+    check_disjoint: bool = False,
+    out_type: Literal["indices", "mask"] = "indices",
+    rng: None | int | np.random.Generator | np.random.RandomState = None,
+    buffer_size: int | None = None,
+    n_jobs: int = 1,
+    verbose=None,
+):
+    """Run a cluster permutation test from a DataFrame and a formula.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Dataframe containing the data, dependent and independent variables.
+    formula : str
+        Wilkinson notation formula naming the dependent variable and either a single
+        independent variable (e.g. ``"data ~ condition"``) or a single interaction
+        term between two or more independent variables (e.g. ``"data ~ a:b"``, tested
+        with a repeated-measures ANOVA; see ``within_id``). All names must match
+        columns in ``df``. Testing several effects (e.g. two main effects, or a main
+        effect and an interaction) requires calling :func:`cluster_test` once per
+        effect.
+    within_id : None | str
+        Name of column in ``df`` to use in identifying within-group contrasts.
+
+        - If ``within_id`` is not ``None``:
+            ``within_id`` must match a column name in ``df``, e.g. ``"subject_index"``
+            (a name not in ``df.columns`` will result in an error). If the independent
+            variable has 1 level per participant, the data will be treated as
+            already subtracted (e.g., condition A - condition B) and a paired t-test
+            against zero will be performed (using
+            :func:`mne.stats.ttest_1samp_no_p`). If the independent
+            variable has 2 levels, the data will be subtracted for each participant
+            (e.g., condition A - condition B) first. If it has more than 2 levels,
+            a one-way repeated-measures ANOVA is performed (using
+            :func:`mne.stats.f_mway_rm`), with permutations swapping each
+            subject's observations across the levels (never across subjects).
+
+        - If ``within_id`` is ``None``:
+            Will perform a between-group test (using :func:`mne.stats.f_oneway`; This
+            works for 2 levels or more).
+
+        - This parameter is required if:
+            ``formula``'s right-hand side is an interaction term (e.g.
+            ``"data ~ a:b"``), in which case each combination of ``within_id`` and the
+            factors must appear exactly once (a fully balanced repeated-measures
+            design).
+    %(stat_fun_clust_both)s
+    %(tail_clust)s
+    %(threshold_clust_both)s
+    %(n_permutations_clust_all)s
+    %(adjacency_clust_both)s
+    max_step : int
+        Maximum distance between samples (time points). Default is 1.
+    exclude : array-like of bool | None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as the channels/vertices
+        dimension of the data objects. If ``None``, no points are excluded.
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the "time" and/or "frequency" dimensions are large.
+    out_type : 'mask' | 'indices'
+        Format used to represent each cluster in the list of clusters stored in
+        the ``clusters`` attribute of :class:`mne.stats.ClusterResult`:
+
+        - ``'mask'``:s
+            Each cluster is represented by a boolean array of the same shape as
+            the ``stat_obs`` attribute array of :class:`mne.stats.ClusterResult`,
+            with ``True`` values indicating locations that are part of a cluster.  Note
+            that MNE-Python's legacy API
+            (e.g. :func:`mne.stats.permutation_cluster_test`) would return slices if the
+            shape is 1D and adjacency is ``None``, whereas ``cluster_test`` will always
+            return a boolean array.
+
+        - ``'indices'``:
+            Each cluster is represented by a tuple of 1D integer arrays, one array per
+            dimension of the array in the ``stat_obs`` attribute of
+            :class:`mne.stats.ClusterResult`. The arrays
+            together give the coordinates of all locations belonging to the cluster and
+            can be used to index ``stat_obs``.
+            Note that for large datasets, ``'indices'`` may use far less memory than
+            ``'mask'``.
+    %(rng)s
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because the data will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    %(n_jobs)s
+    %(verbose)s
+
+    Returns
+    -------
+    mne.stats.ClusterResult
+        Object containing the results of the cluster permutation test.
+
+    Notes
+    -----
+    %(threshold_clust_t_or_f_notes)s
+
+    .. versionadded:: 1.13
+    """
+    # parse formula
+    formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
+    parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
+    rng = _check_rng(rng)
+
+    formula_str = formula
+    formula = formulaic.Formula(formula, _parser=parser)
+    # extract the dependent variable name
+    dv_name = str(formula.lhs)
+    # the right-hand side must be a single term: either one factor (main effect,
+    # e.g. "a") or a single interaction between factors (e.g. "a:b")
+    rhs_terms = list(formula.rhs)
+    if len(rhs_terms) != 1:
+        raise ValueError(
+            "the right-hand side of `formula` must be a single term: either one "
+            'factor (e.g. "data ~ a") or a single interaction (e.g. "data ~ a:b"). '
+            f'Got "{formula.rhs}", which has {len(rhs_terms)} terms. To test '
+            "several effects, call `cluster_test` once per effect."
+        )
+    factor_names = [str(factor) for factor in rhs_terms[0].factors]
+    is_interaction = len(factor_names) > 1
+    iv_name = factor_names[0] if not is_interaction else ":".join(factor_names)
+
+    # validate the input dataframe and return the type of the data column entries
+    is_epo, is_tfr, is_arr = _validate_cluster_df(df, dv_name, factor_names)
+
+    _validate_type(within_id, (str, None), "within_id")
+    if within_id is not None and within_id not in df.columns:
+        raise ValueError(
+            f"within_id must be one of {list(df.columns)}, got {within_id!r}"
+        )
+
+    # check if within_id has 1 or 2 levels to do paired t-test (within)
+    if is_interaction and within_id is None:
+        raise ValueError(
+            f'testing the interaction "{iv_name}" requires repeated-measures data; '
+            "pass `within_id` naming the column that identifies each subject/"
+            "replication."
+        )
+    # for within-subject designs, check that each subject has one observation per
+    # combination of factor(s) (2 for a simple paired test; more for a one-way
+    # repeated-measures ANOVA or an interaction)
+    n_groups = df[factor_names].drop_duplicates().shape[0]
+    if within_id and (is_interaction or n_groups >= 2):
+        df = df.copy(deep=False)  # Don't mutate input dataframe row order!
+        df.sort_values([*factor_names, within_id], inplace=True)
+        counts = df[within_id].value_counts()
+
+        iv_names = iv_name.split(":")
+        groups = df[[dv_name, *iv_names, within_id]].groupby([*iv_names, within_id])
+        elem = df[dv_name].iloc[0]
+        # TODO: Support this for other input types e.g. array, epochs, TFR, etc.
+        if isinstance(elem, Evoked):
+            reduce = set(df.columns) - set([*iv_names, within_id, dv_name])
+            if reduce:
+                logger.info(
+                    f"To test '{formula_str}', reducing along column(s): {reduce}"
+                )
+            func = {dv_name: lambda evs: combine_evoked(evs.tolist(), weights="nave")}
+            df = groups.agg(func).reset_index()
+
+        else:
+            if any(counts != n_groups):
+                raise ValueError(
+                    f"for a within-subject test, each subject (column {within_id!r}) "
+                    f"must have exactly {n_groups} observations, one per combination "
+                    f"of {factor_names}."
+                )
+    # extract the data from the dataframe
+    outer_func = np.concatenate if is_epo else np.array
+    axes = (-3, -1) if is_tfr else (-2, -1)
+
+    def func_arr(series):
+        return np.concatenate(series.values)
+
+    def func_mne(series):
+        return outer_func(
+            series.map(lambda inst: inst.get_data().swapaxes(*axes)).to_list()
+        )
+
+    func = func_arr if is_arr else func_mne
+
+    # convert to a list-like X for clustering. Grouping by multiple columns sorts
+    # lexicographically (first factor varies slowest), which is what f_mway_rm
+    # expects for interaction effects.
+    X = df.groupby(factor_names).agg({dv_name: func})[dv_name].to_list()
+
+    # determine test type
+    if is_interaction:
+        kind = "within_rm"
+        factor_levels = [df[name].nunique() for name in factor_names]
+        # f_mway_rm/f_threshold_mway_rm only understand generic "A", "B", ...
+        # factor labels (in the order given in `formula`), not the actual column
+        # names, so translate the interaction accordingly.
+        rm_effects = ":".join(ascii_uppercase[: len(factor_names)])
+    elif len(X) == 1:
+        kind = "within"  # single group -- e.g. already-subtracted paired data
+        X = X[0]
+    elif within_id is not None and len(X) > 2:
+        # one within-subject factor with 3+ levels: one-way repeated-measures
+        # ANOVA (each subject contributes one observation per level)
+        kind = "within_rm"
+        factor_levels = [len(X)]
+        rm_effects = "A"
+    elif len(X) > 2:
+        kind = "between"
+    elif (
+        len(set(x.shape for x in X)) > 1
+    ):  # check if there are unequal observations in each group
+        kind = "between"
+    # by now we know there are exactly 2 elements in X, and their shapes match
+    elif within_id in df:
+        kind = "within"
+
+        n_vals = df[factor_names].nunique().item()
+        vals = df[factor_names].squeeze().unique().tolist()
+        assert len(X) == 2
+        assert n_vals == 2
+
+        logger.info(
+            f"Subtracting ({vals[0]} - {vals[1]}) of column {factor_names} before "
+            "computing cluster statistics."
+        )
+        X = X[0] - X[1]
+    else:  # 2 elements in X but no within_id provided → unpaired test
+        kind = "between"
+
+    # Now, for the within case check if there are unequal observations in each group
+    # and whether the data is already subtracted (1 level) or not (2 levels)
+    if kind == "within":
+        if len(set(x.shape for x in X)) > 1:
+            raise ValueError(
+                "for within-group tests, all participants must have the same number of "
+                "observations, check your data frame"
+            )
+        if len(X) == 1:
+            # turn it into an array
+            X = X[0]  # already subtracted, just use the data as is
+
+        elif len(X) == 2:
+            X = X[0] - X[1]  # do subtraction for paired t-test
+
+    # define stat function and threshold
+    if kind == "within_rm":
+        stat_fun, threshold = _check_fun(
+            X=X,
+            stat_fun=stat_fun,
+            threshold=threshold,
+            tail=tail,
+            kind=kind,
+            factor_levels=factor_levels,
+            effects=rm_effects,
+        )
+    else:
+        stat_fun, threshold = _check_fun(
+            X=X, stat_fun=stat_fun, threshold=threshold, tail=tail, kind=kind
+        )
+
+    # check_fun doesn't work with list input`
+    if kind == "within":  # will this create an issue for already subtracted data?
+        X = [X]
+
+    kind_descs = {
+        "between": "between-groups F-test",
+        "within": "one-sample T-test",
+        "within_rm": "M-way repeated measures ANOVA",
+    }
+    func_name = stat_fun.__name__ if "__name__" in dir(stat_fun) else str(stat_fun)
+    logger.info(f"Chosen statistic: {kind_descs[kind]} -- {func_name}")
+
+    # Run the cluster-based permutation test
+    stat_obs, clusters, cluster_p_values, H0 = _permutation_cluster_test(
+        X,
+        n_permutations=n_permutations,
+        threshold=threshold,
+        stat_fun=stat_fun,
+        tail=tail,
+        n_jobs=n_jobs,
+        adjacency=adjacency,
+        max_step=max_step,  # maximum distance between samples (time points)
+        exclude=exclude,  # exclude no time points or channels
+        step_down_p=step_down_p,  # step down in jumps test
+        t_power=t_power,  # weigh each location by its stats score
+        out_type=out_type,
+        check_disjoint=check_disjoint,
+        buffer_size=buffer_size,  # block size for chunking the data
+        rng=rng,
+        # repeated-measures ANOVA: permute within subjects only
+        within_subject=kind == "within_rm",
+    )
+
+    stat_obs = stat_obs.T
+    if out_type == "mask":
+        if isinstance(clusters[0], np.ndarray) and clusters[0].dtype == "bool":
+            clusters = [cl.T for cl in clusters]
+        elif isinstance(clusters[0], tuple) and isinstance(clusters[0][0], slice):
+            clusters = [tuple(reversed(cluster)) for cluster in clusters]
+            # Convert from old form of slices to mask, make users life easier.
+            new_clusters = list()
+            for clust in clusters:
+                new_clust = np.zeros(stat_obs.shape, bool)
+                new_clust[clust] = True
+                new_clusters.append(new_clust)
+            clusters = new_clusters
+    elif out_type == "indices":
+        clusters = [tuple(reversed(cluster)) for cluster in clusters]
+    return ClusterResult(
+        stat_obs=stat_obs,
+        clusters=clusters,
+        cluster_p_values=cluster_p_values,
+        H0=H0,
+        stat_fun=stat_fun,
+        n_permutations=n_permutations,
+        t_power=t_power,
+    )
+
+
+def _cluster_mass(stat_obs, cluster, t_power):
+    """Compute a cluster's mass, matching _find_clusters_1dir's own formula."""
+    vals = stat_obs[cluster]
+    if t_power == 1:
+        return vals.sum()
+    return (np.sign(vals) * np.abs(vals) ** t_power).sum()
+
+
+class ClusterResult:
+    """Object containing the results of the cluster permutation test.
+
+    .. note::
+       This class is not meant to be instantiated directly, but rather returned
+       by :func:`~mne.stats.cluster_test`.
+
+    Parameters
+    ----------
+    stat_obs : np.ndarray
+        The observed test statistic.
+    clusters : list
+        List of clusters.
+    cluster_p_values : np.ndarray
+        P-values for each cluster.
+    H0 : np.ndarray
+        Max cluster level stats observed under permutation.
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.ttest_1samp_no_p` for paired tests and
+        :func:`mne.stats.f_oneway` for unpaired tests or tests of more than 2 groups.
+    n_permutations : int
+        The number of permutations that were taken to compute the test statistic.
+    t_power : float
+        Power to which the observed statistic was raised (sign retained) before
+        summing within a cluster to obtain its mass (see ``cluster_masses``).
+        Should match whatever ``t_power`` was passed to :func:`cluster_test`.
+
+    Attributes
+    ----------
+    cluster_masses : np.ndarray
+        The mass of each cluster, i.e. the sum (optionally ``t_power``-weighted)
+        of ``stat_obs`` within that cluster. This is the same per-cluster
+        statistic that is compared against the permutation distribution (``H0``)
+        to obtain ``cluster_p_values``, so it is a natural way to rank clusters by
+        how extreme they are, independent of the resulting p-value.
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+
+    def __init__(
+        self,
+        *,
+        stat_obs: np.typing.NDArray,
+        clusters: list,
+        cluster_p_values: np.typing.NDArray,
+        H0: np.typing.NDArray,
+        stat_fun: callable,
+        n_permutations: int,
+        t_power: float = 1.0,
+    ):
+        self.stat_obs = stat_obs
+        self.clusters = clusters
+        self.cluster_p_values = cluster_p_values
+        self.H0 = H0
+        self.stat_fun = stat_fun
+        self.t_power = t_power
+        self.cluster_masses = np.array(
+            [_cluster_mass(stat_obs, c, t_power) for c in clusters]
+        )
+        self.n_permutations = n_permutations
+
+        # unpaired t-test equivalent to f_oneway w/ 2 groups
+        if stat_fun is f_oneway:
+            self.stat_name = "F-statistic"
+        elif stat_fun is ttest_1samp_no_p:
+            self.stat_name = "paired T-statistic"
+        elif isinstance(stat_fun, partial) and stat_fun.func is _rm_anova_stat_fun:
+            self.stat_name = "F-statistic (repeated-measures ANOVA)"
+        else:
+            self.stat_name = "test statistic"
+
+    def __repr__(self):  # noqa: D105
+        return (
+            f"<ClusterResult | p={self.cluster_p_values.min()}, "
+            f"{len(self.clusters)} clusters."
+        )
