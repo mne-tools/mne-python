@@ -778,6 +778,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
+        block=False,
         verbose=None,
     ):
         from .viz import plot_source_estimates
@@ -813,6 +814,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
+            block=block,
             verbose=verbose,
         )
         return brain
@@ -2399,6 +2401,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
+        block=False,
         verbose=None,
     ):
         return super().plot(
@@ -2431,6 +2434,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
+            block=block,
             verbose=verbose,
         )
 

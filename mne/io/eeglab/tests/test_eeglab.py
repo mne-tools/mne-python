@@ -5,6 +5,7 @@
 import os
 import shutil
 from copy import deepcopy
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -497,7 +498,7 @@ def test_eeglab_annotations(fname):
 
 
 @testing.requires_testing_data
-def test_eeglab_read_annotations():
+def test_eeglab_read_annotations(monkeypatch):
     """Test annotations onsets are timestamps (+ validate some)."""
     annotations = read_annotations(raw_fname_mat)
     validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
@@ -524,9 +525,12 @@ def test_eeglab_read_annotations():
     )
 
     # test if event durations are imported correctly
+    check_load_mat = Mock(wraps=mne.io.eeglab.eeglab._check_load_mat)
+    monkeypatch.setattr(mne.io.eeglab.eeglab, "_check_load_mat", check_load_mat)
     raw = read_raw_eeglab(raw_fname_event_duration, preload=True, montage_units="dm")
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
+    assert check_load_mat.call_count == 1
 
 
 @testing.requires_testing_data

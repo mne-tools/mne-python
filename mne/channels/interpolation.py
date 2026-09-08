@@ -452,7 +452,9 @@ def _interpolate_to_eeg(inst, sensors, origin, method, reg):
     if method == "spline":
         origin_val = _check_origin(origin, inst.info)
         pos_from = inst.info._get_channel_positions(picks_good_eeg) - origin_val
-        pos_to = np.stack(list(ch_pos.values()), axis=0)
+        # Use info_to (rather than ch_pos directly) so that the target positions
+        # are in the head frame, and center both sets on the fitted origin
+        pos_to = info_to._get_channel_positions() - origin_val
 
         def _check_pos_sphere(pos):
             d = np.linalg.norm(pos, axis=-1)

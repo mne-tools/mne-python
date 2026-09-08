@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from contextlib import contextmanager
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
@@ -16,10 +17,10 @@ from ..bem import (
     make_sphere_model,
     read_bem_solution,
 )
-from ..cov import _ensure_cov, make_ad_hoc_cov
+from ..cov import _ensure_cov, compute_whitener, make_ad_hoc_cov
 from ..dipole import Dipole, fit_dipole
 from ..evoked import Evoked
-from ..forward import convert_forward_solution, make_field_map
+from ..forward import make_field_map
 from ..forward._make_forward import _ForwardModeler
 from ..minimum_norm import apply_inverse, make_inverse_operator
 from ..source_estimate import (
@@ -27,7 +28,7 @@ from ..source_estimate import (
     _BaseSurfaceSourceEstimate,
     read_source_estimate,
 )
-from ..source_space import setup_volume_source_space
+from ..source_space._source_space import _complete_vol_src, _make_discrete_source_space
 from ..surface import _normal_orth
 from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
 from ..utils import (
@@ -38,11 +39,31 @@ from ..utils import (
     logger,
     verbose,
 )
-from ..viz import EvokedField, create_3d_figure
-from ..viz._3d import _plot_head_surface, _plot_sensors_3d
-from ..viz.backends._utils import _qt_app_exec
+from ..viz import EvokedField
+from ..viz._3d import _get_3d_option, _plot_head_surface, _plot_sensors_3d
+from ..viz.backends._utils import _qt_app_exec, _qt_safe_window, _splash_message
 from ..viz.ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
-from ..viz.utils import _get_color_list
+from ..viz.utils import _get_color_list, _is_dark
+
+# Message shown in the status bar when the GUI is not busy doing something else.
+_STATUS_IDLE = "Ready"
+# Meshes that start out hidden (everything not listed here starts out visible).
+_MESH_VISIBLE = dict(colorbar=False)
+# Default alpha values for some of the meshes
+_MESH_ALPHA = dict(brain=0.5)
+# Meshes for which opacity cannot meaningfully be set (2D overlays).
+_MESH_NO_OPACITY = ("colorbar",)
+# Line width and marker size of the dipole traces, when not/when hovered.
+_TRACE_LINEWIDTH, _TRACE_LINEWIDTH_HOVER = 1.5, 2.5
+_TRACE_MARKERSIZE, _TRACE_MARKERSIZE_HOVER = 4, 7
+# Standard views of the head, in the "mri" coordinate frame used by the 3D display.
+_CAMERA_PRESETS = {
+    "Left": dict(azimuth=180, elevation=90, roll=90),
+    "Right": dict(azimuth=0, elevation=90, roll=270),
+    "Front": dict(azimuth=90, elevation=90, roll=0),
+    "Back": dict(azimuth=270, elevation=90, roll=180),
+    "Top": dict(azimuth=90, elevation=0, roll=0),
+}
 
 
 @fill_doc
@@ -98,6 +119,7 @@ class DipoleFitUI:
         All currently enabled dipoles in the model.
     """
 
+    @_qt_safe_window(splash="_splash", window="_init_renderer.figure.plotter")
     def __init__(
         self,
         evoked,
@@ -156,7 +178,16 @@ class DipoleFitUI:
         if ch_type is not None:
             evoked = evoked.copy().pick(ch_type)
 
+        # Everything below is potentially slow, so bring up the window (still hidden)
+        # and its splash screen first, and narrate the progress on it.
+        self._busy_depth = 0
+        self._busy_cursor = None
+        self._refit_pending = False
+        self._status_label = None
+        self._configure_window(show=show)
+
         if surf_maps is None:
+            self._set_status("Computing field maps...")
             surf_maps = make_field_map(
                 evoked,
                 trans=trans,
@@ -175,6 +206,7 @@ class DipoleFitUI:
         if stc is not None:
             _validate_type(stc, ("path-like", _BaseSurfaceSourceEstimate), "stc")
             if not isinstance(stc, _BaseSurfaceSourceEstimate):
+                self._set_status("Loading source estimate...")
                 stc = read_source_estimate(stc)
 
             if len(stc.times) != len(evoked.times) or not np.allclose(
@@ -196,6 +228,7 @@ class DipoleFitUI:
             evoked.info, head_mri_t, coord_frame="mri"
         )
 
+        self._set_status("Preparing forward model...")
         self.fwd = _ForwardModeler(
             info=evoked.info,
             trans=trans,
@@ -206,6 +239,7 @@ class DipoleFitUI:
 
         # Initialize all the private attributes.
         self._actors = dict()
+        self._mesh_widgets = dict()
         self._bem = bem
         self._ch_type = ch_type
         self._cov = cov
@@ -221,20 +255,37 @@ class DipoleFitUI:
         self._subjects_dir = subjects_dir
         self._subject = subject
         self._time_line = None
+        self._time_text = None
+        self._gof_ax = None
+        self._gof_line = None
         self._head_mri_t = head_mri_t
         self._to_cf_t = to_cf_t
         self._rank = rank
         self._verbose = verbose
         self._n_jobs = n_jobs
 
-        # Configure the GUI.
-        self._configure_main_display(
-            show_sensors=show_sensors, show=show
-        )  # sets self._fig
+        # Configure the GUI. The window stays hidden until it is fully composed:
+        # `stc.plot` and `EvokedField` do not show figures they did not create
+        # themselves (we pass ours in), so the window only appears at the `show()`
+        # at the very end, all at once.
+        self._configure_main_display(show_sensors=show_sensors)  # sets self._fig
         self._configure_dock()
+        self._set_status()
 
         # must be done last
         if show:
+            # Settle all pending widget layouts, still hidden and synchronously.
+            self._renderer._window_settle_layouts()
+            # Render the scene into the framebuffer now that the layouts (and hence
+            # the 3D view size) are final: the first paint after showing blits
+            # whatever the framebuffer holds, and for complex scenes the fresh
+            # render in `show()` only completes after that first paint, which would
+            # briefly show a stale, mis-framed image otherwise.
+            for plotter in self._renderer._all_plotters:
+                plotter._render()
+            # Hand the splash screen back to the renderer, which closes it once the
+            # window has actually appeared on screen (see `_qt_safe_window`).
+            self._renderer.figure.splash = self._splash
             self._renderer.show()
         if block and self._renderer._kind != "notebook":
             _qt_app_exec(self._renderer.figure.store["app"])
@@ -243,42 +294,149 @@ class DipoleFitUI:
     def _renderer(self):
         return self._fig._renderer
 
+    def _configure_window(self, *, show):
+        """Create the (still hidden) main window, its splash screen and status bar."""
+        from ..viz.backends.renderer import _get_renderer
+
+        splash = "Initializing dipole fitting GUI..." if show else False
+        self._init_renderer = renderer = _get_renderer(
+            size=(1080, 720),
+            bgcolor="white",
+            smooth_shading=_get_3d_option("smooth_shading"),
+            # The window is only shown at the very end of ``__init__``, when it is
+            # fully drawn: a window that pops up empty and then slowly fills itself in
+            # looks broken.
+            show=False,
+            splash=splash,
+        )
+        # Showing any window closes the splash screen (see `_qt_safe_window`), so keep
+        # it to ourselves until the main window is ready to be shown.
+        self._splash = getattr(renderer.figure, "splash", None)
+        if not hasattr(self._splash, "showMessage"):  # not the Qt backend
+            self._splash = None
+        renderer.figure.splash = False
+        renderer.set_interaction("terrain")
+        self._fig3d = renderer.scene()
+
+        # Status bar, narrating what the GUI is doing (see `_set_status`).
+        renderer._status_bar_initialize()
+        self._status_label = renderer._status_bar_add_label(_STATUS_IDLE, stretch=1)
+
+    def _set_status(self, message=_STATUS_IDLE):
+        """Show what the GUI is currently doing, or ``"Ready"`` when it is idle.
+
+        During startup the main window is not up yet, so the message is shown on the
+        splash screen as well (the status bar shows it once the window appears).
+        """
+        if self._status_label is not None:
+            self._status_label.set_value(message)
+            # Repaint just this widget: unlike processing the event queue, this cannot
+            # re-enter any of the event handlers of the GUI.
+            self._status_label.update()
+        # `_qt_safe_window` deletes `_splash` when `__init__` is done, hence getattr.
+        splash = getattr(self, "_splash", None)
+        if splash is not None:
+            _splash_message(splash, message)
+
+    @contextmanager
+    def _busy(self, message):
+        """Show ``message`` and block interaction while a slow operation runs.
+
+        Nested uses collapse into the outermost one, so that operations that trigger
+        one another (e.g. fitting a dipole refits all timecourses) show a single
+        message and restore the cursor only once.
+        """
+        r = self._renderer
+        # Increment the depth *before* processing events below: an event handler that
+        # runs during that processing and uses `_busy` itself must see itself as
+        # nested, or it would tear the busy state down mid-operation.
+        self._busy_depth += 1
+        try:
+            if self._busy_depth == 1:
+                self._busy_cursor = r._window_get_cursor()
+                self._set_status(message)
+                r._window_set_enabled(False)
+                r._window_set_cursor(r._window_new_cursor("WaitCursor"))
+                # Paint the busy state before starting the computation. The window is
+                # disabled, so no user input can be delivered while we do this.
+                r._process_events()
+            yield
+        finally:
+            self._busy_depth -= 1
+            if self._busy_depth == 0:
+                r._window_set_cursor(self._busy_cursor)
+                r._window_set_enabled(True)
+                self._set_status()
+
     @property
     def dipoles(self):
         """A list of all the fitted dipoles that are enabled in the GUI."""
         return [d["dip"] for d in self._dipoles.values() if d["active"]]
 
-    def _configure_main_display(self, show_sensors=True, show=True):
+    def _configure_main_display(self, show_sensors=True):
         """Configure main 3D display of the GUI."""
-        fig_into = create_3d_figure((1080, 720), bgcolor="white", show=show)
+        fig_into = self._fig3d
 
         self._stc_brain = None
         if self._stc is not None:
+            self._set_status("Plotting source estimate...")
             kwargs = dict(
                 subject=self._subject,
                 subjects_dir=self._subjects_dir,
                 hemi="both",
                 time_viewer=False,
                 initial_time=self._current_time,
-                brain_kwargs=dict(units="m"),
+                time_label=None,  # the traces plot shows the current time
+                # The source estimate is only a rough guide for where to put
+                # dipoles, so map each surface vertex to its nearest source rather
+                # than smoothing: the upsampling is then a gather instead of a
+                # sparse matrix product, which is cheaper on every time change.
+                smoothing_steps="nearest",
+                brain_kwargs=dict(units="m", show=False),
                 figure=fig_into,
+                # the GUI renders on a white figure, so the Brain (and hence its
+                # colorbar) needs to select a black foreground color
+                background="white",
             )
             if isinstance(self._stc, SourceEstimate):
                 kwargs["surface"] = "white"
             self._stc_brain = self._stc.plot(**kwargs)
             self._actors["brain"] = self._stc_brain._actors["data"]
+            # a translucent cortex keeps the dipole arrows inside it visible,
+            # set here in addition to "alpha" for Brain (that only controls the
+            # alpha of the brain surface, not its overlay)
+            self.set_mesh_opacity("brain", _MESH_ALPHA["brain"], update=False)
+            colorbar = [
+                actor
+                for actor in (
+                    self._stc_brain._scalar_bar,
+                    self._stc_brain._scalar_bar_ticks,
+                )
+                if actor is not None
+            ]
+            if len(colorbar) > 0:
+                self._actors["colorbar"] = colorbar
             fig_into = self._stc_brain  # plot into the brain instead
 
+            # Rendering the brain mesh in a translucent manner requires a higher setting
+            # for the depth peeling to prevent artifacts.
+            fig_into._renderer.plotter.enable_depth_peeling(
+                number_of_peels=6, occlusion_ratio=1e-7
+            )
+
+        self._set_status("Plotting field lines...")
         fig_ef = EvokedField(
             self._evoked,
             self._surf_maps,
             time=self._current_time,
+            time_label=None,  # the time is shown on the time line of the traces plot
             interpolation="linear",
             alpha=0,
+            contour_line_opacity=0.5,
             show_density=self._show_density,
             foreground="black",
             background="white",
-            fig=fig_into,  # can be Figure3D or Brain instance
+            fig=fig_into,  # can be Figure3D or Brain instance; we own its window
         )
         del fig_into
         fig_ef.separate_canvas = False  # needed to plot the timeline later
@@ -324,6 +482,7 @@ class DipoleFitUI:
                 head_surf = m["surf"]
                 break
         else:
+            self._set_status("Plotting head surface...")
             self._actors["head"], _, head_surf = _plot_head_surface(
                 renderer=fig_ef._renderer,
                 head="head",
@@ -337,6 +496,7 @@ class DipoleFitUI:
             self._actors["head"].prop.culling = "back"
 
         if show_sensors:
+            self._set_status("Plotting sensors...")
             sensors = _plot_sensors_3d(
                 renderer=fig_ef._renderer,
                 info=self._evoked.info,
@@ -362,35 +522,88 @@ class DipoleFitUI:
             )
             self._actors["sensors"] = sum(sensors.values(), [])
 
-        # Adjust camera
-        fig_ef._renderer.set_camera(
-            azimuth=180, elevation=90, roll=90, distance=0.55, focalpoint=[0, 0, 0.03]
-        )
-
         subscribe(fig_ef, "time_change", self._on_time_change)
         subscribe(fig_ef, "channels_select", self._on_channels_select)
         self._fig = fig_ef
 
+        # Adjust camera (needs self._fig, hence after setting it)
+        self._set_camera_preset("Left")
+        for name, visible in _MESH_VISIBLE.items():
+            if not visible and name in self._actors:
+                self.toggle_mesh(name, show=False)
+
     def _configure_dock(self):
         """Configure the left and right dock areas of the GUI."""
+        self._set_status("Setting up controls...")
         r = self._renderer
 
-        # Toggle buttons for various meshes
+        # Add some controls for the STC viewer, but not all of them.
+        if self._stc_brain is not None:
+            self._stc_brain._configure_dock_colormap_widget(name="STC Color Limits")
+
+        # Visibility and opacity controls for the various meshes, one row per mesh.
+        r._dock_add_stretch()
         layout = r._dock_add_group_box("Meshes", collapse=True)
+        grid = r._layout_create("grid")
+        r._layout_add_widget(layout, grid)
+        r._dock_add_label("visible", layout=grid, row=0, col=0)
+        r._dock_add_label("opacity", layout=grid, row=0, col=1)
 
         @_auto_weakref
-        def _toggle_mesh(_, name, show=None):
-            self.toggle_mesh(name, show=show)
+        def _toggle_mesh(show, name):
+            self.toggle_mesh(name, show=bool(show))
 
+        @_auto_weakref
+        def _set_mesh_opacity(opacity, name):
+            self.set_mesh_opacity(name, opacity)
+
+        row = 0
         for actor_name in self._actors:
-            if actor_name == "occlusion_surf":
+            if actor_name == "occlusion_surf":  # implementation detail, not a "mesh"
                 continue
-            r._dock_add_check_box(
-                name=actor_name,
-                value=True,
-                callback=partial(_toggle_mesh, name=actor_name),
-                layout=layout,
+            row += 1
+            widgets = [
+                r._dock_add_check_box(
+                    name=actor_name,
+                    value=_MESH_VISIBLE.get(actor_name, True),
+                    callback=partial(_toggle_mesh, name=actor_name),
+                    layout=grid,
+                    row=row,
+                    col=0,
+                )
+            ]
+            # 2D overlays like the colorbar get a visibility checkbox only.
+            if actor_name not in _MESH_NO_OPACITY:
+                widgets.append(
+                    r._dock_add_slider(
+                        name=None,
+                        value=self._get_mesh_opacity(actor_name),
+                        rng=[0, 1],
+                        callback=partial(_set_mesh_opacity, name=actor_name),
+                        double=True,
+                        layout=grid,
+                        row=row,
+                        col=1,
+                    )
+                )
+            self._mesh_widgets[actor_name] = widgets
+
+        # Camera presets
+        camera_layout = r._dock_add_layout(vertical=False)
+
+        @_auto_weakref
+        def _set_camera_preset(name):
+            self._set_camera_preset(name)
+
+        for preset in _CAMERA_PRESETS:
+            r._dock_add_button(
+                name=preset,
+                callback=partial(_set_camera_preset, name=preset),
+                style="toolbutton",
+                tooltip=f"View the {preset.lower()} of the head",
+                layout=camera_layout,
             )
+        r._layout_add_widget(r._dock_layout, camera_layout)
 
         # Right dock
         r._dock_initialize(name="Dipole fitting", area="right")
@@ -402,7 +615,7 @@ class DipoleFitUI:
         def _on_select_method(method):
             self._on_select_method(method)
 
-        r._dock_add_combo_box(
+        self._method_combo = r._dock_add_combo_box(
             "Dipole model",
             value="Multi dipole (MNE)",
             rng=methods,
@@ -425,6 +638,7 @@ class DipoleFitUI:
         )
         self._save_button.set_enabled(False)
         r._dock_add_stretch()
+        r._dock_finalize()
 
     def toggle_mesh(self, name, show=None):
         """Toggle a mesh on or off.
@@ -436,16 +650,52 @@ class DipoleFitUI:
         show : bool | None
             Whether to show the mesh. If None, the visibility of the mesh is toggled.
         """
+        actors = self._get_actors(name)
+        if show is None:
+            show = not actors[0].GetVisibility()
+        for act in actors:
+            act.SetVisibility(show)
+        self._renderer._update()
+
+    def set_mesh_opacity(self, name, opacity, *, update=True):
+        """Set the opacity of a mesh.
+
+        Parameters
+        ----------
+        name : str
+            Name of the mesh.
+        opacity : float
+            The opacity of the mesh, between 0 (fully transparent) and 1 (opaque).
+        update : bool
+            If True, update the display immediately.
+        """
+        # The actors are a mix of PyVista wrappers and plain VTK actors, so stick to
+        # the VTK API here (which both understand).
+        for act in self._get_actors(name):
+            act.GetProperty().SetOpacity(float(opacity))
+        if update:
+            self._renderer._update()
+
+    def _get_actors(self, name):
+        """Get the actors of a mesh as a list."""
         _check_option("name", name, self._actors.keys())
         actors = self._actors[name]
         # self._actors[name] is sometimes a list and sometimes not. Make it
         # always be a list to simplify the code.
         if not isinstance(actors, list):
             actors = [actors]
-        if show is None:
-            show = not actors[0].GetVisibility()
-        for act in actors:
-            act.SetVisibility(show)
+        return actors
+
+    def _get_mesh_opacity(self, name):
+        """Get the current opacity of a mesh."""
+        return self._get_actors(name)[0].GetProperty().GetOpacity()
+
+    def _set_camera_preset(self, name):
+        """Point the camera at one of the standard views of the head."""
+        _check_option("name", name, list(_CAMERA_PRESETS))
+        self._renderer.set_camera(
+            **_CAMERA_PRESETS[name], distance=0.55, focalpoint=(0, 0, 0.03)
+        )
         self._renderer._update()
 
     def set_time(self, time):
@@ -465,11 +715,26 @@ class DipoleFitUI:
     def _on_time_change(self, event):
         new_time = np.clip(event.time, self._evoked.times[0], self._evoked.times[-1])
         self._current_time = new_time
-        print("gui time change to", new_time)
         if self._time_line is not None:
             self._time_line.set_xdata([new_time])
-            self._renderer._mplcanvas.update_plot()
+            self._update_time_text()
+            # only the time line and its label moved, so the traces can be blitted
+            # from the cached background instead of being redrawn
+            self._renderer._mplcanvas.update_blit_artists()
         self._update_arrows()
+
+    def _update_time_text(self):
+        """Label the time line with the current time and goodness-of-fit."""
+        if self._time_text is None:
+            return
+        text = f"{self._current_time * 1e3:.0f} ms"
+        if self._gof_line is not None and self._gof_line.get_visible():
+            gof = np.interp(
+                self._current_time, self._evoked.times, self._gof_line.get_ydata()
+            )
+            text += f" · GOF {gof:.0f}%"
+        self._time_text.set_x(self._current_time)
+        self._time_text.set_text(text)
 
     # TODO: Need to expose a public method for opening the sensor-data window and for
     # programmatically selecting the channels to fit dipoles to.
@@ -512,28 +777,29 @@ class DipoleFitUI:
         sensors when no selection is active). The newly fitted dipole is appended to the
         :attr:`dipoles` attribute.
         """
-        evoked_picked = self._evoked.copy()
-        cov_picked = self._cov.copy()
-        if self._fig_sensors is not None:
-            picks = self._fig_sensors.lasso.selection
-            if len(picks) > 0:
-                evoked_picked = evoked_picked.pick(picks)
-                evoked_picked.info.normalize_proj()
-                cov_picked = cov_picked.pick_channels(picks, ordered=False)
-                cov_picked["projs"] = evoked_picked.info["projs"]
-        evoked_picked.crop(self._current_time, self._current_time)
+        with self._busy("Fitting dipole..."):
+            evoked_picked = self._evoked.copy()
+            cov_picked = self._cov.copy()
+            if self._fig_sensors is not None:
+                picks = self._fig_sensors.lasso.selection
+                if len(picks) > 0:
+                    evoked_picked = evoked_picked.pick(picks)
+                    evoked_picked.info.normalize_proj()
+                    cov_picked = cov_picked.pick_channels(picks, ordered=False)
+                    cov_picked["projs"] = evoked_picked.info["projs"]
+            evoked_picked.crop(self._current_time, self._current_time)
 
-        dip = fit_dipole(
-            evoked_picked,
-            cov_picked,
-            self._bem,
-            trans=self._head_mri_t,
-            rank=self._rank,
-            n_jobs=self._n_jobs,
-            verbose=False,
-        )[0]
+            dip = fit_dipole(
+                evoked_picked,
+                cov_picked,
+                self._bem,
+                trans=self._head_mri_t,
+                rank=self._rank,
+                n_jobs=self._n_jobs,
+                verbose=False,
+            )[0]
 
-        self.add_dipole(dip)
+            self.add_dipole(dip)
 
     def add_dipole(self, dipole, name=None):
         """Add a dipole (or multiple dipoles) to the GUI.
@@ -548,6 +814,8 @@ class DipoleFitUI:
             this should be a list containing the name for each dipole. When ``None``,
             the ``.name`` attribute of the ``Dipole`` object itself will be used.
         """
+        from matplotlib.colors import to_hex
+
         _validate_type(name, (str, list, None), "name")
         if isinstance(name, str):
             names = [name]
@@ -581,12 +849,12 @@ class DipoleFitUI:
             return self._on_dipole_set_name(name, dip_num)
 
         @_auto_weakref
-        def _on_dipole_toggle_fix_orientation(fix, dip_num):
-            return self._on_dipole_toggle_fix_orientation(fix, dip_num)
-
-        @_auto_weakref
         def _on_dipole_delete(dip_num):
             return self._on_dipole_delete(dip_num)
+
+        @_auto_weakref
+        def _on_dipole_hover(dip_num, hover):
+            return self._on_dipole_hover(dip_num, hover)
 
         new_dipoles = list()
         for dip, name in zip(dipole, names):
@@ -615,12 +883,9 @@ class DipoleFitUI:
                 arrow_mesh=arrow_mesh,
                 color=dip_color,
                 dip=dip,
-                fix_ori=True,
-                fix_position=True,
                 helmet_coords=helmet_coords,
                 helmet_pos=helmet_pos,
                 num=dip_num,
-                # fit_time=self._current_time,
             )
             self._dipoles[dip_num] = dipole_dict
 
@@ -645,15 +910,18 @@ class DipoleFitUI:
                     layout=hlayout,
                 )
             )
-            widgets.append(
-                r._dock_add_check_box(
-                    name="Fix ori",
-                    value=True,
-                    callback=partial(
-                        _on_dipole_toggle_fix_orientation, dip_num=dip_num
-                    ),
-                    layout=hlayout,
-                )
+            # Give the name field the color of the dipole's trace, so the rows in the
+            # dipole list can be matched up with the traces at a glance.
+            widgets[-1].set_style(
+                {
+                    "background-color": to_hex(dip_color),
+                    "color": "white" if _is_dark(dip_color) else "black",
+                }
+            )
+            # Hovering the row emphasizes the traces belonging to this dipole.
+            widgets[-1].set_hover_callbacks(
+                enter=partial(_on_dipole_hover, dip_num=dip_num, hover=True),
+                leave=partial(_on_dipole_hover, dip_num=dip_num, hover=False),
             )
             widgets.append(
                 r._dock_add_button(
@@ -720,100 +988,152 @@ class DipoleFitUI:
         self._save_button.set_enabled(len(self.dipoles) > 0)
         active_dips = [d for d in self._dipoles.values() if d["active"]]
         if len(active_dips) == 0:
+            if self._gof_line is not None:
+                self._gof_line.set_visible(False)
+                self._update_time_text()
+                self._renderer._mplcanvas.update_plot()
             return
 
-        if self._multi_dipole_method == "Multi dipole (MNE)":
+        with self._busy(f"Fitting {self._multi_dipole_method} model..."):
+            # Forward solution for the active dipoles. It is needed for the multi-dipole
+            # fit below, and in both fitting modes for computing the goodness-of-fit.
             # TODO: When two active dipoles have (nearly) identical positions, they
             # collapse to a single point in the discrete source space below, which
             # errors out. Ideal behavior unclear: merge them, or error informatively?
-            this_src = setup_volume_source_space(
-                "sample",
-                pos=dict(
-                    rr=apply_trans(
-                        self._head_mri_t,
-                        np.vstack([d["dip"].pos[0] for d in active_dips]),
-                    ),
-                    nn=apply_trans(
-                        self._head_mri_t,
-                        np.vstack([d["dip"].ori[0] for d in active_dips]),
-                    ),
-                ),
+            this_src = _complete_vol_src(
+                [
+                    _make_discrete_source_space(
+                        pos=dict(
+                            rr=np.vstack([d["dip"].pos[0] for d in active_dips]),
+                            nn=np.vstack([d["dip"].ori[0] for d in active_dips]),
+                        ),
+                        coord_frame="head",
+                    )
+                ]
             )
             this_fwd = self.fwd.compute(this_src)
-            this_fwd = convert_forward_solution(this_fwd, surf_ori=False)
 
-            inv = make_inverse_operator(
-                self._evoked.info,
-                # fwd,
-                this_fwd,
-                self._cov,
-                fixed=False,
-                loose=1.0,
-                depth=0,
-                rank=self._rank,
-            )
-            stc = apply_inverse(
-                self._evoked,
-                inv,
-                method="MNE",
-                lambda2=1e-6,
-                pick_ori="vector",
-            )
-
-            timecourses = stc.magnitude().data
-            orientations = (stc.data / timecourses[:, np.newaxis, :]).transpose(0, 2, 1)
-            fixed_timecourses = stc.project(
-                np.array([dip["dip"].ori[0] for dip in active_dips])
-            )[0].data
-
-            for i, dip in enumerate(active_dips):
-                if dip["fix_ori"]:
-                    dip["timecourse"] = fixed_timecourses[i]
-                    dip["orientation"] = dip["dip"].ori.repeat(len(stc.times), axis=0)
-                else:
-                    dip["timecourse"] = timecourses[i]
-                    dip["orientation"] = orientations[i]
-        else:
-            assert self._multi_dipole_method == "Single dipole"  # only other option
-            for dip in active_dips:
-                dip_with_timecourse, _ = fit_dipole(
-                    self._evoked,
-                    self._cov,
-                    self._bem,
-                    pos=dip["dip"].pos[0],  # position is always fixed
-                    ori=dip["dip"].ori[0] if dip["fix_ori"] else None,
-                    trans=self._head_mri_t,
+            if self._multi_dipole_method == "Multi dipole (MNE)":
+                inv = make_inverse_operator(
+                    info=self._evoked.info,
+                    forward=this_fwd,
+                    noise_cov=self._cov,
+                    loose=0,
+                    depth=0,
                     rank=self._rank,
-                    n_jobs=self._n_jobs,
-                    verbose=True,
                 )
-                if dip["fix_ori"]:
+                stc = apply_inverse(self._evoked, inv, method="MNE", lambda2=1e-6)
+                for i, dip in enumerate(active_dips):
+                    dip["timecourse"] = stc.data[i]
+                    dip["orientation"] = dip["dip"].ori.repeat(len(stc.times), axis=0)
+            else:
+                assert self._multi_dipole_method == "Single dipole"  # only other option
+                for dip in active_dips:
+                    dip_with_timecourse, _ = fit_dipole(
+                        self._evoked,
+                        self._cov,
+                        self._bem,
+                        pos=dip["dip"].pos[0],  # position is always fixed
+                        ori=dip["dip"].ori[0],
+                        trans=self._head_mri_t,
+                        rank=self._rank,
+                        n_jobs=self._n_jobs,
+                        verbose=True,
+                    )
                     dip["timecourse"] = dip_with_timecourse.data[0]
                     dip["orientation"] = dip["dip"].ori.repeat(
                         len(dip_with_timecourse.times), axis=0
                     )
-                else:
-                    dip["timecourse"] = dip_with_timecourse.amplitude
-                    dip["orientation"] = dip_with_timecourse.ori
 
-        # Update matplotlib canvas at the bottom of the window
-        canvas = self._setup_mplcanvas()
-        ymin, ymax = 0, 0
-        for dip in active_dips:
-            if "line_artist" in dip:
-                dip["line_artist"].set_ydata(dip["timecourse"])
-            else:
-                dip["line_artist"] = canvas.plot(
-                    self._evoked.times,
-                    dip["timecourse"],
-                    label=dip["dip"].name,
-                    color=dip["color"],
+            # Update matplotlib canvas at the bottom of the window. Timecourses are
+            # stored in SI units (Am), but shown in nAm, hence the 1e9 scaling at the
+            # display boundary.
+            canvas = self._setup_mplcanvas()
+            ymin, ymax = 0, 0
+            for dip in active_dips:
+                # The dot marks the time at which the dipole was fitted.
+                fit_time = dip["dip"].times[0]
+                fit_value = np.interp(
+                    fit_time, self._evoked.times, dip["timecourse"] * 1e9
                 )
-            ymin = min(ymin, 1.1 * dip["timecourse"].min())
-            ymax = max(ymax, 1.1 * dip["timecourse"].max())
-        canvas.axes.set_ylim(ymin, ymax)
-        canvas.update_plot()
-        self._update_arrows()
+                if "line_artist" in dip:
+                    dip["line_artist"].set_ydata(dip["timecourse"] * 1e9)
+                    dip["dot_artist"].set_ydata([fit_value])
+                else:
+                    dip["line_artist"] = canvas.plot(
+                        self._evoked.times,
+                        dip["timecourse"] * 1e9,
+                        label=dip["dip"].name,
+                        color=dip["color"],
+                        linewidth=_TRACE_LINEWIDTH,
+                        update=False,
+                    )
+                    dip["dot_artist"] = canvas.axes.plot(
+                        [fit_time],
+                        [fit_value],
+                        "o",
+                        color=dip["color"],
+                        markersize=_TRACE_MARKERSIZE,
+                        zorder=dip["line_artist"].get_zorder() + 1,
+                    )[0]
+                ymin = min(ymin, 1.1 * dip["timecourse"].min() * 1e9)
+                ymax = max(ymax, 1.1 * dip["timecourse"].max() * 1e9)
+            canvas.axes.set_ylim(ymin, ymax)
+            self._update_gof(canvas, active_dips, this_fwd)
+            canvas.update_plot()
+            self._update_arrows()
+
+    def _update_gof(self, canvas, active_dips, fwd):
+        """Draw the goodness-of-fit of the combined dipole model on a twin axis."""
+        gof = self._compute_gof(active_dips, fwd)
+        if self._gof_ax is None:
+            self._gof_ax = canvas.axes.twinx()
+            self._gof_ax.set_ylim(0, 100)
+            self._gof_ax.set_ylabel("GOF (%)", color="gray")
+            self._gof_ax.tick_params(axis="y", colors="gray")
+            self._gof_ax.spines["top"].set_visible(False)
+            self._gof_ax.spines["right"].set_visible(True)
+            self._gof_ax.spines["bottom"].set_visible(False)
+            self._gof_ax.spines["left"].set_visible(False)
+            # Twin axes are drawn on top by default. Flip that around (the classic
+            # matplotlib recipe) so the activation traces stay on top of the GOF line.
+            canvas.axes.set_zorder(self._gof_ax.get_zorder() + 1)
+            canvas.axes.patch.set_visible(False)
+        if self._gof_line is None:
+            (self._gof_line,) = self._gof_ax.plot(
+                self._evoked.times, gof, color="gray", alpha=0.5
+            )
+        else:
+            self._gof_line.set_ydata(gof)
+            self._gof_line.set_visible(True)
+        self._update_time_text()
+
+    def _compute_gof(self, active_dips, fwd):
+        """Compute the goodness-of-fit timecourse of the combined dipole model."""
+        # Moments (in head coordinates, like `fwd["sol"]["data"]`) of all dipoles.
+        q = np.concatenate(
+            [
+                (dip["orientation"] * dip["timecourse"][:, np.newaxis]).T
+                for dip in active_dips
+            ]
+        )
+        # Bad channels are in the forward solution, but never in the whitener (nor in
+        # the channels `fit_dipole` uses), so drop them before whitening.
+        picks = [
+            c for c in fwd["sol"]["row_names"] if c not in self._evoked.info["bads"]
+        ]
+        W, ch_names = compute_whitener(
+            self._cov, self._evoked.info, picks=picks, rank=self._rank, verbose=False
+        )
+        data = self._evoked.data[[self._evoked.ch_names.index(c) for c in ch_names]]
+        gain = fwd["sol"]["data"][[fwd["sol"]["row_names"].index(c) for c in ch_names]]
+        residual = W @ (data - gain @ q)
+        data = W @ data
+        gof = np.zeros(data.shape[1])
+        denom = np.sum(data**2, axis=0)
+        good = denom > 0  # a field of exactly zero has no fit quality to speak of
+        gof[good] = 100 * (1 - np.sum(residual[:, good] ** 2, axis=0) / denom[good])
+        return gof
 
     @verbose
     def save(self, fname, verbose=None):
@@ -900,7 +1220,24 @@ class DipoleFitUI:
     # TODO: Need to expose a public method for setting the multi-dipole method
     def _on_select_method(self, method):
         """Select the method to use for multi-dipole timecourse fitting."""
+        _check_option(
+            "method",
+            method,
+            ("Multi dipole (MNE)", "Single dipole"),
+        )
+        if method == self._multi_dipole_method:
+            return
         self._multi_dipole_method = method
+        # Defer the (slow) refit to the event loop instead of running it here, inside
+        # the combo box's signal handler: this lets the combo box finish closing its
+        # popup and repaint before the computation starts.
+        if not self._refit_pending:
+            self._refit_pending = True
+            self._renderer._window_defer(self._deferred_refit)
+
+    def _deferred_refit(self):
+        """Refit the timecourses, deferred so that widgets can settle first."""
+        self._refit_pending = False
         self._fit_timecourses()
 
     # TODO: Need to expose public methods for toggling, renaming, (un)fixing the
@@ -911,8 +1248,7 @@ class DipoleFitUI:
         active = bool(active)
         dipole["active"] = active
         dipole["line_artist"].set_visible(active)
-        # Labels starting with "_" are hidden from the legend.
-        dipole["line_artist"].set_label(("" if active else "_") + dipole["dip"].name)
+        dipole["dot_artist"].set_visible(active)
         dipole["brain_arrow_actor"].visibility = active
         dipole["helmet_arrow_actor"].visibility = active
         self._fit_timecourses()
@@ -922,18 +1258,13 @@ class DipoleFitUI:
     def _on_dipole_set_name(self, name, dip_num):
         """Set the name of a dipole."""
         self._dipoles[dip_num]["dip"].name = name
-        self._dipoles[dip_num]["line_artist"].set_label(name)
         self._renderer._mplcanvas.update_plot()
-
-    def _on_dipole_toggle_fix_orientation(self, fix, dip_num):
-        """Fix dipole orientation when fitting timecourse."""
-        self._dipoles[dip_num]["fix_ori"] = bool(fix)
-        self._fit_timecourses()
 
     def _on_dipole_delete(self, dip_num):
         """Delete previously fitted dipole."""
         dipole = self._dipoles[dip_num]
         dipole["line_artist"].remove()
+        dipole["dot_artist"].remove()
         dipole["brain_arrow_actor"].visibility = False
         if dipole["helmet_arrow_actor"] is not None:  # no helmet arrow for EEG
             dipole["helmet_arrow_actor"].visibility = False
@@ -944,19 +1275,62 @@ class DipoleFitUI:
         self._renderer._update()
         self._renderer._mplcanvas.update_plot()
 
+    def _on_dipole_hover(self, dip_num, hover):
+        """Emphasize the traces of the dipole whose row is being hovered."""
+        dipole = self._dipoles.get(dip_num)
+        if dipole is None or "line_artist" not in dipole:
+            return
+        dipole["line_artist"].set_linewidth(
+            _TRACE_LINEWIDTH_HOVER if hover else _TRACE_LINEWIDTH
+        )
+        dipole["dot_artist"].set_markersize(
+            _TRACE_MARKERSIZE_HOVER if hover else _TRACE_MARKERSIZE
+        )
+        self._renderer._mplcanvas.update_plot()
+
     def _setup_mplcanvas(self):
         """Configure the matplotlib canvas at the bottom of the window."""
+        from matplotlib.transforms import offset_copy
+
         if self._renderer._mplcanvas is None:
             self._renderer._mplcanvas = self._renderer._window_get_mplcanvas(
-                self._fig, 0.3, False, False
+                self._fig, 0.22, False, False
             )
             self._renderer._window_adjust_mplcanvas_layout()
+            canvas = self._renderer._mplcanvas
+            # Dipole moments are stored in Am, but displayed in nAm (see
+            # `_fit_timecourses`).
+            canvas.axes.set_ylabel("Activation (nAm)")
+            canvas.axes.set_xlim(self._evoked.times[0], self._evoked.times[-1])
+            canvas.axes.spines["top"].set_visible(False)
+            canvas.axes.spines["right"].set_visible(False)
+            canvas.axes.axhline(0, linewidth=1, color="gray", zorder=0)
         if self._time_line is None:
-            self._time_line = self._renderer._mplcanvas.plot_time_line(
+            canvas = self._renderer._mplcanvas
+            self._time_line = canvas.plot_time_line(
                 self._current_time,
                 label="time",
                 color="black",
+                linewidth=1,
             )
+            # Label the time line, with a small offset so it does not overlap the line.
+            self._time_text = canvas.axes.text(
+                self._current_time,
+                0.97,
+                f"{self._current_time * 1e3:.0f} ms",
+                transform=offset_copy(
+                    canvas.axes.get_xaxis_transform(),
+                    fig=canvas.fig,
+                    x=3,
+                    units="points",
+                ),
+                va="top",
+                ha="left",
+                fontsize=8,
+                color="black",
+            )
+            # the label travels with the time line, so it is drawn along with it
+            canvas.add_blit_artist(self._time_text)
         return self._renderer._mplcanvas
 
     def close(self):

@@ -4,8 +4,10 @@
 
 import os
 import shutil
+import sys
 from contextlib import nullcontext
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -182,6 +184,94 @@ def test_ica_simple(method):
     assert amari_distance < 0.1
 
 
+def test_ica_jamica_multimodel_error():
+    """Test that JAMICA's single-model error propagates through ICA."""
+    pytest.importorskip("jamica", minversion="0.3.0")
+    rng = np.random.default_rng(0)
+    info = create_info(2, 100.0, "mag")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(rng.standard_normal((2, 100)), info, verbose=False)
+    ica = ICA(
+        n_components=2,
+        method="jamica",
+        max_iter=1,
+        fit_params=dict(num_models=2),
+    )
+    with pytest.raises(ValueError, match=r"single AMICA model.*jamica\.AmicaICA"):
+        ica.fit(raw, verbose=False)
+
+
+def test_ica_jamica(tmp_path, monkeypatch):
+    """Test the single-model JAMICA solver boundary and I/O."""
+    jamica = pytest.importorskip("jamica", minversion="0.3.0")
+    original_amica = jamica.amica
+    amica_mock = MagicMock(wraps=original_amica)
+    monkeypatch.setattr(jamica, "amica", amica_mock)
+
+    rng = np.random.default_rng(7)
+    sources = rng.laplace(size=(3, 600))
+    mixing = np.array([[1.0, 0.4, -0.2], [0.3, 1.2, 0.5], [-0.4, 0.2, 0.9]])
+    data = mixing @ sources
+    info = create_info(3, 200.0, "mag")
+    with info._unlock():
+        info["highpass"] = 1.0
+    raw = RawArray(data, info, verbose=False)
+    fit_params = dict(do_newton=False, chunk_size=None)
+    ica = ICA(
+        n_components=3,
+        method="jamica",
+        rng=42,
+        max_iter=2,
+        fit_params=fit_params,
+    )
+    with pytest.warns(jamica.JamicaConvergenceWarning, match="did not converge"):
+        ica.fit(raw, verbose=False)
+
+    assert amica_mock.call_count == 1
+    (solver_x,), solver_kwargs = amica_mock.call_args
+    assert solver_kwargs == dict(
+        whiten=False,
+        return_n_iter=True,
+        random_state=42,
+        max_iter=2,
+        **fit_params,
+    )
+
+    # Explicitly reconstruct the matrix MNE passes to external ICA solvers.
+    expected_x = ica._pre_whiten(data.copy())
+    expected_x = ica.pca_components_ @ (expected_x - ica.pca_mean_[:, np.newaxis])
+    pca_norms = np.sqrt(ica.pca_explained_variance_)
+    expected_x /= pca_norms[:, np.newaxis]
+    assert_allclose(solver_x, expected_x[: ica.n_components_], rtol=1e-12, atol=1e-12)
+
+    with pytest.warns(jamica.JamicaConvergenceWarning, match="did not converge"):
+        _, direct_w, _, direct_n_iter = original_amica(solver_x, **solver_kwargs)
+    # The same input and seed must produce the same operator, so ICA ambiguity
+    # does not apply to this direct-call equivalence check.
+    mne_solver_w = ica.unmixing_matrix_ * pca_norms[: ica.n_components_]
+    assert_allclose(mne_solver_w, direct_w, rtol=1e-12, atol=1e-12)
+    assert ica.n_iter_ == direct_n_iter == 2
+    assert_allclose(ica.mixing_matrix_, linalg.pinv(ica.unmixing_matrix_))
+    assert ica.get_sources(raw).get_data().shape == data.shape
+
+    ica.exclude = [0]
+    fname = tmp_path / "jamica-ica.fif"
+    ica.save(fname)
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "jamica", None)
+        ica_read = read_ica(fname)
+    assert ica_read.method == "jamica"
+    assert_allclose(ica_read.unmixing_matrix_, ica.unmixing_matrix_)
+    assert_allclose(ica_read.mixing_matrix_, ica.mixing_matrix_)
+    assert_allclose(
+        ica_read.get_sources(raw).get_data(), ica.get_sources(raw).get_data()
+    )
+    assert_allclose(
+        ica_read.apply(raw.copy()).get_data(), ica.apply(raw.copy()).get_data()
+    )
+
+
 def test_warnings():
     """Test that ICA warns on certain input data conditions."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
@@ -273,7 +363,8 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "method, max_iter_default", [("fastica", 1000), ("infomax", 500), ("picard", 500)]
+    "method, max_iter_default",
+    [("fastica", 1000), ("infomax", 500), ("jamica", 500), ("picard", 500)],
 )
 def test_ica_max_iter_(method, max_iter_default):
     """Test that ICA.max_iter is set to the right defaults."""

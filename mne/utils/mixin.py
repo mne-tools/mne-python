@@ -220,12 +220,23 @@ class GetEpochsMixin:
             subset of epochs (and optionally array with kept epoch indices)
         """
         self._sanity_check_event_id()
-        inst = self.copy() if copy else self
-        if self._data is not None:
-            np.copyto(inst._data, self._data, casting="no")
+        select = self._item_to_select(item)
+        # np.require makes each instance own its data (so it can be resized later)
+        new_data = None
+        if copy and select_data and self.preload and self._data is not None:
+            orig_data = self._data
+            new_data = np.require(orig_data[select], requirements=["O"])
+            # placeholder for the deepcopy, will be replaced for `inst` later
+            self._data = new_data[:0]
+            try:
+                inst = self.copy()
+            finally:
+                self._data = orig_data
+            del orig_data
+        else:
+            inst = self.copy() if copy else self
         del self
 
-        select = inst._item_to_select(item)
         has_selection = hasattr(inst, "selection")
         if has_selection:
             key_selection = inst.selection[select]
@@ -257,9 +268,9 @@ class GetEpochsMixin:
             # will reset the index for us
             GetEpochsMixin.metadata.fset(inst, metadata, verbose=False)
         if inst.preload and select_data:
-            # ensure that each Epochs instance owns its own data so we can
-            # resize later if necessary
-            inst._data = np.require(inst._data[select], requirements=["O"])
+            if new_data is None:
+                new_data = np.require(inst._data[select], requirements=["O"])
+            inst._data = new_data
         if drop_event_id:
             # update event id to reflect new content of inst
             inst.event_id = {

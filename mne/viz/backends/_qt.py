@@ -995,7 +995,16 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = QVBoxLayout() if vertical else QHBoxLayout()
         return layout
 
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = QLabel()
         if align:
@@ -1004,7 +1013,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setWordWrap(True)
         if selectable:
             widget.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _QtWidget(widget)
 
     def _dock_add_button(
@@ -1057,6 +1066,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         slider_class = QFloatSlider if double else QSlider
@@ -1070,16 +1081,18 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.floatValueChanged.connect(callback)
         else:
             widget.valueChanged.connect(callback)
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _QtWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
         _set_widget_tooltip(widget, tooltip)
         widget.setChecked(value)
         widget.stateChanged.connect(callback)
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _QtWidget(widget)
 
     def _dock_add_spin_box(
@@ -1808,6 +1821,19 @@ class _QtWindow(_AbstractWindow):
     def _window_new_cursor(self, name):
         return _qcursor(name)
 
+    def _window_set_enabled(self, enabled):
+        self._window.setEnabled(enabled)
+
+    def _window_settle_layouts(self):
+        # Activate the deepest layouts first, so that parent layouts (activated
+        # bottom-up by _qt_activate_layouts below) see settled children.
+        for layout in reversed(self._window.findChildren(QLayout)):
+            layout.activate()
+        _qt_activate_layouts(self._window, self._interactor)
+
+    def _window_defer(self, callback):
+        QTimer.singleShot(0, callback)
+
     @contextmanager
     def _window_ensure_minimum_sizes(self):
         sz = self.figure.store["window_size"]
@@ -1986,12 +2012,38 @@ class _QtWidget(_AbstractWdgt):
         for key, val in style.items():
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
+        # Restyling a QLineEdit can scroll it to the end of its text; scroll back so
+        # the beginning of the text stays visible.
+        if hasattr(self._widget, "setCursorPosition"):
+            self._widget.setCursorPosition(0)
+
+    def set_hover_callbacks(self, enter, leave):
+        # keep a reference, otherwise the filter is garbage collected right away
+        self._hover_filter = _QtHoverFilter(enter, leave)
+        self._widget.installEventFilter(self._hover_filter)
 
     def set_items(self, items):
         self._widget.blockSignals(True)
         self._widget.clear()
         self._widget.addItems(items)
         self._widget.blockSignals(False)
+
+
+class _QtHoverFilter(QObject):
+    """Translate Qt enter/leave events into plain callbacks."""
+
+    def __init__(self, enter, leave):
+        super().__init__()
+        self._enter = enter
+        self._leave = leave
+
+    def eventFilter(self, obj, event):  # noqa: N802
+        """Handle enter and leave events (Qt API)."""
+        if event.type() == QEvent.Type.Enter:
+            self._enter()
+        elif event.type() == QEvent.Type.Leave:
+            self._leave()
+        return False  # never consume the event
 
 
 class _QtDialogCommunicator(QObject):

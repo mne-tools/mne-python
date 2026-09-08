@@ -1,0 +1,1 @@
+Add single-model JAMICA support to :class:`mne.preprocessing.ICA` via ``method="jamica"``, by :newcontrib:`Sina Esmaeili`.

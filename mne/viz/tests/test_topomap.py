@@ -184,6 +184,17 @@ def test_plot_topomap_animation(capsys, tmp_path):
     assert "extrapolation mode local to mean" in out
     assert fig.axes[0].images[0].get_cmap().name == "viridis"
 
+    # everything drawn on top of the topomap image must be returned by the animation
+    # function, otherwise blitting leaves it frozen at the first frame (gh-14242)
+    items = anim.mne_frame_func(1)  # has to be tested separately on the 'Agg' backend
+    ax = fig.axes[0]
+    zorder = ax.images[0].get_zorder()
+    on_top = [
+        a for a in ax.lines + ax.collections + ax.texts if a.get_zorder() > zorder
+    ]
+    assert len(on_top) > 2  # at least the time label, head outlines and sensors
+    assert set(on_top).issubset(items)
+
     # saving
     PIL = pytest.importorskip("PIL")
     gif_path = tmp_path / "test.gif"
@@ -222,7 +233,7 @@ def test_plot_topomap_animation_csd(capsys):
     _, anim = evoked_csd.animate_topomap(
         ch_type="csd", times=[0, 0.1], butterfly=False, time_unit="s", verbose="debug"
     )
-    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    anim.mne_frame_func(1)  # has to be tested separately on the 'Agg' backend
     out, _ = capsys.readouterr()
     assert "extrapolation mode head to mean" in out
 
@@ -964,7 +975,7 @@ def test_plot_projs_topomap_opm(triaxial_evoked):
 def test_animate_topomap_opm(triaxial_evoked):
     """Test animate_topomap does not crash on colocated OPM channels (gh-13866)."""
     fig, anim = triaxial_evoked.animate_topomap(ch_type="mag", times=[0.0], show=False)
-    anim._func(0)
+    anim.mne_frame_func(0)
     assert len(fig.axes) >= 1
 
 

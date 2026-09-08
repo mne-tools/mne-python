@@ -4,6 +4,7 @@
 
 import datetime
 import gc
+import sys
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO
@@ -65,6 +66,52 @@ edf_utf8_annotations = data_path / "EDF" / "test_utf8_annotations.edf"
 
 eog = ["REOG", "LEOG", "IEOG"]
 misc = ["EXG1", "EXG5", "EXG8", "M1", "M2"]
+
+
+def _multi_record(source, destination, n_records=6):
+    """Give a one-record EDF/BDF file several records, so windows cross them."""
+    blob = bytearray(source.read_bytes())
+    if int(blob[236:244]) != 1:
+        return source  # already spans several records
+    header_nbytes = int(blob[184:192])
+    blob[236:244] = f"{n_records:<8}".encode("ascii")
+    destination.write_bytes(blob[:header_nbytes] + blob[header_nbytes:] * n_records)
+    return destination
+
+
+@pytest.mark.parametrize("chunk_bytes", (10 * 1024 * 1024, 4096))  # one chunk, several
+@pytest.mark.parametrize(
+    "reader, path",
+    (
+        # EDF+: an annotation channel at its own rate, plus two stim channels
+        (read_raw_edf, data_dir / "test_stim_channel.edf"),
+        (read_raw_edf, edf_stim_channel_path),
+        (read_raw_bdf, bdf_path),  # BDF: 24-bit samples and a Status channel
+    ),
+    ids=("edf+", "edf", "bdf"),
+)
+def test_uniform_decode_matches_loop(reader, path, chunk_bytes, monkeypatch, tmp_path):
+    """Test uniform-rate records decode exactly like the per-channel loop."""
+    path = _multi_record(path, tmp_path / f"uniform{path.suffix}")
+    monkeypatch.setattr(edf.edf, "_EDF_CHUNK_BYTES", chunk_bytes)
+    raw = reader(path, preload=False, verbose="error")
+    buf_len = int(raw._raw_extras[0]["max_samp"])
+    n_channels = len(raw.ch_names)
+    picks = np.array([n_channels - 1, 1, 0])  # reordered, and includes any stim channel
+    kwargs = dict(picks=picks, start=buf_len // 2, stop=4 * buf_len + 13)
+    # the fast path writes into `data` itself, the per-channel loop stages the
+    # result and calls _mult_cal_one -- so counting it tells the two apart
+    staged = []
+    stage = edf.edf._mult_cal_one
+    monkeypatch.setattr(
+        edf.edf, "_mult_cal_one", lambda *a: (staged.append(1), stage(*a))[1]
+    )
+    want = raw.get_data(**kwargs)
+    assert not staged
+    # an identity projector sends the same values down the per-channel loop
+    raw._projector = np.eye(n_channels)
+    assert_array_equal(want, raw.get_data(**kwargs))
+    assert staged
 
 
 def test_orig_units():
@@ -319,8 +366,10 @@ def test_edf_data_broken(tmp_path):
 
 
 @pytest.mark.parametrize("method", ("constructor", "load_data"))
-def test_edf_preload_memmap_ownership(method, tmp_path):
+def test_edf_preload_memmap_ownership(method, tmp_path, monkeypatch):
     """Test ownership of a populated EDF preload memmap."""
+    # uniformly sampled EDF must not need (and hence not import) interpolation
+    monkeypatch.setitem(sys.modules, "scipy.interpolate", None)
     memmap_fname = tmp_path / f"edf-{method}-memmap.dat"
     if method == "constructor":
         raw = read_raw_edf(edf_stim_channel_path, preload=memmap_fname)
@@ -347,6 +396,37 @@ def test_duplicate_channel_labels_edf():
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
     assert raw.ch_names == EXPECTED_CHANNEL_NAMES
+
+
+@pytest.mark.parametrize(
+    "values",
+    (
+        np.array([], dtype=np.int32),
+        np.array([-(1 << 23), -1, 0, 1, (1 << 23) - 1], dtype=np.int32),
+        np.random.default_rng(42).integers(
+            -(1 << 23), 1 << 23, size=1000, dtype=np.int32
+        ),
+    ),
+)
+def test_read_ch_bdf_int24(values):
+    """Test exact signed 24-bit BDF decoding, including the last sample."""
+    unsigned = values.astype(np.int64) & ((1 << 24) - 1)
+    packed = np.column_stack((unsigned, unsigned >> 8, unsigned >> 16)).astype(np.uint8)
+    with BytesIO(packed.tobytes()) as fid:
+        got = _read_ch(
+            fid, subtype="bdf", samp=len(values), dtype_byte=3, dtype=np.uint8
+        )
+    assert_array_equal(got, values)
+
+
+def test_read_ch_bdf_short_read(tmp_path):
+    """Test truncated signed 24-bit BDF data raises instead of mixing bytes."""
+    fname = tmp_path / "truncated.bdf"
+    fname.write_bytes(b"\x00" * 5)
+    # np.frombuffer raises on a short buffer, np.fromfile just returns less
+    for fid in (BytesIO(b"\x00" * 5), fname.open("rb")):
+        with fid, pytest.raises(RuntimeError, match="requested BDF bytes"):
+            _read_ch(fid, subtype="bdf", samp=2, dtype_byte=3, dtype=np.uint8)
 
 
 def test_parse_annotation(tmp_path):

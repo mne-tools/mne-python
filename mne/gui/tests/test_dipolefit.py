@@ -2,8 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
+
 import numpy as np
 import pytest
+from matplotlib.colors import to_hex
 from numpy.testing import assert_allclose, assert_equal
 
 import mne
@@ -70,6 +73,7 @@ def test_dipolefit_gui_basic(
 ):
     """Test basic functionality of the dipole fitting GUI."""
     from mne.gui import dipolefit
+    from mne.gui._dipolefit import _STATUS_IDLE
 
     # Test basic interface elements.
     evoked = sample_evoked
@@ -87,9 +91,56 @@ def test_dipolefit_gui_basic(
     g.toggle_mesh("sensors")  # show=None toggles the current visibility
     assert g._actors["sensors"][0].GetVisibility()
 
+    # The GUI starts out idle, with the splash screen (if any: in testing mode
+    # `show=False`, so there was none) closed and forgotten by `_qt_safe_window`.
+    assert g._status_label.get_value() == _STATUS_IDLE
+    assert not hasattr(g, "_splash")
+
+    # Slow operations are announced in the status bar and make the GUI
+    # un-interactable. Nested uses of `_busy` collapse into the outermost one.
+    window = g._renderer._window
+    assert window.isEnabled()
+    cursor = g._renderer._window_get_cursor().shape()
+    with g._busy("Busy..."):
+        assert g._status_label.get_value() == "Busy..."
+        assert not window.isEnabled()
+        assert g._renderer._window_get_cursor().shape() != cursor  # busy cursor
+        with g._busy("Nested..."):
+            assert g._status_label.get_value() == "Busy..."  # the outermost one wins
+        assert not window.isEnabled()  # only the outermost one restores the GUI
+    assert g._status_label.get_value() == _STATUS_IDLE
+    assert window.isEnabled()
+    assert g._renderer._window_get_cursor().shape() == cursor
+
+    # An event handler that runs while `_busy` paints the busy state (it processes
+    # events once) must see itself as nested, not tear the busy state down.
+    orig_process = g._renderer._process_events
+    reentered = list()
+
+    def process_and_reenter():
+        orig_process()
+        if not reentered:
+            reentered.append(True)
+            with g._busy("Nested during repaint..."):
+                pass
+
+    g._renderer._process_events = process_and_reenter
+    try:
+        with g._busy("Busy..."):
+            assert reentered
+            assert g._status_label.get_value() == "Busy..."
+            assert not window.isEnabled()
+    finally:
+        g._renderer._process_events = orig_process
+    assert g._status_label.get_value() == _STATUS_IDLE
+    assert window.isEnabled()
+    assert g._renderer._window_get_cursor().shape() == cursor
+
     # Test fitting a single dipole.
     assert len(g._dipoles) == len(g.dipoles) == 0
     g.fit_dipole()
+    assert g._renderer._window_get_cursor().shape() == cursor  # busy cursor restored
+    assert g._status_label.get_value() == _STATUS_IDLE
     assert len(g._dipoles) == len(g.dipoles) == 1
     dip = g.dipoles[0]
     assert dip.name == "Left Auditory"
@@ -113,6 +164,18 @@ def test_dipolefit_gui_basic(
     assert _selected_sensors(g) == sorted(picks)
     ui_events.publish(g._fig, ui_events.TimeChange(0.09))  # change time
     assert g._current_time == 0.09
+
+    # The time (and the goodness-of-fit, once there are dipoles) is labeled on the time
+    # line of the traces plot, not in the 3D view.
+    assert g._fig._time_label is None
+    assert not hasattr(g._fig, "_time_label_actor")
+    assert re.fullmatch(r"90 ms · GOF \d+%", g._time_text.get_text())
+    assert g._time_text.get_position()[0] == 0.09
+    # both move with the time, so they are drawn on top of a cached background
+    # rather than triggering a full redraw of the traces plot
+    blit_artists = g._renderer._mplcanvas._blit._artists
+    assert blit_artists == [g._time_line, g._time_text]
+
     g.fit_dipole()
     assert len(g._dipoles) == len(g.dipoles) == 2
     dip2 = g.dipoles[1]
@@ -145,17 +208,65 @@ def test_dipolefit_gui_basic(
     assert dip1_dict["color"] == _get_color_list()[0]
     assert dip2_dict["color"] == _get_color_list()[1]
 
+    # The name field of each dipole is styled with the color of its trace.
+    for dip_dict in (dip1_dict, dip2_dict):
+        style = dip_dict["widgets"][1].widget.styleSheet()
+        assert to_hex(dip_dict["color"]) in style
+        assert "color:black;" in style  # both colors are light enough for black text
+
+    # Timecourses are stored in Am, but displayed in nAm, with the goodness-of-fit of
+    # the combined model shown on a twin axis.
+    for dip_dict in (dip1_dict, dip2_dict):
+        assert_allclose(
+            dip_dict["line_artist"].get_ydata(), dip_dict["timecourse"] * 1e9, atol=0
+        )
+    assert g._gof_ax.get_ylim() == (0, 100)
+    assert g._gof_line.get_ydata().max() <= 100
+
     # Fitted dipoles have goodness-of-fit information that should be saved along.
     fname = tmp_path / "fitted.dip"
     g.save(fname)
     assert mne.read_dipole(fname).khi2 is not None
 
-    # Test changing dipole model
+    # Test changing the dipole model through the dropdown widget (like a user would).
+    # The status bar should name the model that is being fitted.
+    messages = list()
+    orig_set_status = g._set_status
+
+    def record_status(message=_STATUS_IDLE):
+        messages.append(message)
+        orig_set_status(message)
+
+    g._set_status = record_status
     assert g._multi_dipole_method == "Multi dipole (MNE)"
     old_timecourses = np.vstack((dip1_dict["timecourse"], dip2_dict["timecourse"]))
-    g._on_select_method("Single dipole")
+    g._method_combo.set_value("Single dipole")
+    assert g._multi_dipole_method == "Single dipole"
+    # The refit is deferred to the event loop so that the combo box popup can close
+    # and repaint before the slow computation starts.
+    assert g._refit_pending
+    assert messages == []
+    g._renderer._process_events()  # run the deferred refit
+    assert not g._refit_pending
+    assert "Fitting Single dipole model..." in messages
     new_timecourses = np.vstack((dip1_dict["timecourse"], dip2_dict["timecourse"]))
     assert not np.allclose(old_timecourses, new_timecourses, atol=1e-10)
+
+    # Selecting the method that is already active does not pointlessly refit.
+    messages.clear()
+    g._on_select_method("Single dipole")
+    assert not g._refit_pending
+    assert messages == []
+    with pytest.raises(ValueError, match="Invalid value for the 'method'"):
+        g._on_select_method("foo")
+
+    # Switching back refits (and reproduces) the multi-dipole model.
+    g._method_combo.set_value("Multi dipole (MNE)")
+    g._renderer._process_events()
+    assert "Fitting Multi dipole (MNE) model..." in messages
+    roundtrip = np.vstack((dip1_dict["timecourse"], dip2_dict["timecourse"]))
+    assert np.allclose(roundtrip, old_timecourses, atol=0)
+    g._set_status = orig_set_status
 
     g.close()
 
@@ -180,12 +291,51 @@ def test_dipolefit_gui_dipole_controls(
     with pytest.raises(ValueError, match="Invalid value for the 'name' parameter"):
         g.toggle_mesh("non existent")
 
+    # Each mesh also gets an opacity slider, initialized to its current opacity. The
+    # head surface is drawn translucent (see `_plot_head_surface`).
+    assert_allclose(g._get_mesh_opacity("head"), 0.2, atol=0)
+    g._mesh_widgets["head"][1].set_value(0.4)  # [checkbox, opacity slider]
+    assert_allclose(g._actors["head"].GetProperty().GetOpacity(), 0.4, atol=1e-4)
+
+    # Camera presets.
+    g._set_camera_preset("Top")
+    with pytest.raises(ValueError, match="Invalid value for the 'name' parameter"):
+        g._set_camera_preset("Sideways")
+
     # Test toggling dipoles off and on. This is done through the GUI widgets, which are
-    # ordered: [active, name, fix orientation, delete].
+    # ordered: [active, name, delete].
     dip = mne.read_dipole(fname_dip)[[12, 15]]  # 80ms and 90ms
     g.add_dipole(dip, name=["rh", "lh"])
     dip1, dip2 = g._dipoles.values()
     assert dip1["active"] and dip2["active"]
+
+    # Each trace is marked with a dot at the time the dipole was fitted, and hovering
+    # the dipole's row in the GUI emphasizes both.
+    for dip_dict in (dip1, dip2):
+        assert dip_dict["dot_artist"].get_xdata() == [dip_dict["dip"].times[0]]
+        assert_allclose(
+            dip_dict["dot_artist"].get_ydata(),
+            np.interp(
+                dip_dict["dip"].times[0],
+                evoked.times,
+                dip_dict["line_artist"].get_ydata(),
+            ),
+            atol=0,
+        )
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QApplication
+
+    lw, ms = dip1["line_artist"].get_linewidth(), dip1["dot_artist"].get_markersize()
+    # Hover the actual Qt widget (the dipole's name field), so that the enter/leave
+    # event filter is exercised as well.
+    name_widget = dip1["widgets"][1]._widget
+    QApplication.sendEvent(name_widget, QEvent(QEvent.Type.Enter))
+    assert dip1["line_artist"].get_linewidth() > lw
+    assert dip1["dot_artist"].get_markersize() > ms
+    QApplication.sendEvent(name_widget, QEvent(QEvent.Type.Leave))
+    assert dip1["line_artist"].get_linewidth() == lw
+    assert dip1["dot_artist"].get_markersize() == ms
+    g._on_dipole_hover(99, True)  # deleted dipole: no-op rather than an error
     old_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
     dip2["widgets"][0].set_value(False)
     assert not dip2["active"]
@@ -204,27 +354,17 @@ def test_dipolefit_gui_dipole_controls(
     new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
     assert np.allclose(old_timecourses, new_timecourses, atol=0)
 
-    # Toggle fixed orientation off and on.
-    assert dip1["fix_ori"] and dip2["fix_ori"]
-    dip1["widgets"][2].set_value(False)
-    assert not dip1["fix_ori"]
-    new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
-    assert not np.allclose(old_timecourses, new_timecourses, atol=1e-9)
-    dip1["widgets"][2].set_value(True)
-    assert dip1["fix_ori"]
-    new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
-    assert np.allclose(old_timecourses, new_timecourses, atol=0)
-
     # Change the names of the dipoles.
     dip1["widgets"][1].set_value("dipole1")
     g._on_dipole_set_name("dipole2", dip2["num"])
     assert dip1["dip"].name == "dipole1"
     assert dip2["dip"].name == "dipole2"
-    assert dip1["line_artist"].get_label() == "dipole1"  # legend labels
-    assert dip2["line_artist"].get_label() == "dipole2"
 
     # Remove a dipole (through the "delete" button).
-    dip1["widgets"][3].set_value(None)
+    line, dot = dip1["line_artist"], dip1["dot_artist"]
+    dip1["widgets"][2].set_value(None)
+    assert line not in g._renderer._mplcanvas.axes.lines
+    assert dot not in g._renderer._mplcanvas.axes.lines
     assert len(g.dipoles) == 1
     assert 1 in g._dipoles  # dipole number should not change
     assert list(g._dipoles.keys())[0] == 1
@@ -233,16 +373,6 @@ def test_dipolefit_gui_dipole_controls(
     assert 2 in g._dipoles
     assert list(g._dipoles.keys())[1] == 2
     assert list(g._dipoles.values())[1]["num"] == 2  # new dipole number
-
-    # Fitting the timecourse of a single dipole, with a free orientation.
-    g._on_dipole_toggle(False, 2)  # only leave a single dipole active
-    g._on_select_method("Single dipole")
-    assert dip2["fix_ori"]
-    assert_allclose(dip2["orientation"], dip2["dip"].ori.repeat(len(evoked.times), 0))
-    g._on_dipole_toggle_fix_orientation(False, dip2["num"])
-    assert not dip2["fix_ori"]
-    assert dip2["orientation"].shape == (len(evoked.times), 3)
-    assert not np.allclose(dip2["orientation"][0], dip2["orientation"][-1], atol=1e-9)
 
     g.close()
 
@@ -411,6 +541,20 @@ def test_dipolefit_stc(
     assert isinstance(g._stc, mne.SourceEstimate)
     assert not g._bem["is_sphere"]
     assert "solution" in g._bem
+
+    # The cortex is drawn translucent by default
+    assert g._actors["brain"][0].GetProperty().GetOpacity() == 0.5
+
+    # The colorbar of the source estimate is registered as a "mesh" that can be toggled,
+    # and starts out hidden as it takes up a lot of space.
+    assert g._actors["colorbar"] == [
+        g._stc_brain._scalar_bar,
+        g._stc_brain._scalar_bar_ticks,
+    ]
+    assert not any(actor.GetVisibility() for actor in g._actors["colorbar"])
+    assert len(g._mesh_widgets["colorbar"]) == 1  # checkbox only, no opacity slider
+    g._mesh_widgets["colorbar"][0].set_value(True)
+    assert all(actor.GetVisibility() for actor in g._actors["colorbar"])
     g.close()
 
 

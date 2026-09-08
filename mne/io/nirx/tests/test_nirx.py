@@ -660,7 +660,6 @@ def test_nirx_15_0():
     (
         [fname_nirx_15_2_short, 1],
         [fname_nirx_15_2, 0],
-        [fname_nirx_15_2, 0],
         [nirsport2_2021_9, 0],
     ),
 )

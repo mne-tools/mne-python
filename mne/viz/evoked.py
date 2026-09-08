@@ -49,6 +49,7 @@ from .topomap import (
 from .ui_events import TimeChange, publish, subscribe
 from .utils import (
     DraggableColorbar,
+    _BlitManager,
     _check_cov,
     _check_delayed_ssp,
     _check_option,
@@ -459,7 +460,7 @@ def _plot_evoked(
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if proj == "reconstruct":
-        evoked = evoked._reconstruct_proj()
+        evoked = evoked.reconstruct_proj()
 
     if plot_type == "butterfly":
         _plot_lines(
@@ -587,6 +588,10 @@ def _plot_lines(
     sphere = _check_sphere(sphere, info)
     path_effects = [patheffects.withStroke(linewidth=2, foreground="w", alpha=0.75)]
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w", alpha=0.75)]
+    # The time cursors and the hover label are the only artists that move, so draw
+    # them on top of a cached background rather than redrawing every channel's trace.
+    blit_manager = _BlitManager(fig)
+
     if selectable:
         selectables = np.ones(len(ch_types_used), dtype=bool)
         for type_idx, this_type in enumerate(ch_types_used):
@@ -632,22 +637,29 @@ def _plot_lines(
                 else:
                     text.set_alpha(0.0)
                     text.set_path_effects([])
+                blit_manager.add(text)
 
             # vertical line to indicate time point
             for ax in axes:
                 line = getattr(ax, "_cursorline", None)
                 if line is None:
-                    ax._cursorline = ax.axvline(event.xdata, color="black", alpha=0.2)
+                    # zorder: blitting draws the cursor over a cached picture of the
+                    # rest of the figure, so it has to be on top of the traces for
+                    # the blitted figure to match a full redraw
+                    line = ax._cursorline = ax.axvline(
+                        event.xdata, color="black", alpha=0.2, zorder=len(ax.lines)
+                    )
+                    blit_manager.add(line)
                 else:
                     line.set_xdata([event.xdata, event.xdata])
-            ax.figure.canvas.draw_idle()
+                    line.set_visible(True)
+            blit_manager.update()
 
         def _rm_cursor(event):
             for ax in axes:
                 if getattr(ax, "_cursorline", None) is not None:
-                    ax._cursorline.remove()
-                    ax._cursorline = None
-            ax.figure.canvas.draw_idle()
+                    ax._cursorline.set_visible(False)
+            blit_manager.update()
 
         def _select_time(event):
             for ax in axes:
@@ -886,10 +898,13 @@ def _plot_lines(
         for ax in axes:
             line = getattr(ax, "_selectline", None)
             if line is None:
-                ax._selectline = ax.axvline(event.time, color="black", alpha=1)
+                ax._selectline = ax.axvline(
+                    event.time, color="black", alpha=1, zorder=len(ax.lines)
+                )
+                blit_manager.add(ax._selectline)
             else:
                 line.set_xdata([event.time, event.time])
-        ax.figure.canvas.draw()
+        blit_manager.update()
 
     subscribe(fig, "time_change", on_time_change)
 
@@ -1970,7 +1985,7 @@ def plot_evoked_joint(
     if proj:
         evoked.apply_proj()
         if proj == "reconstruct":
-            evoked._reconstruct_proj()
+            evoked.reconstruct_proj()
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
     evoked.pick(picks, exclude=exclude)
     info = evoked.info

@@ -2008,6 +2008,12 @@ def rstjinja(app, docname, source):
         source[0] = rendered
 
 
+def set_toc_level(app, pagename, templatename, context, doctree):
+    """Show the auto-generated related-software subsections in the right sidebar."""
+    if pagename == "install/mne_tools_suite":
+        context["theme_show_toc_level"] = 2
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
@@ -2024,3 +2030,4 @@ def setup(app):
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
     app.connect("source-read", rstjinja)
+    app.connect("html-page-context", set_toc_level)

@@ -1,45 +1,93 @@
-# related software with onerous dependencies (e.g., torch and tensorflow)
-# should be added to related_software_nodeps.txt
-alphaCSC
-autoreject
-bycycle
-curryreader
-dcm2niix
-eeg_positions
-eelbrain
-emd
-fooof
-hedtools
-meegkit
-meggie
-mffpy
-mne-ari
-mne-bids-pipeline
-mne-denoise
-mne-faster
-mne-features
-mne-icalabel
-mne-lsl
-mne-microstates
-mne-nirs
-mne-rsa
-mne-rt
-mnelab
-neurodsp
-neurokit2
-niseq
-nitime
-pactools
-plotly
-pybispectra
-pybvrf
-pycrostates
-pyprep
-pyriemann
-python-picard
-rsatoolbox
-sesameeg
-sleepecg
-tensorpac
-wfdb
-yasa
+## This file is used to install extra packages into CircleCI when building our docs.
+## The purpose is to allow the packages in the "related software" list to be introspected
+## so we can get their URLs and Summary descriptions automatically.
+## Related software with onerous dependencies (e.g., torch and tensorflow)
+## should be added to `related_software_nodeps.txt` instead.
+## Ideally each package should be tagged as one or more of the following categories;
+## packages with no tags will be categorized as "Other".
+## Make sure to put categories at the END of the line, separated by commas if a package
+## fits in multiple categories.
+##
+## LIST OF CATEGORIES (shortname: full name)
+## ==================
+## connectivity: Connectivity and source analysis
+## io: Data I/O and interoperability
+## organization: Data organization and workflows
+## microstates: Microstates and neural states
+## oscillations: Oscillations and time-frequency analysis
+## modalities: Other physiological signals and modalities
+## preproc: Preprocessing and artifact correction
+## stats: Statistics and machine learning
+## visu: Visualization and real-time analysis
+##
+## MNE-PYTHON OPTIONAL DEPENDENCIES THAT WE ALSO WANT IN THE CATEGORIZED LIST
+## ==========================================================================
+# antio  # categories: io
+# dipy # categories: modalities
+# edfio # categories: io
+# eeglabio # categories: io
+# mne-bids  # categories: organization
+# mne-connectivity # categories: connectivity
+# mne-gui-addons # categories: visu
+# mne-qt-browser # categories: visu
+# neo # categories: io, organization
+# nilearn # categories: stats, modalities
+# openmeeg # categories: connectivity
+# openneuro-py # categories: io
+# pybv # categories: io
+# snirf # categories: modalities
+##
+## PACKAGES THAT CAN'T BE PIP-INSTALLED FOR VARIOUS REASONS
+## ========================================================
+# best-python # categories: io
+# conpy # categories: connectivity
+# eelbrain # categories: stats, visu
+# mne-hcp # categories: io
+# posthoc # categories: stats
+# surfa # categories: visu, modalities
+##
+## ONES WE ACTUALLY NEED CIRCLECI TO INSTALL
+## =========================================
+alphacsc # categories: stats, oscillations
+autoreject # categories: preproc
+bycycle # categories: oscillations
+curryreader # categories: io
+dcm2niix # categories: io, modalities
+eeg_positions # categories: preproc, visu
+emd # categories: oscillations
+fooof # categories: oscillations
+hedtools # categories: organization
+jamica # categories: preproc
+meegkit # categories: preproc
+meggie # categories: visu
+mffpy # categories: io
+mne-ari # categories: stats
+mne-bids-pipeline # categories: organization
+mne-denoise # categories: preproc
+mne-faster # categories: preproc
+mne-features # categories: stats
+mne-icalabel # categories: preproc
+mne-lsl # categories: visu
+mne-microstates # categories: microstates
+mne-nirs # categories: modalities
+mne-rsa # categories: stats
+mne-rt # categories: visu
+mnelab # categories: visu
+neurodsp # categories: oscillations
+neurokit2 # categories: organization, modalities
+niseq # categories: stats
+nitime # categories: modalities
+pactools # categories: oscillations
+pybispectra # categories: oscillations
+pybvrf # categories: io
+pycrostates # categories: microstates
+pymef  # categories: io
+pyprep # categories: preproc
+pyriemann # categories: stats
+python-picard # categories: preproc
+rsatoolbox # categories: stats
+sesameeg # categories: connectivity
+sleepecg # categories: modalities
+tensorpac # categories: oscillations
+wfdb # categories: io
+yasa # categories: modalities

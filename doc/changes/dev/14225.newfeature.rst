@@ -1,0 +1,1 @@
+Add ``exclude`` parameter to :meth:`mne.io.Raw.get_data`, :meth:`mne.Epochs.get_data`, and :meth:`mne.Evoked.get_data` by `Carina Forster`_.

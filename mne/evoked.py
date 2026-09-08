@@ -242,6 +242,7 @@ class Evoked(
         units: str | dict | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
+        exclude: list[str] | Literal["bads"] | tuple = (),
     ) -> np.ndarray:
         """Get evoked data as 2D array.
 
@@ -253,6 +254,12 @@ class Evoked(
             Start time of data to get in seconds.
         tmax : float | None
             End time of data to get in seconds.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels.
+
+            .. versionadded:: 1.13
 
         Returns
         -------
@@ -266,7 +273,7 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 

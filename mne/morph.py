@@ -1425,12 +1425,20 @@ def _surf_upsampling_mat(idx_from, e, smooth):
 
 def _sparse_argmax_nnz_row(csr_mat):
     """Return index of the maximum non-zero index in each row."""
-    n_rows = csr_mat.shape[0]
-    idx = np.empty(n_rows, dtype=np.int64)
-    for k in range(n_rows):
-        row = csr_mat[[k]].tocoo()
-        idx[k] = row.col[np.argmax(row.data)]
-    return idx
+    # Equivalent to, but orders of magnitude faster than, slicing out each row and
+    # taking ``row.indices[np.argmax(row.data)]``:
+    #
+    #     for k in range(csr_mat.shape[0]):
+    #         row = csr_mat[[k]].tocoo()
+    #         idx[k] = row.col[np.argmax(row.data)]
+    #
+    starts, counts = csr_mat.indptr[:-1], np.diff(csr_mat.indptr)
+    assert (counts > 0).all()  # reduceat below needs every row to be non-empty
+    row_max = np.maximum.reduceat(csr_mat.data, starts)
+    # position of the first stored entry in each row that attains the row maximum
+    is_max = csr_mat.data == np.repeat(row_max, counts)
+    pos = np.where(is_max, np.arange(len(is_max)), len(is_max))
+    return csr_mat.indices[np.minimum.reduceat(pos, starts)]
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):

@@ -1,0 +1,1 @@
+Projection reconstruction can now use an explicit :class:`~mne.Forward` model and standard MNE rank handling, by `Hamza Abdelhedi`_.

@@ -23,7 +23,6 @@ from shutil import copyfile
 
 import matplotlib
 import numpy as np
-from matplotlib.animation import AbstractMovieWriter
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
@@ -85,7 +84,7 @@ from ..viz import (
 from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
-from ..viz.utils import _ndarray_to_fig
+from ..viz.utils import _BlitManager, _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
@@ -231,7 +230,7 @@ def _html_slider_element(
         tags=tags,
         title=title,
         start_idx=start_idx,
-        image_format=image_format,
+        image_format=_mime_format(image_format),
         klass=klass,
         show="show" if show else "",
     )
@@ -256,7 +255,7 @@ def _html_image_element(
         caption=caption,
         tags=tags,
         title=title,
-        image_format=image_format,
+        image_format=_mime_format(image_format),
         div_klass=div_klass,
         img_klass=img_klass,
         embedded=embedded,
@@ -369,27 +368,6 @@ def _check_tags(tags) -> tuple[str]:
 # PLOTTING FUNCTIONS
 
 
-class _NdArrayCapture(AbstractMovieWriter):
-    def __init__(self, frames: list):
-        super().__init__(fps=1, metadata={}, bitrate=0)
-        self.frames = frames
-
-    def grab_frame(self, **savefig_kwargs):
-        img = _fig_to_img(
-            fig=self.fig, image_format="ndarray", pad_inches=0, **savefig_kwargs
-        )
-        self.frames.append(img)
-
-    def save(self, filename, *args, **kwargs):
-        pass
-
-    def finish(self):
-        pass
-
-    def setup(self, fig, outfile, dpi=None):
-        self.fig = fig
-
-
 def _use_agg(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -430,6 +408,31 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
         fig.set_dpi(dpi)
 
 
+def _compress_img(img, image_format, dpi):
+    """Drop the alpha channel and compress, for space and to avoid rendering issues."""
+    from PIL import Image
+
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+    pil_kwargs = dict()
+    if image_format == "webp":
+        # Here quality means speed/size tradeoff (either way the result is lossless);
+        # 20 rather than 50 encodes ~1.5x faster for a few percent more bytes
+        pil_kwargs.update(lossless=True, quality=20)
+    elif image_format == "webp-lossy":
+        # ~as cheap to encode as PNG and ~3x smaller, at the cost of exactness
+        pil_kwargs.update(lossless=False, quality=90)
+    else:
+        assert image_format == "png", image_format  # _fig_to_img checks this
+        # optimize=True forces maximum effort regardless of compress_level and
+        # encodes ~3x slower for ~1% fewer bytes, so favor speed here
+        pil_kwargs.update(compress_level=6)
+    background = Image.new("RGBA", img.size, (255, 255, 255))
+    img = Image.alpha_composite(background, img).convert("RGB")
+    output = BytesIO()
+    img.save(output, format=_mime_format(image_format), dpi=(dpi, dpi), **pil_kwargs)
+    return output
+
+
 def _fig_to_img(
     fig,
     *,
@@ -444,13 +447,31 @@ def _fig_to_img(
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
 
+    # Report validates its own image_format, but add_figure and friends pass whatever
+    # they are given straight through, and e.g. "PNG" is used in the docs
+    _validate_type(image_format, str, "image_format")
+    image_format = image_format.lower()
+    _check_option("image_format", image_format, _ALLOWED_IMAGE_FORMATS + ("ndarray",))
+
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
         # auto-close in all cases
-        fig = _ndarray_to_fig(fig)
+        img, fig = fig, _ndarray_to_fig(fig)
+        dpi = fig.get_dpi()
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the figure we just created
+        if fig.get_dpi() == dpi and image_format not in ("svg", "ndarray"):
+            # Nothing rescaled the pixels, so compress them as they are rather than
+            # rendering them back through the figure only to read them out again
+            from PIL import Image
+
+            plt.close(fig)
+            if img.dtype.kind == "f":  # float in [0, 1], as _fig_to_img returns
+                img = np.clip(img, 0, 1) * 255
+            img = Image.fromarray(img.astype(np.uint8)).convert("RGBA")
+            output = _compress_img(img, image_format, dpi)
+            return base64.b64encode(output.getvalue()).decode("ascii")
     elif isinstance(fig, Figure):
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
@@ -486,7 +507,17 @@ def _fig_to_img(
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with {dpi} dpi"
     )
-    mpl_format = "svg" if image_format == "svg" else "png"
+    if image_format == "svg":
+        mpl_format = "svg"
+    elif image_format != "ndarray" and "bbox_inches" in mpl_kwargs:
+        # bbox_inches changes the rendered size, so the raw buffer could no longer be
+        # reshaped from the figure's own bbox
+        mpl_format = "png"
+    else:
+        mpl_format = "rgba"
+        # Agg truncates the figure size to whole pixels (`RendererAgg.__init__`),
+        # so rounding here would mis-shape the buffer at fractional DPI
+        shape = (int(fig.bbox.size[1]), int(fig.bbox.size[0]), 4)
     fig.savefig(output, format=mpl_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -496,24 +527,21 @@ def _fig_to_img(
     if image_format not in ("svg", "ndarray"):
         from PIL import Image
 
-        # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-        pil_kwargs = dict()
-        if image_format == "webp":
-            # Here quality means speed/size tradeoff (either way the result is lossless)
-            pil_kwargs.update(lossless=True, quality=50)
-        elif image_format == "png":
-            pil_kwargs.update(optimize=True, compress_level=9)
-        output.seek(0)
-        orig = Image.open(output)
+        if mpl_format == "rgba":
+            # Raw RGBA: the pixels can be decoded directly
+            orig = Image.frombuffer(
+                "RGBA", shape[1::-1], output.getbuffer(), "raw", "RGBA", 0, 1
+            )
+        else:
+            output.seek(0)
+            orig = Image.open(output)
         if orig.mode == "RGBA":
-            background = Image.new("RGBA", orig.size, (255, 255, 255))
-            new = Image.alpha_composite(background, orig).convert("RGB")
-            output = BytesIO()
-            new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+            output = _compress_img(orig, image_format, dpi)
 
     if image_format == "ndarray":
-        output.seek(0)
-        output = plt.imread(output, format="png")
+        # float in [0, 1], like the PNG this used to go through
+        output = np.frombuffer(output.getbuffer(), np.uint8).reshape(shape)
+        output = output.astype(np.float32) / 255
     else:
         output = output.getvalue()
         if image_format == "svg":
@@ -756,6 +784,7 @@ def open_report(fname, **params):
                 )
         report = Report()
         report.__setstate__(state)
+        report._unsaved_changes = False  # what we have matches what's on disk
     else:
         report = Report(**params)
     # Keep track of the filename in case the Report object is used as a context
@@ -770,7 +799,12 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / "icons" / "mne_icon-cropped.png"
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 
-_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
+_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp", "webp-lossy")
+
+
+def _mime_format(image_format):
+    """Strip our lossy/lossless qualifier to get the PIL/MIME name."""
+    return image_format.split("-")[0]
 
 
 def _check_image_format(rep, image_format):
@@ -803,16 +837,20 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'webp' | 'auto'
+    image_format : 'png' | 'svg' | 'webp' | 'webp-lossy' | 'auto'
         Default image format to use (default is ``'auto'``, which will use
         ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
+        ``'webp-lossy'`` gives much smaller files than the (lossless) ``'webp'``
+        at a comparable encoding cost, at the price of exact pixel fidelity.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
            Added support for ``'webp'`` format, removed support for GIF, and
            set the default to ``'auto'``.
+        .. versionchanged:: 1.13
+           Added support for ``'webp-lossy'`` format.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -948,6 +986,23 @@ class Report:
 
         self.fname = None  # The name of the saved report
         self.data_path = None
+        self._unsaved_changes = False  # must come last, mutators set it to True
+
+    @property
+    def unsaved_changes(self):
+        """Whether the report content changed since it was created, loaded, or saved.
+
+        Returns
+        -------
+        unsaved_changes : bool
+            ``True`` if content was added, replaced, removed, or reordered since the
+            report was created, read from disk, or last saved.
+
+        Notes
+        -----
+        .. versionadded:: 1.13
+        """
+        return self._unsaved_changes
 
     @property
     def img_max_width(self):
@@ -1112,7 +1167,9 @@ class Report:
         report : instance of Report
             The copied report.
         """
-        return copy.deepcopy(self)
+        report = copy.deepcopy(self)
+        report._unsaved_changes = self._unsaved_changes  # deepcopy uses __setstate__
+        return report
 
     def get_contents(self):
         """Get the content of the report.
@@ -1161,6 +1218,7 @@ class Report:
                 f"order must be a permutation of range({n_elements}), got:\n{order}"
             )
         self._content = [self._content[ii] for ii in order]
+        self._unsaved_changes = True
 
     def _content_as_html(self):
         """Generate HTML representations based on the added content & sections.
@@ -1259,6 +1317,7 @@ class Report:
         """
         style = f'\n<style type="text/css">\n{css}\n</style>'
         self.include += style
+        self._unsaved_changes = True
 
     def add_custom_js(self, js):
         """Add custom JavaScript to the report.
@@ -1275,6 +1334,7 @@ class Report:
         """
         script = f'\n<script type="text/javascript">\n{js}\n</script>'
         self.include += script
+        self._unsaved_changes = True
 
     @fill_doc
     def add_epochs(
@@ -2369,11 +2429,13 @@ class Report:
         elif not remove_all:  # only remove last occurrence
             remove_idx = remove_idx[-1]
             del self._content[remove_idx]
+            self._unsaved_changes = True
         else:  # remove all occurrences
             remove_idx = tuple(remove_idx)
             self._content = [
                 e for idx, e in enumerate(self._content) if idx not in remove_idx
             ]
+            self._unsaved_changes = True
 
         return remove_idx
 
@@ -2420,6 +2482,7 @@ class Report:
         new_content.dom_id = dom_id
         new_content.html = html_partial(id_=dom_id)
         assert isinstance(new_content.html, str), type(new_content.html)
+        self._unsaved_changes = True
 
     def _add_code(self, *, code, title, language, section, tags, replace):
         if isinstance(code, Path):
@@ -3268,6 +3331,9 @@ class Report:
             if param_name == "_content":
                 param_val = [_ContentElement(**val) for val in param_val]
             setattr(self, param_name, param_val)
+        # conservative, as we don't know where the state came from (open_report and
+        # copy, which both go through here, set the correct value themselves)
+        self._unsaved_changes = True
         return state
 
     @verbose
@@ -3278,6 +3344,7 @@ class Report:
         overwrite=False,
         sort_content=False,
         *,
+        only_if_changed=False,
         verbose=None,
     ):
         """Save the report and optionally open it in browser.
@@ -3305,6 +3372,13 @@ class Report:
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
+        only_if_changed : bool
+            If ``True`` and :attr:`~mne.Report.unsaved_changes` is ``False`` and the
+            output file already exists, skip writing it (the existing file is left
+            untouched) and just return its name. If the output file does not exist, it
+            is always written.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -3317,6 +3391,16 @@ class Report:
                 self.data_path = os.getcwd()
                 warn(f"`data_path` not provided. Using {self.data_path} instead")
             fname = op.join(self.data_path, "report.html")
+
+        if only_if_changed and not self._unsaved_changes:
+            # overwrite="read" so that an existing file is not an error here
+            check_fname = _check_fname(fname, overwrite="read", name=fname)
+            if check_fname.is_file():
+                fname = op.realpath(str(check_fname))
+                logger.info(f"Report has no unsaved changes, not saving to : {fname}")
+                if self.fname is None:
+                    self.fname = fname
+                return fname
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
@@ -3366,6 +3450,8 @@ class Report:
 
                 html = [header_html, toc_html, *self.html, footer_html]
                 Path(fname).write_text(data="".join(html), encoding="utf-8")
+
+            self._unsaved_changes = False
 
         building_doc = os.getenv("_MNE_BUILDING_DOC", "").lower() == "true"
         if open_browser and not is_hdf5 and not building_doc:
@@ -3893,8 +3979,6 @@ class Report:
             fig.delaxes(axes[1, 1])
             axes = axes.ravel()[:3]
             axes[0].set_title(ch_type)
-            frames[ch_type] = list()
-            this_writer = _NdArrayCapture(frames[ch_type])
             _, ch_anim = evoked.animate_topomap(
                 times=times,
                 ch_type=ch_type,
@@ -3903,10 +3987,22 @@ class Report:
                 show=False,
                 time_format="",  # we impose our own in HTML
                 butterfly=True,
+                blit=False,  # we do our own, `Animation.save` cannot blit at all
                 **topomap_kwargs,
             )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+            fig.canvas.draw()  # the animation does its initial draw here
             ch_anim.pause()
-            ch_anim.save("", writer=this_writer)
+            # Only the topomap image, its contours and the butterfly cursor change
+            # from one frame to the next, so blit those onto a cached picture of the
+            # rest of the figure and read the pixels straight out of the canvas.
+            blit = _BlitManager(fig)
+            frames[ch_type] = list()
+            for frame in range(len(times)):
+                blit.update(ch_anim.mne_frame_func(frame))
+                frames[ch_type].append(
+                    np.asarray(fig.canvas.buffer_rgba(), dtype=np.float32) / 255
+                )
             plt.close(fig)
             del (
                 fig,

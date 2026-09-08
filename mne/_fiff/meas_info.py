@@ -1963,6 +1963,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """Make a deepcopy."""
         result = Info.__new__(Info)
         result._unlocked = True
+        memodict[id(self)] = result  # e.g. info["temp"] = info
         for k, v in self.items():
             # chs is roughly half the time but most are immutable
             if k == "chs":

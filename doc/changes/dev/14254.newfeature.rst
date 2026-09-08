@@ -1,0 +1,1 @@
+Speed up windowed reads and epoching of MEF3 files by reusing the session across reads instead of reparsing its metadata each time, by `Bruno Aristimunha`_.

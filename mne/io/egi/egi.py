@@ -79,15 +79,27 @@ def _read_header(fid):
     return info
 
 
+# read whole frames a few MB at a time rather than the whole recording at once
+_EVENT_BLOCK_BYTES = 4 * 1024**2
+
+
 def _read_events(fid, info):
     """Read events."""
-    events = np.zeros([info["n_events"], info["n_segments"] * info["n_samples"]])
+    n_samples = info["n_samples"]
+    # Each sample is one frame of n_channels data values followed by n_events
+    # event values, so read whole frames and keep the event rows. Seeking past
+    # the data channels instead costs a seek and a read per sample, which
+    # dominates the time to open a long recording.
+    n_rows = info["n_channels"] + info["n_events"]
+    events = np.zeros([info["n_events"], info["n_segments"] * n_samples])
     fid.seek(36 + info["n_events"] * 4, 0)  # skip header
-    for si in range(info["n_samples"]):
-        # skip data channels
-        fid.seek(info["n_channels"] * info["dtype"].itemsize, 1)
-        # read event channels
-        events[:, si] = np.fromfile(fid, info["dtype"], info["n_events"])
+    n_block = max(1, _EVENT_BLOCK_BYTES // (n_rows * info["dtype"].itemsize))
+    for start in range(0, n_samples, n_block):
+        n_read = min(n_block, n_samples - start)
+        frames = np.fromfile(fid, info["dtype"], n_read * n_rows)
+        events[:, start : start + n_read] = frames.reshape(n_read, n_rows).T[
+            info["n_channels"] :
+        ]
     return events
 
 

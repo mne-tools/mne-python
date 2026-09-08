@@ -6,8 +6,6 @@ on:  # yamllint disable-line rule:truthy
     types: [published]
   push:
     branches: ["main", "maint/*"]
-  pull_request:
-    branches: ["main", "maint/*"]
 
 permissions:
   contents: read

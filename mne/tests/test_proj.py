@@ -12,20 +12,26 @@ from scipy import linalg
 
 from mne import (
     Epochs,
+    EvokedArray,
     compute_proj_epochs,
     compute_proj_evoked,
     compute_proj_raw,
     compute_raw_covariance,
     convert_forward_solution,
     create_info,
+    make_forward_solution,
+    make_sphere_model,
+    pick_channels_forward,
     pick_types,
     read_events,
     read_forward_solution,
     read_source_estimate,
+    read_source_spaces,
     sensitivity_map,
 )
 from mne._fiff.proj import (
     _EEG_AVREF_PICK_DICT,
+    Projection,
     _needs_eeg_average_ref_proj,
     activate_proj,
     make_projector,
@@ -55,6 +61,408 @@ fwd_fname = sample_path / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 sensmap_fname = sample_path / "sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w"
 eog_fname = sample_path / "sample_audvis_eog-proj.fif"
 ecg_fname = sample_path / "sample_audvis_ecg-proj.fif"
+
+
+def _make_test_proj(ch_names, vector, desc):
+    """Make a projector for selection tests."""
+    vector = np.atleast_2d(np.asarray(vector, float))
+    return Projection(
+        data=dict(
+            col_names=ch_names,
+            row_names=None,
+            nrow=len(vector),
+            ncol=len(ch_names),
+            data=vector,
+        ),
+        desc=desc,
+    )
+
+
+def _make_selection_raw():
+    """Make mixed EEG/MEG data with three attached projectors."""
+    ch_names = [f"EEG {ii:03d}" for ii in range(3)]
+    ch_names += [f"MEG {ii:03d}" for ii in range(3)]
+    info = create_info(ch_names, 100.0, ["eeg"] * 3 + ["mag"] * 3)
+    data = np.random.default_rng(0).standard_normal((6, 600))
+    raw = RawArray(data, info, verbose=False)
+    projs = [
+        _make_test_proj(ch_names[:3], [1.0, 1.0, 0.0], "EEG-a"),
+        _make_test_proj(ch_names[:3], [0.0, 1.0, 1.0], "EEG-b"),
+        _make_test_proj(ch_names[3:], [1.0, 1.0, 0.0], "MEG"),
+    ]
+    raw.add_proj(projs, verbose=False)
+    return raw, projs
+
+
+def _active_projs(inst):
+    """Return the active state of attached projectors."""
+    return [proj["active"] for proj in inst.info["projs"]]
+
+
+def _make_selection_epochs(raw, *, preload=False, proj=False, reject=None, events=None):
+    """Make Epochs for projector selection tests."""
+    if events is None:
+        events = (100, 300, 500)
+    events = np.column_stack(
+        [events, np.zeros(len(events), int), np.ones(len(events), int)]
+    )
+    return Epochs(
+        raw,
+        events,
+        1,
+        0.0,
+        0.2,
+        baseline=None,
+        reject=reject,
+        proj=proj,
+        preload=preload,
+        verbose=False,
+    )
+
+
+def _make_selection_instance(kind):
+    """Make a Raw, Epochs, or Evoked instance for projection selection tests."""
+    raw, projs = _make_selection_raw()
+    if kind == "epochs":
+        inst = _make_selection_epochs(raw, preload=True)
+    elif kind == "evoked":
+        inst = EvokedArray(raw.get_data()[:, :10], raw.info, tmin=0.0)
+    else:
+        inst = raw
+    return inst, projs
+
+
+def _get_reconstruction_evoked(raw_orig, events, picks):
+    """Get an Evoked instance for reconstruction tests."""
+    raw = raw_orig.copy()
+    raw.add_proj([], remove_existing=True)
+    epochs = Epochs(
+        raw,
+        events[:5],
+        1,
+        -0.1,
+        0.1,
+        picks=picks,
+        decim=10,
+        verbose="error",
+    )
+    epochs.info["bads"] = [epochs.ch_names[-5], epochs.ch_names[-1]]
+    epochs.info.normalize_proj()
+    return epochs.average()
+
+
+def test_reconstruct_proj(raw_orig, events):
+    """Test default and selected SSP projector reconstruction."""
+    cases = (
+        (
+            (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305),
+            (0.63, 0.65),
+            False,
+        ),
+        (np.arange(340, 360), (0.56, 0.57), True),
+        (np.arange(340, 360), (0.79, 0.81), False),
+    )
+    for picks, rlims, avg_proj in cases:
+        evoked = _get_reconstruction_evoked(raw_orig, events, picks)
+        if avg_proj:
+            evoked.set_eeg_reference(projection=True).apply_proj(verbose=False)
+        original = evoked.data.copy()
+        if not avg_proj:
+            assert_allclose(evoked.copy().reconstruct_proj().data, original)
+
+        proj = compute_proj_evoked(evoked.copy().crop(None, 0).apply_proj())
+        evoked.add_proj(proj, verbose=False)
+        projected = evoked.copy().apply_proj(verbose=False).data
+        reconstructed = evoked.copy().reconstruct_proj().data
+        norm = np.linalg.norm(original)
+        norm_proj = np.linalg.norm(projected)
+        norm_recon = np.linalg.norm(reconstructed)
+        r = np.dot(reconstructed.ravel(), original.ravel()) / (norm_recon * norm)
+        assert rlims[0] < r < rlims[1]
+        assert 1.05 * norm_proj < norm_recon
+        if not avg_proj:
+            assert norm_proj < norm * 0.9
+
+    evoked = _get_reconstruction_evoked(
+        raw_orig,
+        events,
+        (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305, 315, 316, 317, 318),
+    )
+    original = evoked.data.copy()
+    meg_proj = compute_proj_evoked(
+        evoked.copy().pick("meg"), n_grad=0, n_mag=1, n_eeg=0
+    )[0]
+    eeg_proj = compute_proj_evoked(
+        evoked.copy().pick("eeg"), n_grad=0, n_mag=0, n_eeg=1
+    )[0]
+    evoked.add_proj([meg_proj, eeg_proj], verbose=False)
+    meg_picks = pick_types(evoked.info, meg=True, eeg=False)
+    eeg_picks = pick_types(evoked.info, meg=False, eeg=True)
+    reconstructed_all = evoked.copy().reconstruct_proj().data
+    for selected, selected_picks, untouched_picks in (
+        (meg_proj, meg_picks, eeg_picks),
+        (eeg_proj, eeg_picks, meg_picks),
+    ):
+        reconstructed = evoked.copy().reconstruct_proj(projs=selected).data
+        assert_allclose(reconstructed[untouched_picks], original[untouched_picks])
+        assert_allclose(
+            reconstructed[selected_picks], reconstructed_all[selected_picks]
+        )
+        assert not np.array_equal(
+            reconstructed_all[untouched_picks], original[untouched_picks]
+        )
+
+
+@pytest.fixture(scope="module")
+def eeg_forward():
+    """Create a small local EEG forward for projection reconstruction tests."""
+    raw = read_raw_fif(raw_fname, preload=False, verbose=False).pick(picks="eeg")
+    raw.pick(raw.ch_names[:8])
+    src = read_source_spaces(base_dir / "small-src.fif.gz", verbose=False)
+    sphere = make_sphere_model(verbose=False)
+    return make_forward_solution(
+        raw.info,
+        trans=None,
+        src=src,
+        bem=sphere,
+        meg=False,
+        eeg=True,
+        mindist=0.0,
+        verbose=False,
+    )
+
+
+def _direct_forward_reconstruction(evoked, forward, rank):
+    """Compute the independent direct lead-field reconstruction."""
+    projector = make_projector(evoked.info["projs"], evoked.ch_names)[0]
+    forward = pick_channels_forward(forward, include=evoked.ch_names, ordered=True)
+    lead_field = forward["sol"]["data"]
+    u, s, vh = np.linalg.svd(projector @ lead_field, full_matrices=False)
+    mapping = lead_field @ (vh[:rank].T / s[:rank]) @ u[:, :rank].T
+    if _has_eeg_average_ref_proj(evoked.info):
+        mapping -= mapping.mean(axis=0)
+    return mapping @ (projector @ evoked.data)
+
+
+def test_reconstruct_proj_forward(raw_orig, eeg_forward):
+    """Test Forward reconstruction and channel handling."""
+    raw = raw_orig.copy().pick(picks="eeg")
+    raw.pick(raw.ch_names[:8])
+    evoked = EvokedArray(raw.get_data()[:, :10], raw.info, tmin=0.0)
+    evoked.add_proj(
+        _make_test_proj(
+            evoked.ch_names,
+            np.arange(1.0, len(evoked.ch_names) + 1.0),
+            "Forward reconstruction",
+        ),
+        verbose=False,
+    )
+    rank = 3
+    for average_ref in (False, True):
+        this_evoked = evoked.copy()
+        if average_ref:
+            this_evoked.set_eeg_reference(projection=True)
+        expected = _direct_forward_reconstruction(this_evoked, eeg_forward, rank)
+        got = (
+            this_evoked.copy()
+            .reconstruct_proj(forward=eeg_forward, rank={"eeg": 3})
+            .data
+        )
+        assert_allclose(got, expected, rtol=1e-10, atol=1e-12)
+
+    reordered = pick_channels_forward(
+        eeg_forward, include=eeg_forward.ch_names[::-1], ordered=True
+    )
+    got = evoked.copy().reconstruct_proj(forward=eeg_forward, rank={"eeg": 3}).data
+    got_reordered = (
+        evoked.copy().reconstruct_proj(forward=reordered, rank={"eeg": 3}).data
+    )
+    assert_allclose(got, got_reordered, rtol=1e-10, atol=1e-12)
+
+    evoked_bad = evoked.copy()
+    evoked_bad.info["bads"] = [evoked_bad.ch_names[0]]
+    got_bad = evoked_bad.reconstruct_proj(forward=eeg_forward, rank={"eeg": 3}).data
+    assert_allclose(got_bad[0], evoked_bad.data[0])
+
+
+def test_reconstruct_proj_forward_rank_info(eeg_forward):
+    """Test that rank='info' only uses projectors selected for reconstruction."""
+    ch_names = eeg_forward["info"]["ch_names"]
+    info = create_info(ch_names, 100.0, "eeg")
+    evoked = EvokedArray(np.arange(len(ch_names))[:, np.newaxis], info, tmin=0.0)
+    projs = [
+        _make_test_proj(ch_names, np.eye(len(ch_names))[ii], f"EEG-{ii}")
+        for ii in range(3)
+    ]
+    evoked.add_proj(projs, verbose=False)
+    selected = projs[:2]
+    nproj = make_projector(selected, ch_names)[1]
+    expected_rank = len(ch_names) - nproj
+    got = (
+        evoked.copy()
+        .reconstruct_proj(projs=selected, forward=eeg_forward, rank="info")
+        .data
+    )
+    expected = (
+        evoked.copy()
+        .reconstruct_proj(
+            projs=selected, forward=eeg_forward, rank={"eeg": expected_rank}
+        )
+        .data
+    )
+    assert_allclose(got, expected, rtol=1e-10, atol=1e-12)
+
+
+def test_reconstruct_proj_forward_rank_none(eeg_forward):
+    """Test automatic Forward reconstruction with the default rank."""
+    ch_names = eeg_forward["info"]["ch_names"]
+    info = create_info(ch_names, 100.0, "eeg")
+    evoked = EvokedArray(np.ones((len(ch_names), 1)), info, tmin=0.0)
+    evoked.add_proj(
+        _make_test_proj(ch_names, np.arange(1.0, len(ch_names) + 1.0), "EEG"),
+        verbose=False,
+    )
+    got = evoked.copy().reconstruct_proj(forward=eeg_forward).data
+    assert got.shape == evoked.data.shape
+    assert np.isfinite(got).all()
+
+
+def test_reconstruct_proj_forward_validation(eeg_forward):
+    """Test validation of the explicit Forward reconstruction arguments."""
+    info = create_info(eeg_forward["info"]["ch_names"], 100.0, "eeg")
+    evoked = EvokedArray(np.zeros((len(info["ch_names"]), 1)), info, tmin=0.0)
+    evoked.add_proj(
+        _make_test_proj(
+            evoked.ch_names,
+            np.ones(len(evoked.ch_names)),
+            "Forward reconstruction",
+        ),
+        verbose=False,
+    )
+    with pytest.raises(ValueError, match="rank can only be used"):
+        evoked.copy().reconstruct_proj(rank={"eeg": 1})
+    with pytest.raises(TypeError, match="forward must be an instance of Forward"):
+        evoked.copy().reconstruct_proj(forward=[], rank={"eeg": 1})
+    invalid = evoked.copy()
+    with pytest.raises(TypeError, match="rank must be an instance of"):
+        invalid.reconstruct_proj(forward=eeg_forward, rank=1)
+    assert _active_projs(invalid) == [False]
+    with pytest.raises(ValueError, match="rank, if str"):
+        evoked.copy().reconstruct_proj(forward=eeg_forward, rank="bad")
+    with pytest.raises(ValueError, match="rank='full' is incompatible"):
+        evoked.copy().reconstruct_proj(forward=eeg_forward, rank="full")
+    rank = len(evoked.ch_names) + 1
+    with pytest.raises(ValueError, match=r"rank\['eeg'\]=\d+ exceeds"):
+        evoked.copy().reconstruct_proj(forward=eeg_forward, rank={"eeg": rank})
+
+
+@pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
+def test_apply_proj_default(kind):
+    """Test that ``projs=None`` preserves legacy behavior."""
+    inst, _ = _make_selection_instance(kind)
+    legacy = inst.copy().apply_proj(verbose=False)
+    explicit_none = inst.copy().apply_proj(projs=None, verbose=False)
+    assert_allclose(explicit_none.get_data(), legacy.get_data())
+    assert _active_projs(explicit_none) == [True] * 3
+
+
+@pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
+@pytest.mark.parametrize("selected_idx", [(0,), (1,), (0, 1), (2,)])
+def test_apply_proj_selection(kind, selected_idx):
+    """Test one, multiple, and modality-specific projector selections."""
+    inst, projs = _make_selection_instance(kind)
+    data = inst.get_data().copy()
+    selected = [projs[ii] for ii in selected_idx]
+    passed = cp.deepcopy(selected[0] if len(selected) == 1 else selected)
+    got = inst.copy().apply_proj(projs=passed, verbose=False)
+    projector = make_projector(selected, inst.ch_names)[0]
+    assert_allclose(got.get_data(), np.matmul(projector, data))
+    assert_allclose(got._projector, projector)
+    assert _active_projs(got) == [ii in selected_idx for ii in range(3)]
+    assert not any(proj["active"] for proj in np.atleast_1d(passed))
+    if 2 in selected_idx:
+        assert_allclose(got.get_data()[..., :3, :], data[..., :3, :])
+    else:
+        assert_allclose(got.get_data()[..., 3:, :], data[..., 3:, :])
+    if kind == "evoked" and selected_idx == (0,):
+        expected = inst.copy().del_proj()
+        expected.add_proj(projs[0], verbose=False).apply_proj(verbose=False)
+        expected.add_proj(projs[1:], verbose=False)
+        assert_allclose(got._data, expected._data)
+        assert_allclose(got._projector, expected._projector)
+        assert got.info["projs"] == expected.info["projs"]
+
+
+def test_apply_proj_selection_invalid():
+    """Test non-attached and ambiguous projector selections."""
+    raw, projs = _make_selection_raw()
+    unattached = _make_test_proj(raw.ch_names[:3], [1.0, 0.0, 1.0], "other")
+    with pytest.raises(ValueError, match="does not match"):
+        raw.apply_proj(projs=unattached, verbose=False)
+
+    raw.info["projs"].append(cp.deepcopy(projs[0]))
+    with pytest.raises(ValueError, match="matches multiple"):
+        raw.apply_proj(projs=projs[0], verbose=False)
+
+
+def test_apply_proj_selection_restores_on_error():
+    """Test that omitted projectors are restored if projection fails."""
+    ch_names = ["EEG 001", "EEG 002"]
+    raw = RawArray(np.zeros((2, 10)), create_info(ch_names, 100.0, "eeg"))
+    projs = [
+        _make_test_proj(ch_names, [1.0, 0.0], "A"),
+        _make_test_proj(ch_names, [0.0, 1.0], "B"),
+        _make_test_proj(ch_names, [1.0, 1.0], "C"),
+    ]
+    raw.add_proj(projs, verbose=False).apply_proj(projs=projs[0], verbose=False)
+    with pytest.raises(RuntimeError, match="will yield no components"):
+        raw.apply_proj(projs=projs[1], verbose=False)
+    assert _active_projs(raw) == [True, False, False]
+    assert [proj["desc"] for proj in raw.info["projs"]] == ["A", "B", "C"]
+
+
+@pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
+@pytest.mark.parametrize("selection", ["unsupported", "applicable"])
+def test_apply_proj_selection_after_active(kind, selection):
+    """Test selected projectors after an applicable projector is active."""
+    inst, projs = _make_selection_instance(kind)
+    original = inst.get_data().copy()
+    inst.apply_proj(projs=projs[0], verbose=False)
+    after_active = inst.get_data().copy()
+    active_projector = inst._projector.copy()
+
+    if selection == "unsupported":
+        selected = _make_test_proj(["missing"], [1.0], "unsupported")
+        inst.add_proj(selected, verbose=False)
+    else:
+        selected = projs[1]
+    inst.apply_proj(projs=selected, verbose=False)
+
+    if selection == "unsupported":
+        assert_allclose(inst.get_data(), after_active)
+        assert_allclose(inst._projector, active_projector)
+        assert _active_projs(inst) == [True, False, False, False]
+    else:
+        projector = make_projector(projs[:2], inst.ch_names)[0]
+        assert_allclose(inst.get_data(), np.matmul(projector, original))
+        assert_allclose(inst._projector, projector)
+        assert _active_projs(inst) == [True, True, False]
+
+
+@pytest.mark.parametrize("preload", [False, True])
+@pytest.mark.parametrize("proj", [False, "delayed"])
+def test_apply_proj_selection_epochs(preload, proj):
+    """Test selected projection for lazy, preloaded, and delayed Epochs."""
+    raw, projs = _make_selection_raw()
+    epochs = _make_selection_epochs(raw, preload=preload, proj=proj)
+    data = epochs.get_data(copy=True)
+    matrix = make_projector([projs[0]], epochs.ch_names)[0]
+    epochs.apply_proj(projs=projs[0], verbose=False)
+    assert epochs.preload
+    assert not epochs._do_delayed_proj
+    assert_allclose(epochs.get_data(copy=True), np.matmul(matrix, data))
+    assert_allclose(epochs._projector, matrix)
+    assert _active_projs(epochs) == [True, False, False]
 
 
 def test_bad_proj():
@@ -571,3 +979,18 @@ def test_compute_proj_explained_variance():
             if proj["desc"].split("-")[0] == type_
         ]
         assert n_vector_ <= sum(explained_var)
+
+
+def test_make_projector_matches_by_name():
+    """Test projector columns are matched by channel name, not by position."""
+    ch_names = ["EEG 001", "EEG 002", "EEG 003"]
+    # col_names deliberately permuted, so a positional match gives the wrong
+    # vector: the direction is [2, 3, 1] in ch_names order, not [1, 2, 3]
+    proj = _make_test_proj(["EEG 003", "EEG 001", "EEG 002"], [1.0, 2.0, 3.0], "perm")
+    P, nproj, _ = make_projector([proj], ch_names)
+    assert nproj == 1
+    direction = np.array([2.0, 3.0, 1.0])
+    assert_allclose(P @ direction, 0.0, atol=1e-12)
+    # and a channel the projector does not mention is left untouched
+    P, _, _ = make_projector([proj], ch_names + ["EEG 004"])
+    assert_allclose(P[3], [0, 0, 0, 1], atol=1e-12)

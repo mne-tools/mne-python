@@ -72,6 +72,7 @@ from ..utils import (
     _pl,
     _reject_data_segments,
     _require_version,
+    _soft_import,
     _validate_type,
     check_fname,
     check_random_state,
@@ -188,7 +189,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
         )
 
 
-_KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
+_KNOWN_ICA_METHODS = ("fastica", "infomax", "jamica", "picard")
 
 
 def _rng_to_seed(rng):
@@ -249,23 +250,27 @@ class ICA(ContainsMixin):
         type prior to the whitening by PCA.
     %(rng)s
     %(random_state_rng)s
-    method : 'fastica' | 'infomax' | 'picard'
+    method : 'fastica' | 'infomax' | 'jamica' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
         Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
         (this also works for ``method='picard'``). Defaults to ``'fastica'``.
-        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
+        ``method='jamica'`` fits a single ICA model. For multi-model adaptive
+        mixture ICA and other advanced functionality, use the
+        `jamica package <https://snesmaeili.github.io/jamica/>`__ directly. For
+        reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018,PalmerEtAl2011`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``. Allowed entries are determined by the various algorithm
         implementations: see :class:`~sklearn.decomposition.FastICA`,
-        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`.
+        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`, and the
+        ``jamica.amica`` function from the ``jamica`` package.
     max_iter : int | 'auto'
         Maximum number of iterations during fit. If ``'auto'``, it
         will set maximum iterations to ``1000`` for ``'fastica'``
-        and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
-        iterations it took :meth:`ICA.fit` to complete will be stored in the
-        ``n_iter_`` attribute.
+        and to ``500`` for ``'infomax'``, ``'jamica'``, or ``'picard'``. The
+        actual number of iterations it took :meth:`ICA.fit` to complete will be
+        stored in the ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -501,7 +506,7 @@ class ICA(ContainsMixin):
             _check_option("max_iter", max_iter, ("auto",), "when str")
             if method == "fastica":
                 max_iter = 1000
-            elif method in ["infomax", "picard"]:
+            elif method in ["infomax", "jamica", "picard"]:
                 max_iter = 500
         fit_params.setdefault("max_iter", max_iter)
         self.max_iter = max_iter
@@ -517,7 +522,9 @@ class ICA(ContainsMixin):
         @dataclass
         class _InfosForRepr:
             fit_on: Literal["raw data", "epochs"] | None
-            fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
+            fit_method: Literal[
+                "fastica", "infomax", "extended-infomax", "jamica", "picard"
+            ]
             fit_params: dict[str, str | float]
             fit_n_iter: int | None
             fit_n_samples: int | None
@@ -678,7 +685,6 @@ class ICA(ContainsMixin):
         for method, mod in req_map.items():
             if self.method == method:
                 _require_version(mod, f"use method={repr(method)}")
-
         _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
 
         if np.isclose(inst.info["highpass"], 0.0):
@@ -1007,6 +1013,21 @@ class ICA(ContainsMixin):
             )
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            del _, n_iter
+        elif self.method == "jamica":
+            jamica = _soft_import(
+                "jamica", "fitting ICA with method='jamica'", min_version="0.3.0"
+            )
+
+            _, W, _, n_iter = jamica.amica(
+                data[:, sel].T,
+                whiten=False,
+                return_n_iter=True,
+                random_state=_rng_to_seed(rng),
+                **self.fit_params,
+            )
+            self.unmixing_matrix_ = W
+            self.n_iter_ = n_iter
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         norms = self.pca_explained_variance_

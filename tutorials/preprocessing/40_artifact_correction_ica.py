@@ -95,13 +95,18 @@ raw.load_data()
 #     dimensionality, set ``n_components=n`` during initialization and pass
 #     ``n_pca_components=n`` to `~mne.preprocessing.ICA.apply`.
 #
-# MNE-Python implements three different ICA algorithms: ``fastica`` (the
-# default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
-# widespread use; Picard is a newer (2017) algorithm that is expected to
-# converge faster than FastICA and Infomax, and is more robust than other
-# algorithms in cases where the sources are not completely independent, which
-# typically happens with real EEG/MEG data. See
-# :footcite:`AblinEtAl2018` for more information.
+# MNE-Python implements four different ICA algorithms: ``fastica`` (the
+# default), ``picard``, ``infomax``, and ``jamica``. FastICA and Infomax are
+# both in fairly widespread use; Picard is a newer (2017) algorithm that is
+# expected to converge faster than FastICA and Infomax, and is more robust than
+# other algorithms in cases where the sources are not completely independent,
+# which typically happens with real EEG/MEG data. See
+# :footcite:`AblinEtAl2018` for more information. JAMICA is an optional Python
+# implementation of Adaptive Mixture ICA (AMICA). Within
+# `~mne.preprocessing.ICA`, ``method='jamica'`` fits one ICA model; use the
+# `jamica package <https://snesmaeili.github.io/jamica/>`__ directly for
+# multi-model decompositions and its other advanced functionality. See
+# :footcite:`PalmerEtAl2011` for the AMICA method.
 #
 # The ICA interface in MNE-Python is similar to the interface in
 # `scikit-learn <https://scikit-learn.org/stable/>`__: some general parameters

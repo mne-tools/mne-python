@@ -23,15 +23,15 @@ doc = [
   "mne-gui-addons",
   "neo",
   "numpydoc >= 0.5",
-  "openneuro-py >= 2020.1",
+  "openneuro-py >= 2020.1",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "psutil",
   "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
-  "pymef",  # released 2023-06-30, will become 0.12 on 2028-07-01
+  "pymef",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
-  "refleak >= 0.2.1",  # released 2024-05-21, will become 1.6 on 2026-12-09
+  "refleak >= 0.2.2",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
@@ -61,7 +61,7 @@ test = [
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
   "pytest-xdist >= 3.6.1",
-  "refleak >= 0.2.1",
+  "refleak >= 0.2.2",
   "ruff >= 0.1",
   "threadpoolctl",
   "twine",
@@ -74,6 +74,11 @@ test_extra = [
   "nbclient",  # requires jupyter_client
   "nitime >= 0.7",
   "pymef",
+  # drawing backend for the browser docs, see mne/viz/backends/_lite.py. The
+  # marker is pyvista-js's own requires-python (>= 3.12, < 3.15) rather than
+  # anything about JupyterLite: without it this group cannot resolve at all on
+  # the 3.11 MNE still supports. Every CI job that installs it is on 3.12+.
+  "pyvista-js >= 0.15; python_version >= '3.12'",
   "statsmodels",
   {include-group = "test_extra_ft"},
 ]
@@ -178,6 +183,7 @@ full-no-qt = [
   "ipympl",
   "ipython >= 2.0, != 8.7.0",  # for notebook backend; also in "doc" and "test"
   "ipywidgets",
+  "jamica >= 0.3.0",
   "joblib >= 0.8",
   "jupyter",
   "mffpy >= 0.11.0",
