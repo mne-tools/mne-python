@@ -14,7 +14,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import EMS, compute_ems
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"

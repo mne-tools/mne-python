@@ -11,7 +11,7 @@ pytest.importorskip("sklearn")
 
 from sklearn.base import clone
 
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.time_frequency import TimeFrequency
 
 

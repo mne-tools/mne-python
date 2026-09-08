@@ -21,7 +21,7 @@ from mne.decoding.receptive_field import (
     _delays_to_slice,
     _times_to_delays,
 )
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"

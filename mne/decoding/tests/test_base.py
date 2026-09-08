@@ -51,7 +51,7 @@ from mne.decoding.base import (
     get_coef,
 )
 from mne.decoding.search_light import SlidingEstimator
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.utils import check_version
 
 

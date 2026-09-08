@@ -28,7 +28,7 @@ from mne.decoding._ged import (
 )
 from mne.decoding._mod_ged import _no_op_mod
 from mne.decoding.base import _GEDTransformer
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.io import read_raw
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"

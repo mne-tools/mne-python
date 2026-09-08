@@ -23,7 +23,7 @@ from sklearn.svm import SVC
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
 from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef, read_csp, read_spoc
 from mne.decoding.csp import _ajd_pham
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.utils import catch_logging, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"

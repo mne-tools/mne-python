@@ -30,7 +30,7 @@ from mne.decoding import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.defaults import DEFAULTS
 from mne.utils import use_log_level
 

@@ -18,7 +18,7 @@ from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
 from mne.decoding._mod_ged import _get_spectral_ratio
 from mne.decoding.ssd import SSD, read_ssd
-from mne.decoding.tests import parametrize_with_checks
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
 
