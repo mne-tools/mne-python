@@ -1962,8 +1962,9 @@ class BaseRaw(
         fname: str,
         fmt: Literal["auto", "brainvision", "edf", "eeglab"] = "auto",
         physical_range: str | tuple = "auto",
-        add_ch_type: bool = False,
         *,
+        digital_range: Literal["auto", "orig"] = "auto",
+        add_ch_type: bool = False,
         overwrite: bool = False,
         verbose: bool | str | int | None = None,
     ) -> None:
@@ -1978,6 +1979,7 @@ class BaseRaw(
         %(fname_export_params)s
         %(export_fmt_params_raw)s
         %(physical_range_export_params)s
+        %(digital_range_export_params)s
         %(add_ch_type_export_params)s
         %(overwrite)s
 
@@ -1999,6 +2001,7 @@ class BaseRaw(
             self,
             fmt,
             physical_range=physical_range,
+            digital_range=digital_range,
             add_ch_type=add_ch_type,
             overwrite=overwrite,
             verbose=verbose,

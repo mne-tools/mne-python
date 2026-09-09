@@ -37,7 +37,9 @@ def _round_float_to_8_characters(
     return round_func(value * factor) / factor
 
 
-def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
+def _export_raw_edf_bdf(
+    fname, raw, physical_range, digital_range, add_ch_type, file_format
+):
     """Export Raw objects to EDF/BDF files.
 
     Parameters
@@ -48,6 +50,9 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
         The raw instance to export.
     physical_range : str or tuple
         Physical range setting.
+    digital_range : "auto" | "orig"
+        Whether to use maximum available bit depth, or the digital min/max that were
+        present in the originally-read EDF/BDF file.
     add_ch_type : bool
         Whether to add channel type to signal label.
     file_format : str
@@ -70,6 +75,7 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
         digital_min, digital_max = -8388607, 8388607  # 24-bit
         signal_class = BdfSignal
         writer_class = Bdf
+    file_format_digital_range = (digital_min, digital_max)  # stash for later
 
     ch_types = np.array(raw.get_channel_types())
 
@@ -125,7 +131,20 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
         filter_str_info += f" N:{linefreq}Hz"
 
     # compute physical range
-    if physical_range == "auto":
+    if physical_range == "orig":
+        if not (
+            "physical_min" in raw._raw_extras[0]
+            and "physical_max" in raw._raw_extras[0]
+        ):
+            warn(
+                f"Cannot write {file_format} using original physical range "
+                "(necessary info not available); falling back to 'auto' behavior "
+                "(setting the physical range separately by channel type)"
+            )
+            physical_range = "auto"
+    if physical_range == "orig":
+        pass  # handled within the loop over channels, below
+    elif physical_range == "auto":
         # get max and min for each channel type data
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
@@ -179,19 +198,52 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
             if pmax == pmin:
                 pmax = pmin + 1
             prange = pmin, pmax
+        elif physical_range == "orig":
+            pmin = raw._raw_extras[0]["physical_min"][idx]
+            pmax = raw._raw_extras[0]["physical_max"][idx]
+            prange = (pmin, pmax)
 
-        signals.append(
-            signal_class(
-                data[idx],
-                out_sfreq,
-                label=signal_label,
-                transducer_type="",
-                physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=prange,
-                digital_range=(digital_min, digital_max),
-                prefiltering=filter_str_info,
-            )
+        if digital_range == "orig":
+            if (
+                "digital_min" in raw._raw_extras[0]
+                and "digital_max" in raw._raw_extras[0]
+            ):
+                digital_min = int(raw._raw_extras[0]["digital_min"][idx])
+                digital_max = int(raw._raw_extras[0]["digital_max"][idx])
+            else:
+                warn(
+                    f"Cannot write {file_format} using original digital range "
+                    "(necessary info not available); using max available digital range "
+                    f"({16 if file_format == 'EDF' else 24}-bit)"
+                )
+
+        # this handles the case where user requested "orig" signal values (both physical
+        # and digital) but the data values exceeded the ranges stated in the file header
+        drange = (
+            file_format_digital_range
+            if physical_range == "orig"
+            else (digital_min, digital_max)
         )
+        signal_kwargs = dict(
+            sampling_frequency=out_sfreq,
+            label=signal_label,
+            transducer_type="",
+            physical_dimension="" if ch_type == "stim" else "uV",
+            physical_range=prange,
+            digital_range=drange,
+            prefiltering=filter_str_info,
+        )
+        if physical_range == "orig":
+            gain = (pmax - pmin) / (digital_max - digital_min)
+            offset = pmax / gain - digital_max
+            digital = np.rint(data[idx] / gain - offset).astype(np.int16)
+            # temporarily set digital range maximally
+            signals.append(signal_class.from_digital(digital, **signal_kwargs))
+            # after signal creation, set requested digital range
+            # (work around EDFIO safeguards)
+            signals[-1]._set_digital_range((digital_min, digital_max))
+        else:
+            signals.append(signal_class(data=data[idx], **signal_kwargs))
 
     # create patient info
     subj_info = raw.info.get("subject_info")
@@ -271,11 +323,15 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
     ).write(fname)
 
 
-def _export_raw_edf(fname, raw, physical_range, add_ch_type):
+def _export_raw_edf(fname, raw, physical_range, digital_range, add_ch_type):
     """Export Raw object to EDF."""
-    _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format="EDF")
+    _export_raw_edf_bdf(
+        fname, raw, physical_range, digital_range, add_ch_type, file_format="EDF"
+    )
 
 
-def _export_raw_bdf(fname, raw, physical_range, add_ch_type):
+def _export_raw_bdf(fname, raw, physical_range, digital_range, add_ch_type):
     """Export Raw object to BDF."""
-    _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format="BDF")
+    _export_raw_edf_bdf(
+        fname, raw, physical_range, digital_range, add_ch_type, file_format="BDF"
+    )

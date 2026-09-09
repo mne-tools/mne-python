@@ -1252,6 +1252,19 @@ dig_kinds : list of str | str
     'eeg' points.
 """
 
+docdict["digital_range_export_params"] = """
+digital_range : "auto" | "orig"
+    For EDF/BDF files, this controls the amplitude resolution of the
+    signals. "auto" uses the maximum available (16-bit for EDF, 24-bit for BDF).
+    If the :class:`~mne.io.Raw` object was originally read from and EDF or BDF
+    file, "orig" will use the digital range that was present in that file. For
+    :class:`~mne.io.Raw` objects that did not originate from EDF/BDF files,
+    "orig" falls back to the behavior of "auto".
+
+    .. versionadded:: 1.13.1
+"""
+
+
 docdict["dipole"] = """
 dipole : instance of Dipole | list of Dipole
     Dipole object containing position, orientation and amplitude of
@@ -3439,9 +3452,13 @@ phase : str
 docdict["physical_range_export_params"] = """
 physical_range : str | tuple
     The physical range of the data. If 'auto' (default), the physical range is inferred
-    from the data, taking the minimum and maximum values per channel type. If
-    'channelwise', the range will be defined per channel. If a tuple of minimum and
-    maximum, this manual physical range will be used. Only used for exporting EDF files.
+    from the data: if the data came from and EDF/BDF/GDF file, the physical range of the
+    original file will be preserved (with a warning if clipping will occur). If the data
+    did not originate from an EDF/BDF/GDF file, ``"auto"`` will set the physical range
+    as the minimum and maximum values *per channel type*. If ``'channelwise'``, the
+    range will be defined *per channel*. If a tuple of minimum and maximum, that
+    manually-specified physical range will be used for all channels.
+    Only used for exporting EDF files.
 """
 
 _pick_ori_novec = """
