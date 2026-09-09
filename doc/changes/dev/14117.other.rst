@@ -1,0 +1,1 @@
+Correct typo in comment by :newcontrib:`Samarth D N`.

@@ -554,7 +554,7 @@ jobs:
           at: /tmp/build
       - restore_cache:
           keys:
-            - website-cache-1
+            - website-cache-2
       - add_ssh_keys:
           fingerprints:
             # SHA256:N4qvp6MSbXcTz/27xz96VPsNuTDRT92zoRP8EW0I/8I
@@ -579,12 +579,12 @@ jobs:
             echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
             chmod og= ~/.ssh/config
             if [ ! -d ~/mne-tools.github.io ]; then
-              git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
+              git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io
             fi
       - run:
           name: Deploy docs
           command: |
-            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@cc7c3ff087e8d9739a5a73f594bb4b885a25eb08"
+            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@0de7cad022dd573c871e5ac0c5f562c5728a6ba8"
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
             ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
@@ -621,8 +621,10 @@ jobs:
               --source-sha "${CIRCLE_SHA1}" \
               --message "CircleCI ${CMD} of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
               --push;
+            # keep history a rolling window so the repo never needs a manual squash
+            python -m docstacks prune --keep 20 --push;
       - save_cache:
-          key: website-cache-1
+          key: website-cache-2
           paths:
             - ~/mne-tools.github.io
 

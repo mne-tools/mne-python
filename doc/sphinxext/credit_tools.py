@@ -29,6 +29,10 @@ Errors are reported rather than raised when running with ``--report`` (again,
 the monthly action), so that its PR still opens with them in the body for a
 maintainer to fix there; the doc build then fails on them until they are.
 
+New contributors whose PR merged without a changelog fragment are credited on
+the credit page but nowhere in the changelog, so ``--fix-mailmap`` also leaves
+a stub fragment naming them for a maintainer to reword.
+
 Two names that look like the same person are also an error: it usually means an
 address is missing from .mailmap, so someone is credited twice under slightly
 different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
@@ -39,12 +43,14 @@ different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
 # Copyright the MNE-Python contributors.
 
 import argparse
+import contextlib
 import dataclasses
 import difflib
 import fnmatch
 import json
 import os
 import re
+import subprocess
 import unicodedata
 from collections import defaultdict
 from pathlib import Path
@@ -358,6 +364,46 @@ def _append_names_inc_anchors(anchors):
     path.write_text("\n".join(lines) + "\n", "utf-8")
 
 
+def _append_commit_mailmap_entries(emails, logins, urls):
+    """Point commit addresses at the names we credit, so git agrees with us.
+
+    The PR JSON knows a contributor by their GitHub profile, git by whatever
+    their commits carry, so without a .mailmap line ``git shortlog`` credits
+    e.g. "kalomak" where the credit page says "Kalle Mäkelä". Only addresses we
+    can tie to a credited name (the same address, or the login in a GitHub
+    noreply address) are matched; the rest need a human.
+    """
+    by_email = {email: name for name, these in emails.items() for email in these}
+    by_login = dict()
+    for name, login in logins.items():
+        if login is None:  # names.inc links are the other place we keep a login
+            url = urls.get(_reference_key(name), "")
+            login = url.rsplit("/", maxsplit=1)[1] if "github.com/" in url else None
+        if login:
+            by_login.setdefault(login.lower(), name)
+    entries = []
+    try:
+        shortlog = subprocess.check_output(
+            ["git", "shortlog", "-se", "HEAD"], cwd=repo_root, text=True
+        )
+    except Exception:
+        return entries  # best-effort, e.g. a shallow checkout with no history
+    for line in shortlog.splitlines():
+        name, email = line.split("\t", maxsplit=1)[1].rstrip(">").split(" <", 1)
+        if _is_bot(name, email):
+            continue
+        credited = by_email.get(email)
+        if credited is None:
+            login = _github_login(dict(e=email))
+            credited = by_login.get(login.lower()) if login else None
+        if credited is not None and credited != name:
+            entries.append(f"{credited} <{email}>")
+    if entries:
+        _append_mailmap_entries(entries)
+        sphinx_logger.info(f"Added {len(entries)} commit .mailmap entries")
+    return entries
+
+
 def _append_mailmap_entries(entries):
     """Insert entries into .mailmap, sorted the way our pre-commit hook sorts."""
     path = repo_root / ".mailmap"
@@ -406,6 +452,7 @@ def generate_credit_rst(
         stats, commits, ignores, unresolved, logins, emails = _load_pr_stats(mailmap)
     else:
         added = []
+    stubs = _write_newcontrib_stubs(commits) if fix_mailmap else []
     errors = []
     problems = _report_problems(mailmap, unresolved)
     if problems:
@@ -436,6 +483,8 @@ def generate_credit_rst(
             sphinx_logger.info(f"Added {len(anchors_added)} entries to names.inc")
             urls = _load_names_inc()
             missing_anchors = _check_names_inc(all_names, urls)
+    if fix_mailmap:
+        _append_commit_mailmap_entries(emails, logins, urls)
     if missing_anchors:
         suggestions = []
         for name in missing_anchors:
@@ -456,7 +505,7 @@ def generate_credit_rst(
             "credit:\n" + "\n".join(suggestions)
         )
     if report_file is not None:
-        _write_report(report_file, added, anchors_added, errors)
+        _write_report(report_file, added, anchors_added, stubs, errors)
     if errors:
         # --report means the credit action is running: let it open its PR with
         # the problems in the body and leave the failure to the doc build
@@ -480,6 +529,66 @@ def generate_credit_rst(
     _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls)
 
 
+@contextlib.contextmanager
+def _github_client():
+    """Open a GitHub client, authenticated when we have a token."""
+    import github  # not a doc dependency, only needed in the modes below
+
+    token = os.environ.get("GITHUB_TOKEN")
+    auth = github.Auth.Token(token) if token else None
+    with github.Github(auth=auth) as gh:
+        yield gh
+
+
+def _write_newcontrib_stubs(commits):
+    """Leave a changelog stub for new contributors whose PR added none.
+
+    New contributors credit themselves with a ``:newcontrib:`` fragment, so
+    when a PR merges without one they end up on the credit page but never in
+    the changelog. Write a stub naming them (the credit PR is where a
+    maintainer rewords it, picks a better type, or deletes it).
+    """
+    changes = doc_root / "changes"
+    released = sorted(
+        changes.glob("v*.rst"), key=lambda p: [int(v) for v in p.stem[1:].split(".")]
+    )
+    # anyone older than this belongs to a changelog that already shipped
+    cutoff = max(
+        int(pr) for pr in re.findall(r"/pull/(\d+)", released[-1].read_text("utf-8"))
+    )
+    first_pr = dict()  # credited name -> the number of their first PR
+    for name, pr in commits:
+        first_pr[name] = min(int(pr), first_pr.get(name, int(pr)))
+    # one entry per contributor per release is enough, so skip anyone a
+    # fragment already credits (including a stub an earlier run left)
+    credited = set()
+    for path in (changes / "dev").glob("*.rst"):
+        text = path.read_text("utf-8")
+        credited |= {
+            _fold(name)  # accents are spelled inconsistently across changelogs
+            for name in re.findall(r":newcontrib:`([^`]+)`", text)
+            + re.findall(r"`([^`<>]+?)`_", text)
+        }
+    todo = defaultdict(list)  # PR number -> new contributors it never credited
+    for name, pr in first_pr.items():
+        if pr > cutoff and _fold(name) not in credited:
+            todo[pr].append(name)
+    stubs = []
+    try:
+        with _github_client() as gh:
+            repo = gh.get_repo("mne-tools/mne-python")
+            for pr, names in sorted(todo.items()):
+                credit = " and ".join(f":newcontrib:`{name}`" for name in sorted(names))
+                stub = changes / "dev" / f"{pr}.other.rst"
+                stub.write_text(f"{repo.get_pull(pr).title} by {credit}.\n", "utf-8")
+                stubs.append(stub.name)
+    except Exception:
+        pass  # best-effort only, the credit page is still correct without it
+    if stubs:
+        sphinx_logger.info(f"Added {len(stubs)} changelog stub(s)")
+    return stubs
+
+
 def _apply_newcontrib_names(unresolved):
     """Take unresolved contributors' names from their changelog fragments.
 
@@ -500,11 +609,7 @@ def _apply_newcontrib_names(unresolved):
     if not todo:
         return
     try:
-        import github  # not a doc dependency, only needed in --fix-mailmap mode
-
-        token = os.environ.get("GITHUB_TOKEN")
-        auth = github.Auth.Token(token) if token else None
-        with github.Github(auth=auth) as gh:
+        with _github_client() as gh:
             repo = gh.get_repo("mne-tools/mne-python")
             for un in todo:
                 for path in un.changelog_files:
@@ -525,11 +630,7 @@ def _github_website(login):
     if login is None:
         return None
     try:
-        import github  # not a doc dependency, only needed in --report mode
-
-        token = os.environ.get("GITHUB_TOKEN")
-        auth = github.Auth.Token(token) if token else None
-        with github.Github(auth=auth) as gh:
+        with _github_client() as gh:
             website = (gh.get_user(login).blog or "").strip()
     except Exception:
         return None
@@ -538,7 +639,7 @@ def _github_website(login):
     return website or None
 
 
-def _write_report(report_file, added, anchors_added, errors):
+def _write_report(report_file, added, anchors_added, stubs, errors):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
     if errors:
@@ -570,6 +671,19 @@ def _write_report(report_file, added, anchors_added, errors):
             lines.append(f"- `{un.mailmap_entry}` — {', '.join(links)}")
     elif not errors:
         lines += ["All contributor names resolved cleanly."]
+    if stubs:
+        lines += [
+            "",
+            f"{len(stubs)} changelog stub(s) were added for new contributors "
+            "whose PR merged without one. The text is just the PR title, so "
+            "reword it, give it a better type than `other`, or delete it:",
+            "",
+        ]
+        for stub in stubs:
+            pr = stub.split(".")[0]
+            lines.append(
+                f"- `doc/changes/dev/{stub}` — [#{pr}]({PR_URL.format(pr=pr)})"
+            )
     if anchors_added:
         lines += [
             "",

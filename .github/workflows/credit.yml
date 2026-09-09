@@ -20,8 +20,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: true
+          fetch-depth: 0  # git shortlog needs the history to map commit names
       - uses: actions/setup-python@v7.0.0
-      - run: pip install pygithub sphinx -e .
+      - run: pip install pygithub sphinx codespell -e .
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json
       # Resolve contributor names, appending .mailmap entries for any new
@@ -30,6 +31,16 @@ jobs:
       - run: git add .mailmap
       # Citation counts are cheap to refresh here rather than at release time
       - run: python tools/dev/update_cited.py
+      # GitHub Actions are skipped on this PR, so run the one check that new
+      # contributor names tend to trip and put the hits in the PR body
+      - run: |
+          codespell .mailmap doc/changes/names.inc doc/changes/dev/ > $RUNNER_TEMP/codespell.txt || true
+          if [[ -s $RUNNER_TEMP/codespell.txt ]]; then
+            echo "" >> $RUNNER_TEMP/credit-report.md
+            echo "codespell flagged these, add any real names to \`ignore_words.txt\`:" >> $RUNNER_TEMP/credit-report.md
+            echo "" >> $RUNNER_TEMP/credit-report.md
+            sed 's/^/    /' $RUNNER_TEMP/codespell.txt >> $RUNNER_TEMP/credit-report.md
+          fi
       - run: |
           git diff && git status --porcelain
           if [[ $(git status --porcelain) ]]; then
@@ -48,6 +59,7 @@ jobs:
           echo "Created by credit [GitHub action](https://github.com/mne-tools/mne-python/actions/runs/${{ github.run_id }})." > $RUNNER_TEMP/body.md
           echo "" >> $RUNNER_TEMP/body.md
           cat $RUNNER_TEMP/credit-report.md >> $RUNNER_TEMP/body.md
-          PR_NUM=$(gh pr create --base main --head $BRANCH --title "MAINT: Update code credit" --body-file $RUNNER_TEMP/body.md --label "no-changelog-entry-needed")
+          # skip-changelog-checks is the label that tolerates the newcontrib stubs
+          PR_NUM=$(gh pr create --base main --head $BRANCH --title "MAINT: Update code credit" --body-file $RUNNER_TEMP/body.md --label "no-changelog-entry-needed" --label "skip-changelog-checks")
           echo "Opened https://github.com/mne-tools/mne-python/pull/${PR_NUM}" >> $GITHUB_STEP_SUMMARY
         if: steps.status.outputs.dirty == 'true'
