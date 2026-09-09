@@ -1,0 +1,112 @@
+{
+  "merge_commit_sha": "6969a02e2427a228d72990a5598fa084950bc272",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/_digitization.py": {
+      "a": 47,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/channels/layout.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/cov.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/decoding/spatial_filter.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/defaults.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/epochs.py": {
+      "a": 16,
+      "d": 5
+    },
+    "mne/evoked.py": {
+      "a": 23,
+      "d": 16
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/preprocessing/eyetracking/calibration.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 25,
+      "d": 13
+    },
+    "mne/source_estimate.py": {
+      "a": 12,
+      "d": 10
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 27,
+      "d": 10
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 52,
+      "d": 24
+    },
+    "mne/utils/docs.py": {
+      "a": 142,
+      "d": 72
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 27
+    },
+    "mne/viz/raw.py": {
+      "a": 1,
+      "d": 3
+    }
+  }
+}

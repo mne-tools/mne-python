@@ -1,0 +1,76 @@
+{
+  "merge_commit_sha": "64718464cfc1d056b291c02765dc7cafc84314e8",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14216.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14216.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/_preload_cache.py": {
+      "a": 114,
+      "d": 0
+    },
+    "mne/io/ant/ant.py": {
+      "a": 2,
+      "d": 5
+    },
+    "mne/io/ant/tests/test_ant.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 28,
+      "d": 10
+    },
+    "mne/io/curry/curry.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/io/fil/tests/test_fil.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/tests/test_preload_cache.py": {
+      "a": 150,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 10,
+      "d": 7
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 1
+    }
+  }
+}

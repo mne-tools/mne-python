@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "12a1eed5892ef646b3a2fc7ed43f782d1bfbec69",
+  "authors": [
+    {
+      "n": "Daria Agafonova",
+      "e": "33396527+viranovskaya@users.noreply.github.com",
+      "l": "viranovskaya"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14163.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 56,
+      "d": 40
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 39,
+      "d": 0
+    }
+  }
+}

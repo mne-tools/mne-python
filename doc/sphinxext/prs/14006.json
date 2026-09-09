@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "b54e4c85c806731c5402709cea30239465070f43",
+  "authors": [
+    {
+      "n": "Cedric Conday",
+      "e": "277679649+CedricConday@users.noreply.github.com",
+      "l": "CedricConday"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14006.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 10,
+      "d": 0
+    }
+  }
+}

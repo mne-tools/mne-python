@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "4ee4fa7393b9c2025eae486fe0374e9b041ea848",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    "mne/conftest.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}
