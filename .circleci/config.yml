@@ -83,13 +83,13 @@ jobs:
               if [[ "$CIRCLE_BRANCH" == "main" ]]; then
                 KIND=dev
               else
-                KIND=stable
+                KIND=${CIRCLE_BRANCH#maint/}
               fi
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
               if [[ "<< parameters.scheduled >>" == "true" ]]; then
                 echo "Scheduled full build detected, checking if it's required."
-                wget https://mne.tools/${KIND}/_version.txt;
-                REMOTE_VERSION=$(cat _version.txt)
+                # missing (not yet deployed) counts as stale
+                REMOTE_VERSION=$(curl -fsS https://mne.tools/${KIND}/_version.txt || echo none)
                 THIS_VERSION=$(git rev-parse HEAD)
                 echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
                 echo "This    ${KIND} SHA: ${THIS_VERSION}"
@@ -554,7 +554,7 @@ jobs:
           at: /tmp/build
       - restore_cache:
           keys:
-            - website-cache-1
+            - website-cache-2
       - add_ssh_keys:
           fingerprints:
             # SHA256:N4qvp6MSbXcTz/27xz96VPsNuTDRT92zoRP8EW0I/8I
@@ -579,12 +579,12 @@ jobs:
             echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
             chmod og= ~/.ssh/config
             if [ ! -d ~/mne-tools.github.io ]; then
-              git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1
+              git clone git@github.com:/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io
             fi
       - run:
           name: Deploy docs
           command: |
-            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@eb63c18f6a611e4da8d9f31b281b57438c610be4"
+            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@0de7cad022dd573c871e5ac0c5f562c5728a6ba8"
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
             ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
@@ -606,16 +606,25 @@ jobs:
             echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
             # every published build bakes this URL as json_url
             ln -sfn ../../versions.json /tmp/build/html/_static/versions.json
-            # a redeploy of the stable version must not move its URL off /stable/
-            ALIAS=()
-            if [ "$(readlink stable)" == "${DIR}" ]; then ALIAS=(--alias stable); fi
-            python -m docstacks deploy /tmp/build/html "${DIR}" "${ALIAS[@]}" \
+            STABLE=$(readlink stable)
+            CMD=deploy
+            EXTRA=()
+            if [ "${DIR}" == "dev" ]; then
+              # label the dev entry with the release after stable, e.g. "1.14 (dev)"
+              EXTRA=(--name "$(echo "${STABLE}" | awk -F. '{print $1"."$2+1}') (dev)")
+            elif [ "$(printf '%s\n%s\n' "${STABLE}" "${DIR}" | sort -V | tail -n1)" != "${STABLE}" ]; then
+              # first deploy of a release newer than stable: repoint stable and the switcher in one commit
+              CMD=promote
+            fi
+            python -m docstacks ${CMD} /tmp/build/html "${DIR}" "${EXTRA[@]}" \
               --base-url https://mne.tools/ \
               --source-sha "${CIRCLE_SHA1}" \
-              --message "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
+              --message "CircleCI ${CMD} of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
               --push;
+            # keep history a rolling window so the repo never needs a manual squash
+            python -m docstacks prune --keep 20 --push;
       - save_cache:
-          key: website-cache-1
+          key: website-cache-2
           paths:
             - ~/mne-tools.github.io
 
@@ -636,6 +645,10 @@ workflows:
                 - main
                 - /maint\/.*/
 
+  # Both nightlies live in every branch's config; each only fires on the
+  # branches its filter names, so nothing needs editing when a maint/X.Y
+  # branch is cut. Old maint branches skip within minutes once their
+  # deployed _version.txt matches.
   main:
     jobs:
       - build_docs:
@@ -653,6 +666,24 @@ workflows:
             branches:
               only:
                 - main
+
+  maint:
+    jobs:
+      - build_docs:
+          scheduled: "true"
+          name: build_docs_maint
+      - deploy:
+          name: deploy_maint
+          requires:
+            - build_docs_maint
+    triggers:
+      - schedule:
+          # "At 4:00 AM GMT every day", staggered so the two deploys never race
+          cron: "0 4 * * *"
+          filters:
+            branches:
+              only:
+                - /maint\/.*/
 
   monthly:
     jobs:

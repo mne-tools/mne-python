@@ -37,7 +37,7 @@
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Anton Karpov: https://github.com/karpovantonme
 .. _Anton Nikolas Waniek: https://github.com/antonwnk
-.. _Antonio Elias: https://github.com/sonoAESS
+.. _Antonio Elias Sánchez Soto: https://github.com/sonoAESS
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
@@ -273,6 +273,7 @@
 .. _Manorama Kadwani: https://github.com/synapse-stream
 .. _Manu Sutela: https://github.com/MJAS1
 .. _Marcin Koculak: https://github.com/mkoculak
+.. _Marcus Campbell: https://github.com/marcus-campbell
 .. _Marian Dovgialo: https://github.com/mdovgialo
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 .. _Mark Alexander Henney: https://github.com/henneysq

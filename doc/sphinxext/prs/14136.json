@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "073e126963a872bd2df39815658f34225e9e3b54",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_utils.py": {
+      "a": 20,
+      "d": 2
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "783e725b1de9d47a4d6b5cf4a9e4017c92595385",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    }
+  ],
+  "changes": {
+    "AGENTS.md": {
+      "a": 12,
+      "d": 0
+    },
+    "doc/changes/dev/14212.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/_fiff/utils.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/io/base.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/utils/mixin.py": {
+      "a": 7,
+      "d": 2
+    }
+  }
+}

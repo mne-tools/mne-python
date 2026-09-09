@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "f71c16246480442feb65065e737c93d5b1314260",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14202.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 252,
+      "d": 70
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 13,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 41,
+      "d": 1
+    }
+  }
+}
