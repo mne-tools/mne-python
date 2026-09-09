@@ -55,7 +55,9 @@ def _parse_nedf_header(header):
     n_samples : int
         The number of data samples.
     """
-    defusedxml = _soft_import("defusedxml", "reading NEDF data")
+    _soft_import("defusedxml", "reading NEDF data")
+    import defusedxml.ElementTree  # ty: ignore[unresolved-import]
+
     info = {}
     # nedf files have three accelerometer channels sampled at 100Hz followed
     # by five EEG samples + TTL trigger sampled at 500Hz
