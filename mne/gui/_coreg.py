@@ -83,11 +83,11 @@ def _fit_quality(mean_dist):
     error around 1-4 mm).
     """
     if mean_dist <= 5.0:
-        return "Good", "#2e7d32"
+        return "Good", "forestgreen"
     elif mean_dist <= 10.0:
-        return "Fair", "#e69f00"
+        return "Fair", "orange"
     else:
-        return "Poor", "#d55e00"
+        return "Poor", "chocolate"
 
 
 _FID_COORD_RANGE_MM = (-1e3, 1e3)
@@ -95,8 +95,8 @@ _TRANSLATION_RANGE_MM = (-100.0, 100.0)
 _GROW_HAIR_RANGE_MM = (0.0, 10.0)
 _OMIT_DISTANCE_RANGE_MM = (0.0, 100.0)
 
-_HSP_OUTSIDE_COLOR = (0.35, 0.7, 0.9)
-_HSP_INSIDE_COLOR = (0.8, 0.4, 0.0)
+_HSP_OUTSIDE_COLOR = (0.35, 0.7, 0.9)  # sky blue
+_HSP_INSIDE_COLOR = (0.8, 0.4, 0.0)  # vermilion (burnt orange-red)
 
 
 def _convert_distance(value, from_unit, to_unit):
