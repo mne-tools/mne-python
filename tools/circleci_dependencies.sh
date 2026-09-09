@@ -10,13 +10,14 @@ python -m pip install --upgrade "pip>=25.1" uv build
 # also install colormath because it doesn't have a binary wheel
 uv pip install --upgrade --only-binary=numpy,scipy \
     "rpy2==3.6.6" "rpy2-rinterface==3.6.5" "rpy2-robjects==3.6.4" mne-ari colormath
+# TODO: PyVista pinned until the regression from 2026/09/09 is fixed
 uv pip install --upgrade --overrides tools/circleci_uv_overrides.txt \
     -e .[full-pyside6] \
     --group=test \
     --group=doc-full \
     "mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
     "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
-    "pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
+    "pyvista @ https://github.com/pyvista/pyvista/archive/b2d3a65bffc881a85673b911b02d90f1047bc7cf.zip" \
     "pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
     "sphinx-gallery @ https://github.com/sphinx-gallery/sphinx-gallery/archive/refs/heads/master.zip" \
     -r doc/sphinxext/related_software.txt

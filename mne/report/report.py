@@ -71,7 +71,6 @@ from ..viz import (
     Figure3D,
     _get_plot_ch_type,
     create_3d_figure,
-    get_3d_backend,
     plot_alignment,
     plot_compare_evokeds,
     plot_cov,
@@ -4639,12 +4638,6 @@ class Report:
             )
         t_zero_idx = np.abs(times).argmin()  # index of time closest to zero
 
-        # Plot using 3d backend if available, and use Matplotlib
-        # otherwise.
-        # TODO: the Matplotlib fallback below is deprecated, remove it (and require a
-        # 3D backend here) once the mpl 3D backend goes away in 1.15
-        import matplotlib.pyplot as plt
-
         stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
         # we need to set the size based on the min (img_max_width can be None)
@@ -4653,12 +4646,8 @@ class Report:
                 stc_plot_kwargs["size"][0],
                 min(stc_plot_kwargs["size"][1], self.img_max_width),
             )
-        if get_3d_backend() is not None:
-            brain = stc.plot(**stc_plot_kwargs)
-            brain._renderer.plotter.subplot(0, 0)
-            backend_is_3d = True
-        else:
-            backend_is_3d = False
+        brain = stc.plot(**stc_plot_kwargs)
+        brain._renderer.plotter.subplot(0, 0)
 
         figs = []
         for t in times:
@@ -4669,51 +4658,10 @@ class Report:
                     category=RuntimeWarning,
                 )
 
-                if backend_is_3d:
-                    brain.set_time(t)
-                    figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
-                else:
-                    fig_lh = plt.figure(layout="constrained")
-                    fig_rh = plt.figure(layout="constrained")
+                brain.set_time(t)
+                figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
 
-                    brain_lh = stc.plot(
-                        views="lat",
-                        hemi="lh",
-                        initial_time=t,
-                        backend="matplotlib",
-                        subject=subject,
-                        subjects_dir=subjects_dir,
-                        figure=fig_lh,
-                    )
-                    brain_rh = stc.plot(
-                        views="lat",
-                        hemi="rh",
-                        initial_time=t,
-                        subject=subject,
-                        subjects_dir=subjects_dir,
-                        backend="matplotlib",
-                        figure=fig_rh,
-                    )
-                    _constrain_fig_resolution(
-                        fig_lh,
-                        max_width=stc_plot_kwargs["size"][0],
-                        max_res=self.img_max_res,
-                    )
-                    _constrain_fig_resolution(
-                        fig_rh,
-                        max_width=stc_plot_kwargs["size"][0],
-                        max_res=self.img_max_res,
-                    )
-                    figs.append(brain_lh)
-                    figs.append(brain_rh)
-                    plt.close(fig_lh)
-                    plt.close(fig_rh)
-
-        if backend_is_3d:
-            brain.close()
-        else:
-            brain_lh.close()
-            brain_rh.close()
+        brain.close()
 
         captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
         self._add_slider(
@@ -4728,9 +4676,6 @@ class Report:
             replace=replace,
             own_figure=False,  # prevent rescaling
         )
-        for fig in figs:
-            if not isinstance(fig, np.ndarray):
-                plt.close(fig)
 
     @_use_agg
     def _add_bem(
