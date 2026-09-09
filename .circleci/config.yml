@@ -176,7 +176,7 @@ jobs:
       # Load tiny cache so that ~/.mne does not need to be created below
       - restore_cache:
           keys:
-            - data-cache-tiny-v1-{{ checksum "misc_version.txt" }}-{{ checksum "cache_keys/tiny.txt" }}
+            - data-cache-tiny-v2-{{ checksum "misc_version.txt" }}-{{ checksum "cache_keys/tiny.txt" }}
 
       # Look at what we have and fail early if there is some library conflict
       - run:
@@ -300,7 +300,7 @@ jobs:
           condition: *full_build
           steps:
             - save_cache:
-                key: data-cache-tiny-v1-{{ checksum "misc_version.txt" }}-{{ checksum "cache_keys/tiny.txt" }}  # the small ones, combined
+                key: data-cache-tiny-v2-{{ checksum "misc_version.txt" }}-{{ checksum "cache_keys/tiny.txt" }}  # the small ones, combined
                 paths:
                   - ~/.mne
                   - ~/mne_data/MNE-kiloword-data  # (28 M)
