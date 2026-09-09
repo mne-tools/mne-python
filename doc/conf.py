@@ -686,8 +686,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
-    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    r"https://openalex.org/works\?filter=cites:",  # doc/documentation/cited.rst
     "https://www.research.chop.edu/imaging",
     "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",

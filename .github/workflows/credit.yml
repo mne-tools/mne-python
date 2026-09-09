@@ -28,6 +28,8 @@ jobs:
       # contributors whose names need verification (listed in the PR body)
       - run: python doc/sphinxext/credit_tools.py --fix-mailmap --report $RUNNER_TEMP/credit-report.md
       - run: git add .mailmap
+      # Citation counts are cheap to refresh here rather than at release time
+      - run: python tools/dev/update_cited.py
       - run: |
           git diff && git status --porcelain
           if [[ $(git status --porcelain) ]]; then
