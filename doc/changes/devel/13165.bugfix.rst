@@ -1,0 +1,1 @@
+Fixes behavior of stc.save() filetypes and suffixes while saving through SourceEstimate.save method in mne.source_estimate by `Shresth Keshari`_.
