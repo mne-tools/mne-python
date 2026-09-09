@@ -481,10 +481,9 @@ def test_initial_fit_redo():
     angles = np.rad2deg(np.arccos(np.abs(np.sum(coil_ori * py_ori, axis=1))))
     assert_array_less(angles, 20)
 
-    # check resulting dev_head_t (also the one place we exercise the deprecated
-    # default value of ``weighted``, see gh-11330)
-    with pytest.warns(FutureWarning, match="weighted will change"):
-        head_pos = compute_head_pos(raw.info, chpi_locs)
+    # check resulting dev_head_t (also the one place we exercise the default
+    # value of ``weighted``, see gh-11330)
+    head_pos = compute_head_pos(raw.info, chpi_locs)
     assert head_pos.shape == (1, 10)
     nm_pos = raw.info["dev_head_t"]["trans"]
     dist = 1000 * np.linalg.norm(nm_pos[:3, 3] - head_pos[0, 4:7])
@@ -494,7 +493,7 @@ def test_initial_fit_redo():
     )
     assert 0.1 < angle < 2
     gof = head_pos[0, 7]
-    assert_allclose(gof, 0.9999, atol=1e-4)
+    assert_allclose(gof, 0.9998, atol=1e-4)
 
 
 def test_fit_chpi_quat_weighted():

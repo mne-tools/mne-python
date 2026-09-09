@@ -5253,14 +5253,6 @@ vmin, vmax : float | {allowed}None
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""
 )
-# ↓↓↓ this one still used in Evoked.animate_topomap(), should migrate to `vlim`
-docdict["vmin_vmax_topomap"] = _vmin_vmax_template.format(
-    allowed="callable | ",
-    bounds=_bounds_symmetric,
-    extra=""" If callable, should accept
-    a :class:`NumPy array <numpy.ndarray>` of data and return a :class:`float`.""",
-)
-
 
 # %%
 # W

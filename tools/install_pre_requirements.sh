@@ -56,8 +56,9 @@ python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
+# TODO: Pin pyvista until regression fixed 2026/09/09
 uv pip install $STD_ARGS \
-	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
+	"pyvista @ https://github.com/pyvista/pyvista/archive/b2d3a65bffc881a85673b911b02d90f1047bc7cf.zip" \
 	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"nilearn @ https://github.com/nilearn/nilearn/archive/refs/heads/main.zip" \
 	"edfio @ https://github.com/the-siesta-group/edfio/archive/refs/heads/main.zip" \
