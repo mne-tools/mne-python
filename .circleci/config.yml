@@ -604,7 +604,13 @@ jobs:
               circleci-agent step halt;
             fi;
             echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
-            python -m docstacks deploy /tmp/build/html "${DIR}" --no-manifest \
+            # every published build bakes this URL as json_url
+            ln -sfn ../../versions.json /tmp/build/html/_static/versions.json
+            # a redeploy of the stable version must not move its URL off /stable/
+            ALIAS=()
+            if [ "$(readlink stable)" == "${DIR}" ]; then ALIAS=(--alias stable); fi
+            python -m docstacks deploy /tmp/build/html "${DIR}" "${ALIAS[@]}" \
+              --base-url https://mne.tools/ \
               --source-sha "${CIRCLE_SHA1}" \
               --message "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
               --push;

@@ -853,7 +853,7 @@ html_theme_options = {
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
-        "json_url": "https://mne.tools/dev/_static/versions.json",
+        "json_url": "https://mne.tools/versions.json",
         "version_match": switcher_version_match,
     },
     "show_version_warning_banner": True,
