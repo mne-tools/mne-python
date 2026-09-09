@@ -35,6 +35,7 @@ Similarly, epochs can also be be read from disk on-demand. For example::
     import mne
     events = mne.find_events(raw)
     event_id, tmin, tmax = 1, -0.2, 0.5
+    # TODO: https://github.com/mne-tools/mne-python/issues/11913
     picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True)
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6),

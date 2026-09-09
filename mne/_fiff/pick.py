@@ -12,6 +12,7 @@ from ..utils import (
     _ensure_int,
     _validate_type,
     fill_doc,
+    legacy,
     logger,
     verbose,
 )
@@ -277,6 +278,7 @@ def channel_type(info, idx):
     return first_kind
 
 
+@legacy
 @verbose
 def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     """Pick channels by names.
@@ -339,6 +341,7 @@ def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     return np.array(sel, int)
 
 
+@legacy
 def pick_channels_regexp(ch_names, regexp):
     """Pick channels using regular expression.
 
@@ -480,6 +483,7 @@ def _check_info_exclude(info, exclude):
     return exclude
 
 
+@legacy
 @fill_doc
 def pick_types(
     info,
@@ -742,6 +746,7 @@ def _has_kit_refs(info, picks):
     return False
 
 
+@legacy
 @verbose
 def pick_channels_forward(
     orig, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
@@ -827,6 +832,7 @@ def pick_channels_forward(
     return fwd
 
 
+@legacy
 def pick_types_forward(
     orig,
     meg=False,
@@ -938,6 +944,7 @@ def channel_indices_by_type(info, picks=None, *, exclude=()):
     return idx_by_type
 
 
+@legacy
 @verbose
 def pick_channels_cov(
     orig, include=(), exclude="bads", ordered=True, copy=True, *, verbose=None
