@@ -719,6 +719,59 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
+    def mark_bad_channels_per_epoch(self, reject_mask=None):
+        """Mark bad channels on an epoch by epoch basis.
+
+        Warning: This is only useful for channel-wise analyses.
+
+        Parameters
+        ----------
+        reject_mask : np.ndarray, shape (n_epochs, n_channels) | None
+            Boolean mask where True indicates an epoch marked with
+            NaN for a specific channel.
+            If None, no epochs are marked.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs object with bad epochs marked with NaNs per channel.
+            Operates in-place.
+        """
+        if reject_mask is None:
+            return self
+
+        if not self.preload:
+            raise ValueError("Epochs must be preloaded.")
+
+        data = self._data
+        assert data is not None  # preloaded => _data is an ndarray
+
+        n_epochs, n_channels, _ = data.shape
+
+        if reject_mask.shape != (n_epochs, n_channels):
+            raise ValueError(
+                f"reject_mask must have shape ({n_epochs}, {n_channels}), "
+                f"got {reject_mask.shape}"
+            )
+
+        # required: bool -> boolean indexing, not int
+        if not np.issubdtype(reject_mask.dtype, np.bool_):
+            reject_mask = reject_mask.astype(bool)
+
+        # Set bad epochs to NaN
+        data[reject_mask] = np.nan
+
+        # store mask for updating nave
+        self.reject_mask = reject_mask
+
+        # store nave per channel for updating nave
+        valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
+
+        # currently no documentation on that attribute
+        self.nave_per_channel = valid_epochs_per_channel
+
+        return self
+
     def _check_events_outside_data(self, on_outside, raw):
         """Warn when events fall outside the range of the recorded data (gh-12989)."""
         if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
@@ -1233,6 +1286,13 @@ class BaseEpochs(
             n_events = len(self.events)
             fun = _check_combine(mode, valid=("mean", "median", "std"))
             data = fun(self._data)
+            if np.isnan(data).any():
+                raise ValueError(
+                    "Cannot average epochs containing NaNs (possibly introduced by "
+                    "mark_bad_channels_per_epoch): any channel with a rejected epoch "
+                    "would average to NaN. Extract the data with get_data() and use "
+                    "np.nanmean over the epoch axis if you need per-channel averages."
+                )
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
                 raise RuntimeError(
@@ -1327,12 +1387,15 @@ class BaseEpochs(
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
         # don't apply baseline correction; we'll set evoked.baseline manually
+
+        nave = n_events
+
         evoked = EvokedArray(
             data,
             info,
             tmin=self.times[0],
             comment=comment,
-            nave=n_events,
+            nave=nave,
             kind=kind,
             baseline=None,
         )
