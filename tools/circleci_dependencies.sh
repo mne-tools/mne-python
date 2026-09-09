@@ -10,10 +10,14 @@ python -m pip install --upgrade "pip>=25.1" uv build
 # also install colormath because it doesn't have a binary wheel
 uv pip install --upgrade --only-binary=numpy,scipy \
     "rpy2==3.6.6" "rpy2-rinterface==3.6.5" "rpy2-robjects==3.6.4" mne-ari colormath
-uv pip install --upgrade --overrides tools/circleci_uv_overrides.txt \
+# Two steps: with the override active, uv 0.12 drops the self-referential
+# mne[full] extras chain (the maint/1.13 docs build lost antio/openmeeg/snirf), so
+# install the project and its extras without it, then the related software with it.
+uv pip install --upgrade \
     -e .[full-pyside6] \
     --group=test \
-    --group=doc-full \
+    --group=doc-full
+uv pip install --upgrade --overrides tools/circleci_uv_overrides.txt \
     "mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
     "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
     "sphinx-gallery @ https://github.com/sphinx-gallery/sphinx-gallery/archive/refs/heads/master.zip" \
