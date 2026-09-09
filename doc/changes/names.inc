@@ -38,7 +38,6 @@
 .. _Anton Karpov: https://github.com/karpovantonme
 .. _Anton Nikolas Waniek: https://github.com/antonwnk
 .. _Antonio Elias Sánchez Soto: https://github.com/sonoAESS
-.. _Antonio Elias: https://github.com/sonoAESS
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
@@ -53,7 +52,6 @@
 .. _Baris Talar: https://github.com/baris-talar
 .. _Basile Pinsard: https://github.com/bpinsard
 .. _Beige Jerry Jin: https://github.com/BeiGeJin
-.. _Beliz Gokmen: https://github.com/BelizSertcan
 .. _Beliz Sertcan Gökmen: https://github.com/BelizSertcan
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Ben Tang: https://github.com/bentang18
@@ -248,7 +246,6 @@
 .. _Kristijan Armeni: https://github.com/kristijanarmeni
 .. _Kyle Mathewson: https://github.com/kylemath
 .. _Laetitia Grabot: https://github.com/LaetitiaG
-.. _LaetitiaG: https://github.com/LaetitiaG
 .. _Larry Eisenman:  https://github.com/lneisenman
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 .. _Laura Gwilliams: https://lauragwilliams.github.io

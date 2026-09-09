@@ -21,7 +21,9 @@ contributors pick that name themselves.
 Every credited name is shown as a link to that person, so it also needs an
 entry in doc/changes/names.inc (the same links changelogs use). ``--fix-mailmap``
 adds one pointing at the contributor's GitHub profile where we know it;
-anything left over is an error, since the badge would have nowhere to point.
+anything left over is an error, since the badge would have nowhere to point (or,
+when it is an existing contributor under another spelling, a sign that .mailmap
+should map that address to the name we already credit).
 
 Errors are reported rather than raised when running with ``--report`` (again,
 the monthly action), so that its PR still opens with them in the body for a
@@ -294,6 +296,7 @@ def _load_pr_stats(mailmap):
     fallback_names = dict()  # email -> good GitHub-derived name
     unresolved = dict()  # email (or name#pr) -> _Unresolved
     logins = dict()  # credited name -> GitHub login (None if unknown)
+    emails = defaultdict(set)  # credited name -> author addresses seen
     # (name, pr) -> total change count, used for logging the biggest PRs
     commits = defaultdict(int)
     # filename -> name -> [additions, deletions]
@@ -307,6 +310,9 @@ def _load_pr_stats(mailmap):
             _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
             for author in data["authors"]
         ]
+        for author, name in zip(data["authors"], names):
+            if name is not None and author.get("e"):
+                emails[name].add(author["e"])
         # dedup, keeping author order (so ties in the output sort stay stable)
         names = [name for name in dict.fromkeys(names) if name is not None]
         for file, counts in data["changes"].items():
@@ -320,7 +326,7 @@ def _load_pr_stats(mailmap):
             for name in names:
                 commits[(name, pr)] += p + m
                 stats[file][name] += [p, m]
-    return stats, commits, ignores, unresolved, logins
+    return stats, commits, ignores, unresolved, logins, emails
 
 
 def _load_names_inc():
@@ -390,14 +396,14 @@ def generate_credit_rst(
     """Get the credit RST."""
     sphinx_logger.info("Creating code credit RST inclusion file")
     mailmap = _load_mailmap()
-    stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
+    stats, commits, ignores, unresolved, logins, emails = _load_pr_stats(mailmap)
     added = [un for un in unresolved.values() if un.email is not None]
     if fix_mailmap and added and not mailmap.problems:
         _apply_newcontrib_names(added)
         _append_mailmap_entries(un.mailmap_entry for un in added)
         sphinx_logger.info(f"Added {len(added)} entries to .mailmap")
         mailmap = _load_mailmap()  # second pass with the appended entries
-        stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
+        stats, commits, ignores, unresolved, logins, emails = _load_pr_stats(mailmap)
     else:
         added = []
     errors = []
@@ -431,14 +437,23 @@ def generate_credit_rst(
             urls = _load_names_inc()
             missing_anchors = _check_names_inc(all_names, urls)
     if missing_anchors:
+        suggestions = []
+        for name in missing_anchors:
+            suggestions.append(f".. _{name}: https://...")
+            suggestions += [
+                f"    ...or in .mailmap: Their Name <{email}>"
+                for email in sorted(emails[name])
+            ]
         errors.append(
             f"{len(missing_anchors)} credited name(s) have no link in "
             "doc/changes/names.inc, which the code credit page needs to link "
             "their badge. Add a line for each of them (the file is sorted "
             "alphabetically, ignoring case), or run\n"
             "`python doc/sphinxext/credit_tools.py --fix-mailmap` to fill in "
-            "the ones whose GitHub profile we know:\n"
-            + "\n".join(f".. _{name}: https://..." for name in missing_anchors)
+            "the ones whose GitHub profile we know. A name that is really an "
+            "existing contributor spelled differently should instead get a "
+            ".mailmap entry pointing their address at the name we already "
+            "credit:\n" + "\n".join(suggestions)
         )
     if report_file is not None:
         _write_report(report_file, added, anchors_added, errors)
@@ -527,15 +542,16 @@ def _write_report(report_file, added, anchors_added, errors):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
     if errors:
-        lines += [
-            "> [!IMPORTANT]",
-            "> The doc build will fail until these are fixed in this PR:",
+        # every line needs the "> " prefix or it falls out of the alert
+        alert = [
+            "[!IMPORTANT]",
+            "The doc build will fail until these are fixed in this PR:",
             "",
             "```",
             *"\n\n".join(errors).splitlines(),
             "```",
-            "",
         ]
+        lines += [f"> {line}".rstrip() for line in alert] + [""]
     if added:
         lines += [
             f"{len(added)} new contributor(s) were added to `.mailmap`, named "
@@ -583,18 +599,15 @@ _NULL_GLOBS = """
 # The "doc" entry must precede "maintenance" so doc/*.yml etc. count as doc.
 _ALIAS_GLOBS = {
     "mne.preprocessing": "mne/artifacts/*.py mne/csp.py",
-    "mne.io": "mne/pick.py mne/constants.py mne/info.py mne/fiff/*.* mne/_fiff/*.* "
-    "mne/raw.py mne/testing.py mne/_hdf5.py mne/compensator.py",
+    "mne.io": "mne/pick.py mne/constants.py mne/info.py mne/fiff/*.* mne/_fiff/*.* mne/raw.py mne/testing.py mne/_hdf5.py mne/compensator.py",  # noqa: E501
     "mne.transforms": "mne/transforms/*.py mne/_freesurfer.py",
     "mne.inverse_sparse": "mne/mixed_norm/*.py mne/sparse_learning/*.py",
     "mne.commands": "mne/__main__.py bin/*",
     "mne.surface": "mne/morph_map.py",
     "mne.epochs": "mne/baseline.py",
-    "mne.utils": "mne/parallel.py mne/rank.py mne/misc.py mne/data/*.* "
-    "mne/defaults.py mne/fixes.py mne/icons/*.* mne/icons.*",
+    "mne.utils": "mne/parallel.py mne/rank.py mne/misc.py mne/data/*.* mne/defaults.py mne/fixes.py mne/icons/*.* mne/icons.* mne/**_numba.py",  # noqa: E501
     "mne.filter": "mne/_ola.py mne/cuda.py",
-    "mne.channels": "mne/*digitization/*.py mne/layouts/*.py mne/montages/*.py "
-    "mne/selection.py",
+    "mne.channels": "mne/*digitization/*.py mne/layouts/*.py mne/montages/*.py mne/selection.py",  # noqa: E501
     "mne.bem": "mne/bem_surfaces.py",
     "mne.coreg": "mne/coreg/*.py",
     "mne.minimum_norm": "mne/inverse.py",
@@ -607,9 +620,7 @@ _ALIAS_GLOBS = {
     "doc": "doc/* doc/*.py doc/*.rst",
     "examples": "examples/*.py examples/*.rst",
     "tutorials": "tutorials/*.py tutorials/*.rst",
-    "maintenance": ".circleci/* tools/* *.yml *.md setup.* MANIFEST.in Makefile "
-    "README.rst flow_diagram.py *.toml debian/* logo/*.py *.git* "
-    ".pre-commit-config.yaml .mailmap .coveragerc make/*",
+    "maintenance": ".circleci/* tools/* *.yml *.md setup.* MANIFEST.in Makefile README.rst flow_diagram.py *.toml debian/* logo/*.py *.git* .pre-commit-config.yaml .mailmap .coveragerc make/* .extended_metadata.yaml",  # noqa: E501
 }
 _LINK_OVERRIDES = {  # website links that aren't just module paths in this repo
     "mne-connectivity (moved)": "mne-tools/mne-connectivity",
@@ -635,7 +646,7 @@ def _build_globs():
         if file.is_dir():
             globs[f"mne/{rel}/*.*"] = mod
             globs[f"mne/{rel}.*"] = mod
-        elif file.is_file() and file.suffix == ".py":
+        elif file.is_file() and file.suffix == ".py" and not file.stem.startswith("_"):
             key = f"mne/{rel}.py"
             if file.stem == "conftest":
                 globs[key] = "maintenance"

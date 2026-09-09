@@ -584,7 +584,7 @@ jobs:
       - run:
           name: Deploy docs
           command: |
-            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@eb63c18f6a611e4da8d9f31b281b57438c610be4"
+            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@cc7c3ff087e8d9739a5a73f594bb4b885a25eb08"
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
             ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
@@ -606,13 +606,20 @@ jobs:
             echo "Deploying ${DIR} docs for ${CIRCLE_BRANCH}.";
             # every published build bakes this URL as json_url
             ln -sfn ../../versions.json /tmp/build/html/_static/versions.json
-            # a redeploy of the stable version must not move its URL off /stable/
-            ALIAS=()
-            if [ "$(readlink stable)" == "${DIR}" ]; then ALIAS=(--alias stable); fi
-            python -m docstacks deploy /tmp/build/html "${DIR}" "${ALIAS[@]}" \
+            STABLE=$(readlink stable)
+            CMD=deploy
+            EXTRA=()
+            if [ "${DIR}" == "dev" ]; then
+              # label the dev entry with the release after stable, e.g. "1.14 (dev)"
+              EXTRA=(--name "$(echo "${STABLE}" | awk -F. '{print $1"."$2+1}') (dev)")
+            elif [ "$(printf '%s\n%s\n' "${STABLE}" "${DIR}" | sort -V | tail -n1)" != "${STABLE}" ]; then
+              # first deploy of a release newer than stable: repoint stable and the switcher in one commit
+              CMD=promote
+            fi
+            python -m docstacks ${CMD} /tmp/build/html "${DIR}" "${EXTRA[@]}" \
               --base-url https://mne.tools/ \
               --source-sha "${CIRCLE_SHA1}" \
-              --message "CircleCI update of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
+              --message "CircleCI ${CMD} of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
               --push;
       - save_cache:
           key: website-cache-1
