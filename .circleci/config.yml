@@ -584,7 +584,7 @@ jobs:
       - run:
           name: Deploy docs
           command: |
-            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@0de7cad022dd573c871e5ac0c5f562c5728a6ba8"
+            python -m pip install "docstacks @ git+https://github.com/larsoner/docstacks@0e9051527e41d1fe74acc606340699e90943ef3a"
             git config --global user.email "circle@mne.tools";
             git config --global user.name "Circle CI";
             ssh-add -D && ssh-add ~/.ssh/id_rsa_19fe1dc3c7af7e16944ce1e70a5613bd
@@ -621,8 +621,9 @@ jobs:
               --source-sha "${CIRCLE_SHA1}" \
               --message "CircleCI ${CMD} of ${DIR} docs (${CIRCLE_BUILD_NUM})." \
               --push;
-            # keep history a rolling window so the repo never needs a manual squash
-            python -m docstacks prune --keep 20 --push;
+            # squash history onto the previous squash commit every ~20 deploys, so
+            # the repo stays small without a manual step and the push stays thin
+            python -m docstacks prune --keep 20 --min-squash 20 --push;
       - save_cache:
           key: website-cache-2
           paths:

@@ -1,1 +1,0 @@
-Avoid pytest 10 deprecation warnings when parametrizing scikit-learn estimator checks, by :newcontrib:`Deepesh Sonar`.

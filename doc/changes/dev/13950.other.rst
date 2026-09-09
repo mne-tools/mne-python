@@ -1,1 +1,0 @@
-Add MNE-RT to related software ecosystem and roadmap by :newcontrib:`Payam Sadeghi-Shabestari`.

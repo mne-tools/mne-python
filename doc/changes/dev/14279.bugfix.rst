@@ -1,1 +1,0 @@
-Use a fixed normalized Kuiper-index cutoff of 0.3 for automatic CTPS ECG detection in :meth:`mne.preprocessing.ICA.find_bads_ecg`, independent of sampling frequency and trial count, by :newcontrib:`Amirali Moradniaei`.
