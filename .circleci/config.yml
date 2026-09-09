@@ -83,13 +83,13 @@ jobs:
               if [[ "$CIRCLE_BRANCH" == "main" ]]; then
                 KIND=dev
               else
-                KIND=stable
+                KIND=${CIRCLE_BRANCH#maint/}
               fi
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
               if [[ "<< parameters.scheduled >>" == "true" ]]; then
                 echo "Scheduled full build detected, checking if it's required."
-                wget https://mne.tools/${KIND}/_version.txt;
-                REMOTE_VERSION=$(cat _version.txt)
+                # missing (not yet deployed) counts as stale
+                REMOTE_VERSION=$(curl -fsS https://mne.tools/${KIND}/_version.txt || echo none)
                 THIS_VERSION=$(git rev-parse HEAD)
                 echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
                 echo "This    ${KIND} SHA: ${THIS_VERSION}"
@@ -643,6 +643,10 @@ workflows:
                 - main
                 - /maint\/.*/
 
+  # Both nightlies live in every branch's config; each only fires on the
+  # branches its filter names, so nothing needs editing when a maint/X.Y
+  # branch is cut. Old maint branches skip within minutes once their
+  # deployed _version.txt matches.
   main:
     jobs:
       - build_docs:
@@ -660,6 +664,24 @@ workflows:
             branches:
               only:
                 - main
+
+  maint:
+    jobs:
+      - build_docs:
+          scheduled: "true"
+          name: build_docs_maint
+      - deploy:
+          name: deploy_maint
+          requires:
+            - build_docs_maint
+    triggers:
+      - schedule:
+          # "At 4:00 AM GMT every day", staggered so the two deploys never race
+          cron: "0 4 * * *"
+          filters:
+            branches:
+              only:
+                - /maint\/.*/
 
   monthly:
     jobs:
