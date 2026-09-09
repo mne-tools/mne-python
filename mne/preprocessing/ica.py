@@ -4,7 +4,6 @@
 # Copyright the MNE-Python contributors.
 
 import json
-import math
 import warnings
 from collections import namedtuple
 from collections.abc import Sequence
@@ -1617,30 +1616,6 @@ class ICA(ContainsMixin):
 
         return labels, scores
 
-    def _get_ctps_threshold(self, pk_threshold=20):
-        """Automatically decide the threshold of Kuiper index for CTPS method.
-
-        This function finds the threshold of Kuiper index based on the
-        threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
-        is returned. It is assumed that the data are appropriately filtered and
-        bad data are rejected at least based on peak-to-peak amplitude
-        when/before running the ICA decomposition on data.
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        N = self.info["sfreq"]
-        Vs = np.arange(1, 100) / 100
-        C = math.sqrt(N) + 0.155 + 0.24 / math.sqrt(N)
-        # in formula (13), when k gets large, only k=1 matters for the
-        # summation. k*V*C thus becomes V*C
-        Pks = 2 * (4 * (Vs * C) ** 2 - 1) * (np.exp(-2 * (Vs * C) ** 2))
-        # NOTE: the threshold of pk is transformed to Pk for comparison
-        # pk = -log10(Pk)
-        return Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
-
     @verbose
     def find_bads_ecg(
         self,
@@ -1714,9 +1689,9 @@ class ICA(ContainsMixin):
         The ``threshold``, ``method``, and ``measure`` parameters interact in
         the following ways:
 
-        - If ``method='ctps'``, ``threshold`` refers to the significance value
-          of a Kuiper statistic, and ``threshold='auto'`` will compute the
-          threshold automatically based on the sampling frequency.
+        - If ``method='ctps'``, ``threshold`` refers to the maximum normalized
+          Kuiper index across time, and ``threshold='auto'`` sets the threshold
+          to 0.3, independent of the sampling frequency and number of trials.
         - If ``method='correlation'`` and ``measure='correlation'``,
           ``threshold`` refers to the Pearson correlation value, and
           ``threshold='auto'`` sets the threshold to 0.9.
@@ -1747,9 +1722,6 @@ class ICA(ContainsMixin):
             ecg = inst.ch_names[idx_ecg]
 
         if method == "ctps":
-            if threshold == "auto":
-                threshold = self._get_ctps_threshold()
-                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(
                     create_ecg_epochs(
@@ -1771,6 +1743,9 @@ class ICA(ContainsMixin):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
                 raise ValueError("With `ctps` only Raw and Epochs input is supported")
+            if threshold == "auto":
+                threshold = 0.3
+                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
