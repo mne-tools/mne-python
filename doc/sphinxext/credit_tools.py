@@ -23,6 +23,10 @@ entry in doc/changes/names.inc (the same links changelogs use). ``--fix-mailmap`
 adds one pointing at the contributor's GitHub profile where we know it;
 anything left over is an error, since the badge would have nowhere to point.
 
+Errors are reported rather than raised when running with ``--report`` (again,
+the monthly action), so that its PR still opens with them in the body for a
+maintainer to fix there; the doc build then fails on them until they are.
+
 Two names that look like the same person are also an error: it usually means an
 address is missing from .mailmap, so someone is credited twice under slightly
 different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
@@ -396,14 +400,15 @@ def generate_credit_rst(
         stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
     else:
         added = []
+    errors = []
     problems = _report_problems(mailmap, unresolved)
     if problems:
-        raise RuntimeError(problems)
+        errors.append(problems)
 
     all_names = {name for these in stats.values() for name in these}
     duplicates = _similar_names(all_names)
     if duplicates:
-        raise RuntimeError(
+        errors.append(
             f"{len(duplicates)} possible duplicate contributor(s):\n"
             + "\n".join(duplicates)
         )
@@ -426,7 +431,7 @@ def generate_credit_rst(
             urls = _load_names_inc()
             missing_anchors = _check_names_inc(all_names, urls)
     if missing_anchors:
-        raise RuntimeError(
+        errors.append(
             f"{len(missing_anchors)} credited name(s) have no link in "
             "doc/changes/names.inc, which the code credit page needs to link "
             "their badge. Add a line for each of them (the file is sorted "
@@ -436,7 +441,15 @@ def generate_credit_rst(
             + "\n".join(f".. _{name}: https://..." for name in missing_anchors)
         )
     if report_file is not None:
-        _write_report(report_file, added, anchors_added)
+        _write_report(report_file, added, anchors_added, errors)
+    if errors:
+        # --report means the credit action is running: let it open its PR with
+        # the problems in the body and leave the failure to the doc build
+        for error in errors:
+            sphinx_logger.warning(error)
+        if report_file is None:
+            raise RuntimeError("\n\n".join(errors))
+        return
 
     logger.info("Biggest included commits/PRs:")
     biggest = sorted(commits, key=lambda key: commits[key], reverse=True)
@@ -510,9 +523,19 @@ def _github_website(login):
     return website or None
 
 
-def _write_report(report_file, added, anchors_added):
+def _write_report(report_file, added, anchors_added, errors):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
+    if errors:
+        lines += [
+            "> [!IMPORTANT]",
+            "> The doc build will fail until these are fixed in this PR:",
+            "",
+            "```",
+            *"\n\n".join(errors).splitlines(),
+            "```",
+            "",
+        ]
     if added:
         lines += [
             f"{len(added)} new contributor(s) were added to `.mailmap`, named "
@@ -529,7 +552,7 @@ def _write_report(report_file, added, anchors_added):
             if website is not None:
                 links.append(f"[website]({website})")
             lines.append(f"- `{un.mailmap_entry}` — {', '.join(links)}")
-    else:
+    elif not errors:
         lines += ["All contributor names resolved cleanly."]
     if anchors_added:
         lines += [
