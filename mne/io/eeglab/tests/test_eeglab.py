@@ -78,7 +78,9 @@ def mat_reader(request, monkeypatch):
 def test_io_set_raw(fname, mat_reader):
     """Test importing EEGLAB .set files."""
     if "_h5" in fname.name and mat_reader == "scipy":
-        pytest.skip("scipy cannot read v7.3 (HDF5) .mat files")
+        with pytest.raises(NotImplementedError, match="HDF reader"):
+            read_raw_eeglab(fname)
+        return
     montage = read_custom_montage(montage_path)
     montage.ch_names = [f"EEG {ii:03d}" for ii in range(len(montage.ch_names))]
 
@@ -384,7 +386,9 @@ def test_io_set_raw_more(tmp_path):
 def test_io_set_epochs(fnames, mat_reader):
     """Test importing EEGLAB .set epochs files."""
     if "_h5" in fnames[0].name and mat_reader == "scipy":
-        pytest.skip("scipy cannot read v7.3 (HDF5) .mat files")
+        with pytest.raises(NotImplementedError, match="HDF reader"):
+            read_epochs_eeglab(fnames[0])
+        return
     epochs_fname, epochs_fname_onefile = fnames
     with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
         epochs = read_epochs_eeglab(epochs_fname)
