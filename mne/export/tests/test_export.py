@@ -267,15 +267,28 @@ def test_edf_physical_range(tmp_path):
 @pytest.mark.parametrize(
     "fname",
     (
-        # "chtypes_edf.edf",   #fails for unknown reason
-        # "SC4001EC-Hypnogram.edf",  # annot-only?
+        pytest.param(
+            "chtypes_edf.edf", marks=pytest.mark.xfail(reason="failure cause unknown")
+        ),
+        pytest.param(
+            "SC4001EC-Hypnogram.edf", marks=pytest.mark.xfail(reason="annot-only?")
+        ),
         "subsecond_starttime.edf",
         "test_edf_overlapping_annotations.edf",
         "test_generator_2.edf",
         "test_utf8_annotations.edf",
-        # ↓↓↓ unequal sfreq across chs -> upsampling -> fail allclose
-        # "test_edf_stim_resamp.edf",
-        # "test_reduced.edf",
+        pytest.param(
+            "test_edf_stim_resamp.edf",
+            marks=pytest.mark.xfail(
+                reason="unequal sfreq → upsampling → allclose fail"
+            ),
+        ),
+        pytest.param(
+            "test_reduced.edf",
+            marks=pytest.mark.xfail(
+                reason="unequal sfreq → upsampling → allclose fail"
+            ),
+        ),
     ),
 )
 def test_edf_roundtrip(tmp_path, fname):

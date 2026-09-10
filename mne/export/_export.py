@@ -13,10 +13,10 @@ def export_raw(
     fname,
     raw,
     fmt="auto",
+    *,
     physical_range="auto",
     digital_range="auto",
     add_ch_type=False,
-    *,
     overwrite=False,
     verbose=None,
 ):
