@@ -231,9 +231,10 @@ def _export_raw_edf_bdf(
         # set the physical dimension from orig_units if possible
         physical_dimension = raw._orig_units.get(signal_label, "")
         physical_dimension = {
-            "\u03bcV": "uV",
-            "\u00b5V": "uV",
-            "\x83\xcaV": "uV",
+            "\u03bcV": "uV",  # μ (UTF-8 greek mu)
+            "\u00b5V": "uV",  # µ (UTF-8 micro symbol)
+            "\x83\xcav": "uV",  # μ (greek mu in shift-jis / sjis encoding)
+            "\x83\xcaV": "uV",  # μ (greek mu in shift-jis / sjis encoding)
             "n/a": "",
         }.get(physical_dimension, physical_dimension)
         physical_dimension = "" if ch_type == "stim" else physical_dimension
