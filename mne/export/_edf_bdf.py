@@ -68,11 +68,11 @@ def _export_raw_edf_bdf(
     )
 
     if file_format == "EDF":
-        digital_min, digital_max = -32767, 32767  # 16-bit
+        digital_min, digital_max = -32768, 32767  # 16-bit
         signal_class = EdfSignal
         writer_class = Edf
     else:  # BDF
-        digital_min, digital_max = -8388607, 8388607  # 24-bit
+        digital_min, digital_max = -8388608, 8388607  # 24-bit
         signal_class = BdfSignal
         writer_class = Bdf
     # when `physical_range="orig", digital_range="orig"`, we need to stash these values
