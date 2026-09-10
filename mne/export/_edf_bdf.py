@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 import numpy as np
 
+from mne._fiff.pick import _picks_to_idx
 from mne.annotations import _sync_onset
 from mne.utils import _check_edfio_installed, warn
 
@@ -151,7 +152,10 @@ def _export_raw_edf_bdf(
 
         for _type in np.unique(ch_types):
             _picks = [n for n, t in zip(raw.ch_names, ch_types) if t == _type]
-            _data = raw.get_data(picks=_picks) / scaler[_picks, np.newaxis]
+            _data = (
+                raw.get_data(picks=_picks)
+                / scaler[_picks_to_idx(raw.info, _picks), np.newaxis]
+            )
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
     elif physical_range == "channelwise":
