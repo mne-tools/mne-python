@@ -1065,7 +1065,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         widget = Button(**kwargs)
         widget.on_click(lambda x: callback())
         if icon is not None:
-            widget.icon = icon
+            widget.icon = self._icons[icon]
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 

@@ -1390,6 +1390,7 @@ def _plot_glyphs(
     scale_by_distance=False,
     project_points=False,
     mark_inside=False,
+    inside_color=None,
     surf=None,
     orient_nn=None,
     cylinder_geom=None,
@@ -1429,7 +1430,7 @@ def _plot_glyphs(
         if scale_by_distance:
             scales = scales * np.linalg.norm(surf_vectors, axis=1)
         if mark_inside:  # recolor points that fall inside the surface
-            colors[scalars < 0.5, :3] = to_rgba("darkslategray")[:3]
+            colors[scalars < 0.5, :3] = to_rgba(inside_color or "darkslategray")[:3]
         if orient_glyphs:  # point cylinders along the surface normal
             vectors = surf_vectors
     kind, template_kw = "sphere", dict()
@@ -1470,6 +1471,8 @@ def _plot_head_shape_points(
     mask=None,
     check_inside=None,
     nearest=None,
+    outside_color=None,
+    inside_color=None,
     verbose=False,
 ):
     defaults = DEFAULTS["coreg"]
@@ -1488,12 +1491,13 @@ def _plot_head_shape_points(
     return _plot_glyphs(
         renderer=renderer,
         loc=ext_loc,
-        colors=defaults["extra_color"],
+        colors=outside_color if outside_color is not None else defaults["extra_color"],
         scales=defaults["extra_scale"],
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
         mark_inside=mark_inside,
+        inside_color=inside_color,
         surf=surf,
         backface_culling=True,
         check_inside=check_inside,
