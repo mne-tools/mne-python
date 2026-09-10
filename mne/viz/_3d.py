@@ -10,15 +10,13 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
-from scipy.stats import rankdata
 
+from .._fiff._digitization import _fiducial_coords
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info, read_fiducials
 from .._fiff.pick import (
@@ -51,6 +49,7 @@ from ..transforms import (
     _angle_between_quats,
     _ensure_trans,
     _find_trans,
+    _find_vector_rotation,
     _frame_to_str,
     _get_trans,
     _get_transforms_to_coord_frame,
@@ -69,9 +68,9 @@ from ..utils import (
     _ensure_int,
     _import_nibabel,
     _pl,
+    _soft_import,
     _to_rgb,
     _validate_type,
-    check_version,
     fill_doc,
     get_config,
     get_subjects_dir,
@@ -85,38 +84,10 @@ from .utils import (
     _check_time_unit,
     _get_cmap,
     _get_color_list,
-    figure_nobar,
     plt_show,
 )
 
 verbose_dec = verbose
-FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
-
-
-# XXX: to unify with digitization
-def _fiducial_coords(points, coord_frame=None):
-    """Generate 3x3 array of fiducial coordinates."""
-    points = points or []  # None -> list
-    if coord_frame is not None:
-        points = [p for p in points if p["coord_frame"] == coord_frame]
-    points_ = {p["ident"]: p for p in points if p["kind"] == FIFF.FIFFV_POINT_CARDINAL}
-    if points_:
-        return np.array([points_[i]["r"] for i in FIDUCIAL_ORDER])
-    else:
-        # XXX eventually this should probably live in montage.py
-        if coord_frame is None or coord_frame == FIFF.FIFFV_COORD_HEAD:
-            # Try converting CTF HPI coils to fiducials
-            out = np.empty((3, 3))
-            out.fill(np.nan)
-            for p in points:
-                if p["kind"] == FIFF.FIFFV_POINT_HPI:
-                    if np.isclose(p["r"][1:], 0, atol=1e-6).all():
-                        out[0 if p["r"][0] < 0 else 2] = p["r"]
-                    elif np.isclose(p["r"][::2], 0, atol=1e-6).all():
-                        out[1] = p["r"]
-            if np.isfinite(out).all():
-                return out
-        return np.array([])
 
 
 @fill_doc
@@ -181,6 +152,7 @@ def plot_head_positions(
         The figure.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
@@ -553,6 +525,7 @@ def plot_alignment(
     *,
     sensor_scales=None,
     show_channel_names=False,
+    set_view=True,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
@@ -652,6 +625,12 @@ def plot_alignment(
         Default is False.
 
         .. versionadded:: 1.12
+    set_view : bool
+        If True (default), set the view of the figure to a default one. Can be set
+        to False to keep the view a figure passed via ``fig`` already has, which is
+        useful when reusing a single figure for multiple plots.
+
+        .. versionadded:: 1.13
     %(verbose)s
 
     Returns
@@ -861,7 +840,7 @@ def plot_alignment(
 
     # initialize figure
     renderer = _get_renderer(
-        fig,
+        fig=fig,
         name=f"Sensor alignment: {subject}",
         bgcolor=(0.5, 0.5, 0.5),
         size=(800, 800),
@@ -955,13 +934,15 @@ def plot_alignment(
         # transform to current coord frame
         pos = apply_trans(to_cf_t["head"], pos)
 
-        for ch, xyz in zip(chs, pos):
-            renderer.text3d(
-                *xyz,
-                ch["ch_name"],
-                scale=0.005,
-                color=(1.0, 1.0, 1.0),
-            )
+        # offset labels outward from centroid so they clear the sensor glyphs
+        centroid = pos.mean(axis=0)
+        directions = pos - centroid
+        norms = np.linalg.norm(directions, axis=1, keepdims=True)
+        norms = np.where(norms > 0, norms, 1)
+        offsets = pos + 0.01 * directions / norms
+
+        labels = [ch["ch_name"] for ch in chs]
+        renderer.text3d(*offsets.T, labels, font_size=10, color="white", shadow=True)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -1008,10 +989,16 @@ def plot_alignment(
     if fwd is not None:
         _plot_forward(renderer, fwd, to_cf_t[_frame_to_str[fwd["coord_frame"]]])
 
-    renderer.set_camera(
-        azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
-    )
+    if set_view:
+        renderer.set_camera(
+            azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
+        )
     renderer.show()
+    if not set_view:
+        # Nothing moved the camera, so nothing marked the scene as needing a repaint,
+        # and show() does not repaint a window that is already up. Redraw it here so
+        # that what we just plotted is actually drawn.
+        renderer._update()
     return renderer.scene()
 
 
@@ -1103,7 +1090,8 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
             # add sensors and detectors too for fNIRS
             type_slices.update(sources=slice(3, 6), detectors=slice(6, 9))
         for type_name, type_slice in type_slices.items():
-            if ch_type in _MEG_CH_TYPES_SPLIT + ("ref_meg",):
+            is_meg = ch_type in _MEG_CH_TYPES_SPLIT + ("ref_meg",)
+            if is_meg:
                 coil_trans = _loc_to_coil_trans(info["chs"][idx]["loc"])
                 # Here we prefer accurate geometry in case we need to
                 # ConvexHull the coil, we want true 3D geometry (and not, for
@@ -1117,11 +1105,15 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
                     coil = _create_meg_coils(this_coil, acc="normal", coilset=coilset)[
                         0
                     ]
-                # store verts as ch_coord
-                ch_coord, triangles = _sensor_shape(coil)
-                ch_coord = apply_trans(coil_trans, ch_coord)
-                if len(ch_coord) == 0 and warn_meg:
+                # Keep the local (template) geometry and the per-channel
+                # transform separate (rather than baking into absolute
+                # vertex positions) so that channels sharing a coil shape
+                # can share one template/actor when rendered.
+                local_rr, triangles, extra_z = _sensor_shape(coil)
+                if len(local_rr) == 0 and warn_meg:
                     warn(f"MEG sensor {info.ch_names[idx]} not found.")
+                coil_trans = coil_trans.copy()
+                coil_trans[:3, 3] += coil_trans[:3, :3] @ [0, 0, extra_z]
             else:
                 ch_coord = info["chs"][idx]["loc"][type_slice]
             ch_coord_frame = info["chs"][idx]["coord_frame"]
@@ -1139,10 +1131,23 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
             if ch_coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
                 unknown_chs.append(info.ch_names[idx])
                 ch_coord_frame = FIFF.FIFFV_COORD_HEAD
-            ch_coord = apply_trans(to_cf_t[_frame_to_str[ch_coord_frame]], ch_coord)
-            if ch_type in _MEG_CH_TYPES_SPLIT + ("ref_meg",):
-                chs[type_name][info.ch_names[idx]] = (ch_coord, triangles)
+            if is_meg:
+                frame_trans = to_cf_t[_frame_to_str[ch_coord_frame]]["trans"]
+                transform = frame_trans @ coil_trans
+                position = transform[:3, 3]
+                # Some MEG systems have rotation matrices that are not exactly
+                # orthonormal, so be a bit more tolerant than usual here
+                quat = rot_to_quat(transform[:3, :3], tol=2e-3)
+                shape_key = (local_rr.round(10).tobytes(), triangles.tobytes())
+                chs[type_name][info.ch_names[idx]] = (
+                    local_rr,
+                    triangles,
+                    position,
+                    quat,
+                    shape_key,
+                )
             else:
+                ch_coord = apply_trans(to_cf_t[_frame_to_str[ch_coord_frame]], ch_coord)
                 chs[type_name][info.ch_names[idx]] = ch_coord
     if unknown_chs:
         warn(
@@ -1227,7 +1232,6 @@ def _plot_axes(renderer, info, to_cf_t, head_mri_t):
             scale=2e-2,
             color=ax[1],
             scale_mode="scalar",
-            resolution=20,
             scalars=[0.33, 0.66, 1.0],
         )
         actors.append(actor)
@@ -1327,11 +1331,11 @@ def _plot_hpi_coils(
         ]
     )
     hpi_loc = apply_trans(to_cf_t["head"], hpi_loc)
-    actor, _ = _plot_glyphs(
+    return _plot_glyphs(
         renderer=renderer,
         loc=hpi_loc,
-        color=defaults["hpi_color"],
-        scale=scale,
+        colors=defaults["hpi_color"],
+        scales=scale,
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
@@ -1339,8 +1343,7 @@ def _plot_hpi_coils(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
-    return actor
+    )[0]
 
 
 def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
@@ -1379,68 +1382,80 @@ def _orient_glyphs(
 def _plot_glyphs(
     renderer,
     loc,
-    color,
-    scale,
-    opacity=1,
-    mode="cylinder",
+    colors,
+    scales,
+    opacity,
+    *,
     orient_glyphs=False,
     scale_by_distance=False,
     project_points=False,
     mark_inside=False,
+    inside_color=None,
     surf=None,
+    orient_nn=None,
+    cylinder_geom=None,
     backface_culling=False,
     check_inside=None,
     nearest=None,
 ):
-    from matplotlib.colors import ListedColormap, to_rgba
+    """Plot glyphs (sensors, HPI coils, head-shape points) as one instanced actor.
 
-    _validate_type(mark_inside, bool, "mark_inside")
-    if surf is not None and len(loc) > 0:
-        defaults = DEFAULTS["coreg"]
-        scalars, vectors, proj_pts = _orient_glyphs(
+    ``loc`` is already in render units. ``colors`` (any Matplotlib color spec or
+    an ``(n, 4)`` / ``(1, 4)`` RGBA array) and ``scales`` may be per-instance or
+    a single value to broadcast; a single GPU-instanced actor is produced
+    regardless. When ``surf`` is set (coreg), glyphs are oriented along, scaled
+    by distance to, projected onto, and/or marked inside the surface. Callers
+    that have already projected/oriented the points (e.g. projected EEG) can
+    instead pass per-instance orientation vectors as ``orient_nn`` and, if the
+    default coreg cylinder is not wanted, a ``cylinder_geom`` dict of
+    ``_cylinder_geom`` keyword arguments.
+    """
+    from matplotlib.colors import to_rgba, to_rgba_array
+
+    defaults = DEFAULTS["coreg"]
+    n = len(loc)
+    if n == 0:
+        return None, None
+    colors = np.array(np.broadcast_to(to_rgba_array(colors), (n, 4)), float)
+    colors[:, 3] *= opacity
+    scales = np.broadcast_to(np.asarray(scales, float).reshape(-1), (n,))
+    positions = loc
+    vectors = orient_nn  # explicit per-instance orientation, if given
+    if surf is not None:
+        scalars, surf_vectors, proj_pts = _orient_glyphs(
             loc, surf, project_points, mark_inside, check_inside, nearest
         )
-        if mark_inside:
-            colormap = ListedColormap([to_rgba("darkslategray"), to_rgba(color)])
-            color = None
-            clim = [0, 1]
-        else:
-            scalars = None
-            colormap = None
-            clim = None
-        mode = "cylinder" if orient_glyphs else "sphere"
-        scale_mode = "vector" if scale_by_distance else "none"
-        x, y, z = proj_pts.T if project_points else loc.T
-        u, v, w = vectors.T
-        return renderer.quiver3d(
-            x,
-            y,
-            z,
-            u,
-            v,
-            w,
-            color=color,
-            scale=scale,
-            mode=mode,
-            glyph_height=defaults["eegp_height"],
-            glyph_center=(0.0, -defaults["eegp_height"], 0),
+        if project_points:
+            positions = proj_pts
+        if scale_by_distance:
+            scales = scales * np.linalg.norm(surf_vectors, axis=1)
+        if mark_inside:  # recolor points that fall inside the surface
+            colors[scalars < 0.5, :3] = to_rgba(inside_color or "darkslategray")[:3]
+        if orient_glyphs:  # point cylinders along the surface normal
+            vectors = surf_vectors
+    kind, template_kw = "sphere", dict()
+    quats = np.zeros((n, 3))  # identity: unrotated (sphere is orientation-free)
+    if vectors is not None:  # orient cylinders along the given direction
+        kind = "cylinder"
+        template_kw = cylinder_geom or dict(
+            height=defaults["eegp_height"],
+            center=(0.0, -defaults["eegp_height"], 0.0),
             resolution=16,
-            glyph_resolution=16,
-            glyph_radius=None,
-            opacity=opacity,
-            scale_mode=scale_mode,
-            scalars=scalars,
-            colormap=colormap,
-            clim=clim,
         )
-    else:
-        return renderer.sphere(
-            center=loc,
-            color=color,
-            scale=scale,
-            opacity=opacity,
-            backface_culling=backface_culling,
-        )
+        x_axis = np.array([1.0, 0.0, 0.0])
+        nn = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+        quats = rot_to_quat(_find_vector_rotation(x_axis, nn))
+    rr, tris = renderer._glyph_template(kind, **template_kw)
+    actor, cloud = renderer.instanced_mesh(
+        rr=rr,
+        tris=tris,
+        positions=positions,
+        quats=quats,
+        colors=colors,
+        scales=scales,
+        backface_culling=backface_culling,
+    )
+    return actor, cloud
 
 
 @verbose
@@ -1456,6 +1471,8 @@ def _plot_head_shape_points(
     mask=None,
     check_inside=None,
     nearest=None,
+    outside_color=None,
+    inside_color=None,
     verbose=False,
 ):
     defaults = DEFAULTS["coreg"]
@@ -1471,21 +1488,21 @@ def _plot_head_shape_points(
     )
     ext_loc = apply_trans(to_cf_t["head"], ext_loc)
     ext_loc = ext_loc[mask] if mask is not None else ext_loc
-    actor, _ = _plot_glyphs(
+    return _plot_glyphs(
         renderer=renderer,
         loc=ext_loc,
-        color=defaults["extra_color"],
-        scale=defaults["extra_scale"],
+        colors=outside_color if outside_color is not None else defaults["extra_color"],
+        scales=defaults["extra_scale"],
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
         mark_inside=mark_inside,
+        inside_color=inside_color,
         surf=surf,
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
-    return actor
+    )[0]
 
 
 def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
@@ -1551,6 +1568,7 @@ def _plot_sensors_3d(
 
     actors = defaultdict(lambda: list())
     locs = defaultdict(lambda: list())
+    ch_names_all = defaultdict(lambda: list())
     unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1572,19 +1590,31 @@ def _plot_sensors_3d(
                 plot_sensors = False
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
-            ch_coord = dict(rr=ch_coord[0] * unit_scalar, tris=ch_coord[1])
+            local_rr, triangles, position, quat, shape_key = ch_coord
+            ch_coord = dict(
+                rr=local_rr * unit_scalar,
+                tris=triangles,
+                position=position * unit_scalar,
+                quat=quat,
+                shape_key=shape_key,
+            )
         if plot_sensors:
             if ch_type == "eeg":
                 if "original" in eeg:
                     locs[ch_type].append(ch_coord)
+                    ch_names_all[ch_type].append(ch_name)
                 if "projected" in eeg:
                     locs["eegp"].append(ch_coord)
+                    ch_names_all["eegp"].append(ch_name)
             else:
                 locs[ch_type].append(ch_coord)
+                ch_names_all[ch_type].append(ch_name)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
+            ch_names_all["source"].append(ch_name)
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+            ch_names_all["detector"].append(ch_name)
         # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1645,118 +1675,82 @@ def _plot_sensors_3d(
             f"scales for {ch_type} must contain only numerical values, "
             f"got {scales} instead."
         )
-
+        ch_names = np.array(ch_names_all[ch_type], dtype="U")
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
                 colors = [colors[0]] * len(sens_loc)
-            for surface, color in zip(sens_loc, colors):
-                actor, _ = renderer.surface(
-                    surface=surface,
-                    color=color[:3],
-                    opacity=this_alpha * color[3],
+            colors = np.array(colors, float)
+            colors[:, 3] *= this_alpha
+            # Group coils by shape: one GPU-instanced actor per shape
+            groups = defaultdict(list)
+            for si, surface in enumerate(sens_loc):
+                if len(surface["rr"]) == 0:
+                    continue  # coil geometry not found (already warned above)
+                groups[surface["shape_key"]].append(si)
+            for idxs in groups.values():
+                template = sens_loc[idxs[0]]
+                positions = np.array([sens_loc[i]["position"] for i in idxs])
+                quats = np.array([sens_loc[i]["quat"] for i in idxs])
+                actor, cloud = renderer.instanced_mesh(
+                    rr=template["rr"],
+                    tris=template["tris"],
+                    positions=positions,
+                    quats=quats,
+                    colors=colors[idxs],
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
+                cloud.field_data["ch_names"] = ch_names[idxs]
         else:
+            # One GPU-instanced actor regardless of how many distinct
+            # colors/scales are requested (broadcasting handles 1-vs-N).
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
-            if ch_type == "eegp":  # special case, need to project
+            if not mask.any():  # e.g., CTF EEG/EOG channels with no digitized positions
+                continue
+            loc = sens_loc[mask]
+            these_colors = colors[mask] if len(colors) == len(mask) else colors
+            these_scales = scales[mask] if len(scales) == len(mask) else scales
+            orient_nn = cylinder_geom = None
+            backface_culling = False
+            actor_key = ch_type
+            if ch_type == "eegp":
+                # Projected EEG differs: reproject onto the scalp, orient along
+                # its normals, and use a single color/scale + flat disc glyph.
                 logger.info("Projecting sensors to the head surface")
-                eegp_loc, eegp_nn = _project_onto_surface(
-                    sens_loc[mask], head_surf, project_rrs=True, return_nn=True
+                loc, orient_nn = _project_onto_surface(
+                    loc, head_surf, project_rrs=True, return_nn=True
                 )[2:4]
-                eegp_loc *= unit_scalar
-                actor, _ = renderer.quiver3d(
-                    x=eegp_loc[:, 0],
-                    y=eegp_loc[:, 1],
-                    z=eegp_loc[:, 2],
-                    u=eegp_nn[:, 0],
-                    v=eegp_nn[:, 1],
-                    w=eegp_nn[:, 2],
-                    color=colors[0],  # TODO: Maybe eventually support multiple
-                    mode="cylinder",
-                    scale=scales[0] * unit_scalar,  # TODO: Also someday maybe multiple
-                    opacity=sensor_alpha[ch_type],
-                    glyph_height=defaults["eegp_height"],
-                    glyph_center=(0.0, -defaults["eegp_height"] / 2.0, 0),
-                    glyph_resolution=20,
-                    backface_culling=True,
+                these_colors = colors[0]  # TODO: someday maybe support multiple
+                these_scales = scales[0] * unit_scalar  # TODO: someday maybe multiple
+                height = defaults["eegp_height"]
+                cylinder_geom = dict(
+                    radius=0.15,
+                    height=height,
+                    center=(0.0, -height / 2.0, 0.0),
+                    resolution=20,
                 )
-                actors["eeg"].append(actor)
-            elif len(colors) == 1 and len(scales) == 1:
-                # Single color mode (one actor)
-                actor, _ = _plot_glyphs(
-                    renderer=renderer,
-                    loc=sens_loc[mask] * unit_scalar,
-                    color=colors[0, :3],
-                    scale=scales[0],
-                    opacity=this_alpha * colors[0, 3],
-                    orient_glyphs=orient_glyphs,
-                    scale_by_distance=scale_by_distance,
-                    project_points=project_points,
-                    surf=surf,
-                    check_inside=check_inside,
-                    nearest=nearest,
-                )
-                actors[ch_type].append(actor)
-            elif len(colors) == len(sens_loc) and len(scales) == 1:
-                # Multi-color single scale mode (multiple actors)
-                for loc, color, usable in zip(sens_loc, colors, mask):
-                    if not usable:
-                        continue
-                    actor, _ = _plot_glyphs(
-                        renderer=renderer,
-                        loc=loc * unit_scalar,
-                        color=color[:3],
-                        scale=scales[0],
-                        opacity=this_alpha * color[3],
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf,
-                        check_inside=check_inside,
-                        nearest=nearest,
-                    )
-                    actors[ch_type].append(actor)
-            elif len(colors) == 1 and len(scales) == len(sens_loc):
-                # Multi-scale single color mode (multiple actors)
-                for loc, scale, usable in zip(sens_loc, scales, mask):
-                    if not usable:
-                        continue
-                    actor, _ = _plot_glyphs(
-                        renderer=renderer,
-                        loc=loc * unit_scalar,
-                        color=colors[0, :3],
-                        scale=scale,
-                        opacity=this_alpha * colors[0, 3],
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf,
-                        check_inside=check_inside,
-                        nearest=nearest,
-                    )
-                    actors[ch_type].append(actor)
-            else:
-                # Multi-color multi-scale mode (multiple actors)
-                for loc, color, scale, usable in zip(sens_loc, colors, scales, mask):
-                    if not usable:
-                        continue
-                    actor, _ = _plot_glyphs(
-                        renderer=renderer,
-                        loc=loc * unit_scalar,
-                        color=color[:3],
-                        scale=scale,
-                        opacity=this_alpha * color[3],
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf,
-                        check_inside=check_inside,
-                        nearest=nearest,
-                    )
-                    actors[ch_type].append(actor)
+                backface_culling = True
+                actor_key = "eeg"
+            actor, cloud = _plot_glyphs(
+                renderer=renderer,
+                loc=loc * unit_scalar,
+                colors=these_colors,
+                scales=these_scales,
+                opacity=this_alpha,
+                orient_glyphs=orient_glyphs,
+                scale_by_distance=scale_by_distance,
+                project_points=project_points,
+                surf=surf,
+                orient_nn=orient_nn,
+                cylinder_geom=cylinder_geom,
+                backface_culling=backface_culling,
+                check_inside=check_inside,
+                nearest=nearest,
+            )
+            actors[actor_key].append(actor)
+            cloud.field_data["ch_names"] = ch_names[mask]
 
     actors = dict(actors)  # get rid of defaultdict
 
@@ -1773,12 +1767,55 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    try:
-        from scipy.spatial import QhullError
-    except ImportError:  # scipy < 1.8
-        from scipy.spatial.qhull import QhullError
+    from scipy.spatial import ConvexHull, Delaunay
+
     id_ = coil["type"] & 0xFFFF
-    z_value = 0
+    # Offset for visibility (using heuristic for sanely named Neuromag coils).
+    # It depends on the channel name, so keep it out of the cached template.
+    if id_ in (
+        FIFF.FIFFV_COIL_NM_122,
+        FIFF.FIFFV_COIL_VV_PLANAR_W,
+        FIFF.FIFFV_COIL_VV_PLANAR_T1,
+        FIFF.FIFFV_COIL_VV_PLANAR_T2,
+    ):
+        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
+    else:
+        extra_z = 0.0
+    # The template geometry depends only on the coil id/size/base, so it is
+    # cached: a real system has only a handful of coil types but often hundreds
+    # of channels sharing them.
+    base = coil["base"] if id_ in (5004, 4005) else 0.0
+    out = _sensor_template(id_, float(coil["size"]), float(base))
+    if out is not None:
+        rrs, tris = out
+    else:
+        # 3D convex hull (will fail for 2D geometry). This depends on the full
+        # (per-channel) integration geometry, so it is not cached.
+        from scipy.spatial import QhullError
+
+        rrs = coil["rmag_orig"].copy()
+        try:
+            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
+        except QhullError:  # 2D geometry likely
+            logger.debug("Falling back to planar geometry")
+            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
+            u[:, 2] = 0
+            rr_rot = rrs @ u
+            tris = Delaunay(rr_rot[:, :2]).simplices
+            tris = np.concatenate((tris, tris[:, ::-1]))
+    assert rrs.ndim == 2 and rrs.shape[1] == 3
+    return rrs, tris, extra_z
+
+
+@cache
+def _sensor_template(id_, size, base):
+    """Get the local sensor template geometry for a coil type.
+
+    Returns the ``(x, y, z)`` vertices and triangles in the coil's local frame,
+    or ``None`` for coil types without an explicit 2D template (handled by the
+    caller via a convex hull). Pure function of the coil id/size/base, so the
+    result is cached and shared across all channels of the same type.
+    """
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1787,7 +1824,7 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_VV_PLANAR_T2,
     ):
         # wound by right hand rule such that +x side is "up" (+z)
-        long_side = coil["size"]  # length of long side (meters)
+        long_side = size  # length of long side (meters)
         offset = 0.0025  # offset of the center portion of planar grad coil
         rrs = np.array(
             [
@@ -1804,8 +1841,6 @@ def _sensor_shape(coil):
         tris = np.concatenate(
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
-        # Offset for visibility (using heuristic for sanely named Neuromag coils)
-        z_value = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1815,8 +1850,8 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_KIT_REF_MAG,
     ):
         # square magnetometer (potentially point-type)
-        size = 0.001 if id_ == 2000 else (coil["size"] / 2.0)
-        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * size
+        half = 0.001 if id_ == 2000 else (size / 2.0)
+        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * half
         tris = _make_tris_fan(4)
     # Circle
     elif id_ in (
@@ -1830,7 +1865,7 @@ def _sensor_shape(coil):
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
         circle = np.concatenate(([0.0], circle))
-        circle *= coil["size"] / 2.0  # radius of coil
+        circle *= size / 2.0  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
     # Circle
@@ -1847,12 +1882,12 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ):
         # round coil 1st order (off-diagonal) gradiometer
-        baseline = coil["base"] if id_ in (5004, 4005) else 0.0
+        baseline = base if id_ in (5004, 4005) else 0.0
         n_pts = 16  # number of points for circle
         # This time, go all the way around circle to close it fully
         circle = np.exp(2j * np.pi * np.arange(-1, n_pts) / float(n_pts - 1))
         circle[0] = 0  # center pt for triangulation
-        circle *= coil["size"] / 2.0
+        circle *= size / 2.0
         rrs = np.array(
             [  # first, second coil
                 np.concatenate(
@@ -1865,23 +1900,15 @@ def _sensor_shape(coil):
             [_make_tris_fan(n_pts + 1), _make_tris_fan(n_pts + 1) + n_pts + 1]
         )
     else:
-        # 3D convex hull (will fail for 2D geometry)
-        rrs = coil["rmag_orig"].copy()
-        try:
-            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
-        except QhullError:  # 2D geometry likely
-            logger.debug("Falling back to planar geometry")
-            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
-            u[:, 2] = 0
-            rr_rot = rrs @ u
-            tris = Delaunay(rr_rot[:, :2]).simplices
-            tris = np.concatenate((tris, tris[:, ::-1]))
-        z_value = None
+        return None
 
     # Go from (x,y) -> (x,y,z)
-    if z_value is not None:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=z_value)
-    assert rrs.ndim == 2 and rrs.shape[1] == 3
+    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
+    # The cached arrays are shared across channels, so make them read-only to
+    # guard against accidental in-place mutation by callers.
+    tris = np.ascontiguousarray(tris)
+    rrs.flags.writeable = False
+    tris.flags.writeable = False
     return rrs, tris
 
 
@@ -2061,249 +2088,6 @@ def _handle_time(time_label, time_unit, times):
     return time_label, times
 
 
-def _key_pressed_slider(event, params):
-    """Handle key presses for time_viewer slider."""
-    step = 1
-    if event.key.startswith("ctrl"):
-        step = 5
-        event.key = event.key.split("+")[-1]
-    if event.key not in ["left", "right"]:
-        return
-    time_viewer = event.canvas.figure
-    value = time_viewer.slider.val
-    times = params["stc"].times
-    if params["time_unit"] == "ms":
-        times = times * 1000.0
-    time_idx = np.argmin(np.abs(times - value))
-    if event.key == "left":
-        time_idx = np.max((0, time_idx - step))
-    elif event.key == "right":
-        time_idx = np.min((len(times) - 1, time_idx + step))
-    this_time = times[time_idx]
-    time_viewer.slider.set_val(this_time)
-
-
-def _smooth_plot(this_time, params, *, draw=True):
-    """Smooth source estimate data and plot with mpl."""
-    from ..morph import _hemi_morph
-
-    ax = params["ax"]
-    stc = params["stc"]
-    ax.clear()
-    times = stc.times
-    scaler = 1000.0 if params["time_unit"] == "ms" else 1.0
-    if this_time is None:
-        time_idx = 0
-    else:
-        time_idx = np.argmin(np.abs(times - this_time / scaler))
-
-    if params["hemi_idx"] == 0:
-        data = stc.data[: len(stc.vertices[0]), time_idx : time_idx + 1]
-    else:
-        data = stc.data[len(stc.vertices[0]) :, time_idx : time_idx + 1]
-
-    morph = _hemi_morph(
-        params["tris"],
-        params["inuse"],
-        params["vertices"],
-        params["smoothing_steps"],
-        maps=None,
-        warn=True,
-    )
-    array_plot = morph @ data
-
-    range_ = params["scale_pts"][2] - params["scale_pts"][0]
-    colors = (array_plot - params["scale_pts"][0]) / range_
-
-    faces = params["faces"]
-    greymap = params["greymap"]
-    cmap = params["cmap"]
-    polyc = ax.plot_trisurf(
-        *params["coords"].T, triangles=faces, antialiased=False, vmin=0, vmax=1
-    )
-    color_ave = np.mean(colors[faces], axis=1).flatten()
-    curv_ave = np.mean(params["curv"][faces], axis=1).flatten()
-    colors = cmap(color_ave)
-    # alpha blend
-    colors[:, :3] *= colors[:, [3]]
-    colors[:, :3] += greymap(curv_ave)[:, :3] * (1.0 - colors[:, [3]])
-    colors[:, 3] = 1.0
-    polyc.set_facecolor(colors)
-    if params["time_label"] is not None:
-        ax.set_title(
-            params["time_label"](
-                times[time_idx] * scaler,
-            ),
-            color="w",
-        )
-    _set_aspect_equal(ax)
-    ax.axis("off")
-    ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    if draw:
-        ax.figure.canvas.draw()
-
-
-def _plot_mpl_stc(
-    stc,
-    subject=None,
-    surface="inflated",
-    hemi="lh",
-    colormap="auto",
-    time_label="auto",
-    smoothing_steps=10,
-    subjects_dir=None,
-    views="lat",
-    clim="auto",
-    figure=None,
-    initial_time=None,
-    time_unit="s",
-    background="black",
-    spacing="oct6",
-    time_viewer=False,
-    colorbar=True,
-    transparent=True,
-):
-    """Plot source estimate using mpl."""
-    import matplotlib.pyplot as plt
-    import nibabel as nib
-    from matplotlib.widgets import Slider
-    from mpl_toolkits.mplot3d import Axes3D
-
-    from ..morph import _get_subject_sphere_tris
-    from ..source_space._source_space import _check_spacing, _create_surf_spacing
-
-    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
-    lh_kwargs = {
-        "lat": {"elev": 0, "azim": 180},
-        "med": {"elev": 0, "azim": 0},
-        "ros": {"elev": 0, "azim": 90},
-        "cau": {"elev": 0, "azim": -90},
-        "dor": {"elev": 90, "azim": -90},
-        "ven": {"elev": -90, "azim": -90},
-        "fro": {"elev": 0, "azim": 106.739},
-        "par": {"elev": 30, "azim": -120},
-    }
-    rh_kwargs = {
-        "lat": {"elev": 0, "azim": 0},
-        "med": {"elev": 0, "azim": 180},
-        "ros": {"elev": 0, "azim": 90},
-        "cau": {"elev": 0, "azim": -90},
-        "dor": {"elev": 90, "azim": -90},
-        "ven": {"elev": -90, "azim": -90},
-        "fro": {"elev": 16.739, "azim": 60},
-        "par": {"elev": 30, "azim": -60},
-    }
-    time_viewer = False if time_viewer == "auto" else time_viewer
-    kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
-    views = "lat" if views == "auto" else views
-    _check_option("views", views, sorted(lh_kwargs.keys()))
-    mapdata = _process_clim(clim, colormap, transparent, stc.data)
-    _separate_map(mapdata)
-    colormap, scale_pts = _linearize_map(mapdata)
-    del transparent, mapdata
-
-    time_label, times = _handle_time(time_label, time_unit, stc.times)
-    # don't use constrained layout because Axes3D does not play well with it
-    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
-    try:
-        ax = Axes3D(fig, auto_add_to_figure=False)
-    except Exception:  # old mpl
-        ax = Axes3D(fig)
-    else:
-        fig.add_axes(ax)
-    hemi_idx = 0 if hemi == "lh" else 1
-    surf = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
-    if spacing == "all":
-        coords, faces = nib.freesurfer.read_geometry(surf)
-        inuse = slice(None)
-    else:
-        stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
-        surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir)
-        inuse = surf["vertno"]
-        faces = surf["use_tris"]
-        coords = surf["rr"][inuse]
-        shape = faces.shape
-        faces = rankdata(faces, "dense").reshape(shape) - 1
-        faces = np.round(faces).astype(int)  # should really be int-like anyway
-    del surf
-    vertices = stc.vertices[hemi_idx]
-    n_verts = len(vertices)
-    tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    cmap = _get_cmap(colormap)
-    greymap = _get_cmap("Greys")
-
-    curv = nib.freesurfer.read_morph_data(
-        subjects_dir / subject / "surf" / f"{hemi}.curv"
-    )[inuse]
-    curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
-    params = dict(
-        ax=ax,
-        stc=stc,
-        coords=coords,
-        faces=faces,
-        hemi_idx=hemi_idx,
-        vertices=vertices,
-        tris=tris,
-        smoothing_steps=smoothing_steps,
-        n_verts=n_verts,
-        inuse=inuse,
-        cmap=cmap,
-        curv=curv,
-        scale_pts=scale_pts,
-        greymap=greymap,
-        time_label=time_label,
-        time_unit=time_unit,
-    )
-    _smooth_plot(initial_time, params, draw=False)
-
-    ax.view_init(**kwargs[hemi][views])
-
-    try:
-        ax.set_facecolor(background)
-    except AttributeError:
-        ax.set_axis_bgcolor(background)
-
-    if time_viewer:
-        time_viewer = figure_nobar(figsize=(4.5, 0.25))
-        fig.time_viewer = time_viewer
-        ax_time = plt.axes()
-        if initial_time is None:
-            initial_time = 0
-        slider = Slider(
-            ax=ax_time,
-            label="Time",
-            valmin=times[0],
-            valmax=times[-1],
-            valinit=initial_time,
-        )
-        time_viewer.slider = slider
-        callback_slider = partial(_smooth_plot, params=params)
-        slider.on_changed(callback_slider)
-        callback_key = partial(_key_pressed_slider, params=params)
-        time_viewer.canvas.mpl_connect("key_press_event", callback_key)
-
-    fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
-
-    # add colorbar
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
-    sm = plt.cm.ScalarMappable(
-        cmap=cmap, norm=plt.Normalize(scale_pts[0], scale_pts[2])
-    )
-    cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.0)
-    plt.setp(plt.getp(cax, "xticklabels"), color="w")
-    sm.set_array(np.linspace(scale_pts[0], scale_pts[2], 256))
-    if colorbar:
-        cb = plt.colorbar(sm, cax=cax, orientation="horizontal")
-        cb_yticks = plt.getp(cax, "yticklabels")
-        plt.setp(cb_yticks, color="w")
-        cax.tick_params(labelsize=16)
-        cb.ax.set_facecolor("0.5")
-        cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt_show(True)
-    return fig
-
-
 def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
@@ -2401,7 +2185,6 @@ def plot_source_estimates(
     initial_time=None,
     time_unit="s",
     backend="auto",
-    spacing="oct6",
     title=None,
     show_traces="auto",
     src=None,
@@ -2409,6 +2192,7 @@ def plot_source_estimates(
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
+    block=False,
     verbose=None,
 ):
     """Plot SourceEstimate.
@@ -2434,8 +2218,7 @@ def plot_source_estimates(
         The amount of smoothing.
     %(transparent)s
     alpha : float
-        Alpha value to apply globally to the overlay. Has no effect with mpl
-        backend.
+        Alpha value to apply globally to the overlay.
     time_viewer : bool | str
         Display time viewer GUI. Can also be 'auto', which will mean True
         for the PyVista backend and False otherwise.
@@ -2443,19 +2226,16 @@ def plot_source_estimates(
         .. versionchanged:: 0.20.0
            "auto" mode added.
     %(subjects_dir)s
-    figure : instance of Figure3D | instance of matplotlib.figure.Figure | list | int | None
+    figure : instance of Figure3D | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
-        figure by it's id or create a new figure with the given id. If an
-        instance of matplotlib figure, mpl backend is used for plotting.
+        figure by it's id or create a new figure with the given id.
     %(views)s
 
         When plotting a standard SourceEstimate (not volume, mixed, or vector)
         and using the PyVista backend, ``views='flat'`` is also supported to
         plot cortex as a flatmap.
-
-        Using multiple views (list) is not supported by the matplotlib backend.
 
         .. versionchanged:: 0.21.0
            Support for flatmaps.
@@ -2468,34 +2248,24 @@ def plot_source_estimates(
         ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
         or the name of a colormap, or a tuple with values
         ``(colormap, min, max, reverse)`` to fully specify the curvature
-        colors. Has no effect with the matplotlib backend.
+        colors.
     size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
-        Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
     foreground : matplotlib color | None
-        Color of the foreground of the display window. Has no effect with mpl
-        backend. None will choose white or black based on the background color.
+        Color of the foreground of the display window. None will choose white or
+        black based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
     time_unit : ``'s'`` | ``'ms'``
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'matplotlib'``
+    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'notebook'``
         Which backend to use. If ``'auto'`` (default), tries to plot with
-        pyvistaqt, but resorts to matplotlib if no 3d backend is available.
-
-        .. versionadded:: 0.15.0
-    spacing : str
-        Only affects the matplotlib backend.
-        The spacing to use for the source space. Can be ``'ico#'`` for a
-        recursively subdivided icosahedron, ``'oct#'`` for a recursively
-        subdivided octahedron, or ``'all'`` for all points. In general, you can
-        speed up the plotting by selecting a sparser source space.
-        Defaults  to 'oct6'.
+        pyvistaqt.
 
         .. versionadded:: 0.15.0
     %(title_stc)s
@@ -2506,6 +2276,7 @@ def plot_source_estimates(
     %(view_layout)s
     %(add_data_kwargs)s
     %(brain_kwargs)s
+    %(block)s
     %(verbose)s
 
     Returns
@@ -2525,21 +2296,17 @@ def plot_source_estimates(
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    from .backends._utils import _qt_block
     from .backends.renderer import _get_3d_backend, use_3d_backend
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, "stc", "source estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     subject = _check_subject(stc.subject, subject)
-    _check_option("backend", backend, ["auto", "matplotlib", "pyvistaqt", "notebook"])
-    plot_mpl = backend == "matplotlib"
-    if not plot_mpl:
-        if backend == "auto":
-            try:
-                backend = _get_3d_backend()
-            except (ImportError, ModuleNotFoundError):
-                warn("No 3D backend found. Resorting to matplotlib 3d.")
-                plot_mpl = True
+    _validate_type(block, bool, "block")
+    _check_option("backend", backend, ["auto", "pyvistaqt", "notebook"])
+    if backend == "auto":
+        backend = _get_3d_backend()
     kwargs = dict(
         subject=subject,
         surface=surface,
@@ -2558,28 +2325,28 @@ def plot_source_estimates(
         colorbar=colorbar,
         transparent=transparent,
     )
-    if plot_mpl:
-        return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
-    else:
-        with use_3d_backend(backend):
-            return _plot_stc(
-                stc,
-                overlay_alpha=alpha,
-                brain_alpha=alpha,
-                vector_alpha=alpha,
-                cortex=cortex,
-                foreground=foreground,
-                size=size,
-                scale_factor=None,
-                show_traces=show_traces,
-                src=src,
-                volume_options=volume_options,
-                view_layout=view_layout,
-                add_data_kwargs=add_data_kwargs,
-                brain_kwargs=brain_kwargs,
-                title=title,
-                **kwargs,
-            )
+    with use_3d_backend(backend):
+        brain = _plot_stc(
+            stc,
+            overlay_alpha=alpha,
+            brain_alpha=alpha,
+            vector_alpha=alpha,
+            cortex=cortex,
+            foreground=foreground,
+            size=size,
+            scale_factor=None,
+            show_traces=show_traces,
+            src=src,
+            volume_options=volume_options,
+            view_layout=view_layout,
+            add_data_kwargs=add_data_kwargs,
+            brain_kwargs=brain_kwargs,
+            title=title,
+            **kwargs,
+        )
+    if block and brain._renderer._kind == "qt":
+        _qt_block(brain.plotter.app_window)
+    return brain
 
 
 def _plot_stc(
@@ -2675,6 +2442,10 @@ def _plot_stc(
     }
     if brain_kwargs is not None:
         kwargs.update(brain_kwargs)
+    # The window is shown at the end instead (unless the caller opted out entirely
+    # with ``brain_kwargs=dict(show=False)``, e.g. to embed the plot in a larger
+    # GUI whose window it shows itself, like mne.gui.dipolefit).
+    show = kwargs.get("show", True)
     kwargs["show"] = False
     kwargs["view_layout"] = view_layout
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -2737,7 +2508,7 @@ def _plot_stc(
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer, show_traces=show_traces)
-    else:
+    elif show:
         brain.show()
 
     return brain
@@ -3084,8 +2855,7 @@ def plot_volume_source_estimates(
     from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
-    if not check_version("nilearn", "0.4"):
-        raise RuntimeError("This function requires nilearn >= 0.4")
+    _soft_import("nilearn", "plotting volume source estimates")
 
     from nilearn.image import index_img
 
@@ -3512,7 +3282,7 @@ def plot_sparse_source_estimates(
     scale_factors : list
         List of floating point scale factors for the markers.
     %(verbose)s
-    **kwargs : kwargs
+    **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
     Returns
@@ -3914,7 +3684,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         )
 
     # initialize figure
-    renderer = _get_renderer(fig, show=True)
+    renderer = _get_renderer(fig=fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)

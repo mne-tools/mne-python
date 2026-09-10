@@ -87,7 +87,7 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
-    testing="0.173",
+    testing="0.176",
     misc="0.27",
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
@@ -115,7 +115,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:0973c25cd0e3ca43a75ea6953ace1daa",
+    hash="md5:4e5f515c71b6897766934170d1d94a7f",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f"tar.gz/{RELEASES['testing']}"
@@ -207,6 +207,16 @@ MNE_DATASETS["sample"] = dict(
     url="https://osf.io/download/86qa2?version=6",
     folder_name="MNE-sample-data",
     config_key="MNE_DATASETS_SAMPLE_PATH",
+)
+
+# Curated subset of sample (plus a few files from kiloword/erp_core/mtrf/eegbci)
+# used by the JupyterLite browser docs; see mne/datasets/lite_data/.
+MNE_DATASETS["lite_data"] = dict(
+    archive_name="MNE-lite-data.tar.gz",
+    hash="md5:5f9c4fffed32e79bc2bc2061bf22ce99",
+    url="https://osf.io/download/a8qbx",
+    folder_name="MNE-lite-data",
+    config_key="MNE_DATASETS_LITE_DATA_PATH",
 )
 
 MNE_DATASETS["somato"] = dict(

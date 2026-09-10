@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "a842af20c1457d70cc137f227727eb7b9a3c66d9",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    ".github/workflows/automerge.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

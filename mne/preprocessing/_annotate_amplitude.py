@@ -10,7 +10,6 @@ from ..annotations import (
     _adjust_onset_meas_date,
     _annotations_starts_stops,
 )
-from ..fixes import jit
 from ..io import BaseRaw
 from ..utils import _mask_to_onsets_offsets, _validate_type, logger, verbose
 
@@ -249,18 +248,12 @@ def _check_min_duration(min_duration, raw_duration):
 def _reject_short_segments(arr, min_duration_samples):
     """Check if flat or peak segments are longer than the minimum duration."""
     assert arr.dtype == np.dtype(bool) and arr.ndim == 2
+    from ._annotate_amplitude_numba import _mark_inner
+
     for k, ch in enumerate(arr):
         onsets, offsets = _mask_to_onsets_offsets(ch)
         _mark_inner(arr[k], onsets, offsets, min_duration_samples)
     return arr
-
-
-@jit()
-def _mark_inner(arr_k, onsets, offsets, min_duration_samples):
-    """Inner loop of _reject_short_segments()."""
-    for start, stop in zip(onsets, offsets):
-        if stop - start < min_duration_samples:
-            arr_k[start:stop] = False
 
 
 def _create_annotations(any_arr, kind, raw):

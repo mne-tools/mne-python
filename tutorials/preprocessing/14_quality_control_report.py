@@ -204,7 +204,7 @@ report.add_evokeds(
 
 ica = ICA(
     n_components=15,
-    random_state=97,
+    rng=97,
     max_iter=50,  # just for speed!
 )
 

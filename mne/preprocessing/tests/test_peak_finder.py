@@ -12,8 +12,8 @@ from mne.preprocessing import peak_finder
 def test_peak_finder():
     """Test the peak detection method."""
     # check for random data
-    rng = np.random.RandomState(42)
-    peak_inds, peak_mags = peak_finder(rng.randn(20))
+    rng = np.random.default_rng(42)
+    peak_inds, peak_mags = peak_finder(rng.standard_normal(20))
 
     assert_equal(peak_inds.dtype, np.dtype("int64"))
     assert_equal(peak_mags.dtype, np.dtype("float64"))

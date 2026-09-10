@@ -3,7 +3,8 @@
   "authors": [
     {
       "n": "mne[bot]",
-      "e": null
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
     },
     {
       "n": "autofix-ci[bot]",

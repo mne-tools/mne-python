@@ -13,7 +13,8 @@ import faulthandler
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+import tomllib
+from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -53,12 +54,17 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from credit_tools import generate_credit_rst  # noqa: E402
-from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
+from mne_doc_utils import (  # noqa: E402
+    check_links,
+    report_scraper,
+    reset_warnings,
+    sphinx_logger,
+)
 
 # -- Project information -----------------------------------------------------
 
 project = "MNE"
-td = datetime.now(tz=timezone.utc)
+td = datetime.now(tz=UTC)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
@@ -290,11 +296,15 @@ numpydoc_xref_aliases = {
     "EpochsFIF": "mne.Epochs",
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
+    "BaseRaw": "mne.io.Raw",
     "RawANT": "mne.io.Raw",
+    "RawArtemis123": "mne.io.Raw",
     "RawBCI2k": "mne.io.Raw",
+    "RawBDF": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
+    "RawCNT": "mne.io.Raw",
     "RawCTF": "mne.io.Raw",
     "RawCurry": "mne.io.Raw",
     "RawEDF": "mne.io.Raw",
@@ -308,7 +318,9 @@ numpydoc_xref_aliases = {
     "RawKIT": "mne.io.Raw",
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
+    "RawNicolet": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawNSX": "mne.io.Raw",
     "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
@@ -323,6 +335,7 @@ numpydoc_xref_ignore = {
     "and",
     "as",
     "between",
+    "class",
     "data",
     "instance",
     "instances",
@@ -426,7 +439,10 @@ numpydoc_xref_ignore = {
     "polars",
     "default",
     # unlinkable
+    "_Renderer",
+    "n_triangles",
     "CoregistrationUI",
+    "DipoleFitUI",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
@@ -434,17 +450,11 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-try:
-    import tomllib
-    # TODO VERSION: Can be removed once Python 3.11 is required
-except Exception:
-    pass
-else:
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-    pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
-    pyproject_nv = pyproject["tool"]["numpydoc_validation"]
-    numpydoc_validation_checks = set(pyproject_nv["checks"])
-    numpydoc_validation_exclude = set(pyproject_nv["exclude"])
+pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+numpydoc_validation_checks = set(pyproject_nv["checks"])
+numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
@@ -676,8 +686,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
-    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    r"https://openalex.org/works\?filter=cites:",  # doc/documentation/cited.rst
     "https://www.research.chop.edu/imaging",
     "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",
@@ -729,6 +738,9 @@ linkcheck_report_timeouts_as_broken = False
 # autodoc / autosummary
 autosummary_generate = True
 autodoc_default_options = {"inherited-members": None}
+# Types are documented (in human-readable numpydoc form) in the docstrings
+# themselves, so don't also render the annotations into the signatures.
+autodoc_typehints = "none"
 
 # sphinxcontrib-bibtex
 bibtex_bibfiles = ["./references.bib"]
@@ -840,9 +852,10 @@ html_theme_options = {
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
-        "json_url": "https://mne.tools/dev/_static/versions.json",
+        "json_url": "https://mne.tools/versions.json",
         "version_match": switcher_version_match,
     },
+    "show_version_warning_banner": True,
     "back_to_top_button": False,
 }
 
@@ -1089,11 +1102,14 @@ for icon, classes in icon_class.items():
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
 
-.. include:: /links.inc
-.. include:: /changes/names.inc
-
 .. currentmodule:: mne
 """
+# NB: names.inc (~400 contributor-name targets) and links.inc are deliberately
+# NOT part of rst_prolog. Parsing them into every document is wasteful (and
+# Sphinx's ReorderConsecutiveTargetAndIndexNodes transform is quadratic in the
+# length of a consecutive run of targets, so names.inc alone cost over a minute
+# of build time this way). The pages that use these link targets include the
+# files explicitly instead.
 
 # -- Dependency info ----------------------------------------------------------
 
@@ -1353,6 +1369,7 @@ custom_redirects = {
     f"{ex}/{co}/sensor_connectivity": f"{mne_conn}/{ex}/sensor_connectivity",
     f"{ex}/{vi}/publication_figure": f"{tu}/{vi}/10_publication_figure",
     f"{ex}/{vi}/sensor_noise_level": f"{tu}/{pr}/50_artifact_correction_ssp",
+    f"{ex}/{vi}/montage_sgskip": f"{ex}/{vi}/montage",
 }
 
 # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
@@ -1501,6 +1518,12 @@ def rstjinja(app, docname, source):
         source[0] = rendered
 
 
+def set_toc_level(app, pagename, templatename, context, doctree):
+    """Show the auto-generated related-software subsections in the right sidebar."""
+    if pagename == "install/mne_tools_suite":
+        context["theme_show_toc_level"] = 2
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
@@ -1509,6 +1532,7 @@ def setup(app):
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     # High prio, will happen before SG
+    app.connect("builder-inited", check_links, priority=5)
     app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
@@ -1516,3 +1540,4 @@ def setup(app):
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
     app.connect("source-read", rstjinja)
+    app.connect("html-page-context", set_toc_level)

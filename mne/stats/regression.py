@@ -6,7 +6,7 @@ from collections import namedtuple
 from inspect import isgenerator
 
 import numpy as np
-from scipy import linalg, sparse, stats
+from scipy import linalg
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..epochs import BaseEpochs
@@ -103,6 +103,8 @@ def linear_regression(inst, design_matrix, names=None):
 
 def _fit_lm(data, design_matrix, names):
     """Aux function."""
+    from scipy import stats
+
     n_samples = len(data)
     n_features = np.prod(data.shape[1:])
     if design_matrix.ndim != 2:
@@ -263,9 +265,9 @@ def linear_regression_raw(
         if solver == "cholesky":
 
             def solver(X, y):
-                a = (X.T * X).toarray()  # dot product of sparse matrices
+                a = (X.T @ X).toarray()  # dot product of sparse matrices
                 return linalg.solve(
-                    a, X.T * y, assume_a="pos", overwrite_a=True, overwrite_b=True
+                    a, X.T @ y, assume_a="pos", overwrite_a=True, overwrite_b=True
                 ).T
 
     elif callable(solver):
@@ -344,6 +346,8 @@ def _prepare_rerp_preds(
     n_samples, sfreq, events, event_id=None, tmin=-0.1, tmax=1, covariates=None
 ):
     """Build predictor matrix and metadata (e.g. condition time windows)."""
+    from scipy import sparse
+
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
@@ -391,7 +395,7 @@ def _prepare_rerp_preds(
             values = np.ones((len(onsets), n_lags)) * v[:, np.newaxis]
 
         cond_length[cond] = len(onsets)
-        xs.append(sparse.dia_matrix((values, onsets), shape=(n_samples, n_lags)))
+        xs.append(sparse.dia_array((values, onsets), shape=(n_samples, n_lags)))
 
     return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
 

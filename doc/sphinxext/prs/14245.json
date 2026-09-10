@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "89238be877b1b7b157de2d8b1f21664060a5d7f9",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14245.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 18,
+      "d": 7
+    },
+    "mne/_fiff/proj.py": {
+      "a": 8,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_pick.py": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/tests/test_proj.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

@@ -338,8 +338,8 @@ def test_box_size():
     assert_allclose(_box_size(np.c_[x, y]), (0.1, 0.1))
 
     # Create a random set of points. This should never break the function.
-    rng = np.random.RandomState(42)
-    points = rng.rand(100, 2)
+    rng = np.random.default_rng(42)
+    points = rng.random((100, 2))
     width, height = _box_size(points)
     assert width is not None
     assert height is not None
@@ -383,7 +383,7 @@ def test_generate_2d_layout():
     snobg = 10
     sbg = 15
     side = range(snobg)
-    bg_image = np.random.RandomState(42).randn(sbg, sbg)
+    bg_image = np.random.default_rng(42).standard_normal((sbg, sbg))
     w, h = [0.2, 0.5]
 
     # Generate fake data

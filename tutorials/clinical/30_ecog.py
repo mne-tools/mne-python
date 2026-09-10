@@ -53,7 +53,7 @@ subjects_dir = sample_path / "subjects"
 # Load in data and perform basic preprocessing
 # --------------------------------------------
 #
-# Let's load some ECoG electrode data with `MNE-BIDS`_.
+# Let's load some ECoG electrode data with `MNE-BIDS <https://mne.tools/mne-bids>`__.
 #
 # .. note::
 #     Downsampling is just to save execution time in this example, you should

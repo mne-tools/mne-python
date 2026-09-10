@@ -62,11 +62,11 @@ def _get_X_y(event_id, return_info=False):
 def test_spatial_filter_init():
     """Test the initialization of the SpatialFilter class."""
     # Test initialization and factory function
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     n, n_features = 20, 3
-    X = rng.rand(n, n_features)
+    X = rng.random((n, n_features))
     n_targets = 5
-    y = rng.rand(n, n_targets)
+    y = rng.random((n, n_targets))
     clf = LinearModel(LinearRegression())
     clf.fit(X, y)
 
@@ -126,7 +126,7 @@ def test_spatial_filter_init():
         SpatialFilter(info, filters=csp.filters_, patterns_method="foo")
 
     # test n_components > n_channels error
-    bad_filters = np.random.randn(31, 30)  # 31 components, 30 channels
+    bad_filters = rng.standard_normal((31, 30))  # 31 components, 30 channels
     with pytest.raises(ValueError, match="Number of components can't be greater"):
         SpatialFilter(info, filters=bad_filters)
 

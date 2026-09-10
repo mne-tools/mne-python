@@ -166,6 +166,24 @@ class GetEpochsMixin:
                 select = np.array([], int)
         return select
 
+    def _sanity_check_event_id(self):
+        for kind in ("keys", "values"):
+            a = list(getattr(self.event_id, kind)())
+            if len(set(a)) != len(a):
+                raise ValueError(
+                    f"The event_id dictionary has duplicate {kind}. Please ensure that "
+                    f"all {kind} are unique: {a}"
+                )
+            if kind == "values":
+                missing = sorted(set(self.events[:, 2][~np.isin(self.events[:, 2], a)]))
+                if len(missing):
+                    raise ValueError(
+                        "The event_id dictionary has values that do not match any "
+                        "event codes in self.events. Please ensure that all values "
+                        "in event_id are present in self.events[:, 2]. "
+                        f"Missing event codes: {missing}"
+                    )
+
     def _getitem(
         self,
         item,
@@ -201,12 +219,24 @@ class GetEpochsMixin:
         `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
             subset of epochs (and optionally array with kept epoch indices)
         """
-        inst = self.copy() if copy else self
-        if self._data is not None:
-            np.copyto(inst._data, self._data, casting="no")
+        self._sanity_check_event_id()
+        select = self._item_to_select(item)
+        # np.require makes each instance own its data (so it can be resized later)
+        new_data = None
+        if copy and select_data and self.preload and self._data is not None:
+            orig_data = self._data
+            new_data = np.require(orig_data[select], requirements=["O"])
+            # placeholder for the deepcopy, will be replaced for `inst` later
+            self._data = new_data[:0]
+            try:
+                inst = self.copy()
+            finally:
+                self._data = orig_data
+            del orig_data
+        else:
+            inst = self.copy() if copy else self
         del self
 
-        select = inst._item_to_select(item)
         has_selection = hasattr(inst, "selection")
         if has_selection:
             key_selection = inst.selection[select]
@@ -238,9 +268,9 @@ class GetEpochsMixin:
             # will reset the index for us
             GetEpochsMixin.metadata.fset(inst, metadata, verbose=False)
         if inst.preload and select_data:
-            # ensure that each Epochs instance owns its own data so we can
-            # resize later if necessary
-            inst._data = np.require(inst._data[select], requirements=["O"])
+            if new_data is None:
+                new_data = np.require(inst._data[select], requirements=["O"])
+            inst._data = new_data
         if drop_event_id:
             # update event id to reflect new content of inst
             inst.event_id = {
@@ -342,6 +372,11 @@ class GetEpochsMixin:
         """Facilitate iteration over epochs.
 
         This method resets the object iteration state to the first epoch.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The instance itself, to iterate over with :meth:`~mne.Epochs.next`.
 
         Notes
         -----
@@ -551,8 +586,13 @@ class TimeMixin:
             type_name="int, float, None",
         )
 
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
+        # handle tmin/tmax as start and stop indices into data array.
+        # Prefer an integer n_times (available on Raw); falling back to
+        # times.size there would materialize the full time vector on every
+        # call, which dominates the cost of many small get_data() reads.
+        n_times = getattr(self, "n_times", None)
+        if n_times is None:
+            n_times = self.times.size
         start = 0 if tmin is None else self.time_as_index(tmin)[0]
         stop = n_times if tmax is None else self.time_as_index(tmax)[0]
 
@@ -589,7 +629,7 @@ class ExtendedTimeMixin(TimeMixin):
         return self.times[-1]
 
     @verbose
-    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None) -> Self:
         """Crop data to a given time interval.
 
         Parameters
@@ -648,7 +688,7 @@ class ExtendedTimeMixin(TimeMixin):
         return self
 
     @verbose
-    def decimate(self, decim, offset=0, *, verbose=None):
+    def decimate(self, decim, offset=0, *, verbose=None) -> Self:
         """Decimate the time-series data.
 
         Parameters
@@ -712,7 +752,7 @@ class ExtendedTimeMixin(TimeMixin):
         self._update_first_last()
         return self
 
-    def shift_time(self, tshift, relative=True):
+    def shift_time(self, tshift, relative=True) -> Self:
         """Shift time scale in epoched or evoked data.
 
         Parameters

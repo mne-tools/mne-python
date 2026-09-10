@@ -25,3 +25,5 @@ There are several places to obtain help with MNE software tools.
 
    learn_python
    faq
+
+.. include:: ../links.inc

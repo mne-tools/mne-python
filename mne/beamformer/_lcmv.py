@@ -170,7 +170,8 @@ def make_lcmv(
     # because there can be a mismatch. Should probably add an extra arg to
     # _prepare_beamformer_input at some point (later)
     picks = _check_info_inv(info, forward, data_cov, noise_cov)
-    info = pick_info(info, picks)
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, picks)
     data_rank = compute_rank(data_cov, rank=rank, info=info)
     noise_rank = compute_rank(noise_cov, rank=rank, info=info)
     for key in data_rank:

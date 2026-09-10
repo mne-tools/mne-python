@@ -14,3 +14,5 @@ and the :ref:`supporting institutions and sponsors <funding>` that together make
    leaders
    credit
    sponsors
+
+.. include:: ../changes/names.inc

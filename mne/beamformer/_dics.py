@@ -196,7 +196,8 @@ def make_dics(
 
     _, _, allow_mismatch = _check_one_ch_type("dics", info, forward, csd, noise_csd)
     # remove bads so that equalize_channels only keeps all good
-    info = pick_info(info, pick_channels(info["ch_names"], [], info["bads"]))
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, pick_channels(info["ch_names"], [], info["bads"]))
     info, forward, csd = equalize_channels([info, forward, csd])
 
     csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)

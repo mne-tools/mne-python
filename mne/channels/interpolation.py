@@ -8,7 +8,6 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy.interpolate import RectBivariateSpline
 from scipy.linalg import pinv
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import _simplify_info, create_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
@@ -257,6 +256,8 @@ def _interpolate_bads_meeg(
 
 @verbose
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
+    from scipy.spatial.distance import pdist, squareform
+
     from ..preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
@@ -302,6 +303,8 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
     # 3) remove contacts with large distances
+
+    from scipy.spatial.distance import pdist, squareform
 
     dist = squareform(pdist(pos))
     np.fill_diagonal(dist, np.inf)
@@ -449,7 +452,9 @@ def _interpolate_to_eeg(inst, sensors, origin, method, reg):
     if method == "spline":
         origin_val = _check_origin(origin, inst.info)
         pos_from = inst.info._get_channel_positions(picks_good_eeg) - origin_val
-        pos_to = np.stack(list(ch_pos.values()), axis=0)
+        # Use info_to (rather than ch_pos directly) so that the target positions
+        # are in the head frame, and center both sets on the fitted origin
+        pos_to = info_to._get_channel_positions() - origin_val
 
         def _check_pos_sphere(pos):
             d = np.linalg.norm(pos, axis=-1)

@@ -6,12 +6,12 @@
 
 import os
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
@@ -28,6 +28,7 @@ from ...utils import (
     verbose,
     warn,
 )
+from ...utils._typing import FileLike
 from ..base import BaseRaw, _get_scaling
 from ._open import _gdf_edf_get_fid
 
@@ -591,19 +592,49 @@ class RawGDF(BaseRaw):
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
+    assert dtype is not None
     # BDF
     if subtype == "bdf":
-        ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
-        ch_data = ch_data.reshape(-1, 3).astype(INT32)
-        ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
-        # 24th bit determines the sign
-        ch_data[ch_data >= (1 << 23)] -= 1 << 24
+        assert dtype_byte == 3
+        expected = samp * dtype_byte
+        try:
+            raw = read_from_file_or_buffer(fid, dtype=dtype, count=expected)
+        except ValueError as err:
+            raise RuntimeError(
+                f"Could not read {expected} requested BDF bytes"
+            ) from err
+        if raw.size != expected:
+            raise RuntimeError(
+                f"Only {raw.size} of {expected} requested BDF bytes could be read"
+            )
+        # Read each 3-byte sample as the low bytes of an overlapping 4-byte
+        # word, mask off the byte borrowed from the next sample, then move the
+        # sign bit to bit 31 and shift back down to sign-extend it. The last
+        # sample has no next sample to borrow from, so it is done by hand.
+        # This is equivalent to, and ~3x faster than, the readable version:
+        #
+        #     ch_data = raw.reshape(-1, 3).astype(INT32)
+        #     ch_data = ch_data[:, 0] | (ch_data[:, 1] << 8) | (ch_data[:, 2] << 16)
+        #     ch_data <<= 8  # sign-extend bit 23
+        #     ch_data >>= 8
+        ch_data = np.empty(samp, dtype=INT32)
+        packed = np.ndarray(
+            (max(samp - 1, 0),), dtype="<u4", buffer=raw, strides=(dtype_byte,)
+        )
+        np.bitwise_and(packed, (1 << 24) - 1, out=ch_data[:-1])
+        if samp:
+            ch_data[-1] = int(raw[-3]) | int(raw[-2]) << 8 | int(raw[-1]) << 16
+        ch_data <<= 8
+        ch_data >>= 8
 
     # GDF data and EDF data
     else:
         ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp)
 
     return ch_data
+
+
+_EDF_CHUNK_BYTES = 10 * 1024 * 1024  # read roughly this much per chunk
 
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
@@ -630,11 +661,20 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-    block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
     # But to speed it up, we really need to read multiple blocks at once,
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
-    # Let's do ~10 MB chunks:
-    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    n_per = max(_EDF_CHUNK_BYTES // (ch_offsets[-1] * dtype_byte), 1)
+
+    # When every picked channel stores buf_len samples per data record there is
+    # nothing to resample, so the picks form a plain (n_picks, n_times) block we
+    # can calibrate in one go straight into `data`. Mixed sampling rates, a
+    # projector, or a stim channel that needs interpolating use the per-channel
+    # loop below instead.
+    n_picks = len(idx_arr)
+    picks = read_sel[:n_picks]  # picked signal channels, in output row order
+    uniform = mult is None and bool((n_samps[picks] == buf_len).all())
+    stim_rows = [j for j, i in enumerate(idx_arr) if i in stim_channel_idxs]
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -643,7 +683,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
         # first read everything into the `ones` array. For channels with
         # lower sampling frequency, there will be zeros left at the end of the
         # row. Ignore TAL/annotations channel and only store `orig_sel`
-        ones = np.zeros((len(orig_sel), data.shape[-1]), dtype=data.dtype)
+        # `ones` has no rows on the fast path, which writes into `data` itself
+        n_stage = 0 if uniform else len(orig_sel)
+        ones = np.zeros((n_stage, data.shape[-1]), dtype=data.dtype)
         # save how many samples have already been read per channel
         n_smp_read = [0 for _ in range(len(orig_sel))]
 
@@ -658,6 +700,23 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             ).reshape(n_read, -1)
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+
+            if uniform:
+                block = np.empty((n_picks, n_read, buf_len), many_chunk.dtype)
+                for j, ci in enumerate(picks):
+                    block[j] = many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]]
+                for ci in read_sel[n_picks:]:  # annotation channels
+                    tal_data.append(
+                        many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]].copy()
+                    )
+                out = data[:, d_lims[ai][0] : d_lims[ai + n_read - 1][1]]
+                flat = block.reshape(n_picks, n_read * buf_len)[:, r_sidx:r_eidx]
+                np.multiply(flat, cal[idx_arr, np.newaxis], out=out)
+                out += offsets[idx_arr, np.newaxis]
+                out *= gains[idx_arr, np.newaxis]
+                for j in stim_rows:
+                    out[j] = np.bitwise_and(out[j].astype(int), 2**17 - 1)
+                continue
 
             # loop over selected channels, ci=channel selection
             for ii, ci in enumerate(read_sel):
@@ -678,6 +737,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
                 if n_samps[ci] != buf_len:
                     if orig_idx in stim_channel_idxs:
+                        from scipy.interpolate import interp1d
+
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -730,6 +791,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 )
 
             _mult_cal_one(data[:, :], ones, idx, cals, mult)
+
+    if uniform:
+        # stands in for the `data_view *= cals` that _mult_cal_one applies; the
+        # block above is skipped because the fast path leaves n_smp_read zero
+        data *= cals
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
@@ -1074,7 +1140,7 @@ def _read_edf_header(
     exclude_after_unique=False,
 ):
     """Read header information from EDF+ or BDF file."""
-    edf_info = {"events": []}
+    edf_info: dict[str, Any] = {"events": []}
 
     with _gdf_edf_get_fid(fname) as fid:
         fid.read(8)  # version (unused here)
@@ -1141,7 +1207,7 @@ def _read_edf_header(
             except Exception:
                 hour, minute, second = 0, 0, 0
             meas_date = meas_date.replace(
-                hour=hour, minute=minute, second=second, tzinfo=timezone.utc
+                hour=hour, minute=minute, second=second, tzinfo=UTC
             )
         else:
             fid.read(8)  # skip the file's measurement time
@@ -1350,7 +1416,7 @@ def _check_dtype_byte(types):
 
 def _read_gdf_header(fname, exclude, include=None):
     """Read GDF 1.x and GDF 2.x header info."""
-    edf_info = dict()
+    edf_info: dict[str, Any] = dict()
     events = None
 
     with _gdf_edf_get_fid(fname) as fid:
@@ -1391,7 +1457,7 @@ def _read_gdf_header(fname, exclude, include=None):
                     int(tm[10:12]),
                     int(tm[12:14]),
                     int(tm[14:16]) * pow(10, 4),
-                    tzinfo=timezone.utc,
+                    tzinfo=UTC,
                 )
             except Exception:
                 pass
@@ -1562,7 +1628,7 @@ def _read_gdf_header(fname, exclude, include=None):
 
             meas_date = read_from_file_or_buffer(fid, UINT64, 1)[0]
             if meas_date != 0:
-                meas_date = datetime(1, 1, 1, tzinfo=timezone.utc) + timedelta(
+                meas_date = datetime(1, 1, 1, tzinfo=UTC) + timedelta(
                     meas_date * pow(2, -32) - 367
                 )
             else:
@@ -1570,14 +1636,14 @@ def _read_gdf_header(fname, exclude, include=None):
 
             birthday = read_from_file_or_buffer(fid, UINT64, 1).tolist()[0]
             if birthday == 0:
-                birthday = datetime(1, 1, 1, tzinfo=timezone.utc)
+                birthday = datetime(1, 1, 1, tzinfo=UTC)
             else:
-                birthday = datetime(1, 1, 1, tzinfo=timezone.utc) + timedelta(
+                birthday = datetime(1, 1, 1, tzinfo=UTC) + timedelta(
                     birthday * pow(2, -32) - 367
                 )
             patient["birthday"] = birthday
-            if patient["birthday"] != datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc):
-                today = datetime.now(tz=timezone.utc)
+            if patient["birthday"] != datetime(1, 1, 1, 0, 0, tzinfo=UTC):
+                today = datetime.now(tz=UTC)
                 patient["age"] = today.year - patient["birthday"].year
                 # fudge the day by -1 if today happens to be a leap day
                 day = 28 if today.month == 2 and today.day == 29 else today.day
@@ -1887,19 +1953,19 @@ def _check_args(input_fname, preload, target_ext):
 
 @fill_doc
 def read_raw_edf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    infer_types=False,
-    include=None,
-    preload=False,
-    units=None,
-    encoding="utf8",
-    exclude_after_unique=False,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    infer_types: bool = False,
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    units: dict | str | None = None,
+    encoding: str = "utf8",
+    exclude_after_unique: bool = False,
     *,
-    verbose=None,
+    verbose: bool | str | int | None = None,
 ) -> RawEDF:
     """Reader function for EDF and EDF+ files.
 
@@ -2026,19 +2092,19 @@ def read_raw_edf(
 
 @fill_doc
 def read_raw_bdf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    infer_types=False,
-    include=None,
-    preload=False,
-    units=None,
-    encoding="utf8",
-    exclude_after_unique=False,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    infer_types: bool = False,
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    units: dict | str | None = None,
+    encoding: str = "utf8",
+    exclude_after_unique: bool = False,
     *,
-    verbose=None,
+    verbose: bool | str | int | None = None,
 ) -> RawBDF:
     """Reader function for BDF files.
 
@@ -2090,7 +2156,7 @@ def read_raw_bdf(
 
     Returns
     -------
-    raw : instance of RawEDF
+    raw : instance of RawBDF
         The raw instance.
         See :class:`mne.io.Raw` for documentation of attributes and methods.
 
@@ -2165,14 +2231,14 @@ def read_raw_bdf(
 
 @fill_doc
 def read_raw_gdf(
-    input_fname,
-    eog=None,
-    misc=None,
-    stim_channel="auto",
-    exclude=(),
-    include=None,
-    preload=False,
-    verbose=None,
+    input_fname: Path | str | FileLike,
+    eog: list | tuple | None = None,
+    misc: list | tuple | None = None,
+    stim_channel: Literal["auto"] | str | list | int = "auto",
+    exclude: list[str] | str | tuple[str, ...] = (),
+    include: list[str] | str | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawGDF:
     """Reader function for GDF files.
 
@@ -2277,7 +2343,9 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
             else:
                 this_chan = chan.astype(np.int64)
                 # Exploit np vectorized processing
-                tals.extend(np.uint8([this_chan % 256, this_chan // 256]).flatten("F"))
+                tals.extend(
+                    np.array([this_chan % 256, this_chan // 256], np.uint8).flatten("F")
+                )
         try:
             triggers = re.findall(pat, tals.decode(encoding))
         except UnicodeDecodeError as e:
@@ -2286,7 +2354,7 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
                 " You might want to try setting \"encoding='latin1'\"."
             ) from e
 
-    events = {}
+    events: dict[str, Any] = {}
     offset = 0.0
     for k, ev in enumerate(triggers):
         onset = float(ev[0]) + offset

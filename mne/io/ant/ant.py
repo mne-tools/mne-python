@@ -11,6 +11,7 @@ from numpy.typing import NDArray
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
+from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,
@@ -33,7 +34,7 @@ class RawANT(BaseRaw):
 
     Parameters
     ----------
-    fname : file-like
+    fname : path-like
         Path to the ANT raw file to load. The file should have the extension ``.cnt``.
     eog : str | None
         Regex pattern to find EOG channel labels. If None, no EOG channels are
@@ -89,7 +90,7 @@ class RawANT(BaseRaw):
         impedance_annotation: str,
         *,
         encoding: str = "latin-1",
-        preload: bool | NDArray,
+        preload: bool | str | NDArray,
         verbose=None,
     ) -> None:
         logger.info("Reading ANT file %s", fname)
@@ -185,11 +186,7 @@ class RawANT(BaseRaw):
             one = read_data(cnt, i_start, i_stop)
             _scale_data(one, ch_units)
             data_view = data[:, i_start - start : i_stop - start]
-            if isinstance(idx, slice):
-                data_view[:] = one[idx]
-            else:
-                # faster than doing one = one[idx]
-                np.take(one, idx, axis=0, out=data_view)
+            _mult_cal_one(data_view, one, idx, cals, mult)
 
 
 def _handle_bipolar_channels(
@@ -221,13 +218,13 @@ def _parse_ch_types(
     ch_names: list[str], eog: str | None, misc: str | None, ch_refs: list[str]
 ) -> list[str]:
     """Parse the channel types."""
-    eog = re.compile(eog) if eog is not None else None
-    misc = re.compile(misc) if misc is not None else None
+    eog_re = re.compile(eog) if eog is not None else None
+    misc_re = re.compile(misc) if misc is not None else None
     ch_types = []
     for ch in ch_names:
-        if eog is not None and re.fullmatch(eog, ch):
+        if eog_re is not None and re.fullmatch(eog_re, ch):
             ch_types.append("eog")
-        elif misc is not None and re.fullmatch(misc, ch):
+        elif misc_re is not None and re.fullmatch(misc_re, ch):
             ch_types.append("misc")
         else:
             ch_types.append("eeg")
@@ -299,15 +296,15 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
 
 @copy_doc(RawANT)
 def read_raw_ant(
-    fname,
-    eog=None,
-    misc=r"BIP\d+",
-    bipolars=None,
-    impedance_annotation="impedance",
+    fname: Path | str,
+    eog: str | None = None,
+    misc: str | None = r"BIP\d+",
+    bipolars: list[str] | tuple[str, ...] | None = None,
+    impedance_annotation: str = "impedance",
     *,
     encoding: str = "latin-1",
-    preload=False,
-    verbose=None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawANT:
     """
     Returns

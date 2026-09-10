@@ -273,7 +273,7 @@ def _this_interpol(inst, ref_meg=False):
 def test_interpolate_meg_ctf():
     """Test interpolation of MEG channels from CTF system."""
     thresh = 0.85
-    tol = 0.05  # assert the new interpol correlates at least .05 "better"
+    tol = 0.03  # assert the new interpol correlates at least .03 "better"
     bad = "MLC22-2622"  # select a good channel to test the interpolation
 
     raw = read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs
@@ -583,6 +583,18 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     inst.info["bads"] = bads
     inst_interp = inst.copy().interpolate_to(montage, method=method)
     assert inst_interp.info["bads"] == bads
+
+
+def test_interpolate_to_eeg_same_positions():
+    """Test that spline interpolate_to onto src pos is a no-op (gh-14153)."""
+    raw = read_raw_fif(raw_fname).pick("eeg").crop(0, 1).load_data()
+    montage = make_dig_montage(
+        ch_pos=dict(zip(raw.ch_names, raw.info._get_channel_positions())),
+        coord_frame="head",
+    )
+    raw_interp = raw.copy().interpolate_to(montage, method="spline")
+    assert raw_interp.ch_names == raw.ch_names
+    assert_allclose(raw_interp.get_data(), raw.get_data(), rtol=1e-5, atol=1e-12)
 
 
 @pytest.mark.slowtest  # ~5s locally

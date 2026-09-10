@@ -26,7 +26,7 @@ from mne.simulation import simulate_evoked, simulate_stc
 # %%
 # First, we set some parameters.
 
-seed = 42
+seed = 199
 
 # parameters for inverse method
 method = "sLORETA"
@@ -161,7 +161,7 @@ brain_gen = stc_gen.plot(clim=clim, **kwargs)
 # (evoked) data from the known source-space signals. The amount of noise is
 # controlled by ``nave`` (higher values imply less noise).
 #
-evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, nave, random_state=seed)
+evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, nave, rng=seed)
 
 # Map the simulated sensor-space data to source-space using the inverse
 # operator.

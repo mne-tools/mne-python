@@ -5,7 +5,7 @@
 import copy
 import os
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from os import path as op
 
 import numpy as np
@@ -85,7 +85,7 @@ def test_read_ctf(tmp_path):
     with pytest.warns(RuntimeWarning, match="RMSP .* changed to a MISC ch"):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
-    pos = np.random.RandomState(42).randn(len(picks), 3)
+    pos = np.random.default_rng(42).standard_normal((len(picks), 3))
     fake_eeg_fname = op.join(ctf_eeg_fname, "catch-alp-good-f.eeg")
     # Create a bad file
     with open(fake_eeg_fname, "wb") as fid:
@@ -266,7 +266,8 @@ def test_read_ctf(tmp_path):
         raw_read = read_raw_fif(out_fname)
 
         # so let's check tricky cases based on sample boundaries
-        rng = np.random.RandomState(0)
+        # seed chosen to satisfy the tolerances asserted below
+        rng = np.random.default_rng(1)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
         bnd = int(round(raw.info["sfreq"] * raw.buffer_size_sec))
         assert bnd == raw._raw_extras[0]["block_size"]
@@ -703,6 +704,36 @@ def test_missing_res4(tmp_path):
 
 
 @testing.requires_testing_data
+@pytest.mark.parametrize(
+    "names",
+    [
+        pytest.param(("Nasion", "LPA", "RPA"), id="Nasion-LPA-RPA"),
+        pytest.param(("NASION", "Left Ear", "RIGHT EAR"), id="mixed-case"),
+    ],
+)
+def test_hc_coil_name_variants(tmp_path, names):
+    """Test that alternate spellings of the .hc coil descriptors are read."""
+    raw_orig = read_raw_ctf(ctf_dir / ctf_fname_continuous)
+    use_ds = tmp_path / ctf_fname_continuous
+    copytree_rw(ctf_dir / ctf_fname_continuous, use_ds)
+    hc_fname = use_ds / (ctf_fname_continuous[:-2] + "hc")
+    hc = hc_fname.read_text()
+    for old, new in zip(("nasion", "left ear", "right ear"), names):
+        assert old in hc
+        hc = hc.replace(old, new)
+    hc_fname.write_text(hc)
+    raw = read_raw_ctf(use_ds)
+    assert_allclose(
+        raw.info["dev_head_t"]["trans"], raw_orig.info["dev_head_t"]["trans"]
+    )
+    assert len(raw.info["dig"]) == len(raw_orig.info["dig"])
+    for dig, dig_orig in zip(raw.info["dig"], raw_orig.info["dig"]):
+        assert dig["kind"] == dig_orig["kind"]
+        assert dig["ident"] == dig_orig["ident"]
+        assert_allclose(dig["r"], dig_orig["r"])
+
+
+@testing.requires_testing_data
 def test_read_ctf_mag_bad_comp(tmp_path, monkeypatch):
     """Test CTF reader with mag comps and bad comps."""
     path = op.join(ctf_dir, ctf_fname_continuous)
@@ -739,4 +770,4 @@ def test_invalid_meas_date(monkeypatch):
         raw = read_raw_ctf(ctf_dir / ctf_fname_continuous, verbose=True)
     log = log.getvalue()
     assert "No date or time found" in log
-    assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=timezone.utc)
+    assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=UTC)

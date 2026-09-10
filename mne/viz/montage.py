@@ -7,7 +7,6 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 from .._fiff._digitization import _get_fid_coords
 from .._fiff.meas_info import create_info
@@ -55,6 +54,7 @@ def plot_montage(
         The figure object.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..channels import DigMontage, make_dig_montage
 

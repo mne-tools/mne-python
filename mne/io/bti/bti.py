@@ -6,6 +6,8 @@ import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -14,7 +16,6 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..._fiff.utils import _mult_cal_one, read_str
-from ...fixes import _reshape_view
 from ...transforms import Transform, combine_transforms, invert_transform
 from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
 from ..base import BaseRaw
@@ -548,7 +549,7 @@ def _read_config(fname):
 
             cfg["chs"] += [ch]
             _correct_offset(fid)  # before and after
-            dta = dict()
+            dta: dict[str, Any] = dict()
             if ch["ch_type"] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
                 dev = {
                     "device_info": read_dev_header(fid),
@@ -1042,7 +1043,7 @@ class RawBTi(BaseRaw):
                     block = np.fromfile(fid, dtype, count)
                 sample_stop = sample_start + count // n_channels
                 shape = (sample_stop - sample_start, bti_info["total_chans"])
-                block = _reshape_view(block, shape)
+                block = block.reshape(shape, copy=False)
                 data_view = data[:, sample_start:sample_stop]
                 one = np.empty(block.shape[::-1])
 
@@ -1332,18 +1333,18 @@ def _get_bti_info(
 
 @verbose
 def read_raw_bti(
-    pdf_fname,
-    config_fname="config",
-    head_shape_fname="hs_file",
-    rotation_x=0.0,
-    translation=(0.0, 0.02, 0.11),
-    convert=True,
-    rename_channels=True,
-    sort_by_ch_name=True,
-    ecg_ch="E31",
-    eog_ch=("E63", "E64"),
-    preload=False,
-    verbose=None,
+    pdf_fname: Path | str,
+    config_fname: Path | str = "config",
+    head_shape_fname: Path | str | None = "hs_file",
+    rotation_x: float = 0.0,
+    translation: np.ndarray | tuple | list = (0.0, 0.02, 0.11),
+    convert: bool = True,
+    rename_channels: bool = True,
+    sort_by_ch_name: bool = True,
+    ecg_ch: str | None = "E31",
+    eog_ch: tuple[str, ...] | None = ("E63", "E64"),
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawBTi:
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 

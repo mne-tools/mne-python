@@ -154,6 +154,7 @@ def _mixed_norm_solver_cd(
         tol=tol / sum_squared(M),
         fit_intercept=False,
         max_iter=maxit,
+        random_state=0,
         warm_start=True,
     )
     if init is not None:

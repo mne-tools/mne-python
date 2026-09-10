@@ -103,7 +103,7 @@ y = epochs.events[:, 2]
 clf = make_pipeline(
     StandardScaler(),  # z-score normalization
     SelectKBest(f_classif, k=500),  # select features for speed
-    LinearModel(LogisticRegression(C=1, solver="liblinear")),
+    LinearModel(LogisticRegression(C=1, solver="liblinear", random_state=107)),
 )
 time_decod = SlidingEstimator(clf, scoring="roc_auc")
 

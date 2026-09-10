@@ -8,6 +8,7 @@ import warnings
 from abc import ABC, abstractmethod
 
 from ..ui_events import TimeChange, publish
+from ..utils import _BlitManager
 
 
 class Figure3D(ABC):
@@ -97,7 +98,7 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def legend(self, labels, border=False, size=0.1, face="triangle", loc="upper left"):
+    def legend(self, labels, size=0.1, face="triangle", loc="upper left"):
         """Add a legend to the scene.
 
         Parameters
@@ -106,9 +107,6 @@ class _AbstractRenderer(ABC):
             Each entry must contain two strings, (label, color),
             where ``label`` is the name of the item to add, and
             ``color`` is the color of the label to add.
-        border : bool
-            Controls if there will be a border around the legend.
-            The default is False.
         size : float
             The size of the entire figure window.
         loc : str
@@ -144,7 +142,6 @@ class _AbstractRenderer(ABC):
         representation="surface",
         line_width=1.0,
         normals=None,
-        polygon_offset=None,
         name=None,
         **kwargs,
     ):
@@ -190,8 +187,6 @@ class _AbstractRenderer(ABC):
             The width of the lines when representation='wireframe'.
         normals : array, shape (n_vertices, 3)
             The array containing the normal of each vertex.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             The name of the mesh.
         kwargs : args
@@ -266,7 +261,6 @@ class _AbstractRenderer(ABC):
         normalized_colormap=False,
         scalars=None,
         backface_culling=False,
-        polygon_offset=None,
         *,
         name=None,
     ):
@@ -294,8 +288,6 @@ class _AbstractRenderer(ABC):
             The scalar valued associated to the vertices.
         backface_culling : bool
             If True, enable backface culling on the surface.
-        polygon_offset : float
-            If not None, the factor used to resolve coincident topology.
         name : str | None
             Name of the surface.
         """
@@ -353,6 +345,7 @@ class _AbstractRenderer(ABC):
         colormap="RdBu",
         normalized_colormap=False,
         reverse_lut=False,
+        opacity=None,
     ):
         """Add tube in the scene.
 
@@ -378,12 +371,12 @@ class _AbstractRenderer(ABC):
             If None, the max of the data will be used.
         colormap : str | np.ndarray | matplotlib.colors.Colormap | None
             The colormap to use.
-        opacity : float
-            The opacity of the tube(s).
-        backface_culling : bool
-            If True, enable backface culling on the tube(s).
+        normalized_colormap : bool
+            Specify if the values of the colormap are between 0 and 1.
         reverse_lut : bool
             If True, reverse the lookup table.
+        opacity : float | None
+            The opacity of the tube(s). If None, the renderer default is used.
 
         Returns
         -------
@@ -407,7 +400,6 @@ class _AbstractRenderer(ABC):
         color,
         scale,
         mode,
-        resolution=8,
         glyph_height=None,
         glyph_center=None,
         glyph_resolution=None,
@@ -447,10 +439,6 @@ class _AbstractRenderer(ABC):
             The given value specifies the maximum glyph size in drawing units.
         mode : 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
-        resolution : int
-            The resolution of the glyph created. Depending on the type of
-            glyph, it represents the number of divisions in its geometric
-            representation.
         glyph_height : float
             The height of the glyph used with the quiver.
         glyph_center : tuple
@@ -482,6 +470,73 @@ class _AbstractRenderer(ABC):
             The actor in the scene.
         surface :
             Handle of the quiver in the scene.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def instanced_mesh(
+        self,
+        rr,
+        tris,
+        positions,
+        quats,
+        colors,
+        scales=None,
+        opacity=1.0,
+        backface_culling=False,
+        name=None,
+    ):
+        """Add one mesh GPU-instanced at multiple positions/orientations.
+
+        Unlike :meth:`quiver3d` or :meth:`sphere`, which bake a merged,
+        static glyph mesh, this draws one copy of a single template mesh at
+        each of ``n_instances`` locations using per-instance position,
+        orientation, and color that can be changed later without rebuilding
+        the geometry (see ``mesh`` in "Returns" below).
+
+        Parameters
+        ----------
+        rr : array, shape (n_vertices, 3)
+            The vertices of the template mesh, in the local (object) frame
+            shared by all instances.
+        tris : array, shape (n_tris, 3)
+            The triangles of the template mesh.
+        positions : array, shape (n_instances, 3)
+            The position of each instance.
+        quats : array, shape (n_instances, 3)
+            The orientation of each instance as a unit quaternion, given as
+            only the ``(x, y, z)`` vector part (``w`` omitted, recoverable
+            as ``sqrt(max(1 - x**2 - y**2 - z**2, 0))``) -- the same
+            convention used by :func:`~mne.transforms.rot_to_quat` /
+            :func:`~mne.transforms.quat_to_rot`.
+        colors : array, shape (n_instances, 4)
+            The per-instance RGBA color (float values between 0 and 1) to
+            use for each instance. Per-instance alpha (the fourth column)
+            is respected.
+        scales : array, shape (n_instances,) | None
+            The per-instance isotropic scale factor applied to the template
+            geometry. If ``None`` (the default), no per-instance scaling is
+            applied and the size baked into ``rr`` is used as-is (e.g. for
+            MEG coils).
+        opacity : float
+            A uniform opacity multiplier applied on top of the per-instance
+            alpha values in ``colors``.
+        backface_culling : bool
+            If True, enable backface culling on the mesh.
+        name : str | None
+            Name of the mesh.
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        mesh :
+            The point cloud (one point per instance) backing the glyph
+            mapper. Its per-instance color and orientation arrays can be
+            mutated in place (followed by a render update) to recolor or
+            re-orient individual instances live, without rebuilding the
+            actor or its geometry.
         """
         pass
 
@@ -527,25 +582,27 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def text3d(self, x, y, z, text, width, color="white"):
-        """Add 2d text in the scene.
+    def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
+        """Add text at 3D positions in the scene.
 
         Parameters
         ----------
-        x : float
-            The X component to use as position of the text.
-        y : float
-            The Y component to use as position of the text.
-        z : float
-            The Z component to use as position of the text.
-        text : str
-            The content of the text.
-        width : float
-            The width of the text.
+        x : float | array-like
+            The X component(s) to use as position of the text.
+        y : float | array-like
+            The Y component(s) to use as position of the text.
+        z : float | array-like
+            The Z component(s) to use as position of the text.
+        text : str | list of str
+            The content of the text, one per position.
+        font_size : int
+            The font size in points.
         color : tuple | str
             The color of the text as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
+        shadow : bool
+            If True, draw a shadow behind the text.
         """
         pass
 
@@ -566,6 +623,13 @@ class _AbstractRenderer(ABC):
             The number of labels to display on the scalar bar.
         bgcolor : tuple | str
             The color of the background when there is transparency.
+
+        Returns
+        -------
+        actor
+            The scalar bar actor.
+        tick_actor
+            The actor drawing tick marks along the scalar bar.
         """
         pass
 
@@ -686,14 +750,6 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
-    def _get_tooltip(self):
-        pass
-
-    @abstractmethod
-    def _set_tooltip(self, tooltip: str):
-        pass
-
-    @abstractmethod
     def _add_keypress(self, callback):
         pass
 
@@ -703,10 +759,6 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def _set_focus(self):
-        pass
-
-    @abstractmethod
-    def _set_layout(self, layout):
         pass
 
     @abstractmethod
@@ -746,10 +798,6 @@ class _AbstractButton(_AbstractWidget):
     def _click(self):
         pass
 
-    @abstractmethod
-    def _set_icon(self, icon):
-        pass
-
 
 class _AbstractSlider(_AbstractWidget):
     @classmethod
@@ -763,10 +811,6 @@ class _AbstractSlider(_AbstractWidget):
 
     @abstractmethod
     def _get_value(self):
-        pass
-
-    @abstractmethod
-    def _set_range(self, rng):
         pass
 
 
@@ -932,10 +976,6 @@ class _AbstractBoxLayout(ABC):
     def _add_widget(self, widget):
         pass
 
-    @abstractmethod
-    def _add_stretch(self, amount=1):
-        pass
-
 
 class _AbstractHBoxLayout(_AbstractBoxLayout):
     @abstractmethod
@@ -968,31 +1008,7 @@ class _AbstractAppWindow(ABC):
         pass
 
     @abstractmethod
-    def _get_dpi(self):
-        pass
-
-    @abstractmethod
     def _get_size(self):
-        pass
-
-    @abstractmethod
-    def _get_cursor(self):
-        pass
-
-    @abstractmethod
-    def _set_cursor(self, cursor):
-        pass
-
-    @abstractmethod
-    def _new_cursor(self, name):
-        pass
-
-    @abstractmethod
-    def _close_connect(self, func, *, after=True):
-        pass
-
-    @abstractmethod
-    def _close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -1111,7 +1127,16 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         pass
 
     @abstractmethod
@@ -1143,11 +1168,15 @@ class _AbstractDock(ABC):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+    ):
         pass
 
     @abstractmethod
@@ -1224,7 +1253,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, *, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0, on_click=None):
         pass
 
     @abstractmethod
@@ -1330,11 +1359,20 @@ class _AbstractWdgt(ABC):
         pass
 
     @abstractmethod
+    def remove(self):
+        """Detach and free this widget; unlike hide(), it is gone for good."""
+        pass
+
+    @abstractmethod
     def set_enabled(self, state):
         pass
 
     @abstractmethod
     def is_enabled(self):
+        pass
+
+    @abstractmethod
+    def is_visible(self):
         pass
 
     @abstractmethod
@@ -1351,6 +1389,18 @@ class _AbstractWdgt(ABC):
 
     @abstractmethod
     def set_style(self, style):
+        pass
+
+    def set_hover_callbacks(self, enter, leave):
+        """Call ``enter``/``leave`` when the pointer enters/leaves the widget.
+
+        Hovering is a pointer-only affordance, so backends that have no notion of it
+        (e.g. notebooks) simply do nothing here.
+        """
+        pass
+
+    @abstractmethod
+    def set_items(self, items):
         pass
 
 
@@ -1387,6 +1437,7 @@ class _AbstractMplCanvas(ABC):
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel="Time (s)", ylabel="Activation (AU)")
         self.manager = None
+        self._blit = _BlitManager(self.fig, draw=self.update_plot)
 
     def _connect(self):
         for event in ("button_press", "motion_notify") + self._extra_events:
@@ -1402,9 +1453,46 @@ class _AbstractMplCanvas(ABC):
     def plot_time_line(self, x, label, update=True, **kwargs):
         """Plot the vertical line."""
         line = self.axes.axvline(x, label=label, **kwargs)
+        self.add_blit_artist(line)
         if update:
             self.update_plot()
         return line
+
+    def add_blit_artist(self, artist):
+        """Mark an artist as fast-updating, to be drawn by :meth:`update_blit_artists`.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to draw separately. Must live in this canvas's axes, and be
+            drawn on top of the curves, as blitting draws it over a cached picture
+            of the rest of the figure.
+        """
+        if artist.axes is not self.axes:
+            raise RuntimeError(
+                f"{artist!r} must be an artist of this canvas's axes to be drawn "
+                "separately, got one in " + repr(artist.axes)
+            )
+        self._blit.add(artist)
+
+    def remove_blit_artist(self, artist):
+        """Stop drawing an artist separately, putting it back in the background.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to stop drawing separately. Artists that were never added
+            are ignored.
+        """
+        self._blit.remove(artist)
+
+    def update_blit_artists(self):
+        """Redraw only the artists added with :meth:`add_blit_artist`.
+
+        This is the fast path taken while the time line moves; any other change
+        to the figure needs :meth:`update_plot` instead.
+        """
+        self._blit.update()
 
     def update_plot(self):
         """Update the plot."""
@@ -1414,16 +1502,38 @@ class _AbstractMplCanvas(ABC):
 
     def set_color(self, bg_color, fg_color):
         """Set the widget colors."""
+        from matplotlib.ticker import AutoMinorLocator
+
         self.axes.set_facecolor(bg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
+        self.axes.spines["top"].set_visible(False)
+        self.axes.spines["right"].set_visible(False)
+        for side in ("bottom", "left"):
+            spine = self.axes.spines[side]
+            spine.set_color(fg_color)
+            spine.set_linewidth(2.0)
+
         self.axes.xaxis.label.set_color(fg_color)
         self.axes.yaxis.label.set_color(fg_color)
-        self.axes.spines["top"].set_color(fg_color)
-        self.axes.spines["bottom"].set_color(fg_color)
-        self.axes.spines["left"].set_color(fg_color)
-        self.axes.spines["right"].set_color(fg_color)
-        self.axes.tick_params(axis="x", colors=fg_color)
-        self.axes.tick_params(axis="y", colors=fg_color)
-        self.fig.patch.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_fontsize(14)
+        self.axes.yaxis.label.set_fontsize(14)
+
+        self.axes.tick_params(
+            axis="both",
+            colors=fg_color,
+            labelsize=13,
+            length=6,
+            width=1.5,
+            direction="out",
+        )
+
+        self.axes.xaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.yaxis.set_minor_locator(AutoMinorLocator())
+        self.axes.tick_params(which="minor", length=3, width=1.0, colors=fg_color)
+        self.axes.grid(which="major", color=fg_color, alpha=0.18, linewidth=0.9)
+        self.axes.grid(which="minor", color=fg_color, alpha=0.08, linewidth=0.6)
+        self.axes.set_axisbelow(True)
 
     def show(self):
         """Show the canvas."""
@@ -1439,6 +1549,7 @@ class _AbstractMplCanvas(ABC):
     def clear(self):
         """Clear internal variables."""
         self.close()
+        self._blit.close()
         self.axes.clear()
         self.fig.clear()
         self.canvas = None
@@ -1450,22 +1561,64 @@ class _AbstractMplCanvas(ABC):
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):
+    _legend_in_figure = True
+
     def __init__(self, brain, width, height, dpi):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
     def update_plot(self):
         """Update the plot."""
-        leg = self.axes.legend(
-            prop={"family": "monospace", "size": "small"},
-            framealpha=0.5,
-            handlelength=1.0,
-            facecolor=self.brain._bg_color,
-        )
-        for text in leg.get_texts():
-            text.set_color(self.brain._fg_color)
+        if self._legend_in_figure:
+            leg = self.axes.legend(
+                prop={"family": "monospace", "size": "small"},
+                framealpha=0.5,
+                handlelength=1.0,
+                facecolor=self.brain._bg_color,
+            )
+            for text in leg.get_texts():
+                text.set_color(self.brain._fg_color)
+        self.sync_traces()
         super().update_plot()
+
+    def sync_traces(self):
+        """Refresh a native trace-list widget; no-op unless a backend provides one."""
+
+    def set_trace_visible(self, line, visible):
+        """Toggle one trace's visibility, in the plot and on its 3D glyph."""
+        line.set_visible(visible)
+        self.brain._set_trace_visible(line, visible)
+        self.update_plot()
+
+    def set_trace_highlight(self, line):
+        """Highlight one trace (or none), dimming the plot's other traces."""
+        if line is not None and not line.get_visible():
+            line = None
+        if line is self._hovered_line:
+            return
+        time_line = getattr(self.brain, "time_line", None)
+        origlines = [
+            origline
+            for origline in self.axes.get_lines()
+            if origline is not time_line and origline.get_visible()
+        ]
+        if self._hovered_line is None and line is not None:
+            self._trace_base_alpha = {
+                origline: origline.get_alpha() for origline in origlines
+            }
+        self._hovered_line = line
+        for origline in origlines:
+            if line is None:
+                origline.set_alpha(self._trace_base_alpha.get(origline))
+            else:
+                origline.set_alpha(1.0 if origline is line else 0.25)
+        if line is None:
+            self._trace_base_alpha = {}
+        self.canvas.draw_idle()
+        self.brain._set_trace_highlight(line)
 
     def on_button_press(self, event):
         """Handle button presses."""
@@ -1480,6 +1633,8 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Clear internal variables."""
         super().clear()
         self.brain = None
+        self._hovered_line = None
+        self._trace_base_alpha = {}
 
 
 class _AbstractWindow(ABC):
@@ -1524,6 +1679,15 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
+    def _window_get_help_canvas(self, pairs, mouse_pairs=None):
+        """Return a widget listing ``(key, description)`` pairs.
+
+        ``pairs`` are keyboard shortcuts; ``mouse_pairs``, if given, are
+        ``(action, description)`` pairs shown in a separate section.
+        """
+        pass
+
+    @abstractmethod
     def _window_get_mplcanvas(
         self, brain, interactor_fraction, show_traces, separate_canvas
     ):
@@ -1544,6 +1708,34 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_new_cursor(self, name):
         pass
+
+    def _window_set_enabled(self, enabled):
+        """Enable or disable user interaction with the whole window.
+
+        Blocking input is a pointer/keyboard affordance, so backends that have no
+        notion of it (e.g. notebooks) simply do nothing here.
+        """
+        pass
+
+    def _window_settle_layouts(self):
+        """Recompute all pending widget layouts of the window, synchronously.
+
+        Qt lays widgets out lazily, when the posted ``LayoutRequest`` events are
+        delivered. Calling this before showing a freshly-built window makes it appear
+        fully composed, instead of visibly assembling on screen. Backends without
+        lazy layouts (e.g. notebooks) do nothing here.
+        """
+        pass
+
+    def _window_defer(self, callback):
+        """Run ``callback`` from the event loop instead of the current call stack.
+
+        Use this to run a slow operation triggered by a widget *after* that widget has
+        finished reacting to the interaction (e.g. a combo box closing its popup) — the
+        callback runs the next time events are processed. Backends without an event
+        loop run the callback immediately.
+        """
+        callback()
 
     @abstractmethod
     def _window_ensure_minimum_sizes(self):

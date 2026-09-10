@@ -5,7 +5,9 @@
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -53,7 +55,9 @@ def _parse_nedf_header(header):
     n_samples : int
         The number of data samples.
     """
-    defusedxml = _soft_import("defusedxml", "reading NEDF data")
+    _soft_import("defusedxml", "reading NEDF data")
+    import defusedxml.ElementTree  # ty: ignore[unresolved-import]
+
     info = {}
     # nedf files have three accelerometer channels sampled at 100Hz followed
     # by five EEG samples + TTL trigger sampled at 500Hz
@@ -115,11 +119,11 @@ def _parse_nedf_header(header):
     dt.append(("data", np.dtype(datadt), (5,)))
 
     date = headerxml.findtext("StepDetails/StartDate_firstEEGTimestamp", 0)
-    info["meas_date"] = datetime.fromtimestamp(int(date) / 1000, timezone.utc)
+    info["meas_date"] = datetime.fromtimestamp(int(date) / 1000, UTC)
 
     n_samples = int(_getsubnodetext(eegset, "NumberOfRecordsOfEEG"))
     n_full, n_last = divmod(n_samples, 5)
-    dt_last = deepcopy(dt)
+    dt_last: list[Any] = deepcopy(dt)
     assert dt_last[-1][-1] == (5,)
     dt_last[-1] = list(dt_last[-1])
     dt_last[-1][-1] = (n_last,)
@@ -204,7 +208,11 @@ def _convert_eeg(chunks, n_eeg, n_tot):
 
 
 @verbose
-def read_raw_nedf(filename, preload=False, verbose=None) -> RawNedf:
+def read_raw_nedf(
+    filename: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> RawNedf:
     """Read NeuroElectrics .nedf files.
 
     NEDF file versions starting from 1.3 are supported.

@@ -48,6 +48,7 @@ from ..transforms import (
 )
 from ..utils import (
     _check_fname,
+    _explain_exception,
     _validate_type,
     check_fname,
     fill_doc,
@@ -64,7 +65,7 @@ from ..viz._3d import (
     _plot_mri_fiducials,
     _plot_sensors_3d,
 )
-from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
+from ..viz.backends._utils import _qt_block, _qt_safe_window
 from ..viz.utils import safe_event
 
 
@@ -72,6 +73,37 @@ class _WorkerData:
     def __init__(self, name, params=None):
         self._name = name
         self._params = params
+
+
+def _fit_quality(mean_dist):
+    """Return a (label, color) pair describing HSP<->MRI fit quality.
+
+    Thresholds are chosen to roughly track the converged-ICP
+    error range exercised in ``test_coregistration`` (post-fit median
+    error around 1-4 mm).
+    """
+    if mean_dist <= 5.0:
+        return "Good", "forestgreen"
+    elif mean_dist <= 10.0:
+        return "Fair", "orange"
+    else:
+        return "Poor", "chocolate"
+
+
+_FID_COORD_RANGE_MM = (-1e3, 1e3)
+_TRANSLATION_RANGE_MM = (-100.0, 100.0)
+_GROW_HAIR_RANGE_MM = (0.0, 10.0)
+_OMIT_DISTANCE_RANGE_MM = (0.0, 100.0)
+
+_HSP_OUTSIDE_COLOR = (0.35, 0.7, 0.9)  # sky blue
+_HSP_INSIDE_COLOR = (0.8, 0.4, 0.0)  # vermilion (burnt orange-red)
+
+
+def _convert_distance(value, from_unit, to_unit):
+    """Convert a distance value between 'mm', 'cm', and 'm' (meters)."""
+    scale = dict(mm=1.0, cm=10.0, m=1000.0)
+    mm = np.asarray(value) * scale[from_unit]
+    return mm / scale[to_unit]
 
 
 def _get_subjects(sdir):
@@ -171,6 +203,7 @@ class CoregistrationUI(HasTraits):
     _grow_hair = Float()
     _subject_to = Unicode()
     _scale_mode = Unicode()
+    _distance_unit = Unicode()
     _icp_fid_match = Unicode()
 
     @_qt_safe_window(
@@ -228,6 +261,7 @@ class CoregistrationUI(HasTraits):
         self._mouse_no_mvt = -1
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
+        self._distance_unit = "mm"
         self._fiducials_file = None
         self._trans_modified = False
         self._mri_fids_modified = False
@@ -372,16 +406,15 @@ class CoregistrationUI(HasTraits):
         }  # left
         self._renderer.set_camera(distance="auto", **views[self._lock_fids])
         self._redraw()
-        # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
-            self._renderer.plotter.add_callback(self._redraw, self._refresh_rate_ms)
-        self._renderer.plotter.show_axes()
+            self._renderer._add_redraw_callback(self._redraw, self._refresh_rate_ms)
+        self._renderer._show_axes()
         # initialization does not count as modification by the user
         self._trans_modified = False
         self._mri_fids_modified = False
         self._mri_scale_modified = False
-        if block and self._renderer._kind != "notebook":
-            _qt_app_exec(self._renderer.figure.store["app"])
+        if block and self._renderer._kind == "qt":
+            _qt_block(self._renderer.plotter.app_window)
 
     def _set_subjects_dir(self, subjects_dir):
         if subjects_dir is None or not subjects_dir:
@@ -480,7 +513,9 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command("info_file_field", "set_style", style)
 
     def _set_omit_hsp_distance(self, distance):
-        self._omit_hsp_distance = distance
+        if self._params_locked:
+            return
+        self._omit_hsp_distance = _convert_distance(distance, self._distance_unit, "mm")
 
     def _set_orient_glyphs(self, state):
         self._orient_glyphs = bool(state)
@@ -516,12 +551,67 @@ class CoregistrationUI(HasTraits):
         self._helmet = bool(state)
 
     def _set_grow_hair(self, value):
-        self._grow_hair = value
+        if self._params_locked:
+            return
+        self._grow_hair = _convert_distance(value, self._distance_unit, "mm")
+
+    def _set_distance_unit(self, unit):
+        """Switch the display unit for distance fields, refreshing widgets in place."""
+        self._distance_unit = unit
+
+        def _rng(mm_bounds):
+            return [_convert_distance(v, "mm", unit) for v in mm_bounds]
+
+        # Programmatic set_range()/set_value() calls below re-fire each
+        # widget's own valueChanged signal, which is connected to the very
+        # callback (_set_fiducial / _set_grow_hair / _set_omit_hsp_distance)
+        # that would otherwise write a (possibly range-clamped) value back
+        # into the model; _params_locked suppresses that reentrant write-back,
+        # matching the existing pattern used by _update_parameters().
+        with self._lock(params=True):
+            for name in ("fid_X", "fid_Y", "fid_Z"):
+                widget = self._widgets.get(name)
+                if widget is not None:
+                    widget.set_range(_rng(_FID_COORD_RANGE_MM))
+            for name in ("tX", "tY", "tZ"):
+                widget = self._widgets.get(name)
+                if widget is not None:
+                    widget.set_range(_rng(_TRANSLATION_RANGE_MM))
+            grow_hair_widget = self._widgets.get("grow_hair")
+            if grow_hair_widget is not None:
+                grow_hair_widget.set_range(_rng(_GROW_HAIR_RANGE_MM))
+            omit_distance_widget = self._widgets.get("omit_distance")
+            if omit_distance_widget is not None:
+                omit_distance_widget.set_range(_rng(_OMIT_DISTANCE_RANGE_MM))
+
+            self._forward_widget_command(
+                "grow_hair_label", "set_value", f"Grow Hair ({unit})"
+            )
+            self._forward_widget_command(
+                "omit_distance_label", "set_value", f"Omit Distance ({unit})"
+            )
+            self._forward_widget_command(
+                "grow_hair",
+                "set_value",
+                _convert_distance(self._grow_hair, "mm", unit),
+            )
+            self._forward_widget_command(
+                "omit_distance",
+                "set_value",
+                _convert_distance(self._omit_hsp_distance, "mm", unit),
+            )
+            self._update_fiducials()
+            self._update_parameters()
+        self._update_distance_estimation()
 
     def _set_subject_to(self, value):
         self._subject_to = value
-        self._forward_widget_command("save_subject", "set_enabled", len(value) > 0)
-        if self._check_subject_exists():
+        # scaling to the subject we scale from would delete it, so disallow it
+        in_place = value == self._subject
+        self._forward_widget_command(
+            "save_subject", "set_enabled", len(value) > 0 and not in_place
+        )
+        if in_place or self._check_subject_exists():
             style = dict(border="2px solid #ff0000")
         else:
             style = dict(border="initial")
@@ -531,6 +621,8 @@ class CoregistrationUI(HasTraits):
         self._scale_mode = mode
 
     def _set_fiducial(self, value, coord):
+        if self._params_locked:
+            return
         self._mri_fids_modified = True
         fid = self._current_fiducial
         fid_idx = _map_fid_name_to_idx(name=fid)
@@ -538,7 +630,9 @@ class CoregistrationUI(HasTraits):
         coords = ["X", "Y", "Z"]
         coord_idx = coords.index(coord)
 
-        self.coreg.fiducials.dig[fid_idx]["r"][coord_idx] = value / 1e3
+        self.coreg.fiducials.dig[fid_idx]["r"][coord_idx] = _convert_distance(
+            value, self._distance_unit, "m"
+        )
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord, plot_locked=False):
@@ -566,7 +660,7 @@ class CoregistrationUI(HasTraits):
         if mode_name == "rotation":
             params[mode_name][idx] = np.deg2rad(value)
         elif mode_name == "translation":
-            params[mode_name][idx] = value / 1e3
+            params[mode_name][idx] = _convert_distance(value, self._distance_unit, "m")
         else:
             assert mode_name == "scale"
             if self._scale_mode == "uniform":
@@ -602,8 +696,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
-        # XXX: add coreg.set_subjects_dir
-        self.coreg._subjects_dir = self._subjects_dir
+        self.coreg.set_subjects_dir(self._subjects_dir)
         subjects = _get_subjects(self._subjects_dir)
 
         if self._subject not in subjects:  # Just pick the first available one
@@ -613,10 +706,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_subject")
     def _subject_changed(self, change=None):
-        # XXX: add coreg.set_subject()
-        self.coreg._subject = self._subject
-        self.coreg._setup_bem()
-        self.coreg._setup_fiducials(self._fiducials)
+        self.coreg.set_subject(self._subject, fiducials=self._fiducials)
         self._reset()
 
         default_fid_fname = fid_fname.format(
@@ -629,6 +719,7 @@ class CoregistrationUI(HasTraits):
 
         self._set_fiducials_file(fname)
         self._reset_fiducials()
+        self._set_subject_to(self._subject_to)  # revalidate against the new subject
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -724,9 +815,7 @@ class CoregistrationUI(HasTraits):
                 self._info._unlocked = False
         else:
             self._info = read_raw(self._info_file).info
-        # XXX: add coreg.set_info()
-        self.coreg._info = self._info
-        self.coreg._setup_digs()
+        self.coreg.set_info(self._info)
         self._reset()
 
     @observe("_orient_glyphs")
@@ -803,12 +892,17 @@ class CoregistrationUI(HasTraits):
     def _run_worker(self, queue, jobs):
         while True:
             data = queue.get()
-            func = jobs[data._name]
-            if data._params is not None:
-                func(**data._params)
-            else:
-                func()
-            queue.task_done()
+            # an uncaught exception would kill the thread and wedge the queue
+            try:
+                func = jobs[data._name]
+                if data._params is not None:
+                    func(**data._params)
+                else:
+                    func()
+            except Exception:
+                logger.error(f"Error running {data._name}{_explain_exception(start=0)}")
+            finally:
+                queue.task_done()
 
     def _configure_dialogs(self):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -857,6 +951,11 @@ class CoregistrationUI(HasTraits):
             for fid in self._defaults["fiducials"]
         ]
         labels = list(zip(self._defaults["fiducials"], colors))
+        if self._mark_inside:
+            labels += [
+                ("HSP outside", np.array(_HSP_OUTSIDE_COLOR)),
+                ("HSP inside", np.array(_HSP_INSIDE_COLOR)),
+            ]
         mri_fids_legend_actor = self._renderer.legend(labels=labels)
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
@@ -900,11 +999,7 @@ class CoregistrationUI(HasTraits):
     def _on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
-            # XXX: internal plotter/renderer should not be exposed
-            picker = self._renderer._picker
-            picked_renderer = self._renderer.figure.plotter.renderer
-            # trigger the pick
-            picker.Pick(x, y, 0, picked_renderer)
+            self._renderer._trigger_pick(x, y)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -918,11 +1013,7 @@ class CoregistrationUI(HasTraits):
         if not any(mesh is target() for target in self._picking_targets):
             return
         pos = np.array(vtk_picker.GetPickPosition())
-        fiducials = [s.lower() for s in self._defaults["fiducials"]]
-        idx = fiducials.index(self._current_fiducial.lower())
-        # XXX: add coreg.set_fids
-        self.coreg._fid_points[idx] = pos
-        self.coreg._reset_fiducials()
+        self.coreg.set_fid_point(self._current_fiducial.lower(), pos)
         self._update_fiducials()
         self._update_plot("mri_fids")
 
@@ -1076,7 +1167,9 @@ class CoregistrationUI(HasTraits):
             return
 
         idx = _map_fid_name_to_idx(name=fid)
-        val = self.coreg.fiducials.dig[idx]["r"] * 1e3
+        val = _convert_distance(
+            self.coreg.fiducials.dig[idx]["r"], "m", self._distance_unit
+        )
 
         with self._lock(plot=True):
             self._forward_widget_command(["fid_X", "fid_Y", "fid_Z"], "set_value", val)
@@ -1084,18 +1177,22 @@ class CoregistrationUI(HasTraits):
     def _update_distance_estimation(self):
         value = (
             self.coreg._get_fiducials_distance_str()
-            + "\n"
+            + "<br>"
             + self.coreg._get_point_distance_str()
         )
-        dists = self.coreg.compute_dig_mri_distances() * 1e3
+        unit = self._distance_unit
+        dists = _convert_distance(self.coreg.compute_dig_mri_distances(), "m", unit)
         if self._hsp_weight > 0:
             if len(dists) == 0:
-                value += "\nNo head shape points found."
+                value += "<br>No head shape points found."
             else:
+                mean_dist = np.mean(dists)
+                label, color = _fit_quality(_convert_distance(mean_dist, unit, "mm"))
                 value += (
-                    "\nHSP <-> MRI (mean/min/max): "
-                    f"{np.mean(dists):.2f} "
-                    f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm"
+                    f'<br><span style="color:{color}">'
+                    f"HSP ↔ MRI (mean/min/max): {mean_dist:.2f} "
+                    f"/ {np.min(dists):.2f} / {np.max(dists):.2f} {unit} "
+                    f"[{label}]</span>"
                 )
         self._forward_widget_command("fit_label", "set_value", value)
 
@@ -1106,9 +1203,9 @@ class CoregistrationUI(HasTraits):
             logger.debug(f"  Rotation:    {deg}")
             self._forward_widget_command(["rX", "rY", "rZ"], "set_value", deg)
             # translation
-            mm = self.coreg._translation * 1e3
-            logger.debug(f"  Translation: {mm}")
-            self._forward_widget_command(["tX", "tY", "tZ"], "set_value", mm)
+            disp = _convert_distance(self.coreg._translation, "m", self._distance_unit)
+            logger.debug(f"  Translation: {disp}")
+            self._forward_widget_command(["tX", "tY", "tZ"], "set_value", disp)
             # scale
             sc = self.coreg._scale * 1e2
             logger.debug(f"  Scale:       {sc}")
@@ -1194,14 +1291,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
-        # XXX: internal plotter/renderer should not be exposed
-        # Work around PyVista sequential update bug with iterable until > 0.42.3 is req
-        # https://github.com/pyvista/pyvista/pull/5046
         actors = self._actors.get(actor_name) or []  # convert None to list
-        if not isinstance(actors, list):
-            actors = [actors]
-        for this_actor in actors:
-            self._renderer.plotter.remove_actor(this_actor, render=False)
+        self._renderer._remove_actors(actors, render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
@@ -1252,6 +1343,8 @@ class CoregistrationUI(HasTraits):
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside,
+                outside_color=_HSP_OUTSIDE_COLOR,
+                inside_color=_HSP_INSIDE_COLOR,
                 surf=self._head_geo,
                 mask=self.coreg._extra_points_filter,
                 check_inside=self._check_inside,
@@ -1493,6 +1586,7 @@ class CoregistrationUI(HasTraits):
                     bem_names.append(match.group(1))
 
         # save the scaled MRI
+        scaled = False
         try:
             self._display_message(f"Scaling {self._subject_to}...")
             scale_mri(
@@ -1505,12 +1599,15 @@ class CoregistrationUI(HasTraits):
                 labels=True,
                 annot=True,
                 on_defects="ignore",
-                mri_fiducials=self.coreg.fiducials,
+                mri_fiducials=self.coreg.fiducials.dig,
             )
         except Exception:
-            logger.error(f"Error scaling {self._subject_to}")
+            logger.error(
+                f"Error scaling {self._subject_to}{_explain_exception(start=0)}"
+            )
             bem_names = []
         else:
+            scaled = True
             self._display_message(f"Scaling {self._subject_to}... Done!")
 
         # Precompute BEM solutions
@@ -1525,12 +1622,17 @@ class CoregistrationUI(HasTraits):
                 bemsol = make_bem_solution(bem_file)
                 write_bem_solution(bem_file[:-4] + "-sol.fif", bemsol)
             except Exception:
-                logger.error(f"Error computing {bem_name} solution")
+                logger.error(
+                    f"Error computing {bem_name} solution{_explain_exception(start=0)}"
+                )
             else:
                 self._display_message(f"Computing {bem_name} solution... Done!")
-        self._display_message(f"Saving {self._subject_to}... Done!")
+        if scaled:
+            self._display_message(f"Saving {self._subject_to}... Done!")
+            self._mri_scale_modified = False  # still unsaved if scaling failed
+        else:
+            self._display_message(f"Saving {self._subject_to}... Failed!")
         self._renderer._window_set_cursor(default_cursor)
-        self._mri_scale_modified = False
 
     def _save_mri_fiducials(self, fname):
         self._display_message(f"Saving {fname}...")
@@ -1643,6 +1745,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["reload_mri_fids"] = self._renderer._dock_add_button(
             name="Reload MRI Fid.",
             callback=lambda: self._set_fiducials_file(self._fiducials_file),
+            icon="restore",
             tooltip="Reload MRI fiducials from the standard location",
             layout=mri_fiducials_button_layout,
         )
@@ -1656,7 +1759,7 @@ class CoregistrationUI(HasTraits):
                 fid_fname.format(subjects_dir=self._subjects_dir, subject=self._subject)
             ),
             tooltip="Save MRI fiducials to the standard location. Fiducials "
-            "must be locked first!",
+            "must be locked first.",
             layout=mri_fiducials_button_layout,
         )
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
@@ -1679,7 +1782,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=coord,
                 value=0.0,
-                rng=[-1e3, 1e3],
+                rng=list(_FID_COORD_RANGE_MM),
                 callback=partial(
                     self._set_fiducial,
                     coord=coord,
@@ -1716,24 +1819,36 @@ class CoregistrationUI(HasTraits):
             layout=dig_source_layout,
             widget=info_file_layout,
         )
+        grow_hair_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["grow_hair_label"] = self._renderer._dock_add_label(
+            value="Grow Hair (mm)",
+            layout=grow_hair_layout,
+        )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
-            name="Grow Hair (mm)",
+            name=None,
             value=self._grow_hair,
-            rng=[0.0, 10.0],
+            rng=list(_GROW_HAIR_RANGE_MM),
             callback=self._set_grow_hair,
             tooltip="Compensate for hair on the digitizer head shape",
-            layout=dig_source_layout,
+            layout=grow_hair_layout,
         )
+        self._renderer._layout_add_widget(dig_source_layout, grow_hair_layout)
         omit_hsp_layout_1 = self._renderer._dock_add_layout(vertical=False)
         omit_hsp_layout_2 = self._renderer._dock_add_layout(vertical=False)
+        omit_distance_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["omit_distance_label"] = self._renderer._dock_add_label(
+            value="Omit Distance (mm)",
+            layout=omit_distance_layout,
+        )
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
-            name="Omit Distance (mm)",
+            name=None,
             value=self._omit_hsp_distance,
-            rng=[0.0, 100.0],
+            rng=list(_OMIT_DISTANCE_RANGE_MM),
             callback=self._set_omit_hsp_distance,
             tooltip="Set the head shape points exclusion distance",
-            layout=omit_hsp_layout_1,
+            layout=omit_distance_layout,
         )
+        self._renderer._layout_add_widget(omit_hsp_layout_1, omit_distance_layout)
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
@@ -1743,6 +1858,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
+            icon="reset",
             tooltip="Reset all excluded head shape points",
             layout=omit_hsp_layout_2,
         )
@@ -1781,6 +1897,15 @@ class CoregistrationUI(HasTraits):
             callback=self._set_head_opacity,
             compact=True,
             double=True,
+            layout=view_options_layout,
+        )
+        self._widgets["distance_unit"] = self._renderer._dock_add_combo_box(
+            name="Distance unit",
+            value=self._distance_unit,
+            rng=["mm", "cm"],
+            callback=self._set_distance_unit,
+            compact=True,
+            tooltip="Choose the display unit for distance fields",
             layout=view_options_layout,
         )
         self._renderer._dock_add_stretch()
@@ -1829,6 +1954,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit fiducials with scaling",
             callback=self._fits_fiducials,
+            icon="scale",
             tooltip="Find MRI scaling, rotation, and translation to fit all "
             "3 fiducials",
             layout=fit_scale_layout,
@@ -1836,6 +1962,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
             callback=self._fits_icp,
+            icon="scale",
             tooltip="Find MRI scaling, rotation, and translation to match the "
             "head shape points",
             layout=fit_scale_layout,
@@ -1852,7 +1979,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save scaled anatomy",
             callback=self._task_save_subject,
-            tooltip="Save scaled anatomy",
+            tooltip="Save the scaled MRI anatomy as a new FreeSurfer subject",
             layout=subject_to_layout,
         )
         self._renderer._layout_add_widget(mri_scaling_layout, subject_to_layout)
@@ -1865,8 +1992,12 @@ class CoregistrationUI(HasTraits):
             for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
                 name = f"{mode}{coord}"
                 attr = getattr(self.coreg, f"_{mode_name.lower()}")
-                rng = [-360, 360] if mode_name == "Rotation" else [-100, 100]
-                unit = "°" if mode_name == "Rotation" else "mm"
+                rng = (
+                    [-360, 360]
+                    if mode_name == "Rotation"
+                    else list(_TRANSLATION_RANGE_MM)
+                )
+                unit = "°" if mode_name == "Rotation" else self._distance_unit
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=attr[coords.index(coord)] * 1e3,
@@ -1927,6 +2058,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
             name="Reset Parameters",
             callback=self._reset,
+            icon="reset",
             tooltip="Reset all the parameters affecting the coregistration",
             layout=trans_layout,
         )
@@ -1993,7 +2125,8 @@ class CoregistrationUI(HasTraits):
         self._widgets["reset_fitting_options"] = self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
-            tooltip="Reset all the fitting parameters to default value",
+            icon="reset",
+            tooltip="Reset all the fitting parameters to their default values",
             layout=fitting_options_layout,
         )
         self._renderer._dock_add_stretch()

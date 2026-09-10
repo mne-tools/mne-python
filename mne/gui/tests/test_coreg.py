@@ -3,6 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 import os
+import queue
+import shutil
+import threading
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -15,7 +18,7 @@ from mne._fiff.constants import FIFF
 from mne.channels import DigMontage
 from mne.coreg import Coregistration
 from mne.datasets import testing
-from mne.io import read_info
+from mne.io import read_fiducials, read_info
 from mne.utils import catch_logging, get_config
 from mne.viz import _3d
 
@@ -23,7 +26,6 @@ data_path = testing.data_path(download=False)
 raw_path = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 subjects_dir = data_path / "subjects"
-fid_fname = subjects_dir / "sample" / "bem" / "sample-fiducials.fif"
 ctf_raw_path = data_path / "CTF" / "catch-alp-good-f.ds"
 nirx_15_0_raw_path = (
     data_path / "NIRx" / "nirscout" / "nirx_15_0_recording" / "NIRS-2019-10-27_003.hdr"
@@ -42,6 +44,62 @@ pytestmark = [
 ]
 
 pytest.importorskip("nibabel")
+
+
+def _raise_scale_mri(**kwargs):
+    """Make scale_mri fail, to check that the reason gets logged."""
+    raise RuntimeError("not today")
+
+
+def test_coreg_worker_survives_failing_job():
+    """Test that a failing job does not kill the worker thread."""
+    from mne.gui._coreg import CoregistrationUI, _WorkerData
+
+    job_queue = queue.Queue()
+    finished = threading.Event()
+    jobs = dict(bad=_raise_scale_mri, good=finished.set)
+    thread = threading.Thread(
+        target=CoregistrationUI._run_worker,  # does not use self
+        args=(None, job_queue, jobs),
+        daemon=True,
+    )
+    thread.start()
+    with catch_logging() as log:
+        job_queue.put(_WorkerData("bad", None))
+        job_queue.put(_WorkerData("good", None))
+        assert finished.wait(timeout=10), "worker died on the failing job"
+    assert "RuntimeError: not today" in log.getvalue()
+
+
+def test_coreg_distance_and_fit_quality_helpers():
+    """Test the small, renderer-free helpers backing the coreg GUI's dock UI."""
+    from mne.gui._coreg import (
+        _HSP_INSIDE_COLOR,
+        _HSP_OUTSIDE_COLOR,
+        _convert_distance,
+        _fit_quality,
+    )
+
+    # unit conversion is exact and round-trips
+    assert_allclose(_convert_distance(15.0, "mm", "cm"), 1.5)
+    assert_allclose(_convert_distance(1.5, "cm", "mm"), 15.0)
+    assert_allclose(_convert_distance(0.015, "m", "mm"), 15.0)
+    assert_allclose(_convert_distance(15.0, "mm", "m"), 0.015)
+    assert_allclose(_convert_distance(15.0, "mm", "mm"), 15.0)
+
+    # fit-quality thresholds (heuristic, see _fit_quality's docstring)
+    assert _fit_quality(5.0)[0] == "Good"
+    assert _fit_quality(5.01)[0] == "Fair"
+    assert _fit_quality(10.0)[0] == "Fair"
+    assert _fit_quality(10.01)[0] == "Poor"
+
+    # colorblind-safe HSP colors are distinct from each other and from the
+    # shared mne.viz default (white outside / darkslategray inside)
+    assert _HSP_OUTSIDE_COLOR != _HSP_INSIDE_COLOR
+    assert _HSP_OUTSIDE_COLOR != (1.0, 1.0, 1.0)
+    for color in (_HSP_OUTSIDE_COLOR, _HSP_INSIDE_COLOR):
+        assert len(color) == 3
+        assert all(0.0 <= c <= 1.0 for c in color)
 
 
 class TstVTKPicker:
@@ -125,8 +183,22 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     # the sample subject in testing has MRI fids
     assert (subjects_dir / "sample" / "bem" / "sample-fiducials.fif").is_file()
 
+    # Use a minimal, writable copy of the subject so that we can save a scaled
+    # anatomy below without scaling all of the (unused) src and BEM files
+    tmp_subjects_dir = tmp_path / "subjects"
+    for name in (
+        "bem/sample-fiducials.fif",
+        "bem/outer_skin.surf",  # low-res head
+        "bem/sample-head-dense.fif",  # high-res head
+        "mri/T1.mgz",
+    ):
+        dest = tmp_subjects_dir / "sample" / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(subjects_dir / "sample" / name, dest)
+    tmp_fid_fname = tmp_subjects_dir / "sample" / "bem" / "sample-fiducials.fif"
+
     coreg = coregistration(
-        subject="sample", subjects_dir=subjects_dir, trans=fname_trans
+        subject="sample", subjects_dir=tmp_subjects_dir, trans=fname_trans
     )
     assert coreg._lock_fids
     coreg._reset_fiducials()
@@ -139,13 +211,13 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
             inst=raw_path,
             subject="sample",
             head_high_res=False,  # for speed
-            subjects_dir=subjects_dir,
+            subjects_dir=tmp_subjects_dir,
             verbose="debug",
         )
     log = log.getvalue()
     assert "Total 16/78 points inside the surface" in log
-    coreg._set_fiducials_file(fid_fname)
-    assert coreg._fiducials_file == str(fid_fname)
+    coreg._set_fiducials_file(tmp_fid_fname)
+    assert coreg._fiducials_file == str(tmp_fid_fname)
 
     # fitting (with scaling)
     assert not coreg._mri_scale_modified
@@ -234,6 +306,24 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     log = log.getvalue()
     assert "Total 8/78 points inside the surface" in log  # more outside now
 
+    coreg._set_grow_hair(5.0)
+    assert coreg._grow_hair == 5.0
+    assert coreg._distance_unit == "mm"
+    assert coreg._widgets["grow_hair_label"].get_value() == "Grow Hair (mm)"
+    coreg._set_distance_unit("cm")
+    assert coreg._widgets["grow_hair_label"].get_value() == "Grow Hair (cm)"
+    assert_allclose(coreg._widgets["grow_hair"].get_value(), 0.5, atol=1e-6)
+    coreg._set_grow_hair(0.5)  # same 5 mm value, just re-entered in cm
+    assert_allclose(coreg._grow_hair, 5.0)  # always stored internally in mm
+    coreg._set_distance_unit("mm")
+    assert coreg._widgets["grow_hair_label"].get_value() == "Grow Hair (mm)"
+    assert_allclose(coreg._widgets["grow_hair"].get_value(), 5.0)
+
+    # fit-quality badge: a colored HTML span embedded in the RMS label
+    fit_label_html = coreg._widgets["fit_label"].get_value()
+    assert "<span style=" in fit_label_html
+    assert any(word in fit_label_html for word in ("Good", "Fair", "Poor"))
+
     # visualization
     assert not coreg._helmet
     assert coreg._actors["helmet"] is None
@@ -263,7 +353,10 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         coreg._redraw(verbose="debug")
     assert "Drawing meg sensors" in log.getvalue()
     assert coreg._actors["helmet"] is not None
-    assert len(coreg._actors["sensors"]) == 306
+    # coil surfaces sharing a shape are GPU-instanced into a single
+    # mesh/actor; this Neuromag sample dataset has 2 distinct MEG coil
+    # shapes (magnetometer + planar gradiometer)
+    assert len(coreg._actors["sensors"]) == 2
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
@@ -281,6 +374,42 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     coreg._save_trans(tmp_trans)
     assert not coreg._trans_modified
     assert tmp_trans.is_file()
+
+    # save a scaled anatomy; the MRI fiducials moved by the picking above were
+    # never written to disk, so this also checks that the current (in-GUI) ones
+    # are what get scaled and saved
+    assert coreg._mri_fids_modified
+    subject_to = "sample_scaled"
+    # scaling onto the source subject would delete it, so it must be refused
+    coreg._set_subject_to("sample")
+    assert not coreg._widgets["save_subject"].is_enabled()
+    coreg._set_scale_mode("uniform")
+    coreg._fits_fiducials()
+    want = coreg.coreg.fiducials.dig[1]["r"] * coreg.coreg._scale
+    coreg._set_subject_to(subject_to)
+    assert coreg._widgets["save_subject"].is_enabled()
+    with catch_logging() as log:
+        coreg._save_subject()
+    log = log.getvalue()
+    assert "Error scaling" not in log, log
+    assert (tmp_subjects_dir / subject_to / "mri" / "T1.mgz").is_file()
+    fids, _ = read_fiducials(
+        tmp_subjects_dir / subject_to / "bem" / f"{subject_to}-fiducials.fif"
+    )
+    assert_allclose(fids[1]["r"], want, atol=1e-6)
+
+    # and when scaling fails, the log should say why -- and not claim success
+    monkeypatch.setattr("mne.gui._coreg.scale_mri", _raise_scale_mri)
+    coreg._set_subject_to("sample_scaled_2")
+    coreg._mri_scale_modified = True
+    with catch_logging() as log:
+        coreg._save_subject()
+    log = log.getvalue()
+    assert "Error scaling sample_scaled_2" in log
+    assert "RuntimeError: not today" in log
+    assert "Failed!" in log
+    assert "Done!" not in log
+    assert coreg._mri_scale_modified  # so closing still warns it wasn't saved
 
     # first, disable auto cleanup
     coreg._renderer._window_close_disconnect(after=True)

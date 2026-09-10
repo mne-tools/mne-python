@@ -3,6 +3,8 @@
 # Copyright the MNE-Python contributors.
 
 import re as re
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -14,7 +16,11 @@ from ..base import BaseRaw
 
 
 @fill_doc
-def read_raw_boxy(fname, preload=False, verbose=None) -> "RawBOXY":
+def read_raw_boxy(
+    fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawBOXY":
     """Reader for an optical imaging recording.
 
     This function has been tested using the ISS Imagent I and II systems
@@ -63,7 +69,7 @@ class RawBOXY(BaseRaw):
         # Read header file and grab some info.
         start_line = np.inf
         col_names = mrk_col = filetype = mrk_data = end_line = None
-        raw_extras = dict()
+        raw_extras: dict[str, Any] = dict()
         raw_extras["offsets"] = list()  # keep track of our offsets
         sfreq = None
         fname = str(_check_fname(fname, "read", True, "fname"))
@@ -80,6 +86,7 @@ class RawBOXY(BaseRaw):
                         end_line = line_num
                         break
                     if mrk_col is not None:
+                        assert mrk_data is not None
                         if filetype == "non-parsed":
                             # Non-parsed files have different lines lengths.
                             crnt_line = i_line.rsplit(" ")[0]
@@ -164,6 +171,7 @@ class RawBOXY(BaseRaw):
             ch["cal"] = cal
 
         # Determine how long our data is.
+        assert end_line is not None
         delta = end_line - start_line
         assert len(raw_extras["offsets"]) == delta + 1
         if filetype == "non-parsed":

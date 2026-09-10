@@ -20,9 +20,9 @@ def test_metrics():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     times = np.arange(600) / 1000.0
-    rng = np.random.RandomState(42)
-    stc1 = simulate_sparse_stc(src, n_dipoles=2, times=times, random_state=rng)
-    stc2 = simulate_sparse_stc(src, n_dipoles=2, times=times, random_state=rng)
+    rng = np.random.default_rng(42)
+    stc1 = simulate_sparse_stc(src, n_dipoles=2, times=times, rng=rng)
+    stc2 = simulate_sparse_stc(src, n_dipoles=2, times=times, rng=rng)
     E1_rms = source_estimate_quantification(stc1, stc1, metric="rms")
     E2_rms = source_estimate_quantification(stc2, stc2, metric="rms")
     E1_cos = source_estimate_quantification(stc1, stc1, metric="cosine")

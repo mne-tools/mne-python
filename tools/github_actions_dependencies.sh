@@ -29,11 +29,11 @@ elif [[ "${MNE_CI_KIND}" == "old" ]]; then
 	STD_ARGS="--progress-bar off"
 	echo "::group::Syncing old environment dependencies from lockfile using uv"
 	uv pip sync ${SCRIPT_DIR}/pylock.ci-old.toml
-	uv pip install pip tomlkit ${MNE_QT_BACKEND}
+	uv pip install pip ${MNE_QT_BACKEND}
 	echo "::endgroup::"
 elif [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
 	# This one is free-threaded so can't have PySide6/PyQt6 as of 2026/06/16
-	EXTRAS="[hdf5] numba scikit-learn nibabel antio curryreader pillow patsy python-picard xlrd mffpy defusedxml"
+	EXTRAS="[hdf5] numba scikit-learn nibabel antio curryreader pandas!=3.0.4 pillow patsy python-picard xlrd mffpy defusedxml"
 	GROUP="test_extra_ft"
 elif [[ "${MNE_CI_KIND}" == "pip" ]]; then
 	EXTRAS="[full-pyside6]"
@@ -68,3 +68,10 @@ if [[ "${MNE_CI_KIND}" == "pip-ft" ]]; then
 	python -m pip install --pre --upgrade --only-binary=:all: "lxml>=7.0.0a3"
 	echo "::endgroup::"
 fi
+
+# TODO VERSION: remove once a pytest-xdist release includes the fix for the
+# loadscope scheduler deadlocking after a worker crash
+# (pytest-dev/pytest-xdist#1363)
+echo "::group::Installing pytest-xdist branch with worker-crash deadlock fix"
+python -m pip install --progress-bar off --upgrade "pytest-xdist @ https://github.com/larsoner/pytest-xdist/archive/refs/heads/lock.zip"
+echo "::endgroup::"

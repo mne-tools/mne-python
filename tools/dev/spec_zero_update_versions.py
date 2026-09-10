@@ -53,11 +53,17 @@ from tomlkit.items import Comment, Trivia
 from tomlkit.toml_file import TOMLFile
 
 SORT_PACKAGES = [
+    "dipy",
     "matplotlib",
+    "mne-qt-browser",
+    "nibabel",
+    "nilearn",
+    "numba",
     "numpy",
     "pandas",
     "pyvista",
     "pyvistaqt",
+    "qdarkstyle",
     "scikit-learn",
     "scipy",
 ]
@@ -113,7 +119,7 @@ def update_specifiers(dependencies, releases, changed=None, label=None):
             [
                 f"{label} dependency ``{new}``"
                 for new, old in zip(dependencies, old_deps)
-                if new != old
+                if new.replace(" ", "") != old.replace(" ", "")
             ]
         )
     return changed

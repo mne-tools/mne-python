@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "f2422dbae3593e065de51041fbd7ecc064ff9b37",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 81,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 148,
+      "d": 17
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 6,
+      "d": 4
+    }
+  }
+}

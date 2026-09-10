@@ -81,10 +81,10 @@ dipoles, residual = mixed_norm(
     return_residual=True,
     return_as_dipoles=True,
     verbose=True,
-    random_state=0,
+    rng=251,
     # for this dataset we know we should use a high alpha, so avoid some
     # of the slower (lower) alpha values
-    sure_alpha_grid=np.linspace(100, 40, 10),
+    sure_alpha_grid=np.linspace(90, 30, 10),
 )
 
 t = 0.083

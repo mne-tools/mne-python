@@ -7,7 +7,6 @@ from math import sqrt
 
 import numpy as np
 from scipy import linalg
-from scipy.stats import chi2
 
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
@@ -39,7 +38,7 @@ from .._fiff.write import (
 from ..cov import Covariance, _read_cov, _write_cov, compute_whitener, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _reshape_view, _safe_svd
+from ..fixes import _safe_svd
 from ..forward import (
     _read_forward_meas_info,
     _select_orient_forward,
@@ -86,7 +85,13 @@ class InverseOperator(dict):
     """InverseOperator class to represent info from inverse operator."""
 
     def copy(self):
-        """Return a copy of the InverseOperator."""
+        """Return a copy of the InverseOperator.
+
+        Returns
+        -------
+        inv : instance of InverseOperator
+            The copied inverse operator.
+        """
         return InverseOperator(deepcopy(self))
 
     @property
@@ -835,8 +840,8 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             # No need to rotate source_cov because it should be uniform
             # (loose=1., and depth weighting is uniform across columns)
             offset = sl.stop
-        eigen_leads = _reshape_view(eigen_leads, (-1, eigen_leads.shape[2]))
-        source_nn = _reshape_view(source_nn, (-1, 3))
+        eigen_leads = eigen_leads.reshape((-1, eigen_leads.shape[2]), copy=False)
+        source_nn = source_nn.reshape((-1, 3), copy=False)
 
     if pick_ori == "normal":
         if not inv["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -891,7 +896,8 @@ def _check_reference(inst, ch_names=None):
         picks = [
             ci for ci, ch_name in enumerate(info["ch_names"]) if ch_name in ch_names
         ]
-        info = pick_info(info, sel=picks)
+        with info._skip_checks():  # info is already consistent
+            info = pick_info(info, sel=picks)
     if _needs_eeg_average_ref_proj(info):
         raise ValueError(
             "EEG average reference (using a projector) is mandatory for "
@@ -1644,7 +1650,8 @@ def apply_inverse_cov(
     _validate_type(inverse_operator, InverseOperator, "inverse_operator")
     sel = _pick_channels_inverse_operator(cov["names"], inverse_operator)
     use_names = [cov["names"][idx] for idx in sel]
-    info = pick_info(info, pick_channels(info["ch_names"], use_names, ordered=True))
+    with info._skip_checks():  # info is already consistent
+        info = pick_info(info, pick_channels(info["ch_names"], use_names, ordered=True))
     evoked = EvokedArray(np.eye(len(info["ch_names"])), info, nave=nave, comment="cov")
     is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
     _check_option("pick_ori", pick_ori, (None, "normal"))
@@ -1673,7 +1680,7 @@ def apply_inverse_cov(
     sol = cov.data[sel][:, sel] @ K.T
     sol = np.sum(K * sol.T, axis=1, keepdims=True)
     # Reshape back to (n_src, ..., 1)
-    sol = _reshape_view(sol, stc.data.shape[:-1] + (1,))
+    sol = sol.reshape(stc.data.shape[:-1] + (1,), copy=False)
     stc = stc.__class__(sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info("    Combining the current components...")
@@ -1893,7 +1900,10 @@ def make_inverse_operator(
         :func:`~mne.compute_covariance` to compute the noise covariance matrix on
         :class:`~mne.io.Raw` and :class:`~mne.Epochs` respectively.
     %(loose)s
-    %(depth)s
+    %(depth)s This is effectively ignored when ``method='eLORETA'``.
+
+        .. versionchanged:: 0.20
+            Depth bias ignored for ``method='eLORETA'``.
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be ``"auto"`` or ``0``. If ``'auto'``, the loose value
@@ -2191,6 +2201,8 @@ def estimate_snr(evoked, inv, verbose=None):
 
     .. versionadded:: 0.9.0
     """  # noqa: E501
+    from scipy.stats import chi2
+
     _check_reference(evoked, inv["info"]["ch_names"])
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")
@@ -2224,8 +2236,7 @@ def estimate_snr(evoked, inv, verbose=None):
     val = chi2.isf(1e-3, n_ch_eff)
     for n_iter in range(1000):
         # get_mne_weights (ew=error_weights)
-        # (split newaxis creation here for old numpy)
-        f = sing2 / (sing2 + lambda2_est[np.newaxis][:, remaining])
+        f = sing2 / (sing2 + lambda2_est[np.newaxis, remaining])
         f[inv["sing"] == 0] = 0
         ew = data_white_ef[:, remaining] * (1.0 - f)
         # check condition

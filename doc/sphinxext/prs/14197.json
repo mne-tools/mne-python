@@ -1,0 +1,56 @@
+{
+  "merge_commit_sha": "ccaf75646c31f8e5870f18ce03d54f30b8a1f99f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/api/visualization.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14197.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/montage.py": {
+      "a": 146,
+      "d": 0
+    },
+    "examples/visualization/montage_sgskip.py": {
+      "a": 0,
+      "d": 71
+    },
+    "mne/viz/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 20,
+      "d": 15
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}
