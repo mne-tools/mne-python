@@ -236,6 +236,7 @@ def test_double_export_edf(tmp_path):
 
 
 @edfio_mark()
+@pytest.mark.xfail(raises=ValueError, reason="EDFIO float encoding bug")
 def test_edf_physical_range(tmp_path):
     """Test exporting an EDF file with different physical range settings."""
     ch_types = ["eeg"] * 4
@@ -303,6 +304,7 @@ def test_edf_roundtrip(tmp_path, fname):
 
 @edfio_mark()
 @pytest.mark.parametrize("pad_width", (1, 10, 100, 500, 999))
+@pytest.mark.xfail(raises=ValueError, reason="EDFIO float encoding bug")
 def test_edf_padding(tmp_path, pad_width):
     """Test exporting an EDF file with not-equal-length data blocks."""
     ch_types = ["eeg"] * 4
