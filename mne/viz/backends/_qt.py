@@ -1591,7 +1591,8 @@ class _QtTraceList(QWidget):
                 widget.deleteLater()
         if not lines:
             placeholder = QLabel(
-                "Set Annotation to None to see\nvertex and RMS traces here."
+                "Click a label to see its trace here,\n"
+                "or set Annotation to None to see\nvertex and RMS traces."
             )
             placeholder.setStyleSheet(
                 "color: palette(placeholder-text); font-style: italic; font-size: 9pt;"

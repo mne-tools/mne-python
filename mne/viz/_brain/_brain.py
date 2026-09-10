@@ -1791,10 +1791,9 @@ class Brain:
         The vertex auto-picked at peak activation for each hemisphere gets a
         "Peak (LH) 1000"-style name; other picked vertices get a compact
         "LH 1000"-style name instead of the full MNI-coordinate string (still
-        available as the row's tooltip). A picked parcellation label gets its
-        display name (e.g. "Superiortemporal (LH)") instead of the raw
-        internal name (still available as the tooltip). RMS curves are
-        returned unchanged.
+        available as the row's tooltip). A picked label gets a
+        "superiortemporal (LH)"-style name, moving its name's hemisphere
+        suffix into the parentheses. RMS curves are returned unchanged.
         """
         meta = self._trace_meta.get(line)
         if meta is not None:
@@ -1806,14 +1805,7 @@ class Brain:
         label_meta = self._label_trace_meta.get(line)
         if label_meta is not None:
             hemi, label_name, _, _ = label_meta
-            hemi_names = {"lh": "LH", "rh": "RH"}
-            display_name = label_name
-            for suffix in ("-lh", "-rh", "_lh", "_rh"):
-                if display_name.endswith(suffix):
-                    display_name = display_name[: -len(suffix)]
-                    break
-            display_name = display_name.replace("_", " ").replace("-", " ").title()
-            return f"{display_name} ({hemi_names.get(hemi, hemi)})"
+            return f"{label_name.removesuffix(f'-{hemi}')} ({hemi.upper()})"
         return line.get_label()
 
     def _trace_display_subtitle(self, line):
@@ -2703,11 +2695,13 @@ class Brain:
             line = self.mpl_canvas.plot(
                 self._data["time"], tc, label=label_name, color=color, update=False
             )
+            # count the source vertices the extraction uses, not surface ones
+            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
             self._label_trace_meta[line] = (
                 hemi,
                 label_name,
                 self.label_extract_mode,
-                len(label.vertices),
+                np.intersect1d(label.vertices, stc_vertices).size,
             )
             self.mpl_canvas.axes.relim()
             self.mpl_canvas.axes.autoscale_view()
