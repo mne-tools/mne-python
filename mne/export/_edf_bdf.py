@@ -84,7 +84,8 @@ def _export_raw_edf_bdf(
     scaler = np.ones_like(ch_types, dtype=float)
     if hasattr(raw, "_raw_extras"):
         scaler = raw._raw_extras[0].get("units", scaler)
-    data = raw.get_data() / scaler[:, np.newaxis]
+    data = raw.get_data()
+    data /= scaler[:, np.newaxis]
     sfreq = raw.info["sfreq"]
     pad_annotations = []
 
