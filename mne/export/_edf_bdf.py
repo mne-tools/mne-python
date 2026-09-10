@@ -250,10 +250,10 @@ def _export_raw_edf_bdf(
             digital = np.rint(data[idx] / gain - offset).astype(np.int16)
             signals.append(signal_class.from_digital(digital, **signal_kwargs))
             # ...then after signal creation, set requested digital range
-            # (to work around EDFIO signal clipping safeguards)
+            # (to work around EDFIO signal clipping safeguards; for round-trip fidelity)
             signals[-1]._set_digital_range((digital_min, digital_max))
         else:
-            # the normal case: init signal from float values in uV
+            # the typical case: init signal from float values
             signals.append(signal_class(data=data[idx], **signal_kwargs))
 
     # create patient info
