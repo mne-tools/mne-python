@@ -212,7 +212,7 @@ full-no-qt = [
   "statsmodels >= 0.6",
   "threadpoolctl",
   "traitlets",
-  "trame",
+  "trame < 4",  # trame-vtk and trame-pyvista do not support trame 4 yet
   "trame-pyvista",
   "trame-vtk",
   "trame-vuetify != 3.2.3",

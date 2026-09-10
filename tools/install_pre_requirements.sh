@@ -56,9 +56,8 @@ python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
-# TODO: Pin pyvista until regression fixed 2026/09/09
 uv pip install $STD_ARGS \
-	"pyvista @ https://github.com/pyvista/pyvista/archive/b2d3a65bffc881a85673b911b02d90f1047bc7cf.zip" \
+	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
 	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"nilearn @ https://github.com/nilearn/nilearn/archive/refs/heads/main.zip" \
 	"edfio @ https://github.com/the-siesta-group/edfio/archive/refs/heads/main.zip" \
@@ -72,7 +71,7 @@ uv pip install $STD_ARGS \
 	"joblib @ https://github.com/joblib/joblib/archive/refs/heads/main.zip" \
 	"h5io @ https://github.com/h5io/h5io/archive/refs/heads/main.zip" \
 	"snirf @ https://github.com/BUNPC/pysnirf2/archive/refs/heads/main.zip" \
-	trame trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
+	"trame<4" trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
 	jamica filelock
 echo "::endgroup::"
