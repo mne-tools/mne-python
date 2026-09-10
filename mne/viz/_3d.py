@@ -2723,6 +2723,9 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
+    if mode == "glass_brain":
+        # signed MIP (value with max abs) for diverging colormaps
+        plot_kwargs["plot_abs"] = not params["diverging"]
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
@@ -2776,8 +2779,14 @@ def plot_volume_source_estimates(
         If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
     mode : ``'stat_map'`` | ``'glass_brain'``
-        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
-        displayed after being transformed to a standard MNI brain.
+        The plotting mode to use. For ``'glass_brain'``, activations are displayed
+        after being transformed to a standard MNI brain. With a diverging colormap
+        (e.g., ``clim=dict(pos_lims=...)``), the signed value with the maximum
+        absolute value along each projection is shown; otherwise, absolute values
+        are shown.
+
+        .. versionchanged:: 1.13.1
+           Signed values can be shown in ``'glass_brain'`` mode.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
@@ -2954,8 +2963,7 @@ def plot_volume_source_estimates(
     lx = ax_time.axvline(stc.times[time_idx], color="g")
     params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
-    allow_pos_lims = mode != "glass_brain"
-    mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
@@ -2968,7 +2976,7 @@ def plot_volume_source_estimates(
     dup_neg = False
     if stc.data.min() < 0:
         ax_time.axhline(0.0, color="0.5", ls="-", lw=0.5, zorder=2)
-        dup_neg = not diverging  # glass brain with signed data
+        dup_neg = not diverging  # signed data with one-sided colormap
     yticks = list(ticks)
     if dup_neg:
         yticks += [0] + list(-np.array(ticks))
