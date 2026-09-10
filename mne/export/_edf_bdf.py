@@ -63,10 +63,6 @@ def _export_raw_edf_bdf(
     TODO: if in future the Info object supports transducer or technician information,
     allow writing those here.
     """
-    units = dict(
-        eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"
-    )
-
     if file_format == "EDF":
         digital_min, digital_max = -32768, 32767  # 16-bit
         signal_class = EdfSignal
@@ -84,7 +80,10 @@ def _export_raw_edf_bdf(
 
     # load and prepare data
     raw.load_data()
-    data = raw.get_data(units=units)
+    scaler = np.ones_like(ch_types, dtype=float)
+    if hasattr(raw, "_raw_extras"):
+        scaler = raw._raw_extras[0].get("units", scaler)
+    data = raw.get_data() / scaler[:, np.newaxis]
     sfreq = raw.info["sfreq"]
     pad_annotations = []
 
@@ -152,7 +151,7 @@ def _export_raw_edf_bdf(
 
         for _type in np.unique(ch_types):
             _picks = [n for n, t in zip(raw.ch_names, ch_types) if t == _type]
-            _data = raw.get_data(units=units, picks=_picks)
+            _data = raw.get_data(picks=_picks) / scaler[_picks, np.newaxis]
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
     elif physical_range == "channelwise":
@@ -225,11 +224,21 @@ def _export_raw_edf_bdf(
             if physical_range == "orig"
             else (digital_min, digital_max)
         )
+        # set the physical dimension from orig_units if possible
+        physical_dimension = raw._orig_units.get(signal_label, "")
+        physical_dimension = {
+            "\u03bcV": "uV",
+            "\u00b5V": "uV",
+            "\x83\xcaV": "uV",
+            "n/a": "",
+        }.get(physical_dimension, physical_dimension)
+        physical_dimension = "" if ch_type == "stim" else physical_dimension
+        # assemble kwargs to signal constructor
         signal_kwargs = dict(
             sampling_frequency=out_sfreq,
             label=signal_label,
             transducer_type="",
-            physical_dimension="" if ch_type == "stim" else "uV",
+            physical_dimension=physical_dimension,
             physical_range=prange,
             digital_range=drange,
             prefiltering=filter_str_info,
