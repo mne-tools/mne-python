@@ -263,6 +263,32 @@ def test_edf_physical_range(tmp_path):
 
 
 @edfio_mark()
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "fname",
+    (
+        # "chtypes_edf.edf",   #fails for unknown reason
+        # "SC4001EC-Hypnogram.edf",  # annot-only?
+        "subsecond_starttime.edf",
+        "test_edf_overlapping_annotations.edf",
+        "test_generator_2.edf",
+        "test_utf8_annotations.edf",
+        # ↓↓↓ unequal sfreq across chs -> upsampling -> fail allclose
+        # "test_edf_stim_resamp.edf",
+        # "test_reduced.edf",
+    ),
+)
+def test_edf_roundtrip(tmp_path, fname):
+    """Test roundtrip fidelity exporting EDF with original digital/physical ranges."""
+    orig_fpath = data_path / "EDF" / fname
+    orig = read_raw_edf(orig_fpath)
+    export_fpath = tmp_path / "tmp.edf"
+    orig.export(export_fpath, physical_range="orig", digital_range="orig")
+    reread = read_raw_edf(export_fpath)
+    assert_allclose(reread.get_data(), orig.get_data(), rtol=0, atol=1e-18)
+
+
+@edfio_mark()
 @pytest.mark.parametrize("pad_width", (1, 10, 100, 500, 999))
 def test_edf_padding(tmp_path, pad_width):
     """Test exporting an EDF file with not-equal-length data blocks."""
