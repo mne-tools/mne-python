@@ -106,6 +106,36 @@ def test_plot_volume_source_estimates_basic(
     assert use_ax is not None
     label = use_ax.get_legend().get_texts()[0].get_text()
     assert re.match("[0-9]*", label) is not None, label
+    if mode != "glass_brain" or stype != "s":
+        return
+
+    # signed data: diverging colormap (default) shows signed MIP, one-sided abs
+    stc.data -= 0.5
+    for clim, signed in (
+        ("auto", True),
+        (dict(kind="value", lims=[0.1, 0.2, 0.5]), False),
+    ):
+        with _record_warnings():
+            fig = stc.plot(
+                sample_src,
+                subject="sample",
+                subjects_dir=subjects_dir,
+                mode=mode,
+                clim=clim,
+            )
+        mips = [
+            np.ma.asarray(im.get_array())
+            for ax in fig.axes
+            for im in ax.images
+            if im.get_array().ndim == 2
+        ]
+        assert len(mips) == 3
+        for mip in mips:
+            assert mip.max() > 0.4
+            if signed:
+                assert mip.min() < -0.4
+            else:
+                assert mip.min() >= 0
 
 
 @pytest.mark.slowtest  # can be slow on OSX

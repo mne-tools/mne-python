@@ -2399,7 +2399,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_time=None,
         initial_pos=None,
         verbose=None,
-        plot_abs=False,
     ):
         data = self.magnitude() if self._data_ndim == 3 else self
         return plot_volume_source_estimates(
