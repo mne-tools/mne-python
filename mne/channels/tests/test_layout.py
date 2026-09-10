@@ -15,6 +15,7 @@ from numpy.testing import (
     assert_equal,
 )
 
+import mne
 from mne import pick_info, pick_types
 from mne._fiff.constants import FIFF
 from mne._fiff.meas_info import _empty_info
@@ -184,6 +185,24 @@ def test_find_topomap_coords():
     info["dig"] = []
     with pytest.raises(RuntimeError, match="No digitization points found"):
         _find_topomap_coords(info, picks, **kwargs)
+
+
+def test_duplicate_1020_electrode_names_error():
+    """Ensure mixed 10–20 EEG naming conventions raise a clear error."""
+    montage = mne.channels.make_standard_montage("standard_1020")
+    data = np.random.randn(len(montage.ch_names))
+    info = mne.create_info(
+        ch_names=montage.ch_names,
+        sfreq=1000,
+        ch_types="eeg",
+    )
+    info.set_montage(montage)
+
+    with pytest.raises(
+        ValueError,
+        match="aliases for the same physical location",
+    ):
+        mne.viz.plot_topomap(data, pos=info)
 
 
 def test_make_eeg_layout(tmp_path):
