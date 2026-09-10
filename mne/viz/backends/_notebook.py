@@ -1501,6 +1501,9 @@ class _IpyWidget(_AbstractWdgt):
     def hide(self):
         self._widget.layout.visibility = "hidden"
 
+    def remove(self):
+        self._widget.close()
+
     def set_enabled(self, state):
         self._widget.disabled = not state
 

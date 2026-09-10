@@ -1985,6 +1985,10 @@ class _QtWidget(_AbstractWdgt):
     def hide(self):
         self._widget.hide()
 
+    def remove(self):
+        self._widget.setParent(None)
+        self._widget.deleteLater()
+
     def set_enabled(self, state):
         self._widget.setEnabled(state)
 
