@@ -11,7 +11,6 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import faulthandler
 import os
-import shutil
 import subprocess
 import sys
 import tomllib
@@ -54,7 +53,6 @@ mne.html_templates._templates._COLLAPSED = True  # collapse info _repr_html_
 curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
-from build_lite_wheel import build_wheel, find_wheels  # noqa: E402
 from credit_tools import generate_credit_rst  # noqa: E402
 from mne_doc_utils import (  # noqa: E402
     check_links,
@@ -124,7 +122,6 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
-    "jupyterlite_sphinx",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.youtube",
     "sphinxcontrib.towncrier.ext",
@@ -491,342 +488,19 @@ if sys.platform.startswith("win"):
         compress_images = ()
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
-jupyterlite_contents = ["jupyterlite_contents"]
-jupyterlite_bind_ipynb_suffix = False
+# The JupyterLite site, and the data it serves (about 1 GB), only belong in a
+# full build: `make html` turns this on, pattern and noplot builds leave it off.
+build_jupyterlite = os.getenv("MNE_DOC_BUILD_JUPYTERLITE", "0") == "1"
+if build_jupyterlite:
+    from jupyterlite_data import stage_lite_data  # noqa: E402
 
-# Inject the required subset of MNE-sample-data for JupyterLite. The data is
-# placed under doc/lite_extra/mne_data and served at the docs root via
-# html_extra_path (added below). The JupyterLite setup cell fetches these
-# files over HTTP into the Pyodide kernel: the /drive virtual-filesystem
-# bridge needs cross-origin-isolation (COOP/COEP) headers that static
-# artifact servers (e.g. CircleCI) do not send, so it is unusable there.
-# lite_data (mne.datasets.lite_data) extracts the curated subset here, with the
-# files under their original dataset folders (MNE-sample-data/, ...).
-mne_data_base = Path(os.path.expanduser("~/mne_data"))
-lite_root = mne_data_base / "MNE-lite-data"
-src_sample_data = lite_root / "MNE-sample-data"
-lite_extra_base = (
-    Path(os.path.abspath(os.path.dirname(__file__))) / "lite_extra" / "mne_data"
-)
-dst_sample_data = lite_extra_base / "MNE-sample-data"
-dst_sample_data.mkdir(parents=True, exist_ok=True)
-
-
-def _lite_src(folder, rel):
-    """Return where a dataset file can be read from, or None if nowhere.
-
-    The curated lite_data archive only carries the files it was published with,
-    so look in whatever CI restored of the real dataset first and fall back to
-    the archive. Sourcing from the archive alone means anything added since it
-    was last uploaded goes missing without the build failing.
-    """
-    for root in (mne_data_base / folder, lite_root / folder):
-        candidate = root / rel
-        if candidate.exists():
-            return candidate
-    return None
-
-
-sphinx_logger.info(
-    f"[JupyterLite] Sample data: real dataset="
-    f"{(mne_data_base / 'MNE-sample-data').exists()}, "
-    f"curated archive={src_sample_data.exists()}"
-)
-if (mne_data_base / "MNE-sample-data").exists() or src_sample_data.exists():
-    required_files = [
-        "version.txt",
-        "MEG/sample/sample_audvis_raw.fif",
-        "MEG/sample/sample_audvis_filt-0-40_raw.fif",
-        "MEG/sample/sample_audvis_raw-eve.fif",
-        "MEG/sample/sample_audvis_filt-0-40_raw-eve.fif",
-        "MEG/sample/sample_audvis_ecg-proj.fif",
-        "MEG/sample/sample_audvis-ave.fif",
-        "MEG/sample/sample_audvis-cov.fif",
-        "MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif",
-        "MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif",
-        "MEG/sample/sample_audvis-meg-oct-6-fwd.fif",
-        "MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif",
-        "MEG/sample/ernoise_raw.fif",
-        "MEG/sample/sample_audvis-no-filter-ave.fif",
-        "MEG/sample/sample_audvis_raw-trans.fif",
-        "MEG/sample/sample_audvis-shrunk-cov.fif",
-        "MEG/sample/sample_audvis-meg-lh.stc",
-        "MEG/sample/sample_audvis-meg-rh.stc",
-        "MEG/sample/sample_audvis-meg-eeg-lh.stc",
-        "MEG/sample/sample_audvis-meg-eeg-rh.stc",
-        "MEG/sample/sample_audvis_ecg-eve.fif",
-        # Maxwell-filter calibration pair, read from inside maxwell_filter
-        # rather than through a shimmable reader (86 KB, so fetched eagerly)
-        "SSS/sss_cal_mgh.dat",
-        "SSS/ct_sparse_mgh.fif",
-        "subjects/sample/mri/T1.mgz",
-        "subjects/sample/mri/aseg.mgz",
-        # read_talxfm builds this path itself, so nothing in the tutorials
-        # names it; plot_alignment needs it to estimate MRI fiducials
-        "subjects/sample/mri/transforms/talairach.xfm",
-        "subjects/sample/bem/sample-oct-6-src.fif",
-        # Head and skull surfaces for plot_alignment. outer_skin.surf is what
-        # MNE picks first, so serving it makes the browser figure match the
-        # rendered docs; sample-head.fif is the later fallback. There is no
-        # sample-head-dense.fif in the dataset; lh.seghead is the documented
-        # second candidate for the dense surface. (These three .surf paths are
-        # symlinks into bem/flash/, and copy2 follows them.)
-        "subjects/sample/bem/outer_skin.surf",
-        "subjects/sample/bem/outer_skull.surf",
-        "subjects/sample/bem/inner_skull.surf",
-        "subjects/sample/bem/sample-head.fif",
-        "subjects/sample/surf/lh.seghead",
-        # single-layer BEM solution (the 3-layer one is 237 MB, so notebooks
-        # needing that are excluded instead)
-        "subjects/sample/bem/sample-5120-bem-sol.fif",
-        # fsaverage source space, used by the morphing and cluster-stats
-        # notebooks; it ships inside MNE-sample-data
-        "subjects/fsaverage/bem/fsaverage-ico-5-src.fif",
-        "subjects/sample/surf/rh.pial",
-        "subjects/sample/surf/lh.pial",
-        "subjects/sample/surf/rh.white",
-        "subjects/sample/surf/lh.white",
-        "subjects/sample/surf/rh.inflated",
-        "subjects/sample/surf/lh.inflated",
-        "subjects/sample/surf/rh.curv",
-        "subjects/sample/surf/lh.curv",
-        # setup_source_space maps each hemisphere onto its sphere for any
-        # ico/oct spacing, and _create_surf_spacing reads surf/{hemi}.sphere
-        # by a path it builds itself (5.6 MB each)
-        "subjects/sample/surf/lh.sphere",
-        "subjects/sample/surf/rh.sphere",
-        "subjects/sample/label/lh.aparc.annot",
-        "subjects/sample/label/rh.aparc.annot",
-        # the auditory/visual ROIs; about nine notebooks build these names with
-        # an f-string, so a scan of the tutorial text never sees them
-        "MEG/sample/labels/Aud-lh.label",
-        "MEG/sample/labels/Aud-rh.label",
-        "MEG/sample/labels/Vis-lh.label",
-        "MEG/sample/labels/Vis-rh.label",
-    ]
-    for req in required_files:
-        s = _lite_src("MNE-sample-data", req)
-        d = dst_sample_data / req
-        if s is not None:
-            d.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(s, d)
-            sphinx_logger.info(f"[JupyterLite]   Copied: {req}")
-        else:
-            sphinx_logger.info(f"[JupyterLite]   MISSING: {req}")
-
-
-# Also inject SSVEP and EEGLAB testing datasets for JupyterLite
-lite_data_base = lite_extra_base
-lite_data_base.mkdir(parents=True, exist_ok=True)
-
-src_ssvep = mne_data_base / "ssvep-example-data"
-dst_ssvep = lite_data_base / "ssvep-example-data"
-sphinx_logger.info(f"[JupyterLite] SSVEP data source exists: {src_ssvep.exists()}")
-if src_ssvep.exists() and not dst_ssvep.exists():
-    shutil.copytree(src_ssvep, dst_ssvep, dirs_exist_ok=True)
-    sphinx_logger.info("[JupyterLite]   Copied ssvep-example-data")
-
-src_eeglab = mne_data_base / "MNE-testing-data" / "EEGLAB"
-dst_eeglab = lite_data_base / "MNE-testing-data" / "EEGLAB"
-sphinx_logger.info(f"[JupyterLite] EEGLAB data source exists: {src_eeglab.exists()}")
-if src_eeglab.exists() and not dst_eeglab.exists():
-    shutil.copytree(src_eeglab, dst_eeglab, dirs_exist_ok=True)
-    sphinx_logger.info("[JupyterLite]   Copied MNE-testing-data/EEGLAB")
-
-# The head-position and Maxwell-filtering tutorials read one continuous
-# movement recording out of the testing dataset. CI already restores it from
-# data-cache-testing, so only these two files are copied, not the 1.6 GB set.
-testing_files = [
-    "SSS/test_move_anon_raw.fif",
-    "SSS/test_move_anon_raw.pos",
-]
-for testing_file in testing_files:
-    s = _lite_src("MNE-testing-data", testing_file)
-    d = lite_data_base / "MNE-testing-data" / testing_file
-    if s is not None and not d.exists():
-        d.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(s, d)
-        _mb = s.stat().st_size / 1e6
-        sphinx_logger.info(f"[JupyterLite]   Copied {testing_file} ({_mb:.1f} MB)")
-    elif s is None:
-        sphinx_logger.info(f"[JupyterLite]   MISSING {testing_file}")
-
-# The remaining datasets are each used by one or two notebooks that read only a
-# couple of files out of them. CI already downloads all of these in
-# tools/circleci_download.sh, so copying is free, but their sizes vary a lot,
-# so refuse anything past this limit rather than bloat the artifact. For scale,
-# the largest file already served (sample_audvis_raw.fif) is 128 MB.
-LITE_MAX_FILE_MB = 150
-
-
-def _lite_copy(folder, rel_paths):
-    """Copy selected files of a dataset into the served tree."""
-    for rel in rel_paths:
-        s = _lite_src(folder, rel)
-        if s is None:
-            sphinx_logger.info(f"[JupyterLite]   MISSING {folder}/{rel}")
-            continue
-        size_mb = s.stat().st_size / 1e6
-        if size_mb > LITE_MAX_FILE_MB:
-            sphinx_logger.info(
-                f"[JupyterLite]   SKIPPED {folder}/{rel} ({size_mb:.1f} MB)"
-            )
-            continue
-        d = lite_data_base / folder / rel
-        if not d.exists():
-            d.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(s, d)
-            sphinx_logger.info(
-                f"[JupyterLite]   Copied {folder}/{rel} ({size_mb:.1f} MB)"
-            )
-
-
-def _lite_copy_tree(folder, rel_dir):
-    """Copy a directory-shaped recording, leaving a manifest for the browser.
-
-    read_raw_nirx and read_raw_egi are handed a folder rather than a file, so
-    the setup cell has no way to know what to fetch without a listing.
-    """
-    src = mne_data_base / folder / rel_dir
-    if not src.is_dir():
-        sphinx_logger.info(f"[JupyterLite]   MISSING {folder}/{rel_dir}")
-        return
-    names, total_mb = [], 0.0
-    for f in sorted(src.rglob("*")):
-        if not f.is_file():
-            continue
-        # zero-byte members (an .mff carries a couple of lock files) do not
-        # survive the artifact upload, so listing them only yields a 404
-        if f.stat().st_size == 0:
-            continue
-        size_mb = f.stat().st_size / 1e6
-        if size_mb > LITE_MAX_FILE_MB:
-            sphinx_logger.info(
-                f"[JupyterLite]   SKIPPED {folder}/{rel_dir} ({size_mb:.1f} MB)"
-            )
-            return
-        names.append(str(f.relative_to(src)))
-        total_mb += size_mb
-    dst = lite_data_base / folder / rel_dir
-    dst.mkdir(parents=True, exist_ok=True)
-    for name in names:
-        d = dst / name
-        d.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src / name, d)
-    (dst / "_lite_manifest.txt").write_text("\n".join(names))
-    sphinx_logger.info(
-        f"[JupyterLite]   Copied {folder}/{rel_dir} "
-        f"({len(names)} files, {total_mb:.1f} MB)"
-    )
-
-
-_lite_copy(
-    "MNE-misc-data",
-    [
-        "xdf/sub-P001_ses-S004_task-Default_run-001_eeg_a2.xdf",
-        "movement/simulated_quats.pos",
-        "movement/simulated_movement_raw.fif",
-        "movement/simulated_stationary_raw.fif",
-        "eyetracking/eyelink/px_textpage_ws.asc",
-        "eyetracking/eyelink/HREF_textpage_ws.asc",
-    ],
-)
-_lite_copy(
-    "MNE-eyelink-data",
-    [
-        "freeviewing/sub-01_task-freeview_eyetrack.asc",
-        "freeviewing/stim/naturalistic.png",
-        "eeg-et/sub-01_task-plr_eyetrack.asc",
-    ],
-)
-_lite_copy_tree("MNE-eyelink-data", "eeg-et/sub-01_task-plr_eeg.mff")
-_lite_copy_tree("MNE-fNIRS-motor-data", "Participant-1")
-
-# The logging tutorial reads a KIT file that lives inside the package itself,
-# under mne/io/kit/tests/. pyproject excludes "/mne/**/tests" from the wheel, so
-# it is absent from the browser kernel, so serve it and let the setup cell stage
-# it back into the path the tutorial builds.
-_kit_src = Path(mne.__file__).parent / "io" / "kit" / "tests" / "data" / "test.sqd"
-_kit_dst = lite_data_base / "MNE-kit-testdata" / "test.sqd"
-if _kit_src.exists():
-    if not _kit_dst.exists():
-        _kit_dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(_kit_src, _kit_dst)
-    sphinx_logger.info(
-        f"[JupyterLite]   Copied MNE-kit-testdata/test.sqd "
-        f"({_kit_src.stat().st_size / 1e6:.1f} MB)"
-    )
-else:
-    sphinx_logger.info("[JupyterLite]   MISSING MNE-kit-testdata/test.sqd")
-
-_lite_copy("MNE-phantom-kernel-data", ["phantom_32_100nam_raw.fif"])
-_lite_copy("MNE-multimodal-data", ["multimodal_raw.fif"])
-_lite_copy("MNE-refmeg-noise-data", ["sample_reference_MEG_noise-raw.fif"])
-
-# somato is deliberately not served: its raw alone is 344 MB and the six
-# notebooks that read it are on the exclude list instead.
-
-# Inject the single needed file(s) from extra datasets used by the Epochs and
-# decoding examples. Sizes are all within what we already serve
-# (sample_audvis_raw.fif is 128.5 MB): kiloword 28.7 MB, erp_core 123.6 MB,
-# mtrf speech_data.mat 17.2 MB, eegbci 3x2.6 MB. The CI "Ensure ... data" step
-# downloads them so the sources exist here.
-for _folder, _ds_files in (
-    ("MNE-kiloword-data", ["kword_metadata-epo.fif"]),
-    ("MNE-ERP-CORE-data", ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"]),
-    ("mTRF_1.5", ["speech_data.mat"]),
-    (
-        "MNE-eegbci-data",
-        # exactly the runs tools/circleci_download.sh fetches: subject 1 runs
-        # 3/6/10/14 and run 3 for subjects 2-4. Notebooks wanting run 1 or 2 are
-        # excluded instead, since that data never reaches the CI box.
-        [
-            "files/eegmmidb/1.0.0/S001/S001R03.edf",
-            "files/eegmmidb/1.0.0/S001/S001R06.edf",
-            "files/eegmmidb/1.0.0/S001/S001R10.edf",
-            "files/eegmmidb/1.0.0/S001/S001R14.edf",
-            "files/eegmmidb/1.0.0/S002/S002R03.edf",
-            "files/eegmmidb/1.0.0/S003/S003R03.edf",
-            "files/eegmmidb/1.0.0/S004/S004R03.edf",
-        ],
-    ),
-):
-    _dst_ds = lite_data_base / _folder
-    for _ds_file in _ds_files:
-        s = _lite_src(_folder, _ds_file)
-        d = _dst_ds / _ds_file
-        if s is not None:
-            d.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(s, d)
-            sphinx_logger.info(f"[JupyterLite]   Copied: {_folder}/{_ds_file}")
-        else:
-            sphinx_logger.info(f"[JupyterLite]   MISSING: {_folder}/{_ds_file}")
-
-
-# Provide the development MNE wheel so JupyterLite installs the current version
-# rather than the older release from PyPI. ``doc/sphinxext/build_lite_wheel.py``
-# builds it into ``doc/pypi``, where the jupyterlite-pyodide-kernel PipliteAddon
-# discovers and indexes it. Running that script before the docs build (in CI or
-# locally) means Sphinx reuses the wheel instead of rebuilding it on every
-# invocation; if none is present we build it here, so the docs build never
-# depends on the pre-step having run.
-_lite_wheels = find_wheels() or build_wheel()
-_lite_wheel_names = ", ".join(str(_wheel) for _wheel in _lite_wheels)
-sphinx_logger.info(
-    f"[JupyterLite] MNE wheel for the browser kernel: {_lite_wheel_names}"
-)
+    extensions.append("jupyterlite_sphinx")
+    jupyterlite_contents = ["jupyterlite_contents"]
+    jupyterlite_bind_ipynb_suffix = False
+    # served at the docs root (/mne_data/...) through html_extra_path below
+    stage_lite_data(curpath / "lite_extra" / "mne_data")
 
 sphinx_gallery_conf = {
-    "jupyterlite": {
-        "use_jupyter_lab": True,
-        "jupyterlite_contents": "jupyterlite_contents",
-        # named rather than passed: sphinx_gallery_conf has to stay
-        # JSON-serializable (see the is_serializable assert below), so
-        # sphinx-gallery imports this dotted path itself
-        "notebook_modification_function": (
-            "jupyterlite_cell_notes.note_unrunnable_cells"
-        ),
-    },
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
     "examples_dirs": examples_dirs,
@@ -927,6 +601,16 @@ sphinx_gallery_conf = {
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
     "parallel": sphinx_gallery_parallel,
 }
+if build_jupyterlite:
+    sphinx_gallery_conf["jupyterlite"] = {
+        "use_jupyter_lab": True,
+        "jupyterlite_contents": "jupyterlite_contents",
+        # a dotted path rather than the function: sphinx_gallery_conf has to
+        # stay JSON-serializable, so sphinx-gallery imports it itself
+        "notebook_modification_function": (
+            "jupyterlite_cell_notes.note_unrunnable_cells"
+        ),
+    }
 assert is_serializable(sphinx_gallery_conf)
 
 # ---------------------------------------------------------------------------
@@ -975,17 +659,16 @@ JUPYTERLITE_EXCLUDE = (
     # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
     # plot_field needs the interactive viewer that the browser renderer skips
     "examples/visualization/mne_helmet.py",
-    # Tier 4: mne.viz.Brain. The browser renderer draws static meshes; Brain
-    # additionally wants dock widgets, a toolbar and a time slider, so these
-    # are blocked on the interactive layer rather than on data.
+    # Tier 4: mne.viz.Brain features the browser renderer lacks. Brain itself
+    # draws (static, single time point), and the fNIRS tutorials and
+    # 50_background_freesurfer_mne run in full, but these lean on
+    # add_annotation's hover callback, brain.screenshot, legends, silhouettes
+    # or the flatmap, so most of their cells fail.
     "examples/visualization/brain.py",
     "examples/visualization/parcellation.py",
     "tutorials/clinical/20_seeg.py",
     "tutorials/forward/10_background_freesurfer.py",
-    "tutorials/forward/50_background_freesurfer_mne.py",
     "tutorials/inverse/60_visualize_stc.py",
-    "tutorials/io/30_reading_fnirs_data.py",
-    "tutorials/preprocessing/70_fnirs_processing.py",
     # Tier 5: one-off blockers with no browser path
     # plot_field needs the interactive viewer
     "tutorials/evoked/20_visualize_evoked.py",
@@ -1375,10 +1058,9 @@ html_extra_path = [
     "documentation.html",
     "getting_started.html",
     "install_mne_python.html",
-    # Serve the pre-bundled JupyterLite sample data at the docs root
-    # (e.g. /mne_data/...). The lite setup cell fetches it over HTTP.
-    "lite_extra",
 ]
+if build_jupyterlite:  # the served data, at /mne_data/...
+    html_extra_path.append("lite_extra")
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {

@@ -566,9 +566,9 @@ dataset fetchers above.
    build (such as ``antio``), or a dataset too large to serve to a browser
    (brainstorm, spm_face, opm, hf_sef, and similar).
 
-   3D is also limited: source estimates are rendered with vtk.js, but the
-   coregistration and sensor-plotting views that rely on the full VTK stack are
-   not available.
+   3D is also limited: sensor alignment and source estimates are drawn with
+   vtk.js as static scenes, so the coregistration GUI and the interactive
+   viewers (time slider, hover, screenshots) are not available.
 
 References
 ==========
