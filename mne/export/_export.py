@@ -13,9 +13,10 @@ def export_raw(
     fname,
     raw,
     fmt="auto",
-    physical_range="auto",
-    add_ch_type=False,
     *,
+    physical_range="auto",
+    digital_range="auto",
+    add_ch_type=False,
     overwrite=False,
     verbose=None,
 ):
@@ -40,6 +41,7 @@ def export_raw(
         The raw instance to export.
     %(export_fmt_params_raw)s
     %(physical_range_export_params)s
+    %(digital_range_export_params)s
     %(add_ch_type_export_params)s
     %(overwrite)s
 
@@ -78,7 +80,7 @@ def export_raw(
         case "bdf":
             from mne.export._edf_bdf import _export_raw_bdf
 
-            _export_raw_bdf(fname, raw, physical_range, add_ch_type)
+            _export_raw_bdf(fname, raw, physical_range, digital_range, add_ch_type)
         case "brainvision":
             from mne.export._brainvision import _export_raw
 
@@ -86,7 +88,7 @@ def export_raw(
         case "edf":
             from mne.export._edf_bdf import _export_raw_edf
 
-            _export_raw_edf(fname, raw, physical_range, add_ch_type)
+            _export_raw_edf(fname, raw, physical_range, digital_range, add_ch_type)
         case "eeglab":
             from mne.export._eeglab import _export_raw
 
