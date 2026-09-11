@@ -1172,6 +1172,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError("subject must be a string")
+    filename = _check_fname(filename, "read", must_exist=True, name="Label file")
 
     # find hemi
     basename = op.basename(filename)

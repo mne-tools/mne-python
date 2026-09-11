@@ -169,9 +169,9 @@ class _Surface:
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
         curv_path = path.join(self.data_path, "surf", f"{self.hemi}.curv")
-        if path.isfile(curv_path):
+        try:
             self.curv = read_curvature(curv_path, binary=False)
-            self.bin_curv = np.array(self.curv > 0, np.int64)
+        except FileNotFoundError:
+            self.curv = self.bin_curv = None
         else:
-            self.curv = None
-            self.bin_curv = None
+            self.bin_curv = np.array(self.curv > 0, np.int64)
