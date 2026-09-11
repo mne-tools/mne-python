@@ -2,11 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import numpy as np
 
@@ -547,7 +547,7 @@ class Evoked(
         selectable: bool = True,
         noise_cov: "Covariance | str | None" = None,
         time_unit: str = "s",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         *,
         highlight: np.ndarray | None = None,
         verbose: bool | str | int | None = None,
@@ -603,7 +603,7 @@ class Evoked(
         time_unit: str = "s",
         show_names: bool | Literal["auto", "all"] | None = None,
         group_by: dict | None = None,
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
     ) -> "Figure":
         from .viz import plot_evoked_image
 
@@ -694,7 +694,7 @@ class Evoked(
         mask_label_params: dict | None = None,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -793,7 +793,7 @@ class Evoked(
         show: bool = True,
         rank: Literal["info", "full"] | dict | None = None,
         time_unit: str = "s",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         axes: list | None = None,
         *,
         spatial_colors: bool | Literal["auto"] = "auto",
@@ -853,7 +853,7 @@ class Evoked(
         mask_label_params: dict | None = None,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -1378,7 +1378,7 @@ class Evoked(
         color: str | tuple = "black",
         line_alpha: float | None = None,
         spatial_colors: bool = True,
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         exclude: list[str] | Literal["bads"] = "bads",
         ax: "Axes | list[Axes] | None" = None,
         show: bool = True,

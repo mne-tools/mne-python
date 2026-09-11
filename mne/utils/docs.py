@@ -4449,7 +4449,7 @@ spatial_colors : bool
 """
 
 docdict["sphere_topomap_auto"] = f"""\
-sphere : float | array-like of float | instance of ConductorModel | str | list of str | None
+sphere : float | array-like of float | instance of ConductorModel | {{"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"}} | list of str | None
     The sphere parameters to use for the head outline.
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in meters, or a
     single float to give just the radius (origin assumed 0, 0, 0).
