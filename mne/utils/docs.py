@@ -2393,7 +2393,7 @@ joint : bool
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+keep_his : bool | {"his_id", "sex", "hand"} | sequence of {"his_id", "sex", "hand"}
     If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
     overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
     ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
