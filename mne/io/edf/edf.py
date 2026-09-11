@@ -252,9 +252,11 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -464,9 +466,11 @@ class RawBDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -582,9 +586,11 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -889,15 +895,17 @@ def _get_info(
     else:
         n_samps = edf_info["n_samps"][sel]
     nchan = edf_info["nchan"]
+    # handle channels where the physical range is 0 or
+    # the digital_max is not strictly greater than digital_min
     physical_ranges = edf_info["physical_max"] - edf_info["physical_min"]
-    cals = edf_info["digital_max"] - edf_info["digital_min"]
-    bad_idx = np.where((~np.isfinite(cals)) | (cals == 0))[0]
+    digital_ranges = edf_info["digital_max"] - edf_info["digital_min"]
+    bad_idx = np.where((~np.isfinite(digital_ranges)) | (digital_ranges == 0))[0]
     if len(bad_idx) > 0:
         warn(
-            "Scaling factor is not defined in following channels:\n"
+            "Scaling factor will not be defined in the following channels:\n"
             + ", ".join(ch_names[i] for i in bad_idx)
         )
-        cals[bad_idx] = 1
+        digital_ranges[bad_idx] = 1
     bad_idx = np.where(physical_ranges == 0)[0]
     if len(bad_idx) > 0:
         warn(
@@ -1060,15 +1068,14 @@ def _get_info(
     info._unlocked = False
     info._update_redundant()
 
-    # Later used for reading
-    edf_info["cal"] = physical_ranges / cals
+    # Later used for reading. Unit is uV per bit
+    edf_info["cal"] = physical_ranges / digital_ranges
 
-    # physical dimension in µV
+    # physical dimension in µV. Difference between attested lowest uV value and lowest
+    # possible stored uV value (in light of what digital_min is)
     edf_info["offsets"] = (
         edf_info["physical_min"] - edf_info["digital_min"] * edf_info["cal"]
     )
-    del edf_info["physical_min"]
-    del edf_info["digital_min"]
 
     if edf_info["subtype"] == "bdf":
         edf_info["cal"][stim_channel_idxs] = 1
@@ -1314,6 +1321,9 @@ def _read_edf_header(
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
+        # let's make sure we don't accidentally change these
+        for arr in (physical_min, physical_max, digital_min, digital_max):
+            arr.flags["WRITEABLE"] = False
         prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
