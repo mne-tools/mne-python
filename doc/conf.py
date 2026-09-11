@@ -699,19 +699,32 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/70_eeg_mri_coords.py",
     # mne_bids is not installable in the browser kernel
     "tutorials/inverse/95_phantom_KIT.py",
-    # Tier 7: somato. Serving it costs 404 MB (the raw alone is 344 MB) on
-    # every docs deploy, which is more than these six pages are worth; the
-    # dataset is not copied at all. Restoring them means putting the somato
-    # block back in the copy step above.
+    # Tier 7: served size. Every file below is copied into every docs deploy,
+    # so a dataset that only one or two pages read has to earn its place;
+    # these did not (sizes are what the staging step copied). Restoring a page
+    # means adding what it reads to DATASET_FILES in jupyterlite_data.py.
+    # somato: 404 MB (the raw alone is 344 MB) for six pages
     "examples/inverse/dics_epochs.py",
     "examples/inverse/dics_source_power.py",
     "examples/inverse/evoked_ers_source_power.py",
     "examples/inverse/multidict_reweighted_tfmxne.py",
     "examples/time_frequency/time_frequency_global_field_power.py",
     "tutorials/time-freq/20_sensors_time_frequency.py",
-    # Single recordings well past LITE_MAX_FILE_MB, confirmed against the full
-    # build: 379 MB and 251 MB for one example each, so they are skipped by the
-    # copy step and the badge would have nothing to load.
+    # the .mff EEG recording is a 133 MB folder, for one page
+    "tutorials/preprocessing/90_eyetracking_data.py",
+    # ERP-CORE: 118 MB for two pages
+    "examples/preprocessing/epochs_metadata.py",
+    "tutorials/epochs/40_autogenerate_metadata.py",
+    # refmeg_noise: 93 MB for one page
+    "examples/preprocessing/find_ref_artifacts.py",
+    # testing: the SSS movement recording (38 MB) and EEGLAB folder (34 MB),
+    # two pages each
+    "tutorials/preprocessing/59_head_positions.py",
+    "tutorials/preprocessing/60_maxwell_filtering_sss.py",
+    "tutorials/intro/20_events_from_raw.py",
+    "examples/visualization/roi_erpimage_by_rt.py",
+    # single recordings well past MAX_FILE_MB, 379 MB and 251 MB, so the
+    # staging step skips them and the badge would have nothing to load
     "examples/datasets/kernel_phantom.py",
     "examples/io/elekta_epochs.py",
     # These want EEGBCI runs 1 and 2, which tools/circleci_download.sh never

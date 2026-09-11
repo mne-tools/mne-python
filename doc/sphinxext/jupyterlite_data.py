@@ -1,14 +1,9 @@
 """Stage the data the JupyterLite notebooks read, and the MNE wheel they install.
 
-The setup cell fetches files over HTTP into the Pyodide kernel, since the
-``/drive`` filesystem bridge needs cross-origin-isolation headers that static
-hosts do not send. So ``conf.py`` serves a subset of the datasets at the docs
-root (``/mne_data/...``, via ``html_extra_path``), copied here from
-``~/mne_data`` and the curated ``lite_data`` archive, which extracts the same
-files under their original dataset folders.
-
-Every notebook that gets an "Open in JupyterLite" badge has to find what it
-reads below; ``JUPYTERLITE_EXCLUDE`` in ``conf.py`` lists the pages that do not.
+The setup cell fetches files over HTTP, so ``conf.py`` serves this subset of
+the datasets at the docs root (``/mne_data/...``), copied from ``~/mne_data``.
+A badged notebook has to find everything it reads here; ``JUPYTERLITE_EXCLUDE``
+in ``conf.py`` lists the ones that do not.
 """
 
 # Authors: The MNE-Python contributors.
@@ -25,7 +20,6 @@ from mne_doc_utils import sphinx_logger
 import mne
 
 MNE_DATA = Path(os.path.expanduser("~/mne_data"))
-LITE_DATA = MNE_DATA / "MNE-lite-data"
 # Refuse anything past this rather than bloat the deploy; the largest file that
 # has to be served (sample_audvis_raw.fif) is 128 MB.
 MAX_FILE_MB = 150
@@ -54,8 +48,6 @@ SAMPLE_FILES = [
     "MEG/sample/sample_audvis-meg-eeg-lh.stc",
     "MEG/sample/sample_audvis-meg-eeg-rh.stc",
     "MEG/sample/sample_audvis_ecg-eve.fif",
-    "SSS/sss_cal_mgh.dat",  # the Maxwell-filter calibration pair
-    "SSS/ct_sparse_mgh.fif",
     "subjects/sample/mri/T1.mgz",
     "subjects/sample/mri/aseg.mgz",
     # read_talxfm builds this path itself; plot_alignment estimates the MRI
@@ -98,13 +90,13 @@ SAMPLE_FILES = [
 ]
 
 # (dataset folder, files): each used by one or two notebooks that read only a
-# couple of files out of it. tools/circleci_download.sh fetches all of these,
-# and the CI "Ensure MNE data for JupyterLite" step adds the last four.
+# couple of files out of it. A full docs build downloads all of these datasets.
 DATASET_FILES = {
     "MNE-sample-data": SAMPLE_FILES,
-    # the head-position and Maxwell-filtering tutorials read one movement
-    # recording out of the testing dataset (CI restores it from its cache)
-    "MNE-testing-data": ["SSS/test_move_anon_raw.fif", "SSS/test_move_anon_raw.pos"],
+    "ssvep-example-data": [
+        f"sub-02/ses-01/eeg/sub-02_ses-01_task-ssvep_eeg{s}"
+        for s in (".vhdr", ".eeg", ".vmrk")
+    ],
     "MNE-misc-data": [
         "xdf/sub-P001_ses-S004_task-Default_run-001_eeg_a2.xdf",
         "movement/simulated_quats.pos",
@@ -116,11 +108,8 @@ DATASET_FILES = {
     "MNE-eyelink-data": [
         "freeviewing/sub-01_task-freeview_eyetrack.asc",
         "freeviewing/stim/naturalistic.png",
-        "eeg-et/sub-01_task-plr_eyetrack.asc",
     ],
-    "MNE-refmeg-noise-data": ["sample_reference_MEG_noise-raw.fif"],
     "MNE-kiloword-data": ["kword_metadata-epo.fif"],
-    "MNE-ERP-CORE-data": ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"],
     "mTRF_1.5": ["speech_data.mat"],
     # exactly the runs tools/circleci_download.sh fetches (subject 1 runs
     # 3/6/10/14, run 3 for subjects 2-4); notebooks wanting runs 1 or 2 are
@@ -130,26 +119,11 @@ DATASET_FILES = {
         for s, r in ((1, 3), (1, 6), (1, 10), (1, 14), (2, 3), (3, 3), (4, 3))
     ],
 }
-# whole folders, for the readers that are handed a directory rather than a
-# file (read_raw_egi, read_raw_nirx); a manifest is left for the setup cell
-DATASET_TREES = [
-    ("MNE-eyelink-data", "eeg-et/sub-01_task-plr_eeg.mff"),
-    ("MNE-fNIRS-motor-data", "Participant-1"),
-]
-# somato is deliberately not served: its raw alone is 344 MB, and the six
-# notebooks that read it are excluded instead
-
-
-def _source(folder, rel):
-    """Return where a dataset file can be read from, or None if nowhere.
-
-    The real dataset CI restored comes first, then the curated archive, which
-    only carries the files it was published with.
-    """
-    for root in (MNE_DATA / folder, LITE_DATA / folder):
-        if (root / rel).exists():
-            return root / rel
-    return None
+# whole folders, for readers handed a directory rather than a file
+# (read_raw_nirx); a manifest is left for the setup cell
+DATASET_TREES = [("MNE-fNIRS-motor-data", "Participant-1")]
+# somato, ERP-CORE, refmeg_noise and the rest of the testing and eyelink
+# datasets are deliberately not served; see the size tiers in conf.py
 
 
 def _copy(src, dst):
@@ -167,8 +141,8 @@ def stage_lite_data(dst_base):
     n_copied = n_missing = 0
     for folder, rels in DATASET_FILES.items():
         for rel in rels:
-            src = _source(folder, rel)
-            if src is None:
+            src = MNE_DATA / folder / rel
+            if not src.exists():
                 sphinx_logger.info(f"[JupyterLite]   MISSING {folder}/{rel}")
                 n_missing += 1
             elif src.stat().st_size / 1e6 > MAX_FILE_MB:
@@ -181,15 +155,12 @@ def stage_lite_data(dst_base):
             sphinx_logger.info(f"[JupyterLite]   MISSING {folder}/{rel_dir}")
             n_missing += 1
             continue
-        # zero-byte members (an .mff carries a couple of lock files) do not
-        # survive the artifact upload, so listing them would only yield 404s;
-        # the .mov an .mff can carry is a video no reader opens (35 MB)
+        # zero-byte members do not survive the artifact upload, so listing
+        # them would only yield 404s
         names = [
             str(f.relative_to(src_dir))
             for f in sorted(src_dir.rglob("*"))
-            if f.is_file()
-            and f.suffix != ".mov"
-            and 0 < f.stat().st_size / 1e6 <= MAX_FILE_MB
+            if f.is_file() and 0 < f.stat().st_size / 1e6 <= MAX_FILE_MB
         ]
         for name in names:
             n_copied += _copy(src_dir / name, dst_base / folder / rel_dir / name)

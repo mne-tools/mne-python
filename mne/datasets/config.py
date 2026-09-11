@@ -209,8 +209,7 @@ MNE_DATASETS["sample"] = dict(
     config_key="MNE_DATASETS_SAMPLE_PATH",
 )
 
-# Curated subset of sample (plus a few files from kiloword/erp_core/mtrf/eegbci)
-# used by the JupyterLite browser docs; see mne/datasets/lite_data/.
+# TODO VERSION: remove in 1.15 with the deprecated mne.datasets.lite_data
 MNE_DATASETS["lite_data"] = dict(
     archive_name="MNE-lite-data.tar.gz",
     hash="md5:5f9c4fffed32e79bc2bc2061bf22ce99",

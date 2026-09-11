@@ -44,19 +44,19 @@ CELL_NOTES = (
     (
         "forward/20_source_alignment.ipynb",
         "mne.gui.coregistration",
-        "**This cell does not run in the browser.**\n"
-        "\n"
-        "`mne.gui.coregistration` sets the fiducials by clicking on the scalp\n"
-        "surface, and the vtk.js renderer used here draws scenes without a\n"
-        "picker, so there is nothing for those clicks to hit. Run it from a\n"
-        "local MNE install instead:\n"
-        "\n"
-        "```python\n"
-        'mne.gui.coregistration(subject="sample", subjects_dir=subjects_dir)\n'
-        "```\n"
-        "\n"
-        "The video above walks through the same steps, and the rest of this\n"
-        "notebook runs normally.\n",
+        """**This cell does not run in the browser.**
+
+`mne.gui.coregistration` sets the fiducials by clicking on the scalp surface,
+and the vtk.js renderer used here draws scenes without a picker, so there is
+nothing for those clicks to hit. Run it from a local MNE install instead:
+
+```python
+mne.gui.coregistration(subject="sample", subjects_dir=subjects_dir)
+```
+
+The video above walks through the same steps, and the rest of this notebook
+runs normally.
+""",
     ),
 )
 

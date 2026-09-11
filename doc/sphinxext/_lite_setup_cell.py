@@ -226,16 +226,13 @@ def _lite_dataset_path(folder, probe=None):
 
 for _ds, _folder, _probe in (
     ("sample", "MNE-sample-data", None),
-    ("testing", "MNE-testing-data", None),
     ("ssvep", "ssvep-example-data", None),
     ("misc", "MNE-misc-data", None),
     ("eyelink", "MNE-eyelink-data", None),
     ("fnirs_motor", "MNE-fNIRS-motor-data", None),
-    ("refmeg_noise", "MNE-refmeg-noise-data", None),
     ("phantom_kernel", "MNE-phantom-kernel-data", None),
     ("multimodal", "MNE-multimodal-data", None),
     ("kiloword", "MNE-kiloword-data", "kword_metadata-epo.fif"),
-    ("erp_core", "MNE-ERP-CORE-data", "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"),
     ("mtrf", "mTRF_1.5", "speech_data.mat"),
 ):
     getattr(mne.datasets, _ds).data_path = _lite_dataset_path(_folder, _probe)
@@ -284,10 +281,12 @@ def _lite_check_fname(
 mne_check._check_fname = _lite_check_fname
 _lite_rebind("_check_fname", _orig_check_fname, _lite_check_fname)
 
-import matplotlib.pyplot as plt  # imread: the eyetracking heatmap's stimulus
+import matplotlib.pyplot as plt  # the eyetracking heatmap reads its stimulus
+import nibabel  # a few tutorials load an MRI themselves
 
 for _module, _name, _siblings in (
     (plt, "imread", None),
+    (nibabel, "load", None),
     (mne.io, "read_raw_eeglab", lambda rel: [rel.removesuffix(".set") + ".fdt"]),
     (
         mne.io,
@@ -308,9 +307,7 @@ try:  # pyxdf has no wheel on every Pyodide build; only the XDF example needs it
     _lite_wrap_reader(pyxdf, "load_xdf")
 except Exception:
     pass
-# folders rather than files
-mne.io.read_raw_nirx = _lite_dir_reader(mne.io.read_raw_nirx)
-mne.io.read_raw_egi = _lite_dir_reader(mne.io.read_raw_egi)
+mne.io.read_raw_nirx = _lite_dir_reader(mne.io.read_raw_nirx)  # a folder
 
 # Filesystem probes: fetch the candidates first, in the order MNE tries them,
 # then let it choose as it normally would. The viz modules bind these names at
