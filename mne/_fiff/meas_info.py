@@ -1071,7 +1071,7 @@ class ValidatedDict(dict):
 
         Parameters
         ----------
-        other : mapping | iterable of {key, value pairs}
+        other : mapping | iterable of key-value pairs
             The entries to set, as a mapping or as ``(key, value)`` pairs.
         **kwargs : dict
             Additional entries to set, as keyword arguments.
