@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from mpl_toolkits.mplot3d.axes3d import Axes3D
 
+    from ..bem import ConductorModel
     from ..channels.montage import DigMontage
 
 from ..defaults import _handle_default
@@ -489,8 +490,6 @@ def _check_set(ch, projs, ch_type):
 class SetChannelsMixin(MontageMixin):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    from ..bem import ConductorModel
-
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
 
@@ -727,13 +726,7 @@ class SetChannelsMixin(MontageMixin):
         axes: "Axes | Axes3D | None" = None,
         block: bool | None = None,
         show: bool = True,
-        sphere: float  # radius
-        | Annotated[Sequence[float], 4]  # x, y, z, radius
-        | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]]  # x, y, z, radius
-        | ConductorModel
-        | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
-        | list[Literal["cardinal", "eeg", "extra", "hpi"]]
-        | None = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         *,
         verbose: LogLevel = None,
     ) -> "Any":
