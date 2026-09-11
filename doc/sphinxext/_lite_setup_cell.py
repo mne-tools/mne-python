@@ -106,6 +106,7 @@ def _pyodide_send(self, request, **kwargs):
     _xhr.send()
     response = requests.Response()
     response.status_code = _xhr.status
+    response.reason = _xhr.statusText  # what raise_for_status() reports
     response.url = request.url
     response.raw = io.BytesIO(bytes(_xhr.response.to_py()))
     return response
@@ -746,21 +747,40 @@ IPython.get_ipython().run_line_magic("matplotlib", "inline")
 import matplotlib.figure as mpl_figure
 
 mpl_figure.Figure.show = lambda self, *a, **k: None
-import importlib
 
-_viz_utils = importlib.import_module("mne.viz.utils")
+# A plot call that is also a cell's last expression returns its Figure, which
+# Jupyter would echo as Out[] a second time after plt_show already displayed
+# it. Drop that echo for Figures and lists of them (ica.plot_properties); other
+# results are untouched. Guarded: a surprise here should keep the harmless
+# double render rather than break the setup cell.
+try:
+    _lite_dh = type(IPython.get_ipython().displayhook)
+    _lite_dh_call = _lite_dh.__call__
 
+    def _lite_displayhook(self, result=None):
+        _figs = result if isinstance(result, (list, tuple)) else [result]
+        if _figs and all(isinstance(_f, mpl_figure.Figure) for _f in _figs):
+            result = None
+        return _lite_dh_call(self, result)
 
-# Also display+close via IPython for paths that call plt_show
-# directly, so figures render exactly once.
-def _pyodide_plt_show(show=True, fig=None, **kwargs):
-    if not show:
-        return
-    import IPython.display
+    _lite_dh.__call__ = _lite_displayhook
+except Exception:
+    pass
 
-    _f = fig if fig is not None else plt.gcf()
-    IPython.display.display(_f)
-    plt.close(_f)
+# threadpoolctl 3.6.0 still calls Pyodide's deprecated JsProxy.as_object_map(),
+# which warns from mne.sys_info(); as_py_json() gives the same paths.
+# TODO VERSION: fixed upstream in joblib/threadpoolctl#201, drop once Pyodide
+# bundles threadpoolctl >= 3.7.0
+try:
+    import threadpoolctl
 
+    def _find_libraries_pyodide(self):
+        from pyodide_js._module import LDSO
 
-_viz_utils.plt_show = _pyodide_plt_show
+        for _fp in LDSO.loadedLibsByName.as_py_json():
+            if Path(_fp).exists():
+                self._make_controller_from_path(_fp)
+
+    threadpoolctl.ThreadpoolController._find_libraries_pyodide = _find_libraries_pyodide
+except Exception:
+    pass

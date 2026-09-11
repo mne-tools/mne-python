@@ -93,10 +93,11 @@ def set_3d_backend(backend_name, verbose=None):
     not a desktop choice: it draws with vtk.js rather than VTK, which has no
     WebAssembly build, and it is what the documentation's browser notebooks run
     on. It covers the static 3D figures, so :func:`plot_alignment` (without
-    channel-name labels) and :func:`plot_sparse_source_estimates` work, while
-    :class:`mne.viz.Brain`, :func:`plot_evoked_field` and
-    :func:`snapshot_brain_montage` do not. On a desktop the other two are better
-    in every way, so it is never selected automatically.
+    channel-name labels) and :func:`plot_sparse_source_estimates` work, and
+    :class:`mne.viz.Brain` draws a single time point with no time viewer,
+    colorbar or split-hemisphere layout, while :func:`plot_evoked_field` and
+    :func:`snapshot_brain_montage` do not work. On a desktop the other two are
+    better in every way, so it is never selected automatically.
 
     This table shows the capabilities of each backend ("✓" for full support,
     and "-" for partial support):

@@ -2,12 +2,9 @@
 
 It installs MNE into the browser kernel and patches what Pyodide does not
 provide: data fetching over HTTP, the readers that expect files already on
-disk, and the 3D renderer. The cell lives in ``_lite_setup_cell.py`` and
-``_lite_setup_cell_3d.py`` as ordinary Python, so ruff lints and formats it;
-this module only reads those files and joins them into the string the browser
-kernel needs. The 3D half is kept separate because it stands in for MNE's
-Brain/VTK stack and is the part most likely to change as pyvista-js gains
-features upstream.
+disk, and the 3D renderer. The cell lives in ``_lite_setup_cell.py`` as
+ordinary Python, so ruff lints and formats it; this module only reads that
+file, appends the renderer switch, and checks the result compiles.
 
 The docs build prepends it only to the notebooks copied into the JupyterLite
 contents. It deliberately does NOT go through ``first_notebook_cell``: that is
@@ -24,6 +21,7 @@ locally, for the same reason.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import ast
 from pathlib import Path
 
 from jupyterlite_lite_renderer import LITE_RENDERER_CELL
@@ -43,8 +41,9 @@ def _read(name):
     return _body[_body.index("\n") + 1 :]
 
 
-# Order matters: the 3D half reads the matplotlib shim the base half installs,
-# and the renderer goes last so MNE is already imported by the time it runs.
-LITE_SETUP_CELL = (
-    _read("_lite_setup_cell.py") + _read("_lite_setup_cell_3d.py") + LITE_RENDERER_CELL
+# the renderer goes last so MNE is already imported by the time it runs
+LITE_SETUP_CELL = _read("_lite_setup_cell.py") + LITE_RENDERER_CELL
+# nothing else runs this before a reader does, so at least make sure it parses
+compile(
+    LITE_SETUP_CELL, "lite_setup_cell", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
 )
