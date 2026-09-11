@@ -212,7 +212,7 @@ full-no-qt = [
   "statsmodels >= 0.6",
   "threadpoolctl",
   "traitlets",
-  "trame",
+  "trame < 4",  # trame-vtk and trame-pyvista do not support trame 4 yet
   "trame-pyvista",
   "trame-vtk",
   "trame-vuetify != 3.2.3",
@@ -456,7 +456,8 @@ directory = "doc/changes/dev/"
 filename = "doc/changes/dev.rst"
 issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 package = "mne"
-title_format = "{version} ({project_date})"
+template = "doc/changes/towncrier_template.rst.jinja"
+title_format = ""  # empty means the template renders the title (and the anchor)
 
 [[tool.towncrier.type]]
 directory = "notable"

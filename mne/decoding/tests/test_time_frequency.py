@@ -10,8 +10,8 @@ from numpy.testing import assert_array_equal
 pytest.importorskip("sklearn")
 
 from sklearn.base import clone
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.time_frequency import TimeFrequency
 
 

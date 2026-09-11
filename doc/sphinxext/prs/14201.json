@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "acb46e2bca5b9887705d53336f11d594e8e9b63d",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 78,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 4,
+      "d": 14
+    }
+  }
+}

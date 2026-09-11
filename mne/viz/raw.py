@@ -556,7 +556,6 @@ def plot_raw_psd_topo(
     fig_facecolor="k",
     axis_facecolor="k",
     axes=None,
-    block=None,
     show=True,
     n_jobs=None,
     verbose=None,
@@ -589,9 +588,6 @@ def plot_raw_psd_topo(
         A matplotlib-compatible color to use for the axis background.
         Defaults to black.
     %(axes_spectrum_plot_topo)s
-    block : bool | None
-        This parameter is deprecated and will be removed in MNE 1.15; blocking now
-        follows Matplotlib's behavior (see ``show``).
     %(show)s
     %(n_jobs)s
     %(verbose)s

@@ -872,8 +872,6 @@ class Evoked(
         butterfly: bool = False,
         blit: bool = True,
         show: bool = True,
-        vmin: float | None = None,
-        vmax: float | None = None,
         verbose: bool | str | int | None = None,
     ) -> tuple["Figure", "FuncAnimation"]:
         """Make animation of evoked data as topomap timeseries.
@@ -935,10 +933,6 @@ class Evoked(
             Defaults to True.
         show : bool
             Whether to show the animation. Defaults to True.
-        vmin : float | None
-            Deprecated, use ``vlim=(vmin, vmax)`` instead.
-        vmax : float | None
-            Deprecated, use ``vlim=(vmin, vmax)`` instead.
         %(verbose)s
 
         Returns
@@ -990,8 +984,6 @@ class Evoked(
             frame_rate=frame_rate,
             butterfly=butterfly,
             blit=blit,
-            vmin=vmin,
-            vmax=vmax,
             show=show,
         )
 

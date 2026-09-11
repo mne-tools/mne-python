@@ -334,19 +334,22 @@ def _find_clusters(
                     clusters += out[0]
                 sums.append(out[1])
         if tfce:
-            # the score of each point is the sum of the h^H * e^E for each
-            # supporting section "rectangle" h x e.
+            # the score of each point is the sum over thresholds of
+            # h^H * e^E, where h is a strip of width dh at a height given by
+            # the current threshold value (a Riemann sum of the TFCE
+            # integral of Smith et al. 2009) and e is the cluster extent.
             if ti == 0:
-                h = abs(thresh)
+                dh = abs(thresh)
             else:
-                h = abs(thresh - thresholds[ti - 1])
-            h = h**h_power
+                dh = abs(thresh - thresholds[ti - 1])
+            h = abs(thresh) ** h_power * dh
             for c in clusters:
                 # triage based on cluster storage type
                 if isinstance(c, slice):
                     len_c = c.stop - c.start
                 elif isinstance(c, tuple):
-                    len_c = len(c)
+                    # 1D clusters from ndimage.find_objects are (slice,) tuples
+                    len_c = c[0].stop - c[0].start
                 elif c.dtype == np.dtype(bool):
                     len_c = np.sum(c)
                 else:

@@ -43,7 +43,6 @@ from ...transforms import (
 from ...utils import (
     Bunch,
     _auto_weakref,
-    _check_fname,
     _check_option,
     _ensure_int,
     _path_like,
@@ -582,6 +581,7 @@ class Brain:
         self._peak_vertices = {}
         self._auto_peak_points = set()
         self._trace_meta = {}
+        self._label_trace_meta = {}
         self._mouse_no_mvt = -1
         self._show_hover_info = False
         self._hover_caption = None
@@ -1658,6 +1658,7 @@ class Brain:
         # subsequent removal (and clear_glyphs at annotation changes) fail too
         self._picked_patches[hemi].remove(label_id)
         line, label._line = label._line, None
+        self._label_trace_meta.pop(line, None)
         if line is not None:
             try:
                 line.remove()
@@ -1788,16 +1789,34 @@ class Brain:
         The vertex auto-picked at peak activation for each hemisphere gets a
         "Peak (LH) 1000"-style name; other picked vertices get a compact
         "LH 1000"-style name instead of the full MNI-coordinate string (still
-        available as the row's tooltip). RMS curves are returned unchanged.
+        available as the row's tooltip). A picked label gets a
+        "superiortemporal (LH)"-style name, moving its name's hemisphere
+        suffix into the parentheses. RMS curves are returned unchanged.
         """
         meta = self._trace_meta.get(line)
-        if meta is None:
-            return line.get_label()
-        hemi, vertex_id, _ = meta
-        hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
-        if self._peak_vertices.get(hemi) == vertex_id:
-            return f"Peak ({hemi_names[hemi]}) {vertex_id}"
-        return f"{hemi_names[hemi]} {vertex_id}"
+        if meta is not None:
+            hemi, vertex_id, _ = meta
+            hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
+            if self._peak_vertices.get(hemi) == vertex_id:
+                return f"Peak ({hemi_names[hemi]}) {vertex_id}"
+            return f"{hemi_names[hemi]} {vertex_id}"
+        label_meta = self._label_trace_meta.get(line)
+        if label_meta is not None:
+            hemi, label_name, _, _ = label_meta
+            return f"{label_name.removesuffix(f'-{hemi}')} ({hemi.upper()})"
+        return line.get_label()
+
+    def _trace_display_subtitle(self, line):
+        """Return an optional small subtitle line for a trace-list row."""
+        meta = self._trace_meta.get(line)
+        if meta is not None:
+            mni_str = meta[2]
+            return f"MNI: {mni_str}" if mni_str else None
+        label_meta = self._label_trace_meta.get(line)
+        if label_meta is not None:
+            _, _, mode, n_vertices = label_meta
+            return f"{n_vertices} vertices, mode: {mode}"
+        return None
 
     def clear_glyphs(self):
         """Clear the picking glyphs."""
@@ -1878,6 +1897,8 @@ class Brain:
         )
         self._trace_meta[line] = (hemi, vertex_id, mni_str)
         if update:
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
             self.mpl_canvas.update_plot()
         return line
 
@@ -2672,8 +2693,19 @@ class Brain:
                 tc = np.linalg.norm(tc, axis=0)
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
-                self._data["time"], tc, label=label_name, color=color
+                self._data["time"], tc, label=label_name, color=color, update=False
             )
+            # count the source vertices the extraction uses, not surface ones
+            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
+            self._label_trace_meta[line] = (
+                hemi,
+                label_name,
+                self.label_extract_mode,
+                np.intersect1d(label.vertices, stc_vertices).size,
+            )
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
         else:
             line = None
 
@@ -3385,10 +3417,6 @@ class Brain:
             Either path to annotation file, an annotation name, or a list of
             :class:`mne.Label` objects.
 
-            DEPRECATED: The annotation can be specified as a ``(labels, ctab)`` tuple
-            per hemisphere, i.e. ``annot=(labels, ctab)`` for a single hemisphere or
-            ``annot=((lh_labels, lh_ctab), (rh_labels, rh_ctab))`` for both hemispheres.
-
             .. versionadded:: 1.13
                The ability to supply a list of :class:`~mne.Label` objects.
         borders : bool | int
@@ -3409,26 +3437,6 @@ class Brain:
             .. versionadded:: 1.13
         """
         from ...label import read_labels_from_annot
-
-        if (isinstance(annot, tuple) and isinstance(annot[0], np.ndarray)) or (
-            isinstance(annot, (tuple, list)) and isinstance(annot[0], tuple)
-        ):
-            # Deprecated old style of passing a (labels, cmap) pair per hemisphere.
-            # Shortcut to old code that can be removed in MNE version 1.14.
-            warn(
-                "Passing the annotation as a `(label, cmap)` tuple is deprecated and "
-                "will be removed in MNE-Python version 1.14.",
-                FutureWarning,
-            )
-            self._old_add_annotation(
-                annot,
-                borders=borders,
-                alpha=alpha,
-                hemi=hemi,
-                remove_existing=remove_existing,
-                color=color,
-            )
-            return
 
         _validate_type(annot, ("path-like", str, list), "annot")
 
@@ -3508,99 +3516,6 @@ class Brain:
                         reset_camera=False,
                         render=False,
                     )
-        self._renderer._update()
-
-    # DEPRECATED: Can be removed in version 1.14. Also remove _read_annot from
-    # mne/labels.py.
-    def _old_add_annotation(
-        self, annot, borders=True, alpha=1, hemi=None, remove_existing=True, color=None
-    ):
-        from ...label import _read_annot
-
-        hemis = self._check_hemis(hemi)
-
-        # Figure out where the data is coming from
-        if _path_like(annot):
-            if os.path.isfile(annot):
-                filepath = _check_fname(annot, overwrite="read")
-                file_hemi, annot = filepath.name.split(".", 1)
-                if len(hemis) > 1:
-                    if file_hemi == "lh":
-                        filepaths = [filepath, filepath.parent / ("rh." + annot)]
-                    elif file_hemi == "rh":
-                        filepaths = [filepath.parent / ("lh." + annot), filepath]
-                    else:
-                        raise RuntimeError(
-                            "To add both hemispheres simultaneously, filename must "
-                            'begin with "lh." or "rh."'
-                        )
-                else:
-                    filepaths = [filepath]
-            else:
-                filepaths = []
-                for hemi in hemis:
-                    filepath = op.join(
-                        self._subjects_dir,
-                        self._subject,
-                        "label",
-                        ".".join([hemi, annot, "annot"]),
-                    )
-                    if not os.path.exists(filepath):
-                        raise ValueError(f"Annotation file {filepath} does not exist")
-                    filepaths += [filepath]
-            annots = []
-            for hemi, filepath in zip(hemis, filepaths):
-                # Read in the data
-                labels, cmap, _ = _read_annot(filepath)
-                annots.append((labels, cmap))
-        else:
-            annots = [annot] if len(hemis) == 1 else annot
-            annot = "annotation"
-
-        for hemi, (labels, cmap) in zip(hemis, annots):
-            # Maybe zero-out the non-border vertices
-            self._to_borders(labels, hemi, borders)
-
-            # Handle null labels properly
-            cmap[:, 3] = 255
-            bgcolor = np.round(np.array(self._brain_color) * 255).astype(int)
-            bgcolor[-1] = 0
-            cmap[cmap[:, 4] < 0, 4] += 2**24  # wrap to positive
-            cmap[cmap[:, 4] <= 0, :4] = bgcolor
-            if np.any(labels == 0) and not np.any(cmap[:, -1] <= 0):
-                cmap = np.vstack((cmap, np.concatenate([bgcolor, [0]])))
-
-            # Set label ids sensibly
-            order = np.argsort(cmap[:, -1])
-            cmap = cmap[order]
-            ids = np.searchsorted(cmap[:, -1], labels)
-            cmap = cmap[:, :4]
-
-            #  Set the alpha level
-            alpha_vec = cmap[:, 3]
-            alpha_vec[alpha_vec > 0] = alpha * 255
-
-            # Override the cmap when a single color is used
-            if color is not None:
-                rgb = np.round(np.multiply(_to_rgb(color), 255))
-                cmap[:, :3] = rgb.astype(cmap.dtype)
-
-            ctable = cmap.astype(np.float64)
-            for _ in self._iter_views(hemi):
-                mesh = self.layered_meshes[hemi]
-                mesh.add_overlay(
-                    scalars=ids,
-                    colormap=ctable,
-                    rng=[np.min(ids), np.max(ids)],
-                    opacity=alpha,
-                    name=annot,
-                )
-                self._annots[hemi].append(annot)
-                if not self.time_viewer or self.traces_mode == "vertex":
-                    self._renderer._set_colormap_range(
-                        mesh._actor, cmap.astype(np.uint8), None
-                    )
-
         self._renderer._update()
 
     def _create_caption(self):

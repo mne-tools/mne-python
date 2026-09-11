@@ -1,1 +1,0 @@
-The :ref:`ex-rsa` example is now built and rendered in the documentation instead of being skipped, by `Eric Larson`_.

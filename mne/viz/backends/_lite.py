@@ -585,7 +585,7 @@ class _LiteRenderer(_AbstractRenderer):
     def _window_close_connect(self, func, *, after=True):
         pass  # an output cell has no close event
 
-    def text3d(self, x, y, z, text, scale, color="white"):
+    def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
         pass  # no camera-facing 3D text, so sensors go unlabeled
 
     def close(self):
