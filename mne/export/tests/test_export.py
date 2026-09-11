@@ -236,7 +236,6 @@ def test_double_export_edf(tmp_path):
 
 
 @edfio_mark()
-@pytest.mark.xfail(raises=ValueError, reason="EDFIO float encoding bug")
 def test_edf_physical_range(tmp_path):
     """Test exporting an EDF file with different physical range settings."""
     ch_types = ["eeg"] * 4
@@ -269,7 +268,8 @@ def test_edf_physical_range(tmp_path):
     "fname",
     (
         pytest.param(
-            "chtypes_edf.edf", marks=pytest.mark.xfail(reason="failure cause unknown")
+            "chtypes_edf.edf",
+            marks=pytest.mark.xfail(reason="edfio float rounding of physical range"),
         ),
         pytest.param(
             "SC4001EC-Hypnogram.edf", marks=pytest.mark.xfail(reason="annot-only?")
@@ -295,7 +295,7 @@ def test_edf_physical_range(tmp_path):
 def test_edf_roundtrip(tmp_path, fname):
     """Test roundtrip fidelity exporting EDF with original digital/physical ranges."""
     orig_fpath = data_path / "EDF" / fname
-    orig = read_raw_edf(orig_fpath)
+    orig = read_raw_edf(orig_fpath).pick(slice(None, 0, -1))  # subset and reorder
     export_fpath = tmp_path / "tmp.edf"
     orig.export(export_fpath, physical_range="orig", digital_range="orig")
     reread = read_raw_edf(export_fpath)
@@ -304,7 +304,6 @@ def test_edf_roundtrip(tmp_path, fname):
 
 @edfio_mark()
 @pytest.mark.parametrize("pad_width", (1, 10, 100, 500, 999))
-@pytest.mark.xfail(raises=ValueError, reason="EDFIO float encoding bug")
 def test_edf_padding(tmp_path, pad_width):
     """Test exporting an EDF file with not-equal-length data blocks."""
     ch_types = ["eeg"] * 4

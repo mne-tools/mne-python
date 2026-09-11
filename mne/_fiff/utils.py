@@ -46,7 +46,7 @@ def _check_orig_units(orig_units):
         remap_dict = dict()
         remap_dict["uv"] = "µV"
         remap_dict["μv"] = "µV"  # greek letter mu vs micro sign. use micro
-        remap_dict["\x83\xcav"] = "µV"  # for shift-jis mu, use micro
+        remap_dict["\x83\xcaV".lower()] = "µV"  # for shift-jis mu, use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue

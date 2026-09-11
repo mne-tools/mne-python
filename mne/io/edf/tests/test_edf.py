@@ -4,6 +4,7 @@
 
 import datetime
 import gc
+import shutil
 from contextlib import nullcontext
 from functools import partial
 from io import BytesIO
@@ -67,7 +68,7 @@ eog = ["REOG", "LEOG", "IEOG"]
 misc = ["EXG1", "EXG5", "EXG8", "M1", "M2"]
 
 
-def test_orig_units():
+def test_orig_units(tmp_path):
     """Test exposure of original channel units."""
     raw = read_raw_edf(edf_path, preload=True)
 
@@ -76,6 +77,18 @@ def test_orig_units():
     assert len(orig_units) == len(raw.ch_names)
     assert orig_units["A1"] == "µV"  # formerly 'uV' edit by _check_orig_units
     del orig_units
+
+    # shift-jis mu should be treated the same way
+    fname_sjis = tmp_path / "sjis.edf"
+    shutil.copyfile(edf_path, fname_sjis)
+    with open(fname_sjis, "r+b") as fid:
+        fid.seek(256 + 140 * (16 + 80))  # physical dimension of channel 0 (A1)
+        assert fid.read(8) == b"uV      "
+        fid.seek(-8, 1)
+        fid.write(b"\x83\xcaV")  # in place of b"uV " (rest stays space-padded)
+    raw_sjis = read_raw_edf(fname_sjis, preload=True)
+    assert raw_sjis._orig_units["A1"] == "µV"
+    assert_array_equal(raw_sjis.get_data(), raw.get_data())
 
     raw.rename_channels(dict(A1="AA"))
     assert raw._orig_units["AA"] == "µV"
