@@ -118,8 +118,6 @@ DATASET_FILES = {
         "freeviewing/stim/naturalistic.png",
         "eeg-et/sub-01_task-plr_eyetrack.asc",
     ],
-    "MNE-phantom-kernel-data": ["phantom_32_100nam_raw.fif"],
-    "MNE-multimodal-data": ["multimodal_raw.fif"],
     "MNE-refmeg-noise-data": ["sample_reference_MEG_noise-raw.fif"],
     "MNE-kiloword-data": ["kword_metadata-epo.fif"],
     "MNE-ERP-CORE-data": ["ERP-CORE_Subject-001_Task-Flankers_eeg.fif"],
@@ -184,11 +182,14 @@ def stage_lite_data(dst_base):
             n_missing += 1
             continue
         # zero-byte members (an .mff carries a couple of lock files) do not
-        # survive the artifact upload, so listing them would only yield 404s
+        # survive the artifact upload, so listing them would only yield 404s;
+        # the .mov an .mff can carry is a video no reader opens (35 MB)
         names = [
             str(f.relative_to(src_dir))
             for f in sorted(src_dir.rglob("*"))
-            if f.is_file() and 0 < f.stat().st_size / 1e6 <= MAX_FILE_MB
+            if f.is_file()
+            and f.suffix != ".mov"
+            and 0 < f.stat().st_size / 1e6 <= MAX_FILE_MB
         ]
         for name in names:
             n_copied += _copy(src_dir / name, dst_base / folder / rel_dir / name)
