@@ -339,7 +339,9 @@ def _compute_beamformer(
         # sort eigenvectors by eigenvalues for picking:
         order = np.argsort(np.abs(eig_vals), axis=-1)
         # eig_vals = np.take_along_axis(eig_vals, order, axis=-1)
-        max_power_ori = eig_vecs[np.arange(len(eig_vecs)), :, order[:, -1]]
+        # eigenvalues are real (product of PSD matrices) but NumPy >= 2.5 always
+        # returns complex eigenvectors, so take the real part
+        max_power_ori = eig_vecs[np.arange(len(eig_vecs)), :, order[:, -1]].real
         assert max_power_ori.shape == (n_sources, n_orient)
 
         # set the (otherwise arbitrary) sign to match the normal
