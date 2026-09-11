@@ -57,8 +57,10 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
             data[key] = _check_for_scipy_mat_struct(data[key])
 
     if isinstance(data, MatlabOpaque):
+        # TODO VERSION: scipy < 1.18 has the class name in field 2 (scipy/scipy#23481)
+        idx = 1 if data.dtype.names[0] == "_TypeSystem" else 2
         try:
-            if data[0][2] == b"string":
+            if data[0][idx] in ("string", b"string"):
                 return None
         except IndexError:
             pass

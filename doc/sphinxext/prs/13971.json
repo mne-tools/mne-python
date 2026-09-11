@@ -1,0 +1,112 @@
+{
+  "merge_commit_sha": "0b54496fee3214e07171c6ad9fa4fa1bc12e119a",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".extended_metadata.yaml": {
+      "a": 62,
+      "d": 0
+    },
+    ".github/workflows/autofix.yml": {
+      "a": 75,
+      "d": 1
+    },
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 0,
+      "d": 13
+    },
+    ".github/workflows/tests.yml": {
+      "a": 9,
+      "d": 3
+    },
+    ".pre-commit-config.yaml": {
+      "a": 0,
+      "d": 9
+    },
+    ".yamllint.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "README.rst": {
+      "a": 9,
+      "d": 9
+    },
+    "azure-pipelines.yml": {
+      "a": 14,
+      "d": 4
+    },
+    "environment.yml": {
+      "a": 6,
+      "d": 6
+    },
+    "pyproject.toml": {
+      "a": 11,
+      "d": 2
+    },
+    "tools/check_qt_import.sh": {
+      "a": 0,
+      "d": 15
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/generate_codemeta.py": {
+      "a": 0,
+      "d": 258
+    },
+    "tools/github_actions_check_old_env.py": {
+      "a": 0,
+      "d": 80
+    },
+    "tools/github_actions_check_old_lockfile.py": {
+      "a": 0,
+      "d": 84
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 0,
+      "d": 97
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 0,
+      "d": 25
+    },
+    "tools/sync_dependencies.py": {
+      "a": 0,
+      "d": 108
+    }
+  }
+}

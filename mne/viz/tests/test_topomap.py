@@ -172,14 +172,12 @@ def test_plot_projs_topomap_joint(meg, vlim, raw):
 def test_plot_topomap_animation(capsys, tmp_path):
     """Test topomap plotting."""
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    with pytest.warns(FutureWarning, match=".* vmin .* deprecated.*"):
-        fig, anim = evoked.animate_topomap(
-            times=[0, 0.1],
-            cmap="viridis",
-            vmin=0,
-            vmax=10,
-            verbose="debug",
-        )
+    fig, anim = evoked.animate_topomap(
+        times=[0, 0.1],
+        cmap="viridis",
+        vlim=(0, 10),
+        verbose="debug",
+    )
     out, _ = capsys.readouterr()
     assert "extrapolation mode local to mean" in out
     assert fig.axes[0].images[0].get_cmap().name == "viridis"

@@ -12,11 +12,14 @@ import pytest
 from matplotlib.font_manager import findfont
 from numpy.testing import assert_allclose
 
+from mne.datasets import testing
 from mne.transforms import quat_to_rot, rot_to_quat
 from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 from mne.viz.backends.renderer import _get_renderer
+
+_data_path = testing.data_path(download=False)
 
 
 def _unsupported(renderer):
@@ -194,28 +197,25 @@ def test_3d_backend(renderer):
     )
 
     # scalar bar
-    with _unsupported(renderer):
-        rend.scalarbar(source=tube, title="Scalar Bar", bgcolor=[1, 1, 1])
+    rend.scalarbar(source=tube, title="Scalar Bar", bgcolor=[1, 1, 1])
 
     # use text
-    with _unsupported(renderer):
-        rend.text2d(
-            x_window=txt_x,
-            y_window=txt_y,
-            text=txt_text,
-            size=txt_size,
-            justification="right",
-        )
+    rend.text2d(
+        x_window=txt_x,
+        y_window=txt_y,
+        text=txt_text,
+        size=txt_size,
+        justification="right",
+    )
     # test font_file passthrough with a real font from matplotlib
     font_path = findfont("serif")
-    with _unsupported(renderer):
-        rend.text2d(
-            x_window=txt_x + 0.1,
-            y_window=txt_y + 0.1,
-            text="font test",
-            font_file=font_path,
-        )
-    rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
+    rend.text2d(
+        x_window=txt_x + 0.1,
+        y_window=txt_y + 0.1,
+        text="font test",
+        font_file=font_path,
+    )
+    rend.text3d(x=0, y=0, z=0, text=txt_text, font_size=12)
     rend.set_camera(
         azimuth=180.0, elevation=90.0, distance=cam_distance, focalpoint=center
     )
@@ -522,3 +522,31 @@ def test_lite_notebook_kernel(renderer_lite, nbexec):
     np.testing.assert_allclose(scene["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
     html = rend.plotter.generate_standalone_html()  # what the page will run
     assert json.dumps(source["points"]).replace(" ", "") in html.replace(" ", "")
+
+
+@testing.requires_testing_data
+def test_lite_brain(renderer_lite):
+    """Test Brain draws a static, per-vertex-colored surface through the backend."""
+    import mne
+
+    stc = mne.read_source_estimate(
+        _data_path / "MEG" / "sample" / "sample_audvis_trunc-meg", "sample"
+    )
+    kwargs = dict(subject="sample", subjects_dir=_data_path / "subjects", hemi="lh")
+    brain = stc.plot(views="lat", initial_time=0.1, **kwargs)  # time_viewer="auto"
+    assert isinstance(brain, mne.viz.Brain)
+    assert brain.time_viewer is False and brain._scalar_bar is None
+    (actor,) = brain._renderer.plotter.actors
+    colors = actor["mesh"].point_data["Data"]
+    # curvature plus activation, as uint8 RGBA vtk.js uses directly
+    assert colors.dtype == np.uint8 and colors.shape == (len(brain.geo["lh"].coords), 4)
+    assert len(np.unique(colors, axis=0)) > 2
+    scene = brain._renderer.plotter._renderer._build_scene_data()
+    assert scene["actors"][0]["scalars"]["direct"] is True
+    # Brain's canonical rotation reaches the camera through `rigid`
+    assert brain._renderer.get_camera(rigid=brain._rigid)[2:4] == pytest.approx(
+        (180.0, 90.0)
+    )
+    brain.close()
+    with pytest.raises(NotImplementedError, match="browser"):  # two columns
+        mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})

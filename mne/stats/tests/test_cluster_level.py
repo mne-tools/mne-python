@@ -926,6 +926,20 @@ def test_tfce_thresholds(numba_conditional):
     # Should work with 2D data too
     permutation_cluster_1samp_test(X=data[..., 0], threshold=dict(start=0, step=0.2))
 
+    # Regression test for #14224: each threshold contributes |t|^H * step *
+    # e^E (Riemann sum of the TFCE integral, Smith et al. 2009), using the
+    # full extent of the cluster. A bump of height 2 over 3 samples gives
+    # (0.5**2 + 1**2 + 1.5**2) * 0.5 * 3**0.5.
+    threshold = dict(start=0, step=0.5)
+    want = np.zeros(6)
+    want[2:5] = (np.arange(0.5, 2.0, 0.5) ** 2).sum() * 0.5 * (3**0.5)
+    for shape in ((6,), (1, 6)):  # 1D slice and 2D boolean-mask branches
+        x = np.zeros(shape)
+        x.ravel()[2:5] = 2.0
+        clusters, scores = _find_clusters(x, threshold, tail=1)
+        assert clusters is None
+        assert_allclose(scores, want)
+
 
 # 1D gives slices, 2D+ gives boolean masks
 @pytest.mark.parametrize("shape", ((11,), (11, 3), (11, 1, 2)))

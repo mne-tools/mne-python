@@ -1,0 +1,40 @@
+{
+  "merge_commit_sha": "f1b170f636541a651ed96a223171333becaf595d",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14213.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/array/_array.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 10,
+      "d": 20
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 14,
+      "d": 7
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 53,
+      "d": 6
+    },
+    "mne/utils/docs.py": {
+      "a": 11,
+      "d": 8
+    }
+  }
+}

@@ -1172,6 +1172,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError("subject must be a string")
+    filename = _check_fname(filename, "read", must_exist=True, name="Label file")
 
     # find hemi
     basename = op.basename(filename)
@@ -2141,87 +2142,6 @@ def _read_annot_cands(dir_name, raise_error=True):
     # exclude .ctab files
     cands = [c for c in cands if ".ctab" not in c]
     return cands
-
-
-def _read_annot(fname):
-    """Read a Freesurfer annotation from a .annot file.
-
-    Note : Copied from PySurfer
-
-    Parameters
-    ----------
-    fname : str
-        Path to annotation file
-
-    Returns
-    -------
-    annot : numpy array, shape=(n_verts)
-        Annotation id at each vertex
-    ctab : numpy array, shape=(n_entries, 5)
-        RGBA + label id colortable array
-    names : list of str
-        List of region names as stored in the annot file
-
-    """
-    if not op.isfile(fname):
-        dir_name = op.split(fname)[0]
-        cands = _read_annot_cands(dir_name)
-        if len(cands) == 0:
-            raise OSError(
-                f"No such file {fname}, no candidate parcellations found in directory"
-            )
-        else:
-            raise OSError(
-                f"No such file {fname}, candidate parcellations in "
-                "that directory:\n" + "\n".join(cands)
-            )
-    with open(fname, "rb") as fid:
-        n_verts = np.fromfile(fid, ">i4", 1)[0]
-        data = np.fromfile(fid, ">i4", n_verts * 2).reshape(n_verts, 2)
-        annot = data[data[:, 0], 1]
-        ctab_exists = np.fromfile(fid, ">i4", 1)[0]
-        if not ctab_exists:
-            raise Exception("Color table not found in annotation file")
-        n_entries = np.fromfile(fid, ">i4", 1)[0]
-        if n_entries > 0:
-            length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, ">c", length)  # discard orig_tab
-
-            names = list()
-            ctab = np.zeros((n_entries, 5), np.int64)
-            for i in range(n_entries):
-                name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
-                names.append(name)
-                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
-                ctab[i, 4] = (
-                    ctab[i, 0]
-                    + ctab[i, 1] * (2**8)
-                    + ctab[i, 2] * (2**16)
-                    + ctab[i, 3] * (2**24)
-                )
-        else:
-            ctab_version = -n_entries
-            if ctab_version != 2:
-                raise Exception("Color table version not supported")
-            n_entries = np.fromfile(fid, ">i4", 1)[0]
-            ctab = np.zeros((n_entries, 5), np.int64)
-            length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, f"|S{length}", 1)  # Orig table path
-            entries_to_read = np.fromfile(fid, ">i4", 1)[0]
-            names = list()
-            for i in range(entries_to_read):
-                np.fromfile(fid, ">i4", 1)  # Structure
-                name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
-                names.append(name)
-                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
-                ctab[i, 4] = ctab[i, 0] + ctab[i, 1] * (2**8) + ctab[i, 2] * (2**16)
-
-        # convert to more common alpha value
-        ctab[:, 3] = 255 - ctab[:, 3]
-
-    return annot, ctab, names
 
 
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):

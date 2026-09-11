@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "713264521057dec42364df21183365232f9c15a1",
+  "authors": [
+    {
+      "n": "TIM ANDERSON ",
+      "e": "281533835+timothyanderson096-ocdealcheck@users.noreply.github.com",
+      "l": "timothyanderson096-ocdealcheck"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14240.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 22,
+      "d": 0
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

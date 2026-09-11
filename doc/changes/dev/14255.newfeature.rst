@@ -1,1 +1,0 @@
-Speed up reading large KIT files by reading them in cache-sized blocks, by `Bruno Aristimunha`_.

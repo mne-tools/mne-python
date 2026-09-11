@@ -84,7 +84,6 @@ from .utils import (
     _check_time_unit,
     _get_cmap,
     _get_color_list,
-    figure_nobar,
     plt_show,
 )
 
@@ -935,13 +934,15 @@ def plot_alignment(
         # transform to current coord frame
         pos = apply_trans(to_cf_t["head"], pos)
 
-        for ch, xyz in zip(chs, pos):
-            renderer.text3d(
-                *xyz,
-                ch["ch_name"],
-                scale=0.005,
-                color=(1.0, 1.0, 1.0),
-            )
+        # offset labels outward from centroid so they clear the sensor glyphs
+        centroid = pos.mean(axis=0)
+        directions = pos - centroid
+        norms = np.linalg.norm(directions, axis=1, keepdims=True)
+        norms = np.where(norms > 0, norms, 1)
+        offsets = pos + 0.01 * directions / norms
+
+        labels = [ch["ch_name"] for ch in chs]
+        renderer.text3d(*offsets.T, labels, font_size=10, color="white", shadow=True)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -1389,6 +1390,7 @@ def _plot_glyphs(
     scale_by_distance=False,
     project_points=False,
     mark_inside=False,
+    inside_color=None,
     surf=None,
     orient_nn=None,
     cylinder_geom=None,
@@ -1428,7 +1430,7 @@ def _plot_glyphs(
         if scale_by_distance:
             scales = scales * np.linalg.norm(surf_vectors, axis=1)
         if mark_inside:  # recolor points that fall inside the surface
-            colors[scalars < 0.5, :3] = to_rgba("darkslategray")[:3]
+            colors[scalars < 0.5, :3] = to_rgba(inside_color or "darkslategray")[:3]
         if orient_glyphs:  # point cylinders along the surface normal
             vectors = surf_vectors
     kind, template_kw = "sphere", dict()
@@ -1469,6 +1471,8 @@ def _plot_head_shape_points(
     mask=None,
     check_inside=None,
     nearest=None,
+    outside_color=None,
+    inside_color=None,
     verbose=False,
 ):
     defaults = DEFAULTS["coreg"]
@@ -1487,12 +1491,13 @@ def _plot_head_shape_points(
     return _plot_glyphs(
         renderer=renderer,
         loc=ext_loc,
-        colors=defaults["extra_color"],
+        colors=outside_color if outside_color is not None else defaults["extra_color"],
         scales=defaults["extra_scale"],
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
         mark_inside=mark_inside,
+        inside_color=inside_color,
         surf=surf,
         backface_culling=True,
         check_inside=check_inside,
@@ -2083,257 +2088,6 @@ def _handle_time(time_label, time_unit, times):
     return time_label, times
 
 
-def _key_pressed_slider(event, params):
-    """Handle key presses for time_viewer slider."""
-    step = 1
-    if event.key.startswith("ctrl"):
-        step = 5
-        event.key = event.key.split("+")[-1]
-    if event.key not in ["left", "right"]:
-        return
-    time_viewer = event.canvas.figure
-    value = time_viewer.slider.val
-    times = params["stc"].times
-    if params["time_unit"] == "ms":
-        times = times * 1000.0
-    time_idx = np.argmin(np.abs(times - value))
-    if event.key == "left":
-        time_idx = np.max((0, time_idx - step))
-    elif event.key == "right":
-        time_idx = np.min((len(times) - 1, time_idx + step))
-    this_time = times[time_idx]
-    time_viewer.slider.set_val(this_time)
-
-
-def _smooth_plot(this_time, params, *, draw=True):
-    """Smooth source estimate data and plot with mpl."""
-    from ..morph import _hemi_morph
-
-    ax = params["ax"]
-    stc = params["stc"]
-    ax.clear()
-    times = stc.times
-    scaler = 1000.0 if params["time_unit"] == "ms" else 1.0
-    if this_time is None:
-        time_idx = 0
-    else:
-        time_idx = np.argmin(np.abs(times - this_time / scaler))
-
-    if params["hemi_idx"] == 0:
-        data = stc.data[: len(stc.vertices[0]), time_idx : time_idx + 1]
-    else:
-        data = stc.data[len(stc.vertices[0]) :, time_idx : time_idx + 1]
-
-    morph = _hemi_morph(
-        params["tris"],
-        params["inuse"],
-        params["vertices"],
-        params["smoothing_steps"],
-        maps=None,
-        warn=True,
-    )
-    array_plot = morph @ data
-
-    range_ = params["scale_pts"][2] - params["scale_pts"][0]
-    colors = (array_plot - params["scale_pts"][0]) / range_
-
-    faces = params["faces"]
-    greymap = params["greymap"]
-    cmap = params["cmap"]
-    polyc = ax.plot_trisurf(
-        *params["coords"].T, triangles=faces, antialiased=False, vmin=0, vmax=1
-    )
-    color_ave = np.mean(colors[faces], axis=1).flatten()
-    curv_ave = np.mean(params["curv"][faces], axis=1).flatten()
-    colors = cmap(color_ave)
-    # alpha blend
-    colors[:, :3] *= colors[:, [3]]
-    colors[:, :3] += greymap(curv_ave)[:, :3] * (1.0 - colors[:, [3]])
-    colors[:, 3] = 1.0
-    polyc.set_facecolor(colors)
-    if params["time_label"] is not None:
-        ax.set_title(
-            params["time_label"](
-                times[time_idx] * scaler,
-            ),
-            color="w",
-        )
-    _set_aspect_equal(ax)
-    ax.axis("off")
-    ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    if draw:
-        ax.figure.canvas.draw()
-
-
-_MPL_STC_DEPRECATION = (
-    "Plotting source estimates with the matplotlib 3D backend is deprecated and will "
-    "be removed in MNE 1.15, use a proper 3D backend (e.g., pyvistaqt) instead"
-)
-
-
-def _plot_mpl_stc(
-    stc,
-    subject=None,
-    surface="inflated",
-    hemi="lh",
-    colormap="auto",
-    time_label="auto",
-    smoothing_steps=10,
-    subjects_dir=None,
-    views="lat",
-    clim="auto",
-    figure=None,
-    initial_time=None,
-    time_unit="s",
-    background="black",
-    spacing="oct6",
-    time_viewer=False,
-    colorbar=True,
-    transparent=True,
-    block=False,
-):
-    """Plot source estimate using mpl."""
-    import matplotlib.pyplot as plt
-    import nibabel as nib
-    from matplotlib.widgets import Slider
-    from mpl_toolkits.mplot3d import Axes3D
-    from scipy.stats import rankdata
-
-    from ..morph import _get_subject_sphere_tris
-    from ..source_space._source_space import _check_spacing, _create_surf_spacing
-
-    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
-    lh_kwargs = {
-        "lat": {"elev": 0, "azim": 180},
-        "med": {"elev": 0, "azim": 0},
-        "ros": {"elev": 0, "azim": 90},
-        "cau": {"elev": 0, "azim": -90},
-        "dor": {"elev": 90, "azim": -90},
-        "ven": {"elev": -90, "azim": -90},
-        "fro": {"elev": 0, "azim": 106.739},
-        "par": {"elev": 30, "azim": -120},
-    }
-    rh_kwargs = {
-        "lat": {"elev": 0, "azim": 0},
-        "med": {"elev": 0, "azim": 180},
-        "ros": {"elev": 0, "azim": 90},
-        "cau": {"elev": 0, "azim": -90},
-        "dor": {"elev": 90, "azim": -90},
-        "ven": {"elev": -90, "azim": -90},
-        "fro": {"elev": 16.739, "azim": 60},
-        "par": {"elev": 30, "azim": -60},
-    }
-    time_viewer = False if time_viewer == "auto" else time_viewer
-    kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
-    views = "lat" if views == "auto" else views
-    _check_option("views", views, sorted(lh_kwargs.keys()))
-    mapdata = _process_clim(clim, colormap, transparent, stc.data)
-    _separate_map(mapdata)
-    colormap, scale_pts = _linearize_map(mapdata)
-    del transparent, mapdata
-
-    time_label, times = _handle_time(time_label, time_unit, stc.times)
-    # don't use constrained layout because Axes3D does not play well with it
-    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
-    try:
-        ax = Axes3D(fig, auto_add_to_figure=False)
-    except Exception:  # old mpl
-        ax = Axes3D(fig)
-    else:
-        fig.add_axes(ax)
-    hemi_idx = 0 if hemi == "lh" else 1
-    surf = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
-    if spacing == "all":
-        coords, faces = nib.freesurfer.read_geometry(surf)
-        inuse = slice(None)
-    else:
-        stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
-        surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir)
-        inuse = surf["vertno"]
-        faces = surf["use_tris"]
-        coords = surf["rr"][inuse]
-        shape = faces.shape
-        faces = rankdata(faces, "dense").reshape(shape) - 1
-        faces = np.round(faces).astype(int)  # should really be int-like anyway
-    del surf
-    vertices = stc.vertices[hemi_idx]
-    n_verts = len(vertices)
-    tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    cmap = _get_cmap(colormap)
-    greymap = _get_cmap("Greys")
-
-    curv = nib.freesurfer.read_morph_data(
-        subjects_dir / subject / "surf" / f"{hemi}.curv"
-    )[inuse]
-    curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
-    params = dict(
-        ax=ax,
-        stc=stc,
-        coords=coords,
-        faces=faces,
-        hemi_idx=hemi_idx,
-        vertices=vertices,
-        tris=tris,
-        smoothing_steps=smoothing_steps,
-        n_verts=n_verts,
-        inuse=inuse,
-        cmap=cmap,
-        curv=curv,
-        scale_pts=scale_pts,
-        greymap=greymap,
-        time_label=time_label,
-        time_unit=time_unit,
-    )
-    _smooth_plot(initial_time, params, draw=False)
-
-    ax.view_init(**kwargs[hemi][views])
-
-    try:
-        ax.set_facecolor(background)
-    except AttributeError:
-        ax.set_axis_bgcolor(background)
-
-    if time_viewer:
-        time_viewer = figure_nobar(figsize=(4.5, 0.25))
-        fig.time_viewer = time_viewer
-        ax_time = plt.axes()
-        if initial_time is None:
-            initial_time = 0
-        slider = Slider(
-            ax=ax_time,
-            label="Time",
-            valmin=times[0],
-            valmax=times[-1],
-            valinit=initial_time,
-        )
-        time_viewer.slider = slider
-        callback_slider = partial(_smooth_plot, params=params)
-        slider.on_changed(callback_slider)
-        callback_key = partial(_key_pressed_slider, params=params)
-        time_viewer.canvas.mpl_connect("key_press_event", callback_key)
-
-    fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
-
-    # add colorbar
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
-    sm = plt.cm.ScalarMappable(
-        cmap=cmap, norm=plt.Normalize(scale_pts[0], scale_pts[2])
-    )
-    cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.0)
-    plt.setp(plt.getp(cax, "xticklabels"), color="w")
-    sm.set_array(np.linspace(scale_pts[0], scale_pts[2], 256))
-    if colorbar:
-        cb = plt.colorbar(sm, cax=cax, orientation="horizontal")
-        cb_yticks = plt.getp(cax, "yticklabels")
-        plt.setp(cb_yticks, color="w")
-        cax.tick_params(labelsize=16)
-        cb.ax.set_facecolor("0.5")
-        cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt_show(True, block=block)
-    return fig
-
-
 def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
@@ -2431,7 +2185,6 @@ def plot_source_estimates(
     initial_time=None,
     time_unit="s",
     backend="auto",
-    spacing="oct6",
     title=None,
     show_traces="auto",
     src=None,
@@ -2465,8 +2218,7 @@ def plot_source_estimates(
         The amount of smoothing.
     %(transparent)s
     alpha : float
-        Alpha value to apply globally to the overlay. Has no effect with mpl
-        backend.
+        Alpha value to apply globally to the overlay.
     time_viewer : bool | str
         Display time viewer GUI. Can also be 'auto', which will mean True
         for the PyVista backend and False otherwise.
@@ -2474,19 +2226,16 @@ def plot_source_estimates(
         .. versionchanged:: 0.20.0
            "auto" mode added.
     %(subjects_dir)s
-    figure : instance of Figure3D | instance of matplotlib.figure.Figure | list | int | None
+    figure : instance of Figure3D | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
-        figure by it's id or create a new figure with the given id. If an
-        instance of matplotlib figure, mpl backend is used for plotting.
+        figure by it's id or create a new figure with the given id.
     %(views)s
 
         When plotting a standard SourceEstimate (not volume, mixed, or vector)
         and using the PyVista backend, ``views='flat'`` is also supported to
         plot cortex as a flatmap.
-
-        Using multiple views (list) is not supported by the matplotlib backend.
 
         .. versionchanged:: 0.21.0
            Support for flatmaps.
@@ -2499,40 +2248,26 @@ def plot_source_estimates(
         ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
         or the name of a colormap, or a tuple with values
         ``(colormap, min, max, reverse)`` to fully specify the curvature
-        colors. Has no effect with the matplotlib backend.
+        colors.
     size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
-        Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
     foreground : matplotlib color | None
-        Color of the foreground of the display window. Has no effect with mpl
-        backend. None will choose white or black based on the background color.
+        Color of the foreground of the display window. None will choose white or
+        black based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
     time_unit : ``'s'`` | ``'ms'``
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'matplotlib'``
+    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'notebook'``
         Which backend to use. If ``'auto'`` (default), tries to plot with
-        pyvistaqt, but resorts to matplotlib if no 3d backend is available.
+        pyvistaqt.
 
         .. versionadded:: 0.15.0
-        .. versionchanged:: 1.13
-           The ``'matplotlib'`` backend is deprecated and will be removed in 1.15.
-    spacing : str
-        Only affects the matplotlib backend.
-        The spacing to use for the source space. Can be ``'ico#'`` for a
-        recursively subdivided icosahedron, ``'oct#'`` for a recursively
-        subdivided octahedron, or ``'all'`` for all points. In general, you can
-        speed up the plotting by selecting a sparser source space.
-        Defaults  to 'oct6'.
-
-        .. versionadded:: 0.15.0
-        .. deprecated:: 1.13
-           Will be removed in 1.15 along with the ``'matplotlib'`` backend.
     %(title_stc)s
 
         .. versionadded:: 0.17.0
@@ -2569,17 +2304,9 @@ def plot_source_estimates(
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     subject = _check_subject(stc.subject, subject)
     _validate_type(block, bool, "block")
-    _check_option("backend", backend, ["auto", "matplotlib", "pyvistaqt", "notebook"])
-    plot_mpl = backend == "matplotlib"
-    if not plot_mpl:
-        if backend == "auto":
-            try:
-                backend = _get_3d_backend()
-            except (ImportError, ModuleNotFoundError):
-                warn("No 3D backend found. Resorting to matplotlib 3d.")
-                plot_mpl = True
-    if plot_mpl:
-        warn(f"{_MPL_STC_DEPRECATION}.", FutureWarning)
+    _check_option("backend", backend, ["auto", "pyvistaqt", "notebook"])
+    if backend == "auto":
+        backend = _get_3d_backend()
     kwargs = dict(
         subject=subject,
         surface=surface,
@@ -2598,31 +2325,28 @@ def plot_source_estimates(
         colorbar=colorbar,
         transparent=transparent,
     )
-    if plot_mpl:
-        return _plot_mpl_stc(stc, spacing=spacing, block=block, **kwargs)
-    else:
-        with use_3d_backend(backend):
-            brain = _plot_stc(
-                stc,
-                overlay_alpha=alpha,
-                brain_alpha=alpha,
-                vector_alpha=alpha,
-                cortex=cortex,
-                foreground=foreground,
-                size=size,
-                scale_factor=None,
-                show_traces=show_traces,
-                src=src,
-                volume_options=volume_options,
-                view_layout=view_layout,
-                add_data_kwargs=add_data_kwargs,
-                brain_kwargs=brain_kwargs,
-                title=title,
-                **kwargs,
-            )
-        if block and brain._renderer._kind == "qt":
-            _qt_block(brain.plotter.app_window)
-        return brain
+    with use_3d_backend(backend):
+        brain = _plot_stc(
+            stc,
+            overlay_alpha=alpha,
+            brain_alpha=alpha,
+            vector_alpha=alpha,
+            cortex=cortex,
+            foreground=foreground,
+            size=size,
+            scale_factor=None,
+            show_traces=show_traces,
+            src=src,
+            volume_options=volume_options,
+            view_layout=view_layout,
+            add_data_kwargs=add_data_kwargs,
+            brain_kwargs=brain_kwargs,
+            title=title,
+            **kwargs,
+        )
+    if block and brain._renderer._kind == "qt":
+        _qt_block(brain.plotter.app_window)
+    return brain
 
 
 def _plot_stc(
@@ -2802,7 +2526,10 @@ def _check_st_tv(show_traces, time_viewer, times):
             extra="when a string",
         )
     if time_viewer == "auto":
-        time_viewer = True
+        from .backends.renderer import _get_3d_backend
+
+        # the browser backend writes a static scene, so there is no slider to show
+        time_viewer = _get_3d_backend() != "jupyterlite_notebook"
     if show_traces == "auto":
         show_traces = time_viewer and times is not None and len(times) > 1
     if show_traces and not time_viewer:
@@ -2999,6 +2726,9 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
+    if mode == "glass_brain":
+        # signed MIP (value with max abs) for diverging colormaps
+        plot_kwargs["plot_abs"] = not params["diverging"]
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
@@ -3052,8 +2782,14 @@ def plot_volume_source_estimates(
         If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
     mode : ``'stat_map'`` | ``'glass_brain'``
-        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
-        displayed after being transformed to a standard MNI brain.
+        The plotting mode to use. For ``'glass_brain'``, activations are displayed
+        after being transformed to a standard MNI brain. With a diverging colormap
+        (e.g., ``clim=dict(pos_lims=...)``), the signed value with the maximum
+        absolute value along each projection is shown; otherwise, absolute values
+        are shown.
+
+        .. versionchanged:: 1.13.1
+           Signed values can be shown in ``'glass_brain'`` mode.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
@@ -3230,8 +2966,7 @@ def plot_volume_source_estimates(
     lx = ax_time.axvline(stc.times[time_idx], color="g")
     params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
-    allow_pos_lims = mode != "glass_brain"
-    mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
@@ -3244,7 +2979,7 @@ def plot_volume_source_estimates(
     dup_neg = False
     if stc.data.min() < 0:
         ax_time.axhline(0.0, color="0.5", ls="-", lw=0.5, zorder=2)
-        dup_neg = not diverging  # glass brain with signed data
+        dup_neg = not diverging  # signed data with one-sided colormap
     yticks = list(ticks)
     if dup_neg:
         yticks += [0] + list(-np.array(ticks))

@@ -43,7 +43,7 @@ from ..viz import EvokedField
 from ..viz._3d import _get_3d_option, _plot_head_surface, _plot_sensors_3d
 from ..viz.backends._utils import _qt_app_exec, _qt_safe_window, _splash_message
 from ..viz.ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
-from ..viz.utils import _get_color_list, _is_dark
+from ..viz.utils import _get_color_list
 
 # Message shown in the status bar when the GUI is not busy doing something else.
 _STATUS_IDLE = "Ready"
@@ -893,6 +893,20 @@ class DipoleFitUI:
             r = self._renderer
             hlayout = r._dock_add_layout(vertical=False)
             widgets = []
+            # A small color swatch, so the rows in the dipole list can be matched up
+            # with the traces at a glance.
+            swatch = r._dock_add_label(value="", layout=hlayout)
+            swatch.set_style(
+                {
+                    "background-color": to_hex(dip_color),
+                    "border-radius": "6px",
+                    "min-width": "12px",
+                    "max-width": "12px",
+                    "min-height": "12px",
+                    "max-height": "12px",
+                }
+            )
+            widgets.append(swatch)
             widgets.append(
                 r._dock_add_check_box(
                     name="",
@@ -910,19 +924,6 @@ class DipoleFitUI:
                     layout=hlayout,
                 )
             )
-            # Give the name field the color of the dipole's trace, so the rows in the
-            # dipole list can be matched up with the traces at a glance.
-            widgets[-1].set_style(
-                {
-                    "background-color": to_hex(dip_color),
-                    "color": "white" if _is_dark(dip_color) else "black",
-                }
-            )
-            # Hovering the row emphasizes the traces belonging to this dipole.
-            widgets[-1].set_hover_callbacks(
-                enter=partial(_on_dipole_hover, dip_num=dip_num, hover=True),
-                leave=partial(_on_dipole_hover, dip_num=dip_num, hover=False),
-            )
             widgets.append(
                 r._dock_add_button(
                     name="",
@@ -931,6 +932,13 @@ class DipoleFitUI:
                     layout=hlayout,
                 )
             )
+            # Hovering anywhere in the row emphasizes the traces belonging to this
+            # dipole.
+            for widget in widgets:
+                widget.set_hover_callbacks(
+                    enter=partial(_on_dipole_hover, dip_num=dip_num, hover=True),
+                    leave=partial(_on_dipole_hover, dip_num=dip_num, hover=False),
+                )
             dipole_dict["widgets"] = widgets
             r._layout_add_widget(self._dipole_box, hlayout)
             new_dipoles.append(dipole_dict)
@@ -1089,10 +1097,15 @@ class DipoleFitUI:
         if self._gof_ax is None:
             self._gof_ax = canvas.axes.twinx()
             self._gof_ax.set_ylim(0, 100)
-            self._gof_ax.set_ylabel("GOF (%)", color="gray")
-            self._gof_ax.tick_params(axis="y", colors="gray")
+            # match the tick/label sizing the main axes got from `set_color`
+            self._gof_ax.set_ylabel("GOF (%)", color="gray", fontsize=14)
+            self._gof_ax.tick_params(
+                axis="y", colors="gray", labelsize=13, length=6, width=1.5
+            )
             self._gof_ax.spines["top"].set_visible(False)
             self._gof_ax.spines["right"].set_visible(True)
+            self._gof_ax.spines["right"].set_color("gray")
+            self._gof_ax.spines["right"].set_linewidth(2.0)
             self._gof_ax.spines["bottom"].set_visible(False)
             self._gof_ax.spines["left"].set_visible(False)
             # Twin axes are drawn on top by default. Flip that around (the classic
@@ -1269,7 +1282,7 @@ class DipoleFitUI:
         if dipole["helmet_arrow_actor"] is not None:  # no helmet arrow for EEG
             dipole["helmet_arrow_actor"].visibility = False
         for widget in dipole["widgets"]:
-            widget.hide()
+            widget.remove()
         del self._dipoles[dip_num]
         self._fit_timecourses()
         self._renderer._update()
@@ -1302,8 +1315,8 @@ class DipoleFitUI:
             # `_fit_timecourses`).
             canvas.axes.set_ylabel("Activation (nAm)")
             canvas.axes.set_xlim(self._evoked.times[0], self._evoked.times[-1])
-            canvas.axes.spines["top"].set_visible(False)
-            canvas.axes.spines["right"].set_visible(False)
+            # spines, ticks and grid styled as in the Brain traces plot
+            canvas.set_color(bg_color="white", fg_color="black")
             canvas.axes.axhline(0, linewidth=1, color="gray", zorder=0)
         if self._time_line is None:
             canvas = self._renderer._mplcanvas

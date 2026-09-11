@@ -30,7 +30,7 @@ else
             hcp_mmp_parcellation)
                 python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() / 'subjects', accept=True))";;
             eegbci)
-                python -c "import mne; print([mne.datasets.eegbci.load_data(subject, runs, update_path=True) for subject, runs in [(1, [3, 6, 10, 14]), (2, [3]), (3, [3]), (4, [3])]])";;
+                python -c "import mne; print([mne.datasets.eegbci.load_data(subjects, runs, update_path=True) for subjects, runs in [(range(1, 11), [1]), (range(1, 5), [3]), (1, [2, 6, 10, 14])]])";;
             sleep_physionet)
                 python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1]))";;
             bst_*)

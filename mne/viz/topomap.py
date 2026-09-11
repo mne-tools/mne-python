@@ -3527,8 +3527,6 @@ def _topomap_animation(
     blit,
     axes,
     show,
-    vmin,
-    vmax,
     # pass-through kwargs
     average,
     ch_type,
@@ -3595,16 +3593,6 @@ def _topomap_animation(
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-    if vmin is not None or vmax is not None:
-        # Once this dep is done: remove vmin and vmax, and remove vlim from explicit
-        # pass below and above as a kwarg (so it just gets absorbed by
-        # _plot_evoked_topomap_kwargs)
-        vlim = (vmin, vmax)
-        warn(
-            f"vmax and vmin are deprecated, use vlim instead; using {vlim=}",
-            FutureWarning,
-        )
-        del vmin, vmax
     fig, topomap_params = _plot_evoked_topomap(
         evoked=evoked,
         # we handle these separately

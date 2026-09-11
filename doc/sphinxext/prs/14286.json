@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "44ac7433273a0a7b1c73c88c680df5d13e183b5f",
+  "authors": [
+    {
+      "n": "Antonio Elias Sánchez Soto",
+      "e": "eliasyosoto@gmail.com",
+      "l": "sonoAESS"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14286.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 9,
+      "d": 6
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

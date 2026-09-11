@@ -888,6 +888,7 @@ def read_curvature(filepath, binary=True):
     curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
+    filepath = _check_fname(filepath, "read", must_exist=True, name="Curvature file")
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
         if magic == 16777215:
