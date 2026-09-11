@@ -16,6 +16,7 @@ layout). Not supported: scalar colormaps and contours, and figure size
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import inspect
 import weakref
 from contextlib import nullcontext
 
@@ -206,6 +207,7 @@ class _LiteRenderer(_AbstractRenderer):
         # _PyVistaRenderer's signature, but size, shape, name and show cannot
         # be honored: the canvas is fixed and written only when show() runs
         _validate_type(fig, (None, _LiteFigure), "fig")
+        self._close_callbacks = {False: [], True: []}  # keyed by ``after``
         if fig is not None:  # plot_alignment(fig=...) composites into it
             self._figure = fig
             return
@@ -583,13 +585,31 @@ class _LiteRenderer(_AbstractRenderer):
         pass  # the page paints after the cell finishes
 
     def _window_close_connect(self, func, *, after=True):
-        pass  # an output cell has no close event
+        # an output cell has no close event, so close() runs these; ui_events
+        # drops its channel here, without which its subscribers pin the figure.
+        # Weak for bound methods (Brain._clean) so a figure dropped without
+        # close() still dies by refcount rather than waiting on the collector
+        if inspect.ismethod(func):
+            func = weakref.WeakMethod(func)
+        self._close_callbacks[after].append(func)
+
+    def _window_close_disconnect(self, after=True):
+        self._close_callbacks[after].clear()
+
+    def _run_close_callbacks(self, after):
+        for func in list(self._close_callbacks[after]):  # Brain._clean disconnects
+            if isinstance(func, weakref.WeakMethod):
+                func = func()
+            if func is not None:
+                func()
 
     def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
         pass  # no camera-facing 3D text, so sensors go unlabeled
 
     def close(self):
+        self._run_close_callbacks(after=False)
         _lite_release_plotter(self.plotter)
+        self._run_close_callbacks(after=True)
 
     # -- things pyvista-js cannot do ----------------------------------------
     def contour(self, *args, **kwargs):
