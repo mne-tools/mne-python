@@ -1,1 +1,0 @@
-Fix reading EEGLAB ``.set`` files containing MATLAB objects (e.g., ``string`` or ``datetime``) with SciPy 1.18+ when pymatreader is not installed, by `Eric Larson`_.

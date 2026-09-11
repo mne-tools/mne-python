@@ -1,1 +1,0 @@
-Fix bug where :func:`mne.viz.plot_volume_source_estimates` with ``mode="glass_brain"`` always showed absolute values, by `Lau Møller Andersen`_.

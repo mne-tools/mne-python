@@ -1,1 +1,0 @@
-Fix :meth:`mne.io.Raw.export` to EDF/BDF altering channel values for data originally read from EDF/BDF files, and add a ``digital_range`` parameter to allow preserving the original digital range, by `Daniel McCloy`_.

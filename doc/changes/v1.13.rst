@@ -1,3 +1,15 @@
+.. _changes_1_13_1:
+
+Version 1.13.1 (2026-09-11)
+===========================
+
+Bugfixes
+--------
+
+- Fix bug where :func:`mne.viz.plot_volume_source_estimates` with ``mode="glass_brain"`` always showed absolute values, by `Lau Møller Andersen`_. (`#13989 <https://github.com/mne-tools/mne-python/pull/13989>`__)
+- Fix reading EEGLAB ``.set`` files containing MATLAB objects (e.g., ``string`` or ``datetime``) with SciPy 1.18+ when pymatreader is not installed, by `Eric Larson`_. (`#14293 <https://github.com/mne-tools/mne-python/pull/14293>`__)
+- Fix :meth:`mne.io.Raw.export` to EDF/BDF altering channel values for data originally read from EDF/BDF files, and add a ``digital_range`` parameter to allow preserving the original digital range, by `Daniel McCloy`_. (`#14296 <https://github.com/mne-tools/mne-python/pull/14296>`__)
+
 .. _changes_1_13_0:
 
 Version 1.13.0 (2026-09-09)

@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 title: MNE-Python
 message: If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field.
-version: 1.13.0
-date-released: '2026-09-09'
-commit: b9c0bc2abff89c4cf8064534ba459d7440262564
+version: 1.13.1
+date-released: '2026-09-11'
+commit: 432531472a04c49fc0db2ade5bf17d79851126e3
 doi: 10.5281/zenodo.592483
 keywords:
 - brain
