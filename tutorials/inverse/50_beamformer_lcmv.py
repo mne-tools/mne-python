@@ -28,11 +28,10 @@ from mne.datasets import fetch_fsaverage, sample
 # points independently. A set of weights is constructed for each defined source location
 # which defines the contribution of each sensor to this source.
 #
-# Beamformers are often used for their focal reconstructions and their ability
-# to reconstruct deeper sources. They can also suppress external noise sources.
-# The beamforming method applied in this tutorial is the linearly constrained
-# minimum variance (LCMV) beamformer :footcite:`VanVeenEtAl1997` operates on
-# time series.
+# Beamformers are often used for their focal reconstructions and their ability to
+# reconstruct deeper sources. They can also suppress external noise sources. The
+# beamforming method applied in this tutorial is the linearly constrained minimum
+# variance (LCMV) beamformer :footcite:`VanVeenEtAl1997` operates on time series.
 #
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
 # coherent sources (DICS) beamforming method :footcite:`GrossEtAl2001`.
