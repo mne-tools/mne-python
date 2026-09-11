@@ -1028,6 +1028,7 @@ def test_orientation_max_power(
     loc = apply_lcmv(evoked, filters).data
     ori = filters["max_power_ori"]
     assert ori.shape == (246, 3)
+    assert loc.dtype == ori.dtype == np.float64
     loc = np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     max_idx = np.argmax(loc, axis=0)
