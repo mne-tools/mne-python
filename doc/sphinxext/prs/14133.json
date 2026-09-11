@@ -1,0 +1,180 @@
+{
+  "merge_commit_sha": "2368722cd5047a196c34a619b690566ede273664",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".github/workflows/check_changelog.yml": {
+      "a": 2,
+      "d": 0
+    },
+    ".mailmap": {
+      "a": 70,
+      "d": 49
+    },
+    ".pre-commit-config.yaml": {
+      "a": 9,
+      "d": 1
+    },
+    "doc/changes/dev/13680.other.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/13754.bugfix.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/13938.newfeature.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/names.inc": {
+      "a": 118,
+      "d": 24
+    },
+    "doc/changes/v0.10.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.13.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/v0.15.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.18.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/v0.20.rst": {
+      "a": 6,
+      "d": 6
+    },
+    "doc/changes/v0.21.rst": {
+      "a": 14,
+      "d": 26
+    },
+    "doc/changes/v0.22.rst": {
+      "a": 10,
+      "d": 20
+    },
+    "doc/changes/v0.23.rst": {
+      "a": 34,
+      "d": 54
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 23,
+      "d": 38
+    },
+    "doc/changes/v1.1.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.10.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/changes/v1.11.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.12.rst": {
+      "a": 8,
+      "d": 8
+    },
+    "doc/changes/v1.3.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v1.4.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v1.6.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.7.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.9.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/development/contributing.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 174,
+      "d": 87
+    },
+    "doc/sphinxext/prs/1217.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/1244.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/1255.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/1345.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/2030.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/4316.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/812.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/814.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/841.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/842.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/864.json": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/prs/876.json": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/check_changelog_names.py": {
+      "a": 100,
+      "d": 0
+    },
+    "tools/generate_codemeta.py": {
+      "a": 10,
+      "d": 1
+    },
+    "tools/hooks/sort_contributor_names.py": {
+      "a": 28,
+      "d": 0
+    }
+  }
+}

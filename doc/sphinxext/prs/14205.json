@@ -1,0 +1,60 @@
+{
+  "merge_commit_sha": "ecdc4983cc20ab2ff724af5dfd07a017e71ac544",
+  "authors": [
+    {
+      "n": "Virginie van Wassenhove",
+      "e": "7391778+virvw@users.noreply.github.com",
+      "l": "virvw"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14205.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/baseline.py": {
+      "a": 21,
+      "d": 16
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 10,
+      "d": 30
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 8,
+      "d": 17
+    },
+    "mne/utils/docs.py": {
+      "a": 31,
+      "d": 17
+    },
+    "mne/viz/topomap.py": {
+      "a": 5,
+      "d": 14
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 73,
+      "d": 0
+    }
+  }
+}

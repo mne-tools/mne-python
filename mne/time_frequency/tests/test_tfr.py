@@ -1334,6 +1334,14 @@ def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
     subset_ints = tfr[[0, 1, 2]]
     subset_slice = tfr[:3]
     assert subset_ints == subset_slice
+    # gh-14260: selections own C-ordered data, they don't alias or inherit the
+    # (non-contiguous) layout of the parent
+    assert not tfr._data.flags["C_CONTIGUOUS"]
+    for sub in (subset_ints, subset_slice):
+        assert all(sub._data.flags[f] for f in ("C_CONTIGUOUS", "OWNDATA", "WRITEABLE"))
+        assert sub._data.dtype == tfr._data.dtype
+        assert not np.shares_memory(sub._data, tfr._data)
+    assert tfr[[]].shape == (0,) + tfr.shape[1:]
     # test iteration
     for ix, epo in enumerate(tfr):
         assert_array_equal(tfr[ix].data, epo.data.obj[np.newaxis])

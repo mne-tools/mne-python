@@ -281,6 +281,12 @@ def test_info():
     info2 = Info(info_dict)
     assert info == info2
 
+    # a self-referencing entry must terminate and remap to the copy (gh-14260)
+    with info._unlock():
+        info["temp"] = info
+    info2 = info.copy()
+    assert info2["temp"] is info2
+
 
 def test_read_write_info(tmp_path):
     """Test IO of info."""
@@ -1090,10 +1096,26 @@ def test_anonymize_with_io(tmp_path, daysback):
     """Test that IO does not break anonymization and all fields."""
     raw = read_raw_fif(raw_fname).crop(0, 1)
     _complete_info(raw.info)
+    # maxwell_filter writes records whose stamps are the DATE_NONE placeholder;
+    # shifting those overflows the int32 stamp for large daysback (gh-14236)
+    raw.info["proc_history"].insert(
+        0,
+        dict(
+            block_id=_generate_meas_id(),
+            experimenter="m",
+            max_info=dict(
+                max_st=dict(), sss_ctc=dict(), sss_cal=dict(), sss_info=dict(in_order=8)
+            ),
+            date=DATE_NONE,
+        ),
+    )
     temp_path = tmp_path / "tmp_raw.fif"
     raw.save(temp_path)
     raw2 = read_raw_fif(temp_path).load_data()
     raw2.anonymize(daysback=daysback)
+    record = raw2.info["proc_history"][0]
+    assert (record["block_id"]["secs"], record["block_id"]["usecs"]) == DATE_NONE
+    assert record["date"] == DATE_NONE
     raw2.save(temp_path, overwrite=True)
     raw3 = read_raw_fif(temp_path)
     d = object_diff(raw2.info, raw3.info)

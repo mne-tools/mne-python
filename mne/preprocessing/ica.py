@@ -4,7 +4,6 @@
 # Copyright the MNE-Python contributors.
 
 import json
-import math
 import warnings
 from collections import namedtuple
 from collections.abc import Sequence
@@ -72,6 +71,7 @@ from ..utils import (
     _pl,
     _reject_data_segments,
     _require_version,
+    _soft_import,
     _validate_type,
     check_fname,
     check_random_state,
@@ -188,7 +188,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
         )
 
 
-_KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
+_KNOWN_ICA_METHODS = ("fastica", "infomax", "jamica", "picard")
 
 
 def _rng_to_seed(rng):
@@ -249,23 +249,27 @@ class ICA(ContainsMixin):
         type prior to the whitening by PCA.
     %(rng)s
     %(random_state_rng)s
-    method : 'fastica' | 'infomax' | 'picard'
+    method : 'fastica' | 'infomax' | 'jamica' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
         Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
         (this also works for ``method='picard'``). Defaults to ``'fastica'``.
-        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
+        ``method='jamica'`` fits a single ICA model. For multi-model adaptive
+        mixture ICA and other advanced functionality, use the
+        `jamica package <https://snesmaeili.github.io/jamica/>`__ directly. For
+        reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018,PalmerEtAl2011`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``. Allowed entries are determined by the various algorithm
         implementations: see :class:`~sklearn.decomposition.FastICA`,
-        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`.
+        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`, and the
+        ``jamica.amica`` function from the ``jamica`` package.
     max_iter : int | 'auto'
         Maximum number of iterations during fit. If ``'auto'``, it
         will set maximum iterations to ``1000`` for ``'fastica'``
-        and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
-        iterations it took :meth:`ICA.fit` to complete will be stored in the
-        ``n_iter_`` attribute.
+        and to ``500`` for ``'infomax'``, ``'jamica'``, or ``'picard'``. The
+        actual number of iterations it took :meth:`ICA.fit` to complete will be
+        stored in the ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -501,7 +505,7 @@ class ICA(ContainsMixin):
             _check_option("max_iter", max_iter, ("auto",), "when str")
             if method == "fastica":
                 max_iter = 1000
-            elif method in ["infomax", "picard"]:
+            elif method in ["infomax", "jamica", "picard"]:
                 max_iter = 500
         fit_params.setdefault("max_iter", max_iter)
         self.max_iter = max_iter
@@ -517,7 +521,9 @@ class ICA(ContainsMixin):
         @dataclass
         class _InfosForRepr:
             fit_on: Literal["raw data", "epochs"] | None
-            fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
+            fit_method: Literal[
+                "fastica", "infomax", "extended-infomax", "jamica", "picard"
+            ]
             fit_params: dict[str, str | float]
             fit_n_iter: int | None
             fit_n_samples: int | None
@@ -678,7 +684,6 @@ class ICA(ContainsMixin):
         for method, mod in req_map.items():
             if self.method == method:
                 _require_version(mod, f"use method={repr(method)}")
-
         _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
 
         if np.isclose(inst.info["highpass"], 0.0):
@@ -1007,6 +1012,21 @@ class ICA(ContainsMixin):
             )
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            del _, n_iter
+        elif self.method == "jamica":
+            jamica = _soft_import(
+                "jamica", "fitting ICA with method='jamica'", min_version="0.3.0"
+            )
+
+            _, W, _, n_iter = jamica.amica(
+                data[:, sel].T,
+                whiten=False,
+                return_n_iter=True,
+                random_state=_rng_to_seed(rng),
+                **self.fit_params,
+            )
+            self.unmixing_matrix_ = W
+            self.n_iter_ = n_iter
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         norms = self.pca_explained_variance_
@@ -1596,30 +1616,6 @@ class ICA(ContainsMixin):
 
         return labels, scores
 
-    def _get_ctps_threshold(self, pk_threshold=20):
-        """Automatically decide the threshold of Kuiper index for CTPS method.
-
-        This function finds the threshold of Kuiper index based on the
-        threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
-        is returned. It is assumed that the data are appropriately filtered and
-        bad data are rejected at least based on peak-to-peak amplitude
-        when/before running the ICA decomposition on data.
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        N = self.info["sfreq"]
-        Vs = np.arange(1, 100) / 100
-        C = math.sqrt(N) + 0.155 + 0.24 / math.sqrt(N)
-        # in formula (13), when k gets large, only k=1 matters for the
-        # summation. k*V*C thus becomes V*C
-        Pks = 2 * (4 * (Vs * C) ** 2 - 1) * (np.exp(-2 * (Vs * C) ** 2))
-        # NOTE: the threshold of pk is transformed to Pk for comparison
-        # pk = -log10(Pk)
-        return Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
-
     @verbose
     def find_bads_ecg(
         self,
@@ -1693,9 +1689,9 @@ class ICA(ContainsMixin):
         The ``threshold``, ``method``, and ``measure`` parameters interact in
         the following ways:
 
-        - If ``method='ctps'``, ``threshold`` refers to the significance value
-          of a Kuiper statistic, and ``threshold='auto'`` will compute the
-          threshold automatically based on the sampling frequency.
+        - If ``method='ctps'``, ``threshold`` refers to the maximum normalized
+          Kuiper index across time, and ``threshold='auto'`` sets the threshold
+          to 0.3, independent of the sampling frequency and number of trials.
         - If ``method='correlation'`` and ``measure='correlation'``,
           ``threshold`` refers to the Pearson correlation value, and
           ``threshold='auto'`` sets the threshold to 0.9.
@@ -1726,9 +1722,6 @@ class ICA(ContainsMixin):
             ecg = inst.ch_names[idx_ecg]
 
         if method == "ctps":
-            if threshold == "auto":
-                threshold = self._get_ctps_threshold()
-                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(
                     create_ecg_epochs(
@@ -1750,6 +1743,9 @@ class ICA(ContainsMixin):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
                 raise ValueError("With `ctps` only Raw and Epochs input is supported")
+            if threshold == "auto":
+                threshold = 0.3
+                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]

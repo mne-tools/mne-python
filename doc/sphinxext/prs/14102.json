@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "b3d23ee4f577c4a39a84805879196975c4299619",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14102.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d_overlay.py": {
+      "a": 22,
+      "d": 3
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 116,
+      "d": 2
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 34,
+      "d": 2
+    }
+  }
+}

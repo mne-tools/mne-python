@@ -98,6 +98,12 @@ class Raw(BaseRaw):
         on_split_missing: str = "raise",
         verbose: bool | str | int | None = None,
     ):
+        if isinstance(preload, str) and preload == "auto":
+            if _file_like(fname):
+                raise ValueError(
+                    'preload="auto" requires stable source files and is not '
+                    "supported for file-like FIF inputs"
+                )
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname
@@ -198,7 +204,9 @@ class Raw(BaseRaw):
                 check_fname(fname, "raw", endings)
             # filename
             fname = _check_fname(fname, "read", True, "fname")
-            whole_file = preload if fname.suffix == ".gz" else False
+            whole_file = (
+                preload if preload != "auto" and fname.suffix == ".gz" else False
+            )
         else:
             # file-like
             if not preload:

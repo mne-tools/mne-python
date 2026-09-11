@@ -4,7 +4,9 @@
 
 import os
 import shutil
+import sys
 from copy import deepcopy
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -15,6 +17,7 @@ from numpy.testing import (
     assert_equal,
 )
 from scipy import io
+from scipy.io.matlab import MatlabOpaque
 
 import mne
 from mne import read_epochs_eeglab, write_events
@@ -22,7 +25,7 @@ from mne.annotations import events_from_annotations, read_annotations
 from mne.channels import read_custom_montage
 from mne.datasets import testing
 from mne.io import read_raw_eeglab
-from mne.io.eeglab._eeglab import _readmat
+from mne.io.eeglab._eeglab import _check_for_scipy_mat_struct, _readmat
 from mne.io.eeglab.eeglab import _dol_to_lod, _get_montage_information
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import Bunch, _check_pymatreader_installed, _record_warnings
@@ -44,6 +47,16 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = base_dir / "test_chans.locs"
 
 
+@pytest.fixture(params=["pymatreader", "scipy"])
+def mat_reader(request, monkeypatch):
+    """Read .mat files with pymatreader or with the scipy fallback."""
+    if request.param == "scipy":
+        monkeypatch.setitem(sys.modules, "pymatreader", None)
+    elif not _check_pymatreader_installed(strict=False):
+        pytest.skip("pymatreader not installed")
+    return request.param
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "fname",
@@ -62,8 +75,12 @@ montage_path = base_dir / "test_chans.locs"
     ],
     ids=os.path.basename,
 )
-def test_io_set_raw(fname):
+def test_io_set_raw(fname, mat_reader):
     """Test importing EEGLAB .set files."""
+    if "_h5" in fname.name and mat_reader == "scipy":
+        with pytest.raises(NotImplementedError, match="HDF reader"):
+            read_raw_eeglab(fname)
+        return
     montage = read_custom_montage(montage_path)
     montage.ch_names = [f"EEG {ii:03d}" for ii in range(len(montage.ch_names))]
 
@@ -366,8 +383,12 @@ def test_io_set_raw_more(tmp_path):
         ),
     ],
 )
-def test_io_set_epochs(fnames):
+def test_io_set_epochs(fnames, mat_reader):
     """Test importing EEGLAB .set epochs files."""
+    if "_h5" in fnames[0].name and mat_reader == "scipy":
+        with pytest.raises(NotImplementedError, match="HDF reader"):
+            read_epochs_eeglab(fnames[0])
+        return
     epochs_fname, epochs_fname_onefile = fnames
     with _record_warnings(), pytest.warns(RuntimeWarning, match="multiple events"):
         epochs = read_epochs_eeglab(epochs_fname)
@@ -497,7 +518,7 @@ def test_eeglab_annotations(fname):
 
 
 @testing.requires_testing_data
-def test_eeglab_read_annotations():
+def test_eeglab_read_annotations(monkeypatch):
     """Test annotations onsets are timestamps (+ validate some)."""
     annotations = read_annotations(raw_fname_mat)
     validation_samples = [0, 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
@@ -524,9 +545,12 @@ def test_eeglab_read_annotations():
     )
 
     # test if event durations are imported correctly
+    check_load_mat = Mock(wraps=mne.io.eeglab.eeglab._check_load_mat)
+    monkeypatch.setattr(mne.io.eeglab.eeglab, "_check_load_mat", check_load_mat)
     raw = read_raw_eeglab(raw_fname_event_duration, preload=True, montage_units="dm")
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
+    assert check_load_mat.call_count == 1
 
 
 @testing.requires_testing_data
@@ -703,6 +727,22 @@ def test_io_set_raw_2021():
         reader=read_raw_eeglab,
         input_fname=raw_fname_2021,
     )
+
+
+@pytest.mark.parametrize("cls", ("string", "datetime"))
+@pytest.mark.parametrize("scipy_118", (False, True))
+def test_scipy_mcos(cls, scipy_118):
+    """Test MATLAB MCOS objects (e.g., string, datetime) with the scipy reader."""
+    # We don't have any test files with these objects, but users do
+    # (e.g. gh-14292), so let's construct a synthetic case to catch it
+    meta = np.array((1, 2), dtype=[("a", "O"), ("b", "O")])
+    if scipy_118:  # scipy/scipy#23481
+        row = dict(_TypeSystem="MCOS", _Class=cls, _ObjectMetadata=meta)
+    else:
+        row = dict(s0="x", s1=b"MCOS", s2=cls.encode(), arr=meta)
+    data = MatlabOpaque(np.array([tuple(row.values())], [(k, "O") for k in row]))
+    out = _check_for_scipy_mat_struct(dict(x=data))["x"]
+    assert (out is None) == (cls == "string")
 
 
 @testing.requires_testing_data

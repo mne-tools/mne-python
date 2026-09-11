@@ -190,6 +190,21 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
             opacity=np.array([0.1, 0.2, 0.3]),
             name="bad-opacity",
         )
+
+    # alpha compositing: transparent top keeps the bottom color, opaque top wins,
+    # and a half-transparent white over opaque black is grey
+    bottom = np.array([[0.0, 0, 0, 1]] * 3)
+    top = np.array([[1.0, 1, 1, 0], [1, 1, 1, 1], [1, 1, 1, 0.5]])
+    assert_allclose(
+        mesh._compute_over(bottom, top),
+        [[0, 0, 0, 1], [1, 1, 1, 1], [0.5, 0.5, 0.5, 1]],
+    )
+    # a fully transparent result is black, and the inputs are left alone
+    bottom, top = np.zeros((1, 4)), np.zeros((1, 4))
+    assert_allclose(mesh._compute_over(bottom, top), [[0, 0, 0, 0]])
+    assert_allclose(bottom, 0)
+    assert_allclose(top, 0)
+
     mesh._clean()
 
 
@@ -208,9 +223,9 @@ def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_routines(renderer, brain_gc):
+def test_brain_routines(renderer_pyvistaqt, brain_gc):
     """Test backend agnostic Brain routines."""
-    brain_klass = renderer.get_brain_class()
+    brain_klass = renderer_pyvistaqt.get_brain_class()
     from mne.viz._brain import Brain
 
     assert brain_klass == Brain
@@ -916,7 +931,9 @@ def test_image_screenshot(
     """Test screenshot and image saving."""
     size = (300, 300)
     brain = _create_testing_brain(hemi="rh", show_traces=False, size=size)
-    azimuth, elevation = 180.0, 90.0
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    azimuth, elevation = 360.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
     brain.save_image(fname)
@@ -938,6 +955,17 @@ def test_image_screenshot(
     div = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.0, atol=15) else 1
     want_size[:2] /= div
     assert_allclose(img.shape, want_size, atol=15)
+
+    # Test whether the renderer has properly updated before the screenshot was taken.
+    brain.set_time(1)
+    img1 = brain.screenshot(mode="rgba")
+    brain.set_time(2)
+    img2 = brain.screenshot(mode="rgba")
+    brain.set_time(1)
+    img3 = brain.screenshot(mode="rgba")
+    assert not np.array_equal(img1, img2)
+    assert_array_equal(img1, img3)
+
     brain.close()
 
 
@@ -968,7 +996,7 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize("interactive_state", (False, True))
-def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
+def test_brain_save_movie(tmp_path, renderer_pyvistaqt, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
     pytest.importorskip("imageio")
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
@@ -1520,7 +1548,11 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     picked = set(brain.get_picked_points()["lh"])
     n_verts = len(brain.geo["lh"].coords)
     vertex_id = next(v for v in range(n_verts) if v not in picked)
+    # a removed trace's data limits linger until relim(), so picking must
+    # rescale the y-axis to only the traces that are still there
+    canvas.axes.plot([0], [1e6])[0].remove()
     ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=vertex_id))
+    assert canvas.axes.get_ylim()[1] < 1e6
     assert rows.count() == len(row_lines) + 1
     row = rows.itemAt(rows.count() - 1).widget()
     line = row._line
@@ -1646,6 +1678,36 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     peak_line3 = brain._picked_points[("lh", peak1)][0]["line"]
     assert peak_line3 is peak_line1  # refreshed in place, not re-added
     assert_allclose(peak_line3.get_ydata(), 2.0 * y1)
+
+
+@testing.requires_testing_data
+def test_brain_time_line_blitting(renderer_interactive_pyvistaqt, brain_gc):
+    """Test that moving the time line blits instead of redrawing the traces."""
+    brain = _create_testing_brain(hemi="lh", show_traces=True, initial_time=0)
+    canvas = brain.mpl_canvas
+    assert canvas.canvas.supports_blit
+    assert brain.time_line in canvas._blit._artists
+
+    n_draws = list()
+    canvas.canvas.mpl_connect("draw_event", lambda event: n_draws.append(event))
+    brain.set_time(brain._times[-1])  # one redraw caches the background ...
+    assert brain.time_line.get_xdata()[0] == brain._times[-1]
+    assert canvas._blit._background is not None
+    assert len(n_draws) == 1
+
+    brain.set_time(brain._times[len(brain._times) // 2])  # ... then it only blits
+    assert len(n_draws) == 1
+
+    # a full redraw invalidates the background, and anything can be blitted
+    text = canvas.axes.text(0, 0, "hello")
+    canvas.add_blit_artist(text)
+    canvas.update_blit_artists()  # the background was dropped, so this redraws
+    assert len(n_draws) == 2
+
+    canvas.remove_blit_artist(text)
+    assert text not in canvas._blit._artists
+    assert len(n_draws) == 3  # restored to the background by a full redraw
+    brain.close()
 
 
 def _send_mouse_move(widget, point, buttons=None):
@@ -1825,11 +1887,28 @@ def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtb
     for dx in range(-40, 41, 10):
         _send_mouse_move(widget, point + QPoint(dx, 0))
     assert len(brain._picked_patches["lh"]) == 0
+    brain.mpl_canvas.axes.plot([0], [1e6])[0].remove()  # stale limits, see above
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1
+    assert brain.mpl_canvas.axes.get_ylim()[1] < 1e6
+
+    # the picked label's trace-list row gets a friendly display name/subtitle
+    # instead of the raw internal label name (still available as the tooltip)
+    label_id = brain._picked_patches["lh"][0]
+    label = brain._annotation_labels["lh"][label_id]
+    line = label._line
+    assert brain._trace_display_label(line) == f"{label.name[:-3]} (LH)"
+    # only the (decimated) source vertices within the label count
+    n_vertices = np.intersect1d(label.vertices, brain._data["stc"].vertices[0]).size
+    assert 0 < n_vertices < len(label.vertices)
+    assert brain._trace_display_subtitle(line) == (
+        f"{n_vertices} vertices, mode: {brain.label_extract_mode}"
+    )
+
     # clicking the same label again removes it
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 0
+    assert line not in brain._label_trace_meta
     # the clear-glyphs shortcut clears a picked label
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1

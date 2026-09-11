@@ -2508,7 +2508,13 @@ docdict["label_tc_el_returns"] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
 """
-
+docdict["labels_aseg"] = """
+labels : list of str | None
+    Labeled regions of interest to plot. See :func:`mne.get_montage_volume_labels`
+    for one way to determine regions of interest. Regions can also be chosen from
+    the :term:`FreeSurfer LUT`. If ``None``, all labels that are defined in the
+    segmentation file are used.
+"""
 docdict["labels_eltc"] = """
 labels : Label | BiHemiLabel | list | tuple | str
     If using a surface or mixed source space, this should be the
@@ -3736,7 +3742,13 @@ preload : bool | str
     freshly created memory-mapped file used to store the data on the hard
     drive (slower, requires less memory). An existing file is overwritten.
     The caller owns the file and is responsible for removing it after the
-    Raw object is no longer in use."""
+    Raw object is no longer in use. For supported Raw readers, the exact string
+    ``"auto"`` instead reuses decoded data below the directory configured by
+    :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+    copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+    .. versionchanged:: 1.13
+       Support for the ``"auto"`` decoded-data cache was added."""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None
@@ -5256,14 +5268,6 @@ vmin, vmax : float | {allowed}None
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""
 )
-# ↓↓↓ this one still used in Evoked.animate_topomap(), should migrate to `vlim`
-docdict["vmin_vmax_topomap"] = _vmin_vmax_template.format(
-    allowed="callable | ",
-    bounds=_bounds_symmetric,
-    extra=""" If callable, should accept
-    a :class:`NumPy array <numpy.ndarray>` of data and return a :class:`float`.""",
-)
-
 
 # %%
 # W

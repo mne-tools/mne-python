@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "718193d1f73d2d53229260ef669a4851882a6993",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    "doc/_static/style.css": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

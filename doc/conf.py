@@ -442,6 +442,7 @@ numpydoc_xref_ignore = {
     "_Renderer",
     "n_triangles",
     "CoregistrationUI",
+    "DipoleFitUI",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
@@ -685,8 +686,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
-    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    r"https://openalex.org/works\?filter=cites:",  # doc/documentation/cited.rst
     "https://www.research.chop.edu/imaging",
     "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",
@@ -852,7 +852,7 @@ html_theme_options = {
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
-        "json_url": "https://mne.tools/dev/_static/versions.json",
+        "json_url": "https://mne.tools/versions.json",
         "version_match": switcher_version_match,
     },
     "show_version_warning_banner": True,
@@ -1518,6 +1518,12 @@ def rstjinja(app, docname, source):
         source[0] = rendered
 
 
+def set_toc_level(app, pagename, templatename, context, doctree):
+    """Show the auto-generated related-software subsections in the right sidebar."""
+    if pagename == "install/mne_tools_suite":
+        context["theme_show_toc_level"] = 2
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
@@ -1534,3 +1540,4 @@ def setup(app):
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
     app.connect("source-read", rstjinja)
+    app.connect("html-page-context", set_toc_level)

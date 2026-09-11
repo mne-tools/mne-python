@@ -1,1 +1,0 @@
-Preserve caller-owned memory-mapped preload files after Raw objects are destroyed, by `Bruno Aristimunha`_.

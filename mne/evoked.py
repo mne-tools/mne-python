@@ -242,6 +242,7 @@ class Evoked(
         units: str | dict | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
+        exclude: list[str] | Literal["bads"] | tuple = (),
     ) -> np.ndarray:
         """Get evoked data as 2D array.
 
@@ -253,6 +254,12 @@ class Evoked(
             Start time of data to get in seconds.
         tmax : float | None
             End time of data to get in seconds.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels.
+
+            .. versionadded:: 1.13
 
         Returns
         -------
@@ -266,7 +273,7 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
@@ -865,8 +872,6 @@ class Evoked(
         butterfly: bool = False,
         blit: bool = True,
         show: bool = True,
-        vmin: float | None = None,
-        vmax: float | None = None,
         verbose: bool | str | int | None = None,
     ) -> tuple["Figure", "FuncAnimation"]:
         """Make animation of evoked data as topomap timeseries.
@@ -928,10 +933,6 @@ class Evoked(
             Defaults to True.
         show : bool
             Whether to show the animation. Defaults to True.
-        vmin : float | None
-            Deprecated, use ``vlim=(vmin, vmax)`` instead.
-        vmax : float | None
-            Deprecated, use ``vlim=(vmin, vmax)`` instead.
         %(verbose)s
 
         Returns
@@ -983,8 +984,6 @@ class Evoked(
             frame_rate=frame_rate,
             butterfly=butterfly,
             blit=blit,
-            vmin=vmin,
-            vmax=vmax,
             show=show,
         )
 

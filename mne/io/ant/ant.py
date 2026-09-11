@@ -11,6 +11,7 @@ from numpy.typing import NDArray
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
+from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,
@@ -185,11 +186,7 @@ class RawANT(BaseRaw):
             one = read_data(cnt, i_start, i_stop)
             _scale_data(one, ch_units)
             data_view = data[:, i_start - start : i_stop - start]
-            if isinstance(idx, slice):
-                data_view[:] = one[idx]
-            else:
-                # faster than doing one = one[idx]
-                np.take(one, idx, axis=0, out=data_view)
+            _mult_cal_one(data_view, one, idx, cals, mult)
 
 
 def _handle_bipolar_channels(

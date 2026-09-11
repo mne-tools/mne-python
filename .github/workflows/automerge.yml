@@ -9,14 +9,14 @@ jobs:
   autobot:
     runs-on: ubuntu-latest
     # Only auto-merge bot PRs that should not need human judgment: dependabot
-    # updates and the weekly `prek auto-update`. Others are left alone, e.g. the
+    # updates and the weekly `prek update`. Others are left alone, e.g. the
     # spec_zero PR, which usually needs `mne/fixes.py` shim adjustments.
     if: >-
       github.repository == 'mne-tools/mne-python' && (
         github.event.pull_request.user.login == 'dependabot[bot]' ||
         (
           github.event.pull_request.user.login == 'mne-bot' &&
-          github.event.pull_request.head.ref == 'prek_auto_update'
+          github.event.pull_request.head.ref == 'prek_update'
         )
       )
     steps:

@@ -1,0 +1,104 @@
+{
+  "merge_commit_sha": "9d7e571d6ee9419d6c28c039d1ee938c3b4d5352",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/meas_info.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/annotations.py": {
+      "a": 62,
+      "d": 4
+    },
+    "mne/bem.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/channels/montage.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 12,
+      "d": 1
+    },
+    "mne/event.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/forward/forward.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/io/kit/kit.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/label.py": {
+      "a": 50,
+      "d": 4
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/preprocessing/nirs/_scalp_coupling_index.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/simulation/source.py": {
+      "a": 9,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 61,
+      "d": 7
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 27,
+      "d": 4
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 84,
+      "d": 138
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 8
+    },
+    "mne/utils/mixin.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/utils/progressbar.py": {
+      "a": 7,
+      "d": 1
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

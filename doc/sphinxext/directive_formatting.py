@@ -89,8 +89,11 @@ def check_directive_formatting(*args):
     else:
         raise RuntimeError("Unexpected number of arguments from Sphinx event")
 
+    # Note: we start the search with ^\s*, based on the assumption that directives
+    # occur at the start of a line, possibly after whitespace
+
     # Check if text resembling directives is present
-    if re.search(r"\.\.\s*[a-zA-Z\-]+\s*:", source_concat) is None:
+    if re.search(r"^\s*\.\.\s*[a-zA-Z\-]+\s*:", source_concat) is None:
         return
 
     # Separate content into lines (docstrings already are)
@@ -100,7 +103,7 @@ def check_directive_formatting(*args):
     # Check for bad formatting
     for idx, line in enumerate(source):
         # Check for missing space after '..'
-        missing = re.search(r"\.\.[a-zA-Z\-]+\s*:", line)
+        missing = re.search(r"^\s*\.\.[a-zA-Z\-]+\s*:", line)
         if missing is not None:
             sphinx_logger.warning(
                 f"{source_type} '{name}' is missing a space after '..' in the "
@@ -109,7 +112,7 @@ def check_directive_formatting(*args):
         # Extra spaces after '..' don't affect formatting
 
         # Check for bad number of final colons (should be exactly 2)
-        bad_colons = re.search(r"\.\.\s*([a-zA-Z\-]+)\s*(?<!:)(:{3,}|:)(?!:)", line)
+        bad_colons = re.search(r"^\s*\.\.\s*([a-zA-Z\-]+)\s*(?<!:)(:{3,}|:)(?!:)", line)
         if bad_colons is not None:
             # Strip out directive name and check if it's a recognised directive
             # (links for files/sections take the same form, but are valid with a single
@@ -127,7 +130,7 @@ def check_directive_formatting(*args):
         # another directive/another directive's content)
         if idx == 0:
             continue
-        dir_pattern = r"^\s*\.\.\s*[a-zA-Z\-]+\s*::"  # line might start with whitespace
+        dir_pattern = r"^\s*\.\.\s*[a-zA-Z\-]+\s*::"
         head_pattern = r"^[-|=|\^]+$"
         directive = re.search(dir_pattern, line)
         if directive is not None:

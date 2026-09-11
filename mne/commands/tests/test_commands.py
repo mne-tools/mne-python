@@ -31,6 +31,7 @@ from mne.commands import (
     mne_compute_proj_ecg,
     mne_compute_proj_eog,
     mne_coreg,
+    mne_dipolefit,
     mne_flash_bem,
     mne_kit2fiff,
     mne_make_scalp_surfaces,
@@ -60,9 +61,9 @@ base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
 raw_fname = op.join(base_dir, "test_raw.fif")
 
 testing_path = testing.data_path(download=False)
-subjects_dir = op.join(testing_path, "subjects")
-bem_model_fname = op.join(
-    testing_path, "subjects", "sample", "bem", "sample-320-320-320-bem.fif"
+subjects_dir = testing_path / "subjects"
+bem_model_fname = (
+    testing_path / "subjects" / "sample" / "bem" / "sample-320-320-320-bem.fif"
 )
 
 
@@ -619,3 +620,53 @@ def test_anonymize(tmp_path):
     info = read_info(out_fname)
     assert op.exists(out_fname)
     assert info["meas_date"] == _stamp_to_dt((946684800, 0))
+
+
+def test_dipolefit(monkeypatch):
+    """Test mne dipolefit."""
+    check_usage(mne_dipolefit)
+    # Don't open the GUI, just check that the arguments are passed along correctly.
+    kwargs = dict()
+    monkeypatch.setattr(mne.gui, "dipolefit", lambda **kw: kwargs.update(kw))
+    ave_fname = op.join(base_dir, "test-ave.fif")
+    args = (
+        ave_fname,
+        "--condition=Right Auditory",
+        "--baseline=-0.2,0",
+        "--channel-type=meg",
+        "--initial-time=0.1",
+        "--hide-density",
+        "--subject=fake",
+        "--subjects-dir=~/fake-subjects",
+        "--bem=~/fake-bem-sol.fif",
+        "--trans=~/fake-trans.fif",
+        "--stc=~/fake-stc",
+    )
+    with ArgvSetter(args):
+        mne_dipolefit.run()
+    assert kwargs["evoked"].comment == "Right Auditory"
+    assert kwargs["baseline"] == [-0.2, 0]
+    assert kwargs["ch_type"] == "meg"
+    assert kwargs["initial_time"] == 0.1
+    assert kwargs["show_density"] is False
+    assert kwargs["subject"] == "fake"
+    for key, val in dict(
+        subjects_dir="~/fake-subjects",
+        bem="~/fake-bem-sol.fif",
+        trans="~/fake-trans.fif",
+        stc="~/fake-stc",
+    ).items():
+        assert kwargs[key] == op.expanduser(val)  # "~" gets expanded
+
+    # The condition can also be given as an index (the default being the first one).
+    with ArgvSetter((ave_fname,)):
+        mne_dipolefit.run()
+    assert kwargs["evoked"].comment == "Left Auditory"
+    assert kwargs["baseline"] is None
+    assert kwargs["show_density"] is True
+    assert kwargs["bem"] is kwargs["trans"] is kwargs["stc"] is None
+
+    # The baseline needs to be two comma-separated numbers.
+    with ArgvSetter((ave_fname, "--baseline=0")):
+        with pytest.raises(ValueError, match="two numbers"):
+            mne_dipolefit.run()

@@ -22,7 +22,7 @@ from ...utils import (
 )
 from .._3d import _get_3d_option
 from ..utils import safe_event
-from ._utils import VALID_3D_BACKENDS
+from ._utils import _AUTO_3D_BACKENDS, VALID_3D_BACKENDS
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -31,6 +31,7 @@ MNE_3D_BACKEND_TESTING = False
 _backend_name_map = dict(
     pyvistaqt="._qt",
     notebook="._notebook",
+    jupyterlite_notebook="._lite",
 )
 backend = None
 
@@ -71,7 +72,8 @@ def set_3d_backend(backend_name, verbose=None):
     ----------
     backend_name : str
         The 3d backend to select. See Notes for the capabilities of each
-        backend (``'pyvistaqt'`` and ``'notebook'``).
+        backend (``'pyvistaqt'``, ``'notebook'`` and
+        ``'jupyterlite_notebook'``).
 
         .. versionchanged:: 0.24
            The ``'pyvista'`` backend was renamed ``'pyvistaqt'``.
@@ -86,6 +88,15 @@ def set_3d_backend(backend_name, verbose=None):
     -----
     To use PyVista, set ``backend_name`` to ``pyvistaqt`` but the value
     ``pyvista`` is still supported for backward compatibility.
+
+    The ``jupyterlite_notebook`` backend is not in the table below because it is
+    not a desktop choice: it draws with vtk.js rather than VTK, which has no
+    WebAssembly build, and it is what the documentation's browser notebooks run
+    on. It covers the static 3D figures, so :func:`plot_alignment` (without
+    channel-name labels) and :func:`plot_sparse_source_estimates` work, while
+    :class:`mne.viz.Brain`, :func:`plot_evoked_field` and
+    :func:`snapshot_brain_montage` do not. On a desktop the other two are better
+    in every way, so it is never selected automatically.
 
     This table shows the capabilities of each backend ("✓" for full support,
     and "-" for partial support):
@@ -169,7 +180,7 @@ def _get_3d_backend():
         MNE_3D_BACKEND = get_config(key="MNE_3D_BACKEND", default=None)
         if MNE_3D_BACKEND is None:  # try them in order
             errors = dict()
-            for name in VALID_3D_BACKENDS:
+            for name in _AUTO_3D_BACKENDS:
                 try:
                     _reload_backend(name)
                 except ImportError as exc:
@@ -210,7 +221,7 @@ def use_3d_backend(backend_name):  # numpydoc ignore=YD01
 
     Parameters
     ----------
-    backend_name : {'pyvistaqt', 'notebook'}
+    backend_name : {'pyvistaqt', 'notebook', 'jupyterlite_notebook'}
         The 3d backend to use in the context.
     """
     old_backend = set_3d_backend(backend_name)

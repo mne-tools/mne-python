@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 
 from mne import create_info
 from mne.io import RawArray
@@ -22,6 +23,7 @@ from mne.viz.backends._utils import (
     _pixmap_to_ndarray,
     _qt_block,
     _qt_is_dark,
+    _vtk_faces,
 )
 from mne.viz.utils import _is_dark
 
@@ -66,6 +68,20 @@ def _assert_correct_darkness(widget, want_dark):
     colors = _pixmap_to_ndarray(widget.grab())[:, :, :3]
     dark = colors.mean() < 0.5
     assert dark == want_dark, f"{widget} pixmap dark={dark} want_dark={want_dark}"
+
+
+def test_vtk_faces():
+    """Test building the VTK cell array both 3D renderers draw from."""
+    tris = np.array([[0, 1, 2], [0, 2, 3]])
+    faces = _vtk_faces(tris)
+    assert faces.shape == (2, 4)
+    # each row is the vertex count followed by the triangle
+    assert_array_equal(faces[:, 0], 3)
+    assert_array_equal(faces[:, 1:], tris)
+    # an empty surface must stay empty rather than raise
+    assert _vtk_faces(np.zeros((0, 3), int)).shape == (0, 4)
+    # and a list is as good as an array
+    assert_array_equal(_vtk_faces([[0, 1, 2]]), [[3, 0, 1, 2]])
 
 
 @pytest.mark.pgtest
