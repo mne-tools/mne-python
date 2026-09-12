@@ -178,6 +178,7 @@
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Ilian Azz: https://github.com/ilianAZZ
 .. _Ilias Machairas: https://github.com/JungleHippo
+.. _Isaac Kinley: https://kinleyid.github.io/
 .. _Ivan Skelin: https://github.com/ivan-skelin
 .. _Ivan Zubarev: https://github.com/zubara
 .. _Ivana Kojcic: https://github.com/ikojcic
