@@ -2051,7 +2051,7 @@ def cluster_test(
     grouped = df.groupby(factor_names, observed=True).agg({dv_name: func})[dv_name]
     levels = grouped.index.to_list()  # parallel to X by construction
     X = grouped.to_list()
-    # contrast = None  # set below if a subtraction is performed
+    contrast = None  # set below if a subtraction is performed
 
     _validate_type(reference, (str, None), "reference")
     if reference is not None:
@@ -2104,7 +2104,7 @@ def cluster_test(
     elif within_id in df:
         kind = "within"
         assert len(X) == 2
-        # contrast = (levels[0], levels[1])
+        contrast = (levels[0], levels[1])
         logger.info(
             f"Subtracting ({levels[0]} - {levels[1]}) of column {iv_name!r} before "
             "computing cluster statistics."
@@ -2185,6 +2185,7 @@ def cluster_test(
         stat_fun=stat_fun,
         n_permutations=n_permutations,
         t_power=t_power,
+        contrast=contrast,
     )
 
 
@@ -2224,6 +2225,10 @@ class ClusterResult:
         Power to which the observed statistic was raised (sign retained) before
         summing within a cluster to obtain its mass (see ``cluster_masses``).
         Should match whatever ``t_power`` was passed to :func:`cluster_test`.
+    contrast : tuple of str | None
+        The two levels that were contrasted, as ``(positive, reference)``; the data
+        were computed as the first minus the second. ``None`` when no subtraction
+        was performed.
 
     Attributes
     ----------
@@ -2233,6 +2238,8 @@ class ClusterResult:
         statistic that is compared against the permutation distribution (``H0``)
         to obtain ``cluster_p_values``, so it is a natural way to rank clusters by
         how extreme they are, independent of the resulting p-value.
+    reference : str | None
+        The level that was subtracted, i.e. ``contrast[1]``, or ``None``.
 
     Notes
     -----
@@ -2249,6 +2256,7 @@ class ClusterResult:
         stat_fun: callable,
         n_permutations: int,
         t_power: float = 1.0,
+        contrast: tuple | None = None,
     ):
         self.stat_obs = stat_obs
         self.clusters = clusters
@@ -2260,12 +2268,16 @@ class ClusterResult:
             [_cluster_mass(stat_obs, c, t_power) for c in clusters]
         )
         self.n_permutations = n_permutations
+        self.contrast = contrast
+        self.reference = None if contrast is None else contrast[1]
 
         # unpaired t-test equivalent to f_oneway w/ 2 groups
         if stat_fun is f_oneway:
             self.stat_name = "F-statistic"
         elif stat_fun is ttest_1samp_no_p:
             self.stat_name = "paired T-statistic"
+            if contrast is not None:
+                self.stat_name += f" ({contrast[0]} - {contrast[1]})"
         elif isinstance(stat_fun, partial) and stat_fun.func is _rm_anova_stat_fun:
             self.stat_name = "F-statistic (repeated-measures ANOVA)"
         else:
