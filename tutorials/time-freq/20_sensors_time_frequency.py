@@ -273,18 +273,16 @@ itc.plot_topo(title="Inter-Trial coherence", vmin=0.0, vmax=1.0, cmap="Reds")
 #   Expresses power relative to baseline. It is intuitive because values
 #   indicate relative power (e.g., 1.2 means 20% above baseline), but the resulting
 #   distribution is typically positively skewed, which can be problematic for
-#   parametric statistical analyses (Grandchamp & Delorme 2011).
+#   parametric statistical analyses (Grandchamp & Delorme 2011; :footcite:`GrandchampDelorme2011`).
 #
 # ``“logratio”``
 #   Expresses relative power on a log scale (dB). The log transformation
-#   reduces skewness and make the increase or decrease more symmetric, while providing
-#   a conveneient scale for comparing relative changes. However,
-#   Kinley et al. (2006; :footcite:`KinleyEtAl2026`)
-#   show that this conventional approach introduces a negative bias, which can make
-#   unchanged power appear to decrease and understimate genuine increases. Note that
-#   single-trial correction (on ``EpochsTFR``) is more affected by the logratio bias
-#   than correction of trial-averaged data (``AverageTFR``), because the bias scales
-#   with the variance of the quantity being corrected.
+#   reduces skewness while providing a conveneient scale for comparing relative changes.
+#   However, Kinley et al. (2026; :footcite:`KinleyEtAl2026`) show that this approach
+#   introduces a negative bias, which can make unchanged power appear as a decrease and
+#   understimate genuine increases. Note that single-trial correction (on ``EpochsTFR``)
+#   is more affected by the logratio bias than correction of trial-averaged data
+#   (``AverageTFR``), because the bias scales with the variance of the quantity being corrected.
 #
 # ``"meanlogratio”``
 #   Provides a logarithmic (dB) interpretation but avoids its negative bias by averaging
