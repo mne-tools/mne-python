@@ -145,7 +145,13 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/dev"]
+exclude_patterns = [
+    "_includes",
+    "changes/dev",
+    "jupyterlite_contents",
+    "lite_extra",
+    "pypi",
+]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -482,6 +488,18 @@ if sys.platform.startswith("win"):
         compress_images = ()
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
+# The JupyterLite site, and the data it serves (about 1 GB), only belong in a
+# full build: `make html` turns this on, pattern and noplot builds leave it off.
+build_jupyterlite = os.getenv("MNE_DOC_BUILD_JUPYTERLITE", "0") == "1"
+if build_jupyterlite:
+    from jupyterlite_data import stage_lite_data  # noqa: E402
+
+    extensions.append("jupyterlite_sphinx")
+    jupyterlite_contents = ["jupyterlite_contents"]
+    jupyterlite_bind_ipynb_suffix = False
+    # served at the docs root (/mne_data/...) through html_extra_path below
+    stage_lite_data(curpath / "lite_extra" / "mne_data")
+
 sphinx_gallery_conf = {
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
@@ -583,7 +601,171 @@ sphinx_gallery_conf = {
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
     "parallel": sphinx_gallery_parallel,
 }
+if build_jupyterlite:
+    sphinx_gallery_conf["jupyterlite"] = {
+        "use_jupyter_lab": True,
+        "jupyterlite_contents": "jupyterlite_contents",
+        # a dotted path rather than the function: sphinx_gallery_conf has to
+        # stay JSON-serializable, so sphinx-gallery imports it itself
+        "notebook_modification_function": (
+            "jupyterlite_cell_notes.note_unrunnable_cells"
+        ),
+    }
 assert is_serializable(sphinx_gallery_conf)
+
+# ---------------------------------------------------------------------------
+# Drop the "Open in JupyterLite" launch badge from gallery pages whose
+# notebooks cannot run in the browser kernel at all: they need the R runtime
+# (rpy2), a compiled package Pyodide does not ship (antio), or multi-GB
+# datasets that cannot be bundled/slimmed. sphinx-gallery adds the badge to
+# every example unconditionally, so we wrap its badge generator and return an
+# empty string for these files. This only removes the badge/link; the
+# notebook source is untouched (no in-code guard). Files that merely need data
+# bundled, a pure-Python package installed, or pyvista 3D are NOT listed here
+# (they are fixable, not impossible).
+JUPYTERLITE_EXCLUDE = (
+    # Tier 1, impossible: R runtime / compiled package / huge single dataset
+    "examples/stats/r_interop.py",  # rpy2 -> needs the R runtime
+    "examples/io/read_impedances.py",  # antio (compiled, not in Pyodide)
+    "examples/decoding/decoding_rsa.py",  # visual_92_categories ~6 GB
+    "examples/decoding/decoding_spoc_CMC.py",  # fieldtrip_cmc ~700 MB
+    "examples/decoding/ssd_spatial_filters.py",  # fieldtrip_cmc ~700 MB
+    # Tier 2: multi-GB datasets (brainstorm / spm_face / opm / hf_sef)
+    "examples/datasets/brainstorm_data.py",
+    "examples/datasets/hf_sef_data.py",
+    "examples/datasets/opm_data.py",
+    "examples/datasets/spm_faces_dataset.py",
+    "examples/preprocessing/movement_detection.py",
+    "examples/preprocessing/muscle_detection.py",
+    "examples/preprocessing/otp.py",
+    "examples/time_frequency/source_power_spectrum_opm.py",
+    "examples/visualization/evoked_arrowmap.py",
+    "examples/visualization/meg_sensors.py",
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py",
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py",
+    "tutorials/io/60_ctf_bst_auditory.py",
+    "tutorials/preprocessing/80_opm_processing.py",
+    # Tier 3: several blockers each, none of them worth clearing on its own
+    # the volume inverse is ~178 MB and volume source estimates are not
+    # rendered in the browser
+    "examples/inverse/compute_mne_inverse_volume.py",
+    # needs aseg.mgz and the mixed source space, and calls src.plot(), which
+    # is the 3D SourceSpaces view
+    "examples/inverse/mixed_source_space_inverse.py",
+    # nilearn.datasets.load_mni152_template() downloads a template at runtime,
+    # which the browser blocks (CORS); the surrounding try only catches
+    # TypeError, so the failure is not survivable
+    "tutorials/inverse/20_dipole_fit.py",
+    # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
+    # plot_field needs the interactive viewer that the browser renderer skips
+    "examples/visualization/mne_helmet.py",
+    # Tier 4: mne.viz.Brain features the browser renderer lacks. Brain itself
+    # draws (static, single time point), and the fNIRS tutorials and
+    # 50_background_freesurfer_mne run in full, but these lean on
+    # add_annotation's hover callback, brain.screenshot, legends, silhouettes
+    # or the flatmap, so most of their cells fail.
+    "examples/visualization/brain.py",
+    "examples/visualization/parcellation.py",
+    "tutorials/clinical/20_seeg.py",
+    "tutorials/forward/10_background_freesurfer.py",
+    "tutorials/inverse/60_visualize_stc.py",
+    # Tier 5: one-off blockers with no browser path
+    # plot_field needs the interactive viewer
+    "tutorials/evoked/20_visualize_evoked.py",
+    # the three-layer BEM solution alone is 237 MB
+    "examples/inverse/multi_dipole_model.py",
+    # openneuro fetches the recording at runtime, which the browser blocks
+    "examples/preprocessing/esg_rm_heart_artefact_pcaobs.py",
+    # physionet.org is not CORS-enabled and the dataset is not on the CI box
+    "tutorials/clinical/60_sleep.py",
+    # the 4D/BTi phantom dataset is not among the ones CI downloads
+    "tutorials/inverse/90_phantom_4DBTi.py",
+    # needs mne_bids as well as the epilepsy_ecog dataset and 3D sensor views
+    "tutorials/clinical/30_ecog.py",
+    # Tier 6: fetch_fsaverage. _manifest_check_download only skips the
+    # download when every one of its ~190 manifest entries is already present,
+    # so fsaverage cannot be part-bundled, and MNE-sample-data ships no
+    # fsaverage/bem at all. The volume forward and inverse these two want are
+    # 187 MB and 360 MB on top of that.
+    "examples/inverse/morph_volume_stc.py",
+    "tutorials/inverse/50_beamformer_lcmv.py",
+    "examples/visualization/montage.py",
+    # same, plus fetch_infant_template downloads a second template
+    "tutorials/forward/35_eeg_no_mri.py",
+    # snapshot_brain_montage needs a real 3D window to read pixels back from
+    "examples/visualization/3d_to_2d.py",
+    # the three-layer BEM solution is 237 MB, and T1_electrodes.mgz would pull
+    # in the misc dataset's MRI as well
+    "tutorials/inverse/70_eeg_mri_coords.py",
+    # mne_bids is not installable in the browser kernel
+    "tutorials/inverse/95_phantom_KIT.py",
+    # Tier 7: served size. Every file below is copied into every docs deploy,
+    # so a dataset that only one or two pages read has to earn its place;
+    # these did not (sizes are what the staging step copied). Restoring a page
+    # means adding what it reads to DATASET_FILES in jupyterlite_data.py.
+    # somato: 404 MB (the raw alone is 344 MB) for six pages
+    "examples/inverse/dics_epochs.py",
+    "examples/inverse/dics_source_power.py",
+    "examples/inverse/evoked_ers_source_power.py",
+    "examples/inverse/multidict_reweighted_tfmxne.py",
+    "examples/time_frequency/time_frequency_global_field_power.py",
+    "tutorials/time-freq/20_sensors_time_frequency.py",
+    # the .mff EEG recording is a 133 MB folder, for one page
+    "tutorials/preprocessing/90_eyetracking_data.py",
+    # ERP-CORE: 118 MB for two pages
+    "examples/preprocessing/epochs_metadata.py",
+    "tutorials/epochs/40_autogenerate_metadata.py",
+    # refmeg_noise: 93 MB for one page
+    "examples/preprocessing/find_ref_artifacts.py",
+    # testing: the SSS movement recording (38 MB) and EEGLAB folder (34 MB),
+    # two pages each
+    "tutorials/preprocessing/59_head_positions.py",
+    "tutorials/preprocessing/60_maxwell_filtering_sss.py",
+    "tutorials/intro/20_events_from_raw.py",
+    "examples/visualization/roi_erpimage_by_rt.py",
+    # single recordings well past MAX_FILE_MB, 379 MB and 251 MB, so the
+    # staging step skips them and the badge would have nothing to load
+    "examples/datasets/kernel_phantom.py",
+    "examples/io/elekta_epochs.py",
+    # These want EEGBCI runs 1 and 2, which tools/circleci_download.sh never
+    # fetches (it takes subject 1 runs 3/6/10/14 and run 3 for subjects 2-4),
+    # so the data is not on the machine that builds the docs. eeg_bridging
+    # alone would need run 1 for ten subjects.
+    "examples/visualization/onionskin.py",
+    "examples/preprocessing/muscle_ica.py",
+    "examples/preprocessing/eeg_bridging.py",
+    # These read a 3D scene back as pixels, and vtk.js cannot hand a
+    # framebuffer back to Python. Both Report tutorials build their figures by
+    # screenshotting (Report._itv calls backend._take_3d_screenshot), and
+    # 70_report additionally round-trips a report through HDF5.
+    "tutorials/intro/70_report.py",
+    "tutorials/preprocessing/14_quality_control_report.py",
+    # 10_publication_figure is about cropping the white margins off
+    # brain.screenshot(), so without a real screenshot there is no tutorial
+    # left; browser brain.screenshot() raises rather than return a blank image.
+    "tutorials/visualization/10_publication_figure.py",
+    # The whole page drives mne.gui.dipolefit and narrates one GUI window as
+    # its state evolves. The vtk.js renderer draws without a picker, so there
+    # is nothing for those clicks to hit; that is also why 20_source_alignment
+    # carries a cell note for mne.gui.coregistration. Here it is the entire
+    # tutorial rather than one cell, so it is excluded instead.
+    "tutorials/inverse/21_interactive_dipole_fit.py",
+)
+
+import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
+
+_orig_gen_jupyterlite_rst = _sg_gen_rst.gen_jupyterlite_rst
+
+
+def _lite_badge_filtered(fpath, gallery_conf):
+    """Return the JupyterLite badge reST, or "" for excluded notebooks."""
+    _p = str(fpath).replace(os.sep, "/")
+    if any(_p.endswith(_ex) for _ex in JUPYTERLITE_EXCLUDE):
+        return ""
+    return _orig_gen_jupyterlite_rst(fpath, gallery_conf)
+
+
+_sg_gen_rst.gen_jupyterlite_rst = _lite_badge_filtered
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
@@ -889,6 +1071,8 @@ html_extra_path = [
     "getting_started.html",
     "install_mne_python.html",
 ]
+if build_jupyterlite:  # the served data, at /mne_data/...
+    html_extra_path.append("lite_extra")
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {

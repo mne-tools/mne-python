@@ -34,26 +34,26 @@ jupyterlite_wheel:
 	@python sphinxext/build_lite_wheel.py
 
 html: jupyterlite_wheel
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
+	MNE_DOC_BUILD_JUPYTERLITE=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
 html-memory: jupyterlite_wheel
-	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html
+	MNE_DOC_BUILD_JUPYTERLITE=1 $(MPROF) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
-html-pattern: jupyterlite_wheel
+html-pattern:
 	$(SPHINXBUILD) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
-html-pattern-memory: jupyterlite_wheel
+html-pattern-memory:
 	$(MPROF) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
-html-noplot: jupyterlite_wheel
+html-noplot:
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
@@ -68,7 +68,7 @@ html_dev-noplot: html-noplot
 html_dev-front: html-front
 
 linkcheck:
-	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -q -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/dev" -d _build/doctrees . _build/linkcheck
+	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -q -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/dev,jupyterlite_contents,lite_extra,pypi" -d _build/doctrees . _build/linkcheck
 
 doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest
