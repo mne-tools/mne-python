@@ -277,7 +277,7 @@ itc.plot_topo(title="Inter-Trial coherence", vmin=0.0, vmax=1.0, cmap="Reds")
 #
 # ``“logratio”``
 #   Expresses relative power on a log scale (dB). The log transformation
-#   reduces skewness while providing a conveneient scale for comparing relative changes.
+#   reduces skewness while providing a interpretable scale for comparing relative changes.
 #   However, Kinley et al. (2026; :footcite:`KinleyEtAl2026`) show that this approach
 #   introduces a negative bias, which can make unchanged power appear as a decrease and
 #   understimate genuine increases. Note that single-trial correction (on ``EpochsTFR``)
