@@ -83,16 +83,19 @@ def test_interpolate_bridged_electrodes():
         idx0 = inst.ch_names.index("EEG 001")
         idx1 = inst.ch_names.index("EEG 002")
         ch_names_orig = inst.ch_names.copy()
+        inst.info["bads"] = ["EEG 003"]
         bads_orig = inst.info["bads"].copy()
         inst2 = inst.copy()
         inst2.info["bads"] = ["EEG 001", "EEG 002"]
         inst2.interpolate_bads()
         data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002"])
-        inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
+        with pytest.warns(RuntimeWarning, match="EEG 003.*not.*excluded"):
+            inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
         data_interp = inst.get_data(picks=["EEG 001", "EEG 002"])
         assert not any(["virtual" in ch for ch in inst.ch_names])
         assert inst.ch_names == ch_names_orig
         assert inst.info["bads"] == bads_orig
+        inst.info["bads"] = []
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 

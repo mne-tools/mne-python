@@ -13,7 +13,7 @@ from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw, RawArray
 from ..transforms import _cart_to_sph, _sph_to_cart
-from ..utils import _ensure_int, _validate_type
+from ..utils import _ensure_int, _validate_type, warn
 
 
 def equalize_bads(insts, interp_thresh=1.0, copy=True):
@@ -84,6 +84,9 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     that to aid in interpolation rather than completely discarding the
     data from the two channels.
 
+    Channels listed in ``inst.info["bads"]`` are ignored for exclusion and
+    may influence the interpolation result.
+
     Parameters
     ----------
     inst : instance of Epochs, Evoked, or Raw
@@ -126,6 +129,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         )
     # store bads orig to put back at the end
     bads_orig = inst.info["bads"]
+    if bads_orig:
+        warn(
+            f"The channels {', '.join(bads_orig)} are marked as bad but will not "
+            "be excluded from bridged-electrode interpolation and may influence "
+            "the result."
+        )
     inst.info["bads"] = list()
 
     # look for group of bad channels
