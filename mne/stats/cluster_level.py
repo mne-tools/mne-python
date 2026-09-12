@@ -2284,7 +2284,12 @@ class ClusterResult:
             self.stat_name = "test statistic"
 
     def __repr__(self):  # noqa: D105
+        contrast = (
+            ""
+            if self.contrast is None
+            else f", {self.contrast[0]} - {self.contrast[1]}"
+        )
         return (
             f"<ClusterResult | p={self.cluster_p_values.min()}, "
-            f"{len(self.clusters)} clusters."
+            f"{len(self.clusters)} clusters{contrast}>"
         )
