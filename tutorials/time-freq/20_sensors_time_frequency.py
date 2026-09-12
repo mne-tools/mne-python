@@ -274,7 +274,7 @@ itc.plot_topo(title="Inter-Trial coherence", vmin=0.0, vmax=1.0, cmap="Reds")
 #   indicate relative power (e.g., 1.2 means 20% above baseline), but the resulting
 #   distribution is typically positively skewed, which can be problematic for
 #   parametric statistical analyses (Grandchamp & Delorme 2011;
-# .  :footcite:`GrandchampDelorme2011`).
+#   :footcite:`GrandchampDelorme2011`).
 #
 # ``“logratio”``
 #   Expresses relative power on a log scale (dB). The log transformation reduces
