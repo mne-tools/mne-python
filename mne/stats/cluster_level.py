@@ -1836,6 +1836,7 @@ def cluster_test(
     formula: str,
     *,  # end of positional-only parameters
     within_id: str | None = None,
+    reference: str | None = None,
     stat_fun: callable | None = None,
     tail: Literal[-1, 0, 1] = 0,
     threshold=None,
@@ -1893,6 +1894,16 @@ def cluster_test(
             ``"data ~ a:b"``), in which case each combination of ``within_id`` and the
             factors must appear exactly once (a fully balanced repeated-measures
             design).
+     reference : str | None
+        Level of the independent variable to treat as the reference, i.e. the level
+        that is *subtracted*. The test statistic is then computed on
+        ``other_level - reference``, so positive values mean the other level is
+        larger. Only valid for paired two-level contrasts (a single factor with 2
+        levels, with ``within_id`` given); for F-tests and repeated-measures ANOVAs
+        the statistic is sign-invariant and passing ``reference`` raises an error.
+        If ``None`` (default), levels are taken in sorted order (or in category
+        order if the column is a :class:`pandas.Categorical`) and the second one is
+        the reference.
     %(stat_fun_clust_both)s
     %(tail_clust)s
     %(threshold_clust_both)s
@@ -2037,9 +2048,30 @@ def cluster_test(
     # convert to a list-like X for clustering. Grouping by multiple columns sorts
     # lexicographically (first factor varies slowest), which is what f_mway_rm
     # expects for interaction effects.
-    X = df.groupby(factor_names).agg({dv_name: func})[dv_name].to_list()
+    grouped = df.groupby(factor_names, observed=True).agg({dv_name: func})[dv_name]
+    levels = grouped.index.to_list()  # parallel to X by construction
+    X = grouped.to_list()
+    # contrast = None  # set below if a subtraction is performed
 
-    # determine test type
+    _validate_type(reference, (str, None), "reference")
+    if reference is not None:
+        if is_interaction or within_id is None or len(levels) != 2:
+            raise ValueError(
+                "`reference` only applies to paired two-level contrasts (a single "
+                "factor with 2 levels, with `within_id` given); for F-tests and "
+                "repeated-measures ANOVAs the statistic is sign-invariant."
+            )
+        if reference not in levels:
+            raise ValueError(
+                f"reference must be one of the levels of {iv_name!r} ({levels}), "
+                f"got {reference!r}"
+            )
+        if levels.index(reference) == 0:  # reference is subtracted → put it last
+            levels, X = levels[::-1], X[::-1]
+
+    # determine test type. NOTE: branches that set kind="within" also collapse X
+    # from a list of groups to an ndarray of shape (n_subjects, ...), so `len(X)`
+    # below means "number of groups" only until that happens.
     if is_interaction:
         kind = "within_rm"
         factor_levels = [df[name].nunique() for name in factor_names]
@@ -2060,39 +2092,26 @@ def cluster_test(
         kind = "between"
     elif (
         len(set(x.shape for x in X)) > 1
-    ):  # check if there are unequal observations in each group
+    ):  # unequal number of observations in each group
+        if within_id is not None:
+            raise ValueError(
+                "for a within-subject test, all groups must have the same number "
+                "of observations; check that every subject has data for every "
+                f"level of {iv_name!r}."
+            )
         kind = "between"
     # by now we know there are exactly 2 elements in X, and their shapes match
     elif within_id in df:
         kind = "within"
-
-        n_vals = df[factor_names].nunique().item()
-        vals = df[factor_names].squeeze().unique().tolist()
         assert len(X) == 2
-        assert n_vals == 2
-
+        # contrast = (levels[0], levels[1])
         logger.info(
-            f"Subtracting ({vals[0]} - {vals[1]}) of column {factor_names} before "
+            f"Subtracting ({levels[0]} - {levels[1]}) of column {iv_name!r} before "
             "computing cluster statistics."
         )
         X = X[0] - X[1]
     else:  # 2 elements in X but no within_id provided → unpaired test
         kind = "between"
-
-    # Now, for the within case check if there are unequal observations in each group
-    # and whether the data is already subtracted (1 level) or not (2 levels)
-    if kind == "within":
-        if len(set(x.shape for x in X)) > 1:
-            raise ValueError(
-                "for within-group tests, all participants must have the same number of "
-                "observations, check your data frame"
-            )
-        if len(X) == 1:
-            # turn it into an array
-            X = X[0]  # already subtracted, just use the data as is
-
-        elif len(X) == 2:
-            X = X[0] - X[1]  # do subtraction for paired t-test
 
     # define stat function and threshold
     if kind == "within_rm":
