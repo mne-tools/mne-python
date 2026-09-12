@@ -125,19 +125,6 @@ df
 # the formula.
 
 # %%
-# The sign of the contrast follows the order of the condition levels. We set
-# "target" as the first level so the difference is formed as target minus
-# non-target (positive = stronger response to targets), matching the grand
-# average we plotted above.
-
-# TODO: do this within cluster test?
-df["condition"] = pd.Categorical(
-    df["condition"], categories=["target", "non-target"], ordered=True
-)
-
-df
-
-# %%
 # Run the cluster test with a formula
 # -----------------------------------
 #
@@ -149,13 +136,14 @@ df
 # test: the two conditions are subtracted within each subject and the resulting
 # differences are tested against zero (a one-sample t-test), with the null
 # distribution built by sign-flipping those per-subject differences. Because we
-# set ``target`` as the first condition level above, the difference is formed as
-# target minus non-target. TODO: should be a parameter in cluster_test?
+# set ``non-target`` as the reference, the difference is formed as
+# target minus non-target. Not setting the reference explicitly will order the contrast
+# levels alphabetically and the reference will be target.
 
 formula = "evoked ~ condition"
 
 cluster_result = mne.stats.cluster_test(
-    df=df, formula=formula, within_id="subject_index"
+    df=df, formula=formula, within_id="subject_index", reference="non-target"
 )
 
 print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
