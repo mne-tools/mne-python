@@ -405,6 +405,11 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     # close child fig directly (workaround for mpl issue #18609)
     fig._fake_keypress("escape", fig=fig.mne.child_figs[0])
     assert browser_backend._get_n_figs() == 1
+    # a second click must work too
+    fig._click_ch_name(ch_index=1, button=3)
+    assert browser_backend._get_n_figs() == 2
+    fig._fake_keypress("escape", fig=fig.mne.child_figs[-1])
+    assert browser_backend._get_n_figs() == 1
     fig._fake_keypress(fig.mne.close_key)
     assert browser_backend._get_n_figs() == 0
     del long_raw
