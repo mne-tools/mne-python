@@ -2404,7 +2404,7 @@ joint : bool
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+keep_his : bool | {"his_id", "sex", "hand"} | sequence of {"his_id", "sex", "hand"}
     If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
     overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
     ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
@@ -4464,7 +4464,7 @@ spatial_colors : bool
 """
 
 docdict["sphere_topomap_auto"] = f"""\
-sphere : float | array-like of float | instance of ConductorModel | str | list of str | None
+sphere : float | array-like of float | instance of ConductorModel | {{"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"}} | list of str | None
     The sphere parameters to use for the head outline.
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in meters, or a
     single float to give just the radius (origin assumed 0, 0, 0).

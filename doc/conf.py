@@ -220,6 +220,7 @@ numpydoc_xref_aliases = {
     "path-like": ":term:`path-like`",
     "array-like": ":term:`array_like <numpy:array_like>`",
     "Path": ":class:`python:pathlib.Path`",
+    "Sequence": ":class:`python:collections.abc.Sequence`",
     "bool": ":ref:`bool <python:typebool>`",
     # Matplotlib
     "colormap": ":ref:`colormap <matplotlib:colormaps>`",
@@ -348,7 +349,8 @@ numpydoc_xref_ignore = {
     "the",
     "with",
     "length",
-    "pair",
+    "key-value",
+    "pairs",
     "matplotlib",
     "optional",
     "kwargs",
