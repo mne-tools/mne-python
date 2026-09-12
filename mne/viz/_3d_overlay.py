@@ -269,9 +269,10 @@ class LayeredMesh:
         self._apply()
 
     def _clean(self):
-        mapper = self._actor.GetMapper()
-        mapper.SetLookupTable(None)
-        self._actor.SetMapper(None)
+        if hasattr(self._actor, "GetMapper"):  # VTK; the browser backend draws dicts
+            mapper = self._actor.GetMapper()
+            mapper.SetLookupTable(None)
+            self._actor.SetMapper(None)
         self._actor = None
         self._polydata = None
         self._renderer = None

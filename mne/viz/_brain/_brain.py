@@ -663,7 +663,7 @@ class Brain:
             for key in list(self.act_data_smooth.keys()):
                 self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
-        for renderer in self._renderer._all_renderers:
+        for renderer in getattr(self._renderer, "_all_renderers", ()):  # VTK only
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ("lighting", "interactor", "_RenderWindow"):
