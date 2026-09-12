@@ -408,7 +408,7 @@ def _get_src_type(src, vertices, warn_text=None):
             src_type = "mixed"
     else:
         src_type = src.kind
-    assert src_type in ("surface", "volume", "mixed", "discrete")
+    assert src_type in ("surface", "volume", "mixed", "discrete", "subcortical_surf")
     return src_type
 
 
@@ -436,7 +436,7 @@ def _make_stc(
     # infer Klass from src_type
     if src_type == "surface":
         Klass = VectorSourceEstimate if vector else SourceEstimate
-    elif src_type in ("volume", "discrete"):
+    elif src_type in ("volume", "discrete", "subcortical_surf"):
         Klass = VolVectorSourceEstimate if vector else VolSourceEstimate
     elif src_type == "mixed":
         Klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate

@@ -6,6 +6,7 @@ __all__ = [
     "get_decimated_surfaces",
     "read_source_spaces",
     "setup_source_space",
+    "setup_subcortical_source_space",
     "setup_volume_source_space",
     "write_source_spaces",
 ]
@@ -17,6 +18,7 @@ from ._source_space import (
     get_decimated_surfaces,
     read_source_spaces,
     setup_source_space,
+    setup_subcortical_source_space,
     setup_volume_source_space,
     write_source_spaces,
 )
