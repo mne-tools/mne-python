@@ -2276,8 +2276,6 @@ class ClusterResult:
             self.stat_name = "F-statistic"
         elif stat_fun is ttest_1samp_no_p:
             self.stat_name = "paired T-statistic"
-            if contrast is not None:
-                self.stat_name += f" ({contrast[0]} - {contrast[1]})"
         elif isinstance(stat_fun, partial) and stat_fun.func is _rm_anova_stat_fun:
             self.stat_name = "F-statistic (repeated-measures ANOVA)"
         else:
