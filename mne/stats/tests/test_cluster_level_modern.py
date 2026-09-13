@@ -304,3 +304,34 @@ def test_cluster_test_reduce(stat_conditions):
     del df_2
     # This should not raise
     cluster_test(df, formula="data ~ a", within_id="c")
+
+
+def test_cluster_test_reference():
+    """Test that `reference` controls the direction of a paired contrast."""
+    rng = np.random.default_rng(seed=42)
+    # create data
+    n_sub, n_times = 5, 8
+    rows = list()
+    for si in range(n_sub):
+        subj = rng.normal(size=n_times)  # subject offset; makes the data paired
+        for cond in ("a", "b"):
+            data = subj + rng.normal(scale=0.5, size=n_times)
+            if cond == "b":
+                data[3:5] += 2  # inject an effect
+            rows.append(dict(data=data[np.newaxis], condition=cond, subject=si))
+    # add to dataframe
+    df = pd.DataFrame(rows)
+    kwargs = dict(within_id="subject", tail=0, out_type="mask")
+
+    # by default levels are sorted, and the second one is the reference
+    default = cluster_test(df, "data ~ condition", **kwargs)
+    assert default.contrast == ("a", "b")
+    assert default.reference == "b"
+
+    # naming the other level should flip the sign of the statistic
+    flipped = cluster_test(df, "data ~ condition", reference="a", **kwargs)
+    assert flipped.contrast == ("b", "a")
+    assert np.allclose(flipped.stat_obs, -default.stat_obs)
+
+    with pytest.raises(ValueError, match="must be one of the levels"):
+        cluster_test(df, "data ~ condition", reference="c", **kwargs)
