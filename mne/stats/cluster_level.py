@@ -1894,7 +1894,7 @@ def cluster_test(
             ``"data ~ a:b"``), in which case each combination of ``within_id`` and the
             factors must appear exactly once (a fully balanced repeated-measures
             design).
-     reference : str | None
+    reference : str | None
         Level of the independent variable to treat as the reference, i.e. the level
         that is *subtracted*. The test statistic is then computed on
         ``other_level - reference``, so positive values mean the other level is
