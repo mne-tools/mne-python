@@ -548,5 +548,7 @@ def test_lite_brain(renderer_lite):
         (180.0, 90.0)
     )
     brain.close()
+    assert brain._cleaned  # close() ran the close callbacks (ui_events' too)
     with pytest.raises(NotImplementedError, match="browser"):  # two columns
         mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})
+    assert list(mne.viz.Brain._instances) == [brain]  # the failed one died
