@@ -484,7 +484,7 @@ def test_lite_scenes(renderer_lite):
     second = renderer_lite._get_renderer(fig=first.scene())  # plot_alignment(fig=)
     second.sphere(np.zeros((1, 3)), "red", 1.0)
     assert len(first.plotter.actors) == 1
-    with pytest.raises(TypeError, match="instance of None or _LiteFigure"):
+    with pytest.raises(TypeError, match="instance of None, int, or _LiteFigure"):
         renderer_lite._get_renderer(fig=first.plotter)
     # nothing in a notebook closes figures, so only the newest few stay live
     kept = [
@@ -597,6 +597,7 @@ mne.read_evokeds(ave)  # fetched by the _check_fname hook
 assert ave.exists()
 aseg = data / "subjects" / "sample" / "mri" / "aseg.mgz"
 assert nibabel.load(aseg).shape == (86, 86, 86)  # by its own wrapper
+mne.read_talxfm("sample", data / "subjects")  # probes for the MRI before reading
 try:
     mne.read_evokeds(data / "missing-ave.fif")
 except FileNotFoundError:

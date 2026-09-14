@@ -664,16 +664,35 @@ JUPYTERLITE_EXCLUDE = (
     # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
     # plot_field needs the interactive viewer that the browser renderer skips
     "examples/visualization/mne_helmet.py",
-    # Tier 4: mne.viz.Brain features the browser renderer lacks. Brain itself
-    # draws (static, single time point), and the fNIRS tutorials and
-    # 50_background_freesurfer_mne run in full, but these lean on
-    # add_annotation's hover callback, brain.screenshot, legends, silhouettes
-    # or the flatmap, so most of their cells fail.
+    # Tier 4: mne.viz.Brain features the browser renderer lacks (see the TODOs
+    # in mne/viz/_brain/_brain.py). Brain itself draws (static, one time point,
+    # one view), and the fNIRS tutorials and 50_background_freesurfer_mne run
+    # in full, but these lean on add_annotation's hover callback,
+    # brain.screenshot, legends, silhouettes or the flatmap, so most of their
+    # cells fail.
     "examples/visualization/brain.py",
     "examples/visualization/parcellation.py",
     "tutorials/clinical/20_seeg.py",
     "tutorials/forward/10_background_freesurfer.py",
     "tutorials/inverse/60_visualize_stc.py",
+    # hemi="split" or several views, which are subplots
+    "examples/inverse/source_space_snr.py",
+    "examples/simulation/simulated_raw_data_using_subject_anatomy.py",
+    "tutorials/intro/10_overview.py",
+    "tutorials/machine-learning/50_decoding.py",
+    "tutorials/simulation/70_point_spread.py",
+    # vector source estimates draw glyphs through a VTK mapper
+    "examples/inverse/vector_mne_solution.py",
+    "tutorials/inverse/35_dipole_orientations.py",
+    # volume source estimates need volume rendering
+    "examples/inverse/psf_volume.py",
+    # the time label is updated through the VTK text actor
+    "tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py",
+    "tutorials/stats-source-space/30_cluster_ftest_spatiotemporal.py",
+    # brain.screenshot
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py",
+    # plot_evoked_field draws contours
+    "tutorials/visualization/20_ui_events.py",
     # Tier 5: one-off blockers with no browser path
     # plot_field needs the interactive viewer
     "tutorials/evoked/20_visualize_evoked.py",

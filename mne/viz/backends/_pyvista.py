@@ -59,9 +59,11 @@ from ...utils import _check_option, _require_version, _validate_type, warn
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
+    LIGHTS,
     _alpha_blend_background,
     _get_colormap_from_array,
     _init_mne_qtapp,
+    _to_pos,
     _vtk_faces,
 )
 
@@ -316,12 +318,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         return self.figure
 
     def update_lighting(self):
-        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        # below and centered, left and above, right and above
-        az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
         for renderer in self._all_renderers:
             renderer.remove_all_lights()
-            for azimuth, elevation, intensity in az_el_in:
+            for azimuth, elevation, intensity in LIGHTS:
                 light = pyvista.Light(
                     position=_to_pos(azimuth, elevation),
                     color="white",
@@ -1342,15 +1341,6 @@ def _truncate_scalar_bar_title(title, max_chars=20):
     if title is None or len(title) <= max_chars:
         return title
     return title[: max_chars - 1] + "…"
-
-
-def _to_pos(azimuth, elevation):
-    theta = azimuth * np.pi / 180.0
-    phi = (90.0 - elevation) * np.pi / 180.0
-    x = np.sin(theta) * np.sin(phi)
-    y = np.cos(phi)
-    z = np.cos(theta) * np.sin(phi)
-    return x, y, z
 
 
 def _3d_to_2d(plotter, xyz):

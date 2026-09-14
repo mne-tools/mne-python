@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-from ..._freesurfer import _get_head_surface, _get_skull_surface
+from ..._freesurfer import _get_head_surface, _get_skull_surface, read_talxfm
 from ...surface import _get_head_surface as _surface_head_surface
 from ...utils import progressbar
 from ...utils.check import _check_fname
@@ -312,6 +312,13 @@ def _surface_head_surface_fetching(
     )
 
 
+def _read_talxfm_fetching(subject, subjects_dir=None, verbose=None):
+    # in the order MNE probes them: the docs serve T1.mgz, not orig.mgz
+    want = ["mri/orig.mgz", "mri/T1.mgz", "mri/transforms/talairach.xfm"]
+    _fetch_candidates(subject, subjects_dir, want)
+    return read_talxfm(subject, subjects_dir, verbose=verbose)
+
+
 def _plot_bem_fetching(subject=None, subjects_dir=None, *args, **kwargs):
     want = ["bem/inner_skull.surf", "bem/outer_skull.surf", "bem/outer_skin.surf"]
     want.append("mri/" + str(kwargs.get("mri", "T1.mgz")))
@@ -367,6 +374,7 @@ def _patch_readers():
     _rebind("_get_head_surface", _get_head_surface, _get_head_surface_fetching)
     _rebind("_get_skull_surface", _get_skull_surface, _get_skull_surface_fetching)
     _rebind("_get_head_surface", _surface_head_surface, _surface_head_surface_fetching)
+    _rebind("read_talxfm", read_talxfm, _read_talxfm_fetching)
     _orig["plot_bem"] = plot_bem
     _rebind("plot_bem", plot_bem, _plot_bem_fetching)
     _orig["read_raw_kit"] = read_raw_kit
