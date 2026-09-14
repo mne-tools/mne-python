@@ -12,9 +12,8 @@ copies into the JupyterLite contents:
 
 Both are deliberately done here rather than through ``first_notebook_cell``,
 which sphinx-gallery applies while *generating* the notebook and therefore also
-writes into the ``.ipynb`` offered for download, where ``piplite`` does not
-exist and the notebook would fail on its first cell. Doing it at copy time
-keeps the download and the rendered page exactly as the docs built them.
+writes into the ``.ipynb`` offered for download. Doing it at copy time keeps
+the download and the rendered page exactly as the docs built them.
 
 It lives here rather than in ``conf.py`` because ``sphinx_gallery_conf`` has to
 stay JSON-serializable (``sphinx.config.is_serializable`` rejects functions), so

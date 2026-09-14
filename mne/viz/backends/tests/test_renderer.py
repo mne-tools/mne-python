@@ -12,6 +12,7 @@ import pytest
 from matplotlib.font_manager import findfont
 from numpy.testing import assert_allclose
 
+import mne
 from mne.datasets import testing
 from mne.transforms import quat_to_rot, rot_to_quat
 from mne.utils import run_subprocess
@@ -552,3 +553,72 @@ def test_lite_brain(renderer_lite):
     with pytest.raises(NotImplementedError, match="browser"):  # two columns
         mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})
     assert list(mne.viz.Brain._instances) == [brain]  # the failed one died
+
+
+_SETUP_SCRIPT = """
+import sys
+import types
+from pathlib import Path
+
+import nibabel
+
+import mne
+
+root, served = Path(sys.argv[1]), Path(sys.argv[2])
+prefix = "http://x/mne_data/MNE-testing-data/"
+
+
+class XMLHttpRequest:
+    new = classmethod(lambda cls: cls())
+
+    def open(self, method, url, sync):
+        assert url.startswith(prefix), url
+        self.path = served / url.removeprefix(prefix)
+
+    def send(self):
+        self.status = 200 if self.path.is_file() else 404
+        data = self.path.read_bytes() if self.status == 200 else b""
+        self.response = types.SimpleNamespace(to_py=lambda: data)
+
+
+js = types.ModuleType("js")
+js.location = types.SimpleNamespace(href="http://x/lite/lab/index.html")
+js.XMLHttpRequest = XMLHttpRequest
+sys.modules["js"] = js
+from mne.viz.backends._jupyterlite import setup_notebook
+
+setup_notebook(str(root))
+assert mne.viz.get_3d_backend() == "jupyterlite_notebook"
+assert mne.datasets.sample.data_path() == root / "MNE-sample-data"
+data = root / "MNE-testing-data"
+ave = data / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
+assert not ave.exists()
+mne.read_evokeds(ave)  # fetched by the _check_fname hook
+assert ave.exists()
+aseg = data / "subjects" / "sample" / "mri" / "aseg.mgz"
+assert nibabel.load(aseg).shape == (86, 86, 86)  # by its own wrapper
+try:
+    mne.read_evokeds(data / "missing-ave.fif")
+except FileNotFoundError:
+    pass
+else:
+    raise AssertionError("MNE's own error expected for a file that is not served")
+"""
+
+
+@testing.requires_testing_data
+def test_lite_setup_notebook(renderer_lite, tmp_path):
+    """Test the docs' first-cell setup fetches served files on first use."""
+    # a subprocess: setup_notebook patches readers and datasets for good, and
+    # the js module it needs exists only inside Pyodide
+    script = tmp_path / "setup.py"
+    script.write_text(_SETUP_SCRIPT)
+    env = dict(os.environ)  # this checkout, whether or not it is installed
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(
+            None,
+            [os.path.dirname(os.path.dirname(mne.__file__)), env.get("PYTHONPATH")],
+        )
+    )
+    args = [sys.executable, str(script), str(tmp_path / "mne_data"), str(_data_path)]
+    run_subprocess(args, env=env)
