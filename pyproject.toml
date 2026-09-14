@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
+dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", { include-group = "doc" }, { include-group = "test_extra" }]
 # Dependencies for building the documentation
 doc = [
   # 0.22 moved normalize_options into docutils.parsers.rst.roles
@@ -43,7 +43,7 @@ doc = [
   "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
-doc-full = ["rpy2", {include-group = "doc"}]
+doc-full = ["rpy2", { include-group = "doc" }]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
@@ -80,7 +80,7 @@ test_extra = [
   # the 3.11 MNE still supports. Every CI job that installs it is on 3.12+.
   "pyvista-js >= 0.16; python_version >= '3.12'",
   "statsmodels",
-  {include-group = "test_extra_ft"},
+  { include-group = "test_extra_ft" },
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
@@ -97,12 +97,12 @@ test_extra_ft = [
   "snirf",
   "sphinx",
   "sphinx-gallery",
-  {include-group = "test"},
+  { include-group = "test" },
 ]
 
 [project]
 authors = [
-  {email = "alexandre.gramfort@inria.fr", name = "Alexandre Gramfort"},
+  { email = "alexandre.gramfort@inria.fr", name = "Alexandre Gramfort" },
 ]
 classifiers = [
   "Intended Audience :: Developers",
@@ -110,11 +110,11 @@ classifiers = [
   "License :: OSI Approved",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",
-  "Operating System :: POSIX :: Linux",
   "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
   "Operating System :: Unix",
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering",
   "Topic :: Software Development",
 ]
@@ -150,14 +150,14 @@ keywords = [
 ]
 license = "BSD-3-Clause"
 license-files = ["LICENSE.txt"]
-maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
+maintainers = [{ email = "dan@mccloy.info", name = "Dan McCloy" }]
 name = "mne"
-readme = {content-type = "text/x-rst", file = "README.rst"}
+readme = { content-type = "text/x-rst", file = "README.rst" }
 requires-python = ">= 3.11"
 # ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
 # command in `.github/workflows/autofix.yml` (astral-sh/uv/#16333), and also
 # the `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yml`
-scripts = {mne = "mne.commands.utils:main"}
+scripts = { mne = "mne.commands.utils:main" }
 
 [project.optional-dependencies]
 # Leave this one here for backward-compat
@@ -268,7 +268,7 @@ exclude = [
 ]  # tracked by git, but we don't want to ship those files
 
 [tool.hatch.version]
-raw-options = {version_scheme = "release-branch-semver"}
+raw-options = { version_scheme = "release-branch-semver" }
 source = "vcs"
 
 [tool.numpydoc_validation]
