@@ -11,6 +11,7 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import faulthandler
 import os
+import re
 import subprocess
 import sys
 import tomllib
@@ -149,6 +150,7 @@ exclude_patterns = [
     "_includes",
     "changes/dev",
     "jupyterlite_contents",
+    "_contents",  # where jupyterlite-sphinx stages what it mounts
     "lite_extra",
     "pypi",
 ]
@@ -495,7 +497,10 @@ if build_jupyterlite:
     from jupyterlite_data import stage_lite_data  # noqa: E402
 
     extensions.append("jupyterlite_sphinx")
-    jupyterlite_contents = ["jupyterlite_contents"]
+    # the two gallery folders rather than their parent: jupyterlite-sphinx
+    # mounts each folder listed here under its own name, and the badges
+    # sphinx-gallery writes link to auto_*/... at the root
+    jupyterlite_contents = ["jupyterlite_contents/auto_*"]
     jupyterlite_bind_ipynb_suffix = False
     # served at the docs root (/mne_data/...) through html_extra_path below
     stage_lite_data(curpath / "lite_extra" / "mne_data")
@@ -618,8 +623,8 @@ assert is_serializable(sphinx_gallery_conf)
 # notebooks cannot run in the browser kernel at all: they need the R runtime
 # (rpy2), a compiled package Pyodide does not ship (antio), or multi-GB
 # datasets that cannot be bundled/slimmed. sphinx-gallery adds the badge to
-# every example unconditionally, so we wrap its badge generator and return an
-# empty string for these files. This only removes the badge/link; the
+# every example unconditionally, so strip_lite_badge below removes it from
+# these pages' reST as Sphinx reads it. This only removes the badge/link; the
 # notebook source is untouched (no in-code guard). Files that merely need data
 # bundled, a pure-Python package installed, or pyvista 3D are NOT listed here
 # (they are fixable, not impossible).
@@ -752,20 +757,33 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/21_interactive_dipole_fit.py",
 )
 
-import sphinx_gallery.gen_rst as _sg_gen_rst  # noqa: E402
-
-_orig_gen_jupyterlite_rst = _sg_gen_rst.gen_jupyterlite_rst
-
-
-def _lite_badge_filtered(fpath, gallery_conf):
-    """Return the JupyterLite badge reST, or "" for excluded notebooks."""
-    _p = str(fpath).replace(os.sep, "/")
-    if any(_p.endswith(_ex) for _ex in JUPYTERLITE_EXCLUDE):
-        return ""
-    return _orig_gen_jupyterlite_rst(fpath, gallery_conf)
+_LITE_EXCLUDED_DOCS = {f"auto_{_ex.removesuffix('.py')}" for _ex in JUPYTERLITE_EXCLUDE}
+# the badge container and its indented body, inside the gallery footer
+_LITE_BADGE_RE = re.compile(r"\n {4}\.\. container:: lite-badge\n(?:\n| {6}[^\n]*\n)*")
 
 
-_sg_gen_rst.gen_jupyterlite_rst = _lite_badge_filtered
+def strip_lite_badge(app, docname, source):
+    """Remove the JupyterLite badge from the pages in JUPYTERLITE_EXCLUDE.
+
+    Done at source-read rather than by wrapping sphinx-gallery's badge
+    generator: a parallel gallery build runs that in worker processes, which
+    never see a patch made here.
+    """
+    if docname in _LITE_EXCLUDED_DOCS:
+        source[0] = _LITE_BADGE_RE.sub("\n", source[0])
+
+
+def lite_contents_at_root(app, config):
+    """Drop the jupyterlite_contents folder sphinx-gallery appends at config-inited.
+
+    Mounted as a folder it would put the notebooks at
+    jupyterlite_contents/auto_*/... while the badges link to auto_*/...; the
+    jupyterlite_contents/auto_* entry set above lists the gallery folders
+    themselves, which land at the root.
+    """
+    config.jupyterlite_contents = ["jupyterlite_contents/auto_*"]
+
+
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
@@ -1724,4 +1742,8 @@ def setup(app):
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
     app.connect("source-read", rstjinja)
+    if build_jupyterlite:
+        app.connect("source-read", strip_lite_badge)
+        # after sphinx-gallery's own config-inited handler
+        app.connect("config-inited", lite_contents_at_root, priority=1000)
     app.connect("html-page-context", set_toc_level)

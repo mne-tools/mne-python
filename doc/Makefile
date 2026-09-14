@@ -28,7 +28,7 @@ help:
 	@echo "  view             to view the built HTML"
 
 clean:
-	-rm -rf _build pypi sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
+	-rm -rf _build _contents pypi sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 jupyterlite_wheel:
 	@python sphinxext/build_lite_wheel.py
