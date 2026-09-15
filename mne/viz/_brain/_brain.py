@@ -1708,6 +1708,7 @@ class Brain:
         self.color_cycle.restore(label._color)
         self.mpl_canvas.update_plot()
         self.layered_meshes[hemi].remove_overlay(label.name)
+        self._renderer._update()  # mirrors add_label; see _add_vertex_glyph
 
     def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
         _ensure_int(vertex_id)
@@ -1776,6 +1777,8 @@ class Brain:
 
         _ensure_int(vertex_id)
         self._picked_points[(hemi, vertex_id)] = spheres
+        if update:
+            self._renderer._update()
         return sphere
 
     def _remove_vertex_glyph(self, *, hemi, vertex_id, render=True):
