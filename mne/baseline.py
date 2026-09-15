@@ -15,7 +15,15 @@ def _log_rescale(baseline, mode="mean"):
         _check_option(
             "mode",
             mode,
-            ["logratio", "ratio", "zscore", "mean", "percent", "zlogratio"],
+            [
+                "logratio",
+                "ratio",
+                "zscore",
+                "mean",
+                "percent",
+                "zlogratio",
+                "meanlogratio",
+            ],
         )
         msg = f"Applying baseline correction (mode: {mode})"
     else:
@@ -23,7 +31,7 @@ def _log_rescale(baseline, mode="mean"):
     return msg
 
 
-@verbose_static("baseline_rescale")
+@verbose_static("baseline_rescale", "baseline_mode")
 def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=None):
     """Rescale (baseline correct) data.
 
@@ -46,21 +54,29 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         .. note::
             The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints ``t``
             such that ``a <= t <= b``.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-        Perform baseline correction by
+    mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+        Perform baseline correction by:
 
-        - subtracting the mean of baseline values ('mean')
-        - dividing by the mean of baseline values ('ratio')
-        - dividing by the mean of baseline values and taking the log
-          ('logratio')
-        - subtracting the mean of baseline values followed by dividing by
-          the mean of baseline values ('percent')
-        - subtracting the mean of baseline values and dividing by the
-          standard deviation of baseline values ('zscore')
-        - dividing by the mean of baseline values, taking the log, and
+        ``"mean"``
+          Subtracting the mean of baseline values
+        ``"ratio"``
+          Dividing by the mean of baseline values
+        ``"logratio"``
+          Dividing by the mean of baseline values and taking the log
+        ``"meanlogratio"``
+          Dividing by the mean of baseline values, taking the log and then
+          subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+          .. note:: this baseline mode has not been tested at the source-level!
+        ``"percent"``
+          Subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values
+        ``"zscore"``
+          Subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values
+        ``"zlogratio"``
+          Dividing by the mean of baseline values, taking the log, and
           dividing by the standard deviation of log baseline values
-          ('zlogratio')
-
     copy : bool
         Whether to return a new instance or modify in place.
     picks : list of int | None
@@ -75,7 +91,11 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
     -------
     data_scaled: array
         Array of same shape as data after rescaling.
-    """
+
+    References
+    ----------
+    .. footbibliography::
+    """  # noqa: E501
     if copy:
         data = data.copy()
     if verbose is not False:
@@ -128,6 +148,13 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         def fun(d, m):
             d /= m
             np.log10(d, out=d)
+
+    elif mode == "meanlogratio":
+
+        def fun(d, m):
+            d /= m
+            np.log10(d, out=d)
+            d -= np.mean(d[..., imin:imax], axis=-1, keepdims=True)
 
     elif mode == "percent":
 

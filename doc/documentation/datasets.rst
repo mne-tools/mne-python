@@ -255,7 +255,7 @@ based on Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
+    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
 
 
 mTRF Dataset
@@ -540,6 +540,27 @@ the people in the scene were unrecognizable.
 .. topic:: Examples
 
     * :ref:`tut-eyetrack-heatmap`
+
+.. _lite-data:
+
+JupyterLite data
+================
+:func:`mne.datasets.lite_data.data_path`
+
+Deprecated, and will be removed in MNE 1.15. This curated archive existed for
+the documentation build, which now serves the browser notebooks from the
+regular datasets above; use those fetchers instead.
+
+.. note:: Not every tutorial and example can run in the browser, so the
+   "Open in JupyterLite" badge is only shown on the pages that work there. A page
+   is left without a badge when it needs a non-Python runtime (for example the R
+   interoperability example, via ``rpy2``), a compiled reader with no WebAssembly
+   build (such as ``antio``), or a dataset too large to serve to a browser
+   (brainstorm, spm_face, opm, hf_sef, and similar).
+
+   3D is also limited: sensor alignment and source estimates are drawn with
+   vtk.js as static scenes, so the coregistration GUI and the interactive
+   viewers (time slider, hover, screenshots) are not available.
 
 References
 ==========

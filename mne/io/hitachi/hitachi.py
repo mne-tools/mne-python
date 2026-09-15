@@ -146,7 +146,8 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     subject_info = dict()
     ch_wavelengths = dict()
     fnirs_wavelengths = [None, None]
-    meas_date = age = ch_names = sfreq = None
+    meas_date = age = ch_names = None
+    sfreq = -1.0
     with open(fname, "rb") as fid:
         lines = fid.read()
     lines = lines.decode("latin-1").rstrip("\r\n")
@@ -310,6 +311,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     if subject_info:
         info_extra["subject_info"] = subject_info
 
+    assert sfreq > 0.0, "failed to determine sampling frequency from file header"
     # Create mne structure
     info = create_info(ch_names, sfreq, ch_types=ch_types)
     with info._unlock():

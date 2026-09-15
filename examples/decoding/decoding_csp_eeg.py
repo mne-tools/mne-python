@@ -80,7 +80,7 @@ labels = epochs.events[:, -1] - 2
 scores = []
 epochs_data = epochs.get_data(copy=False)
 epochs_data_train = epochs_train.get_data(copy=False)
-cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+cv = ShuffleSplit(10, test_size=0.2, random_state=103)
 cv_split = cv.split(epochs_data_train)
 
 # Assemble a classifier

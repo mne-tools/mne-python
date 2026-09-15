@@ -18,8 +18,8 @@ from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..utils import (
     _check_depth,
     _check_option,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
     logger,
     sum_squared,
     verbose,
@@ -341,6 +341,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     return stc
 
 
+@_legacy_rng("random_state")
 @verbose
 def mixed_norm(
     evoked,
@@ -364,8 +365,10 @@ def mixed_norm(
     rank=None,
     pick_ori=None,
     sure_alpha_grid="auto",
-    random_state=None,
     verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
@@ -432,12 +435,12 @@ def mixed_norm(
         grid is directly specified. Ignored if alpha is not "sure".
 
         .. versionadded:: 0.24
-    random_state : int | None
-        The random state used in a random number generator for delta and
-        epsilon used for the SURE computation. Defaults to None.
+    %(verbose)s
+    %(rng)s
+    %(random_state_rng)s
+        Used for the random delta and epsilon in the SURE computation.
 
         .. versionadded:: 0.24
-    %(verbose)s
 
     Returns
     -------
@@ -541,7 +544,7 @@ def mixed_norm(
             gain,
             alpha_grid,
             sigma=1,
-            random_state=random_state,
+            rng=rng,
             n_mxne_iter=n_mxne_iter,
             maxit=maxit,
             tol=tol,
@@ -926,7 +929,7 @@ def _compute_mxne_sure(
     debias,
     solver,
     dgap_freq,
-    random_state,
+    rng,
     verbose,
 ):
     """Stein Unbiased Risk Estimator (SURE).
@@ -964,9 +967,9 @@ def _compute_mxne_sure(
         The algorithm to use for the optimization.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    random_state : int | None
-        The random state used in a random number generator for delta and
-        epsilon used for the SURE computation.
+    rng : instance of numpy.random.Generator
+        The random number generator used for delta and epsilon in the SURE
+        computation.
 
     Returns
     -------
@@ -1072,7 +1075,6 @@ def _compute_mxne_sure(
 
     sure_path = np.empty(len(alpha_grid))
 
-    rng = check_random_state(random_state)
     # See Deledalle et al. 20214 Sec. 5.1
     eps = 2 * sigma / (M.shape[0] ** 0.3)
     delta = rng.standard_normal(M.shape)

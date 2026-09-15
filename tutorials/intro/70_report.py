@@ -156,11 +156,10 @@ report.save("report_evoked.html", overwrite=True)
 # Adding `~mne.Covariance`
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# (Noise) covariance objects can be added via
-# :meth:`mne.Report.add_covariance`. The method accepts `~mne.Covariance`
-# objects and the path to a file on disk. It also expects us to pass an
-# `~mne.Info` object or the path to a file to read the measurement info from,
-# as well as a title.
+# (Noise) covariance objects can be added via :meth:`mne.Report.add_covariance`. The
+# method accepts `~mne.Covariance` objects and the path to a file on disk. It also
+# expects us to pass an `~mne.Info` object or the path to a file to read the measurement
+# info from, as well as a title.
 
 cov_path = sample_dir / "sample_audvis-cov.fif"
 
@@ -246,7 +245,7 @@ del raw_full, events, ecg_evoked
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
     fit_params=dict(tol=0.01),  # assume very early on that ICA has converged
-    random_state=97,
+    rng=97,
 )
 
 ica.fit(inst=raw)

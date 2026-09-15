@@ -329,6 +329,7 @@ class SourceSpaces(list):
         trans=None,
         *,
         fig=None,
+        set_view=True,
         verbose=None,
     ):
         """Plot the source space.
@@ -363,6 +364,12 @@ class SourceSpaces(list):
             If ``None``, creates a new 600x600 pixel figure with black background.
 
             .. versionadded:: 1.10
+        set_view : bool
+            If True (default), set the view of the figure to a default one. Can be
+            set to False to keep the view a figure passed via ``fig`` already has,
+            which is useful when reusing a single figure for multiple plots.
+
+            .. versionadded:: 1.13
         %(verbose)s
 
         Returns
@@ -435,11 +442,24 @@ class SourceSpaces(list):
             bem=bem,
             src=self,
             fig=fig,
+            set_view=set_view,
         )
 
-    def __getitem__(self, *args, **kwargs):
-        """Get an item."""
-        out = super().__getitem__(*args, **kwargs)
+    def __getitem__(self, key):
+        """Get one or more source spaces.
+
+        Parameters
+        ----------
+        key : int | slice
+            The source space(s) to get.
+
+        Returns
+        -------
+        src : dict | instance of SourceSpaces
+            A single source space if ``key`` is an integer, otherwise a new
+            :class:`~mne.SourceSpaces` instance.
+        """
+        out = super().__getitem__(key)
         if isinstance(out, list):
             out = SourceSpaces(out)
         return out
@@ -474,7 +494,18 @@ class SourceSpaces(list):
         return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
-        """Combine source spaces."""
+        """Combine source spaces.
+
+        Parameters
+        ----------
+        other : instance of SourceSpaces
+            The source spaces to append.
+
+        Returns
+        -------
+        src : instance of SourceSpaces
+            A new instance containing the source spaces of both objects.
+        """
         out = self.copy()
         out += other
         return SourceSpaces(out)
@@ -2780,15 +2811,25 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
             min_idx = min_idx[midx, range_idx]
             min_dists.append(min_dist)
             min_idxs.append(min_idx)
-            # convert to sparse representation
+            # Convert to sparse representation. Deriving the row/column vertex
+            # numbers from the flat indices of the entries we keep -- rather than
+            # from np.meshgrid(vertno, vertno), whose two dense (n_use, n_use)
+            # index arrays are over 800 MB apiece for an ico-5 source space --
+            # and indexing in the narrowest safe dtype roughly halves the peak
+            # memory of this block. Arrays are freed as soon as they are consumed
+            # for the same reason.
+            n_use = len(s["vertno"])
             d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
-            idx = d > 0
-            d = d[idx]
-            i, j = np.meshgrid(s["vertno"], s["vertno"])
-            i = i.ravel()[idx]
-            j = j.ravel()[idx]
+            idx_dtype = np.int32 if d.size <= np.iinfo(np.int32).max else np.int64
+            vertno = s["vertno"].astype(idx_dtype)
+            idx = np.flatnonzero(d).astype(idx_dtype, copy=False)  # 0 == not computed
+            data = d[idx]
+            del d
+            row = vertno[idx % n_use]
+            col = vertno[idx // n_use]
+            del idx, vertno
             s["dist"] = csr_array(
-                (d, (i, j)), shape=(s["np"], s["np"]), dtype=np.float32
+                (data, (row, col)), shape=(s["np"], s["np"]), dtype=np.float32
             )
             s["dist_limit"] = np.array([dist_limit], np.float32)
 

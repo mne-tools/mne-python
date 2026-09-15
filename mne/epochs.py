@@ -8,12 +8,12 @@ import json
 import operator
 import os.path as op
 from collections import Counter
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from copy import deepcopy
 from functools import partial
 from inspect import getfullargspec
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import numpy as np
 from numpy.random import RandomState
@@ -90,6 +90,7 @@ from .utils import (
     _convert_times,
     _ensure_events,
     _gen_events,
+    _legacy_rng,
     _on_missing,
     _path_like,
     _pl,
@@ -1722,6 +1723,7 @@ class BaseEpochs(
         picks=None,
         item=None,
         *,
+        exclude=(),
         units=None,
         tmin=None,
         tmax=None,
@@ -1739,6 +1741,14 @@ class BaseEpochs(
         %(picks_all)s
         item : slice | array-like | str | list | None
             See docstring of get_data method.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         %(units)s
         tmin : int | float | None
             Start time of data to get in seconds.
@@ -1805,7 +1815,7 @@ class BaseEpochs(
 
         orig_picks = picks
         if orig_picks is None:
-            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+            picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
         else:
             picks = _picks_to_idx(self.info, picks)
 
@@ -1910,12 +1920,9 @@ class BaseEpochs(
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
-                if data.flags["OWNDATA"] and data.flags["C_CONTIGUOUS"]:
-                    data.resize((n_out,) + data.shape[1:], refcheck=False)
-                else:
-                    data = data[:n_out]
-                    if self.preload:
-                        self._data = data
+                data = data[:n_out]
+                if self.preload:
+                    self._data = data
 
             # Now update our properties (excepd data, which is already fixed)
             self._getitem(
@@ -1991,6 +1998,7 @@ class BaseEpochs(
         tmin: int | float | None = None,
         tmax: int | float | None = None,
         *,
+        exclude: list[str] | Literal["bads"] | tuple = (),
         copy: bool = True,
         verbose: bool | str | int | None = None,
     ) -> np.ndarray:
@@ -2018,6 +2026,14 @@ class BaseEpochs(
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels. Note: ``exclude`` is currently only applied when ``picks``
+            is ``None``; it is ignored when ``picks!=None`` (to be fixed in a
+            future release).
+
+            .. versionadded:: 1.13
         copy : bool
             Whether to return a copy of the object's data, or (if possible) a view.
             See :ref:`the NumPy docs <numpy:basics.copies-and-views>` for an
@@ -2043,7 +2059,13 @@ class BaseEpochs(
             when possible when ``copy=False``.
         """
         return self._get_data(
-            picks=picks, item=item, units=units, tmin=tmin, tmax=tmax, copy=copy
+            picks=picks,
+            exclude=exclude,
+            item=item,
+            units=units,
+            tmin=tmin,
+            tmax=tmax,
+            copy=copy,
         )
 
     @verbose
@@ -2280,6 +2302,7 @@ class BaseEpochs(
         """Make a deepcopy."""
         cls = self.__class__
         result = cls.__new__(cls)
+        memodict[id(self)] = result  # so self-referencing attributes terminate
         for k, v in self.__dict__.items():
             # drop_log is immutable and _raw is private (and problematic to
             # deepcopy)
@@ -2488,12 +2511,14 @@ class BaseEpochs(
 
         export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
+    @_legacy_rng("random_state")
     @fill_doc
     def equalize_event_counts(
         self,
         event_ids: list | dict | None = None,
         method: Literal["truncate", "mintime", "random"] = "mintime",
         *,
+        rng=None,
         random_state: int | RandomState | None = None,
     ) -> tuple:
         """Equalize the number of trials in each condition.
@@ -2536,7 +2561,8 @@ class BaseEpochs(
             The ``event_ids`` must identify non-overlapping subsets of the
             epochs.
         %(equalize_events_method)s
-        %(random_state)s Used only if ``method='random'``.
+        %(rng_method_random)s
+        %(random_state_rng_method_random)s
 
         Returns
         -------
@@ -2640,7 +2666,10 @@ class BaseEpochs(
             eq_inds.append(self._keys_to_idx(eq))
 
         sample_nums = [self.events[e, 0] for e in eq_inds]
-        indices = _get_drop_indices(sample_nums, method, random_state)
+        legacy_seed = (
+            random_state if isinstance(random_state, int | np.integer) else None
+        )
+        indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         self.drop(indices, reason="EQUALIZED_COUNT")
@@ -2867,7 +2896,13 @@ class BaseEpochs(
         color: Color = "black",
         line_alpha: float | None = None,
         spatial_colors: bool = True,
-        sphere: float | np.ndarray | ConductorModel | str | list[str] | None = None,
+        sphere: float  # radius
+        | Annotated[Sequence[float], 4]  # x, y, z, radius
+        | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]]  # x, y, z, radius
+        | ConductorModel
+        | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
+        | list[Literal["cardinal", "eeg", "extra", "hpi"]]
+        | None = None,
         exclude: list[str] | Literal["bads"] = "bads",
         ax: "Axes | list[Axes] | None" = None,
         show: bool = True,
@@ -4011,11 +4046,13 @@ def combine_event_ids(
     return epochs
 
 
+@_legacy_rng("random_state")
 @fill_doc
 def equalize_epoch_counts(
     epochs_list: list,
     method: Literal["truncate", "mintime", "random"] = "mintime",
     *,
+    rng=None,
     random_state: int | RandomState | None = None,
 ) -> None:
     """Equalize the number of trials in multiple Epochs or EpochsTFR instances.
@@ -4025,7 +4062,8 @@ def equalize_epoch_counts(
     epochs_list : list of Epochs
         The Epochs instances to equalize trial counts for.
     %(equalize_events_method)s
-    %(random_state)s Used only if ``method='random'``.
+    %(rng_method_random)s
+    %(random_state_rng_method_random)s
 
     Notes
     -----
@@ -4052,12 +4090,13 @@ def equalize_epoch_counts(
         if not epoch._bad_dropped:
             epoch.drop_bad()
     sample_nums = [epoch.events[:, 0] for epoch in epochs_list]
-    indices = _get_drop_indices(sample_nums, method, random_state)
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
+    indices = _get_drop_indices(sample_nums, method, rng, legacy_seed=legacy_seed)
     for epoch, inds in zip(epochs_list, indices):
         epoch.drop(inds, reason="EQUALIZED_COUNT")
 
 
-def _get_drop_indices(sample_nums, method, random_state):
+def _get_drop_indices(sample_nums, method, rng, *, legacy_seed=None):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.size for e in sample_nums])
     small_epoch_indices = sample_nums[small_idx]
@@ -4070,9 +4109,14 @@ def _get_drop_indices(sample_nums, method, random_state):
             mask = np.ones(event.size, dtype=bool)
             mask[small_epoch_indices.size :] = False
         elif method == "random":
-            rng = check_random_state(random_state)
             mask = np.zeros(event.size, dtype=bool)
-            idx = rng.choice(
+            # Historically an integer seed was normalized inside this loop,
+            # restarting the same stream for every event list. Preserve that
+            # behavior only for the deprecated parameter; ``rng`` advances.
+            this_rng = (
+                check_random_state(legacy_seed) if legacy_seed is not None else rng
+            )
+            idx = this_rng.choice(
                 np.arange(event.size), size=small_epoch_indices.size, replace=False
             )
             mask[idx] = True
@@ -4653,15 +4697,17 @@ class EpochsFIF(BaseEpochs):
         return data
 
 
+@_legacy_rng("random_state")
 @fill_doc
-def bootstrap(epochs, random_state=None):
+def bootstrap(epochs, *, rng=None, random_state=None):
     """Compute epochs selected by bootstrapping.
 
     Parameters
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    %(random_state)s
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
@@ -4675,7 +4721,6 @@ def bootstrap(epochs, random_state=None):
             "in the constructor."
         )
 
-    rng = check_random_state(random_state)
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng_uniform(rng)(0, n_events, n_events)

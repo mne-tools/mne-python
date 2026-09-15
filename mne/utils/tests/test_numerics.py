@@ -213,15 +213,21 @@ def test_freq_mask():
 
 
 def test_random_permutation():
-    """Test random permutation function."""
+    """Test random permutation function and its RNG transition."""
     n_samples = 10
-    random_state = 42
-    python_randperm = random_permutation(n_samples, random_state)
-
     # matlab output when we execute rng(42), randperm(10)
-    matlab_randperm = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
-
-    assert_array_equal(python_randperm, matlab_randperm - 1)
+    assert_array_equal(
+        random_permutation(n_samples, random_state=42),
+        np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2]) - 1,
+    )
+    # an integer ``rng`` seed is reproducible while a Generator instance advances
+    assert_array_equal(
+        random_permutation(n_samples, rng=42), random_permutation(n_samples, rng=42)
+    )
+    rng = np.random.default_rng(42)
+    assert not np.array_equal(
+        random_permutation(n_samples, rng=rng), random_permutation(n_samples, rng=rng)
+    )
 
 
 def test_cov_scaling():
@@ -456,7 +462,7 @@ def test_pca(n_components, whiten):
     X = np.random.default_rng(0).standard_normal((n_samples, n_dim))
     X[:, -1] = np.mean(X[:, :-1], axis=-1)  # true X dim is ndim - 1
     X_orig = X.copy()
-    pca_skl = PCA(n_components, whiten=whiten, svd_solver="full")
+    pca_skl = PCA(n_components, whiten=whiten, svd_solver="full", random_state=0)
     pca_mne = _PCA(n_components, whiten=whiten)
     X_skl = pca_skl.fit_transform(X)
     assert_array_equal(X, X_orig)

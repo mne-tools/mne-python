@@ -5,7 +5,6 @@
 # Copyright the MNE-Python contributors.
 
 from collections.abc import Sequence
-from pathlib import Path
 
 import numpy as np
 
@@ -281,7 +280,7 @@ def read_events(
             "-annot.fif",  # MNE-C annot
         ),
     )
-    filename = Path(filename)
+    filename = _check_fname(filename, "read", must_exist=True, name="Events file")
     if filename.suffix in (".fif", ".gz"):
         fid, tree, _ = fiff_open(filename)
         with fid as f:
@@ -1249,7 +1248,6 @@ class AcqParserFIF:
                 manual for details. Currently the class does not offer any
                 facility for computing subaverages, but it can be done manually
                 by the user after collecting the epochs.
-
         """
         if isinstance(item, str):
             item = [item]

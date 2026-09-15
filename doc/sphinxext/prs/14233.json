@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "172d68e6cb9126da1b84571470e8d4b7ec13e61c",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/gui/_dipolefit.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/gui/tests/test_dipolefit.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/_3d_overlay.py": {
+      "a": 20,
+      "d": 9
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 16,
+      "d": 7
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 48,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 86,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 59,
+      "d": 7
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 25,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}

@@ -795,7 +795,7 @@ def _run_maxwell_filter(
         assert n > 0
         tsss_valid = n >= st_duration
         if st_overlap and tsss_valid and st_correlation is not None:
-            n_overlap = st_duration // 2
+            n_overlap = (st_duration + 1) // 2
             window = "hann"
         else:
             n_overlap = 0

@@ -274,7 +274,18 @@ class Covariance(dict):
         return s
 
     def __add__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom."""
+        """Add Covariance taking into account number of degrees of freedom.
+
+        Parameters
+        ----------
+        cov : instance of Covariance
+            The covariance to add.
+
+        Returns
+        -------
+        cov : instance of Covariance
+            A new covariance, weighted by the degrees of freedom of each input.
+        """
         _check_covs_algebra(self, cov)
         this_cov = cov.copy()
         this_cov["data"] = (
@@ -890,13 +901,12 @@ def _unpack_covariance_inputs(inst):
 
 @verbose
 def compute_covariance(
-    inst=None,
+    inst,
     keep_sample_mean=True,
     tmin=None,
     tmax=None,
     projs=None,
     *,
-    epochs=None,  # deprecated
     on_few_samples="warn",
     method="empirical",
     method_params=None,
@@ -945,11 +955,6 @@ def compute_covariance(
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the input should be
         inherited. If None, then projectors from all epochs must match.
-    epochs : instance of Epochs | Evoked | list of Epochs | None
-        This parameter is deprecated and will be removed in MNE 1.15. Use
-        ``inst`` instead.
-
-        .. deprecated:: 1.13
     on_few_samples : str
         Can be 'warn' (default), 'ignore', or 'raise' to control behavior when
         there are fewer samples than channels, which can lead to inaccurate
@@ -1091,19 +1096,6 @@ def compute_covariance(
     ----------
     .. footbibliography::
     """
-    if epochs is not None:
-        message = (
-            "The `epochs` parameter is deprecated and will be removed in MNE 1.15. "
-            "Use `inst` instead."
-        )
-        if inst is None:
-            inst = epochs
-        else:
-            message += " Since both were provided, `epochs` will be ignored."
-        warn(message, FutureWarning)
-    if inst is None:
-        raise ValueError("The `inst` parameter must be provided")
-
     is_evoked = isinstance(inst, Evoked)
     if is_evoked and not keep_sample_mean:
         raise ValueError(
@@ -1514,12 +1506,12 @@ def _auto_low_rank_model(
         iter_n_components = np.arange(5, data.shape[1], 5)
     from sklearn.decomposition import PCA, FactorAnalysis
 
+    random_state = method_params.pop("random_state", 0)
     if mode == "factor_analysis":
-        est = FactorAnalysis
+        est = FactorAnalysis(random_state=random_state, **method_params)
     else:
         assert mode == "pca"
-        est = PCA
-    est = est(**method_params)
+        est = PCA(random_state=random_state, **method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)

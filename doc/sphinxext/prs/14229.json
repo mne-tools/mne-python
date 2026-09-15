@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "eff1e3fae2a7bf30aa0d55bee704bd656f7994d1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/label.py": {
+      "a": 127,
+      "d": 141
+    },
+    "mne/morph.py": {
+      "a": 14,
+      "d": 6
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 17,
+      "d": 7
+    },
+    "mne/tests/test_label.py": {
+      "a": 15,
+      "d": 8
+    }
+  }
+}

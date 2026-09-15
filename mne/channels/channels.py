@@ -748,6 +748,7 @@ class UpdateChannelsMixin:
         # Now update the attributes
         if (
             isinstance(self._data, np.memmap)
+            and self._data.mode != "c"
             and con_axis == 0
             and sys.platform != "darwin"
         ):  # resizing not available--no mremap

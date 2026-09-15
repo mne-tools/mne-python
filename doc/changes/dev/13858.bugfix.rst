@@ -1,1 +1,0 @@
-Add a ``memmap`` keyword argument to :meth:`mne.io.BaseRaw.load_data`, allowing loading deferred raw data into a memory-mapped file after object creation, by `Aniket Singh Yadav`_.

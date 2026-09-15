@@ -318,9 +318,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/81/c4/34e93fe5f5429d7
 
 [[packages]]
 name = "refleak"
-version = "0.2.1"
-sdist = { url = "https://files.pythonhosted.org/packages/8a/70/b586bac19d443491b0b1bf18e017c98dfdb190503022e58afeb6240ee64f/refleak-0.2.1.tar.gz", upload-time = 2026-07-10T12:59:14Z, size = 28367, hashes = { sha256 = "8dd9585634375b0c0e1e9be12f6cf699b97f140c9a615c5c75b4fdb2305e0849" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/2c/e9/0818313965cdfd38f8639e6ac51d50c1bab20c42dfb8e1de571cf4553105/refleak-0.2.1-py3-none-any.whl", upload-time = 2026-07-10T12:59:13Z, size = 20801, hashes = { sha256 = "e48a7c54523273ec99adff87a83a88fddb52f21778a0479190425fcc456ab5a3" } }]
+version = "0.2.2"
+sdist = { url = "https://files.pythonhosted.org/packages/aa/b1/67b11c3f6ed3ed43aaf3498b22da7e65d835d795016f0072e5f497c68274/refleak-0.2.2.tar.gz", upload-time = 2026-08-17T17:38:02Z, size = 37021, hashes = { sha256 = "c9cfd5054e1703edf4489fb0418aee930cb6f0eeb4f64fb81a6a64772d1841c2" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/9a/43/5d968309f1749045aa4ef9dc044f456ed1c8882e269d16e0b2df168b969c/refleak-0.2.2-py3-none-any.whl", upload-time = 2026-08-17T17:38:01Z, size = 26996, hashes = { sha256 = "395675d59b07bf3fd8730bacb5c947c30d3474a6aff1efabdd4f7d2d8689d37b" } }]
 
 [[packages]]
 name = "requests"

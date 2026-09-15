@@ -2,11 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import numpy as np
 
@@ -243,6 +243,7 @@ class Evoked(
         units: str | dict | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
+        exclude: list[str] | Literal["bads"] | tuple = (),
     ) -> np.ndarray:
         """Get evoked data as 2D array.
 
@@ -254,6 +255,12 @@ class Evoked(
             Start time of data to get in seconds.
         tmax : float | None
             End time of data to get in seconds.
+        exclude : list[str] | Literal["bads"]
+            Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
+            excluded; pass an empty list or tuple (the default) to include all
+            channels.
+
+            .. versionadded:: 1.13
 
         Returns
         -------
@@ -267,7 +274,7 @@ class Evoked(
         # Avoid circular import
         from .io.base import _get_ch_factors
 
-        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        picks = _picks_to_idx(self.info, picks, "all", exclude=exclude)
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
@@ -567,7 +574,7 @@ class Evoked(
         selectable: bool = True,
         noise_cov: "Covariance | str | None" = None,
         time_unit: str = "s",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         *,
         highlight: np.ndarray | None = None,
         verbose: bool | str | int | None = None,
@@ -623,7 +630,7 @@ class Evoked(
         time_unit: str = "s",
         show_names: bool | Literal["auto", "all"] | None = None,
         group_by: dict | None = None,
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
     ) -> "Figure":
         from .viz import plot_evoked_image
 
@@ -714,7 +721,7 @@ class Evoked(
         mask_label_params: dict | None = None,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -813,7 +820,7 @@ class Evoked(
         show: bool = True,
         rank: Literal["info", "full"] | dict | None = None,
         time_unit: str = "s",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         axes: list | None = None,
         *,
         spatial_colors: bool | Literal["auto"] = "auto",
@@ -873,7 +880,7 @@ class Evoked(
         mask_label_params: dict | None = None,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -892,8 +899,6 @@ class Evoked(
         butterfly: bool = False,
         blit: bool = True,
         show: bool = True,
-        vmin: float | None = None,
-        vmax: float | None = None,
         verbose: bool | str | int | None = None,
     ) -> tuple["Figure", "FuncAnimation"]:
         """Make animation of evoked data as topomap timeseries.
@@ -955,10 +960,6 @@ class Evoked(
             Defaults to True.
         show : bool
             Whether to show the animation. Defaults to True.
-        vmin : float | None
-            Deprecated, use ``vlim=(vmin, vmax)`` instead.
-        vmax : float | None
-            Deprecated, use ``vlim=(vmin, vmax)`` instead.
         %(verbose)s
 
         Returns
@@ -1010,8 +1011,6 @@ class Evoked(
             frame_rate=frame_rate,
             butterfly=butterfly,
             blit=blit,
-            vmin=vmin,
-            vmax=vmax,
             show=show,
         )
 
@@ -1398,7 +1397,7 @@ class Evoked(
         color: str | tuple = "black",
         line_alpha: float | None = None,
         spatial_colors: bool = True,
-        sphere: "float | np.ndarray | ConductorModel | str | list[str] | None" = None,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         exclude: list[str] | Literal["bads"] = "bads",
         ax: "Axes | list[Axes] | None" = None,
         show: bool = True,

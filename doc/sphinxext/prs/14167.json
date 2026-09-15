@@ -1,0 +1,292 @@
+{
+  "merge_commit_sha": "f77431aa899e10bdb50f170d93d0a17b9a391338",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/_includes/bem_model.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/api/mri.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/changes/dev.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/dev.rst.template": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.1.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.10.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.11.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.12.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/v0.13.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/changes/v0.14.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.15.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.16.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.17.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/changes/v0.18.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.19.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.2.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.20.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.21.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.22.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.23.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.3.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.4.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.5.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.6.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.7.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.8.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v0.9.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.0.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.1.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.10.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.11.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.12.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.2.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/v1.3.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.4.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.5.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.6.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/v1.7.rst": {
+      "a": 6,
+      "d": 2
+    },
+    "doc/changes/v1.8.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/changes/v1.9.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 13,
+      "d": 4
+    },
+    "doc/credits/index.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/credits/leaders.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "doc/credits/sponsors.rst": {
+      "a": 3,
+      "d": 1
+    },
+    "doc/development/contributing.rst": {
+      "a": 9,
+      "d": 13
+    },
+    "doc/development/index.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/development/roadmap.rst": {
+      "a": 7,
+      "d": 5
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 4,
+      "d": 3
+    },
+    "doc/help/faq.rst": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/help/index.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/help/learn_python.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/install/advanced.rst": {
+      "a": 5,
+      "d": 7
+    },
+    "doc/install/check_installation.rst": {
+      "a": 2,
+      "d": 3
+    },
+    "doc/install/ides.rst": {
+      "a": 6,
+      "d": 4
+    },
+    "doc/install/installers.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/install/manual_install_python.rst": {
+      "a": 4,
+      "d": 2
+    },
+    "doc/install/mne_c.rst": {
+      "a": 2,
+      "d": 1
+    },
+    "doc/links.inc": {
+      "a": 8,
+      "d": 78
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 120,
+      "d": 0
+    },
+    "examples/datasets/limo_data.py": {
+      "a": 0,
+      "d": 1
+    },
+    "examples/decoding/decoding_csp_eeg.py": {
+      "a": 3,
+      "d": 1
+    },
+    "examples/io/read_xdf.py": {
+      "a": 2,
+      "d": 1
+    },
+    "examples/visualization/brain.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 6,
+      "d": 3
+    },
+    "tutorials/clinical/30_ecog.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 1
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

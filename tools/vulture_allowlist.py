@@ -9,6 +9,7 @@ https://github.com/jendrikseipp/vulture/blob/main/README.md#whitelists
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+fail_if_times_materialized
 numba_conditional
 options_3d
 invisible_fig
@@ -16,6 +17,7 @@ brain_gc
 windows_like_datetime
 garbage_collect
 renderer_notebook
+renderer_lite
 qt_windows_closed
 download_is_error
 exitstatus
@@ -40,6 +42,8 @@ set_channel_types_eyetrack
 _use_test_3d_backend
 verbose_debug
 metadata_routing
+Plotter
+customEvent
 
 # Decoding
 _.multi_class
@@ -65,6 +69,7 @@ __getattr__
 
 # Backward compat or rarely used
 RawFIF
+select_source_in_label
 estimate_head_mri_t
 plot_epochs_psd_topomap
 plot_epochs_psd
@@ -131,6 +136,9 @@ _._plotter
 _.set_fmax
 _.set_fmid
 _.set_fmin
+_._set_trace_visible
+_._set_trace_highlight
+_._trace_display_label
 _.EnterEvent
 _.MouseMoveEvent
 _.LeaveEvent
@@ -147,6 +155,8 @@ _._has_rpa_data
 _._nearest_transformed_high_res_mri_idx_rpa
 _._nearest_transformed_high_res_mri_idx_nasion
 _._nearest_transformed_high_res_mri_idx_lpa
+_.prop.culling
+_.prop.lighting
 
 # Figures (prevent GC for example)
 _.decim_data
@@ -178,3 +188,19 @@ _show_help_fig
 # Called by Qt, or only from a subprocess (mne/viz/backends/tests/test_utils.py)
 eventFilter
 _sigint_impl
+
+# Read by numpydoc's ClassDoc (also set in doc/conf.py)
+_.extra_public_methods
+
+# Accessed through an attribute-path string by the _qt_safe_window decorator
+_._init_renderer
+
+# Called by Matplotlib on the _NoOpAxes a ContourSet attaches itself to
+_.update_datalim
+
+# Called by the setup cell the docs prepend to the JupyterLite notebooks; the
+# attributes are read by the browser, requests and tqdm
+setup_notebook
+_.responseType
+_.status_code
+_.monitor_interval

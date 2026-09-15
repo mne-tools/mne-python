@@ -144,6 +144,12 @@ def reset_modules(gallery_conf, fname, when):
     """Do the reset."""
     import matplotlib.pyplot as plt
 
+    # Examples that set ``# sphinx_gallery_preserve_gui = True`` keep a single GUI open
+    # across all of their code blocks, and the scraper (not the example's globals, which
+    # sphinx-gallery has already dropped by the time we get here with when="after")
+    # holds the last reference to it. Close them before the leak checks below.
+    gui_scraper.close_preserved()
+
     mne.viz.set_3d_backend("pyvistaqt")
     pyvista.OFF_SCREEN = False
     pyvista.BUILDING_GALLERY = True

@@ -70,25 +70,20 @@ tfr_arithmetics_return_template = """
 Returns
 -------
 tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
-    {}
-"""
+    {}"""
 
-tfr_add_sub_template = """
-Parameters
+tfr_add_sub_template = """Parameters
 ----------
 other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
     The TFR instance to {}. Must have the same type as ``self``, and matching
     ``.times`` and ``.freqs`` attributes.
-
 {}
 """
 
-tfr_mul_truediv_template = """
-Parameters
+tfr_mul_truediv_template = """Parameters
 ----------
 num : int | float
     The number to {} by.
-
 {}
 """
 
@@ -437,6 +432,12 @@ docdict["axes_tfr_plot"] = _axes_list.format(
     ``axes`` must either be an instance of Axes, or a list of length 1. """,
 )
 
+docdict["axis"] = """
+axis : int
+    Axis of the input data along which independent estimators are fitted.
+    The default ``-1`` uses the final axis.
+"""
+
 docdict["axis_facecolor"] = """\
 axis_facecolor : str | tuple
     A matplotlib-compatible color to use for the axis background.
@@ -517,6 +518,37 @@ docdict["baseline_evoked"] = f"""{_baseline_rescale_base}
     2. Subtract this mean from the **entire** ``Evoked``.
 
 """
+_baseline_mode_desc = """\
+    Perform baseline correction by:
+
+    ``"mean"``
+      Subtracting the mean of baseline values
+    ``"ratio"``
+      Dividing by the mean of baseline values
+    ``"logratio"``
+      Dividing by the mean of baseline values and taking the log
+    ``"meanlogratio"``
+      Dividing by the mean of baseline values, taking the log and then
+      subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+      .. note:: this baseline mode has not been tested at the source-level!
+    ``"percent"``
+      Subtracting the mean of baseline values followed by dividing by
+      the mean of baseline values
+    ``"zscore"``
+      Subtracting the mean of baseline values and dividing by the
+      standard deviation of baseline values
+    ``"zlogratio"``
+      Dividing by the mean of baseline values, taking the log, and
+      dividing by the standard deviation of log baseline values
+"""
+
+docdict["baseline_mode"] = f"""\
+mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
+docdict["baseline_mode_mn"] = f"""\
+baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+{_baseline_mode_desc}"""  # noqa: E501
 
 docdict["baseline_report"] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**
@@ -1221,6 +1253,19 @@ dig_kinds : list of str | str
     'eeg' points.
 """
 
+docdict["digital_range_export_params"] = """
+digital_range : "auto" | "orig"
+    For EDF/BDF files, this controls the amplitude resolution of the
+    signals. "auto" uses the maximum available (16-bit for EDF, 24-bit for BDF).
+    If the :class:`~mne.io.Raw` object was originally read from and EDF or BDF
+    file, "orig" will use the digital range that was present in that file. For
+    :class:`~mne.io.Raw` objects that did not originate from EDF/BDF files,
+    "orig" falls back to the behavior of "auto".
+
+    .. versionadded:: 1.13.1
+"""
+
+
 docdict["dipole"] = """
 dipole : instance of Dipole | list of Dipole
     Dipole object containing position, orientation and amplitude of
@@ -1384,6 +1429,19 @@ method : ``'truncate'`` | ``'mintime'`` | ``'random'``
     list.
 
     .. versionadded:: 1.8
+"""
+
+docdict["erp_evoked_start_stop"] = """
+start, stop : float
+    Start and end time of the ERP computation window in seconds. Defaults to
+    ``None`` and ``None``, which corresponds to the entire Evoked object.
+"""
+
+docdict["erp_strict"] = """
+strict : bool
+    If True, raise an error if values are all positive when detecting
+    a minimum (mode='neg'), or all negative when detecting a maximum
+    (mode='pos'). Defaults to True.
 """
 
 docdict["estimate_plot_psd"] = """\
@@ -1833,11 +1891,9 @@ docdict["fmin_fmax_psd"] = _fmin_fmax.format(
 )
 
 docdict["fmin_fmax_psd_topo"] = _fmin_fmax.format("``fmin=0, fmax=100``.")
-docdict["fmin_fmax_tfr"] = _fmin_fmax.format(
-    """``None``
+docdict["fmin_fmax_tfr"] = _fmin_fmax.format("""``None``
     which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
-    present in the data)."""
-)
+    present in the data).""")
 
 docdict["fmin_fmid_fmax"] = """
 fmin : float
@@ -2349,7 +2405,7 @@ joint : bool
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+keep_his : bool | {"his_id", "sex", "hand"} | sequence of {"his_id", "sex", "hand"}
     If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
     overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
     ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
@@ -2453,7 +2509,13 @@ docdict["label_tc_el_returns"] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
 """
-
+docdict["labels_aseg"] = """
+labels : list of str | None
+    Labeled regions of interest to plot. See :func:`mne.get_montage_volume_labels`
+    for one way to determine regions of interest. Regions can also be chosen from
+    the :term:`FreeSurfer LUT`. If ``None``, all labels that are defined in the
+    segmentation file are used.
+"""
 docdict["labels_eltc"] = """
 labels : Label | BiHemiLabel | list | tuple | str
     If using a surface or mixed source space, this should be the
@@ -2816,23 +2878,6 @@ mode : None | 'mean' | 'max' | 'svd' | 'maxval' | 'sum'
     * 'maxval' : PSFs/CTFs with maximum absolute value across vertices.
       Returns the n_comp largest PSFs/CTFs.
     * 'sum' : Sum of PSFs/CTFs across vertices.
-"""
-
-docdict["mode_tfr_plot"] = """
-mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-    Perform baseline correction by
-
-    - subtracting the mean of baseline values ('mean') (default)
-    - dividing by the mean of baseline values ('ratio')
-    - dividing by the mean of baseline values and taking the log
-      ('logratio')
-    - subtracting the mean of baseline values followed by dividing by
-      the mean of baseline values ('percent')
-    - subtracting the mean of baseline values and dividing by the
-      standard deviation of baseline values ('zscore')
-    - dividing by the mean of baseline values, taking the log, and
-      dividing by the standard deviation of log baseline values
-      ('zlogratio')
 """
 
 docdict["montage"] = """
@@ -3356,13 +3401,13 @@ pad : str
 """
 )
 
-docdict["pad_resample_auto"] = (  # used when default is "auto"
+docdict["pad_resample_auto"] = (
     docdict["pad_resample"]
     + """\
     The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
     ``'reflect'`` for ``method='polyphase'``.
 """
-)
+)  # used when default is "auto"
 docdict["pca_vars_pctf"] = """
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
@@ -3414,9 +3459,13 @@ phase : str
 docdict["physical_range_export_params"] = """
 physical_range : str | tuple
     The physical range of the data. If 'auto' (default), the physical range is inferred
-    from the data, taking the minimum and maximum values per channel type. If
-    'channelwise', the range will be defined per channel. If a tuple of minimum and
-    maximum, this manual physical range will be used. Only used for exporting EDF files.
+    from the data: if the data came from and EDF/BDF/GDF file, the physical range of the
+    original file will be preserved (with a warning if clipping will occur). If the data
+    did not originate from an EDF/BDF/GDF file, ``"auto"`` will set the physical range
+    as the minimum and maximum values *per channel type*. If ``'channelwise'``, the
+    range will be defined *per channel*. If a tuple of minimum and maximum, that
+    manually-specified physical range will be used for all channels.
+    Only used for exporting EDF files.
 """
 
 _pick_ori_novec = """
@@ -3690,19 +3739,28 @@ docdict["preload"] = """
 preload : bool | str
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory)."""
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use. For supported Raw readers, the exact string
+    ``"auto"`` instead reuses decoded data below the directory configured by
+    :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+    copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+    .. versionchanged:: 1.13
+       Support for the ``"auto"`` decoded-data cache was added."""
 
 docdict["preload_concatenate"] = """
 preload : bool | str | None
     Preload data into memory for data manipulation and faster indexing.
     If True, the data will be preloaded into memory (fast, requires
-    large amount of memory). If preload is a string, preload is the
-    file name of a memory-mapped file which is used to store the data
-    on the hard drive (slower, requires less memory). If preload is
-    None, preload=True or False is inferred using the preload status
-    of the instances passed in.
+    large amount of memory). If preload is a string, it is the name of a
+    freshly created memory-mapped file used to store the data on the hard
+    drive (slower, requires less memory). An existing file is overwritten.
+    The caller owns the file and is responsible for removing it after the
+    Raw object is no longer in use. If preload is None, preload=True or False
+    is inferred using the preload status of the instances passed in.
 """
 
 docdict["proj_epochs"] = """
@@ -3766,12 +3824,21 @@ projs : bool | None
 docdict["random_state"] = """
 random_state : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
 """
+
+docdict["random_state_rng"] = """
+random_state : None | int | instance of ~numpy.random.RandomState
+    Supported for compatibility. New code should use ``rng``. If ``None``,
+    NumPy's global :class:`~numpy.random.RandomState` is used.
+"""
+
+docdict["random_state_rng_method_random"] = (
+    docdict["random_state_rng"].rstrip("\n")
+    + "\n    Used only if ``method='random'``.\n"
+)
 
 _rank_base = """
 rank : None | 'info' | 'full' | dict
@@ -4040,6 +4107,28 @@ return_pca_vars : bool
     Default to False.
 """
 
+docdict["rng"] = """
+rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+    The random number generator (RNG). If ``None`` (default), a new
+    :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+    a :class:`numpy.random.Generator` for reproducible results, or a legacy
+    :class:`~numpy.random.RandomState` to control the random-number stream or
+    for interoperability with third-party code such as scikit-learn that does
+    not accept generators. An integer seed uses
+    :func:`numpy.random.default_rng` and therefore produces a different stream
+    than the same integer passed to a legacy ``random_state`` or ``seed``
+    parameter.
+
+    .. versionadded:: 1.13
+"""
+
+# The ``rng`` entry ends with a directive, so anything appended at the call site
+# would be swallowed by it; make the ``method='random'`` variant here instead.
+docdict["rng_method_random"] = docdict["rng"].replace(
+    "\n\n    .. versionadded",
+    "\n    Used only if ``method='random'``.\n\n    .. versionadded",
+)
+
 docdict["roll"] = """
 roll : float | None
     The roll of the camera rendering the view in degrees.
@@ -4133,12 +4222,12 @@ section : str | None
 docdict["seed"] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
-    the seed will be  obtained from the operating system
-    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
-    likely produce different output every time this function or method is run.
-    To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    NumPy's global :class:`~numpy.random.RandomState` singleton is used.
+    Pass an int to use a new ``RandomState`` seeded with that value, or a
+    ``RandomState`` to control the random-number stream.
 """
+
+docdict["seed_rng"] = docdict["random_state_rng"].replace("random_state", "seed")
 
 docdict["seeg"] = """
 seeg : bool
@@ -4376,7 +4465,7 @@ spatial_colors : bool
 """
 
 docdict["sphere_topomap_auto"] = f"""\
-sphere : float | array-like of float | instance of ConductorModel | str | list of str | None
+sphere : float | array-like of float | instance of ConductorModel | {{"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"}} | list of str | None
     The sphere parameters to use for the head outline.
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in meters, or a
     single float to give just the radius (origin assumed 0, 0, 0).
@@ -5180,14 +5269,6 @@ vmin, vmax : float | {allowed}None
 docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
     allowed="", bounds=_bounds_symmetric, extra=""
 )
-# ↓↓↓ this one still used in Evoked.animate_topomap(), should migrate to `vlim`
-docdict["vmin_vmax_topomap"] = _vmin_vmax_template.format(
-    allowed="callable | ",
-    bounds=_bounds_symmetric,
-    extra=""" If callable, should accept
-    a :class:`NumPy array <numpy.ndarray>` of data and return a :class:`float`.""",
-)
-
 
 # %%
 # W

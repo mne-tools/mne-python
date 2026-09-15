@@ -43,7 +43,6 @@ from ...transforms import (
 from ...utils import (
     Bunch,
     _auto_weakref,
-    _check_fname,
     _check_option,
     _ensure_int,
     _path_like,
@@ -557,7 +556,6 @@ class Brain:
             raise ValueError("No data to visualize. See ``add_data``.")
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
-        self.default_smoothing_range = [-1, 15]
 
         # Default configuration
         self.visibility = False
@@ -580,6 +578,10 @@ class Brain:
         self.rms = None
         self._picked_patches = {key: list() for key in all_keys}
         self._picked_points = dict()
+        self._peak_vertices = {}
+        self._auto_peak_points = set()
+        self._trace_meta = {}
+        self._label_trace_meta = {}
         self._mouse_no_mvt = -1
         self._show_hover_info = False
         self._hover_caption = None
@@ -614,6 +616,10 @@ class Brain:
             self.separate_canvas = False
         del show_traces
 
+        # Start with the first-added overlay active (the colormap dock's
+        # default) so that the scalar bar, picking, and traces are all
+        # configured against the same overlay
+        self._active_data_key = next(iter(self._all_data))
         self._configure_time_label()
         self._configure_scalar_bar()
         self._configure_shortcuts()
@@ -631,7 +637,6 @@ class Brain:
         for hemi in ("lh", "rh"):
             for ri, ci, v in self._iter_views(hemi):
                 self.show_view(view=v, row=ri, col=ci)
-        self._renderer._process_events()
 
         self._renderer._update()
         # finally, show the MplCanvas
@@ -658,7 +663,7 @@ class Brain:
             for key in list(self.act_data_smooth.keys()):
                 self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
-        for renderer in self._renderer._all_renderers:
+        for renderer in getattr(self._renderer, "_all_renderers", ()):  # VTK only
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ("lighting", "interactor", "_RenderWindow"):
@@ -668,8 +673,9 @@ class Brain:
         self.plotter._Iren = _FakeIren()
         if getattr(self.plotter, "picker", None) is not None:
             self.plotter.picker = None
-        if getattr(self._renderer, "_picker", None) is not None:
-            self._renderer._picker = None
+        for picker in ("_picker", "_hover_picker"):
+            if getattr(self._renderer, picker, None) is not None:
+                setattr(self._renderer, picker, None)
         # XXX end PyVista
         for key in (
             "plotter",
@@ -913,6 +919,13 @@ class Brain:
         def select_data_key(value):
             self._active_data_key = value
             self._refresh_colormap_widgets()
+            self._update_act_data_smooth()
+            if self.show_traces:
+                self._update_peak_vertices()
+            if self.mpl_canvas is not None:
+                self.mpl_canvas.axes.relim()
+                self.mpl_canvas.axes.autoscale_view()
+                self.mpl_canvas.update_plot()
 
         self.widgets["data_key"] = self._renderer._dock_add_combo_box(
             name="Overlay",
@@ -998,7 +1011,7 @@ class Brain:
         self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
             name="Smoothing",
             value=self._data["smoothing_steps"],
-            rng=self.default_smoothing_range,
+            rng=[-1, 15],
             callback=self.set_data_smoothing,
             double=False,
             layout=layout,
@@ -1028,7 +1041,7 @@ class Brain:
             fmid=self._data["fmid"],
             fmax=self._data["fmax"],
         )
-        self._renderer._process_events()
+        self._renderer._update()
 
     def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
@@ -1044,6 +1057,7 @@ class Brain:
         layout = self._renderer._dock_add_group_box(name, collapse=True)
 
         # setup candidate annots
+        @safe_event
         @_auto_weakref
         def _set_annot(annot):
             self.clear_glyphs()
@@ -1060,6 +1074,7 @@ class Brain:
             self._renderer._update()
 
         # setup label extraction parameters
+        @safe_event
         @_auto_weakref
         def _set_label_mode(mode):
             if self.traces_mode != "label":
@@ -1085,7 +1100,10 @@ class Brain:
         cands = cands + ["None"]
         self.annot = cands[0]
         stc = self._data["stc"]
-        modes = _get_allowed_label_modes(stc)
+        # None (no extraction) is allowed by _get_allowed_label_modes but is
+        # not a valid choice here; with src=None it would otherwise end up
+        # last and become the default, breaking label extraction
+        modes = [m for m in _get_allowed_label_modes(stc) if m is not None]
         if self._data["src"] is None:
             modes = [
                 m for m in modes if m not in self.default_label_extract_modes["src"]
@@ -1116,8 +1134,18 @@ class Brain:
         self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_surface_widget(name="Surface")
-        self._configure_dock_trace_widget(name="Trace")
+        self._configure_dock_trace_widget(name="Atlas")
+        self._configure_dock_trace_list_widget(name="Trace List")
         self._renderer._dock_finalize()
+
+    def _configure_dock_trace_list_widget(self, name):
+        if not self.show_traces or self.mpl_canvas is None:
+            return
+        add_trace_list = getattr(self._renderer, "_dock_add_trace_list", None)
+        if add_trace_list is None:
+            return
+        self.mpl_canvas._trace_list = add_trace_list(name, collapse=False)
+        self.mpl_canvas.sync_traces()
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
@@ -1148,6 +1176,7 @@ class Brain:
 
         # Plot one RMS curve per overlay so the viewer shows all overlays.
         self.rms = []
+        self._peak_vertices = {}
         multi = len(self._all_data) > 1
         for overlay_key, overlay_data in self._all_data.items():
             y_parts = []
@@ -1170,12 +1199,11 @@ class Brain:
             (line,) = self.mpl_canvas.axes.plot(
                 overlay_data["time"],
                 rms,
-                lw=3,
+                lw=3.5,
                 label=label,
                 zorder=3,
                 color=next(self.color_cycle),
                 alpha=0.5,
-                ls=":",
             )
             self.rms.append(line)
 
@@ -1183,6 +1211,17 @@ class Brain:
         self.plot_time_line(update=False)
 
         # then the picked points
+        self._update_peak_vertices()
+
+    def _update_peak_vertices(self):
+        """(Re)compute the peak vertex per hemi for the active overlay."""
+        if self.traces_mode != "vertex":
+            # in label mode a VertexSelect would toggle the label containing
+            # the peak (and label extraction may not even be possible, e.g.,
+            # data added without an src)
+            return
+        old_peak_vertices = self._peak_vertices
+        self._peak_vertices = {}
         for idx, hemi in enumerate(["lh", "rh", "vol"]):
             act_data = self.act_data_smooth.get(hemi, [None])[0]
             if act_data is None:
@@ -1204,16 +1243,48 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
+            vertex_id = vertices[ind[0]]
+            self._peak_vertices[hemi] = vertex_id
+
+            old_vertex_id = old_peak_vertices.get(hemi)
+            if old_vertex_id == vertex_id:
+                # same peak vertex but possibly different data: refresh the
+                # auto-picked trace in place (manually picked traces keep
+                # showing the overlay they were picked from)
+                spheres = self._picked_points.get((hemi, vertex_id))
+                if (hemi, vertex_id) in self._auto_peak_points and spheres is not None:
+                    spheres[0]["line"].set_ydata(
+                        self._vertex_trace_data(hemi, vertex_id)
+                    )
+                continue
+            was_auto_picked = (hemi, old_vertex_id) in self._auto_peak_points
+            if old_vertex_id is not None and was_auto_picked:
+                self._remove_vertex_glyph(hemi=hemi, vertex_id=old_vertex_id)
+            # a vertex the user already picked stays a manual pick (and must
+            # not be auto-removed on the next overlay switch)
+            if (hemi, vertex_id) not in self._picked_points:
+                self._auto_peak_points.add((hemi, vertex_id))
             publish(
                 self,
-                VertexSelect(hemi=hemi, vertex_id=vertices[ind[0]], source_id=ind[0]),
+                VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=ind[0]),
             )
+        if self.mpl_canvas is not None:
+            self.mpl_canvas.sync_traces()
 
-    def _configure_picking(self):
+    def _vertex_trace_data(self, hemi, vertex_id):
+        """Get the active overlay's time course at a mesh vertex."""
+        act_data, smooth = self.act_data_smooth[hemi]
+        if smooth is not None:
+            act_data = (smooth[[vertex_id]] @ act_data)[0]
+        else:  # full-resolution data
+            act_data = act_data[vertex_id].copy()
+        return act_data
+
+    def _update_act_data_smooth(self):
         # get data for each hemi
         from scipy.sparse import csr_array
 
-        for idx, hemi in enumerate(["vol", "lh", "rh"]):
+        for hemi in ["vol", "lh", "rh"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
                 act_data = hemi_data["array"]
@@ -1227,6 +1298,9 @@ class Brain:
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
                     )
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
+
+    def _configure_picking(self):
+        self._update_act_data_smooth()
 
         self._renderer._update_picking_callback(
             self._on_mouse_move,
@@ -1260,7 +1334,7 @@ class Brain:
 
         x, y = iren.GetEventPosition()
         picked_renderer = iren.FindPokedRenderer(x, y)
-        vtk_picker = self._renderer._picker
+        vtk_picker = self._renderer._hover_picker
         vtk_picker.Pick(x, y, 0, picked_renderer)
         cell_id = vtk_picker.GetCellId()
         mapper = vtk_picker.GetMapper()
@@ -1439,9 +1513,14 @@ class Brain:
                         return
 
         # 2) Otherwise, pick the objects in the scene
+        # PyVista can give the actor's mapper an internal copy of our polydata
+        # (e.g., when RGBA scalars are used), in which case the picked dataset
+        # is not _polydata itself, so compare against the mapper's dataset too
+        mapper_dataset = getattr(vtk_picker.GetMapper(), "dataset", None)
         for hemi, this_mesh in self.layered_meshes.items():
             assert hemi in ("lh", "rh"), f"Unexpected {hemi=}"
-            if this_mesh._polydata is mesh:
+            if this_mesh._polydata is mesh or this_mesh._polydata is mapper_dataset:
+                mesh = this_mesh._polydata
                 break
         else:
             hemi = "vol"
@@ -1483,7 +1562,6 @@ class Brain:
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
             # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
-            source_id = idx
         else:
             vtk_cell = mesh.GetCell(cell_id)
             cell = [
@@ -1495,8 +1573,11 @@ class Brain:
 
             # retrieve the nearest source_id from the smooth_mat
             smooth_mat = self.act_data_smooth[hemi][1]
-            row = smooth_mat[vertex_id]
-            source_id = smooth_mat[vertex_id].argmax() if row.nnz else None
+            if smooth_mat is None:  # full-resolution data, no smoothing matrix
+                source_id = vertex_id
+            else:
+                row = smooth_mat[vertex_id]
+                source_id = row.argmax() if row.nnz else None
 
         publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id, source_id=source_id))
 
@@ -1513,7 +1594,7 @@ class Brain:
                 if "current_time" in self.widgets:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
-        self._renderer._process_events()
+        self._renderer._update()
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -1534,7 +1615,7 @@ class Brain:
                         self.widgets[entry_key].set_value(val * self._data["fscale"])
         # Update the render.
         self._update_colormap_range(**lims)
-        self._renderer._process_events()
+        self._renderer._update()
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
@@ -1572,11 +1653,20 @@ class Brain:
 
     def _remove_label_glyph(self, hemi, label_id):
         label = self._annotation_labels[hemi][label_id]
-        label._line.remove()
+        # do the bookkeeping first so that a failure partway cannot leave a
+        # picked label whose line is already detached, which would make every
+        # subsequent removal (and clear_glyphs at annotation changes) fail too
+        self._picked_patches[hemi].remove(label_id)
+        line, label._line = label._line, None
+        self._label_trace_meta.pop(line, None)
+        if line is not None:
+            try:
+                line.remove()
+            except ValueError:  # already detached from the axes
+                pass
         self.color_cycle.restore(label._color)
         self.mpl_canvas.update_plot()
         self.layered_meshes[hemi].remove_overlay(label.name)
-        self._picked_patches[hemi].remove(label_id)
 
     def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
         _ensure_int(vertex_id)
@@ -1617,6 +1707,7 @@ class Brain:
         rindex = lst.index(self._picked_renderer)
         row, col = self._renderer._index_to_loc(rindex)
 
+        is_peak = self._peak_vertices.get(hemi) == vertex_id
         spheres = list()
         for _ in self._iter_views(hemi):
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
@@ -1628,8 +1719,14 @@ class Brain:
             actor, mesh = self._renderer._sphere(
                 center=np.array(center),
                 color=color,
-                radius=4.0,
+                radius=4.5 if is_peak else 3.0,
+                resolution=24 if is_peak else 8,
             )
+            if is_peak:
+                prop = actor.GetProperty()
+                prop.SetSpecular(0.6)
+                prop.SetSpecularPower(40)
+                prop.SetSpecularColor(1, 1, 1)
             spheres.append(dict(mesh=mesh, actor=actor))
 
         # add metadata for picking
@@ -1647,11 +1744,13 @@ class Brain:
         # to all linked brains, so by the time a given brain's own loop (e.g.
         # in clear_glyphs) reaches this (hemi, vertex_id) it may already be
         # gone; just no-op in that case.
+        self._auto_peak_points.discard((hemi, vertex_id))
         spheres = self._picked_points.pop((hemi, vertex_id), None)
         if spheres is None:
             return
         color, line = spheres[0]["color"], spheres[0]["line"]
         line.remove()
+        self._trace_meta.pop(line, None)
         self.mpl_canvas.update_plot()
 
         with warnings.catch_warnings(record=True):
@@ -1664,6 +1763,60 @@ class Brain:
             self.plotter.remove_actor(sphere.pop("actor"), render=False)
         if render:
             self._renderer._update()
+
+    def _set_trace_visible(self, line, visible):
+        """Toggle a trace's 3D glyph visibility to match its plot visibility."""
+        for spheres in self._picked_points.values():
+            if spheres[0]["line"] is line:
+                for sphere in spheres:
+                    sphere["actor"].SetVisibility(visible)
+                self._renderer._update()
+                return
+
+    def _set_trace_highlight(self, line):
+        """Dim the 3D glyphs of every picked trace except the highlighted one."""
+        if not self._picked_points:
+            return
+        for spheres in self._picked_points.values():
+            opacity = 1.0 if line in (None, spheres[0]["line"]) else 0.3
+            for sphere in spheres:
+                sphere["actor"].GetProperty().SetOpacity(opacity)
+        self._renderer._update()
+
+    def _trace_display_label(self, line):
+        """Return a short, dock-friendly trace-list label.
+
+        The vertex auto-picked at peak activation for each hemisphere gets a
+        "Peak (LH) 1000"-style name; other picked vertices get a compact
+        "LH 1000"-style name instead of the full MNI-coordinate string (still
+        available as the row's tooltip). A picked label gets a
+        "superiortemporal (LH)"-style name, moving its name's hemisphere
+        suffix into the parentheses. RMS curves are returned unchanged.
+        """
+        meta = self._trace_meta.get(line)
+        if meta is not None:
+            hemi, vertex_id, _ = meta
+            hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
+            if self._peak_vertices.get(hemi) == vertex_id:
+                return f"Peak ({hemi_names[hemi]}) {vertex_id}"
+            return f"{hemi_names[hemi]} {vertex_id}"
+        label_meta = self._label_trace_meta.get(line)
+        if label_meta is not None:
+            hemi, label_name, _, _ = label_meta
+            return f"{label_name.removesuffix(f'-{hemi}')} ({hemi.upper()})"
+        return line.get_label()
+
+    def _trace_display_subtitle(self, line):
+        """Return an optional small subtitle line for a trace-list row."""
+        meta = self._trace_meta.get(line)
+        if meta is not None:
+            mni_str = meta[2]
+            return f"MNI: {mni_str}" if mni_str else None
+        label_meta = self._label_trace_meta.get(line)
+        if label_meta is not None:
+            _, _, mode, n_vertices = label_meta
+            return f"{n_vertices} vertices, mode: {mode}"
+        return None
 
     def clear_glyphs(self):
         """Clear the picking glyphs."""
@@ -1679,6 +1832,7 @@ class Brain:
         if self.rms is not None:
             for line in self.rms:
                 line.remove()
+                self.color_cycle.restore(line.get_color())
             self.rms = None
         self._renderer._update()
 
@@ -1725,24 +1879,27 @@ class Brain:
             except Exception:
                 mni = None
         if mni is not None:
-            mni = " MNI: " + ", ".join(f"{m:5.1f}" for m in mni)
+            mni_str = ", ".join(f"{m:5.1f}" for m in mni)
+            mni_suffix = " MNI: " + mni_str
         else:
-            mni = ""
-        label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni}"
-        act_data, smooth = self.act_data_smooth[hemi]
-        if smooth is not None:
-            act_data = (smooth[[vertex_id]] @ act_data)[0]
-        else:
-            act_data = act_data[vertex_id].copy()
+            mni_str = None
+            mni_suffix = ""
+        label = f"{hemi_str}:{str(vertex_id).ljust(6)}{mni_suffix}"
+        act_data = self._vertex_trace_data(hemi, vertex_id)
         line = self.mpl_canvas.plot(
             time,
             act_data,
             label=label,
-            lw=1.0,
+            lw=1.8,
             color=color,
             zorder=4,
-            update=update,
+            update=False,
         )
+        self._trace_meta[line] = (hemi, vertex_id, mni_str)
+        if update:
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
         return line
 
     @fill_doc
@@ -1763,12 +1920,16 @@ class Brain:
                     x=current_time,
                     label="time",
                     color=self._fg_color,
-                    lw=1,
+                    lw=1.5,
+                    ls="--",
+                    alpha=0.7,
                     update=update,
                 )
             self.time_line.set_xdata([current_time])
             if update:
-                self.mpl_canvas.update_plot()
+                # only the time line moved, so the rest of the figure can be
+                # blitted from the cached background instead of being redrawn
+                self.mpl_canvas.update_blit_artists()
 
     def _configure_help(self):
         pairs = [
@@ -2126,6 +2287,36 @@ class Brain:
         self._all_data[key][hemi]["glyph_actor"] = None
         self._all_data[key][hemi]["array"] = array
         self._all_data[key][hemi]["vertices"] = vertices
+        if (
+            stc is None
+            and hemi in ("lh", "rh")
+            and vertices is not None
+            and len(array) == len(vertices)
+        ):
+            # Synthesize an stc from the raw arrays so that label-mode traces
+            # (which use stc.extract_label_time_course) also work when data
+            # is passed directly rather than plotted from an stc
+            from ...source_estimate import SourceEstimate, VectorSourceEstimate
+
+            stc_verts, stc_data = list(), list()
+            for stc_hemi in ("lh", "rh"):
+                hemi_data = self._all_data[key].get(stc_hemi)
+                if not isinstance(hemi_data, dict) or "array" not in hemi_data:
+                    stc_verts.append(np.array([], int))
+                    continue
+                stc_array = hemi_data["array"]
+                if stc_array.ndim == 1:
+                    stc_array = stc_array[:, np.newaxis]
+                stc_verts.append(hemi_data["vertices"])
+                stc_data.append(stc_array)
+            if time is not None and len(time) > 1:
+                tmin, tstep = time[0], time[1] - time[0]
+            else:
+                tmin, tstep = 0.0, 1.0
+            klass = VectorSourceEstimate if stc_data[0].ndim == 3 else SourceEstimate
+            self._all_data[key]["stc"] = klass(
+                np.concatenate(stc_data), stc_verts, tmin, tstep, subject=self._subject
+            )
         self._all_data[key]["alpha"] = alpha
         self._all_data[key]["colormap"] = colormap
         self._all_data[key]["center"] = center
@@ -2138,14 +2329,6 @@ class Brain:
         )
         self.set_time_interpolation(self.time_interpolation)
         self._update_colormap_range()
-
-        if "data_key" in self.widgets:
-            keys = list(self._all_data.keys())
-            self.widgets["data_key"].set_items(keys)
-            self.widgets["data_key"].set_value(key)
-            if len(keys) > 1:
-                self.widgets["data_key"].show()
-            self._refresh_colormap_widgets()
 
         # 1) add the surfaces first
         actor = None
@@ -2162,6 +2345,16 @@ class Brain:
         # set_data_smoothing calls "_update_current_time_idx" for us, which will set
         # _current_time
         self.set_data_smoothing(self._all_data[key]["smoothing_steps"])
+
+        # setting the data_key widget fires select_data_key, which needs this
+        # overlay's smooth_mat (and, for volumes, its grid) to already exist
+        if "data_key" in self.widgets:
+            keys = list(self._all_data.keys())
+            self.widgets["data_key"].set_items(keys)
+            self.widgets["data_key"].set_value(key)
+            if len(keys) > 1:
+                self.widgets["data_key"].show()
+            self._refresh_colormap_widgets()
 
         # 3) add the other actors
         if colorbar is True:
@@ -2332,6 +2525,11 @@ class Brain:
             origin = src_mri_t[:3, 3]
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
+            # TODO: reaches into VTK through the renderer, which the
+            # jupyterlite_notebook backend cannot offer (its pages are excluded
+            # in doc/conf.py); refactor the renderer interface so Brain only
+            # uses its abstract methods. Same for the time label and glyph
+            # actors below.
             grid, grid_mesh, volume_pos, volume_neg = self._renderer._volume(
                 dimensions,
                 origin,
@@ -2495,11 +2693,24 @@ class Brain:
             tc = stc.extract_label_time_course(
                 label, src=src, mode=self.label_extract_mode
             )
-            tc = tc[0] if tc.ndim == 2 else tc[0, 0, :]
+            tc = tc[0]
+            if tc.ndim == 2:  # vector data: show the norm across orientations
+                tc = np.linalg.norm(tc, axis=0)
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
-                self._data["time"], tc, label=label_name, color=color
+                self._data["time"], tc, label=label_name, color=color, update=False
             )
+            # count the source vertices the extraction uses, not surface ones
+            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
+            self._label_trace_meta[line] = (
+                hemi,
+                label_name,
+                self.label_extract_mode,
+                np.intersect1d(label.vertices, stc_vertices).size,
+            )
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
         else:
             line = None
 
@@ -2762,11 +2973,7 @@ class Brain:
         Parameters
         ----------
         %(aseg)s
-        labels : list
-            Labeled regions of interest to plot. See
-            :func:`mne.get_montage_volume_labels`
-            for one way to determine regions of interest. Regions can also be
-            chosen from the :term:`FreeSurfer LUT`.
+        %(labels_aseg)s
         colors : list | matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
             (default :term:`FreeSurfer LUT` colors).
@@ -3215,10 +3422,6 @@ class Brain:
             Either path to annotation file, an annotation name, or a list of
             :class:`mne.Label` objects.
 
-            DEPRECATED: The annotation can be specified as a ``(labels, ctab)`` tuple
-            per hemisphere, i.e. ``annot=(labels, ctab)`` for a single hemisphere or
-            ``annot=((lh_labels, lh_ctab), (rh_labels, rh_ctab))`` for both hemispheres.
-
             .. versionadded:: 1.13
                The ability to supply a list of :class:`~mne.Label` objects.
         borders : bool | int
@@ -3239,26 +3442,6 @@ class Brain:
             .. versionadded:: 1.13
         """
         from ...label import read_labels_from_annot
-
-        if (isinstance(annot, tuple) and isinstance(annot[0], np.ndarray)) or (
-            isinstance(annot, (tuple, list)) and isinstance(annot[0], tuple)
-        ):
-            # Deprecated old style of passing a (labels, cmap) pair per hemisphere.
-            # Shortcut to old code that can be removed in MNE version 1.14.
-            warn(
-                "Passing the annotation as a `(label, cmap)` tuple is deprecated and "
-                "will be removed in MNE-Python version 1.14.",
-                FutureWarning,
-            )
-            self._old_add_annotation(
-                annot,
-                borders=borders,
-                alpha=alpha,
-                hemi=hemi,
-                remove_existing=remove_existing,
-                color=color,
-            )
-            return
 
         _validate_type(annot, ("path-like", str, list), "annot")
 
@@ -3340,99 +3523,6 @@ class Brain:
                     )
         self._renderer._update()
 
-    # DEPRECATED: Can be removed in version 1.14. Also remove _read_annot from
-    # mne/labels.py.
-    def _old_add_annotation(
-        self, annot, borders=True, alpha=1, hemi=None, remove_existing=True, color=None
-    ):
-        from ...label import _read_annot
-
-        hemis = self._check_hemis(hemi)
-
-        # Figure out where the data is coming from
-        if _path_like(annot):
-            if os.path.isfile(annot):
-                filepath = _check_fname(annot, overwrite="read")
-                file_hemi, annot = filepath.name.split(".", 1)
-                if len(hemis) > 1:
-                    if file_hemi == "lh":
-                        filepaths = [filepath, filepath.parent / ("rh." + annot)]
-                    elif file_hemi == "rh":
-                        filepaths = [filepath.parent / ("lh." + annot), filepath]
-                    else:
-                        raise RuntimeError(
-                            "To add both hemispheres simultaneously, filename must "
-                            'begin with "lh." or "rh."'
-                        )
-                else:
-                    filepaths = [filepath]
-            else:
-                filepaths = []
-                for hemi in hemis:
-                    filepath = op.join(
-                        self._subjects_dir,
-                        self._subject,
-                        "label",
-                        ".".join([hemi, annot, "annot"]),
-                    )
-                    if not os.path.exists(filepath):
-                        raise ValueError(f"Annotation file {filepath} does not exist")
-                    filepaths += [filepath]
-            annots = []
-            for hemi, filepath in zip(hemis, filepaths):
-                # Read in the data
-                labels, cmap, _ = _read_annot(filepath)
-                annots.append((labels, cmap))
-        else:
-            annots = [annot] if len(hemis) == 1 else annot
-            annot = "annotation"
-
-        for hemi, (labels, cmap) in zip(hemis, annots):
-            # Maybe zero-out the non-border vertices
-            self._to_borders(labels, hemi, borders)
-
-            # Handle null labels properly
-            cmap[:, 3] = 255
-            bgcolor = np.round(np.array(self._brain_color) * 255).astype(int)
-            bgcolor[-1] = 0
-            cmap[cmap[:, 4] < 0, 4] += 2**24  # wrap to positive
-            cmap[cmap[:, 4] <= 0, :4] = bgcolor
-            if np.any(labels == 0) and not np.any(cmap[:, -1] <= 0):
-                cmap = np.vstack((cmap, np.concatenate([bgcolor, [0]])))
-
-            # Set label ids sensibly
-            order = np.argsort(cmap[:, -1])
-            cmap = cmap[order]
-            ids = np.searchsorted(cmap[:, -1], labels)
-            cmap = cmap[:, :4]
-
-            #  Set the alpha level
-            alpha_vec = cmap[:, 3]
-            alpha_vec[alpha_vec > 0] = alpha * 255
-
-            # Override the cmap when a single color is used
-            if color is not None:
-                rgb = np.round(np.multiply(_to_rgb(color), 255))
-                cmap[:, :3] = rgb.astype(cmap.dtype)
-
-            ctable = cmap.astype(np.float64)
-            for _ in self._iter_views(hemi):
-                mesh = self.layered_meshes[hemi]
-                mesh.add_overlay(
-                    scalars=ids,
-                    colormap=ctable,
-                    rng=[np.min(ids), np.max(ids)],
-                    opacity=alpha,
-                    name=annot,
-                )
-                self._annots[hemi].append(annot)
-                if not self.time_viewer or self.traces_mode == "vertex":
-                    self._renderer._set_colormap_range(
-                        mesh._actor, cmap.astype(np.uint8), None
-                    )
-
-        self._renderer._update()
-
     def _create_caption(self):
         from vtkmodules.vtkRenderingAnnotation import vtkCaptionActor2D
 
@@ -3461,7 +3551,7 @@ class Brain:
 
         x, y = iren.GetEventPosition()
         picked_renderer = iren.FindPokedRenderer(x, y)
-        vtk_picker = self._renderer._picker
+        vtk_picker = self._renderer._hover_picker
         vtk_picker.Pick(x, y, 0, picked_renderer)
         cell_id = vtk_picker.GetCellId()
         # This returns a vtkPolyData we don't seem to have access to:
@@ -3676,7 +3766,6 @@ class Brain:
                     self._set_camera(**view_params, align=align)
         if update:
             self._renderer._update()
-            self._renderer._process_events()
 
     def _set_camera(
         self,
@@ -4127,7 +4216,7 @@ class Brain:
         time_actor = active.get("time_actor", None)
         time_label = active.get("time_label", None)
         for hemi in ["lh", "rh", "vol"]:
-            hemi_needs_recompose = False
+            staged_keys = list()
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
@@ -4152,6 +4241,7 @@ class Brain:
                 if data_key == self._active_data_key:
                     self._current_act_data[hemi] = act_data
                     if time_actor is not None and time_label is not None:
+                        # TODO: VTK text actor API, see _add_volume_data
                         time_actor.SetInput(time_label(self._current_time))
 
                 # update the volume interpolation (active key only)
@@ -4185,10 +4275,10 @@ class Brain:
                         key_data["fmax"],
                     ]
                     if data_key in mesh._overlays:
-                        # Stage without recomposing; a single mesh.update() below
-                        # handles all overlays in O(N) instead of O(N²).
+                        # Stage without recomposing; a single update below handles
+                        # all overlays in O(N) instead of O(N²).
                         mesh.update_overlay(data_key, scalars=act_data, update=False)
-                        hemi_needs_recompose = True
+                        staged_keys.append(data_key)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
@@ -4203,8 +4293,15 @@ class Brain:
                 if vectors is not None and data_key == self._active_data_key:
                     self._update_glyphs(hemi, vectors)
 
-            if hemi_needs_recompose and hemi in self.layered_meshes:
-                self.layered_meshes[hemi].update()
+            if staged_keys and hemi in self.layered_meshes:
+                if len(staged_keys) == 1:
+                    # Let update_overlay pick the cached path when the overlay we
+                    # staged is the topmost one: the layers below it (curvature,
+                    # labels, ...) have not changed, so their composite can be
+                    # reused instead of color-mapping them all again.
+                    self.layered_meshes[hemi].update_overlay(staged_keys[0])
+                else:
+                    self.layered_meshes[hemi].update()
 
         active["time_idx"] = time_idx
         self._renderer._update()
@@ -4283,6 +4380,7 @@ class Brain:
                 glyph_dataset.point_data["vec"] = vectors
                 glyph_mapper = hemi_data["glyph_mapper"]
             if add:
+                # TODO: VTK mapper/actor API, see _add_volume_data
                 glyph_actor = self._renderer._actor(glyph_mapper)
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.0)
