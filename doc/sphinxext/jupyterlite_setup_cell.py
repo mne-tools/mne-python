@@ -1,45 +1,39 @@
 """The setup cell prepended to every JupyterLite notebook.
 
-It installs MNE into the browser kernel and patches what Pyodide does not
-provide: data fetching over HTTP, the readers that expect files already on
-disk, and the 3D renderer. The cell lives in ``_lite_setup_cell.py`` as
-ordinary Python, so ruff lints and formats it; this module only reads that
-file and checks it compiles.
+It installs MNE into the browser kernel and hands over to
+``mne.viz.backends._jupyterlite.setup_notebook``, which patches what Pyodide
+does not provide. piplite (not micropip) prefers the development MNE wheel
+bundled with the docs over PyPI, and ``keep_going`` reports a dependency with
+no wheel instead of aborting. ``sys.platform`` is ``"emscripten"`` only inside
+Pyodide, so the cell is a no-op in a local kernel and a notebook downloaded
+from inside JupyterLite runs unchanged there.
 
 The docs build prepends it only to the notebooks copied into the JupyterLite
-contents. It deliberately does NOT go through ``first_notebook_cell``: that is
-applied when the notebook is generated, so it would also land in the ``.ipynb``
-offered for download, where ``piplite`` does not exist and the notebook would
-fail on its first cell.
-
-The other direction is covered in the cell itself: a notebook downloaded from
-inside JupyterLite does carry the cell, and it says to delete it before running
-locally, for the same reason.
+contents, not through ``first_notebook_cell``, which would also put it in the
+``.ipynb`` offered for download.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+# ruff: noqa: E501  # the install list stays on one line so the cell reads short
+
 import ast
-from pathlib import Path
 
-# The source file is split at this banner: everything after it is what the
-# notebook runs, and what sits above it (license header, ruff directives, notes
-# for whoever edits it) stays behind.
-_BANNER = "# --- JupyterLite setup cell"
+LITE_SETUP_CELL = """\
+# 💡 Added by the docs build: installs MNE into the browser kernel and adapts
+# it to Pyodide. Does nothing outside JupyterLite.
+import sys
 
+if sys.platform == "emscripten":
+    import piplite
 
-def _read(name):
-    _source = Path(__file__).parent / name
-    _text = _source.read_text()
-    if _BANNER not in _text:
-        raise RuntimeError(f"{_source.name} is missing the {_BANNER!r} banner")
-    _body = _text[_text.index(_BANNER) :]
-    return _body[_body.index("\n") + 1 :]
+    await piplite.install(["mne", "scikit-learn", "joblib", "pandas", "seaborn", "mne-connectivity", "nibabel", "pyvista-js", "pyxdf", "mffpy", "python-picard"], keep_going=True)  # noqa: E501
+    from mne.viz.backends._jupyterlite import setup_notebook
 
-
-LITE_SETUP_CELL = _read("_lite_setup_cell.py")
+    setup_notebook()
+"""
 # nothing else runs this before a reader does, so at least make sure it parses
 compile(
     LITE_SETUP_CELL, "lite_setup_cell", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT

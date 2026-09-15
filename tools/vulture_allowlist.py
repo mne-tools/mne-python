@@ -197,3 +197,10 @@ _._init_renderer
 
 # Called by Matplotlib on the _NoOpAxes a ContourSet attaches itself to
 _.update_datalim
+
+# Called by the setup cell the docs prepend to the JupyterLite notebooks; the
+# attributes are read by the browser, requests and tqdm
+setup_notebook
+_.responseType
+_.status_code
+_.monitor_interval

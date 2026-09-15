@@ -2525,6 +2525,11 @@ class Brain:
             origin = src_mri_t[:3, 3]
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
+            # TODO: reaches into VTK through the renderer, which the
+            # jupyterlite_notebook backend cannot offer (its pages are excluded
+            # in doc/conf.py); refactor the renderer interface so Brain only
+            # uses its abstract methods. Same for the time label and glyph
+            # actors below.
             grid, grid_mesh, volume_pos, volume_neg = self._renderer._volume(
                 dimensions,
                 origin,
@@ -4236,6 +4241,7 @@ class Brain:
                 if data_key == self._active_data_key:
                     self._current_act_data[hemi] = act_data
                     if time_actor is not None and time_label is not None:
+                        # TODO: VTK text actor API, see _add_volume_data
                         time_actor.SetInput(time_label(self._current_time))
 
                 # update the volume interpolation (active key only)
@@ -4374,6 +4380,7 @@ class Brain:
                 glyph_dataset.point_data["vec"] = vectors
                 glyph_mapper = hemi_data["glyph_mapper"]
             if add:
+                # TODO: VTK mapper/actor API, see _add_volume_data
                 glyph_actor = self._renderer._actor(glyph_mapper)
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.0)
