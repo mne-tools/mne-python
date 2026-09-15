@@ -6,6 +6,7 @@ from copy import deepcopy
 from math import sqrt
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 from scipy import linalg
 
 from .._fiff.constants import FIFF
@@ -1709,6 +1710,7 @@ def _prepare_forward(
     combine_xyz,
     allow_fixed_depth,
     limit,
+    source_cov=None,
 ):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
@@ -1845,12 +1847,21 @@ def _prepare_forward(
     gain = np.dot(whitener, forward["sol"]["data"])
 
     logger.info("Creating the source covariance matrix")
-    source_std = np.ones(gain.shape[1], dtype=gain.dtype)
+    if source_cov is not None:
+        logger.info("    Using user-specified source covariance matrix as a base")
+        source_variances = _handle_source_cov(
+            source_cov=source_cov,
+            fixed_inverse=fixed_inverse,
+            n_sources=forward["nsource"],
+        )
+    else:
+        source_variances = np.ones(gain.shape[1], dtype=gain.dtype)
+
     if depth_prior is not None:
-        source_std *= depth_prior
+        source_variances *= depth_prior
     if orient_prior is not None:
-        source_std *= orient_prior
-    np.sqrt(source_std, out=source_std)
+        source_variances *= orient_prior
+    source_std = np.sqrt(source_variances)  # variances --> standard deviations
     gain *= source_std
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
@@ -1874,6 +1885,50 @@ def _prepare_forward(
     )
 
 
+def _handle_source_cov(
+    source_cov: ArrayLike, fixed_inverse: bool, n_sources: int
+) -> NDArray[np.float64]:
+    """Check that source_cov is compatible with the gain and reshape if necessary.
+
+    Always returns a copy with data type float64.
+    """
+    # Make a copy and ensure data type float64.
+    source_cov = np.array(source_cov, dtype=np.float64, copy=True)
+    # Ensure 1D array.
+    if source_cov.ndim > 1:
+        source_cov = source_cov.squeeze()
+    if source_cov.ndim != 1:
+        raise ValueError(
+            f"source_cov must be a 1D array of variances, got shape {source_cov.shape}"
+        )
+    if np.any(source_cov < 0):
+        raise ValueError("source_cov must contain non-negative variance values.")
+
+    if source_cov.shape[0] == n_sources:
+        if fixed_inverse:
+            return source_cov
+        logger.info(
+            "    Repeated each element of a fixed-orientation source "
+            "covariance matrix into the free-orientation one"
+        )
+        return np.repeat(source_cov, 3)
+
+    if source_cov.shape[0] == 3 * n_sources:
+        if fixed_inverse:
+            logger.info(
+                "    Picked every third element from a free-orientation source "
+                "covariance matrix into the fixed-orientation one"
+            )
+            return source_cov[2::3]
+        return source_cov
+
+    raise ValueError(
+        f"source_cov length {source_cov.shape[0]} is not compatible with "
+        f"the number of sources ({n_sources}). Allowed lengths are "
+        f"{n_sources} or 3 * {n_sources}."
+    )
+
+
 @verbose
 def make_inverse_operator(
     info,
@@ -1884,6 +1939,7 @@ def make_inverse_operator(
     fixed="auto",
     rank=None,
     use_cps=True,
+    source_cov=None,
     verbose=None,
 ):
     """Assemble inverse operator.
@@ -1910,6 +1966,11 @@ def make_inverse_operator(
         is used.
     %(rank_none)s
     %(use_cps)s
+    source_cov : array-like of float, shape (n_sources,) or (n_sources * 3,) | None
+        Diagonal source covariance matrix (source variances) to use as a base. Final
+        source covariance matrix will be computed as the product of this base and
+        the depth and orientation priors determined by parameters ``depth``, ``loose``, and
+        ``fixed``. If None (default), a uniform source covariance matrix is used as a base.
     %(verbose)s
 
     Returns
@@ -1981,6 +2042,7 @@ def make_inverse_operator(
         rank,
         pca="white",
         use_cps=use_cps,
+        source_cov=source_cov,
         **depth,
     )
     # no need to copy any attributes of forward here because there is
