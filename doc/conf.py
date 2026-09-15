@@ -856,6 +856,18 @@ def fix_sklearn_inherited_docstrings(app, what, name, obj, options, lines):
         lines.insert(loc, "")
 
 
+def link_base_class_attrs(app, what, name, obj, options, lines):
+    """Point numpydoc attribute links of member-less base classes to a subclass."""
+    subclasses = {"mne.io.BaseRaw": "mne.io.Raw", "mne.BaseEpochs": "mne.Epochs"}
+    if what != "class" or name not in subclasses:
+        return
+    # numpydoc>=1.11 emits `.attr`, which fuzzy-matches every class with that attr
+    lines[:] = [
+        re.sub(r":obj:`(\w+) <\.?\1>`", rf":obj:`\1 <{subclasses[name]}.\1>`", line)
+        for line in lines
+    ]
+
+
 # -- Other extension configuration -------------------------------------------
 
 # Consider using http://magjac.com/graphviz-visual-editor for this
@@ -996,12 +1008,6 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (  # BaseRaw attributes are documented in Raw
-        "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
-        "|compensation_grade|duration|filenames|first_samp|first_time"
-        "|last_samp|n_times|proj|times|tmax|tmin)",
-    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -1754,6 +1760,7 @@ def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
+    app.connect("autodoc-process-docstring", link_base_class_attrs)
     # High prio, will happen before SG
     app.connect("builder-inited", check_links, priority=5)
     app.connect("builder-inited", generate_credit_rst, priority=10)
