@@ -358,9 +358,11 @@ class Klass:
 '''
 
 
-def test_check_static_docs(tmp_path, monkeypatch):
+def test_check_static_docs(tmp_path, monkeypatch, capsys):
     """Test the static docstring pre-commit hook."""
     hook = _load_hook()
+    # sandbox before anything runs: propagation walks REPO/"mne" and edits files
+    monkeypatch.setattr(hook, "REPO", tmp_path)
     docs_py = tmp_path / "docs.py"
     docs_py.write_text(
         "docdict = {}\n"
@@ -399,9 +401,22 @@ def test_check_static_docs(tmp_path, monkeypatch):
     path.write_text(path.read_text().replace("Control verbosity.", "Be loud."))
     reverse = {}
     assert hook.process_file(path, False, reverse) == []
-    assert reverse == {"verbose": ["verbose : bool | str | int | None", "    Be loud."]}
-    written, errors = hook._write_docdict_entries(reverse)
-    assert written == ["verbose"] and errors == []
+    assert list(reverse) == ["verbose"]
+    assert reverse["verbose"][1] == [
+        "verbose : bool | str | int | None",
+        "    Be loud.",
+    ]  # noqa: E501
+    # by default (no MNE_PROPAGATE_DOC_CHANGES), main() explains and changes nothing
+    monkeypatch.setenv("MNE_PROPAGATE_DOC_CHANGES", "false")
+    before = docs_py.read_text()
+    assert hook.main(["--fix", str(path)]) == 1
+    err = capsys.readouterr().err
+    assert "MNE_PROPAGATE_DOC_CHANGES" in err and "this text is shared" in err
+    assert docs_py.read_text() == before
+    monkeypatch.setenv("MNE_PROPAGATE_DOC_CHANGES", "true")
+    rc = hook.main(["--fix", str(path)])
+    assert rc == 0, capsys.readouterr().err
+    assert capsys.readouterr().err == ""
     want = 'docdict["verbose"] = """\nverbose : bool | str | int | None\n    Be loud.'
     assert want + '\n"""' in docs_py.read_text()
     # a templated entry cannot be written back
@@ -410,7 +425,7 @@ def test_check_static_docs(tmp_path, monkeypatch):
             'docdict["alpha"] = """', 'docdict["alpha"] = "" + """'
         )
     )
-    _, errors = hook._write_docdict_entries({"alpha": ["alpha : int", "    x"]})
+    _, errors = hook._write_docdict_entries({"alpha": ("x", ["alpha : int", "    x"])})
     assert len(errors) == 1 and "by hand" in errors[0]
 
     # 4. site-specific text after a shared block: the previous version of the
@@ -420,7 +435,6 @@ def test_check_static_docs(tmp_path, monkeypatch):
     source = path.read_text()
     assert "    Second.\n" + own in source
     # pretend the current file is what git HEAD has
-    monkeypatch.setattr(hook, "REPO", tmp_path)
     monkeypatch.setattr(
         hook.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(stdout=source)
     )
@@ -430,7 +444,7 @@ def test_check_static_docs(tmp_path, monkeypatch):
     reverse = {}
     assert hook.process_file(path, False, reverse) == []
     want = ["First shared paragraph, edited.", "", "Second.", "Third."]
-    assert reverse["notes_shared"] == want
+    assert reverse["notes_shared"][1] == want
     # (b) ... unless it starts with a blank line, the site-specific convention
     alpha = "    alpha : int\n        The alpha. It changed.\n"
     assert alpha in source
@@ -440,14 +454,13 @@ def test_check_static_docs(tmp_path, monkeypatch):
     path.write_text(source.replace(alpha, alpha + "        More alpha.\n"))
     reverse = {}
     assert hook.process_file(path, False, reverse) == []
-    assert reverse == {
-        "alpha": ["alpha : int", "    The alpha. It changed.", "    More alpha."]
-    }
+    want = ["alpha : int", "    The alpha. It changed.", "    More alpha."]
+    assert reverse["alpha"][1] == want
     # (c) a line removed from the shared text does not swallow the site's own line
     path.write_text(source.replace("    Second.\n", ""))
     reverse = {}
     assert hook.process_file(path, False, reverse) == []
-    assert reverse["notes_shared"] == ["First shared paragraph, edited."]
+    assert reverse["notes_shared"][1] == ["First shared paragraph, edited."]
     assert own in path.read_text()
     # (d) editing the site-specific text alone is not a shared edit
     path.write_text(source.replace(own, "    Specific, edited."))

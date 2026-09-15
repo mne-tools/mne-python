@@ -901,7 +901,12 @@ In practice this means:
 - **Changing shared text:** edit it *either* in :file:`mne/utils/docs.py` *or*
   in any one docstring that uses it --- the hook detects which side changed
   (by comparing ``docdict`` with ``git HEAD``) and propagates the edit to
-  ``docdict`` and every other docstring. Entries that are built from templates
+  ``docdict`` and every other docstring. Propagating *from* a docstring is
+  opt-in: by default the hook only describes what it would do, and applies it
+  when the ``MNE_PROPAGATE_DOC_CHANGES`` configuration value is true (as an
+  environment variable for a one-off, or permanently via
+  ``mne.set_config("MNE_PROPAGATE_DOC_CHANGES", "true")``). Entries that are
+  built from templates
   in :file:`mne/utils/docs.py` rather than written as plain strings can only be
   edited there; the hook tells you when that is the case.
 - **Site-specific additions** (a ``.. versionadded::`` note, an extra

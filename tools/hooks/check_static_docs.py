@@ -36,7 +36,10 @@ as specific to the docstring.
 
 Shared text may be edited either in ``mne/utils/docs.py`` or in one docstring: the
 side that changed since ``git HEAD`` wins and is propagated to the other (with
-``--fix``); edits that cannot be attributed to one side are rejected.
+``--fix``); edits that cannot be attributed to one side are rejected. Propagating
+a docstring edit back to ``docdict`` (and every other docstring using it) only
+happens with the ``MNE_PROPAGATE_DOC_CHANGES`` configuration value set to true;
+otherwise the hook describes what it would do and changes nothing.
 """
 
 # Authors: The MNE-Python contributors.
@@ -397,7 +400,7 @@ def _split_block_raw(current, entry, old_entry, old_own):
     return list(head), list(old_own)
 
 
-def expected_fill(body, keys, reverse, old_body=None):
+def expected_fill(body, keys, reverse, old_body=None, where=""):
     """Return (new body, all keys) with every entry matching ``docdict``.
 
     If an entry is unchanged since ``git HEAD`` but the docstring's copy of it was
@@ -454,7 +457,7 @@ def expected_fill(body, keys, reverse, old_body=None):
             continue  # in sync; anything after the entry is the site's own text
         if old_entry == entry:
             # docdict is unchanged, so the docstring's copy is what was edited
-            reverse[key] = shared
+            reverse[key] = (where, shared)
             continue
         lines[start:stop] = _reindent(entry + own, " " * indent)
     new = "\n".join(lines)
@@ -588,7 +591,9 @@ def process_file(path, fix, reverse, *, kinds=_FILL_DECORATORS | _COPY_DECORATOR
             else:
                 implied = ["verbose"] if name == "verbose_static" else []
                 old_body = _old_bodies(path).get(qualname)
-                want, keys = expected_fill(body, implied + args, reverse, old_body)
+                want, keys = expected_fill(
+                    body, implied + args, reverse, old_body, where=where
+                )
                 new_args = [k for k in keys if k not in implied]
         except DocError as exc:
             errors.append(f"{where}: {exc}")
@@ -689,7 +694,7 @@ def _write_docdict_entries(reverse):
             and isinstance(node.value.value, str)
         ):
             literals[target.slice.value] = node.value
-    for key, new_lines in reverse.items():
+    for key, (_, new_lines) in reverse.items():
         const = literals.get(key)
         if const is None or const.value != docdict[key]:
             errors.append(
@@ -735,6 +740,13 @@ def _files_using(keys):
     return out
 
 
+def _propagation_enabled():
+    """Whether edits to shared text in a docstring may be propagated everywhere."""
+    from mne.utils import get_config
+
+    return get_config("MNE_PROPAGATE_DOC_CHANGES", "false").lower() == "true"
+
+
 def main(argv=None):
     """Run the check."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -748,7 +760,20 @@ def main(argv=None):
     for kinds in (_FILL_DECORATORS, _COPY_DECORATORS):
         for path in files:
             errors.extend(process_file(path, args.fix, reverse, kinds=kinds))
-    if reverse and not args.fix:
+    if reverse and not _propagation_enabled():
+        for key, (where, _) in reverse.items():
+            users = [str(user.relative_to(REPO)) for user in _files_using([key])]
+            errors.append(
+                f"{where}: docdict[{key!r}] is unchanged in mne/utils/docs.py but "
+                "its copy in this docstring was edited -- this text is shared. "
+                "Nothing was changed. With MNE_PROPAGATE_DOC_CHANGES=true (as an "
+                "environment variable, or permanently via mne.set_config("
+                f'"MNE_PROPAGATE_DOC_CHANGES", "true")) the edit would be written '
+                "to docdict and propagated to the docstrings using it, in up to "
+                f"{len(users)} files ({', '.join(users)}). If the change should "
+                "apply only here, revert it and add a new docdict entry instead."
+            )
+    elif reverse and not args.fix:
         for key in reverse:
             errors.append(
                 f"docdict[{key!r}] was edited in a docstring; run with --fix to push "

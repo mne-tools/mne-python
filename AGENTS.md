@@ -175,7 +175,8 @@ function's docstring); `tools/hooks/check_static_docs.py --fix FILE` expands `%(
 placeholders and keeps the expanded text in sync with `docdict`. Shared text can be edited either
 in `docdict` or in any one expanded copy; the pre-commit hook (which runs with `--fix`)
 propagates the edit to the other side and fails the commit once so the changes can be reviewed
-and staged. The legacy `@fill_doc`/`@verbose` decorators substitute `%(key)s` at import time
+and staged (copy -> `docdict` propagation requires the `MNE_PROPAGATE_DOC_CHANGES` config value
+to be true; otherwise the hook errors with an explanation and changes nothing). The legacy `@fill_doc`/`@verbose` decorators substitute `%(key)s` at import time
 (IDEs can't see the result); don't add new uses.
 
 ### Changelog is per-PR fragment files (towncrier), not a single hand-edited file
