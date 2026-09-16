@@ -187,6 +187,10 @@ _known_config_types = {
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
     ),
+    "MNE_PROPAGATE_DOC_CHANGES": (
+        "bool, propagate edits made to a shared docstring back to docdict and every "
+        "other docstring using it (tools/hooks/check_static_docs.py; developers only)"
+    ),
     "MNE_REPR_HTML": (
         "bool, represent some objects with rich HTML in a notebook environment"
     ),

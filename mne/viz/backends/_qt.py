@@ -1514,10 +1514,9 @@ class _QtTraceRow(QWidget):
         text.setWordWrap(True)
         text_col.addWidget(text)
 
-        meta = brain._trace_meta.get(line) if brain else None
-        coords = meta[2] if meta is not None else None
-        if coords:
-            coord_label = QLabel(f"MNI: {coords}")
+        subtitle = brain._trace_display_subtitle(line) if brain else None
+        if subtitle:
+            coord_label = QLabel(subtitle)
             coord_label.setStyleSheet(
                 "color: palette(placeholder-text); font-size: 8pt;"
             )
@@ -1605,7 +1604,8 @@ class _QtTraceList(QWidget):
                 widget.deleteLater()
         if not lines:
             placeholder = QLabel(
-                "Set Annotation to None to see\nvertex and RMS traces here."
+                "Click a label to see its trace here,\n"
+                "or set Annotation to None to see\nvertex and RMS traces."
             )
             placeholder.setStyleSheet(
                 "color: palette(placeholder-text); font-style: italic; font-size: 9pt;"
@@ -1984,6 +1984,10 @@ class _QtWidget(_AbstractWdgt):
 
     def hide(self):
         self._widget.hide()
+
+    def remove(self):
+        self._widget.setParent(None)
+        self._widget.deleteLater()
 
     def set_enabled(self, state):
         self._widget.setEnabled(state)

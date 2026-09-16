@@ -596,7 +596,7 @@ def _fast_plot_ica_properties(
             inst, ica, reject_by_annotation, reject
         )
     del reject, inst
-    epochs_src_picked = epochs_src.pick(picks)
+    epochs_src_picked = epochs_src.copy().pick(picks)
     del epochs_src
     good_indices = np.setdiff1d(np.arange(len(epochs_src_picked)), bad_indices)
 

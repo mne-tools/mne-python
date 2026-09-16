@@ -283,7 +283,7 @@ def _get_event_channel(fig):
         names to a dict of callbacks (used as an ordered set) representing all
         subscribers to the channel, in the order in which they subscribed.
     """
-    import matplotlib
+    import matplotlib.figure
 
     from ._brain import Brain
     from .evoked_field import EvokedField

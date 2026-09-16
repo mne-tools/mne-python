@@ -498,9 +498,7 @@ def _get_trans(trans, fro="mri", to="head", allow_none=True, *, extra=""):
     if _path_like(trans):
         if trans == "fsaverage":
             trans = Path(__file__).parent / "data" / "fsaverage" / "fsaverage-trans.fif"
-        trans = Path(trans)
-        if not trans.is_file():
-            raise OSError(f'trans file "{trans}" not found')
+        trans = _check_fname(trans, "read", must_exist=True, name="trans file")
         if trans.suffix in [".fif", ".gz"]:
             fro_to_t = read_trans(trans)
         else:

@@ -50,15 +50,19 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-# unsafe-best-match because uv's default stops at the first index carrying vtk (PyPI)
-uv pip install $STD_ARGS --only-binary ":all:" --index-strategy unsafe-best-match --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260517.dev0,!=9.6.20260601,!=9.6.20260618"
+# unsafe-best-match because uv's default stops at the first index carrying vtk (PyPI).
+# wheels.vtk.org goes down now and then; rather than block every PR on it, fall
+# back to the PyPI release and say so in the log.
+if ! uv pip install $STD_ARGS --only-binary ":all:" --index-strategy unsafe-best-match --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260517.dev0,!=9.6.20260601,!=9.6.20260618"; then
+	echo "::warning::Could not install the VTK nightly from wheels.vtk.org, using the PyPI release instead"
+	uv pip install $STD_ARGS --only-binary ":all:" vtk
+fi
 python -c "import vtk"
 echo "::endgroup::"
 
 echo "::group::Everything else"
-# TODO: Pin pyvista until regression fixed 2026/09/09
 uv pip install $STD_ARGS \
-	"pyvista @ https://github.com/pyvista/pyvista/archive/b2d3a65bffc881a85673b911b02d90f1047bc7cf.zip" \
+	"pyvista @ https://github.com/pyvista/pyvista/archive/refs/heads/main.zip" \
 	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"nilearn @ https://github.com/nilearn/nilearn/archive/refs/heads/main.zip" \
 	"edfio @ https://github.com/the-siesta-group/edfio/archive/refs/heads/main.zip" \
@@ -72,7 +76,7 @@ uv pip install $STD_ARGS \
 	"joblib @ https://github.com/joblib/joblib/archive/refs/heads/main.zip" \
 	"h5io @ https://github.com/h5io/h5io/archive/refs/heads/main.zip" \
 	"snirf @ https://github.com/BUNPC/pysnirf2/archive/refs/heads/main.zip" \
-	trame trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
+	"trame<4" trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
 	jamica filelock
 echo "::endgroup::"

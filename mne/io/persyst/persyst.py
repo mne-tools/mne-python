@@ -198,7 +198,7 @@ class RawPersyst(BaseRaw):
         ch_names = [ch.upper().split("-REF")[0] for ch in ch_names]
 
         # get the sampling rate and default channel types to EEG
-        sfreq = fileinfo_dict.get("samplingrate")
+        sfreq = fileinfo_dict["samplingrate"]
         ch_types = "eeg"
         info = create_info(ch_names, sfreq, ch_types=ch_types)
         info.update(subject_info=subject_info)

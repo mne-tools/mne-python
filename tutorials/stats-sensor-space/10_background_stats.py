@@ -245,7 +245,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # Here we have to do a bit of gymnastics to get our function to do
 # a permutation test without correcting for multiple comparisons:
 
-X.shape = (n_subjects, n_src)  # flatten the array for simplicity
+X = X.reshape(n_subjects, n_src)  # flatten the array for simplicity
 titles.append("Permutation")
 ts.append(np.zeros(width * width))
 ps.append(np.zeros(width * width))
@@ -497,7 +497,7 @@ for adj_name, adj_description in builtin_ch_adj:
 titles.append("Clustering")
 
 # Reshape data to what is equivalent to (n_samples, n_space, n_time)
-X.shape = (n_subjects, width, width)
+X = X.reshape(n_subjects, width, width)
 
 # Compute threshold from t distribution (this is also the default)
 # Here we use a two-tailed test, hence we need to divide alpha by 2.

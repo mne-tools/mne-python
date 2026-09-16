@@ -46,7 +46,12 @@ def _check_orig_units(orig_units):
         remap_dict = dict()
         remap_dict["uv"] = "µV"
         remap_dict["μv"] = "µV"  # greek letter mu vs micro sign. use micro
-        remap_dict["\x83\xeav"] = "µV"  # for shift-jis mu, use micro
+        # ↓↓↓ here we call `.lower()` because even though `\x83\xca` is a lowercase mu
+        # character in shift-jis encoding, it gets read in as utf-8, where `\xca` is an
+        # (uppercase) Ê. Elsewhere in the codebase we call a `.lower()` on these strings
+        # so if the keys here aren't also `.lower()` then the key will fail to be
+        # matched.
+        remap_dict["\x83\xcaV".lower()] = "µV"  # for shift-jis mu, use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue

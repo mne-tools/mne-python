@@ -1359,6 +1359,11 @@ class _AbstractWdgt(ABC):
         pass
 
     @abstractmethod
+    def remove(self):
+        """Detach and free this widget; unlike hide(), it is gone for good."""
+        pass
+
+    @abstractmethod
     def set_enabled(self, state):
         pass
 

@@ -8,12 +8,12 @@ import json
 import operator
 import os.path as op
 from collections import Counter
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from copy import deepcopy
 from functools import partial
 from inspect import getfullargspec
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import numpy as np
 from numpy.random import RandomState
@@ -2896,7 +2896,13 @@ class BaseEpochs(
         color: Color = "black",
         line_alpha: float | None = None,
         spatial_colors: bool = True,
-        sphere: float | np.ndarray | ConductorModel | str | list[str] | None = None,
+        sphere: float  # radius
+        | Annotated[Sequence[float], 4]  # x, y, z, radius
+        | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]]  # x, y, z, radius
+        | ConductorModel
+        | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
+        | list[Literal["cardinal", "eeg", "extra", "hpi"]]
+        | None = None,
         exclude: list[str] | Literal["bads"] = "bads",
         ax: "Axes | list[Axes] | None" = None,
         show: bool = True,

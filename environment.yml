@@ -62,7 +62,7 @@ dependencies:
   - threadpoolctl
   - tqdm >=4.66
   - traitlets
-  - trame
+  - trame <4
   - trame-pyvista
   - trame-vtk
   - trame-vuetify !=3.2.3

@@ -5,16 +5,19 @@ hand the result to a renderer, so swapping that last step is enough to draw in
 a browser kernel, where VTK cannot load. Selected with
 ``mne.viz.set_3d_backend("jupyterlite_notebook")``.
 
-Supported: meshes, surfaces, spheres, tubes and glyphs, which covers the static
-figures. Not supported: :class:`mne.viz.Brain` (needs dock widgets), scalars,
-colormaps and contours (the vtk.js template builds no lookup table, so every
-mesh is one solid color), and figure size (pyvista-js writes a 600x400 canvas).
+Supported: meshes, surfaces, spheres, tubes and glyphs, plus per-vertex RGB(A)
+colors, which is how :class:`mne.viz.Brain` paints its surface, so ``stc.plot()``
+gives a static picture (one time point, no time viewer, colorbar or split
+layout). Not supported: scalar colormaps and contours, subplots (``hemi="split"``,
+several views), volume source estimates, vector glyphs, time labels, screenshots,
+and figure size (pyvista-js writes a 600x400 canvas).
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import inspect
 import weakref
 from contextlib import nullcontext
 
@@ -27,11 +30,12 @@ from ...transforms import (
     _cart_to_sph,
     _find_vector_rotation,
     _sph_to_cart,
+    apply_trans,
     quat_to_rot,
 )
 from ...utils import _check_option, _validate_type
 from ._abstract import Figure3D, _AbstractRenderer
-from ._utils import ALLOWED_QUIVER_MODES, _vtk_faces
+from ._utils import ALLOWED_QUIVER_MODES, LIGHTS, _to_pos, _vtk_faces
 
 # vtk.js places text in normalized window coordinates; PyVista takes these names
 _TITLE_POSITIONS = {
@@ -59,31 +63,36 @@ def _lite_unsupported(what):
 
 def _lite_add_text(plotter, text, position, size, color):
     actor = pv.Text(str(text), position=tuple(float(coord) for coord in position))
-    actor.prop.font_size = int(size)
+    actor.prop.font_size = 14 if size is None else int(size)  # Brain passes None
     actor.prop.color = _rgb(color)
     plotter.add_text(actor)
     return actor
 
 
-def _lite_view_angles(plotter):
+def _lite_view_angles(plotter, rigid=None):
     """Return the (azimuth, elevation) in degrees the plotter looks from, or None.
 
     The view is kept as ``view_vector``, a camera position that vtk.js aims at
     the origin and then frames with ``resetCamera()``, rather than as a camera
     object, which would need the distance that MNE mostly passes as None.
+    ``rigid`` is the frame the angles are expressed in (Brain's canonical
+    rotation), as in ``_pyvista._get_user_camera_direction``.
     """
     view_vector = plotter._renderer._view_vector  # pyvista-js 0.15
     if view_vector is None:  # nothing set yet, so vtk.js chooses
         return None
-    _, phi, theta = _cart_to_sph(np.asarray(view_vector, float)[np.newaxis])[0]
+    position = np.asarray(view_vector, float)
+    if rigid is not None:
+        position = apply_trans(rigid, position, move=False)
+    _, phi, theta = _cart_to_sph(position[np.newaxis])[0]
     return float(np.rad2deg(phi)) % 360, float(np.rad2deg(theta)) % 180
 
 
-def _lite_set_view(plotter, azimuth=None, elevation=None):
+def _lite_set_view(plotter, azimuth=None, elevation=None, rigid=None):
     """Point the plotter, keeping the angle not given as _pyvista._set_3d_view does."""
     if azimuth is None and elevation is None:
         return
-    current = _lite_view_angles(plotter) or (90.0, 90.0)  # plot_alignment's view
+    current = _lite_view_angles(plotter, rigid) or (90.0, 90.0)  # plot_alignment
     phi = np.deg2rad(current[0] if azimuth is None else azimuth)
     theta = np.deg2rad(current[1] if elevation is None else elevation)
     # view up flips near the poles, matching _set_3d_view
@@ -92,14 +101,17 @@ def _lite_set_view(plotter, azimuth=None, elevation=None):
         if elevation is None or 5 <= abs(elevation) <= 175
         else (0.0, 1.0, 0.0)
     )
-    plotter.view_vector(
-        tuple(_sph_to_cart(np.array([[1.0, phi, theta]]))[0]), viewup=up
-    )
+    position = _sph_to_cart(np.array([[1.0, phi, theta]]))[0]
+    if rigid is not None:
+        rigid_inv = np.linalg.inv(rigid)
+        position = apply_trans(rigid_inv, position, move=False)
+        up = apply_trans(rigid_inv, up, move=False)
+    plotter.view_vector(tuple(position), viewup=tuple(up))
 
 
-def _lite_get_view(plotter):
+def _lite_get_view(plotter, rigid=None):
     """Return (roll, distance, azimuth, elevation, focalpoint) as _get_3d_view does."""
-    azimuth, elevation = _lite_view_angles(plotter) or (0.0, 0.0)
+    azimuth, elevation = _lite_view_angles(plotter, rigid) or (0.0, 0.0)
     return (0.0, 1.0, azimuth, elevation, np.zeros(3))
 
 
@@ -148,6 +160,20 @@ def _lite_revolve(profile, n_side):
     return np.vstack(rr), np.vstack(tris).astype(int)
 
 
+class _LitePolyData(pv.PolyData):
+    """A mesh whose ``mesh["Data"] = colors`` also takes float RGB(A) in [0, 1].
+
+    Brain's LayeredMesh recolors its surface that way, which PyVista accepts;
+    vtk.js only uses an array as colors directly when it is uint8.
+    """
+
+    def __setitem__(self, name, array):
+        array = np.asarray(array)
+        if array.ndim == 2 and array.shape[1] in (3, 4) and array.dtype != np.uint8:
+            array = np.round(np.clip(array, 0, 1) * 255).astype(np.uint8)
+        super().__setitem__(name, array)
+
+
 class _LiteFigure(Figure3D):
     """pyvista-js-based 3D figure; ``.plotter`` is the pyvista-js plotter."""
 
@@ -181,8 +207,10 @@ class _LiteRenderer(_AbstractRenderer):
     ):
         # _PyVistaRenderer's signature, but size, shape, name and show cannot
         # be honored: the canvas is fixed and written only when show() runs
-        _validate_type(fig, (None, _LiteFigure), "fig")
-        if fig is not None:  # plot_alignment(fig=...) composites into it
+        # an int is a figure number, which just means a new figure here
+        _validate_type(fig, (None, int, _LiteFigure), "fig")
+        self._close_callbacks = {False: [], True: []}  # keyed by ``after``
+        if isinstance(fig, _LiteFigure):  # plot_alignment(fig=...) composites into it
             self._figure = fig
             return
         self._figure = _LiteFigure()._init(pv.Plotter())
@@ -190,12 +218,12 @@ class _LiteRenderer(_AbstractRenderer):
         while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
             _lite_release_plotter(_lite_live_plotters[0]())
         self.plotter.background_color = _rgb(bgcolor)
-        # one light per axis direction, since a vtk.js light only lights what
-        # faces it, each dim enough that a surface facing two does not blow out
-        for position in np.vstack([np.eye(3), -np.eye(3)]) * 300.0:
+        for azimuth, elevation, intensity in LIGHTS:  # lit like _pyvista.py
             self.plotter.add_light(
                 pv.Light(
-                    position=tuple(position), focal_point=(0.0,) * 3, intensity=0.4
+                    position=_to_pos(azimuth, elevation),
+                    light_type="CameraLight",
+                    intensity=intensity,
                 )
             )
 
@@ -267,24 +295,28 @@ class _LiteRenderer(_AbstractRenderer):
         tris = np.asarray(tris, int)[np.newaxis] + offsets
         return points.reshape(-1, 3), tris.reshape(-1, 3)
 
-    def _add(self, points, tris, color, opacity=1.0):
-        """Draw one solid-color mesh and return MNE's (actor, mesh) pair."""
+    def _add(self, points, tris, color, opacity=1.0, colors=None):
+        """Draw one mesh, solid or colored per vertex, and return (actor, mesh)."""
         # float32 halves the WASM cost, and vtk.js is single precision anyway;
         # the faces go over flat because vtk.js reads one VTK cell array
-        mesh = pv.PolyData(
+        mesh = _LitePolyData(
             points=np.asarray(points, np.float32), faces=_vtk_faces(tris).ravel()
         )
+        kwargs = dict(color=_rgb(color))
+        if colors is not None:  # "Data" is the array name PyVista would use
+            mesh["Data"] = colors
+            kwargs["scalars"] = "Data"
         actor = self.plotter.add_mesh(
             mesh,
-            color=_rgb(color),
             opacity=1.0 if opacity is None else float(opacity),
             smooth_shading=True,
+            **kwargs,
         )
         return actor, mesh
 
     # -- drawing ------------------------------------------------------------
     # The signatures follow _PyVistaRenderer's so positional calls bind alike;
-    # scalars, colormaps, culling, normals and names are accepted and ignored.
+    # 1D scalars, colormaps, culling, normals and names are accepted and ignored.
     def mesh(
         self,
         x,
@@ -307,7 +339,13 @@ class _LiteRenderer(_AbstractRenderer):
         **kwargs,
     ):
         points = np.column_stack([np.ravel(x), np.ravel(y), np.ravel(z)])
-        return self._add(points, triangles, color, opacity)
+        # per-vertex RGB(A) colors are drawn as given (Brain's LayeredMesh)
+        rgba = (
+            scalars is not None
+            and np.ndim(scalars) == 2
+            and np.shape(scalars)[1] in (3, 4)
+        )
+        return self._add(points, triangles, color, opacity, scalars if rgba else None)
 
     def surface(
         self,
@@ -509,8 +547,8 @@ class _LiteRenderer(_AbstractRenderer):
         justification=None,
         font_file=None,
     ):
-        if justification is not None or font_file is not None:
-            _lite_unsupported("Justified text and custom fonts")
+        # justification and font_file only place and style the text, and vtk.js
+        # draws at a point in the page font; Brain's time label passes both
         return _lite_add_text(self.plotter, text, (x_window, y_window), size, color)
 
     def remove_mesh(self, mesh_data):
@@ -528,30 +566,59 @@ class _LiteRenderer(_AbstractRenderer):
     def set_interaction(self, interaction):
         pass  # vtk.js ships one trackball style
 
+    def _window_set_theme(self, theme):
+        pass  # no window, so no widgets to theme
+
+    def _set_colormap_range(
+        self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
+    ):
+        pass  # colors arrive already mapped, per vertex
+
+    def scalarbar(
+        self, source, color="white", title=None, n_labels=4, bgcolor=None, **kwargs
+    ):
+        return None, None  # nothing to draw one with; Brain unpacks (bar, ticks)
+
+    def subplot(self, x, y):
+        if (x, y) != (0, 0):
+            _lite_unsupported("Subplots")  # one scene is one canvas
+
     def _update(self):
         pass  # the page paints after the cell finishes
 
     def _window_close_connect(self, func, *, after=True):
-        pass  # an output cell has no close event
+        # an output cell has no close event, so close() runs these; ui_events
+        # drops its channel here, without which its subscribers pin the figure.
+        # Weak for bound methods (Brain._clean) so a figure dropped without
+        # close() still dies by refcount rather than waiting on the collector
+        if inspect.ismethod(func):
+            func = weakref.WeakMethod(func)
+        self._close_callbacks[after].append(func)
+
+    def _window_close_disconnect(self, after=True):
+        self._close_callbacks[after].clear()
+
+    def _run_close_callbacks(self, after):
+        for func in list(self._close_callbacks[after]):  # Brain._clean disconnects
+            if isinstance(func, weakref.WeakMethod):
+                func = func()
+            if func is not None:
+                func()
 
     def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
         pass  # no camera-facing 3D text, so sensors go unlabeled
 
     def close(self):
+        self._run_close_callbacks(after=False)
         _lite_release_plotter(self.plotter)
+        self._run_close_callbacks(after=True)
 
     # -- things pyvista-js cannot do ----------------------------------------
     def contour(self, *args, **kwargs):
         _lite_unsupported("Drawing contours")  # one color would mislead
 
-    def scalarbar(self, *args, **kwargs):
-        _lite_unsupported("Drawing a scalar bar")
-
     def legend(self, *args, **kwargs):
         _lite_unsupported("Drawing a legend")
-
-    def subplot(self, *args, **kwargs):
-        _lite_unsupported("Subplots")
 
     def _process_events(self, *args, **kwargs):
         _lite_unsupported("Draining the event loop")  # the page runs it
@@ -570,7 +637,7 @@ class _LiteRenderer(_AbstractRenderer):
 
     # -- camera -------------------------------------------------------------
     def get_camera(self, *, rigid=None):
-        return _lite_get_view(self.plotter)
+        return _lite_get_view(self.plotter, rigid)
 
     def set_camera(
         self,
@@ -584,7 +651,7 @@ class _LiteRenderer(_AbstractRenderer):
         update=True,
     ):
         # distance, focalpoint and roll go unused: vtk.js frames the scene
-        _lite_set_view(self.plotter, azimuth, elevation)
+        _lite_set_view(self.plotter, azimuth, elevation, rigid)
 
 
 # -- the module surface renderer.py expects of a 3D backend -----------------
@@ -602,7 +669,7 @@ def _set_3d_view(
     rigid=None,
     update=True,
 ):
-    _lite_set_view(figure.plotter, azimuth, elevation)
+    _lite_set_view(figure.plotter, azimuth, elevation, rigid)
 
 
 def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):

@@ -44,7 +44,8 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
     merged = " ".join(
         line.strip() for line in docstring.rsplit("\n", maxsplit=maxsplit)
     )
-    reflowed = "\n    ".join(re.findall(rf".{{1,{width}}}(?:\s+|$)", merged))
+    chunks = re.findall(rf".{{1,{width}}}(?:\s+|$)", merged)
+    reflowed = "\n    ".join(chunk.rstrip() for chunk in chunks)
     if has_first_line:
         reflowed = reflowed.replace("\n    \n", "\n", 1)
     return reflowed
@@ -1252,6 +1253,19 @@ dig_kinds : list of str | str
     'eeg' points.
 """
 
+docdict["digital_range_export_params"] = """
+digital_range : "auto" | "orig"
+    For EDF/BDF files, this controls the amplitude resolution of the
+    signals. "auto" uses the maximum available (16-bit for EDF, 24-bit for BDF).
+    If the :class:`~mne.io.Raw` object was originally read from and EDF or BDF
+    file, "orig" will use the digital range that was present in that file. For
+    :class:`~mne.io.Raw` objects that did not originate from EDF/BDF files,
+    "orig" falls back to the behavior of "auto".
+
+    .. versionadded:: 1.13.1
+"""
+
+
 docdict["dipole"] = """
 dipole : instance of Dipole | list of Dipole
     Dipole object containing position, orientation and amplitude of
@@ -1769,10 +1783,10 @@ fig_facecolor : str | tuple
 
 docdict["figure_class"] = """
 figure_class : class
-    The backend specific ``MNEBrowseFigure`` class to use. This is typically used
-    to pass a subclass in order to customize the plot. This parameter requires
-    cooperation from the backend, and is currently only supported by the
-    ``matplotlib`` backend.
+    The backend specific ``MNEBrowseFigure`` class to use. This is typically
+    used to pass a subclass in order to customize the plot. This parameter
+    requires cooperation from the backend, and is currently only supported by
+    the ``matplotlib`` backend.
 """
 
 docdict["filter_length"] = """
@@ -1877,11 +1891,9 @@ docdict["fmin_fmax_psd"] = _fmin_fmax.format(
 )
 
 docdict["fmin_fmax_psd_topo"] = _fmin_fmax.format("``fmin=0, fmax=100``.")
-docdict["fmin_fmax_tfr"] = _fmin_fmax.format(
-    """``None``
+docdict["fmin_fmax_tfr"] = _fmin_fmax.format("""``None``
     which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
-    present in the data)."""
-)
+    present in the data).""")
 
 docdict["fmin_fmid_fmax"] = """
 fmin : float
@@ -2393,7 +2405,7 @@ joint : bool
 # K
 
 docdict["keep_his_anonymize_info"] = """
-keep_his : bool | "his_id" | "sex" | "hand" | sequence of {"his_id", "sex", "hand"}
+keep_his : bool | {"his_id", "sex", "hand"} | sequence of {"his_id", "sex", "hand"}
     If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will **not** be
     overwritten. If ``False``, these fields will be anonymized. If ``"his_id"``,
     ``"sex"``, or ``"hand"`` (or any combination thereof in a sequence), only those
@@ -3389,13 +3401,13 @@ pad : str
 """
 )
 
-docdict["pad_resample_auto"] = (  # used when default is "auto"
+docdict["pad_resample_auto"] = (
     docdict["pad_resample"]
     + """\
     The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
     ``'reflect'`` for ``method='polyphase'``.
 """
-)
+)  # used when default is "auto"
 docdict["pca_vars_pctf"] = """
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
@@ -3447,9 +3459,13 @@ phase : str
 docdict["physical_range_export_params"] = """
 physical_range : str | tuple
     The physical range of the data. If 'auto' (default), the physical range is inferred
-    from the data, taking the minimum and maximum values per channel type. If
-    'channelwise', the range will be defined per channel. If a tuple of minimum and
-    maximum, this manual physical range will be used. Only used for exporting EDF files.
+    from the data: if the data came from and EDF/BDF/GDF file, the physical range of the
+    original file will be preserved (with a warning if clipping will occur). If the data
+    did not originate from an EDF/BDF/GDF file, ``"auto"`` will set the physical range
+    as the minimum and maximum values *per channel type*. If ``'channelwise'``, the
+    range will be defined *per channel*. If a tuple of minimum and maximum, that
+    manually-specified physical range will be used for all channels.
+    Only used for exporting EDF files.
 """
 
 _pick_ori_novec = """
@@ -4449,7 +4465,7 @@ spatial_colors : bool
 """
 
 docdict["sphere_topomap_auto"] = f"""\
-sphere : float | array-like of float | instance of ConductorModel | str | list of str | None
+sphere : float | array-like of float | instance of ConductorModel | {{"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"}} | list of str | None
     The sphere parameters to use for the head outline.
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in meters, or a
     single float to give just the radius (origin assumed 0, 0, 0).
@@ -4488,8 +4504,8 @@ sphere : float | array-like of float | instance of ConductorModel | str | list o
 
 docdict["splash"] = """
 splash : bool
-    If True (default), a splash screen is shown during the application startup. Only
-    applicable to the ``qt`` backend.
+    If True (default), a splash screen is shown during the application
+    startup. Only applicable to the ``qt`` backend.
 """
 
 docdict["split_naming"] = """
@@ -4770,9 +4786,9 @@ theme : str | path-like
     custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
     `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
     `darkdetect <https://github.com/albertosottile/darkdetect>`__,
-    respectively, are required.\
+    respectively, are required.
     If None (default), the config option {config_option} will be used,
-    defaulting to "auto" if it's not found.\
+    defaulting to "auto" if it's not found.
 """
 
 docdict["theme_3d"] = """
@@ -4781,9 +4797,9 @@ docdict["theme_3d"] = """
 
 docdict["theme_pg"] = """
 {theme}
-    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``,
-    and ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a custom
-    stylesheet is also accepted.
+    For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``, and
+    ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a
+    custom stylesheet is also accepted.
 """.format(theme=_theme.format(config_option="MNE_BROWSER_THEME"))
 
 docdict["thresh"] = """
@@ -5389,6 +5405,87 @@ def fill_doc(f):
         funcname = docstring.split("\n")[0] if funcname is None else funcname
         raise RuntimeError(f"Error documenting {funcname}:\n{exp}")
     return f
+
+
+def fill_doc_static(*keys):
+    """Mark a docstring as containing statically expanded docdict entries.
+
+    Unlike :func:`fill_doc`, this does not touch ``__doc__`` at import time, so
+    static analysis tools (IDEs, language servers) see the complete docstring.
+    The docstring must contain the expanded text of ``docdict[key]`` for every
+    ``key``; ``tools/hooks/check_static_docs.py`` (run via pre-commit) verifies
+    this and can rewrite the docstring with ``--fix`` when ``docdict`` changes.
+    Edits to shared text must be made in ``docdict``, not in the docstring.
+
+    Parameters
+    ----------
+    *keys : str
+        The ``docdict`` keys whose expanded text this docstring contains.
+
+    Returns
+    -------
+    dec : callable
+        The decorator, which returns its argument unchanged apart from a
+        ``_static_doc_keys`` attribute.
+    """
+
+    def dec(f):
+        f._static_doc_keys = tuple(keys)
+        return f
+
+    return dec
+
+
+def copy_doc_static(source):
+    """Mark a docstring as a static copy of another (see :func:`copy_doc`).
+
+    Parameters
+    ----------
+    source : str
+        The source, as ``"meth:mne.time_frequency.tfr.BaseTFR.plot"``. The
+        docstring must already contain its (cleaned) docstring, followed by any
+        text of its own; ``tools/hooks/check_static_docs.py`` enforces this.
+
+    Returns
+    -------
+    dec : callable
+        The decorator, which returns its argument unchanged apart from a
+        ``_static_doc_copy`` attribute.
+    """
+    _check_lazy_doc_source(source, "meth")
+
+    def dec(f):
+        f._static_doc_copy = source
+        return f
+
+    return dec
+
+
+def copy_function_doc_to_method_doc_static(source):
+    """Mark a method docstring as a static copy of a function's docstring.
+
+    See :func:`copy_function_doc_to_method_doc` for the transformation applied.
+
+    Parameters
+    ----------
+    source : str
+        The source function, as ``"func:mne.viz.plot_raw"``. The docstring must
+        already contain its transformed docstring, followed by any text of its
+        own; ``tools/hooks/check_static_docs.py`` enforces this.
+
+    Returns
+    -------
+    dec : callable
+        The decorator, which returns its argument unchanged apart from a
+        ``_static_doc_copy`` attribute.
+    """
+    _check_lazy_doc_source(source, "func")
+
+    def dec(f):
+        f._static_doc_copy = source
+        return f
+
+    return dec
 
 
 ##############################################################################

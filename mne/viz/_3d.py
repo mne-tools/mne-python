@@ -1390,6 +1390,7 @@ def _plot_glyphs(
     scale_by_distance=False,
     project_points=False,
     mark_inside=False,
+    inside_color=None,
     surf=None,
     orient_nn=None,
     cylinder_geom=None,
@@ -1429,7 +1430,7 @@ def _plot_glyphs(
         if scale_by_distance:
             scales = scales * np.linalg.norm(surf_vectors, axis=1)
         if mark_inside:  # recolor points that fall inside the surface
-            colors[scalars < 0.5, :3] = to_rgba("darkslategray")[:3]
+            colors[scalars < 0.5, :3] = to_rgba(inside_color or "darkslategray")[:3]
         if orient_glyphs:  # point cylinders along the surface normal
             vectors = surf_vectors
     kind, template_kw = "sphere", dict()
@@ -1470,6 +1471,8 @@ def _plot_head_shape_points(
     mask=None,
     check_inside=None,
     nearest=None,
+    outside_color=None,
+    inside_color=None,
     verbose=False,
 ):
     defaults = DEFAULTS["coreg"]
@@ -1488,12 +1491,13 @@ def _plot_head_shape_points(
     return _plot_glyphs(
         renderer=renderer,
         loc=ext_loc,
-        colors=defaults["extra_color"],
+        colors=outside_color if outside_color is not None else defaults["extra_color"],
         scales=defaults["extra_scale"],
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
         mark_inside=mark_inside,
+        inside_color=inside_color,
         surf=surf,
         backface_culling=True,
         check_inside=check_inside,
@@ -2522,7 +2526,10 @@ def _check_st_tv(show_traces, time_viewer, times):
             extra="when a string",
         )
     if time_viewer == "auto":
-        time_viewer = True
+        from .backends.renderer import _get_3d_backend
+
+        # the browser backend writes a static scene, so there is no slider to show
+        time_viewer = _get_3d_backend() != "jupyterlite_notebook"
     if show_traces == "auto":
         show_traces = time_viewer and times is not None and len(times) > 1
     if show_traces and not time_viewer:
@@ -2719,6 +2726,9 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
+    if mode == "glass_brain":
+        # signed MIP (value with max abs) for diverging colormaps
+        plot_kwargs["plot_abs"] = not params["diverging"]
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
@@ -2772,8 +2782,14 @@ def plot_volume_source_estimates(
         If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
     mode : ``'stat_map'`` | ``'glass_brain'``
-        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
-        displayed after being transformed to a standard MNI brain.
+        The plotting mode to use. For ``'glass_brain'``, activations are displayed
+        after being transformed to a standard MNI brain. With a diverging colormap
+        (e.g., ``clim=dict(pos_lims=...)``), the signed value with the maximum
+        absolute value along each projection is shown; otherwise, absolute values
+        are shown.
+
+        .. versionchanged:: 1.13.1
+           Signed values can be shown in ``'glass_brain'`` mode.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
@@ -2950,8 +2966,7 @@ def plot_volume_source_estimates(
     lx = ax_time.axvline(stc.times[time_idx], color="g")
     params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
-    allow_pos_lims = mode != "glass_brain"
-    mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
@@ -2964,7 +2979,7 @@ def plot_volume_source_estimates(
     dup_neg = False
     if stc.data.min() < 0:
         ax_time.axhline(0.0, color="0.5", ls="-", lw=0.5, zorder=2)
-        dup_neg = not diverging  # glass brain with signed data
+        dup_neg = not diverging  # signed data with one-sided colormap
     yticks = list(ticks)
     if dup_neg:
         yticks += [0] + list(-np.array(ticks))

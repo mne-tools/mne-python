@@ -581,6 +581,7 @@ class Brain:
         self._peak_vertices = {}
         self._auto_peak_points = set()
         self._trace_meta = {}
+        self._label_trace_meta = {}
         self._mouse_no_mvt = -1
         self._show_hover_info = False
         self._hover_caption = None
@@ -662,7 +663,7 @@ class Brain:
             for key in list(self.act_data_smooth.keys()):
                 self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
-        for renderer in self._renderer._all_renderers:
+        for renderer in getattr(self._renderer, "_all_renderers", ()):  # VTK only
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ("lighting", "interactor", "_RenderWindow"):
@@ -1657,6 +1658,7 @@ class Brain:
         # subsequent removal (and clear_glyphs at annotation changes) fail too
         self._picked_patches[hemi].remove(label_id)
         line, label._line = label._line, None
+        self._label_trace_meta.pop(line, None)
         if line is not None:
             try:
                 line.remove()
@@ -1787,16 +1789,34 @@ class Brain:
         The vertex auto-picked at peak activation for each hemisphere gets a
         "Peak (LH) 1000"-style name; other picked vertices get a compact
         "LH 1000"-style name instead of the full MNI-coordinate string (still
-        available as the row's tooltip). RMS curves are returned unchanged.
+        available as the row's tooltip). A picked label gets a
+        "superiortemporal (LH)"-style name, moving its name's hemisphere
+        suffix into the parentheses. RMS curves are returned unchanged.
         """
         meta = self._trace_meta.get(line)
-        if meta is None:
-            return line.get_label()
-        hemi, vertex_id, _ = meta
-        hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
-        if self._peak_vertices.get(hemi) == vertex_id:
-            return f"Peak ({hemi_names[hemi]}) {vertex_id}"
-        return f"{hemi_names[hemi]} {vertex_id}"
+        if meta is not None:
+            hemi, vertex_id, _ = meta
+            hemi_names = {"lh": "LH", "rh": "RH", "vol": "Vol"}
+            if self._peak_vertices.get(hemi) == vertex_id:
+                return f"Peak ({hemi_names[hemi]}) {vertex_id}"
+            return f"{hemi_names[hemi]} {vertex_id}"
+        label_meta = self._label_trace_meta.get(line)
+        if label_meta is not None:
+            hemi, label_name, _, _ = label_meta
+            return f"{label_name.removesuffix(f'-{hemi}')} ({hemi.upper()})"
+        return line.get_label()
+
+    def _trace_display_subtitle(self, line):
+        """Return an optional small subtitle line for a trace-list row."""
+        meta = self._trace_meta.get(line)
+        if meta is not None:
+            mni_str = meta[2]
+            return f"MNI: {mni_str}" if mni_str else None
+        label_meta = self._label_trace_meta.get(line)
+        if label_meta is not None:
+            _, _, mode, n_vertices = label_meta
+            return f"{n_vertices} vertices, mode: {mode}"
+        return None
 
     def clear_glyphs(self):
         """Clear the picking glyphs."""
@@ -1877,6 +1897,8 @@ class Brain:
         )
         self._trace_meta[line] = (hemi, vertex_id, mni_str)
         if update:
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
             self.mpl_canvas.update_plot()
         return line
 
@@ -2503,6 +2525,11 @@ class Brain:
             origin = src_mri_t[:3, 3]
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
+            # TODO: reaches into VTK through the renderer, which the
+            # jupyterlite_notebook backend cannot offer (its pages are excluded
+            # in doc/conf.py); refactor the renderer interface so Brain only
+            # uses its abstract methods. Same for the time label and glyph
+            # actors below.
             grid, grid_mesh, volume_pos, volume_neg = self._renderer._volume(
                 dimensions,
                 origin,
@@ -2671,8 +2698,19 @@ class Brain:
                 tc = np.linalg.norm(tc, axis=0)
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
-                self._data["time"], tc, label=label_name, color=color
+                self._data["time"], tc, label=label_name, color=color, update=False
             )
+            # count the source vertices the extraction uses, not surface ones
+            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
+            self._label_trace_meta[line] = (
+                hemi,
+                label_name,
+                self.label_extract_mode,
+                np.intersect1d(label.vertices, stc_vertices).size,
+            )
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
         else:
             line = None
 
@@ -4203,6 +4241,7 @@ class Brain:
                 if data_key == self._active_data_key:
                     self._current_act_data[hemi] = act_data
                     if time_actor is not None and time_label is not None:
+                        # TODO: VTK text actor API, see _add_volume_data
                         time_actor.SetInput(time_label(self._current_time))
 
                 # update the volume interpolation (active key only)
@@ -4341,6 +4380,7 @@ class Brain:
                 glyph_dataset.point_data["vec"] = vectors
                 glyph_mapper = hemi_data["glyph_mapper"]
             if add:
+                # TODO: VTK mapper/actor API, see _add_volume_data
                 glyph_actor = self._renderer._actor(glyph_mapper)
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.0)

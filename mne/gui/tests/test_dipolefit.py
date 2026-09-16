@@ -208,11 +208,10 @@ def test_dipolefit_gui_basic(
     assert dip1_dict["color"] == _get_color_list()[0]
     assert dip2_dict["color"] == _get_color_list()[1]
 
-    # The name field of each dipole is styled with the color of its trace.
+    # Each dipole's row has a color swatch matching the color of its trace.
     for dip_dict in (dip1_dict, dip2_dict):
-        style = dip_dict["widgets"][1].widget.styleSheet()
+        style = dip_dict["widgets"][0].widget.styleSheet()
         assert to_hex(dip_dict["color"]) in style
-        assert "color:black;" in style  # both colors are light enough for black text
 
     # Timecourses are stored in Am, but displayed in nAm, with the goodness-of-fit of
     # the combined model shown on a twin axis.
@@ -303,7 +302,7 @@ def test_dipolefit_gui_dipole_controls(
         g._set_camera_preset("Sideways")
 
     # Test toggling dipoles off and on. This is done through the GUI widgets, which are
-    # ordered: [active, name, delete].
+    # ordered: [swatch, active, name, delete].
     dip = mne.read_dipole(fname_dip)[[12, 15]]  # 80ms and 90ms
     g.add_dipole(dip, name=["rh", "lh"])
     dip1, dip2 = g._dipoles.values()
@@ -326,45 +325,50 @@ def test_dipolefit_gui_dipole_controls(
     from qtpy.QtWidgets import QApplication
 
     lw, ms = dip1["line_artist"].get_linewidth(), dip1["dot_artist"].get_markersize()
-    # Hover the actual Qt widget (the dipole's name field), so that the enter/leave
-    # event filter is exercised as well.
-    name_widget = dip1["widgets"][1]._widget
-    QApplication.sendEvent(name_widget, QEvent(QEvent.Type.Enter))
-    assert dip1["line_artist"].get_linewidth() > lw
-    assert dip1["dot_artist"].get_markersize() > ms
-    QApplication.sendEvent(name_widget, QEvent(QEvent.Type.Leave))
-    assert dip1["line_artist"].get_linewidth() == lw
-    assert dip1["dot_artist"].get_markersize() == ms
+    # Hover any of the actual Qt widgets in the row (not just the name field), so that
+    # the enter/leave event filter is exercised for the whole row.
+    for widget_idx in (0, 1, 2, 3):  # swatch, active, name, delete
+        widget = dip1["widgets"][widget_idx]._widget
+        QApplication.sendEvent(widget, QEvent(QEvent.Type.Enter))
+        assert dip1["line_artist"].get_linewidth() > lw
+        assert dip1["dot_artist"].get_markersize() > ms
+        QApplication.sendEvent(widget, QEvent(QEvent.Type.Leave))
+        assert dip1["line_artist"].get_linewidth() == lw
+        assert dip1["dot_artist"].get_markersize() == ms
     g._on_dipole_hover(99, True)  # deleted dipole: no-op rather than an error
     old_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
-    dip2["widgets"][0].set_value(False)
+    dip2["widgets"][1].set_value(False)
     assert not dip2["active"]
     new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
     assert not np.allclose(old_timecourses, new_timecourses, atol=1e-9)
 
     # With all dipoles disabled, there is nothing to fit and no arrows to update.
-    dip1["widgets"][0].set_value(False)
+    dip1["widgets"][1].set_value(False)
     assert g.dipoles == []
     g.set_time(0.05)
     assert g._current_time == 0.05
 
-    dip1["widgets"][0].set_value(True)
-    dip2["widgets"][0].set_value(True)
+    dip1["widgets"][1].set_value(True)
+    dip2["widgets"][1].set_value(True)
     assert dip1["active"] and dip2["active"]
     new_timecourses = np.vstack((dip1["timecourse"], dip2["timecourse"]))
     assert np.allclose(old_timecourses, new_timecourses, atol=0)
 
     # Change the names of the dipoles.
-    dip1["widgets"][1].set_value("dipole1")
+    dip1["widgets"][2].set_value("dipole1")
     g._on_dipole_set_name("dipole2", dip2["num"])
     assert dip1["dip"].name == "dipole1"
     assert dip2["dip"].name == "dipole2"
 
     # Remove a dipole (through the "delete" button).
     line, dot = dip1["line_artist"], dip1["dot_artist"]
-    dip1["widgets"][2].set_value(None)
+    dip1_widgets = list(dip1["widgets"])
+    dip1["widgets"][3].set_value(None)
     assert line not in g._renderer._mplcanvas.axes.lines
     assert dot not in g._renderer._mplcanvas.axes.lines
+    # The row's widgets are actually detached, not just hidden, on delete.
+    for widget in dip1_widgets:
+        assert widget._widget.parent() is None
     assert len(g.dipoles) == 1
     assert 1 in g._dipoles  # dipole number should not change
     assert list(g._dipoles.keys())[0] == 1
