@@ -454,7 +454,10 @@ class MontageMixin:
         return self
 
     @fill_doc
-    def set_head_sphere(self, sphere=None):
+    def set_head_sphere(
+        self,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+    ) -> Self:
         """Store the head sphere used to draw topomaps in the measurement info.
 
         Parameters
@@ -474,7 +477,7 @@ class MontageMixin:
 
         .. versionadded:: 1.14
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         sphere = _check_sphere(sphere, info)
         with info._unlock():
             info["head_sphere"] = sphere
