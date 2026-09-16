@@ -1589,7 +1589,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.spmatrix
+    ch_adjacency : scipy.sparse.sparray
         The adjacency matrix.
     """
     from scipy.sparse import csr_array

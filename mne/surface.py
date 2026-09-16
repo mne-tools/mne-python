@@ -1600,7 +1600,7 @@ def mesh_edges(tris):
 
     Returns
     -------
-    edges : scipy.sparse.spmatrix
+    edges : scipy.sparse.sparray
         The adjacency matrix.
     """
     tris = _hashable_ndarray(tris)
