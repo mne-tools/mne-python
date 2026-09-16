@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne import EpochsArray, EvokedArray, create_info
+from mne import EpochsArray, EvokedArray, combine_evoked, create_info
 from mne.channels import find_ch_adjacency
 from mne.stats import (
     cluster_test,
@@ -297,42 +297,34 @@ def test_cluster_test_formula_validation(stat_conditions):
         cluster_test(dict(data=[condition1_1d], a=["x"]), "data ~ a")
 
 
-@pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
-@pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
-@pytest.mark.filterwarnings("ignore:invalid value encountered:RuntimeWarning")
-@pytest.mark.filterwarnings("ignore:No clusters found:RuntimeWarning")
-def test_cluster_test_reduce(stat_conditions):
-    """Reduce multiple observations for paired t-test."""
+def test_cluster_test_reduce():
+    """Test averaging over extra columns before a paired t-test."""
     # TODO: parametrize this test for Epochs, AveragedTFR etc.
+    rng = np.random.default_rng(seed=5)
+    n_sub, n_chan, n_times = 6, 3, 8
+    info = create_info(n_chan, sfreq=100.0, ch_types="eeg")
+    rows = list()
+    for si in range(n_sub):
+        base = rng.normal(size=(n_chan, n_times))  # per-subject offset
+        for cond in ("x", "y"):
+            for rep in (1, 2):  # "b" is an extra column, averaged over below
+                data = base + rng.normal(scale=0.5, size=(n_chan, n_times))
+                if cond == "y":
+                    data[:, 3:6] += 2.0
+                rows.append(dict(data=EvokedArray(data, info), a=cond, b=rep, c=si))
+    df = pd.DataFrame(rows)
+    kwargs = dict(within_id="c", adjacency=False, n_permutations=64, rng=0)
+    got = cluster_test(df, formula="data ~ a", **kwargs)
 
-    condition1_1d, _, _, _ = stat_conditions
-    # For this test we need equal sized arrays
-    condition2_1d = condition1_1d.copy()
-    rng = np.random.default_rng(0)
-    rng.shuffle(condition2_1d)
-
-    info = create_info(
-        ch_names=[f"ch_{ii}" for ii in range(condition1_1d.shape[0])],
-        sfreq=10,
-        ch_types="eeg",
+    # reducing along "b" must match averaging those replicates by hand
+    df_pre = (
+        df.groupby(["a", "c"])["data"]
+        .agg(lambda evokeds: combine_evoked(evokeds.tolist(), weights="nave"))
+        .reset_index()
     )
-    data = [EvokedArray(arr, info) for arr in [condition1_1d, condition2_1d]]
-    df = pd.DataFrame(dict(data=data, a=["x", "y"]))
-    df["b"] = 1
-
-    df_2 = df.copy()
-    df_2["b"] = 2
-    df = pd.concat([df, df_2])
-    del df_2
-
-    df["c"] = "foo"
-
-    df_2 = df.copy()
-    df_2["c"] = "bar"
-    df = pd.concat([df, df_2])
-    del df_2
-    # This should not raise
-    cluster_test(df, formula="data ~ a", within_id="c", adjacency=False)
+    want = cluster_test(df_pre, formula="data ~ a", **kwargs)
+    assert_array_almost_equal(got.stat_obs, want.stat_obs)
+    assert np.isfinite(got.stat_obs).all()
 
 
 def test_cluster_test_reference():
