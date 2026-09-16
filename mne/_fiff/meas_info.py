@@ -436,6 +436,7 @@ class MontageMixin:
         _set_montage(info, montage, match_case, match_alias, on_missing)
         return self
 
+    @fill_doc
     def set_head_sphere(self, sphere=None):
         """Add the parameters for the head sphere to the info dictionary.
 
