@@ -21,6 +21,7 @@ uv pip install --upgrade --overrides tools/circleci_uv_overrides.txt \
     "mne-bids @ https://github.com/mne-tools/mne-bids/archive/refs/heads/main.zip" \
     "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" \
     "sphinx-gallery @ https://github.com/sphinx-gallery/sphinx-gallery/archive/refs/heads/master.zip" \
+    "pydata-sphinx-theme @ https://github.com/larsoner/pydata-sphinx-theme/archive/refs/heads/banner-version-match-0.21.zip" \
     -r doc/sphinxext/related_software.txt
 uv pip install --upgrade --no-deps \
     -r doc/sphinxext/related_software_nodeps.txt
