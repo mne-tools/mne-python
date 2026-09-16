@@ -1091,6 +1091,11 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     from ..bem import ConductorModel, fit_sphere_to_headshape, get_fitting_dig
 
     if sphere is None:
+        # If we have an existing sphere, use that.
+        if info is not None and info.get("head_sphere") is not None:
+            return np.array(info["head_sphere"])
+
+        # Try the "auto" procedure, fallback to HEAD_SIZE_DEFAULT if it fails.
         sphere = HEAD_SIZE_DEFAULT
         if info is not None:
             # Decide if we have enough dig points to do the auto fit
