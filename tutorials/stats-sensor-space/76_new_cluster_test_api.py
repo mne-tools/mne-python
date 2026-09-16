@@ -116,15 +116,6 @@ df = pd.DataFrame(
 df
 
 # %%
-# You should see the largest difference around 400 ms over central-parietal
-# channels -- the expected P3b effect, stronger for target stimuli. This is the
-# contrast the cluster test will evaluate formally.
-#
-# ``diff_evoked`` is used only for this visualization. The cluster test below
-# works from a dataframe holding *both* conditions and forms the contrast from
-# the formula.
-
-# %%
 # Run the cluster test with a formula
 # -----------------------------------
 #
@@ -139,6 +130,14 @@ df
 # set ``non-target`` as the reference, the difference is formed as
 # target minus non-target. Not setting the reference explicitly will order the contrast
 # levels alphabetically and the reference will be target.
+#
+# We leave ``adjacency`` at its default of ``"auto"``, which reads the sensor
+# locations from the data to decide which channels are neighbors, and treats
+# consecutive time points as neighbors. Clusters can therefore grow across both
+# neighboring sensors and adjacent time points. If your data have no montage,
+# ``"auto"`` will say so rather than guess; you can then set one, or build the
+# matrix yourself with :func:`mne.channels.find_ch_adjacency` and
+# :func:`mne.stats.combine_adjacency`.
 
 formula = "evoked ~ condition"
 
@@ -155,12 +154,13 @@ print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 # The null distribution is built by sign-flipping the five per-subject
 # difference scores. There are ``2 ** 5 = 32`` ways to assign signs, but
 # flipping every sign only mirrors the partition, so just ``2 ** (5 - 1) = 16``
-# are distinct; excluding the observed arrangement leaves
-# ``2 ** (5 - 1) - 1 = 15`` permutations. Because the test is exact, all 15 are
-# evaluated (you will see ``15/15`` in the progress log) rather than sampled at
-# random.
+# are distinct. Because the test is exact, all 16 are evaluated rather than
+# sampled at random -- which is why ``cluster_result.n_permutations`` below
+# reports 16 rather than the 1024 requested by default. Fifteen of those are
+# surrogates (you will see ``15/15`` in the progress log); the sixteenth is the
+# arrangement actually observed.
 #
-# The finest p-value this can resolve is ``1 / (15 + 1) = 0.0625``, so even the
+# The finest p-value this can resolve is therefore ``1 / 16 = 0.0625``, so even the
 # most extreme possible cluster lands just above 0.05. The near-0.0625 result
 # means the observed cluster *was* the most extreme one -- there is simply not
 # enough data to reach significance. Detecting an effect here would need more
@@ -175,18 +175,14 @@ print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 # the y-axis. Because the contrast is target minus non-target, positive t-values
 # mean a stronger response to targets, matching the difference plotted earlier.
 
-print(
-    f"Number of permutations run: {cluster_result.n_permutations}"
-)  # TODO: fix this in separate PR
+print(f"Number of permutations run: {cluster_result.n_permutations}")
 
 # times (in seconds) and channel names come from the evoked data
 times = grand_avg_diff.times
 ch_names = grand_avg_diff.ch_names
 
-# stat_obs holds the observed t-values; ensure it is arranged as (channels, times)
+# stat_obs holds the observed t-values, arranged as (channels, times)
 stat_obs = cluster_result.stat_obs
-if stat_obs.shape != (len(ch_names), len(times)):
-    stat_obs = stat_obs.T
 
 # symmetric colour limits so the diverging colormap is centred on zero
 vlim = np.abs(stat_obs).max()

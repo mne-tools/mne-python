@@ -324,7 +324,8 @@ def _mne_clusters(result):
         if len(cl) == 1:
             members = frozenset(int(i) for i in cl[0])
         else:
-            # reveersal here to deal with transpoe added after FT reulsts were generated
+            # reversed to undo the transpose added after the FT reference
+            # values were generated
             members = frozenset(zip(*cl[::-1]))
         out[members] = (result.cluster_masses[ci], result.cluster_p_values[ci])
     return out

@@ -7,8 +7,10 @@ import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import EpochsArray, EvokedArray, create_info
+from mne.channels import find_ch_adjacency
 from mne.stats import (
     cluster_test,
+    combine_adjacency,
     f_mway_rm,
     f_threshold_mway_rm,
     permutation_cluster_1samp_test,
@@ -41,6 +43,7 @@ def test_cluster_test_one_sample(stat_conditions):
     )
     result = cluster_test(df, "data ~ group", **kwargs)
     assert result.stat_name == "paired T-statistic"
+    assert result.n_permutations == len(result.H0)
     assert_array_equal(result.H0, H0)
     assert_array_equal(result.stat_obs, T_obs)
     assert_array_equal(result.cluster_p_values, cluster_pvals)
@@ -90,7 +93,8 @@ def test_new_cluster_api(Inst):
     is_epo = GetEpochsMixin in Inst.__mro__
     is_tfr = BaseTFR in Inst.__mro__
 
-    n_epo, n_chan, n_freq, n_times = 6, 3, 4, 5
+    ch_names = ["Fz", "Cz", "Pz", "C3", "C4"]  # spread out, so Delaunay works
+    n_epo, n_chan, n_freq, n_times = 6, len(ch_names), 4, 5
 
     # prepare the dimensions of the simulated data, then simulate
     size = (n_chan,)
@@ -102,7 +106,8 @@ def test_new_cluster_api(Inst):
     data = rng.normal(size=size)
 
     # construct the instance
-    info = create_info(ch_names=n_chan, sfreq=1000, ch_types="eeg")
+    info = create_info(ch_names=ch_names, sfreq=1000, ch_types="eeg")
+    info.set_montage("spherical_1020")
     kw = dict(times=np.arange(n_times), freqs=np.arange(n_freq)) if is_tfr else dict()
     cond_a = Inst(data=data, info=info, **kw)
     cond_b = cond_a.copy()
@@ -152,7 +157,14 @@ def test_new_cluster_api(Inst):
             container.append(inst.get_data().transpose(*axes))
         X = [np.stack(Xa), np.stack(Xb)]
 
-    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(X, **kwargs)
+    # the legacy call gets the matrix `adjacency="auto"` is expected to build:
+    # sensor adjacency on the (last) channel dimension, lattice on the rest
+    ch_adjacency, _ = find_ch_adjacency(info, ch_type=None)
+    lattice_dims = (n_times, n_freq) if is_tfr else (n_times,)
+    adjacency = combine_adjacency(*lattice_dims, ch_adjacency)
+    F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
+        X, adjacency=adjacency, **kwargs
+    )
 
     for clust in result_new_api.clusters:
         assert clust.shape == result_new_api.stat_obs.shape
@@ -204,6 +216,7 @@ def test_cluster_test_rm_anova():
         buffer_size=None,
         out_type="indices",
         threshold=f_thresh,
+        adjacency=False,  # this info has no montage, so "auto" can't apply
     )
     F_obs, clusters, cluster_pvals, H0 = permutation_cluster_test(
         X_old, stat_fun=stat_fun, **kwargs
@@ -267,6 +280,22 @@ def test_cluster_test_formula_validation(stat_conditions):
     with pytest.raises(ValueError, match="must have exactly"):
         cluster_test(df_unbalanced, "data ~ a:b", within_id="subject")
 
+    # the dependent variable column must be of one type, and of one shape
+    info = create_info(condition1_1d.shape[0], sfreq=10, ch_types="eeg")
+    df_types = pd.DataFrame(
+        dict(data=[condition1_1d, EvokedArray(condition1_1d, info)], a=["x", "y"])
+    )
+    with pytest.raises(ValueError, match=r"same type.*\{EvokedArray, ndarray\}"):
+        cluster_test(df_types, "data ~ a")
+    df_shapes = pd.DataFrame(
+        dict(data=[condition1_1d, condition2_1d[:, :-1]], a=["x", "y"])
+    )
+    with pytest.raises(ValueError, match="consistent shape, but 2 different"):
+        cluster_test(df_shapes, "data ~ a")
+
+    with pytest.raises(TypeError, match="df must be an instance of DataFrame"):
+        cluster_test(dict(data=[condition1_1d], a=["x"]), "data ~ a")
+
 
 @pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
@@ -303,7 +332,7 @@ def test_cluster_test_reduce(stat_conditions):
     df = pd.concat([df, df_2])
     del df_2
     # This should not raise
-    cluster_test(df, formula="data ~ a", within_id="c")
+    cluster_test(df, formula="data ~ a", within_id="c", adjacency=False)
 
 
 def test_cluster_test_reference():
@@ -327,6 +356,9 @@ def test_cluster_test_reference():
     default = cluster_test(df, "data ~ condition", **kwargs)
     assert default.contrast == ("a", "b")
     assert default.reference == "b"
+    # only 2 ** (n_sub - 1) distinct sign flips exist, so the exact test runs far
+    # fewer permutations than the 1024 requested by default
+    assert default.n_permutations == len(default.H0) == 2 ** (n_sub - 1)
 
     # naming the other level should flip the sign of the statistic
     flipped = cluster_test(df, "data ~ condition", reference="a", **kwargs)
@@ -335,3 +367,63 @@ def test_cluster_test_reference():
 
     with pytest.raises(ValueError, match="must be one of the levels"):
         cluster_test(df, "data ~ condition", reference="c", **kwargs)
+
+
+def test_cluster_test_adjacency():
+    """Test that adjacency="auto" uses sensor geometry, not channel order."""
+    rng = np.random.default_rng(seed=11)
+    ch_names = ["Fz", "Cz", "Pz", "C3", "C4"]
+    n_sub, n_chan, n_times = 8, len(ch_names), 10
+    info = create_info(ch_names, sfreq=100.0, ch_types="eeg")
+    info.set_montage("spherical_1020")
+
+    rows = list()
+    for si in range(n_sub):
+        base = rng.normal(size=(n_chan, n_times))
+        for cond in ("a", "b"):
+            data = base + rng.normal(scale=0.5, size=(n_chan, n_times))
+            if cond == "b":  # effect on Fz and Cz (neighbors), not on Pz
+                data[:2, 3:6] += 2.0
+            rows.append(dict(data=EvokedArray(data, info), condition=cond, subject=si))
+    df = pd.DataFrame(rows)
+    kwargs = dict(within_id="subject", n_permutations=128, rng=0, out_type="mask")
+
+    # "auto" is equivalent to building the same matrix by hand
+    ch_adjacency, _ = find_ch_adjacency(info, ch_type=None)
+    want = cluster_test(
+        df,
+        "data ~ condition",
+        adjacency=combine_adjacency(n_times, ch_adjacency),
+        **kwargs,
+    )
+    got = cluster_test(df, "data ~ condition", **kwargs)  # adjacency="auto"
+    assert_array_equal(got.stat_obs, want.stat_obs)
+    assert_array_equal(got.cluster_p_values, want.cluster_p_values)
+
+    # ... and unlike a lattice over the channel axis, it does not depend on the
+    # order the channels happen to appear in
+    order = [3, 0, 4, 1, 2]
+    df_shuffled = df.copy()
+    df_shuffled["data"] = df["data"].map(
+        lambda ev: ev.copy().reorder_channels([ch_names[ii] for ii in order])
+    )
+    shuffled = cluster_test(df_shuffled, "data ~ condition", **kwargs)
+    assert_array_equal(shuffled.cluster_p_values, got.cluster_p_values)
+    assert_array_equal(shuffled.stat_obs[np.argsort(order)], got.stat_obs)
+
+    # False means every location is its own cluster
+    no_adj = cluster_test(df, "data ~ condition", adjacency=False, **kwargs)
+    assert len(no_adj.clusters) > len(got.clusters)
+    assert all(clust.sum() == 1 for clust in no_adj.clusters)
+
+    # None is no longer accepted, and "auto" needs sensor locations
+    with pytest.raises(ValueError, match="adjacency=None is not supported"):
+        cluster_test(df, "data ~ condition", adjacency=None, **kwargs)
+    with pytest.raises(ValueError, match="Invalid value for the 'adjacency'"):
+        cluster_test(df, "data ~ condition", adjacency="lattice", **kwargs)
+    df_no_montage = df.copy()
+    df_no_montage["data"] = df["data"].map(
+        lambda ev: EvokedArray(ev.data, create_info(ch_names, 100.0, "eeg"))
+    )
+    with pytest.raises(ValueError, match='"auto" could not infer sensor adjacency'):
+        cluster_test(df_no_montage, "data ~ condition", **kwargs)

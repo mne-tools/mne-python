@@ -6,12 +6,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import partial
 from string import ascii_uppercase
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
+from ..channels import find_ch_adjacency
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, combine_evoked
 from ..parallel import parallel_func
@@ -33,14 +35,14 @@ from ..utils import (
     verbose,
     warn,
 )
+from ._adjacency import combine_adjacency
 from .parametric import f_mway_rm, f_oneway, f_threshold_mway_rm, ttest_1samp_no_p
 
 if TYPE_CHECKING:
-    from scipy import sparse  # Used in type hints for cluster_test
-
-# need this at top-level of file due to type hints
-pd = _soft_import("pandas", purpose="DataFrame integration", strict=False)
-DataFrame = getattr(pd, "DataFrame", None)
+    # only used in type hints, which `from __future__ import annotations` keeps
+    # lazy -- importing pandas here would slow down every `import mne.stats`
+    from pandas import DataFrame
+    from scipy import sparse
 
 
 def _get_labels_st(x_in, adjacency, max_step):
@@ -941,7 +943,7 @@ def _permutation_cluster_test(
             f"t_obs.shape {t_obs.shape} provided by stat_fun {stat_fun} is not "
             f"compatible with the sample shape {sample_shape}"
         )
-    if adjacency is None or adjacency is False:
+    if adjacency is None:
         t_obs = t_obs.reshape(sample_shape, copy=False)
 
     if exclude is not None:
@@ -981,10 +983,11 @@ def _permutation_cluster_test(
     logger.info(f"Found {len(clusters)} cluster{_pl(clusters)}")
 
     # convert clusters to old format
-    if (adjacency is not None and adjacency is not False) or tfce:
+    if adjacency is not None or tfce:
         # our algorithms output lists of indices by default
         if out_type == "mask":
-            slice_out = (adjacency is None) & (len(sample_shape) == 1)
+            # adjacency=None only reaches here via TFCE; False never yields slices
+            slice_out = (adjacency is None) and (len(sample_shape) == 1)
             clusters = _cluster_indices_to_mask(clusters, n_tests, slice_out)
     else:
         # ndimage outputs slices or boolean masks by default,
@@ -1295,6 +1298,7 @@ def permutation_cluster_test(
     )
 
 
+@legacy(alt="mne.stats.cluster_test(...)")
 @_legacy_rng("seed")
 @verbose
 def permutation_cluster_1samp_test(
@@ -1793,9 +1797,9 @@ def _validate_cluster_df(df: DataFrame, dv_name: str, iv_names: list[str]):
     )  # Base covers all Epochs and TFRs
     _validate_type(inst, valid_types, f"Data in dependent variable column '{dv_name}'")
     all_types = set(df[dv_name].map(type))
-    all_type_names = ", ".join([type(x).__name__ for x in all_types])
-    prologue = f"Data in dependent variable column '{dv_name}' must all have "
+    prologue = f"Data in dependent variable column '{dv_name}' must all have"
     if len(all_types) > 1:
+        all_type_names = ", ".join(sorted(klass.__name__ for klass in all_types))
         raise ValueError(
             f"{prologue} the same type, but found types {{{all_type_names}}}."
         )
@@ -1809,15 +1813,53 @@ def _validate_cluster_df(df: DataFrame, dv_name: str, iv_names: list[str]):
     else:
         all_shapes = set(df[dv_name].map(lambda x: x.get_data().shape))
     if len(all_shapes) > 1:
+        shape_names = "; ".join(sorted(str(shape) for shape in all_shapes))
         raise ValueError(
             f"{prologue} consistent shape, but {len(all_shapes)} different "
-            f"shapes were found: {'; '.join(all_shapes)}."
+            f"shapes were found: {shape_names}."
         )
     obj_type = all_types.pop()
     is_epo = GetEpochsMixin in obj_type.__mro__
     is_tfr = BaseTFR in obj_type.__mro__
     is_arr = np.ndarray in obj_type.__mro__
     return is_epo, is_tfr, is_arr
+
+
+def _auto_adjacency(inst, sample_shape):
+    """Resolve ``adjacency="auto"`` for one dependent-variable entry.
+
+    ``sample_shape`` is the per-observation shape that :func:`cluster_test` hands to
+    the clustering code, i.e. ``(n_times[, n_freqs], n_channels)`` with channels last.
+    For MNE objects the channel dimension gets a real sensor adjacency (neighboring
+    sensors, from the montage) and the remaining dimensions a regular lattice. Plain
+    arrays carry no sensor information, so every dimension gets a lattice.
+    """
+    if isinstance(inst, np.ndarray):
+        logger.info("Using a regular lattice adjacency for array data.")
+        return None  # ndimage lattice over every dimension
+    ch_types = set(inst.get_channel_types())
+    if len(ch_types) > 1:
+        raise ValueError(
+            'adjacency="auto" requires a single channel type, but the data have '
+            f"{sorted(ch_types)}. Select one (e.g. ``inst.pick(...)``) or pass an "
+            "explicit adjacency; see mne.channels.find_ch_adjacency and "
+            "mne.stats.combine_adjacency."
+        )
+    try:
+        ch_adjacency, _ = find_ch_adjacency(inst.info, ch_type=None)
+    except Exception as exc:
+        raise ValueError(
+            f'adjacency="auto" could not infer sensor adjacency from the data: {exc} '
+            "Set a montage (e.g. ``inst.set_montage(...)``) so sensor locations are "
+            "available, or pass an explicit adjacency, or False to treat every "
+            "location as independent."
+        ) from None
+    logger.info(
+        f"Using automatic {ch_types.pop()} adjacency between "
+        f"{ch_adjacency.shape[0]} channels, combined with a lattice over the "
+        f"remaining {len(sample_shape) - 1} dimension{_pl(len(sample_shape) - 1)}."
+    )
+    return combine_adjacency(*sample_shape[:-1], ch_adjacency)
 
 
 # TODO: design/analysis features FieldTrip's cluster stats support that
@@ -1840,13 +1882,11 @@ def cluster_test(
     *,  # end of positional-only parameters
     within_id: str | None = None,
     reference: str | None = None,
-    stat_fun: callable | None = None,
+    stat_fun: Callable | None = None,
     tail: Literal[-1, 0, 1] = 0,
     threshold=None,
     n_permutations: str | int = 1024,
-    adjacency: sparse.spmatrix
-    | None
-    | Literal[False] = None,  # should be None (default)
+    adjacency: sparse.spmatrix | Literal["auto", False] = "auto",
     max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
     exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
     step_down_p: float = 0.0,
@@ -1911,7 +1951,34 @@ def cluster_test(
     %(tail_clust)s
     %(threshold_clust_both)s
     %(n_permutations_clust_all)s
-    %(adjacency_clust_both)s
+    adjacency : "auto" | scipy.sparse.spmatrix | False
+        Defines adjacency between locations in the data, i.e. which locations may
+        join to form a cluster.
+
+        - ``"auto"`` (default):
+            For :class:`~mne.Evoked`, :class:`~mne.Epochs` and
+            :class:`~mne.time_frequency.BaseTFR` input, sensor adjacency is inferred
+            from the montage with :func:`mne.channels.find_ch_adjacency`, and the
+            remaining (time and, for TFR data, frequency) dimensions get a regular
+            lattice, connecting each location to its immediate neighbors. The data
+            must have a single channel type. For :class:`~numpy.ndarray` input there
+            is no sensor information to use, so *every* dimension gets a lattice.
+        - a :class:`scipy.sparse.spmatrix`:
+            Assumed symmetric (only the upper triangular half is used) and square,
+            with dimension equal to the product of the last 1, 2, or 3 data
+            dimensions. :func:`mne.stats.combine_adjacency` is useful for building
+            one; note that ``cluster_test`` orders the data dimensions as
+            ``(n_times[, n_freqs], n_channels)``.
+        - ``False``:
+            No adjacency: every location is treated as independent and unconnected,
+            so each supra-threshold location forms its own cluster.
+
+        .. warning::
+           For :class:`~numpy.ndarray` input the lattice spans every axis, including
+           whichever one holds your channels, so clusters can grow between channels
+           that are merely adjacent in the array rather than on the scalp. Pass MNE
+           objects (so ``"auto"`` can use the real sensor geometry) or build the
+           adjacency yourself if that distinction matters.
     max_step : int
         Maximum distance between samples (time points). Default is 1.
     exclude : array-like of bool | None
@@ -1928,7 +1995,7 @@ def cluster_test(
         Format used to represent each cluster in the list of clusters stored in
         the ``clusters`` attribute of :class:`mne.stats.ClusterResult`:
 
-        - ``'mask'``:s
+        - ``'mask'``:
             Each cluster is represented by a boolean array of the same shape as
             the ``stat_obs`` attribute array of :class:`mne.stats.ClusterResult`,
             with ``True`` values indicating locations that are part of a cluster.  Note
@@ -1967,8 +2034,10 @@ def cluster_test(
     .. versionadded:: 1.13
     """
     # parse formula
+    pd = _soft_import("pandas", purpose="clustering from a DataFrame")
     formulaic = _soft_import("formulaic", purpose="parse formula for clustering")
     parser = formulaic.parser.DefaultFormulaParser(include_intercept=False)
+    _validate_type(df, pd.DataFrame, "df")
     rng = _check_rng(rng)
 
     formula_str = formula
@@ -2055,6 +2124,19 @@ def cluster_test(
     levels = grouped.index.to_list()  # parallel to X by construction
     X = grouped.to_list()
     contrast = None  # set below if a subtraction is performed
+
+    # resolve adjacency now, while we still know the per-observation shape
+    if isinstance(adjacency, str):
+        _check_option(
+            "adjacency", adjacency, ("auto",), extra="when passed as a string"
+        )
+        adjacency = _auto_adjacency(df[dv_name].iloc[0], X[0].shape[1:])
+    elif adjacency is None:
+        raise ValueError(
+            'adjacency=None is not supported by cluster_test; pass "auto" (the '
+            "default) to infer sensor adjacency from the data, an explicit sparse "
+            "matrix, or False to treat every location as independent."
+        )
 
     _validate_type(reference, (str, None), "reference")
     if reference is not None:
@@ -2186,7 +2268,10 @@ def cluster_test(
         cluster_p_values=cluster_p_values,
         H0=H0,
         stat_fun=stat_fun,
-        n_permutations=n_permutations,
+        # H0 has one entry per permutation actually run (counting the observed
+        # arrangement, as the `n_permutations` argument does); this is fewer than
+        # requested when the design admits an exact test
+        n_permutations=len(H0),
         t_power=t_power,
         contrast=contrast,
     )
@@ -2223,7 +2308,10 @@ class ClusterResult:
         :func:`mne.stats.ttest_1samp_no_p` for paired tests and
         :func:`mne.stats.f_oneway` for unpaired tests or tests of more than 2 groups.
     n_permutations : int
-        The number of permutations that were taken to compute the test statistic.
+        The number of permutations actually run, counting the observed arrangement.
+        When the design admits an exact test this is smaller than the
+        ``n_permutations`` passed to :func:`cluster_test`: all distinct
+        rearrangements are evaluated and no more.
     t_power : float
         Power to which the observed statistic was raised (sign retained) before
         summing within a cluster to obtain its mass (see ``cluster_masses``).
@@ -2243,6 +2331,11 @@ class ClusterResult:
         how extreme they are, independent of the resulting p-value.
     reference : str | None
         The level that was subtracted, i.e. ``contrast[1]``, or ``None``.
+    stat_name : str
+        Human-readable name of the statistic in ``stat_obs``, e.g.
+        ``"paired T-statistic"``. Reflects the test that ``formula``, ``within_id``
+        and ``stat_fun`` selected, and is ``"test statistic"`` for a custom
+        ``stat_fun``.
 
     Notes
     -----
@@ -2256,7 +2349,7 @@ class ClusterResult:
         clusters: list,
         cluster_p_values: np.typing.NDArray,
         H0: np.typing.NDArray,
-        stat_fun: callable,
+        stat_fun: Callable,
         n_permutations: int,
         t_power: float = 1.0,
         contrast: tuple | None = None,

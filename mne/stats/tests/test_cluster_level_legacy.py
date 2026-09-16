@@ -358,6 +358,11 @@ def test_cluster_permutation_with_adjacency(
         out = func(X1d, **args)
         adjacency = grid_to_graph(1, n_pts)
         out_adjacency = func(X1d, adjacency=adjacency, **args)
+        # adjacency=False: no location joins any other, so every supra-threshold
+        # point forms its own one-sample cluster
+        out_false = func(X1d, adjacency=False, **args)
+        assert all(clust.sum() == 1 for clust in out_false[1])
+        assert len(out_false[1]) == (np.abs(out_false[0]) > args["threshold"]).sum()
         assert_array_equal(out[0], out_adjacency[0])
         for a, b in zip(out_adjacency[1], out[1]):
             assert_array_equal(out[0][a], out[0][b])

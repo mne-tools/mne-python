@@ -142,7 +142,7 @@ add_frames : int | None
 """
 
 _adjacency_clust_template = """
-adjacency : scipy.sparse.spmatrix | {param_none}False
+adjacency : scipy.sparse.spmatrix | None | False
     Defines adjacency between locations in the data, where "locations" can be
     spatial vertices, frequency bins, time points, etc. For spatial vertices
     (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
@@ -160,7 +160,6 @@ _if_none = """ If ``None``, a regular lattice adjacency is assumed, connecting
     of {the_data}.
 """
 st = dict(
-    param_none="None | ",
     if_none=_if_none.format(spatial="spatial ", the_data="{eachgrp} ``{x}``"),
     memory="""
     If spatial adjacency is uniform in time, it is recommended to use a square matrix
@@ -170,7 +169,6 @@ st = dict(
 """,
 )
 tf = dict(
-    param_none="None | ",
     if_none=_if_none.format(
         spatial="",
         the_data="{eachgrp} ``{x}`` (or the last two dimensions if ``{x}`` is 2D)",
@@ -183,9 +181,6 @@ nogrps = dict(eachgrp="", x="X")
 groups = dict(eachgrp="each group ", x="X[k]")
 
 docdict["adjacency_clust_1"] = _adjacency_clust_template.format(**tf).format(**nogrps)
-docdict["adjacency_clust_both"] = _adjacency_clust_template.format(
-    param_none="", if_none="", memory=""
-)
 docdict["adjacency_clust_n"] = _adjacency_clust_template.format(**tf).format(**groups)
 docdict["adjacency_clust_st1"] = _adjacency_clust_template.format(**st).format(**nogrps)
 docdict["adjacency_clust_stn"] = _adjacency_clust_template.format(**st).format(**groups)
