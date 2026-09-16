@@ -1,1 +1,0 @@
-Add ``source_id`` as an optional parameter in :class:`mne.viz.ui_events.VertexSelect`, by `Lifeng Qiu Lin`_.

@@ -191,6 +191,7 @@ class RawMEF(BaseRaw):
                     "n_channels": len(ch_names),
                     "ch_names": ch_names,
                     "password": password,
+                    "session": session,
                 }
             ],
             orig_units=orig_units,
@@ -233,11 +234,9 @@ class RawMEF(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from pymef.mef_session import MefSession
-
         extras = self._raw_extras[fi]
         ch_names = extras["ch_names"]
-        session = MefSession(str(self._filenames[fi]), extras.get("password", ""))
+        session = extras["session"]
 
         ch_indices = (
             range(*idx.indices(extras["n_channels"])) if isinstance(idx, slice) else idx

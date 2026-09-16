@@ -47,6 +47,8 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_C
   test -f ${INSTALL_PATH}/doc/api/reading_raw_data.rst
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
+  mkdir -p tools/hooks
+  cp -av $PROJ_PATH/tools/hooks/check_static_docs.py tools/hooks/
   set +x
   echo "::endgroup::"
 fi

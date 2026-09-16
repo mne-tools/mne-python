@@ -31,6 +31,7 @@ from ..utils import (
     _to_rgb,
     _validate_type,
     fill_doc,
+    fill_doc_static,
     logger,
     verbose,
     warn,
@@ -49,6 +50,7 @@ from .topomap import (
 from .ui_events import TimeChange, publish, subscribe
 from .utils import (
     DraggableColorbar,
+    _BlitManager,
     _check_cov,
     _check_delayed_ssp,
     _check_option,
@@ -417,10 +419,19 @@ def _plot_evoked(
 
     fig = None
     if axes is None:
-        fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
-        fig.set_size_inches(6.4, 2 + len(axes))
+        if plot_type == "butterfly":
+            from ._mpl_figure import _line_figure
+
+            fig, axes = _line_figure(
+                evoked,
+                picks=picks,
+                figsize=(6.4, 2 + len(ch_types_used)),
+            )
+        else:
+            fig, axes = plt.subplots(len(ch_types_used), 1, layout="constrained")
+            if isinstance(axes, plt.Axes):
+                axes = [axes]
+            fig.set_size_inches(6.4, 2 + len(axes))
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
@@ -450,7 +461,7 @@ def _plot_evoked(
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if proj == "reconstruct":
-        evoked = evoked._reconstruct_proj()
+        evoked = evoked.reconstruct_proj()
 
     if plot_type == "butterfly":
         _plot_lines(
@@ -578,6 +589,10 @@ def _plot_lines(
     sphere = _check_sphere(sphere, info)
     path_effects = [patheffects.withStroke(linewidth=2, foreground="w", alpha=0.75)]
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w", alpha=0.75)]
+    # The time cursors and the hover label are the only artists that move, so draw
+    # them on top of a cached background rather than redrawing every channel's trace.
+    blit_manager = _BlitManager(fig)
+
     if selectable:
         selectables = np.ones(len(ch_types_used), dtype=bool)
         for type_idx, this_type in enumerate(ch_types_used):
@@ -623,22 +638,29 @@ def _plot_lines(
                 else:
                     text.set_alpha(0.0)
                     text.set_path_effects([])
+                blit_manager.add(text)
 
             # vertical line to indicate time point
             for ax in axes:
                 line = getattr(ax, "_cursorline", None)
                 if line is None:
-                    ax._cursorline = ax.axvline(event.xdata, color="black", alpha=0.2)
+                    # zorder: blitting draws the cursor over a cached picture of the
+                    # rest of the figure, so it has to be on top of the traces for
+                    # the blitted figure to match a full redraw
+                    line = ax._cursorline = ax.axvline(
+                        event.xdata, color="black", alpha=0.2, zorder=len(ax.lines)
+                    )
+                    blit_manager.add(line)
                 else:
                     line.set_xdata([event.xdata, event.xdata])
-            ax.figure.canvas.draw_idle()
+                    line.set_visible(True)
+            blit_manager.update()
 
         def _rm_cursor(event):
             for ax in axes:
                 if getattr(ax, "_cursorline", None) is not None:
-                    ax._cursorline.remove()
-                    ax._cursorline = None
-            ax.figure.canvas.draw_idle()
+                    ax._cursorline.set_visible(False)
+            blit_manager.update()
 
         def _select_time(event):
             for ax in axes:
@@ -877,10 +899,13 @@ def _plot_lines(
         for ax in axes:
             line = getattr(ax, "_selectline", None)
             if line is None:
-                ax._selectline = ax.axvline(event.time, color="black", alpha=1)
+                ax._selectline = ax.axvline(
+                    event.time, color="black", alpha=1, zorder=len(ax.lines)
+                )
+                blit_manager.add(ax._selectline)
             else:
                 line.set_xdata([event.time, event.time])
-        ax.figure.canvas.draw()
+        blit_manager.update()
 
     subscribe(fig, "time_change", on_time_change)
 
@@ -1353,7 +1378,7 @@ def plot_evoked_topo(
     )
 
 
-@fill_doc
+@fill_doc_static("picks_all", "sphere_topomap_auto")
 def plot_evoked_image(
     evoked,
     picks=None,
@@ -1384,7 +1409,15 @@ def plot_evoked_image(
     ----------
     evoked : instance of Evoked
         The evoked data.
-    %(picks_all)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all channels. Bad channels
+        are included by default. Note that channels in ``info['bads']`` *will be
+        included* if their names or indices are explicitly provided.
         This parameter can also be used to set the order the channels
         are shown in, as the channel image is sorted by the order of picks.
     exclude : list of str | 'bads'
@@ -1485,13 +1518,45 @@ def plot_evoked_image(
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
         If None, all picked channels are plotted to the same axis.
-    %(sphere_topomap_auto)s
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in meters, or a
+        single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to use the
+        origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and to
+          external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``, ``'Oz'``,
+          ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be approximated from
+          the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the specified
+        digitization points, which can be any combination of ``'extra'``, ``'eeg'``,
+        ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) is equivalent to ``'auto'`` when enough extra digitization
+        points are available, and (0, 0, 0, 0.095) otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``, ``'hpi'`` and
+           list of ``str`` options.
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
         Figure containing the images.
-    """
+    """  # noqa: E501
     return _plot_evoked(
         evoked=evoked,
         picks=picks,
@@ -1961,7 +2026,7 @@ def plot_evoked_joint(
     if proj:
         evoked.apply_proj()
         if proj == "reconstruct":
-            evoked._reconstruct_proj()
+            evoked.reconstruct_proj()
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
     evoked.pick(picks, exclude=exclude)
     info = evoked.info

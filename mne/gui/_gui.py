@@ -165,16 +165,240 @@ def coregistration(
     )
 
 
+@verbose
+def dipolefit(
+    evoked,
+    *,
+    baseline=None,
+    cov=None,
+    bem=None,
+    initial_time=None,
+    trans=None,
+    stc=None,
+    subject=None,
+    subjects_dir=None,
+    surf_maps=None,
+    rank="info",
+    show_density=True,
+    ch_type=None,
+    show_sensors=True,
+    n_jobs=None,
+    show=True,
+    block=False,
+    verbose=None,
+):
+    """GUI for interactive dipole fitting, inspired by MEGIN's XFit program.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked | path-like | None
+        Evoked data to show fieldmap of and fit dipoles to.
+    %(baseline_evoked)s
+    cov : instance of Covariance | path-like | "baseline" | None
+        Noise covariance matrix. If ``None``, an ad-hoc covariance matrix is used with
+        default values for the diagonal elements (see Notes). If ``"baseline"``, the
+        diagonal elements is estimated from the baseline period of the evoked data.
+    bem : instance of ConductorModel | path-like | None
+        Boundary element model to use in forward calculations, or a path to the BEM
+        solution file (``"-bem-sol.fif"``) to read it from. If ``None``, a spherical
+        model is used.
+    initial_time : float | None
+        Initial time point to show. If ``None``, the time point of the maximum field
+        strength is used.
+    trans : instance of Transform | path-like | None
+        The transformation from head coordinates to MRI coordinates. If ``None``,
+        the identity matrix is used and everything will be done in head coordinates.
+    stc : instance of SourceEstimate | path-like | None
+        An optional distributed source estimate to show alongside the fieldmap. The time
+        samples need to match those of the evoked data.
+    subject : str | None
+        The subject name. If ``None``, no MRI data is shown.
+    %(subjects_dir)s
+    surf_maps : list | None
+        The surface mapping information obtained with make_field_map. If ``None``, one
+        will be generated based on the given data.
+    %(rank)s
+    show_density : bool
+        Whether to show the density of the fieldmap.
+    ch_type : "meg" | "eeg" | None
+        Type of channels to use for the dipole fitting. By default (``None``) both MEG
+        and EEG channels will be used.
+    show_sensors : bool
+        Whether to show the sensors in the 3D view.
+    %(n_jobs)s
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+    %(verbose)s
+
+    Returns
+    -------
+    fitter : instance of DipoleFitUI
+        The dipole fitting GUI. The ``.dipoles`` attribute contains the fitted dipoles.
+
+    Notes
+    -----
+    .. versionadded:: 1.12
+
+    When using ``cov=None`` the default noise values are 5 fT/cm, 20 fT, and 0.2 µV for
+    gradiometers, magnetometers, and EEG channels respectively.
+
+    Here is an incomplete comparison between the features of the MEGIN XFit™ 5.5.18
+    software and the MNE interactive dipole fitting GUI:
+
+    .. table::
+       :widths: auto
+
+       +-----------------------------------------------------------------------------+-----+------+
+       | Feature                                                                     | MNE | Xfit |
+       +=============================================================================+=====+======+
+       |                                                                                          |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **Head model**                                                                           |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Use spherical head model                                                    | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Use BEM head model based on MRI                                             | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Use ad-hoc covariance matrix                                                | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Estimate covariance from baseline period                                    | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **Dipole fitting**                                                                       |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit a dipole at the current time                                            | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit a dipole by averaging the signal over a time range                      |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit dipoles on a subset of sensors, selected from the sensor view           | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Fit multiple dipoles and construct a multi-dipole model                     | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Toggle individual dipoles on or off in the multi-dipole model               | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Give names to dipoles                                                       | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Save dipoles to .dip or .bdip file                                          | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View source timecourses                                                     | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View total variance explained by the dipole model                           |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View detailed dipole information (coordinates, goodness of fit, etc.)       |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Toggle dipoles to have a free or fixed orientation                          | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Project-out signals from dipoles currently in the model                     |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **3D view**                                                                              |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View magnetic field patterns for Evokeds                                    | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show head surface in relation to the MEG helmet                             | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show brain surfaces inside the head surface                                 | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show MNE source estimate to guide dipole fitting                            | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show location of the dipoles in the 3D view                                 | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show dipole projected to the helmet (big arrows)                            | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Show currently selected sensors in the 3D view                              | ✓   |      |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Only show magnetic field patterns as seen by the currently selected sensors |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | **Sensor view**                                                                          |
+       +-----------------------------------------------------------------------------+-----+------+
+       | View sensor-level timecourses                                               | ✓   | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Switch layouts (all, grads, mags, eeg) in the sensor display                |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+       | Overlay reconstructed sensor time courses from the dipole model             |     | ✓    |
+       +-----------------------------------------------------------------------------+-----+------+
+    """  # noqa E501
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ._dipolefit import DipoleFitUI
+
+    if MNE_3D_BACKEND_TESTING:
+        show = block = False
+
+    return DipoleFitUI(
+        evoked=evoked,
+        baseline=baseline,
+        cov=cov,
+        bem=bem,
+        initial_time=initial_time,
+        trans=trans,
+        stc=stc,
+        subject=subject,
+        subjects_dir=subjects_dir,
+        surf_maps=surf_maps,
+        rank=rank,
+        show_density=show_density,
+        ch_type=ch_type,
+        show_sensors=show_sensors,
+        n_jobs=n_jobs,
+        show=show,
+        block=block,
+        verbose=verbose,
+    )
+
+
+def _gui_closed(gui):
+    """Check whether a GUI's 3D renderer has already been closed."""
+    if not hasattr(gui, "_renderer"):  # nothing to close
+        return False
+    try:
+        plotter = gui._renderer.plotter
+    except Exception:
+        return True
+    return bool(getattr(plotter, "_closed", False))
+
+
+def _close_gui(gui):
+    """Close a GUI, tolerating GUIs that are already (partially) closed."""
+    try:  # for compatibility with both GUIs, will be refactored
+        gui._renderer.close()  # TODO should be triggered by close
+    except Exception:
+        pass
+    gui.close()
+
+
 class _GUIScraper:
-    """Scrape GUI outputs."""
+    """Scrape GUI outputs.
+
+    By default a GUI is scraped once and then closed, so each GUI shows up as a single
+    image in the rendered example. An example can instead add a file-level
+
+    .. code-block:: python
+
+        # sphinx_gallery_preserve_gui = True
+
+    comment, in which case the GUI is scraped after *every* code block and left open, so
+    that successive code blocks can keep operating on it. The scraper then holds the
+    only strong reference to those GUIs, and ``close_preserved`` (called from the doc
+    build's ``reset_modules``) closes them once the example is done.
+    """
+
+    def __init__(self):
+        self._preserved_guis = list()
 
     def __repr__(self):
         return "<GUIScraper>"
 
+    def close_preserved(self):
+        """Close (and forget about) all GUIs preserved across code blocks."""
+        guis, self._preserved_guis = self._preserved_guis, list()
+        for gui in guis:
+            _close_gui(gui)
+
     def __call__(self, block, block_vars, gallery_conf):
         from ._coreg import CoregistrationUI
+        from ._dipolefit import DipoleFitUI
 
-        gui_classes = (CoregistrationUI,)
+        gui_classes = (CoregistrationUI, DipoleFitUI)
         try:
             from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator
         except Exception:
@@ -184,11 +408,18 @@ class _GUIScraper:
         from qtpy import QtGui
         from sphinx_gallery.scrapers import figure_rst
 
+        preserve = bool((block_vars.get("file_conf") or {}).get("preserve_gui", False))
         for gui in block_vars["example_globals"].values():
             if (
                 isinstance(gui, gui_classes)
-                and not getattr(gui, "_scraped", False)
                 and gallery_conf["builder_name"] == "html"
+                and (
+                    # A preserved GUI is scraped for every code block; any other one
+                    # only the first time we see it.
+                    not _gui_closed(gui)
+                    if preserve
+                    else not getattr(gui, "_scraped", False)
+                )
             ):
                 gui._scraped = True  # monkey-patch but it's easy enough
                 img_fname = next(block_vars["image_path_iterator"])
@@ -206,6 +437,11 @@ class _GUIScraper:
                     plotter = gui._renderer.plotter
                     plotter.screenshot(img_fname)
                     sub_pixmap = QtGui.QPixmap(img_fname)
+                    # The screenshot is in physical pixels, but QPainter works in
+                    # logical pixels, so on HiDPI displays (e.g., Retina, where
+                    # devicePixelRatio == 2) the screenshot must be marked with the
+                    # window's scale factor or it is composited at twice its size.
+                    sub_pixmap.setDevicePixelRatio(window.devicePixelRatio())
                     # https://doc.qt.io/qt-5/qwidget.html#mapTo
                     # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
                     QtGui.QPainter(pixmap).drawPixmap(
@@ -213,10 +449,19 @@ class _GUIScraper:
                     )
                 # https://doc.qt.io/qt-5/qpixmap.html#save
                 pixmap.save(img_fname)
-                try:  # for compatibility with both GUIs, will be refactored
-                    gui._renderer.close()  # TODO should be triggered by close
-                except Exception:
-                    pass
-                gui.close()
+                if preserve:
+                    # Keep it open (and alive) so the next code block can use it.
+                    if not any(gui is known for known in self._preserved_guis):
+                        self._preserved_guis.append(gui)
+                    if hasattr(gui, "_renderer"):
+                        # The PyVista scraper runs after us and screenshots *and then
+                        # closes* every plotter it knows about, which would take our GUI
+                        # down with it. Deregister ours from it, just like closing a
+                        # figure does (see _pyvista._close_3d_figure).
+                        from ..viz.backends._pyvista import _ALL_PLOTTERS
+
+                        _ALL_PLOTTERS.pop(plotter._id_name, None)
+                else:
+                    _close_gui(gui)
                 return figure_rst([img_fname], gallery_conf["src_dir"], "GUI")
         return ""

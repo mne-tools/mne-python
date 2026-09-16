@@ -17,6 +17,7 @@ from .ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
+    _BlitManager,
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
@@ -1172,7 +1173,7 @@ def _plot_evoked_topo(
 
     setattr(fig, "_current_time", None)
 
-    def _on_time_change(event, fig, tmin, tmax):
+    def _on_time_change(event, fig, blit, tmin, tmax):
         """Respond to a time change UI event."""
         fig._current_time = event.time
 
@@ -1188,11 +1189,14 @@ def _plot_evoked_topo(
                     color=font_color,
                     linewidth=0.5,
                 )
+                blit.add(subax.time_cursor)
             else:
                 subax.time_cursor.set_xdata([time, time])
             # Hide the vertical line when the time is out of bounds.
             subax.time_cursor.set_visible(tmin <= event.time <= tmax)
-        fig.canvas.draw()
+        # the cursors are the only thing that moves, so blit them onto a cached
+        # background instead of redrawing every channel's traces
+        blit.update()
 
     subscribe(
         fig,
@@ -1200,6 +1204,7 @@ def _plot_evoked_topo(
         partial(
             _on_time_change,
             fig=fig,
+            blit=_BlitManager(fig),
             tmin=np.min([t[0] for t in times]),
             tmax=np.max([t[-1] for t in times]),
         ),

@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "231288cdcb2d6afb1f44175d86335b93761796a5",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com",
+      "l": "PragnyaKhandelwal"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14137.other.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 13,
+      "d": 12
+    }
+  }
+}

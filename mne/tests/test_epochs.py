@@ -814,11 +814,14 @@ def test_own_data():
     events = events[:n_epochs]
     epochs = mne.Epochs(raw, events, preload=True)
     assert epochs._data.flags["C_CONTIGUOUS"]
-    assert epochs._data.flags["OWNDATA"]
+    # inplace resize no longer supported in NumPy 2.5
+    assert not epochs._data.flags["OWNDATA"]
     epochs.crop(tmin=-0.1, tmax=0.4)
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
     assert not epochs._data.flags["OWNDATA"]
+    # in-place selection must own its data too, so it stays resizable (gh-14260)
+    assert epochs.copy()._getitem(slice(2), copy=False)._data.flags["OWNDATA"]
 
     # data ownership value error
     epochs.drop_bad(flat=dict(eeg=8e-6))
@@ -1637,8 +1640,7 @@ def epochs_to_split(request, epochs_factory):
     return epochs, split_size, n_files
 
 
-@pytest.mark.parametrize("preload", [True, False], ids=["preload", "no_preload"])
-def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
+def test_split_saving_and_loading_back(tmp_path, epochs_to_split):
     """Test saving split epochs and loading them back.
 
     In particular, check events after loading splits to test against gh-5102.
@@ -1650,12 +1652,15 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
     got_size = _get_split_size(split_size)
 
     epochs.save(fname, split_size=split_size, overwrite=True)
-    epochs2 = mne.read_epochs(fname, preload=preload)
 
     _assert_splits(fname, n_files, got_size)
     assert not fname.with_name(f"{fname.stem}-{n_files + 1}{fname.suffix}").is_file()
-    assert_allclose(epochs2.get_data(), epochs_data)
-    assert_array_equal(epochs.events, epochs2.events)
+    # both read paths are checked against the same set of splits rather than
+    # parametrizing, which would write every split file twice
+    for preload in (True, False):
+        epochs2 = mne.read_epochs(fname, preload=preload)
+        assert_allclose(epochs2.get_data(), epochs_data)
+        assert_array_equal(epochs.events, epochs2.events)
 
 
 @pytest.mark.parametrize(
@@ -1682,6 +1687,11 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
         ),
     ],
     ids=["neuromag", "bids", "mix"],
+)
+# file naming is orthogonal to the split-boundary cases, so one multi-split
+# case is enough here (the boundaries are covered by the test above)
+@pytest.mark.parametrize(
+    "epochs_to_split", [("3MB", 18, False, False, 3)], indirect=True
 )
 def test_split_naming(
     tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn, check_bids
@@ -2350,7 +2360,7 @@ def test_preload_epochs():
     assert_array_almost_equal(epochs_preload.average().data, epochs.average().data, 18)
 
 
-def test_indexing_slicing():
+def test_indexing_slicing(monkeypatch):
     """Test of indexing and slicing operations."""
     raw, events, picks = _get_data()
     epochs = Epochs(
@@ -2388,6 +2398,14 @@ def test_indexing_slicing():
 
         data_epochs2_sliced = epochs2_sliced.get_data()
         assert_array_equal(data_epochs2_sliced, data_normal[start_index:end_index])
+
+        if preload:  # gh-14260
+            assert not np.shares_memory(epochs2_sliced._data, epochs2._data)
+            with monkeypatch.context() as m:
+                m.setattr(BaseEpochs, "copy", None)  # make copy() fail mid-getitem
+                with pytest.raises(TypeError, match="not callable"):
+                    epochs2[0]
+            assert_array_equal(epochs2._data, data_normal)  # placeholder not left
 
         # using indexing
         pos = 0
@@ -2748,6 +2766,10 @@ def test_epochs_copy():
     )
     copied = epochs.copy()
     assert_array_equal(epochs._data, copied._data)
+    # a self-referencing attribute must terminate and remap to the copy (gh-14260)
+    epochs.circular = epochs
+    copied = epochs.copy()
+    assert copied.circular is copied
 
     epochs = Epochs(
         raw,

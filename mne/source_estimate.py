@@ -770,7 +770,6 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         initial_time=None,
         time_unit="s",
         backend="auto",
-        spacing="oct6",
         title=None,
         show_traces="auto",
         src=None,
@@ -778,6 +777,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
+        block=False,
         verbose=None,
     ):
         from .viz import plot_source_estimates
@@ -805,7 +805,6 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             initial_time=initial_time,
             time_unit=time_unit,
             backend=backend,
-            spacing=spacing,
             title=title,
             show_traces=show_traces,
             src=src,
@@ -813,6 +812,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
+            block=block,
             verbose=verbose,
         )
         return brain
@@ -2391,7 +2391,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_time=None,
         time_unit="s",
         backend="auto",
-        spacing="oct6",
         title=None,
         show_traces="auto",
         src=None,
@@ -2399,6 +2398,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
+        block=False,
         verbose=None,
     ):
         return super().plot(
@@ -2423,7 +2423,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             initial_time=initial_time,
             time_unit=time_unit,
             backend=backend,
-            spacing=spacing,
             title=title,
             show_traces=show_traces,
             src=src,
@@ -2431,6 +2430,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
+            block=block,
             verbose=verbose,
         )
 

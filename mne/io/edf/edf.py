@@ -252,9 +252,11 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -464,9 +466,11 @@ class RawBDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -582,9 +586,11 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -595,11 +601,37 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     assert dtype is not None
     # BDF
     if subtype == "bdf":
-        ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
-        ch_data = ch_data.reshape(-1, 3).astype(INT32)
-        ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
-        # 24th bit determines the sign
-        ch_data[ch_data >= (1 << 23)] -= 1 << 24
+        assert dtype_byte == 3
+        expected = samp * dtype_byte
+        try:
+            raw = read_from_file_or_buffer(fid, dtype=dtype, count=expected)
+        except ValueError as err:
+            raise RuntimeError(
+                f"Could not read {expected} requested BDF bytes"
+            ) from err
+        if raw.size != expected:
+            raise RuntimeError(
+                f"Only {raw.size} of {expected} requested BDF bytes could be read"
+            )
+        # Read each 3-byte sample as the low bytes of an overlapping 4-byte
+        # word, mask off the byte borrowed from the next sample, then move the
+        # sign bit to bit 31 and shift back down to sign-extend it. The last
+        # sample has no next sample to borrow from, so it is done by hand.
+        # This is equivalent to, and ~3x faster than, the readable version:
+        #
+        #     ch_data = raw.reshape(-1, 3).astype(INT32)
+        #     ch_data = ch_data[:, 0] | (ch_data[:, 1] << 8) | (ch_data[:, 2] << 16)
+        #     ch_data <<= 8  # sign-extend bit 23
+        #     ch_data >>= 8
+        ch_data = np.empty(samp, dtype=INT32)
+        packed = np.ndarray(
+            (max(samp - 1, 0),), dtype="<u4", buffer=raw, strides=(dtype_byte,)
+        )
+        np.bitwise_and(packed, (1 << 24) - 1, out=ch_data[:-1])
+        if samp:
+            ch_data[-1] = int(raw[-3]) | int(raw[-2]) << 8 | int(raw[-1]) << 16
+        ch_data <<= 8
+        ch_data >>= 8
 
     # GDF data and EDF data
     else:
@@ -608,10 +640,11 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
+_EDF_CHUNK_BYTES = 10 * 1024 * 1024  # read roughly this much per chunk
+
+
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
-    from scipy.interpolate import interp1d
-
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]
@@ -634,11 +667,20 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-    block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
     # But to speed it up, we really need to read multiple blocks at once,
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
-    # Let's do ~10 MB chunks:
-    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    n_per = max(_EDF_CHUNK_BYTES // (ch_offsets[-1] * dtype_byte), 1)
+
+    # When every picked channel stores buf_len samples per data record there is
+    # nothing to resample, so the picks form a plain (n_picks, n_times) block we
+    # can calibrate in one go straight into `data`. Mixed sampling rates, a
+    # projector, or a stim channel that needs interpolating use the per-channel
+    # loop below instead.
+    n_picks = len(idx_arr)
+    picks = read_sel[:n_picks]  # picked signal channels, in output row order
+    uniform = mult is None and bool((n_samps[picks] == buf_len).all())
+    stim_rows = [j for j, i in enumerate(idx_arr) if i in stim_channel_idxs]
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -647,7 +689,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
         # first read everything into the `ones` array. For channels with
         # lower sampling frequency, there will be zeros left at the end of the
         # row. Ignore TAL/annotations channel and only store `orig_sel`
-        ones = np.zeros((len(orig_sel), data.shape[-1]), dtype=data.dtype)
+        # `ones` has no rows on the fast path, which writes into `data` itself
+        n_stage = 0 if uniform else len(orig_sel)
+        ones = np.zeros((n_stage, data.shape[-1]), dtype=data.dtype)
         # save how many samples have already been read per channel
         n_smp_read = [0 for _ in range(len(orig_sel))]
 
@@ -662,6 +706,23 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             ).reshape(n_read, -1)
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+
+            if uniform:
+                block = np.empty((n_picks, n_read, buf_len), many_chunk.dtype)
+                for j, ci in enumerate(picks):
+                    block[j] = many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]]
+                for ci in read_sel[n_picks:]:  # annotation channels
+                    tal_data.append(
+                        many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]].copy()
+                    )
+                out = data[:, d_lims[ai][0] : d_lims[ai + n_read - 1][1]]
+                flat = block.reshape(n_picks, n_read * buf_len)[:, r_sidx:r_eidx]
+                np.multiply(flat, cal[idx_arr, np.newaxis], out=out)
+                out += offsets[idx_arr, np.newaxis]
+                out *= gains[idx_arr, np.newaxis]
+                for j in stim_rows:
+                    out[j] = np.bitwise_and(out[j].astype(int), 2**17 - 1)
+                continue
 
             # loop over selected channels, ci=channel selection
             for ii, ci in enumerate(read_sel):
@@ -682,6 +743,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
                 if n_samps[ci] != buf_len:
                     if orig_idx in stim_channel_idxs:
+                        from scipy.interpolate import interp1d
+
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -734,6 +797,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 )
 
             _mult_cal_one(data[:, :], ones, idx, cals, mult)
+
+    if uniform:
+        # stands in for the `data_view *= cals` that _mult_cal_one applies; the
+        # block above is skipped because the fast path leaves n_smp_read zero
+        data *= cals
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
@@ -827,15 +895,17 @@ def _get_info(
     else:
         n_samps = edf_info["n_samps"][sel]
     nchan = edf_info["nchan"]
+    # handle channels where the physical range is 0 or
+    # the digital_max is not strictly greater than digital_min
     physical_ranges = edf_info["physical_max"] - edf_info["physical_min"]
-    cals = edf_info["digital_max"] - edf_info["digital_min"]
-    bad_idx = np.where((~np.isfinite(cals)) | (cals == 0))[0]
+    digital_ranges = edf_info["digital_max"] - edf_info["digital_min"]
+    bad_idx = np.where((~np.isfinite(digital_ranges)) | (digital_ranges == 0))[0]
     if len(bad_idx) > 0:
         warn(
-            "Scaling factor is not defined in following channels:\n"
+            "Scaling factor will not be defined in the following channels:\n"
             + ", ".join(ch_names[i] for i in bad_idx)
         )
-        cals[bad_idx] = 1
+        digital_ranges[bad_idx] = 1
     bad_idx = np.where(physical_ranges == 0)[0]
     if len(bad_idx) > 0:
         warn(
@@ -998,15 +1068,14 @@ def _get_info(
     info._unlocked = False
     info._update_redundant()
 
-    # Later used for reading
-    edf_info["cal"] = physical_ranges / cals
+    # Later used for reading. Unit is uV per bit
+    edf_info["cal"] = physical_ranges / digital_ranges
 
-    # physical dimension in µV
+    # physical dimension in µV. Difference between attested lowest uV value and lowest
+    # possible stored uV value (in light of what digital_min is)
     edf_info["offsets"] = (
         edf_info["physical_min"] - edf_info["digital_min"] * edf_info["cal"]
     )
-    del edf_info["physical_min"]
-    del edf_info["digital_min"]
 
     if edf_info["subtype"] == "bdf":
         edf_info["cal"][stim_channel_idxs] = 1
@@ -1252,6 +1321,9 @@ def _read_edf_header(
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
+        # let's make sure we don't accidentally change these
+        for arr in (physical_min, physical_max, digital_min, digital_max):
+            arr.flags["WRITEABLE"] = False
         prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 

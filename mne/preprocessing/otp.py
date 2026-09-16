@@ -89,7 +89,7 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
             f"duration ({n_samples / raw.info['sfreq']}) yielded {n_samples} samples, "
             f"which is fewer than the number of channels -1 ({len(picks_good) - 1})"
         )
-    n_overlap = n_samples // 2
+    n_overlap = (n_samples + 1) // 2
     raw_otp = raw.copy().load_data(verbose=False)
     otp = _COLA(
         partial(_otp, picks_good=picks_good, picks_bad=picks_bad),

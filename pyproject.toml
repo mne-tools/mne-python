@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", {include-group = "doc"}, {include-group = "test_extra"}]
+dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", { include-group = "doc" }, { include-group = "test_extra" }]
 # Dependencies for building the documentation
 doc = [
   # 0.22 moved normalize_options into docutils.parsers.rst.roles
@@ -23,15 +23,15 @@ doc = [
   "mne-gui-addons",
   "neo",
   "numpydoc >= 0.5",
-  "openneuro-py >= 2020.1",
+  "openneuro-py >= 2020.1",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "psutil",
   "pydata-sphinx-theme >= 0.15.2",
   "pygments >= 2.13",
-  "pymef",  # released 2023-06-30, will become 0.12 on 2028-07-01
+  "pymef",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "pyxdf",
   "pyzmq != 24.0.0",
-  "refleak >= 0.2.1",  # released 2024-05-21, will become 1.6 on 2026-12-09
+  "refleak >= 0.2.2",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
@@ -43,7 +43,7 @@ doc = [
   "sphinxcontrib-towncrier >= 0.5.0a0",
   "sphinxcontrib-youtube",
 ]
-doc-full = ["rpy2", {include-group = "doc"}]
+doc-full = ["rpy2", { include-group = "doc" }]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
@@ -61,7 +61,7 @@ test = [
   "pytest-rerunfailures",
   "pytest-timeout >= 2.2",
   "pytest-xdist >= 3.6.1",
-  "refleak >= 0.2.1",
+  "refleak >= 0.2.2",
   "ruff >= 0.1",
   "threadpoolctl",
   "twine",
@@ -74,8 +74,13 @@ test_extra = [
   "nbclient",  # requires jupyter_client
   "nitime >= 0.7",
   "pymef",
+  # drawing backend for the browser docs, see mne/viz/backends/_lite.py. The
+  # marker is pyvista-js's own requires-python (>= 3.12, < 3.15) rather than
+  # anything about JupyterLite: without it this group cannot resolve at all on
+  # the 3.11 MNE still supports. Every CI job that installs it is on 3.12+.
+  "pyvista-js >= 0.16; python_version >= '3.12'",
   "statsmodels",
-  {include-group = "test_extra_ft"},
+  { include-group = "test_extra_ft" },
 ]
 # Dependencies for being able to run additional tests (rare/CIs/advanced devs)
 # Changes here should be reflected in the mne/utils/config.py dev dependencies section
@@ -92,12 +97,12 @@ test_extra_ft = [
   "snirf",
   "sphinx",
   "sphinx-gallery",
-  {include-group = "test"},
+  { include-group = "test" },
 ]
 
 [project]
 authors = [
-  {email = "alexandre.gramfort@inria.fr", name = "Alexandre Gramfort"},
+  { email = "alexandre.gramfort@inria.fr", name = "Alexandre Gramfort" },
 ]
 classifiers = [
   "Intended Audience :: Developers",
@@ -105,11 +110,11 @@ classifiers = [
   "License :: OSI Approved",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",
-  "Operating System :: POSIX :: Linux",
   "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
   "Operating System :: Unix",
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering",
   "Topic :: Software Development",
 ]
@@ -145,14 +150,14 @@ keywords = [
 ]
 license = "BSD-3-Clause"
 license-files = ["LICENSE.txt"]
-maintainers = [{email = "dan@mccloy.info", name = "Dan McCloy"}]
+maintainers = [{ email = "dan@mccloy.info", name = "Dan McCloy" }]
 name = "mne"
-readme = {content-type = "text/x-rst", file = "README.rst"}
+readme = { content-type = "text/x-rst", file = "README.rst" }
 requires-python = ">= 3.11"
 # ↑↑↑↑↑↑↑↑↑↑↑ when this changes, bump the `--python-version` in the `uv pip compile ...`
 # command in `.github/workflows/autofix.yml` (astral-sh/uv/#16333), and also
 # the `python` version for the `kind: old` matrix entry in `.github/workflows/tests.yml`
-scripts = {mne = "mne.commands.utils:main"}
+scripts = { mne = "mne.commands.utils:main" }
 
 [project.optional-dependencies]
 # Leave this one here for backward-compat
@@ -179,6 +184,7 @@ full-no-qt = [
   "ipympl",
   "ipython >= 2.0, != 8.7.0",  # for notebook backend; also in "doc" and "test"
   "ipywidgets",
+  "jamica >= 0.3.0",
   "joblib >= 0.8",
   "jupyter",
   "mffpy >= 0.11.0",
@@ -207,7 +213,7 @@ full-no-qt = [
   "statsmodels >= 0.6",
   "threadpoolctl",
   "traitlets",
-  "trame",
+  "trame < 4",  # trame-vtk and trame-pyvista do not support trame 4 yet
   "trame-pyvista",
   "trame-vtk",
   "trame-vuetify != 3.2.3",
@@ -263,7 +269,7 @@ exclude = [
 ]  # tracked by git, but we don't want to ship those files
 
 [tool.hatch.version]
-raw-options = {version_scheme = "release-branch-semver"}
+raw-options = { version_scheme = "release-branch-semver" }
 source = "vcs"
 
 [tool.numpydoc_validation]
@@ -451,7 +457,8 @@ directory = "doc/changes/dev/"
 filename = "doc/changes/dev.rst"
 issue_format = "`#{issue} <https://github.com/mne-tools/mne-python/pull/{issue}>`__"
 package = "mne"
-title_format = "{version} ({project_date})"
+template = "doc/changes/towncrier_template.rst.jinja"
+title_format = ""  # empty means the template renders the title (and the anchor)
 
 [[tool.towncrier.type]]
 directory = "notable"
@@ -492,6 +499,7 @@ python-version = "3.11"  # minimum supported, keep in sync with requires-python
 [tool.ty.src]
 exclude = ["mne/io/**/tests"]
 include = [
+  "mne/_fiff/meas_info.py",
   "mne/annotations.py",
   "mne/epochs.py",
   "mne/evoked.py",

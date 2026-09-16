@@ -909,7 +909,7 @@ def compute_head_pos(
     gof_limit=0.98,
     adjust_dig=False,
     *,
-    weighted=None,
+    weighted=True,
     verbose=None,
 ):
     """Compute time-varying head positions.
@@ -931,9 +931,10 @@ def compute_head_pos(
         inter-coil distance error. If ``False``, subselect the three coils that yield
         the best fit. Weighting avoids discontinuous jumps in the estimated head
         position caused by coils switching in and out of the fit (see :gh:`11330`).
-        The default (False) will change to True in 1.14.
 
         .. versionadded:: 1.13
+        .. versionchanged:: 1.14
+           The default changed from ``False`` to ``True``.
     %(verbose)s
 
     Returns
@@ -957,13 +958,6 @@ def compute_head_pos(
 
     _check_chpi_param(chpi_locs, "chpi_locs")
     _validate_type(info, Info, "info")
-    if weighted is None:
-        warn(
-            "The default for weighted will change from False to True in 1.14, set it "
-            "explicitly to avoid this warning. Using False.",
-            FutureWarning,
-        )
-        weighted = False
     hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig, verbose="error")
     n_coils = len(hpi_dig_head_rrs)
     # reference inter-coil distances (rigid, so invariant to the dev_head_t we fit)

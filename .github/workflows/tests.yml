@@ -23,6 +23,8 @@ jobs:
   bandit:
     name: Bandit
     runs-on: ubuntu-latest
+    # main is enough
+    if: ${{ github.event_name != 'pull_request' }}
     steps:
       - uses: davidslusser/actions_python_bandit@v1.0.1
         with:
@@ -93,7 +95,7 @@ jobs:
           detached: true
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
-      - uses: pyvista/setup-headless-display-action@v4
+      - uses: pyvista/setup-headless-display-action@v5
         with:
           qt: true
           pyvista: false
@@ -104,8 +106,11 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
         id: setup-python
-      # Workaround macOS path behavior with login shells (which puts system Python first)
-      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
+      # Workaround macOS path behavior with login shells (which puts system Python first).
+      # \$PATH must stay escaped so that it is expanded when each login shell sources
+      # ~/.bash_profile: writing the expanded value would freeze PATH as of this step and
+      # silently discard anything a later step adds to $GITHUB_PATH.
+      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):\$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
         if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
@@ -136,14 +141,12 @@ jobs:
           project-root: ${{ github.workspace }}
           groups: lockfile_extras
         if: matrix.kind == 'old'
-      # Minimal commands on Linux (macOS stalls)
-      - uses: actions/cache@v6.1.0
-        with:
-          key: minimal-commands-1
-          path: ~/minimal_cmds
-        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
-      - run: bash ./tools/get_minimal_commands.sh
-        if: startswith(matrix.os, 'ubuntu') && matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
+      # MNE-C minimal commands. The action caches the download and no-ops on
+      # platforms that have no binaries (macOS arm64, Windows, Linux arm64), so it
+      # only needs to be gated on the kinds that deliberately do without them.
+      - name: Setup minimal commands
+        uses: mne-tools/mne-tools/actions/setup-minimal-commands@main
+        if: matrix.kind != 'minimal' && matrix.kind != 'old' && matrix.kind != 'pip-ft'
       - run: bash ./tools/github_actions_infos.sh
       - name: Check Qt import
         uses: mne-tools/mne-tools/actions/check-qt-import@main
@@ -154,11 +157,25 @@ jobs:
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" -n "$PYTEST_XDIST_N" --dist loadscope --timeout=120 --timeout-method=thread -o faulthandler_timeout=110 $COV_ARGS --tb=short -vv -rfE mne/
         if: matrix.kind == 'minimal'
       - run: ./tools/get_testing_version.sh
-      - uses: actions/cache@v6.1.0
+        if: matrix.kind != 'minimal'
+      # The "minimal" kind never fetches the datasets, so don't try to cache them
+      # (or it could lead to an empty cache!)
+      - name: Cache testing data
+        uses: actions/cache@v6.1.0
         with:
-          key: ${{ env.TESTING_VERSION }}
+          key: mne_data-testing-${{ env.TESTING_VERSION }}-misc-${{ env.MISC_VERSION }}-1
           path: ~/mne_data
+        if: matrix.kind != 'minimal'
       - run: bash ./tools/github_actions_download.sh
+        if: matrix.kind != 'minimal'
+      - run: ./tools/get_numba_version.sh
+      - name: Cache numba
+        uses: actions/cache@v6.1.0
+        with:
+          key: mne_numba-${{ matrix.os }}-${{ matrix.python }}-${{ env.NUMBA_VERSION }}-${{ hashFiles('mne/**/*numba*.py') }}
+          path: ${{ env.NUMBA_CACHE_DIR }}
+        # nothing to cache, and an empty directory would just poison the key
+        if: env.NUMBA_VERSION != 'none'
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
       - uses: codecov/codecov-action@v7.0.0
         with:
