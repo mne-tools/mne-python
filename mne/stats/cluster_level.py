@@ -1886,7 +1886,7 @@ def cluster_test(
     tail: Literal[-1, 0, 1] = 0,
     threshold=None,
     n_permutations: str | int = 1024,
-    adjacency: sparse.spmatrix | Literal["auto", False] = "auto",
+    adjacency: sparse.sparray | Literal["auto", False] = "auto",
     max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
     exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
     step_down_p: float = 0.0,
@@ -1951,7 +1951,7 @@ def cluster_test(
     %(tail_clust)s
     %(threshold_clust_both)s
     %(n_permutations_clust_all)s
-    adjacency : "auto" | scipy.sparse.spmatrix | False
+    adjacency : "auto" | scipy.sparse.sparray | False
         Defines adjacency between locations in the data, i.e. which locations may
         join to form a cluster.
 
@@ -1963,7 +1963,7 @@ def cluster_test(
             lattice, connecting each location to its immediate neighbors. The data
             must have a single channel type. For :class:`~numpy.ndarray` input there
             is no sensor information to use, so *every* dimension gets a lattice.
-        - a :class:`scipy.sparse.spmatrix`:
+        - a :class:`scipy.sparse.sparray`:
             Assumed symmetric (only the upper triangular half is used) and square,
             with dimension equal to the product of the last 1, 2, or 3 data
             dimensions. :func:`mne.stats.combine_adjacency` is useful for building

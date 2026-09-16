@@ -142,7 +142,7 @@ add_frames : int | None
 """
 
 _adjacency_clust_template = """
-adjacency : scipy.sparse.spmatrix | None | False
+adjacency : scipy.sparse.sparray | None | False
     Defines adjacency between locations in the data, where "locations" can be
     spatial vertices, frequency bins, time points, etc. For spatial vertices
     (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
