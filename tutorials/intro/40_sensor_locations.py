@@ -123,7 +123,8 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 #
 #     All MNE plotting functions for EEG topographies and sensor locations support the
 #     ``sphere`` keyword argument, and therefore allow for adjustment of the way the
-#     sensors are projected onto the head circle.
+#     sensors are projected onto the head circle. To avoid passing it over and over, you
+#     can store a sphere in the measurement info; see below.
 #
 # In MNE-Python, by default the head center is calculated using :term:`fiducial points
 # <fiducial>`. This means that the head circle represents the head circumference **at
@@ -162,6 +163,24 @@ fig2 = easycap_montage.plot(sphere=0.07)
 fig = easycap_montage.plot(sphere=(0.03, 0.02, 0.01, 0.075))
 
 # %%
+# Reusing the same sphere everywhere
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Passing ``sphere`` to every function that draws a head gets tedious, and in some
+# figures it is buried inside another argument (such as ``topomap_args``). Instead, you
+# can store the sphere in the measurement info once, using
+# :meth:`~mne.io.Raw.set_head_sphere`. It accepts the same values as the ``sphere``
+# argument, and afterwards every function that takes a ``sphere`` argument will use the
+# stored sphere by default:
+
+ssvep_raw.set_head_sphere("eeglab")
+fig = ssvep_raw.plot_sensors(show_names=True)
+
+# %%
+# The sphere is kept in ``ssvep_raw.info["head_sphere"]``, so it carries over to any
+# `~mne.Epochs` or `~mne.Evoked` objects derived from this recording, and it is saved
+# along with the data.
+#
 # .. _reading-dig-montages:
 #
 # Reading sensor digitization files
