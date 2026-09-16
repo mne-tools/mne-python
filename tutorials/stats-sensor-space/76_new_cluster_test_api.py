@@ -123,6 +123,9 @@ df
 # used by R's ``lmer``/``glmer``. Here ``"evoked ~ condition"`` models the
 # evoked response as a function of condition: ``condition`` is categorical and
 # is dummy-coded automatically, and an intercept is included implicitly.
+
+formula = "evoked ~ condition"
+
 # Passing ``within_id="subject_index"`` makes this a within-subject (paired)
 # test: the two conditions are subtracted within each subject and the resulting
 # differences are tested against zero (a one-sample t-test), with the null
@@ -130,7 +133,11 @@ df
 # set ``non-target`` as the reference, the difference is formed as
 # target minus non-target. Not setting the reference explicitly will order the contrast
 # levels alphabetically and the reference will be target.
-#
+
+cluster_result = mne.stats.cluster_test(
+    df=df, formula=formula, within_id="subject_index", reference="non-target"
+)
+
 # We leave ``adjacency`` at its default of ``"auto"``, which reads the sensor
 # locations from the data to decide which channels are neighbors, and treats
 # consecutive time points as neighbors. Clusters can therefore grow across both
@@ -138,12 +145,6 @@ df
 # ``"auto"`` will say so rather than guess; you can then set one, or build the
 # matrix yourself with :func:`mne.channels.find_ch_adjacency` and
 # :func:`mne.stats.combine_adjacency`.
-
-formula = "evoked ~ condition"
-
-cluster_result = mne.stats.cluster_test(
-    df=df, formula=formula, within_id="subject_index", reference="non-target"
-)
 
 print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 
