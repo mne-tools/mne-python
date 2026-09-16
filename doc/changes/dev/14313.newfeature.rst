@@ -1,4 +1,4 @@
-Add :meth:`~mne.io.Raw.add_head_sphere` method to :class:`~mne.io.Raw`,
-:class:`~mne.Epochs` and :class:`~mne.Evoked` to add the head sphere information to the
-``.info`` dictionary instead of having to specify the ``sphere`` parameter for every
-figure that draws some form of topomap, by `Marijn van Vliet`_
+Add :meth:`~mne.io.Raw.set_head_sphere` method to :class:`~mne.io.Raw`,
+:class:`~mne.Epochs` and :class:`~mne.Evoked` to store the head sphere in the
+``.info`` dictionary instead of having to specify the ``sphere`` parameter for
+every figure that draws some form of topomap, by `Marijn van Vliet`_

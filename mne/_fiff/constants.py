@@ -376,8 +376,18 @@ FIFF.FIFFV_BEM_SURF_ID_CSF = 2
 FIFF.FIFFV_BEM_SURF_ID_SKULL = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD = 4
 
-FIFF.FIFF_SPHERE_ORIGIN = 3001
-FIFF.FIFF_SPHERE_RADIUS = 3002
+#
+# Spherically symmetric conductor model (3000...)
+#
+FIFF.FIFF_CONDUCTOR_MODEL_KIND = 3000  # What kind of conductor model
+FIFF.FIFF_SPHERE_ORIGIN = 3001  # float  origin of the sphere model
+FIFF.FIFF_SPHERE_COORD_FRAME = 3002  # int   coordinate frame of the origin
+FIFF.FIFF_SPHERE_LAYERS = 3003  # array of layer structures
+
+FIFF.FIFFV_COND_MODEL_UNKNOWN = 0
+FIFF.FIFFV_COND_MODEL_SPHERE = 1  # Spherically symmetric
+FIFF.FIFFV_COND_MODEL_BEM_HOMOG = 2  # Homogeneous BEM model (single layer)
+FIFF.FIFFV_COND_MODEL_BEM = 3  # Multilayer BEM model
 
 FIFF.FIFF_BEM_SURF_ID = 3101  # int    surface number
 FIFF.FIFF_BEM_SURF_NAME = 3102  # string surface name
@@ -883,6 +893,11 @@ FIFF.FIFFT_CH_POS_STRUCT = 34
 FIFF.FIFFT_COORD_TRANS_STRUCT = 35
 FIFF.FIFFT_DIG_STRING_STRUCT = 36
 FIFF.FIFFT_STREAM_SEGMENT_STRUCT = 37
+# The layer struct (fiffLayerRec: int32 id, float32 radius) is documented in
+# DictionaryTags.txt as the type of FIFF_SPHERE_LAYERS, but no public header assigns it
+# a primitive type code, so we use the first free one. 38 is taken by the (equally
+# undocumented) FIFFT_DATA_REF_STRUCT, see mne-cpp src/libraries/fiff/fiff_file.h.
+FIFF.FIFFT_LAYER_STRUCT = 39
 FIFF.FIFFT_MATRIX = 0x40000000  # 1073741824, 1 << 30
 FIFF.FIFFT_SPARSE_CCS_MATRIX = 0x00100000  # 1048576
 FIFF.FIFFT_SPARSE_RCS_MATRIX = 0x00200000  # 2097152

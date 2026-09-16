@@ -567,8 +567,8 @@ sphinx_gallery_conf = {
         ".*plot_sensors()|.*rename_channels()|"
         ".*reorder_channels()|.*savgol_filter()|"
         ".*set_eeg_reference()|.*set_channel_types()|"
-        ".*set_meas_date()|.*set_montage()|.*shift_time()|"
-        ".*time_as_index()|.*to_data_frame()|.*set_head_sphere()|"
+        ".*set_head_sphere()|.*set_meas_date()|.*set_montage()|"
+        ".*shift_time()|.*time_as_index()|.*to_data_frame()|"
         # dictionary inherited
         ".*clear()|.*fromkeys()|.*get()|.*items()|"
         ".*keys()|.*pop()|.*popitem()|.*setdefault()|"
