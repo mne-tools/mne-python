@@ -63,6 +63,9 @@ _.setup
 
 deep
 
+# not yet referenced elsewhere in the package
+setup_subcortical_source_space
+
 # Module-level __getattr__ (PEP 562), used by mne/surface.py and
 # mne/transforms.py to re-export their numba helpers lazily
 __getattr__
