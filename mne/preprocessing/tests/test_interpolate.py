@@ -89,7 +89,7 @@ def test_interpolate_bridged_electrodes():
         inst2.info["bads"] = ["EEG 001", "EEG 002"]
         inst2.interpolate_bads()
         data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002"])
-        with pytest.warns(RuntimeWarning, match="EEG 003.*not.*excluded"):
+        with pytest.warns(RuntimeWarning, match="marked as bad will not.*excluded"):
             inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
         data_interp = inst.get_data(picks=["EEG 001", "EEG 002"])
         assert not any(["virtual" in ch for ch in inst.ch_names])
