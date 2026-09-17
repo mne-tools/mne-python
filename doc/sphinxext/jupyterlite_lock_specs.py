@@ -28,7 +28,7 @@ _PYPROJECT_TOML = Path(__file__).parents[2] / "pyproject.toml"
 
 
 def jupyterlite_specs():
-    """PEP-508 specs in the "jupyterlite" dependency group of pyproject.toml."""
+    """Retrieve the "jupyterlite" dependency group from pyproject.toml."""
     with open(_PYPROJECT_TOML, "rb") as fid:
         return tomllib.load(fid)["dependency-groups"]["jupyterlite"]
 
@@ -39,7 +39,7 @@ def jupyterlite_package_names():
 
 
 def jupyterlite_specs_to_lock():
-    """PEP-508 specs from the "jupyterlite" group Pyodide does not already satisfy."""
+    """Retrieve specs from "jupyterlite" group Pyodide does not already satisfy."""
     with urllib.request.urlopen(PYODIDE_LOCK_DEFAULT_URL) as fid:
         curated = json.load(fid)["packages"]
 
@@ -53,12 +53,7 @@ def jupyterlite_specs_to_lock():
 
 
 def mne_pypi_spec():
-    """Return the ``mne==<version>`` spec for a stable/maint build, else None.
-
-    A ".dev" version (the docs building from ``main``) has no matching PyPI
-    release to lock against, so the browser kernel needs the wheel
-    ``build_lite_wheel.py`` builds from the working tree instead.
-    """
+    """Return the ``mne==<version>`` spec for a stable/maint build, else None."""
     import mne
 
     if ".dev" in mne.__version__:
