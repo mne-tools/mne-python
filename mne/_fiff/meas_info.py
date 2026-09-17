@@ -32,6 +32,7 @@ from ..utils import (
     _check_fname,
     _check_on_missing,
     _check_option,
+    _check_sphere,
     _dt_to_stamp,
     _on_missing,
     _pl,
@@ -107,6 +108,7 @@ from .write import (
     write_id,
     write_int,
     write_julian,
+    write_layer_struct,
     write_name_list_sanitized,
     write_string,
 )
@@ -449,6 +451,36 @@ class MontageMixin:
 
         info = _get_info_or_self(self)
         _set_montage(info, montage, match_case, match_alias, on_missing)
+        return self
+
+    @fill_doc
+    def set_head_sphere(
+        self,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+    ) -> Self:
+        """Store the head sphere used to draw topomaps in the measurement info.
+
+        Parameters
+        ----------
+        %(sphere_topomap_auto)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked | Info
+            The instance, modified in place.
+
+        Notes
+        -----
+        The sphere is stored in ``inst.info["head_sphere"]`` and saved to disk as a
+        single-layer spherically symmetric conductor model. Functions that take a
+        ``sphere`` argument use it when ``sphere=None`` is passed.
+
+        .. versionadded:: 1.14
+        """
+        info = _get_info_or_self(self)
+        sphere = _check_sphere(sphere, info)
+        with info._unlock():
+            info["head_sphere"] = sphere
         return self
 
 
@@ -1457,6 +1489,12 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         Fine calibration information added at acquisition time by MEGIN systems.
     gantry_angle : int | None
         Tilt angle of the gantry in degrees.
+    head_sphere : ndarray, shape (4,) | None
+        The ``[x, y, z, radius]`` parameters, in head coordinates and meters, of the
+        sphere used to draw the outline of the head in topomap figures. Set it with
+        :meth:`~mne.io.Raw.set_head_sphere`.
+
+        .. versionadded:: 1.14
     helium_info : dict | None
         Information about the device helium. See Notes for details.
 
@@ -1825,6 +1863,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "file_id": "file_id cannot be set directly.",
         "fine_calibration": "fine_calibration cannot be set directly.",
         "gantry_angle": "gantry_angle cannot be set directly.",
+        "head_sphere": "head_sphere cannot be set directly. "
+        "Please use method inst.set_head_sphere() instead.",
         "helium_info": partial(
             _check_types, name="helium_info", types=(dict, None), cast=HeliumInfo
         ),
@@ -2128,6 +2168,13 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             self["ch_names"] = _unique_channel_names(self["ch_names"])
             for idx, ch_name in enumerate(self["ch_names"]):
                 self["chs"][idx]["ch_name"] = ch_name
+
+        head_sphere = self.get("head_sphere")
+        if head_sphere is not None and np.asarray(head_sphere).shape != (4,):
+            raise TypeError(
+                'Bad info: info["head_sphere"] must be an ndarray with 4 elements, got '
+                f"{head_sphere}"
+            )
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -2903,6 +2950,29 @@ def read_meas_info(
             hs["hpi_coils"] = hc
     info["hpi_subsystem"] = hs
 
+    #   Spherically symmetric conductor model, used to store the head sphere
+    origin = radius = coord_frame = None
+    for sphere in dir_tree_find(meas_info, FIFF.FIFFB_SPHERE):
+        for k in range(sphere["nent"]):
+            kind = sphere["directory"][k].kind
+            pos = sphere["directory"][k].pos
+            if kind == FIFF.FIFF_SPHERE_ORIGIN:
+                origin = np.array(read_tag(fid, pos).data, float)
+            elif kind == FIFF.FIFF_SPHERE_COORD_FRAME:
+                coord_frame = int(read_tag(fid, pos).data.item())
+            elif kind == FIFF.FIFF_SPHERE_LAYERS:
+                layers = read_tag(fid, pos).data
+                # only the outermost (scalp) layer describes the head outline
+                head = layers[layers["id"] == FIFF.FIFFV_BEM_SURF_ID_HEAD]
+                if len(head) == 1:
+                    radius = float(head["rad"].item())
+    if (
+        origin is not None
+        and radius is not None
+        and coord_frame in (None, FIFF.FIFFV_COORD_HEAD)
+    ):
+        info["head_sphere"] = np.append(origin, radius)
+
     #   Read cross-talk and fine cal
     cross_talk = _read_mf_data(fid, tree, kind="sss_ctc")
     if len(cross_talk):
@@ -3223,6 +3293,19 @@ def write_meas_info(
         write_int(fid, FIFF.FIFF_MNE_CUSTOM_REF, info["custom_ref_applied"])
     if info.get("xplotter_layout"):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info["xplotter_layout"])
+
+    # Head sphere, stored as a single-layer spherically symmetric conductor model
+    if info.get("head_sphere") is not None:
+        start_block(fid, FIFF.FIFFB_SPHERE)
+        write_int(fid, FIFF.FIFF_CONDUCTOR_MODEL_KIND, FIFF.FIFFV_COND_MODEL_SPHERE)
+        write_int(fid, FIFF.FIFF_SPHERE_COORD_FRAME, FIFF.FIFFV_COORD_HEAD)
+        write_float(fid, FIFF.FIFF_SPHERE_ORIGIN, info["head_sphere"][:3])
+        write_layer_struct(
+            fid,
+            FIFF.FIFF_SPHERE_LAYERS,
+            [dict(id=FIFF.FIFFV_BEM_SURF_ID_HEAD, rad=info["head_sphere"][3])],
+        )
+        end_block(fid, FIFF.FIFFB_SPHERE)
 
     # Subject information
     if info.get("subject_info") is not None:

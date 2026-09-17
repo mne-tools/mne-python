@@ -4479,8 +4479,10 @@ sphere : float | array-like of float | instance of ConductorModel | {{"auto", "c
     Can also be a list of ``str``, in which case the sphere is fit to the specified
     digitization points, which can be any combination of ``'extra'``, ``'eeg'``,
     ``'cardinal'``, and ``'hpi'``, as specified above.
-    ``None`` (the default) is equivalent to ``'auto'`` when enough extra digitization
-    points are available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise.
+    ``None`` (the default) will look for an existing head outline in the ``.info``
+    dictionary and use that. If no outline is present, it is equivalent to ``'auto'``
+    when enough extra digitization points are available, and
+    ``(0, 0, 0, {HEAD_SIZE_DEFAULT})`` otherwise.
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
