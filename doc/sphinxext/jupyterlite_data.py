@@ -15,6 +15,7 @@ import shutil
 from pathlib import Path
 
 from build_lite_wheel import build_wheel, find_wheels
+from jupyterlite_lock_specs import mne_pypi_spec
 from mne_doc_utils import sphinx_logger
 
 import mne
@@ -175,9 +176,9 @@ def stage_lite_data(dst_base):
     sphinx_logger.info(
         f"[JupyterLite] Served data: {n_copied} files copied, {n_missing} missing"
     )
-    # the development wheel, so the browser installs this MNE rather than the
-    # PyPI release: doc/sphinxext/build_lite_wheel.py puts it in doc/pypi, where
-    # the piplite addon indexes it; `make html` runs that first, so this is
-    # only a fallback for a bare sphinx-build
-    wheels = find_wheels() or build_wheel()
-    sphinx_logger.info(f"[JupyterLite] MNE wheel for the browser kernel: {wheels}")
+    # build the wheels for dev, default to pypi for release
+    if mne_pypi_spec() is None:
+        wheels = find_wheels() or build_wheel()
+        sphinx_logger.info(f"[JupyterLite] MNE wheel for the browser kernel: {wheels}")
+    else:
+        sphinx_logger.info("[JupyterLite] Stable build: locking the PyPI release")

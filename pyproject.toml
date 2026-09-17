@@ -44,6 +44,19 @@ doc = [
   "sphinxcontrib-youtube",
 ]
 doc-full = ["rpy2", { include-group = "doc" }]
+# Packages installed into the browser Pyodide kernel for JupyterLite notebooks
+jupyterlite = [
+  "joblib >= 0.8",
+  "mffpy >= 0.11.0",
+  "mne-connectivity",
+  "nibabel >= 5.2",
+  "pandas >= 2.2, != 3.0.4",
+  "python-picard >= 0.4",
+  "pyvista-js >= 0.16; python_version >= '3.12'",
+  "pyxdf",
+  "scikit-learn >= 1.5",
+  "seaborn >= 0.5, != 0.11.2",
+]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
