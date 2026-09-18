@@ -1,0 +1,1 @@
+Add optional ``rank`` parameter to ``Report.add_covariance`` to display covariance rank in reports by `Aasma Gupta`.
