@@ -13,7 +13,7 @@ from mne.utils import (
     _check_pandas_installed,
     _time_mask,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     warn,
 )
 
@@ -132,7 +132,7 @@ def _compute_peak(
     return peak_latencies, peak_amplitudes, data_masked, mask, times, ch_names
 
 
-@fill_doc
+@fill_doc_static("erp_evoked_start_stop", "picks_all", "erp_strict")
 def compute_peak(
     evoked,
     start=None,
@@ -148,8 +148,18 @@ def compute_peak(
     ----------
     evoked : instance of Evoked
         The evoked response object.
-    %(erp_evoked_start_stop)s
-    %(picks_all)s
+    start, stop : float
+        Start and end time of the ERP computation window in seconds. Defaults to
+        ``None`` and ``None``, which corresponds to the entire Evoked object.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all channels. Bad channels
+        are included by default. Note that channels in ``info['bads']`` *will be
+        included* if their names or indices are explicitly provided.
     mode : str
         Specifies how the peak amplitude should be determined. Can be one of:
 
@@ -166,7 +176,10 @@ def compute_peak(
     average : bool
         If True, the peak amplitude is computed by averaging the data across
         channels before finding the peak. Defaults to False.
-    %(erp_strict)s
+    strict : bool
+        If True, raise an error if values are all positive when detecting
+        a minimum (mode='neg'), or all negative when detecting a maximum
+        (mode='pos'). Defaults to True.
 
     Returns
     -------
@@ -193,7 +206,7 @@ def compute_peak(
     return peak_df
 
 
-@fill_doc
+@fill_doc_static("erp_evoked_start_stop", "picks_all")
 def compute_area(
     evoked,
     start=None,
@@ -209,8 +222,18 @@ def compute_area(
     ----------
     evoked : instance of Evoked
         The evoked response object.
-    %(erp_evoked_start_stop)s
-    %(picks_all)s
+    start, stop : float
+        Start and end time of the ERP computation window in seconds. Defaults to
+        ``None`` and ``None``, which corresponds to the entire Evoked object.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all channels. Bad channels
+        are included by default. Note that channels in ``info['bads']`` *will be
+        included* if their names or indices are explicitly provided.
     mode : str
         Specifies how the area should be computed. Can be one of:
 
@@ -260,7 +283,7 @@ def compute_area(
     return area_df
 
 
-@fill_doc
+@fill_doc_static("erp_evoked_start_stop", "picks_all", "erp_strict")
 def compute_frac_peak_latency(
     evoked,
     frac=0.5,
@@ -280,8 +303,18 @@ def compute_frac_peak_latency(
     frac : float
         The fraction of the peak amplitude at which to compute the latency.
         Defaults to 0.5.
-    %(erp_evoked_start_stop)s
-    %(picks_all)s
+    start, stop : float
+        Start and end time of the ERP computation window in seconds. Defaults to
+        ``None`` and ``None``, which corresponds to the entire Evoked object.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all channels. Bad channels
+        are included by default. Note that channels in ``info['bads']`` *will be
+        included* if their names or indices are explicitly provided.
     mode : str
         Specifies how the peak amplitude should be determined. Can be one of:
 
@@ -298,7 +331,10 @@ def compute_frac_peak_latency(
     average : bool
         If True, the fractional peak latency is computed by averaging the data
         across channels before finding the latency. Defaults to False.
-    %(erp_strict)s
+    strict : bool
+        If True, raise an error if values are all positive when detecting
+        a minimum (mode='neg'), or all negative when detecting a maximum
+        (mode='pos'). Defaults to True.
 
     Returns
     -------
@@ -357,7 +393,7 @@ def compute_frac_peak_latency(
     return frac_peak_df
 
 
-@fill_doc
+@fill_doc_static("erp_evoked_start_stop", "picks_all")
 def compute_frac_area_latency(
     evoked,
     frac=0.5,
@@ -375,8 +411,18 @@ def compute_frac_area_latency(
         The evoked response object.
     frac : float
         The fraction of the area at which to compute the latency. Defaults to 0.5.
-    %(erp_evoked_start_stop)s
-    %(picks_all)s
+    start, stop : float
+        Start and end time of the ERP computation window in seconds. Defaults to
+        ``None`` and ``None``, which corresponds to the entire Evoked object.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all channels. Bad channels
+        are included by default. Note that channels in ``info['bads']`` *will be
+        included* if their names or indices are explicitly provided.
     mode : str
         Specifies how the area should be computed. Can be one of:
 

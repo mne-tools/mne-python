@@ -9,11 +9,17 @@ from typing import Literal
 import numpy as np
 
 from ..._fiff.meas_info import Info
-from ...utils import _check_option, _validate_type, fill_doc, logger, verbose
+from ...utils import (
+    _check_option,
+    _validate_type,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+)
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "verbose")
 class RawArray(BaseRaw):
     """Raw object from numpy array.
 
@@ -21,7 +27,10 @@ class RawArray(BaseRaw):
     ----------
     data : array, shape (n_channels, n_times)
         The channels' time series. See notes for proper units of measure.
-    %(info_not_none)s Consider using :func:`mne.create_info` to populate
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
     first_samp : int
         First sample offset used during recording (default 0).
@@ -36,7 +45,11 @@ class RawArray(BaseRaw):
         it after the Raw object is no longer in use.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -56,7 +69,7 @@ class RawArray(BaseRaw):
     * AU: misc
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         data: np.ndarray,

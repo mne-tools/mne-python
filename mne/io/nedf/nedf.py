@@ -13,7 +13,7 @@ import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
-from ...utils import _check_fname, _soft_import, verbose, warn
+from ...utils import _check_fname, _soft_import, verbose_static, warn
 from ..base import BaseRaw
 
 
@@ -207,7 +207,7 @@ def _convert_eeg(chunks, n_eeg, n_tot):
     return eeg
 
 
-@verbose
+@verbose_static("preload")
 def read_raw_nedf(
     filename: Path | str,
     preload: bool | str = False,
@@ -221,8 +221,25 @@ def read_raw_nedf(
     ----------
     filename : path-like
         Path to the ``.nedf`` file.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

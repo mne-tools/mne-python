@@ -12,7 +12,13 @@ import numpy as np
 
 from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _is_numeric, fill_doc
+from ..utils import (
+    Bunch,
+    _check_option,
+    _clean_names,
+    _is_numeric,
+    fill_doc_static,
+)
 from .ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from .utils import (
     DraggableColorbar,
@@ -30,7 +36,7 @@ from .utils import (
 )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def iter_topography(
     info,
     layout=None,
@@ -53,7 +59,9 @@ def iter_topography(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     layout : instance of mne.channels.Layout | None
         The layout to use. If None, layout will be guessed.
     on_pick : callable | None

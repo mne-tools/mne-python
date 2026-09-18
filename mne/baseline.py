@@ -52,8 +52,8 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
         If ``(None, None)``, the entire time interval is used.
 
         .. note::
-            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints ``t``
-            such that ``a <= t <= b``.
+            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+            ``t`` such that ``a <= t <= b``.
     mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by:
 

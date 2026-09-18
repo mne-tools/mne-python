@@ -177,7 +177,8 @@ in `docdict` or in any one expanded copy; the pre-commit hook (which runs with `
 propagates the edit to the other side and fails the commit once so the changes can be reviewed
 and staged (copy -> `docdict` propagation requires the `MNE_PROPAGATE_DOC_CHANGES` config value
 to be true; otherwise the hook errors with an explanation and changes nothing). The legacy `@fill_doc`/`@verbose` decorators substitute `%(key)s` at import time
-(IDEs can't see the result); don't add new uses.
+(IDEs can't see the result) and are kept only for downstream packages; don't add new uses.
+Private functions that take `verbose` without documenting it use `@_verbose_control`.
 
 ### Changelog is per-PR fragment files (towncrier), not a single hand-edited file
 User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types: `notable`,

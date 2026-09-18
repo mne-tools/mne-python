@@ -921,10 +921,13 @@ In practice this means:
 **Dynamic (legacy):** the docstring contains ``%(key)s`` placeholders and the
 function is decorated with ``@fill_doc`` (or ``@verbose``), which substitutes
 them at import time. This keeps the source short, but static analysis tools
-only ever see the placeholders (see :gh:`8218`). Existing uses are being
-migrated; please do not add new ones. ``@fill_doc``, ``@verbose``,
-``@copy_doc`` and ``@copy_function_doc_to_method_doc`` remain available (and
-unchanged) for downstream packages.
+only ever see the placeholders (see :gh:`8218`). MNE-Python itself no longer
+uses these, so please do not add new ones: private functions that take
+``verbose`` without documenting it (or that have no docstring at all) use
+``@_verbose_control``, which only sets the log level during the call.
+``@fill_doc``, ``@verbose``, ``@copy_doc`` and
+``@copy_function_doc_to_method_doc`` remain available (and unchanged) for
+downstream packages.
 
 
 Cross-reference everywhere

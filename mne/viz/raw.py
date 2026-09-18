@@ -17,7 +17,6 @@ from ..utils import (
     _validate_type,
     legacy,
     sizeof_fmt,
-    verbose,
     verbose_static,
 )
 from ..utils.spectrum import _split_psd_kwargs
@@ -581,7 +580,28 @@ def plot_raw(
 
 
 @legacy(alt="Raw.compute_psd().plot()")
-@verbose
+@verbose_static(
+    "fmin_fmax_psd",
+    "tmin_tmax_psd",
+    "proj_psd",
+    "reject_by_annotation_psd",
+    "picks_good_data_noref",
+    "ax_plot_psd",
+    "color_plot_psd",
+    "xscale_plot_psd",
+    "area_mode_plot_psd",
+    "area_alpha_plot_psd",
+    "dB_plot_psd",
+    "estimate_plot_psd",
+    "show",
+    "n_jobs",
+    "average_plot_psd",
+    "line_alpha_plot_psd",
+    "spatial_colors_psd",
+    "sphere_topomap_auto",
+    "window_psd",
+    "notes_plot_*_psd_func",
+)
 def plot_raw_psd(
     raw,
     fmin=0,
@@ -610,37 +630,139 @@ def plot_raw_psd(
     exclude="bads",
     verbose=None,
 ):
-    """%(plot_psd_doc)s.
+    """Plot power or amplitude spectra.
+
+    Separate plots are drawn for each channel type. When the data have been
+    processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
+    indicate the boundaries of the filter. The line noise frequency is also
+    indicated with a dashed line (⋮). If ``average=False``, the plot will
+    be interactive, and click-dragging on the spectrum will generate a
+    scalp topography plot for the chosen frequency range in a new figure.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw object.
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    %(proj_psd)s
+    fmin, fmax : float
+        The lower- and upper-bound on frequencies of interest. Default is
+        ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
     n_fft : int | None
         Number of points to use in Welch FFT calculations. Default is ``None``,
         which uses the minimum of 2048 and the number of time points.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
-    %(reject_by_annotation_psd)s
-    %(picks_good_data_noref)s
-    %(ax_plot_psd)s
-    %(color_plot_psd)s
-    %(xscale_plot_psd)s
-    %(area_mode_plot_psd)s
-    %(area_alpha_plot_psd)s
-    %(dB_plot_psd)s
-    %(estimate_plot_psd)s
-    %(show)s
-    %(n_jobs)s
-    %(average_plot_psd)s
-    %(line_alpha_plot_psd)s
-    %(spatial_colors_psd)s
-    %(sphere_topomap_auto)s
-    %(window_psd)s
+    reject_by_annotation : bool
+        Whether to omit bad spans of data before spectral estimation. If
+        ``True``, spans with annotations whose description begins with
+        ``bad`` will be omitted.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    ax : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the number of channel types present in
+        the object. Default is ``None``.
+    color : str | tuple
+        A matplotlib-compatible color to use. Has no effect when
+        spatial_colors=True.
+    xscale : 'linear' | 'log'
+        Scale of the frequency axis. Default is ``'linear'``.
+    area_mode : str | None
+        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+        will be plotted. If 'range', the min and max (across channels) will be
+        plotted. Bad channels will be excluded from these calculations.
+        If None, no area will be plotted. If average=False, no area is plotted.
+    area_alpha : float
+        Alpha for the area.
+    dB : bool
+        Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
+        ``estimate='power'``. Plot PSD in units (amplitude**2/Hz) if ``dB=False``
+        and ``estimate='power'``. Plot amplitude spectral density (ASD) in units
+        (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'``. Plot ASD
+        in units (dB/sqrt(Hz)) if ``dB=True`` and ``estimate='amplitude'``.
+    estimate : str, {'power', 'amplitude'}
+        Can be "power" for power spectral density (PSD; default), "amplitude" for
+        amplitude spectrum density (ASD).
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    average : bool
+        If False, the PSDs of all channels is displayed. No averaging
+        is done and parameters area_mode and area_alpha are ignored. When
+        False, it is possible to paint an area (hold left mouse button and
+        drag) to plot a topomap.
+    line_alpha : float | None
+        Alpha for the PSD line. Can be None (default) to use 1.0 when
+        ``average=True`` and 0.1 when ``average=False``.
+    spatial_colors : bool
+        Whether to color spectrum lines by channel location. Ignored if
+        ``average=True``.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    window : str | float | tuple
+        Windowing function to use. See :func:`scipy.signal.get_window`.
 
         .. versionadded:: 0.22.0
     exclude : list of str | 'bads'
@@ -649,7 +771,11 @@ def plot_raw_psd(
         channels marked "bad", if any).
 
         .. versionadded:: 0.24.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -658,8 +784,10 @@ def plot_raw_psd(
 
     Notes
     -----
-    %(notes_plot_*_psd_func)s
-    """
+    This function exists to support legacy code; for new code the preferred
+    idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+    of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+    """  # noqa: E501
     from ..time_frequency import Spectrum
 
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
@@ -667,7 +795,15 @@ def plot_raw_psd(
 
 
 @legacy(alt="Raw.compute_psd().plot_topo()")
-@verbose
+@verbose_static(
+    "tmin_tmax_psd",
+    "fmin_fmax_psd_topo",
+    "proj_psd",
+    "dB_spectrum_plot_topo",
+    "axes_spectrum_plot_topo",
+    "show",
+    "n_jobs",
+)
 def plot_raw_psd_topo(
     raw,
     tmin=0.0,
@@ -694,15 +830,24 @@ def plot_raw_psd_topo(
     ----------
     raw : instance of io.Raw
         The raw instance to use.
-    %(tmin_tmax_psd)s
-    %(fmin_fmax_psd_topo)s
-    %(proj_psd)s
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    fmin, fmax : float
+        The lower- and upper-bound on frequencies of interest. Default is
+        ``fmin=0, fmax=100``.
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
     n_fft : int
         Number of points to use in Welch FFT calculations. Defaults to 2048.
     n_overlap : int
         The number of points of overlap between blocks. Defaults to 0
         (no overlap).
-    %(dB_spectrum_plot_topo)s
+    dB : bool
+        Whether to plot on a decibel scale. If ``True``, plots
+        10 × log₁₀(spectral_power/Hz).
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). If ``None`` (default), the layout is
@@ -715,10 +860,34 @@ def plot_raw_psd_topo(
     axis_facecolor : str | tuple
         A matplotlib-compatible color to use for the axis background.
         Defaults to black.
-    %(axes_spectrum_plot_topo)s
-    %(show)s
-    %(n_jobs)s
-    %(verbose)s
+    axes : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        be length 1 (for efficiency, subplots for each channel are simulated
+        within a single :class:`~matplotlib.axes.Axes`
+        object). Default is ``None``.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

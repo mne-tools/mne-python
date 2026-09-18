@@ -4,7 +4,12 @@
 
 from pathlib import Path
 
-from ...utils import _check_option, _validate_type, get_subjects_dir, verbose
+from ...utils import (
+    _check_option,
+    _validate_type,
+    get_subjects_dir,
+    verbose_static,
+)
 from ..utils import _manifest_check_download
 
 _AGES = "2wk 1mo 2mo 3mo 4.5mo 6mo 7.5mo 9mo 10.5mo 12mo 15mo 18mo 2yr"
@@ -29,7 +34,7 @@ dbdf2a9976121f2b106da96775690da3  ANTS6-0Months3T.zip
 _MANIFEST_PATH = Path(__file__).parent
 
 
-@verbose
+@verbose_static()
 def fetch_infant_template(age, subjects_dir=None, *, verbose=None):
     """Fetch and update an infant MRI template.
 
@@ -40,7 +45,11 @@ def fetch_infant_template(age, subjects_dir=None, *, verbose=None):
         '6mo', '7.5mo', '9mo', '10.5mo', '12mo', '15mo', '18mo', '2yr'}``.
     subjects_dir : str | None
         The path to download the template data to.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -17,7 +17,14 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..._fiff.utils import _mult_cal_one, read_str
 from ...transforms import Transform, combine_transforms, invert_transform
-from ...utils import _stamp_to_dt, _validate_type, logger, path_like, verbose
+from ...utils import (
+    _stamp_to_dt,
+    _validate_type,
+    _verbose_control,
+    logger,
+    path_like,
+    verbose_static,
+)
 from ..base import BaseRaw
 from .constants import BTI
 from .read import (
@@ -974,7 +981,7 @@ class RawBTi(BaseRaw):
     %(verbose)s
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         pdf_fname,
@@ -1331,7 +1338,7 @@ def _get_bti_info(
     return info, bti_info
 
 
-@verbose
+@verbose_static("preload")
 def read_raw_bti(
     pdf_fname: Path | str,
     config_fname: Path | str = "config",
@@ -1385,10 +1392,27 @@ def read_raw_bti(
     eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
-    %(preload)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
 
         .. versionadded:: 0.11
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

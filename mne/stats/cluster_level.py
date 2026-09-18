@@ -29,10 +29,11 @@ from ..utils import (
     _pl,
     _soft_import,
     _validate_type,
+    _verbose_control,
     legacy,
     logger,
     split_list,
-    verbose,
+    verbose_static,
     warn,
 )
 from ._adjacency import combine_adjacency
@@ -1197,7 +1198,24 @@ def _check_fun(
 
 @legacy(alt="mne.stats.cluster_test(...)")
 @_legacy_rng("seed")
-@verbose
+@verbose_static(
+    "threshold_clust_f",
+    "n_permutations_clust_int",
+    "tail_clust",
+    "stat_fun_clust_f",
+    "adjacency_clust_n",
+    "n_jobs",
+    "max_step_clust",
+    "exclude_clust",
+    "step_down_p_clust",
+    "f_power_clust",
+    "out_type_clust",
+    "check_disjoint_clust",
+    "buffer_size_clust",
+    "rng",
+    "seed_rng",
+    "threshold_clust_f_notes",
+)
 def permutation_cluster_test(
     X,
     threshold=None,
@@ -1242,22 +1260,116 @@ def permutation_cluster_test(
         dimension represented in the ``adjacency`` parameter
         (e.g., spectral data should be provided as
         ``(observations, frequencies, channels/vertices)``).
-    %(threshold_clust_f)s
-    %(n_permutations_clust_int)s
-    %(tail_clust)s
-    %(stat_fun_clust_f)s
-    %(adjacency_clust_n)s
-    %(n_jobs)s
-    %(max_step_clust)s
-    %(exclude_clust)s
-    %(step_down_p_clust)s
-    %(f_power_clust)s
-    %(out_type_clust)s
-    %(check_disjoint_clust)s
-    %(buffer_size_clust)s
-    %(verbose)s
-    %(rng)s
-    %(seed_rng)s
+    threshold : float | dict | None
+        The so-called "cluster forming threshold" in the form of a test statistic
+        (note: this is not an alpha level / "p-value").
+        If numeric, vertices with stat values more extreme than ``threshold`` will
+        be used to form clusters. If ``None``, an F-threshold will be chosen
+        automatically that corresponds to a p-value of 0.05 for the given number of
+        observations (only valid when using
+        an F-statistic).
+        If ``threshold`` is a :class:`dict` (with keys ``'start'`` and ``'step'``)
+        then threshold-free cluster enhancement (TFCE) will be used (see the
+        :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+        See Notes for an example on how to compute a threshold based on
+        a particular p-value for one-tailed or two-tailed tests.
+    n_permutations : int
+        The number of permutations to compute.
+    tail : int
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold.
+        If tail is 0, the statistic is thresholded on both sides of
+        the distribution.
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.f_oneway`.
+    adjacency : scipy.sparse.sparray | None | False
+        Defines adjacency between locations in the data, where "locations" can be
+        spatial vertices, frequency bins, time points, etc. For spatial vertices
+        (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
+        :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
+        :func:`mne.spatial_src_adjacency` or :func:`mne.spatio_temporal_src_adjacency`.
+        If ``False``, assumes no adjacency (each location is treated as independent and
+        unconnected). If ``None``, a regular lattice adjacency is assumed, connecting
+        each location to its neighbor(s) along the last dimension
+        of each group  ``X[k]`` (or the last two dimensions if ``X[k]`` is 2D).
+
+        If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
+        upper triangular half is used) and must be square with dimension equal to
+        the product of the last 1, 2, or 3 data dimensions (e.g., for time-frequency
+        data: n_channels, n_channels * n_freqs, or n_channels * n_freqs * n_times).
+        The function `mne.stats.combine_adjacency` may be useful for 4D data.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    max_step : int
+        Maximum distance between samples along the second axis of ``X`` to be
+        considered adjacent (typically the second axis is the "time" dimension).
+        Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+        when adjacency is only specified for sensors (e.g., via
+        :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+        further dimensions such as time points (e.g., via an additional call of
+        :func:`mne.stats.combine_adjacency`).
+    exclude : array-like of bool | None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as ``X``.
+        If ``None``, no points are excluded.
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually F-values) by before
+        summing (sign will be retained). Note that ``t_power=0`` will give a
+        count of locations in each cluster, ``t_power=1`` will weight each location
+        by its statistical score.
+    out_type : 'mask' | 'indices'
+        Output format of clusters within a list.
+        If ``'mask'``, returns a list of boolean arrays,
+        each with the same shape as the input data (or slices if the shape is 1D
+        and adjacency is None), with ``True`` values indicating locations that are
+        part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+        where each ndarray contains the indices of locations that together form the
+        given cluster along the given dimension. Note that for large datasets,
+        ``'indices'`` may use far less memory than ``'mask'``.
+        Default is ``'indices'``.
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the second dimension of ``X`` (usually the "time" dimension) is large.
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    seed : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -1272,7 +1384,13 @@ def permutation_cluster_test(
 
     Notes
     -----
-    %(threshold_clust_f_notes)s
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.rv_continuous.ppf`::
+
+        pval = 0.001  # arbitrary
+        dfn = n_conditions - 1  # degrees of freedom numerator
+        dfd = n_observations - n_conditions  # degrees of freedom denominator
+        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
 
     References
     ----------
@@ -1300,7 +1418,24 @@ def permutation_cluster_test(
 
 @legacy(alt="mne.stats.cluster_test(...)")
 @_legacy_rng("seed")
-@verbose
+@verbose_static(
+    "threshold_clust_t",
+    "n_permutations_clust_all",
+    "tail_clust",
+    "stat_fun_clust_t",
+    "adjacency_clust_1",
+    "n_jobs",
+    "max_step_clust",
+    "exclude_clust",
+    "step_down_p_clust",
+    "t_power_clust",
+    "out_type_clust",
+    "check_disjoint_clust",
+    "buffer_size_clust",
+    "rng",
+    "seed_rng",
+    "threshold_clust_t_notes",
+)
 def permutation_cluster_1samp_test(
     X,
     threshold=None,
@@ -1334,22 +1469,117 @@ def permutation_cluster_1samp_test(
         time series over channels), or 3D (e.g., time-frequencies over
         channels) associated with the kth observation. For spatiotemporal data,
         see also :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
-    %(threshold_clust_t)s
-    %(n_permutations_clust_all)s
-    %(tail_clust)s
-    %(stat_fun_clust_t)s
-    %(adjacency_clust_1)s
-    %(n_jobs)s
-    %(max_step_clust)s
-    %(exclude_clust)s
-    %(step_down_p_clust)s
-    %(t_power_clust)s
-    %(out_type_clust)s
-    %(check_disjoint_clust)s
-    %(buffer_size_clust)s
-    %(verbose)s
-    %(rng)s
-    %(seed_rng)s
+    threshold : float | dict | None
+        The so-called "cluster forming threshold" in the form of a test statistic
+        (note: this is not an alpha level / "p-value").
+        If numeric, vertices with stat values more extreme than ``threshold`` will
+        be used to form clusters. If ``None``, a t-threshold will be chosen
+        automatically that corresponds to a p-value of 0.05 for the given number of
+        observations (only valid when using
+        a t-statistic).
+        If ``threshold`` is a :class:`dict` (with keys ``'start'`` and ``'step'``)
+        then threshold-free cluster enhancement (TFCE) will be used (see the
+        :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+        See Notes for an example on how to compute a threshold based on
+        a particular p-value for one-tailed or two-tailed tests.
+    n_permutations : int | 'all'
+        The number of permutations to compute. Can be 'all' to perform
+        an exact test.
+    tail : int
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold.
+        If tail is 0, the statistic is thresholded on both sides of
+        the distribution.
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.ttest_1samp_no_p`.
+    adjacency : scipy.sparse.sparray | None | False
+        Defines adjacency between locations in the data, where "locations" can be
+        spatial vertices, frequency bins, time points, etc. For spatial vertices
+        (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
+        :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
+        :func:`mne.spatial_src_adjacency` or :func:`mne.spatio_temporal_src_adjacency`.
+        If ``False``, assumes no adjacency (each location is treated as independent and
+        unconnected). If ``None``, a regular lattice adjacency is assumed, connecting
+        each location to its neighbor(s) along the last dimension
+        of  ``X`` (or the last two dimensions if ``X`` is 2D).
+
+        If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
+        upper triangular half is used) and must be square with dimension equal to
+        the product of the last 1, 2, or 3 data dimensions (e.g., for time-frequency
+        data: n_channels, n_channels * n_freqs, or n_channels * n_freqs * n_times).
+        The function `mne.stats.combine_adjacency` may be useful for 4D data.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    max_step : int
+        Maximum distance between samples along the second axis of ``X`` to be
+        considered adjacent (typically the second axis is the "time" dimension).
+        Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+        when adjacency is only specified for sensors (e.g., via
+        :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+        further dimensions such as time points (e.g., via an additional call of
+        :func:`mne.stats.combine_adjacency`).
+    exclude : array-like of bool | None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as ``X``.
+        If ``None``, no points are excluded.
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that ``t_power=0`` will give a
+        count of locations in each cluster, ``t_power=1`` will weight each location
+        by its statistical score.
+    out_type : 'mask' | 'indices'
+        Output format of clusters within a list.
+        If ``'mask'``, returns a list of boolean arrays,
+        each with the same shape as the input data (or slices if the shape is 1D
+        and adjacency is None), with ``True`` values indicating locations that are
+        part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+        where each ndarray contains the indices of locations that together form the
+        given cluster along the given dimension. Note that for large datasets,
+        ``'indices'`` may use far less memory than ``'mask'``.
+        Default is ``'indices'``.
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the second dimension of ``X`` (usually the "time" dimension) is large.
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    seed : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -1377,7 +1607,16 @@ def permutation_cluster_1samp_test(
     computes a 1-sample t-test (by default) and uses sign flipping (always)
     to perform permutations. This might not be suitable for the case where
     there is truly a single observation under test; see :ref:`disc-stats`.
-    %(threshold_clust_t_notes)s
+
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.rv_continuous.ppf`::
+
+        pval = 0.001  # arbitrary
+        df = n_observations - 1  # degrees of freedom for the test
+        thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+
+    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+    For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 
     If ``n_permutations`` exceeds the maximum number of possible permutations
     given the number of observations, then ``n_permutations``, ``seed``, and
@@ -1414,7 +1653,23 @@ def permutation_cluster_1samp_test(
 
 
 @_legacy_rng("seed")
-@verbose
+@verbose_static(
+    "threshold_clust_t",
+    "n_permutations_clust_all",
+    "tail_clust",
+    "stat_fun_clust_t",
+    "adjacency_clust_st1",
+    "n_jobs",
+    "max_step_clust",
+    "step_down_p_clust",
+    "t_power_clust",
+    "out_type_clust",
+    "check_disjoint_clust",
+    "buffer_size_clust",
+    "rng",
+    "seed_rng",
+    "threshold_clust_t_notes",
+)
 def spatio_temporal_cluster_1samp_test(
     X,
     threshold=None,
@@ -1451,23 +1706,118 @@ def spatio_temporal_cluster_1samp_test(
         difference between paired samples (observations) in two conditions.
         The second, and optionally third, dimensions correspond to the
         time or time-frequency data. And, the last dimension should be spatial.
-    %(threshold_clust_t)s
-    %(n_permutations_clust_all)s
-    %(tail_clust)s
-    %(stat_fun_clust_t)s
-    %(adjacency_clust_st1)s
-    %(n_jobs)s
-    %(max_step_clust)s
+    threshold : float | dict | None
+        The so-called "cluster forming threshold" in the form of a test statistic
+        (note: this is not an alpha level / "p-value").
+        If numeric, vertices with stat values more extreme than ``threshold`` will
+        be used to form clusters. If ``None``, a t-threshold will be chosen
+        automatically that corresponds to a p-value of 0.05 for the given number of
+        observations (only valid when using
+        a t-statistic).
+        If ``threshold`` is a :class:`dict` (with keys ``'start'`` and ``'step'``)
+        then threshold-free cluster enhancement (TFCE) will be used (see the
+        :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+        See Notes for an example on how to compute a threshold based on
+        a particular p-value for one-tailed or two-tailed tests.
+    n_permutations : int | 'all'
+        The number of permutations to compute. Can be 'all' to perform
+        an exact test.
+    tail : int
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold.
+        If tail is 0, the statistic is thresholded on both sides of
+        the distribution.
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.ttest_1samp_no_p`.
+    adjacency : scipy.sparse.sparray | None | False
+        Defines adjacency between locations in the data, where "locations" can be
+        spatial vertices, frequency bins, time points, etc. For spatial vertices
+        (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
+        :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
+        :func:`mne.spatial_src_adjacency` or :func:`mne.spatio_temporal_src_adjacency`.
+        If ``False``, assumes no adjacency (each location is treated as independent and
+        unconnected). If ``None``, a regular lattice adjacency is assumed, connecting
+        each spatial location to its neighbor(s) along the last dimension
+        of  ``X``.
+
+        If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
+        upper triangular half is used) and must be square with dimension equal to
+        the product of the last 1, 2, or 3 data dimensions (e.g., for time-frequency
+        data: n_channels, n_channels * n_freqs, or n_channels * n_freqs * n_times).
+        If spatial adjacency is uniform in time, it is recommended to use a square
+        matrix with dimension ``X.shape[-1]`` (n_vertices) to save memory and
+        computation, and to use ``max_step`` to define the extent of temporal adjacency
+        to consider when clustering.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    max_step : int
+        Maximum distance between samples along the second axis of ``X`` to be
+        considered adjacent (typically the second axis is the "time" dimension).
+        Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+        when adjacency is only specified for sensors (e.g., via
+        :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+        further dimensions such as time points (e.g., via an additional call of
+        :func:`mne.stats.combine_adjacency`).
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    %(step_down_p_clust)s
-    %(t_power_clust)s
-    %(out_type_clust)s
-    %(check_disjoint_clust)s
-    %(buffer_size_clust)s
-    %(verbose)s
-    %(rng)s
-    %(seed_rng)s
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that ``t_power=0`` will give a
+        count of locations in each cluster, ``t_power=1`` will weight each location
+        by its statistical score.
+    out_type : 'mask' | 'indices'
+        Output format of clusters within a list.
+        If ``'mask'``, returns a list of boolean arrays,
+        each with the same shape as the input data (or slices if the shape is 1D
+        and adjacency is None), with ``True`` values indicating locations that are
+        part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+        where each ndarray contains the indices of locations that together form the
+        given cluster along the given dimension. Note that for large datasets,
+        ``'indices'`` may use far less memory than ``'mask'``.
+        Default is ``'indices'``.
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the second dimension of ``X`` (usually the "time" dimension) is large.
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    seed : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -1482,7 +1832,15 @@ def spatio_temporal_cluster_1samp_test(
 
     Notes
     -----
-    %(threshold_clust_t_notes)s
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.rv_continuous.ppf`::
+
+        pval = 0.001  # arbitrary
+        df = n_observations - 1  # degrees of freedom for the test
+        thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+
+    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+    For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 
     References
     ----------
@@ -1515,7 +1873,23 @@ def spatio_temporal_cluster_1samp_test(
 
 
 @_legacy_rng("seed")
-@verbose
+@verbose_static(
+    "threshold_clust_f",
+    "n_permutations_clust_int",
+    "tail_clust",
+    "stat_fun_clust_f",
+    "adjacency_clust_stn",
+    "n_jobs",
+    "max_step_clust",
+    "step_down_p_clust",
+    "f_power_clust",
+    "out_type_clust",
+    "check_disjoint_clust",
+    "buffer_size_clust",
+    "rng",
+    "seed_rng",
+    "threshold_clust_f_notes",
+)
 def spatio_temporal_cluster_test(
     X,
     threshold=None,
@@ -1554,23 +1928,117 @@ def spatio_temporal_cluster_test(
         The second, and optionally third, dimensions correspond to the
         time or time-frequency data. And, the last dimension should be spatial.
         All dimensions except the first should match across all groups.
-    %(threshold_clust_f)s
-    %(n_permutations_clust_int)s
-    %(tail_clust)s
-    %(stat_fun_clust_f)s
-    %(adjacency_clust_stn)s
-    %(n_jobs)s
-    %(max_step_clust)s
+    threshold : float | dict | None
+        The so-called "cluster forming threshold" in the form of a test statistic
+        (note: this is not an alpha level / "p-value").
+        If numeric, vertices with stat values more extreme than ``threshold`` will
+        be used to form clusters. If ``None``, an F-threshold will be chosen
+        automatically that corresponds to a p-value of 0.05 for the given number of
+        observations (only valid when using
+        an F-statistic).
+        If ``threshold`` is a :class:`dict` (with keys ``'start'`` and ``'step'``)
+        then threshold-free cluster enhancement (TFCE) will be used (see the
+        :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+        See Notes for an example on how to compute a threshold based on
+        a particular p-value for one-tailed or two-tailed tests.
+    n_permutations : int
+        The number of permutations to compute.
+    tail : int
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold.
+        If tail is 0, the statistic is thresholded on both sides of
+        the distribution.
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.f_oneway`.
+    adjacency : scipy.sparse.sparray | None | False
+        Defines adjacency between locations in the data, where "locations" can be
+        spatial vertices, frequency bins, time points, etc. For spatial vertices
+        (i.e. sensor space data), see :func:`mne.channels.find_ch_adjacency` or
+        :func:`mne.spatial_inter_hemi_adjacency`. For source space data, see
+        :func:`mne.spatial_src_adjacency` or :func:`mne.spatio_temporal_src_adjacency`.
+        If ``False``, assumes no adjacency (each location is treated as independent and
+        unconnected). If ``None``, a regular lattice adjacency is assumed, connecting
+        each spatial location to its neighbor(s) along the last dimension
+        of each group  ``X[k]``.
+
+        If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
+        upper triangular half is used) and must be square with dimension equal to
+        the product of the last 1, 2, or 3 data dimensions (e.g., for time-frequency
+        data: n_channels, n_channels * n_freqs, or n_channels * n_freqs * n_times).
+        If spatial adjacency is uniform in time, it is recommended to use a square
+        matrix with dimension ``X[k].shape[-1]`` (n_vertices) to save memory and
+        computation, and to use ``max_step`` to define the extent of temporal adjacency
+        to consider when clustering.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    max_step : int
+        Maximum distance between samples along the second axis of ``X`` to be
+        considered adjacent (typically the second axis is the "time" dimension).
+        Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+        when adjacency is only specified for sensors (e.g., via
+        :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+        further dimensions such as time points (e.g., via an additional call of
+        :func:`mne.stats.combine_adjacency`).
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    %(step_down_p_clust)s
-    %(f_power_clust)s
-    %(out_type_clust)s
-    %(check_disjoint_clust)s
-    %(buffer_size_clust)s
-    %(verbose)s
-    %(rng)s
-    %(seed_rng)s
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually F-values) by before
+        summing (sign will be retained). Note that ``t_power=0`` will give a
+        count of locations in each cluster, ``t_power=1`` will weight each location
+        by its statistical score.
+    out_type : 'mask' | 'indices'
+        Output format of clusters within a list.
+        If ``'mask'``, returns a list of boolean arrays,
+        each with the same shape as the input data (or slices if the shape is 1D
+        and adjacency is None), with ``True`` values indicating locations that are
+        part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+        where each ndarray contains the indices of locations that together form the
+        given cluster along the given dimension. Note that for large datasets,
+        ``'indices'`` may use far less memory than ``'mask'``.
+        Default is ``'indices'``.
+    check_disjoint : bool
+        Whether to check if the ``adjacency`` matrix can be separated into disjoint
+        sets before clustering. This may lead to faster clustering, especially if
+        the second dimension of ``X`` (usually the "time" dimension) is large.
+    buffer_size : int | None
+        Block size to use when computing test statistics. This can significantly
+        reduce memory usage when ``n_jobs > 1`` and memory sharing between
+        processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+        shared between processes and each process only needs to allocate space for
+        a small block of locations at a time.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    seed : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -1585,7 +2053,13 @@ def spatio_temporal_cluster_test(
 
     Notes
     -----
-    %(threshold_clust_f_notes)s
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.rv_continuous.ppf`::
+
+        pval = 0.001  # arbitrary
+        dfn = n_conditions - 1  # degrees of freedom numerator
+        dfd = n_observations - n_conditions  # degrees of freedom denominator
+        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
 
     References
     ----------
@@ -1649,7 +2123,7 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
     return mask
 
 
-@verbose
+@_verbose_control
 def _get_partitions_from_adjacency(adjacency, n_tests, n_times, verbose=None):
     """Specify disjoint subsets (e.g., hemispheres) based on adjacency."""
     # adjacency is spatial-only (see _setup_adjacency) when it is smaller
@@ -1875,7 +2349,17 @@ def _auto_adjacency(inst, sample_shape):
 #   (cfg.minnbchan)
 # - the weighted cluster mass statistic (cfg.clusterstatistic='wcm');
 #   ``t_power`` covers maxsum (t_power=1) and maxsize (t_power=0) only
-@verbose
+@verbose_static(
+    "stat_fun_clust_both",
+    "tail_clust",
+    "threshold_clust_both",
+    "n_permutations_clust_all",
+    "step_down_p_clust",
+    "t_power_clust",
+    "rng",
+    "n_jobs",
+    "threshold_clust_t_or_f_notes",
+)
 def cluster_test(
     df: DataFrame,
     formula: str,
@@ -1947,10 +2431,33 @@ def cluster_test(
         If ``None`` (default), levels are taken in sorted order (or in category
         order if the column is a :class:`pandas.Categorical`) and the second one is
         the reference.
-    %(stat_fun_clust_both)s
-    %(tail_clust)s
-    %(threshold_clust_both)s
-    %(n_permutations_clust_all)s
+    stat_fun : callable | None
+        Function called to calculate the test statistic. Must accept 1D-array as
+        input and return a 1D array. If ``None`` (the default), uses
+        :func:`mne.stats.ttest_1samp_no_p`
+        for paired tests and :func:`mne.stats.f_oneway` for unpaired tests or tests of
+        more than 2 groups..
+    tail : int
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold.
+        If tail is 0, the statistic is thresholded on both sides of
+        the distribution.
+    threshold : float | dict | None
+        The so-called "cluster forming threshold" in the form of a test statistic
+        (note: this is not an alpha level / "p-value").
+        If numeric, vertices with stat values more extreme than ``threshold`` will
+        be used to form clusters. If ``None``, a t- or F-threshold will be chosen
+        automatically that corresponds to a p-value of 0.05 for the given number of
+        observations (only valid when using
+        ``stat_fun=None``, i.e., a paired t-test or one-way F-test).
+        If ``threshold`` is a :class:`dict` (with keys ``'start'`` and ``'step'``)
+        then threshold-free cluster enhancement (TFCE) will be used (see the
+        :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+        See Notes for an example on how to compute a threshold based on
+        a particular p-value for one-tailed or two-tailed tests.
+    n_permutations : int | 'all'
+        The number of permutations to compute. Can be 'all' to perform
+        an exact test.
     adjacency : "auto" | scipy.sparse.sparray | False
         Defines adjacency between locations in the data, i.e. which locations may
         join to form a cluster.
@@ -1985,8 +2492,17 @@ def cluster_test(
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as the channels/vertices
         dimension of the data objects. If ``None``, no points are excluded.
-    %(step_down_p_clust)s
-    %(t_power_clust)s
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that ``t_power=0`` will give a
+        count of locations in each cluster, ``t_power=1`` will weight each location
+        by its statistical score.
     check_disjoint : bool
         Whether to check if the ``adjacency`` matrix can be separated into disjoint
         sets before clustering. This may lead to faster clustering, especially if
@@ -2012,15 +2528,36 @@ def cluster_test(
             can be used to index ``stat_obs``.
             Note that for large datasets, ``'indices'`` may use far less memory than
             ``'mask'``.
-    %(rng)s
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
     buffer_size : int | None
         Block size to use when computing test statistics. This can significantly
         reduce memory usage when ``n_jobs > 1`` and memory sharing between
         processes is enabled (see :func:`mne.set_cache_dir`), because the data will be
         shared between processes and each process only needs to allocate space for
         a small block of locations at a time.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2029,7 +2566,20 @@ def cluster_test(
 
     Notes
     -----
-    %(threshold_clust_t_or_f_notes)s
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.rv_continuous.ppf`::
+
+        pval = 0.001  # arbitrary
+        # for t-statistic
+        df = n_observations - 1  # degrees of freedom for the t-test
+        thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+        # for f-statistic
+        dfn = n_conditions - 1  # degrees of freedom numerator
+        dfd = n_observations - n_conditions  # degrees of freedom denominator
+        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
+
+    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+    For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 
     .. versionadded:: 1.13
     """

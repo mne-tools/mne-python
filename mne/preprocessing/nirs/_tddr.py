@@ -7,11 +7,11 @@ import numpy as np
 from scipy.signal import butter, filtfilt
 
 from ...io import BaseRaw
-from ...utils import _validate_type, verbose
+from ...utils import _validate_type, verbose_static
 from ..nirs import _validate_nirs_info
 
 
-@verbose
+@verbose_static()
 def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """Apply temporal derivative distribution repair to data.
 
@@ -23,7 +23,11 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     ----------
     raw : instance of Raw
         The raw data.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -15,11 +15,17 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _read_segments_file
 from ...annotations import Annotations
-from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+    warn,
+)
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw_persyst(
     fname: Path | str,
     preload: bool | str = False,
@@ -31,8 +37,25 @@ def read_raw_persyst(
     ----------
     fname : path-like
         Path to the Persyst header ``.lay`` file.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -55,7 +78,7 @@ def read_raw_persyst(
     return RawPersyst(fname, preload, verbose)
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawPersyst(BaseRaw):
     """Raw object from a Persyst file.
 
@@ -63,15 +86,32 @@ class RawPersyst(BaseRaw):
     ----------
     fname : path-like
         Path to the Persyst header (.lay) file.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, preload=False, verbose=None):
         fname = str(_check_fname(fname, "read", True, "fname"))
         logger.info(f"Loading {fname}")

@@ -329,6 +329,8 @@ _HOOK_DOCDICT = {
     "alpha": "\nalpha : int\n    The alpha. It is shared.\n",
     "notes_shared": "\nFirst shared paragraph.\nLine two.\n\nSecond paragraph.\n",
     "verbose": "\nverbose : bool | str | int | None\n    Control verbosity.\n",
+    "two_params": "\nbeta : int\n    The beta.\ngamma : int\n    The gamma.\n",
+    "star*key": "\ndelta : int\n    The delta.\n",
 }
 _HOOK_MODULE = '''\
 from mne.utils import fill_doc_static, verbose_static
@@ -355,6 +357,28 @@ class Klass:
     @copy_function_doc_to_method_doc_static("func:mne.baseline.rescale")
     def rescale(self, times, baseline, mode="mean", copy=True, picks=None):
         pass
+
+    @copy_function_doc_to_method_doc_static("func:mne.baseline.rescale")
+    def rescale_2(self, times, baseline, mode="mean", copy=True, picks=None):
+        """Notes
+        -----
+        Only this method's own text, so far.
+        """
+
+
+@fill_doc_static()
+class Klass3:
+    """Do another thing.
+
+    Parameters
+    ----------
+    %(two_params)s
+    %(star*key)s
+
+    Attributes
+    ----------
+    %(two_params)s
+    """
 '''
 
 
@@ -380,10 +404,17 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     source = path.read_text()
     assert '@verbose_static("alpha", "notes_shared")' in source
     assert "    alpha : int\n        The alpha. It is shared.\n" in source
-    assert "    Second paragraph.\n    This line is specific to func.\n" in source
+    assert "    Second paragraph.\n\n    This line is specific to func.\n" in source
     # the copied docstring was inserted (first parameter dropped)
-    assert '"""Rescale (baseline correct) data.' in source
+    assert source.count('"""Rescale (baseline correct) data.') == 2
     assert "    data : array" not in source and "    times : 1D array" in source
+    # a copy site that had only its own text keeps it, after the copied part
+    assert "        Only this method's own text, so far.\n" in source
+    # class docstrings are filled like function ones, including an entry that
+    # holds several parameters, a key with a "*" in it, and a repeated entry
+    assert '@fill_doc_static("two_params", "star*key")' in source
+    assert source.count("    gamma : int\n        The gamma.\n") == 2
+    assert "    delta : int\n        The delta.\n" in source
 
     # 2. forward sync: docdict changed, the docstring (and only the shared part)
     #    is updated
@@ -394,7 +425,7 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     assert hook.process_file(path, True, {}) == []
     source = path.read_text()
     assert "It changed." in source and "It is shared." not in source
-    assert "    Second.\n    This line is specific to func.\n" in source
+    assert "    Second.\n\n    This line is specific to func.\n" in source
 
     # 3. reverse sync: docdict unchanged since HEAD but a docstring copy edited
     monkeypatch.setattr(hook, "_old_docdict", lambda: dict(hook.docdict))
@@ -433,7 +464,7 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     #    changes length
     own = "    This line is specific to func."
     source = path.read_text()
-    assert "    Second.\n" + own in source
+    assert "    Second.\n\n" + own in source
     # pretend the current file is what git HEAD has
     monkeypatch.setattr(
         hook.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(stdout=source)
@@ -469,14 +500,14 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     # (e) editing both is refused rather than guessed
     path.write_text(source.replace("    Second.\n", "").replace(own, "    Both."))
     errors = hook.process_file(path, False, {})
-    assert len(errors) == 1 and "both the shared text" in errors[0]
+    assert len(errors) == 1 and "make the change in mne/utils/docs.py" in errors[0]
     # (f) forward sync keeps the site's own text when docdict grows
     path.write_text(source)
     snapshot = dict(hook.docdict)
     monkeypatch.setattr(hook, "_old_docdict", lambda: snapshot)
     hook.docdict["notes_shared"] = "\nFirst shared paragraph, edited.\n\nSecond.\nMore."
     assert hook.process_file(path, True, {}) == []
-    assert "    Second.\n    More.\n" + own in path.read_text()
+    assert "    Second.\n    More.\n\n" + own in path.read_text()
 
     # 5. the E501 suppression comment follows the need for it
     source = path.read_text()
@@ -495,6 +526,25 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     path.write_text(path.read_text().replace("First shared paragraph, edited.", "?"))
     errors = hook.process_file(path, False, {})
     assert len(errors) == 1 and "could not find" in errors[0]
+
+    # import-time filling is rejected in favor of the static decorators
+    dynamic = tmp_path / "dynamic.py"
+    dynamic.write_text("@verbose\ndef f(verbose=None):\n    pass\n")
+    assert hook.main([str(dynamic)]) == 1
+    assert "use @verbose_static()" in capsys.readouterr().err
+
+    # 7. an entry used twice: editing either copy is noticed, while a block that
+    #    shares only the ``name : type`` line is some other parameter
+    hook.docdict["twice"] = "\ntwice : int\n    Shared text.\n    More.\n"
+    monkeypatch.setattr(hook, "_old_docdict", lambda: dict(hook.docdict))
+    doc = "Do.\n\n    {}\n\n    {}\n\n    twice : int\n        Other.\n    "
+    copy = "twice : int\n        Shared text.\n        More."
+    reverse = {}
+    body = doc.format(copy, copy)
+    assert hook.expected_fill(body, ["twice"], reverse)[0] == body and not reverse
+    body = doc.format(copy, copy.replace("Shared", "Edited"))
+    assert hook.expected_fill(body, ["twice"], reverse)[0] == body
+    assert reverse["twice"][1][1] == "    Edited text."
 
 
 _PARA_TWO = "\nPara one line A.\nPara one line B.\n\nPara two.\n"
