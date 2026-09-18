@@ -1966,12 +1966,12 @@ def make_inverse_operator(
         is used.
     %(rank_none)s
     %(use_cps)s
-    source_cov : array-like of float, shape (n_sources,) or (n_sources * 3,) | None
-        Diagonal source covariance matrix (source variances) to use as a base. Final
-        source covariance matrix will be computed as the product of this base and
-        the depth and orientation priors determined by parameters ``depth``, ``loose``, and
-        ``fixed``. Values must be finite and positive. If None (default), a uniform
-        source covariance matrix is used as a base.
+    source_cov : array-like of float | None
+        Diagonal source covariance matrix (source variances) to use as a base.
+        Allowed shapes are (n_sources,) and (n_sources * 3,). Final source covariance matrix
+        will be computed as the product of this base and the depth and orientation priors
+        determined by parameters ``depth``, ``loose``, and ``fixed``. If None (default),
+        a uniform source covariance matrix (array of ones) is used as a base.
     %(verbose)s
 
     Returns
