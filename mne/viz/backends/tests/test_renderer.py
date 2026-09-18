@@ -589,6 +589,10 @@ sys.modules["js"] = js
 from mne.viz.backends._jupyterlite import setup_notebook
 
 setup_notebook(str(root))
+setup_notebook(str(root))  # running the cell twice must not wrap the wrappers
+from mne.viz.backends import _jupyterlite
+
+assert _jupyterlite._orig["read_raw_kit"] is not mne.io.read_raw_kit
 assert mne.viz.get_3d_backend() == "jupyterlite_notebook"
 assert mne.datasets.sample.data_path() == root / "MNE-sample-data"
 data = root / "MNE-testing-data"
