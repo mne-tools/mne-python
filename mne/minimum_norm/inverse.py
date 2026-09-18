@@ -1901,8 +1901,8 @@ def _handle_source_cov(
         raise ValueError(
             f"source_cov must be a 1D array of variances, got shape {source_cov.shape}"
         )
-    if np.any(source_cov < 0):
-        raise ValueError("source_cov must contain non-negative variance values.")
+    if not np.all(np.isfinite(source_cov)) or np.any(source_cov <= 0):
+        raise ValueError("source_cov must contain finite, positive variance values.")
 
     if source_cov.shape[0] == n_sources:
         if fixed_inverse:
@@ -1970,7 +1970,8 @@ def make_inverse_operator(
         Diagonal source covariance matrix (source variances) to use as a base. Final
         source covariance matrix will be computed as the product of this base and
         the depth and orientation priors determined by parameters ``depth``, ``loose``, and
-        ``fixed``. If None (default), a uniform source covariance matrix is used as a base.
+        ``fixed``. Values must be finite and positive. If None (default), a uniform
+        source covariance matrix is used as a base.
     %(verbose)s
 
     Returns
