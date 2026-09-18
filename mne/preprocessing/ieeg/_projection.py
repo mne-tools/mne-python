@@ -16,10 +16,17 @@ from ...surface import (
     read_surface,
 )
 from ...transforms import _cart_to_sph, _ensure_trans, apply_trans, invert_transform
-from ...utils import _ensure_int, _validate_type, get_subjects_dir, verbose
+from ...utils import (
+    _ensure_int,
+    _validate_type,
+    get_subjects_dir,
+    verbose_static,
+)
 
 
-@verbose
+@verbose_static(
+    "info_not_none", "trans_not_none", "subject", "subjects_dir", "picks_base"
+)
 def project_sensors_onto_brain(
     info,
     trans,
@@ -34,11 +41,27 @@ def project_sensors_onto_brain(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(trans_not_none)s
-    %(subject)s
-    %(subjects_dir)s
-    %(picks_base)s only ``ecog`` channels.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick
+        only ``ecog`` channels.
     n_neighbors : int
         The number of neighbors to use to compute the normal vectors
         for the projection. Must be 2 or greater. More neighbors makes
@@ -48,11 +71,17 @@ def project_sensors_onto_brain(
     copy : bool
         If ``True``, return a new instance of ``info``, if ``False``
         ``info`` is modified in place.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Notes
     -----
@@ -123,7 +152,14 @@ def project_sensors_onto_brain(
     return info
 
 
-@verbose
+@verbose_static(
+    "info_not_none",
+    "trans_not_none",
+    "subject",
+    "subjects_dir",
+    "picks_base",
+    "max_dist_ieeg",
+)
 def _project_sensors_onto_inflated(
     info,
     trans,
@@ -138,20 +174,46 @@ def _project_sensors_onto_inflated(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(trans_not_none)s
-    %(subject)s
-    %(subjects_dir)s
-    %(picks_base)s only ``seeg`` channels.
-    %(max_dist_ieeg)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick
+        only ``seeg`` channels.
+    max_dist : float
+        The maximum distance to project a sensor to the pial surface in meters.
+        Sensors that are greater than this distance from the pial surface will
+        not be assigned locations. Projections can be done to the inflated or
+        flat brain.
     flat : bool
         Whether to project the sensors onto the flat map of the
         inflated brain instead of the normal inflated brain.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Notes
     -----

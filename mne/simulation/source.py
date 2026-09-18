@@ -15,13 +15,13 @@ from ..utils import (
     _ensure_int,
     _legacy_rng,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     warn,
 )
 
 
 @_legacy_rng("random_state")
-@fill_doc
+@fill_doc_static("subjects_dir", "rng", "random_state_rng")
 def select_source_in_label(
     src,
     label,
@@ -53,7 +53,10 @@ def select_source_in_label(
         Only used with ``location='center'``.
 
         .. versionadded:: 0.13
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
 
         .. versionadded:: 0.13
     surf : str
@@ -63,8 +66,21 @@ def select_source_in_label(
         with cortical folding.
 
         .. versionadded:: 0.13
-    %(rng)s
-    %(random_state_rng)s
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -107,7 +123,7 @@ def _select_source_in_label(src, label, *, location, subject, subjects_dir, surf
 
 
 @_legacy_rng("random_state")
-@fill_doc
+@fill_doc_static("subjects_dir", "rng", "random_state_rng")
 def simulate_sparse_stc(
     src,
     n_dipoles,
@@ -155,7 +171,10 @@ def simulate_sparse_stc(
         Only used with ``location='center'``.
 
         .. versionadded:: 0.13
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
 
         .. versionadded:: 0.13
     surf : str
@@ -165,8 +184,21 @@ def simulate_sparse_stc(
         with cortical folding.
 
         .. versionadded:: 0.13
-    %(rng)s
-    %(random_state_rng)s
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------

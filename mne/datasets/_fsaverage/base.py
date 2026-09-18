@@ -4,13 +4,13 @@
 
 from pathlib import Path
 
-from ...utils import get_subjects_dir, set_config, verbose
+from ...utils import get_subjects_dir, set_config, verbose_static
 from ..utils import _get_path, _manifest_check_download
 
 FSAVERAGE_MANIFEST_PATH = Path(__file__).parent
 
 
-@verbose
+@verbose_static()
 def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     """Fetch and update :ref:`fsaverage <fsaverage_background>`.
 
@@ -21,7 +21,11 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
         config file. None will use the existing config variable (i.e.,
         will not change anything), and if it does not exist, will use
         ``~/mne_data/MNE-fsaverage-data``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

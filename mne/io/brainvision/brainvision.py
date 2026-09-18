@@ -28,15 +28,15 @@ from ...utils import (
     _check_range,
     _DefaultEventParser,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("brainvision_overrides", "preload", "verbose")
 class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
@@ -61,9 +61,61 @@ class RawBrainVision(BaseRaw):
         ``False``.
 
         .. versionadded:: 1.8
-    %(brainvision_overrides)s
-    %(preload)s
-    %(verbose)s
+    overrides : dict | None
+        Optional overrides for values parsed from the ``.vhdr`` header. Used to
+        read non-spec-compliant files where the header contradicts the actual
+        layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+        ``"data_fname"`` (path-like)
+            Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+            the directory of ``vhdr_fname``.
+        ``"marker_fname"`` (path-like or ``False``)
+            Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+            reading.
+        ``"n_channels"`` (int)
+            Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+            this is the user-facing count.
+        ``"sfreq"`` (float)
+            Overrides the sampling frequency.
+        ``"ch_names"`` (list[str])
+            Replaces names from ``[Channel Infos]``. Length must equal
+            ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+            accepted; the synthetic AHDR name is appended automatically).
+        ``"units_fallback"`` (str, e.g. ``"µV"``)
+            Recovers an incomplete ``[Channel Infos]`` section by filling missing
+            entries with ``resolution=1.0`` and this unit; missing names become
+            ``"Ch<N>"``.
+        ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+            Replaces ``[Common Infos] DataOrientation=``.
+        ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+            Replaces ``[Common Infos] DataFormat=``.
+        ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+            Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+            effective ``DataFormat`` is ``"BINARY"``.
+
+        Each applied override is logged at INFO level. Unknown keys raise
+        ``ValueError``.
+
+        .. versionadded:: 1.13
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -95,7 +147,7 @@ class RawBrainVision(BaseRaw):
 
     _extra_attributes = ("impedances",)
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         vhdr_fname,
@@ -614,7 +666,7 @@ def _aux_hdr_info(hdr_fname, sfreq_override=None):
     return settings, cfg, cinfostr, info, cfg_sfreq
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     """Extract all the information from the header file.
 
@@ -637,7 +689,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     data_fname : str
         Path to the binary data file.
     fmt : str
@@ -1147,7 +1201,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage, orig_units)
 
 
-@fill_doc
+@fill_doc_static("brainvision_overrides", "preload", "verbose")
 def read_raw_brainvision(
     vhdr_fname: Path | str,
     eog: list | tuple = ("HEOGL", "HEOGR", "VEOGb"),
@@ -1181,9 +1235,61 @@ def read_raw_brainvision(
         ``False``.
 
         .. versionadded:: 1.8
-    %(brainvision_overrides)s
-    %(preload)s
-    %(verbose)s
+    overrides : dict | None
+        Optional overrides for values parsed from the ``.vhdr`` header. Used to
+        read non-spec-compliant files where the header contradicts the actual
+        layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+        ``"data_fname"`` (path-like)
+            Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+            the directory of ``vhdr_fname``.
+        ``"marker_fname"`` (path-like or ``False``)
+            Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+            reading.
+        ``"n_channels"`` (int)
+            Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+            this is the user-facing count.
+        ``"sfreq"`` (float)
+            Overrides the sampling frequency.
+        ``"ch_names"`` (list[str])
+            Replaces names from ``[Channel Infos]``. Length must equal
+            ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+            accepted; the synthetic AHDR name is appended automatically).
+        ``"units_fallback"`` (str, e.g. ``"µV"``)
+            Recovers an incomplete ``[Channel Infos]`` section by filling missing
+            entries with ``resolution=1.0`` and this unit; missing names become
+            ``"Ch<N>"``.
+        ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+            Replaces ``[Common Infos] DataOrientation=``.
+        ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+            Replaces ``[Common Infos] DataFormat=``.
+        ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+            Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+            effective ``DataFormat`` is ``"BINARY"``.
+
+        Each applied override is logged at INFO level. Unknown keys raise
+        ``ValueError``.
+
+        .. versionadded:: 1.13
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

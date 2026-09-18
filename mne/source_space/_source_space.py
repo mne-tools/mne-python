@@ -79,13 +79,14 @@ from ..utils import (
     _pl,
     _suggest,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     object_size,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -319,7 +320,7 @@ class SourceSpaces(list):
             raise RuntimeError(f"Invalid source space with kinds {types}")
         return kind
 
-    @verbose
+    @verbose_static()
     def plot(
         self,
         head=False,
@@ -370,7 +371,11 @@ class SourceSpaces(list):
             which is useful when reusing a single figure for multiple plots.
 
             .. versionadded:: 1.13
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -536,7 +541,7 @@ class SourceSpaces(list):
             ss.append(deepcopy(s, memodict))
         return SourceSpaces(ss, info)
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, overwrite=False, *, verbose=None):
         """Save the source spaces to a fif file.
 
@@ -544,12 +549,18 @@ class SourceSpaces(list):
         ----------
         fname : path-like
             File to write, which should end with ``-src.fif`` or ``-src.fif.gz``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         write_source_spaces(fname, self, overwrite=overwrite)
 
-    @verbose
+    @verbose_static("overwrite")
     def export_volume(
         self,
         fname,
@@ -596,10 +607,16 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 0.19
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -868,7 +885,7 @@ def _add_patch_info(s):
     logger.info("    Patch information added...")
 
 
-@verbose
+@verbose_static()
 def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
@@ -880,7 +897,11 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
         The FIF tree structure if source is a file id.
     patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -906,7 +927,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     return SourceSpaces(src)
 
 
-@verbose
+@verbose_static()
 def read_source_spaces(fname, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
@@ -917,7 +938,11 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
         ``-src.fif.gz``.
     patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1188,7 +1213,7 @@ def _read_one_source_space(fid, this):
     return res
 
 
-@verbose
+@_verbose_control
 def _complete_source_space_info(this, verbose=None):
     """Add more info on surface."""
     #   Main triangulation
@@ -1293,7 +1318,7 @@ def _get_vertno(src):
 # Write routines
 
 
-@verbose
+@verbose_static()
 def _write_source_spaces_to_fid(fid, src, verbose=None):
     """Write the source spaces to a FIF file.
 
@@ -1303,7 +1328,11 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         An open file descriptor.
     src : list
         The list of source spaces.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     for s in src:
         logger.info("    Write a source space...")
@@ -1314,7 +1343,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
     logger.info("    %d source spaces written", len(src))
 
 
-@verbose
+@verbose_static("overwrite")
 def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
     """Write source spaces to a file.
 
@@ -1325,8 +1354,14 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
         ``-src.fif.gz``.
     src : instance of SourceSpaces
         The source spaces (as returned by read_source_spaces).
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1470,7 +1505,7 @@ def _write_one_source_space(fid, this, verbose=None):
 # Creation and decimation
 
 
-@verbose
+@_verbose_control
 def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
@@ -1519,7 +1554,7 @@ def _check_spacing(spacing, verbose=None):
     return stype, sval, ico_surf, src_type_str
 
 
-@verbose
+@verbose_static("subject", "subjects_dir", "n_jobs")
 def setup_source_space(
     subject,
     spacing="oct6",
@@ -1534,7 +1569,8 @@ def setup_source_space(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
@@ -1545,7 +1581,10 @@ def setup_source_space(
            Support for integers for distance-based spacing.
     surface : str
         The surface to use.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     add_dist : bool | str
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended. Can also be 'patch' to only
@@ -1553,9 +1592,19 @@ def setup_source_space(
 
         .. versionchanged:: 0.20
            Support for ``add_dist='patch'``.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Ignored if ``add_dist=='patch'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1680,7 +1729,7 @@ def _check_volume_labels(volume_label, mri, name="volume_label"):
     return volume_label
 
 
-@verbose
+@verbose_static("subjects_dir", "n_jobs")
 def setup_volume_source_space(
     subject=None,
     pos=5.0,
@@ -1746,7 +1795,10 @@ def setup_volume_source_space(
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     volume_label : str | dict | list | None
         Region(s) of interest to use. None (default) will create a single
         whole-brain source space. Otherwise, a separate source space will be
@@ -1772,10 +1824,20 @@ def setup_volume_source_space(
         when many labels are used.
 
         .. versionadded:: 0.21
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
         .. versionadded:: 1.6
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2577,7 +2639,7 @@ def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
     return data, indices, indptr
 
 
-@verbose
+@_verbose_control
 def _filter_source_spaces(
     surf_or_check_inside, *, limit, mri_head_t, src, n_jobs=None, verbose=None
 ):
@@ -2670,7 +2732,7 @@ def _filter_source_spaces(
     return check_inside
 
 
-@verbose
+@_verbose_control
 def _adjust_patch_info(s, verbose=None):
     """Adjust patch information in place after vertex omission."""
     if s.get("patch_inds") is not None:
@@ -2684,7 +2746,7 @@ def _adjust_patch_info(s, verbose=None):
         _add_patch_info(s)
 
 
-@verbose
+@_verbose_control
 def _ensure_src(src, kind=None, extra="", verbose=None):
     """Ensure we have a source space."""
     _check_option("kind", kind, (None, "surface", "volume", "mixed", "discrete"))
@@ -2725,7 +2787,7 @@ def _ensure_src_subject(src, subject):
 _DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
 
 
-@verbose
+@verbose_static("n_jobs")
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=None):
     """Compute inter-source distances along the cortical surface.
 
@@ -2743,9 +2805,19 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
         10/2013) must be installed. If 0, then only patch (nearest vertex)
         information is added.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Ignored if ``dist_limit==0.``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2876,7 +2948,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
 # checking, which might not be the case (could be all volumes)
-@fill_doc
+@fill_doc_static("subject")
 def get_volume_labels_from_src(src, subject, subjects_dir):
     """Return a list of Label of segmented volumes included in the src space.
 
@@ -2884,7 +2956,8 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     ----------
     src : instance of SourceSpaces
         The source space containing the volume regions.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     subjects_dir : str
         FreeSurfer folder of the subjects.
 
@@ -2999,7 +3072,7 @@ def _get_vertex_map_nn(
     return best
 
 
-@verbose
+@verbose_static()
 def morph_source_spaces(
     src_from,
     subject_to,
@@ -3027,7 +3100,11 @@ def morph_source_spaces(
         to be provided, since it is stored in the source space itself.
     subjects_dir : path-like | None
         Path to ``SUBJECTS_DIR`` if it is not set in the environment.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3088,7 +3165,7 @@ def morph_source_spaces(
     return SourceSpaces(src_out, info=info)
 
 
-@verbose
+@verbose_static("subjects_dir")
 def _get_morph_src_reordering(
     vertices, src_from, subject_from, subject_to, subjects_dir=None, verbose=None
 ):
@@ -3104,8 +3181,15 @@ def _get_morph_src_reordering(
         The source subject.
     subject_to : str
         The destination subject.
-    %(subjects_dir)s
-    %(verbose)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3301,7 +3385,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     return nn
 
 
-@verbose
+@verbose_static("info", "picks_good_data", "trans_not_none")
 def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None):
     """Compute distances between vertices and sensors.
 
@@ -3310,11 +3394,29 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
     src : instance of SourceSpaces
         The object with vertex positions for which to compute distances to
         sensors.
-    %(info)s Must contain sensor positions to which distances shall
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Must contain sensor positions to which distances shall
         be computed.
-    %(picks_good_data)s
-    %(trans_not_none)s
-    %(verbose)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

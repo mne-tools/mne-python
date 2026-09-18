@@ -6,11 +6,11 @@ import numpy as np
 
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
-from ...utils import _validate_type, verbose, warn
+from ...utils import _validate_type, verbose_static, warn
 from ..nirs import _validate_nirs_info
 
 
-@verbose
+@verbose_static()
 def optical_density(raw, *, verbose=None):
     r"""Convert NIRS raw data to optical density.
 
@@ -18,7 +18,11 @@ def optical_density(raw, *, verbose=None):
     ----------
     raw : instance of Raw
         The raw data.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

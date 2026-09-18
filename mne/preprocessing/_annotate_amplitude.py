@@ -11,10 +11,15 @@ from ..annotations import (
     _annotations_starts_stops,
 )
 from ..io import BaseRaw
-from ..utils import _mask_to_onsets_offsets, _validate_type, logger, verbose
+from ..utils import (
+    _mask_to_onsets_offsets,
+    _validate_type,
+    logger,
+    verbose_static,
+)
 
 
-@verbose
+@verbose_static("picks_good_data")
 def annotate_amplitude(
     raw,
     peak=None,
@@ -59,15 +64,27 @@ def annotate_amplitude(
         Above this percentage, the channel involved is return in ``bads``. Note
         the returned ``bads`` are not automatically added to
         :class:`info['bads'] <mne.Info>`.
-        Defaults to ``5``, i.e. 5%%.
+        Defaults to ``5``, i.e. 5%.
     min_duration : float
         The minimum duration (s) required by consecutives samples to be above
         ``peak`` or below ``flat`` thresholds to be considered.
         to consider as above or below threshold.
         For some systems, adjacent time samples with exactly the same value are
         not totally uncommon. Defaults to ``0.005`` (5 ms).
-    %(picks_good_data)s
-    %(verbose)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

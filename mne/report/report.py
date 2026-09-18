@@ -57,13 +57,14 @@ from ..utils import (
     _record_warnings,
     _safe_input,
     _validate_type,
+    _verbose_control,
     _verbose_safe_false,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     sys_info,
     use_log_level,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
@@ -819,7 +820,7 @@ def _check_image_format(rep, image_format):
     return image_format
 
 
-@fill_doc
+@fill_doc_static("subjects_dir", "baseline_report", "verbose")
 class Report:
     r"""Object for rendering HTML.
 
@@ -827,14 +828,35 @@ class Report:
     ----------
     info_fname : None | str
         Name of the file containing the info dictionary.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     subject : str | None
         Subject name.
     title : str
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    %(baseline_report)s
+    baseline : None | tuple of length 2
+        The time interval to consider as "baseline" when applying baseline
+        correction. If ``None``, do not apply baseline correction.
+        If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+        (in seconds), including the endpoints.
+        If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+        is ``None``, it is set to the **end** of the data.
+        If ``(None, None)``, the entire time interval is used.
+
+        .. note::
+            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+            ``t`` such that ``a <= t <= b``.
+
+        Correction is applied in the following way **to each channel:**
+
+        1. Calculate the mean signal of the baseline period.
+        2. Subtract this mean from the **entire** time period.
+
+        For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
         Defaults to ``None``, i.e. no baseline correction.
     image_format : 'png' | 'svg' | 'webp' | 'webp-lossy' | 'auto'
         Default image format to use (default is ``'auto'``, which will use
@@ -876,20 +898,45 @@ class Report:
         For now the only option it can contain is "section".
 
         .. versionadded:: 1.9
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
     info_fname : None | str
         Name of the file containing the info dictionary.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     subject : str | None
         Subject name.
     title : str
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    %(baseline_report)s
+    baseline : None | tuple of length 2
+        The time interval to consider as "baseline" when applying baseline
+        correction. If ``None``, do not apply baseline correction.
+        If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+        (in seconds), including the endpoints.
+        If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+        is ``None``, it is set to the **end** of the data.
+        If ``(None, None)``, the entire time interval is used.
+
+        .. note::
+            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+            ``t`` such that ``a <= t <= b``.
+
+        Correction is applied in the following way **to each channel:**
+
+        1. Calculate the mean signal of the baseline period.
+        2. Subtract this mean from the **entire** time period.
+
+        For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
         Defaults to ``None``, i.e. no baseline correction.
     image_format : str
         Default image format to use.
@@ -908,7 +955,11 @@ class Report:
         the data. Defaults to ``False``.
 
         .. versionadded:: 0.21
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     html : list of str
         Contains items of html-page.
     include : list of str
@@ -939,7 +990,7 @@ class Report:
     .. versionadded:: 0.8.0
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         info_fname=None,
@@ -1335,7 +1386,7 @@ class Report:
         self.include += script
         self._unsaved_changes = True
 
-    @fill_doc
+    @fill_doc_static("projs_report", "topomap_kwargs", "tags_report", "replace_report")
     def add_epochs(
         self,
         epochs,
@@ -1371,7 +1422,9 @@ class Report:
 
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
-        %(projs_report)s
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         image_kwargs : dict | None
             Keyword arguments to pass to the "epochs image"-generating
             function (:meth:`mne.Epochs.plot_image`).
@@ -1384,13 +1437,19 @@ class Report:
                 )
 
             .. versionadded:: 1.7
-        %(topomap_kwargs)s
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
             All epochs for which a drop reason listed here appears in
             ``epochs.drop_log`` will be excluded from the drop log plot.
-        %(tags_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1411,7 +1470,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "projs_report", "tags_report", "replace_report", "topomap_kwargs", "n_jobs"
+    )
     def add_evokeds(
         self,
         evokeds,
@@ -1441,15 +1502,29 @@ class Report:
             A noise covariance matrix. If provided, will be used to whiten
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
             provided upon report creation.
-        %(projs_report)s
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render each `~mne.Evoked` at 21 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(tags_report)s
-        %(replace_report)s
-        %(topomap_kwargs)s
-        %(n_jobs)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
 
             .. versionchanged:: 1.13
                This parameter is currently unused, as parallelization of evoked topomap
@@ -1504,7 +1579,9 @@ class Report:
                 replace=replace,
             )
 
-    @fill_doc
+    @fill_doc_static(
+        "projs_report", "scalings", "tags_report", "replace_report", "topomap_kwargs"
+    )
     def add_raw(
         self,
         raw,
@@ -1530,7 +1607,9 @@ class Report:
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
-        %(projs_report)s
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         butterfly : bool | int
             Whether to add butterfly plots of the data. Can be useful to
             spot problematic channels. If ``True``, 10 equally-spaced 1-second
@@ -1538,10 +1617,33 @@ class Report:
             1-second segments to plot. Larger numbers may take a considerable
             amount of time if the data contains many sensors. You can disable
             butterfly plots altogether by passing ``False``.
-        %(scalings)s
-        %(tags_report)s
-        %(replace_report)s
-        %(topomap_kwargs)s
+        scalings : 'auto' | dict | None
+            Scaling factors for the traces. If a dictionary where any
+            value is ``'auto'``, the scaling factor is set to match the 99.5th
+            percentile of the respective data. If ``'auto'``, all scalings (for all
+            channel types) are set to ``'auto'``. If any values are ``'auto'`` and the
+            data is not preloaded, a subset up to 100 MB will be loaded. If ``None``,
+            defaults to::
+
+                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                     resp=1, chpi=1e-4, whitened=1e2)
+
+            .. note::
+                A particular scaling value ``s`` corresponds to half of the visualized
+                signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+                ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+                signals means that the visualized range will be 40 µV (20 µV in the
+                positive direction and 20 µV in the negative direction).
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
 
         Notes
         -----
@@ -1571,7 +1673,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "tags_report", "replace_report", "section_report", "stc_plot_kwargs_report"
+    )
     def add_stc(
         self,
         stc,
@@ -1604,12 +1708,28 @@ class Report:
             The number of equidistant time points to render. If ``None``,
             will render ``stc`` at 51 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(tags_report)s
-        %(replace_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(stc_plot_kwargs_report)s
+        stc_plot_kwargs : dict
+            Dictionary of keyword arguments to pass to
+            :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+            mode.
             Note that the default ``stc_plot_kwargs["size"] = (450, 450)``.
             The ``width`` parameter will be constrained to
             ``min(size[1], self.img_max_width)`` if ``self.img_max_width``
@@ -1633,7 +1753,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_forward(
         self,
         forward,
@@ -1663,11 +1783,24 @@ class Report:
             If True, plot the source space of the forward solution.
 
             .. versionadded:: 1.10
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1687,7 +1820,7 @@ class Report:
             plot=plot,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_inverse_operator(
         self,
         inverse_operator,
@@ -1718,11 +1851,24 @@ class Report:
             If True, plot the source space of the inverse operator.
 
             .. versionadded:: 1.10
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1741,7 +1887,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("trans", "tags_report", "section_report", "replace_report")
     def add_trans(
         self,
         trans,
@@ -1761,7 +1907,12 @@ class Report:
 
         Parameters
         ----------
-        %(trans)s "auto" will load trans from the FreeSurfer directory
+        trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            If trans is None, an identity matrix is assumed.
+            "auto" will load trans from the FreeSurfer directory
             specified by ``subject`` and ``subjects_dir`` parameters.
 
             .. versionchanged:: 1.10
@@ -1793,11 +1944,24 @@ class Report:
             ``dict(dig=True, meg=("helmet", "sensors"), show_axes=True)``.
 
             .. versionadded:: 1.10
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1818,7 +1982,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "replace_report")
     def add_covariance(self, cov, *, info, title, tags=("covariance",), replace=False):
         """Add covariance to the report.
 
@@ -1830,8 +1994,13 @@ class Report:
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
-        %(tags_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1847,7 +2016,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_events(
         self,
         events,
@@ -1881,11 +2050,24 @@ class Report:
             parameter is directly passed to :func:`mne.viz.plot_events`.
 
             .. versionadded:: 1.8.0
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1905,7 +2087,13 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "topomap_kwargs",
+        "tags_report",
+        "picks_plot_projs_joint_trace",
+        "section_report",
+        "replace_report",
+    )
     def add_projs(
         self,
         *,
@@ -1931,8 +2119,10 @@ class Report:
             The projection vectors to add to the report. Can be the path to a
             file that will be loaded via `mne.read_proj`. If ``None``, the
             projectors are taken from ``info['projs']``.
-        %(topomap_kwargs)s
-        %(tags_report)s
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
         joint : bool
             If True (default False), plot the projectors using
             :func:`mne.viz.plot_projs_joint`, otherwise use
@@ -1940,14 +2130,36 @@ class Report:
             instance of :class:`mne.Evoked`.
 
             .. versionadded:: 1.9
-        %(picks_plot_projs_joint_trace)s
+        picks_trace : str | array-like | slice | None
+            Channels to show alongside the projected time courses. Typically
+            these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
+            ``'ecg'``).
+            Slices and lists of integers will be interpreted as channel indices.
+            In lists, channel *type* strings (e.g., ``['meg', 'eeg']``) will
+            pick channels of those types, channel *name* strings (e.g., ``['MEG0111',
+            'MEG2623']`` will pick the given channels.
+            Can also be the string values ``'all'`` to pick
+            all channels, or ``'data'`` to pick :term:`data channels`.
+            None (default) will pick no channels.
             Only used when ``joint=True``.
 
             .. versionadded:: 1.9
-        %(section_report)s
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2303,7 +2515,7 @@ class Report:
                 replace=replace,
             )
 
-    @fill_doc
+    @fill_doc_static("picks_ica", "n_jobs", "tags_report", "replace_report")
     def add_ica(
         self,
         ica,
@@ -2333,7 +2545,13 @@ class Report:
             The data to use for visualization of the effects of ICA cleaning.
             To only plot the ICA component topographies, explicitly pass
             ``None``.
-        %(picks_ica)s This only affects the behavior of the component
+        picks : int | list of int | slice | None
+            Indices of the independent components (ICs) to visualize. If an integer,
+            represents the index of the IC to pick. Multiple ICs can be selected using a
+            list of int or a slice. The indices are 0-indexed, so ``picks=1`` will pick
+            the second IC: ``ICA001``. ``None`` will pick all independent components in
+            the order fitted.
+            This only affects the behavior of the component
             topography and properties plots.
         n_components : int
             Maximum number of ICA components to plot. Defaults to 20.
@@ -2347,9 +2565,20 @@ class Report:
             and :meth:`mne.preprocessing.ICA.find_bads_eog`, respectively.
             If passed, will be used to visualize the scoring for each ICA
             component.
-        %(n_jobs)s
-        %(tags_report)s
-        %(replace_report)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
         plot_sources : bool
             Whether to add a plot of the ICA source time-courses using
             :meth:`mne.preprocessing.ICA.plot_sources`. Requires ``inst``
@@ -2438,7 +2667,7 @@ class Report:
 
         return remove_idx
 
-    @fill_doc
+    @fill_doc_static("section_report")
     def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
@@ -2446,7 +2675,15 @@ class Report:
         ----------
         title : str
             The title entry.
-        %(section_report)s
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
         tags : tuple of str
             The tags associated with the added element.
         html_partial : callable
@@ -2501,7 +2738,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_code(
         self,
         code,
@@ -2527,11 +2764,24 @@ class Report:
         language : str
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2548,7 +2798,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "replace_report")
     def add_sys_info(self, title, *, tags=("mne-sysinfo",), replace=False):
         """Add a MNE-Python system information to the report.
 
@@ -2559,8 +2809,13 @@ class Report:
         ----------
         title : str
             The title to assign.
-        %(tags_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2641,7 +2896,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "image_format_report", "tags_report", "section_report", "replace_report"
+    )
     def add_figure(
         self,
         fig,
@@ -2667,10 +2924,27 @@ class Report:
             The title corresponding to the figure(s).
         caption : str | array-like of str | None
             The caption(s) to add to the figure(s).
-        %(image_format_report)s
-        %(tags_report)s
-        %(section_report)s
-        %(replace_report)s
+        image_format : 'png' | 'svg' | 'gif' | None
+            The image format to be used for the report, can be ``'png'``,
+            ``'svg'``, or ``'gif'``.
+            None (default) will use the default specified during `~mne.Report`
+            instantiation.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2732,7 +3006,7 @@ class Report:
                 replace=replace,
             )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_image(
         self,
         image,
@@ -2753,9 +3027,22 @@ class Report:
             Title corresponding to the images.
         caption : str | None
             If not ``None``, the caption to add to the image.
-        %(tags_report)s
-        %(section_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2780,7 +3067,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_html(
         self, html, title, *, tags=("custom-html",), section=None, replace=False
     ):
@@ -2792,11 +3079,24 @@ class Report:
             The HTML content to add.
         title : str
             The title corresponding to ``html``.
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.3
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2819,7 +3119,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "subjects_dir", "n_jobs", "tags_report", "section_report", "replace_report"
+    )
     def add_bem(
         self,
         subject,
@@ -2841,7 +3143,10 @@ class Report:
             The FreeSurfer subject name.
         title : str
             The title corresponding to the BEM image.
-        %(subjects_dir)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -2850,12 +3155,31 @@ class Report:
             clearer surface lines, but will create larger HTML files.
             Typically a factor of 2 more than the number of MRI voxels along
             each dimension (typically 512, default) is reasonable.
-        %(n_jobs)s
-        %(tags_report)s
-        %(section_report)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2964,7 +3288,7 @@ class Report:
 
     ###########################################################################
     # global rendering functions
-    @verbose
+    @_verbose_control
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
         inc_fnames = [
@@ -3104,7 +3428,9 @@ class Report:
                 elif on_error == "raise":
                     raise
 
-    @verbose
+    @verbose_static(
+        "n_jobs", "image_format_report", "stc_plot_kwargs_report", "topomap_kwargs"
+    )
     def parse_folder(
         self,
         data_path,
@@ -3138,7 +3464,13 @@ class Report:
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
-        %(n_jobs)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -3151,7 +3483,11 @@ class Report:
         on_error : ``'ignore'`` | ``'warn'`` | ``'raise'``
             What to do if a file cannot be rendered. Can be ``'ignore'``, ``'warn'``
             (default), or ``'raise'``.
-        %(image_format_report)s
+        image_format : 'png' | 'svg' | 'gif' | None
+            The image format to be used for the report, can be ``'png'``,
+            ``'svg'``, or ``'gif'``.
+            None (default) will use the default specified during `~mne.Report`
+            instantiation.
 
             .. versionadded:: 0.15
         render_bem : bool
@@ -3175,13 +3511,21 @@ class Report:
             Whether to render butterfly plots for (decimated) :class:`~mne.io.Raw` data.
 
             .. versionadded:: 0.24.0
-        %(stc_plot_kwargs_report)s
+        stc_plot_kwargs : dict
+            Dictionary of keyword arguments to pass to
+            :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+            mode.
 
             .. versionadded:: 0.24.0
-        %(topomap_kwargs)s
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
 
             .. versionadded:: 0.24.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         self.data_path = _check_fname(
             data_path,
@@ -3335,7 +3679,7 @@ class Report:
         self._unsaved_changes = True
         return state
 
-    @verbose
+    @verbose_static("overwrite")
     def save(
         self,
         fname=None,
@@ -3363,7 +3707,9 @@ class Report:
         open_browser : bool
             Whether to open the rendered HTML report in the default web browser
             after saving. This is ignored when writing an HDF5 file.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
         sort_content : bool
             If ``True``, sort the content based on tags before saving in the
             order:
@@ -3378,7 +3724,11 @@ class Report:
             is always written.
 
             .. versionadded:: 1.13
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------

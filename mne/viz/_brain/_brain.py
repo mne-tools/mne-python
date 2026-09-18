@@ -49,11 +49,11 @@ from ...utils import (
     _ReuseCycle,
     _to_rgb,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     use_log_level,
-    verbose,
+    verbose_static,
     warn,
 )
 from .._3d import (
@@ -98,7 +98,7 @@ def _resolve_offset(offset, surf, hemi):
     return None if (not offset or hemi != "both") else 0.0
 
 
-@fill_doc
+@fill_doc_static("views", "view_layout", "theme_3d")
 class Brain:
     """Class for visualizing a brain.
 
@@ -162,7 +162,10 @@ class Brain:
         If not None, this directory will be used as the subjects directory
         instead of the value set using the SUBJECTS_DIR environment
         variable.
-    %(views)s
+    views : str | list
+        View to use. Using multiple views (list) is not supported for mpl
+        backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+        valid string options.
     offset : bool | str
         If True, shifts the right- or left-most x coordinate of the left and
         right surfaces, respectively, to be at zero. This is useful for viewing
@@ -177,7 +180,9 @@ class Brain:
         camera.
     units : str
         Can be 'm' or 'mm' (default).
-    %(view_layout)s
+    view_layout : str
+        Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+        the PyVista backend must be used and hemi cannot be "split".
     silhouette : dict | bool
        As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
        and ``decimate`` of the brain's silhouette to display. ``decimate`` can be
@@ -192,7 +197,14 @@ class Brain:
 
        See :meth:`set_silhouette_line_width` to change the line width (or
        show/hide the silhouette) after creation.
-    %(theme_3d)s
+    theme : str | path-like
+        Can be "auto", "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+        `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+        respectively, are required.
+        If None (default), the config option MNE_3D_OPTION_THEME will be used,
+        defaulting to "auto" if it's not found.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -1836,7 +1848,7 @@ class Brain:
             self.rms = None
         self._renderer._update()
 
-    @fill_doc
+    @fill_doc_static("brain_update")
     def plot_time_course(self, hemi, vertex_id, color, update=True):
         """Plot the vertex time course.
 
@@ -1848,7 +1860,8 @@ class Brain:
             The vertex identifier in the mesh.
         color : matplotlib color
             The color of the time course.
-        %(brain_update)s
+        update : bool
+            Force an update of the plot. Defaults to True.
 
         Returns
         -------
@@ -1902,13 +1915,14 @@ class Brain:
             self.mpl_canvas.update_plot()
         return line
 
-    @fill_doc
+    @fill_doc_static("brain_update")
     def plot_time_line(self, update=True):
         """Add the time line to the MPL widget.
 
         Parameters
         ----------
-        %(brain_update)s
+        update : bool
+            Force an update of the plot. Defaults to True.
         """
         if self.mpl_canvas is None:
             return
@@ -2042,7 +2056,14 @@ class Brain:
         else:
             self._actors[item] = [actor]
 
-    @verbose
+    @verbose_static(
+        "fmin_fmid_fmax",
+        "thresh",
+        "center",
+        "transparent",
+        "time_label",
+        "src_volume_options",
+    )
     def add_data(
         self,
         array,
@@ -2092,10 +2113,24 @@ class Brain:
             If vectors with no time dimension are desired, consider using a
             singleton (e.g., ``np.newaxis``) to create a "time" dimension
             and pass ``time_label=None`` (vector values are not supported).
-        %(fmin_fmid_fmax)s
-        %(thresh)s
-        %(center)s
-        %(transparent)s
+        fmin : float
+            Minimum value in colormap (uses real fmin if None).
+        fmid : float
+            Intermediate value in colormap (fmid between fmin and
+            fmax if None).
+        fmax : float
+            Maximum value in colormap (uses real max if None).
+        thresh : None or float
+            Not supported yet.
+            If not None, values below thresh will not be visible.
+        center : float or None
+            If not None, center of a divergent colormap, changes the meaning of
+            fmin, fmax and fmid.
+        transparent : bool | None
+            If True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps). None will choose automatically based on colormap
+            type.
         colormap : str, list of color, or array
             Name of matplotlib colormap to use, a list of matplotlib colors,
             or a custom look up table (an n x 4 array coded with RBGA values
@@ -2117,7 +2152,11 @@ class Brain:
             many as necessary to fill the surface.
         time : numpy array
             Time points in the data array (if data is 2D or 3D).
-        %(time_label)s
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+            is more than one time point.
         colorbar : bool
             Whether to add a colorbar to the figure. Can also be a tuple
             to give the (row, col) index of where to put the colorbar.
@@ -2146,7 +2185,40 @@ class Brain:
             vector-valued data. If None (default), ``alpha`` is used.
         clim : dict
             Original clim arguments.
-        %(src_volume_options)s
+        src : instance of SourceSpaces | None
+            The source space corresponding to the source estimate. Only necessary
+            if the STC is a volume or mixed source estimate.
+        volume_options : float | dict | None
+            Options for volumetric source estimate plotting, with key/value pairs:
+
+            - ``'resolution'`` : float | None
+                Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+                better at the cost of speed. None (default) uses the volume source
+                space resolution, which is often something like 7 or 5 mm,
+                without resampling.
+            - ``'blending'`` : str
+                Can be "mip" (default) for :term:`maximum intensity projection` or
+                "composite" for composite blending using alpha values.
+            - ``'alpha'`` : float | None
+                Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+                estimates and 1.0 for scalar source estimates.
+            - ``'surface_alpha'`` : float | None
+                Alpha for the surface enclosing the volume(s). None (default) will use
+                half the volume alpha. Set to zero to avoid plotting the surface.
+            - ``'silhouette_alpha'`` : float | None
+                Alpha for a silhouette along the outside of the volume. None (default)
+                will use ``0.25 * surface_alpha``.
+            - ``'silhouette_linewidth'`` : float
+                The line width to use for the silhouette. Default is 2.
+            - ``'interpolation'`` : str
+                The interpolation method to use for resampling the volume source space
+                to the specified resolution (and for sampling in the volume rendering).
+                Can be "linear" (default) or "nearest".
+
+                .. versionadded:: 1.13
+
+            A float input (default 1.) or None will be used for the ``'resolution'``
+            entry.
         colorbar_kwargs : dict | None
             Options to pass to :meth:`pyvista.Plotter.add_scalar_bar`, for
             example ``dict(label_font_size=10)``. By default a ``fmt``
@@ -2163,7 +2235,11 @@ class Brain:
             :meth:`setup_time_viewer`).
 
             .. versionadded:: 1.12
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -2757,15 +2833,22 @@ class Brain:
             self._labels[hemi].append(label)
         self._renderer._update()
 
-    @fill_doc
+    @fill_doc_static("fwd", "trans_not_none", "alpha")
     def add_forward(self, fwd, trans, alpha=1, scale=None):
         """Add a quiver to render positions of dipoles.
 
         Parameters
         ----------
-        %(fwd)s
-        %(trans_not_none)s
-        %(alpha)s Default 1.
+        fwd : instance of Forward
+            The forward solution. If present, the orientations of the dipoles
+            present in the forward solution are displayed.
+        trans : str | dict | instance of Transform
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+            Default 1.
         scale : None | float
             The size of the arrow representing the dipoles in
             :class:`mne.viz.Brain` units. Default 1.5mm.
@@ -2807,7 +2890,7 @@ class Brain:
         """Remove forward sources from the rendered scene."""
         self._remove("forward", render=True)
 
-    @fill_doc
+    @fill_doc_static("trans_not_none", "alpha")
     def add_dipole(
         self, dipole, trans, colors="red", alpha=1, scales=None, *, mode="arrow"
     ):
@@ -2818,11 +2901,16 @@ class Brain:
         dipole : instance of Dipole
             Dipole object containing position, orientation and amplitude of
             one or more dipoles or in the forward solution.
-        %(trans_not_none)s
+        trans : str | dict | instance of Transform
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
         colors : list | matplotlib-style color | None
             A single color or list of anything matplotlib accepts:
             string, RGB, hex, etc. Default red.
-        %(alpha)s Default 1.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+            Default 1.
         scales : list | float | None
             The size of the arrow representing the dipole in
             :class:`mne.viz.Brain` units. Default 5mm.
@@ -2878,7 +2966,7 @@ class Brain:
         """Remove dipole objects from the rendered scene."""
         self._remove("dipole", render=True)
 
-    @fill_doc
+    @fill_doc_static("color_matplotlib", "alpha")
     def add_head(self, dense=True, color="gray", alpha=0.5):
         """Add a mesh to render the outer head surface.
 
@@ -2887,8 +2975,10 @@ class Brain:
         dense : bool
             Whether to plot the dense head (``seghead``) or the less dense head
             (``head``).
-        %(color_matplotlib)s
-        %(alpha)s
+        color : color
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
 
         Notes
         -----
@@ -2918,7 +3008,7 @@ class Brain:
         """Remove head objects from the rendered scene."""
         self._remove("head", render=True)
 
-    @fill_doc
+    @fill_doc_static("color_matplotlib", "alpha")
     def add_skull(self, outer=True, color="gray", alpha=0.5):
         """Add a mesh to render the skull surface.
 
@@ -2926,8 +3016,10 @@ class Brain:
         ----------
         outer : bool
             Adds the outer skull if ``True``, otherwise adds the inner skull.
-        %(color_matplotlib)s
-        %(alpha)s
+        color : color
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
 
         Notes
         -----
@@ -2957,7 +3049,7 @@ class Brain:
         """Remove skull objects from the rendered scene."""
         self._remove("skull", render=True)
 
-    @fill_doc
+    @fill_doc_static("aseg", "labels_aseg", "alpha", "smooth")
     def add_volume_labels(
         self,
         aseg="auto",
@@ -2972,13 +3064,26 @@ class Brain:
 
         Parameters
         ----------
-        %(aseg)s
-        %(labels_aseg)s
+        aseg : str
+            The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+            if available and ``wmparc`` if not. This may be any anatomical
+            segmentation file in the mri subdirectory of the FreeSurfer subject
+            directory.
+
+            .. versionchanged:: 1.8
+               Added support for the new default ``'auto'``.
+        labels : list of str | None
+            Labeled regions of interest to plot. See
+            :func:`mne.get_montage_volume_labels` for one way to determine regions of
+            interest. Regions can also be chosen from the :term:`FreeSurfer LUT`. If
+            ``None``, all labels that are defined in the segmentation file are used.
         colors : list | matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
             (default :term:`FreeSurfer LUT` colors).
-        %(alpha)s
-        %(smooth)s
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+        smooth : float in [0, 1)
+            The smoothing factor to be applied. Default 0 is no smoothing.
         fill_hole_size : int | None
             The size of holes to remove in the mesh in voxels. Default is None,
             no holes are removed. Warning, this dilates the boundaries of the
@@ -3056,7 +3161,7 @@ class Brain:
         self._remove("volume_labels", render=True)
         self._renderer.plotter.remove_legend()
 
-    @fill_doc
+    @fill_doc_static("color_matplotlib", "alpha")
     def add_foci(
         self,
         coords,
@@ -3090,8 +3195,11 @@ class Brain:
             vertex in the mesh.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
-        %(color_matplotlib)s
-        %(alpha)s Default is 1.
+        color : color
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+            Default is 1.
         name : str
             Internal name to use.
         hemi : str | None
@@ -3148,7 +3256,19 @@ class Brain:
             data_foci = np.vstack((self._foci_data[hemi]["foci"], data_foci))
         self._foci_data.setdefault(hemi, {})["foci"] = data_foci
 
-    @verbose
+    @verbose_static(
+        "info_not_none",
+        "trans_not_none",
+        "meg",
+        "eeg",
+        "fnirs",
+        "ecog",
+        "seeg",
+        "dbs",
+        "max_dist_ieeg",
+        "sensor_colors",
+        "sensor_scales",
+    )
     def add_sensors(
         self,
         info,
@@ -3169,22 +3289,90 @@ class Brain:
 
         Parameters
         ----------
-        %(info_not_none)s
-        %(trans_not_none)s
-        %(meg)s
-        %(eeg)s
-        %(fnirs)s
-        %(ecog)s
-        %(seeg)s
-        %(dbs)s
-        %(max_dist_ieeg)s
-        %(sensor_colors)s
+        info : mne.Info
+            The :class:`mne.Info` object with information about the
+            sensors and methods of measurement.
+        trans : str | dict | instance of Transform
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+        meg : str | list | dict | bool | None
+            Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+            reference sensors respectively, or a combination like ``('helmet',
+            'sensors')`` (same as None, default). True translates to ``('helmet',
+            'sensors', 'ref')``. Can also be a dict to specify alpha values, e.g.
+            ``{"helmet": 0.1, "sensors": 0.8}``.
+
+            .. versionchanged:: 1.6
+               Added support for specifying alpha values as a dict.
+        eeg : bool | str | list | dict
+            String options are:
+
+            - "original" (default; equivalent to ``True``)
+                Shows EEG sensors using their digitized locations (after
+                transformation to the chosen ``coord_frame``)
+            - "projected"
+                The EEG locations projected onto the scalp, as is done in
+                forward modeling
+
+            Can also be a list of these options, or a dict to specify the alpha values
+            to use, e.g. ``dict(original=0.2, projected=0.8)``.
+
+            .. versionchanged:: 1.6
+               Added support for specifying alpha values as a dict.
+        fnirs : str | list | dict | bool | None
+            Can be "channels", "pairs", "detectors", and/or "sources" to show the
+            fNIRS channel locations, optode locations, or line between
+            source-detector pairs, or a combination like ``('pairs', 'channels')``.
+            True translates to ``('pairs',)``. A dict can also be used to specify
+            alpha values (but only "channels" and "pairs" will be used), e.g.
+            ``dict(channels=0.2, pairs=0.7)``.
+
+            .. versionchanged:: 1.6
+               Added support for specifying alpha values as a dict.
+        ecog : bool
+            If True (default), show ECoG sensors.
+        seeg : bool
+            If True (default), show sEEG electrodes.
+        dbs : bool
+            If True (default), show DBS (deep brain stimulation) electrodes.
+        max_dist : float
+            The maximum distance to project a sensor to the pial surface in meters.
+            Sensors that are greater than this distance from the pial surface will
+            not be assigned locations. Projections can be done to the inflated or
+            flat brain.
+        sensor_colors : array-like of color | dict | None
+            Colors to use for the sensor glyphs. Can be None (default) to use default
+            colors. A dict should provide the colors (values) for each channel type
+            (keys), e.g.::
+
+                dict(eeg=eeg_colors)
+
+            Where the value (``eeg_colors`` above) can be broadcast to an array of
+            colors with length that matches the number of channels of that type, i.e.,
+            is compatible with :func:`matplotlib.colors.to_rgba_array`. A few examples
+            of this for the case above are the string ``"k"``, a list of ``n_eeg`` color
+            strings, or an NumPy ndarray of shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 
             .. versionadded:: 1.6
-        %(sensor_scales)s
+        sensor_scales : int | float | array-like | dict | None
+            Scale to use for the sensor glyphs. Can be None (default) to use default
+            scale. A dict should provide the Scale (values) for each channel type
+            (keys), e.g.::
+
+                dict(eeg=eeg_scales)
+
+            Where the value (``eeg_scales`` above) can be broadcast to an array of
+            values with length that matches the number of channels of that type. A few
+            examples of this for the case above are the value ``10e-3``, a list of
+            ``n_eeg`` values, or an NumPy ndarray of shape ``(n_eeg,)``.
 
             .. versionadded:: 1.9
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -3402,7 +3590,7 @@ class Brain:
             for idx, label in enumerate(labels):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
-    @fill_doc
+    @fill_doc_static("alpha")
     def add_annotation(
         self,
         annot,
@@ -3428,7 +3616,9 @@ class Brain:
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
-        %(alpha)s Default is 1.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+            Default is 1.
         hemi : str | None
             Optionally restrict the annotation to the given hemisphere.
         remove_existing : bool
@@ -3628,7 +3818,9 @@ class Brain:
         """Display the window."""
         self._renderer.show()
 
-    @fill_doc
+    @fill_doc_static(
+        "align_view", "roll", "distance", "azimuth", "elevation", "focalpoint"
+    )
     def get_view(self, row=0, col=0, *, align=True):
         """Get the camera orientation for a given subplot display.
 
@@ -3638,15 +3830,31 @@ class Brain:
             The row to use, default is the first one.
         col : int
             The column to check, the default is the first one.
-        %(align_view)s
+        align : bool
+            If True, consider view arguments relative to canonical MRI
+            directions (closest to MNI for the subject) rather than native MRI
+            space. This helps when MRIs are not in standard orientation (e.g.,
+            have large rotations).
 
         Returns
         -------
-        %(roll)s
-        %(distance)s
-        %(azimuth)s
-        %(elevation)s
-        %(focalpoint)s
+        roll : float | None
+            The roll of the camera rendering the view in degrees.
+        distance : float | "auto" | None
+            The distance from the camera rendering the view to the focalpoint in plot
+            units (either m or mm). If "auto", the bounds of visible objects will be
+            used to set a reasonable distance.
+
+            .. versionchanged:: 1.6
+               ``None`` will no longer change the distance, use ``"auto"`` instead.
+        azimuth : float
+            The azimuthal angle of the camera rendering the view in degrees.
+        elevation : float
+            The zenith angle of the camera rendering the view in degrees.
+        focalpoint : tuple, shape (3,) | str | None
+            The focal point of the camera rendering the view: (x, y, z) in
+            plot units (either m or mm). When ``"auto"``, it is set to the center of
+            mass of the visible bounds.
         """
         row = _ensure_int(row, "row")
         col = _ensure_int(col, "col")
@@ -3657,7 +3865,16 @@ class Brain:
                     return self._renderer.get_camera(rigid=rigid)
         return (None,) * 5
 
-    @verbose
+    @verbose_static(
+        "view",
+        "roll",
+        "distance",
+        "align_view",
+        "azimuth",
+        "elevation",
+        "focalpoint",
+        "brain_update",
+    )
     def show_view(
         self,
         view=None,
@@ -3678,23 +3895,48 @@ class Brain:
 
         Parameters
         ----------
-        %(view)s
-        %(roll)s
-        %(distance)s
+        view : str | None
+            The name of the view to show (e.g. "lateral"). Other arguments
+            take precedence and modify the camera starting from the ``view``.
+            See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for valid
+            string shortcut options.
+        roll : float | None
+            The roll of the camera rendering the view in degrees.
+        distance : float | "auto" | None
+            The distance from the camera rendering the view to the focalpoint in plot
+            units (either m or mm). If "auto", the bounds of visible objects will be
+            used to set a reasonable distance.
+
+            .. versionchanged:: 1.6
+               ``None`` will no longer change the distance, use ``"auto"`` instead.
         row : int | None
             The row to set. Default all rows.
         col : int | None
             The column to set. Default all columns.
         hemi : str | None
             Which hemi to use for view lookup (when in "both" mode).
-        %(align_view)s
-        %(azimuth)s
-        %(elevation)s
-        %(focalpoint)s
-        %(brain_update)s
+        align : bool
+            If True, consider view arguments relative to canonical MRI
+            directions (closest to MNI for the subject) rather than native MRI
+            space. This helps when MRIs are not in standard orientation (e.g.,
+            have large rotations).
+        azimuth : float
+            The azimuthal angle of the camera rendering the view in degrees.
+        elevation : float
+            The zenith angle of the camera rendering the view in degrees.
+        focalpoint : tuple, shape (3,) | str | None
+            The focal point of the camera rendering the view: (x, y, z) in
+            plot units (either m or mm). When ``"auto"``, it is set to the center of
+            mass of the visible bounds.
+        update : bool
+            Force an update of the plot. Defaults to True.
 
             .. versionadded:: 1.6
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -3808,7 +4050,7 @@ class Brain:
             filename = _generate_default_filename(".png")
         _save_ndarray_img(filename, self.screenshot(mode=mode, time_viewer=True))
 
-    @fill_doc
+    @fill_doc_static("time_viewer_brain_screenshot")
     def screenshot(self, mode="rgb", time_viewer=False):
         """Generate a screenshot of current view.
 
@@ -3816,7 +4058,9 @@ class Brain:
         ----------
         mode : str
             Either ``'rgb'`` or ``'rgba'`` for values to return.
-        %(time_viewer_brain_screenshot)s
+        time_viewer : bool
+            If True, include time viewer traces. Only used if
+            ``time_viewer=True`` and ``separate_canvas=False``.
 
         Returns
         -------
@@ -4029,14 +4273,21 @@ class Brain:
                 actor.SetVisibility(True)
         self._renderer._update()
 
-    @fill_doc
+    @fill_doc_static("fmin_fmid_fmax", "alpha")
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update the range of the color map.
 
         Parameters
         ----------
-        %(fmin_fmid_fmax)s
-        %(alpha)s
+        fmin : float
+            Minimum value in colormap (uses real fmin if None).
+        fmid : float
+            Intermediate value in colormap (fmid between fmin and
+            fmax if None).
+        fmax : float
+            Maximum value in colormap (uses real max if None).
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
         """
         publish(
             self,
@@ -4049,14 +4300,21 @@ class Brain:
             ),
         )
 
-    @fill_doc
+    @fill_doc_static("fmin_fmid_fmax", "alpha")
     def _update_colormap_range(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update the range of the color map.
 
         Parameters
         ----------
-        %(fmin_fmid_fmax)s
-        %(alpha)s
+        fmin : float
+            Minimum value in colormap (uses real fmin if None).
+        fmid : float
+            Intermediate value in colormap (fmid between fmin and
+            fmax if None).
+        fmax : float
+            Maximum value in colormap (uses real max if None).
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
         """
         args = f"{fmin}, {fmid}, {fmax}, {alpha}"
         logger.debug(f"Updating LUT with {args}")
@@ -4170,13 +4428,16 @@ class Brain:
         """The interpolation mode."""
         return self._time_interpolation
 
-    @fill_doc
+    @fill_doc_static("interpolation_brain_time")
     def set_time_interpolation(self, interpolation):
         """Set the interpolation mode.
 
         Parameters
         ----------
-        %(interpolation_brain_time)s
+        interpolation : str | None
+            Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
+            Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+            ``'quadratic'`` or ``'cubic'``.
         """
         self._time_interpolation = _check_option(
             "interpolation",
@@ -4577,7 +4838,7 @@ class Brain:
         finally:
             self._renderer._window_set_cursor(default_cursor)
 
-    @fill_doc
+    @fill_doc_static("interpolation_brain_time", "time_viewer_brain_screenshot")
     def save_movie(
         self,
         filename=None,
@@ -4620,7 +4881,10 @@ class Brain:
             Last time point to include (default: all data).
         framerate : float
             Framerate of the movie (frames per second, default 24).
-        %(interpolation_brain_time)s
+        interpolation : str | None
+            Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
+            Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+            ``'quadratic'`` or ``'cubic'``.
             If None, it uses the current ``brain.interpolation``,
             which defaults to ``'nearest'``. Defaults to None.
         codec : str | None
@@ -4631,7 +4895,9 @@ class Brain:
             A function to call on each iteration. Useful for status message
             updates. It will be passed keyword arguments ``frame`` and
             ``n_frames``.
-        %(time_viewer_brain_screenshot)s
+        time_viewer : bool
+            If True, include time viewer traces. Only used if
+            ``time_viewer=True`` and ``separate_canvas=False``.
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
         """

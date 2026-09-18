@@ -50,11 +50,11 @@ from ..utils import (
     _check_fname,
     _explain_exception,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
 )
 from ..viz._3d import (
     _plot_head_fiducials,
@@ -119,7 +119,9 @@ def _get_subjects(sdir):
     return sorted(subjects)
 
 
-@fill_doc
+@fill_doc_static(
+    "subject", "subjects_dir", "fiducials", "fullscreen", "interaction_scene", "verbose"
+)
 class CoregistrationUI(HasTraits):
     """Class for coregistration assisted by graphical interface.
 
@@ -127,9 +129,24 @@ class CoregistrationUI(HasTraits):
     ----------
     info_file : None | path-like
         The FIFF file with digitizer data for coregistration.
-    %(subject)s
-    %(subjects_dir)s
-    %(fiducials)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    fiducials : list | dict | str
+        The fiducials given in the MRI (surface RAS) coordinate
+        system. If a dictionary is provided, it must contain the **keys**
+        ``'lpa'``, ``'rpa'``, and ``'nasion'``, with **values** being the
+        respective coordinates in meters.
+        If a list, it must be a list of ``DigPoint`` instances as returned by the
+        :func:`mne.io.read_fiducials` function.
+        If ``'estimated'``, the fiducials are derived from the ``fsaverage``
+        template. If ``'auto'`` (default), tries to find the fiducials
+        in a file with the canonical name
+        (``{subjects_dir}/{subject}/bem/{subject}-fiducials.fif``)
+        and if absent, falls back to ``'estimated'``.
     head_resolution : bool
         If ``True``, use a high-resolution head surface. Defaults to ``False``.
     head_opacity : float
@@ -168,15 +185,27 @@ class CoregistrationUI(HasTraits):
     block : bool
         Whether to halt program execution until the GUI has been closed
         (``True``) or not (``False``, default).
-    %(fullscreen)s
+    fullscreen : bool
+        Whether to start in fullscreen (``True``) or windowed mode
+        (``False``).
         The default is ``False``.
 
         .. versionadded:: 1.1
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -209,7 +238,7 @@ class CoregistrationUI(HasTraits):
     @_qt_safe_window(
         splash="_renderer.figure.splash", window="_renderer.figure.plotter"
     )
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         info_file,
@@ -960,7 +989,7 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @safe_event
-    @verbose
+    @_verbose_control
     def _redraw(self, *, verbose=None):
         if not self._redraws_pending:
             return
@@ -1052,7 +1081,7 @@ class CoregistrationUI(HasTraits):
             f"No head shape point is omitted, the total is {n_total}."
         )
 
-    @verbose
+    @_verbose_control
     def _update_plot(self, changes="all", verbose=None):
         # Update list of things that need to be updated/plotted (and maybe
         # draw them immediately)

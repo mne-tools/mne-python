@@ -18,7 +18,7 @@ from typing import Any, TypeVar
 
 from decorator import FunctionMaker
 
-from .docs import fill_doc
+from .docs import fill_doc, fill_doc_static
 
 logger = logging.getLogger("mne")  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -103,7 +103,7 @@ def verbose(function: _FuncT) -> _FuncT:
         fill_doc(function)
     except TypeError:  # nothing to add
         pass
-    return _wrap_verbose(function)
+    return _verbose_control(function)
 
 
 def verbose_static(*keys: str) -> Callable[[_FuncT], _FuncT]:
@@ -129,14 +129,19 @@ def verbose_static(*keys: str) -> Callable[[_FuncT], _FuncT]:
     """
 
     def dec(function: _FuncT) -> _FuncT:
-        out = _wrap_verbose(function)
+        out = _verbose_control(function)
         out._static_doc_keys = ("verbose", *keys)
         return out
 
     return dec
 
 
-def _wrap_verbose(function: _FuncT) -> _FuncT:
+def _verbose_control(function: _FuncT) -> _FuncT:
+    """Let ``verbose`` set the log level during a call, leaving ``__doc__`` alone.
+
+    For private code that takes ``verbose`` without documenting it; documented
+    functions use :func:`verbose_static`, which also checks the docstring.
+    """
     # Anything using verbose should have `verbose=None` in the signature.
     # This code path will raise an error if this is not the case.
     body = """\
@@ -161,14 +166,21 @@ def %(name)s(%(signature)s):\n
     return fm.make(body, evaldict, addsource=True, **attrs)
 
 
-@fill_doc
+@fill_doc_static("verbose", "add_frames")
 class use_log_level:
     """Context manager for logging level.
 
     Parameters
     ----------
-    %(verbose)s
-    %(add_frames)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    add_frames : int | None
+        If int, enable (>=1) or disable (0) the printing of stack frame
+        information using formatting. Default (None) does not change the
+        formatting. This can add overhead so is meant only for debugging.
 
     See Also
     --------
@@ -218,7 +230,7 @@ _LOGGING_TYPES = dict(
 )
 
 
-@fill_doc
+@fill_doc_static("add_frames")
 def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     """Set the logging level.
 
@@ -233,7 +245,10 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
-    %(add_frames)s
+    add_frames : int | None
+        If int, enable (>=1) or disable (0) the printing of stack frame
+        information using formatting. Default (None) does not change the
+        formatting. This can add overhead so is meant only for debugging.
 
     Returns
     -------

@@ -42,8 +42,9 @@ from ..utils import (
     _on_missing,
     _pl,
     _validate_type,
+    _verbose_control,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from ._compute_forward import (
@@ -61,13 +62,17 @@ _accuracy_dict = dict(
 _extra_coil_def_fname = None
 
 
-@verbose
+@verbose_static()
 def _read_coil_defs(verbose=None):
     """Read a coil definition file.
 
     Parameters
     ----------
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -283,7 +288,7 @@ def _create_eeg_els(chs):
     return [_create_eeg_el(ch) for ch in chs]
 
 
-@verbose
+@_verbose_control
 def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None):
     """Set up a BEM for forward computation, making a copy and modifying."""
     if allow_none and bem is None:
@@ -323,7 +328,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False, verbose=None)
     return bem
 
 
-@verbose
+@_verbose_control
 def _prep_meg_channels(
     info,
     accuracy="accurate",
@@ -412,7 +417,7 @@ def _prep_meg_channels(
     )
 
 
-@verbose
+@_verbose_control
 def _prep_eeg_channels(info, exclude=(), verbose=None):
     """Prepare EEG electrode definitions for forward calculation."""
     info_extra = "info"
@@ -437,7 +442,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     return dict(defs=eegels, ch_names=eegnames)
 
 
-@verbose
+@_verbose_control
 def _prepare_for_forward(
     src,
     mri_head_t,
@@ -613,7 +618,7 @@ def _prepare_for_forward(
     return sensors, rr, info, update_kwargs, bem
 
 
-@verbose
+@verbose_static("info_str", "trans", "n_jobs")
 def make_forward_solution(
     info,
     trans,
@@ -632,8 +637,16 @@ def make_forward_solution(
 
     Parameters
     ----------
-    %(info_str)s
-    %(trans)s
+    info : mne.Info | path-like
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement. If ``path-like``, it should be a
+        :class:`str` or :class:`pathlib.Path` to a file with measurement information
+        (e.g. :class:`mne.io.Raw`).
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
 
         .. versionchanged:: 0.19
             Support for ``'fsaverage'`` argument.
@@ -655,7 +668,13 @@ def make_forward_solution(
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     on_inside : 'raise' | 'warn' | 'ignore'
         What to do if MEG sensors are inside the outer skin surface. If 'raise'
         (default), an error is raised. If 'warn' or 'ignore', the forward
@@ -663,7 +682,11 @@ def make_forward_solution(
         respectively.
 
         .. versionadded:: 1.10
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -764,7 +787,7 @@ def make_forward_solution(
     return fwd
 
 
-@verbose
+@verbose_static("dipole", "n_jobs")
 def make_forward_dipole(
     dipole, bem, info, trans=None, n_jobs=None, *, on_inside="raise", verbose=None
 ):
@@ -783,7 +806,14 @@ def make_forward_dipole(
 
     Parameters
     ----------
-    %(dipole)s
+    dipole : instance of Dipole | list of Dipole
+        Dipole object containing position, orientation and amplitude of
+        one or more dipoles. Multiple simultaneous dipoles may be defined by
+        assigning them identical times. Alternatively, multiple simultaneous
+        dipoles may also be specified as a list of Dipole objects.
+
+        .. versionchanged:: 1.1
+            Added support for a list of :class:`mne.Dipole` instances.
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
     info : instance of Info
@@ -792,7 +822,13 @@ def make_forward_dipole(
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     on_inside : 'raise' | 'warn' | 'ignore'
         What to do if MEG sensors are inside the outer skin surface. If 'raise'
         (default), an error is raised. If 'warn' or 'ignore', the forward
@@ -800,7 +836,11 @@ def make_forward_dipole(
         respectively.
 
         .. versionadded:: 1.10
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -981,7 +1021,7 @@ def use_coil_def(fname):  # numpydoc ignore=YD01
 class _ForwardModeler:
     """Optimized incremental fitting using the same sensors and BEM."""
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         info,

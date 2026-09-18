@@ -27,7 +27,7 @@ from ..utils import (
     _pl,
     _reg_pinv,
     logger,
-    verbose,
+    verbose_static,
 )
 from ._lead_dots import _do_cross_dots, _do_self_dots, _do_surface_dots, _get_legen_fun
 from ._make_forward import _create_eeg_els, _create_meg_coils, _read_coil_defs
@@ -342,7 +342,7 @@ def _as_meg_type_inst(inst, ch_type="grad", mode="fast"):
     return inst_
 
 
-@verbose
+@verbose_static("info_not_none", "n_jobs")
 def _make_surface_mapping(
     info,
     surf,
@@ -358,7 +358,9 @@ def _make_surface_mapping(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     surf : dict
         The surface to map the data to. The required fields are `'rr'`,
         `'nn'`, and `'coord_frame'`. Must be in head coordinates.
@@ -371,10 +373,20 @@ def _make_surface_mapping(
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -471,7 +483,7 @@ def _make_surface_mapping(
     return fmd
 
 
-@verbose
+@verbose_static("trans", "n_jobs", "helmet_upsampling", "head_source")
 def make_field_map(
     evoked,
     trans="auto",
@@ -493,7 +505,12 @@ def make_field_map(
     ----------
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
-    %(trans)s ``"auto"`` (default) will load trans from the FreeSurfer
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
+        ``"auto"`` (default) will load trans from the FreeSurfer
         directory specified by ``subject`` and ``subjects_dir`` parameters.
 
         .. versionchanged:: 0.19
@@ -523,14 +540,29 @@ def make_field_map(
         .. versionchanged:: 1.12
            In 1.12 the default value is "auto".
            In 1.11 and prior versions, it is ``(0., 0., 0.04)``.
-    %(n_jobs)s
-    %(helmet_upsampling)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    upsampling : int
+        The upsampling factor to use for the helmet mesh. The default (1) does no
+        upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+        the number of vertices increases as a factor of ``4**(upsampling-1)``.
 
         .. versionadded:: 1.10
-    %(head_source)s
+    head_source : str | list of str
+        Head source(s) to use. See the ``source`` option of
+        :func:`mne.get_head_surf` for more information.
 
         .. versionadded:: 1.1
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

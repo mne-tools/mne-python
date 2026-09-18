@@ -14,7 +14,12 @@ from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _read_segments_file
 from ..._fiff.write import get_new_file_id
 from ...transforms import Transform, apply_trans, get_ras_to_neuromag_trans
-from ...utils import _check_fname, fill_doc, verbose, warn
+from ...utils import (
+    _check_fname,
+    fill_doc_static,
+    verbose_static,
+    warn,
+)
 from ..base import BaseRaw
 from .sensors import (
     _get_plane_vectors,
@@ -24,7 +29,7 @@ from .sensors import (
 )
 
 
-@verbose
+@verbose_static("preload")
 def read_raw_fil(
     binfile: Path | str,
     precision: str = "single",
@@ -41,8 +46,25 @@ def read_raw_fil(
     precision : str
         How is the data represented? ``'single'`` if 32-bit or ``'double'`` if
         64-bit (default is single).
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -57,7 +79,7 @@ def read_raw_fil(
     return RawFIL(binfile, precision=precision, preload=preload)
 
 
-@fill_doc
+@fill_doc_static("preload")
 class RawFIL(BaseRaw):
     """Raw object from FIL-OPMEG formatted data.
 
@@ -68,7 +90,20 @@ class RawFIL(BaseRaw):
     precision : str
         How is the data represented? ``'single'`` if 32-bit or
         ``'double'`` if 64-bit (default is single).
-    %(preload)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
 
     Returns
     -------
