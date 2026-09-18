@@ -4,8 +4,10 @@
 
 import re
 import warnings
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from itertools import count
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 import numpy as np
 
@@ -22,6 +24,7 @@ from ..utils import (
     verbose_static,
     warn,
 )
+from ..utils._typing import EEGSensor, LogLevel, MEGSensor
 from .constants import FIFF
 from .pick import _ELECTRODE_CH_TYPES, _electrode_types, pick_info, pick_types
 from .tag import _rename_list, find_tag
@@ -36,6 +39,15 @@ from .write import (
     write_name_list_sanitized,
     write_string,
 )
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap, Normalize
+    from matplotlib.figure import Figure
+
+    from ..bem import ConductorModel
+    from ..forward import Forward
+    from .meas_info import Info
 
 
 class Projection(dict):
@@ -64,17 +76,17 @@ class Projection(dict):
     def __init__(
         self,
         *,
-        data,
-        desc="",
-        kind=FIFF.FIFFV_PROJ_ITEM_FIELD,
-        active=False,
-        explained_var=None,
-    ):
+        data: dict[str, Any],
+        desc: str = "",
+        kind: int = FIFF.FIFFV_PROJ_ITEM_FIELD,
+        active: bool = False,
+        explained_var: float | None = None,
+    ) -> None:
         super().__init__(
             desc=desc, kind=kind, active=active, data=data, explained_var=explained_var
         )
 
-    def __repr__(self):  # noqa: D105
+    def __repr__(self) -> str:  # noqa: D105
         s = str(self["desc"])
         s += f", active : {self['active']}"
         s += f", n_channels : {len(self['data']['col_names'])}"
@@ -83,7 +95,7 @@ class Projection(dict):
         return f"<Projection | {s}>"
 
     # speed up info copy by taking advantage of mutability
-    def __deepcopy__(self, memodict):
+    def __deepcopy__(self, memodict: dict[int, Any]) -> "Projection":
         """Make a deepcopy."""
         cls = self.__class__
         result = cls.__new__(cls)
@@ -96,11 +108,11 @@ class Projection(dict):
                 result[k] = v  # kind, active, desc, explained_var immutable
         return result
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Equality == method."""
         return True if len(object_diff(self, other)) == 0 else False
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         """Different != method."""
         return not self.__eq__(other)
 
@@ -127,27 +139,27 @@ class Projection(dict):
     )
     def plot_topomap(
         self,
-        info,
+        info: "Info",
         *,
-        sensors=True,
-        show_names=False,
-        contours=6,
-        outlines="head",
-        sphere=None,
-        image_interp=_INTERPOLATION_DEFAULT,
-        extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT,
-        res=64,
-        size=1,
-        cmap=None,
-        vlim=(None, None),
-        cnorm=None,
-        colorbar=False,
-        cbar_fmt="%3.1f",
-        units=None,
-        axes=None,
-        show=True,
-    ):
+        sensors: bool | str = True,
+        show_names: bool | Callable = False,
+        contours: int | np.ndarray = 6,
+        outlines: Literal["head"] | dict | None = "head",
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        image_interp: str = _INTERPOLATION_DEFAULT,
+        extrapolate: str = _EXTRAPOLATE_DEFAULT,
+        border: float | Literal["mean"] = _BORDER_DEFAULT,
+        res: int = 64,
+        size: float = 1,
+        cmap: "str | Colormap | tuple | Literal['interactive'] | None" = None,
+        vlim: tuple | Literal["joint"] = (None, None),
+        cnorm: "Normalize | None" = None,
+        colorbar: bool = False,
+        cbar_fmt: str = "%3.1f",
+        units: dict | str | None = None,
+        axes: "Axes | list[Axes] | None" = None,
+        show: bool = True,
+    ) -> "Figure":
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -379,14 +391,19 @@ class ProjMixin:
     """
 
     @property
-    def proj(self):
+    def proj(self) -> bool:
         """Whether or not projections are active."""
         return len(self.info["projs"]) > 0 and all(
             p["active"] for p in self.info["projs"]
         )
 
     @verbose_static()
-    def add_proj(self, projs, remove_existing=False, verbose=None):
+    def add_proj(
+        self,
+        projs: Projection | list[Projection],
+        remove_existing: bool = False,
+        verbose: LogLevel = None,
+    ) -> Self:
         """Add SSP projection vectors.
 
         Parameters
@@ -434,7 +451,12 @@ class ProjMixin:
         return self
 
     @verbose_static()
-    def apply_proj(self, *, projs=None, verbose=None):
+    def apply_proj(
+        self,
+        *,
+        projs: Projection | list[Projection] | None = None,
+        verbose: LogLevel = None,
+    ) -> Self:
         """Apply the signal space projection (SSP) operators to the data.
 
         Parameters
@@ -541,6 +563,7 @@ class ProjMixin:
                 if self.preload:
                     self._data = np.dot(self._projector, self._data)
             else:  # BaseEpochs
+                assert isinstance(self, BaseEpochs)  # for type checker
                 if self.preload:
                     for ii, e in enumerate(self._data):
                         self._data[ii] = self._project_epoch(e)
@@ -557,7 +580,13 @@ class ProjMixin:
                         next(visible) if use else next(omitted) for use in keep
                     ]
 
-    def del_proj(self, idx="all"):
+    def del_proj(
+        self,
+        idx: int
+        | list[int]
+        | np.ndarray[tuple[int], np.dtype[np.integer]]  # 1D array of ints
+        | Literal["all"] = "all",
+    ) -> Self:
         """Remove SSP projection vector.
 
         .. note:: The projection vector can only be removed if it is inactive
@@ -619,27 +648,30 @@ class ProjMixin:
     )
     def plot_projs_topomap(
         self,
-        ch_type=None,
+        ch_type: MEGSensor
+        | Literal["eeg"]
+        | list[MEGSensor | Literal["eeg"]]
+        | None = None,
         *,
-        sensors=True,
-        show_names=False,
-        contours=6,
-        outlines="head",
-        sphere=None,
-        image_interp=_INTERPOLATION_DEFAULT,
-        extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT,
-        res=64,
-        size=1,
-        cmap=None,
-        vlim=(None, None),
-        cnorm=None,
-        colorbar=False,
-        cbar_fmt="%3.1f",
-        units=None,
-        axes=None,
-        show=True,
-    ):
+        sensors: bool | str = True,
+        show_names: bool | Callable = False,
+        contours: int | np.ndarray = 6,
+        outlines: Literal["head"] | dict | None = "head",
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        image_interp: str = _INTERPOLATION_DEFAULT,
+        extrapolate: str = _EXTRAPOLATE_DEFAULT,
+        border: float | Literal["mean"] = _BORDER_DEFAULT,
+        res: int = 64,
+        size: float = 1,
+        cmap: "str | Colormap | tuple | Literal['interactive'] | None" = None,
+        vlim: tuple | Literal["joint"] = (None, None),
+        cnorm: "Normalize | None" = None,
+        colorbar: bool = False,
+        cbar_fmt: str = "%3.1f",
+        units: dict | str | None = None,
+        axes: "Axes | list[Axes] | None" = None,
+        show: bool = True,
+    ) -> "Figure":
         """Plot SSP vector.
 
         Parameters
@@ -831,18 +863,19 @@ class ProjMixin:
             _validate_type(ch_type, (str, list, tuple), "ch_type")
             if isinstance(ch_type, str):
                 ch_type = [ch_type]
-            bad_ch_types = [_type not in self for _type in ch_type]
+            # `self` is e.g. Raw at runtime but is ProjMixin when type checking ↓↓↓
+            bad_ch_types = [_type not in self for _type in ch_type]  # type: ignore
             if any(bad_ch_types):
                 raise ValueError(
-                    f"ch_type {ch_type[bad_ch_types]} not "
+                    f"ch_type {np.array(ch_type)[bad_ch_types]} not "
                     f"present in {self.__class__.__name__}."
                 )
             # remove projs from unrequested channel types. This is a bit
             # convoluted because Projection objects don't store channel types,
             # only channel names
-            available_ch_types = np.array(self.get_channel_types())
+            available_ch_types = np.array(self.get_channel_types())  # type: ignore (get_channel_types is attr of inst, not ProjMixin)
             for _proj in _projs[::-1]:
-                idx = np.isin(self.ch_names, _proj["data"]["col_names"])
+                idx = np.isin(self.ch_names, _proj["data"]["col_names"])  # type: ignore (ch_names is attr of inst, not ProjMixin)
                 proj_ch_type = np.unique(available_ch_types[idx])
                 err_msg = "Projector contains multiple channel types"
                 assert len(proj_ch_type) == 1, err_msg
@@ -883,13 +916,15 @@ class ProjMixin:
     def reconstruct_proj(
         self,
         *,
-        projs=None,
-        mode="accurate",
-        origin="auto",
-        forward=None,
-        rank=None,
-        verbose=None,
-    ):
+        projs: Projection | list[Projection] | None = None,
+        mode: Literal["accurate", "fast"] = "accurate",
+        origin: Annotated[Sequence[float], 3]
+        | np.ndarray[tuple[Literal[3]], np.dtype[np.floating]]
+        | Literal["auto"] = "auto",
+        forward: "Forward | None" = None,
+        rank: Literal["info", "full"] | dict[str, int] | None = None,
+        verbose: LogLevel = None,
+    ) -> Self:
         """Apply SSP projectors and reconstruct the resulting signal in sensor space.
 
         Operates in place.
@@ -1036,7 +1071,7 @@ class ProjMixin:
                 forward=forward,
                 rank=rank,
             )
-            self.data[..., picks, :] = np.matmul(mapping, self.data[..., picks, :])
+            self.data[..., picks, :] = np.matmul(mapping, self.data[..., picks, :])  # type: ignore (.data is attr of inst, not ProjMixin)
         return self
 
 
@@ -1225,7 +1260,16 @@ def _check_projs(projs, copy=True):
     return deepcopy(projs) if copy else projs
 
 
-def make_projector(projs, ch_names, bads=(), include_active=True):
+def make_projector(
+    projs: list[Projection] | None,
+    ch_names: Sequence[str],
+    bads: Sequence[str] = (),
+    include_active: bool = True,
+) -> tuple[
+    np.ndarray[tuple[int, int], np.dtype[np.floating]],
+    int,
+    np.ndarray[tuple[int, int], np.dtype[np.floating]],
+]:
     """Create an SSP operator from SSP projection vectors.
 
     Parameters
@@ -1396,7 +1440,9 @@ def _normalize_proj(info):
 
 
 @fill_doc_static("info_not_none")
-def make_projector_info(info, include_active=True):
+def make_projector_info(
+    info: "Info", include_active: bool = True
+) -> tuple[np.ndarray[tuple[int, int], np.dtype[np.floating]], int]:
     """Make an SSP operator using the measurement info.
 
     Calls make_projector on good channels.
@@ -1423,7 +1469,9 @@ def make_projector_info(info, include_active=True):
 
 
 @verbose_static()
-def activate_proj(projs, copy=True, verbose=None):
+def activate_proj(
+    projs: list[Projection], copy: bool = True, verbose: LogLevel = None
+) -> list[Projection]:
     """Set all projections to active.
 
     Useful before passing them to make_projector.
@@ -1458,7 +1506,9 @@ def activate_proj(projs, copy=True, verbose=None):
 
 
 @verbose_static()
-def deactivate_proj(projs, copy=True, verbose=None):
+def deactivate_proj(
+    projs: list[Projection], copy: bool = True, verbose: LogLevel = None
+) -> list[Projection]:
     """Set all projections to inactive.
 
     Useful before saving raw data without projectors applied.
@@ -1497,7 +1547,13 @@ _EEG_AVREF_PICK_DICT = {k: True for k in _ELECTRODE_CH_TYPES}
 
 
 @verbose_static("info_not_none")
-def make_eeg_average_ref_proj(info, activate=True, *, ch_type="eeg", verbose=None):
+def make_eeg_average_ref_proj(
+    info: "Info",
+    activate: bool = True,
+    *,
+    ch_type: EEGSensor | list[EEGSensor] = "eeg",
+    verbose: LogLevel = None,
+) -> Projection:
     """Create an EEG average reference SSP projection vector.
 
     Parameters
@@ -1632,8 +1688,13 @@ def _needs_eeg_average_ref_proj(info):
 
 @verbose_static("info_not_none")
 def setup_proj(
-    info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type="eeg", verbose=None
-):
+    info: "Info",
+    add_eeg_ref: bool = True,
+    activate: bool = True,
+    *,
+    eeg_ref_ch_type: EEGSensor = "eeg",
+    verbose: LogLevel = None,
+) -> tuple[np.ndarray[tuple[int, int], np.dtype[np.floating]] | None, "Info"]:
     """Set up projection for Raw and Epochs.
 
     Parameters

@@ -546,15 +546,13 @@ class MontageMixin:
         return self
 
 
-channel_type_constants: dict[str, dict[str, NamedInt]] = get_channel_type_constants(
-    include_defaults=True
-)
+channel_type_constants = get_channel_type_constants(include_defaults=True)
 _human2fiff = {
     k: v.get("kind", FIFF.FIFFV_COIL_NONE) for k, v in channel_type_constants.items()
 }
-_human2unit = {
+_human2unit: dict[str, NamedInt] = {
     k: v.get("unit", FIFF.FIFF_UNIT_NONE) for k, v in channel_type_constants.items()
-}
+}  # type: ignore (chpi has `kind: list[NamedInt]` but here we only take `unit`)
 _unit2human = {
     FIFF.FIFF_UNIT_V: "V",
     FIFF.FIFF_UNIT_T: "T",
@@ -2514,7 +2512,7 @@ def _make_serializable(obj):
         }
     elif isinstance(obj, (list, tuple)):
         return [_make_serializable(item) for item in obj]
-    elif isinstance(obj, dict):
+    elif isinstance(obj, Mapping):  # DigPoint is UserDict, not dict, hence Mapping
         return {key: _make_serializable(val) for key, val in obj.items()}
     else:
         # Try to convert to string as fallback
@@ -2617,7 +2615,7 @@ def read_fiducials(
 @verbose_static("overwrite")
 def write_fiducials(
     fname: str | PathLike,
-    pts: Iterable[dict[Literal["kind", "ident", "r"], Any]],
+    pts: Iterable[dict[str, Any]],
     coord_frame: CoordFrameStr | int = "unknown",
     *,
     overwrite: bool = False,
