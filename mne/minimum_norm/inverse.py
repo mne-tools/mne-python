@@ -6,7 +6,6 @@ from copy import deepcopy
 from math import sqrt
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
 from scipy import linalg
 
 from .._fiff.constants import FIFF
@@ -1847,21 +1846,24 @@ def _prepare_forward(
     gain = np.dot(whitener, forward["sol"]["data"])
 
     logger.info("Creating the source covariance matrix")
+    source_std = np.ones(gain.shape[1], dtype=gain.dtype)
     if source_cov is not None:
-        logger.info("    Using user-specified source covariance matrix as a base")
-        source_variances = _handle_source_cov(
-            source_cov=source_cov,
-            fixed_inverse=fixed_inverse,
-            n_sources=forward["nsource"],
-        )
-    else:
-        source_variances = np.ones(gain.shape[1], dtype=gain.dtype)
-
+        source_cov = np.asarray(source_cov, dtype=np.float64)
+        n_sources = forward["nsource"]
+        if source_cov.shape != (n_sources,):
+            raise ValueError(
+                f"source_cov must have shape ({n_sources},), got {source_cov.shape}"
+            )
+        if not (np.isfinite(source_cov).all() and (source_cov > 0).all()):
+            raise ValueError("source_cov must contain finite, positive variances")
+        logger.info("    Using user-specified source variances")
+        # one variance per source location, applied to all orientations
+        source_std *= np.repeat(source_cov, gain.shape[1] // n_sources)
     if depth_prior is not None:
-        source_variances *= depth_prior
+        source_std *= depth_prior
     if orient_prior is not None:
-        source_variances *= orient_prior
-    source_std = np.sqrt(source_variances)  # variances --> standard deviations
+        source_std *= orient_prior
+    np.sqrt(source_std, out=source_std)
     gain *= source_std
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
@@ -1882,50 +1884,6 @@ def _prepare_forward(
         trace_GRGT,
         noise_cov,
         whitener,
-    )
-
-
-def _handle_source_cov(
-    source_cov: ArrayLike, fixed_inverse: bool, n_sources: int
-) -> NDArray[np.float64]:
-    """Check that source_cov is compatible with the gain and reshape if necessary.
-
-    Always returns a copy with data type float64.
-    """
-    # Make a copy and ensure data type float64.
-    source_cov = np.array(source_cov, dtype=np.float64, copy=True)
-    # Ensure 1D array.
-    if source_cov.ndim > 1:
-        source_cov = source_cov.squeeze()
-    if source_cov.ndim != 1:
-        raise ValueError(
-            f"source_cov must be a 1D array of variances, got shape {source_cov.shape}"
-        )
-    if not np.all(np.isfinite(source_cov)) or np.any(source_cov <= 0):
-        raise ValueError("source_cov must contain finite, positive variance values.")
-
-    if source_cov.shape[0] == n_sources:
-        if fixed_inverse:
-            return source_cov
-        logger.info(
-            "    Repeated each element of a fixed-orientation source "
-            "covariance matrix into the free-orientation one"
-        )
-        return np.repeat(source_cov, 3)
-
-    if source_cov.shape[0] == 3 * n_sources:
-        if fixed_inverse:
-            logger.info(
-                "    Picked every third element from a free-orientation source "
-                "covariance matrix into the fixed-orientation one"
-            )
-            return source_cov[2::3]
-        return source_cov
-
-    raise ValueError(
-        f"source_cov length {source_cov.shape[0]} is not compatible with "
-        f"the number of sources ({n_sources}). Allowed lengths are "
-        f"{n_sources} or 3 * {n_sources}."
     )
 
 
@@ -1966,12 +1924,14 @@ def make_inverse_operator(
         is used.
     %(rank_none)s
     %(use_cps)s
-    source_cov : array-like of float | None
-        Diagonal source covariance matrix (source variances) to use as a base.
-        Allowed shapes are (n_sources,) and (n_sources * 3,). Final source covariance matrix
-        will be computed as the product of this base and the depth and orientation priors
-        determined by parameters ``depth``, ``loose``, and ``fixed``. If None (default),
-        a uniform source covariance matrix (array of ones) is used as a base.
+    source_cov : array-like, shape (n_sources,) | None
+        Prior variance of each source location, i.e., the diagonal of a custom
+        source covariance matrix. It is applied to all orientations of a source
+        and multiplied by the depth and orientation priors determined by
+        ``depth``, ``loose``, and ``fixed``. If None (default), all sources get
+        the same prior variance.
+
+        .. versionadded:: 1.14
     %(verbose)s
 
     Returns

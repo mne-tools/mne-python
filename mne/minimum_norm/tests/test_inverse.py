@@ -58,7 +58,6 @@ from mne.minimum_norm import (
     read_inverse_operator,
     write_inverse_operator,
 )
-from mne.minimum_norm.inverse import _handle_source_cov
 from mne.source_estimate import VolSourceEstimate, read_source_estimate
 from mne.source_space._source_space import _get_src_nn
 from mne.surface import _normal_orth
@@ -862,7 +861,7 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
         fixed=True,
     )
 
-    # now test source_cov parameter and compare to C solution
+    # now compare to C solution
     # note that the forward solution must not be surface-oriented
     # to get equivalence (surf_ori=True changes the normals)
     with catch_logging() as log:
@@ -881,46 +880,28 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
     assert "MEG channels: 305" in repr(inv_op)
     assert "Fixed" in repr(inv_op)
 
-    # Test that uniform source_cov gives same result as no source_cov (default).
-    # Pass free orientation length source_cov to also test picking to fixed orientation.
-    inv_op_source_cov_ones = make_inverse_operator(
-        evoked.info,
-        fwd,
-        noise_cov,
-        depth=0.0,
-        fixed=True,
-        use_cps=False,
-        source_cov=np.ones(3 * fwd["nsource"]),
+    # uniform source_cov should be equivalent to the default (None)
+    kwargs = dict(depth=0.0, fixed=True, use_cps=False)
+    inv_op_ones = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=np.ones(fwd["nsource"]), **kwargs
     )
-    _compare_inverses_approx(
-        inv_op, inv_op_source_cov_ones, evoked, rtol=1e-5, atol=1e-8
-    )
-    # Test that non-uniform source covariance input correctly scales the final source
-    # covariance matrix.
-    source_cov_input = np.ones(fwd["nsource"])
-    source_cov_input[0] = 4.0
+    _compare_inverses_approx(inv_op, inv_op_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale the final source covariance
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[0] = 4.0
     inv_op_scaled = make_inverse_operator(
-        evoked.info,
-        fwd,
-        noise_cov,
-        depth=0.0,
-        fixed=True,
-        use_cps=False,
-        source_cov=source_cov_input,
+        evoked.info, fwd, noise_cov, source_cov=source_cov, **kwargs
     )
-    final_source_cov = inv_op_scaled["source_cov"]["data"]
-    # No depth or orientation weighting, result should be proportional to the input
-    # source covariance.
-    assert_allclose(final_source_cov[0] / final_source_cov[1], 4.0)
-    assert_allclose(final_source_cov[1:] / final_source_cov[1], 1.0)
+    got = inv_op_scaled["source_cov"]["data"]
+    assert_allclose(got / got[1], source_cov)
+    with pytest.raises(ValueError, match="must have shape"):
+        make_inverse_operator(evoked.info, fwd, noise_cov, source_cov=[1.0], **kwargs)
+    with pytest.raises(ValueError, match="finite, positive"):
+        make_inverse_operator(
+            evoked.info, fwd, noise_cov, source_cov=-source_cov, **kwargs
+        )
+    del fwd_fixed, inv_op_ones, inv_op_scaled, source_cov, kwargs
 
-    del (
-        fwd_fixed,
-        inv_op_source_cov_ones,
-        inv_op_scaled,
-    )
-
-    # Compare to C solution.
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
     # assert 'EEG channels: 0' in repr(inverse_operator_nodepth)
@@ -973,10 +954,8 @@ def test_make_inverse_operator_free(evoked, noise_cov):
         stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
         assert_allclose(stc_surf.data, stc.data, atol=1e-2)
 
-    # Test that uniform source_cov gives same result as no source_cov (default).
-    # Pass fixed orientation length source_cov to also test repeating to the free
-    # orientation length.
-    inv_op_source_cov_ones = make_inverse_operator(
+    # uniform source_cov should be equivalent to the default (None)
+    inv_ones = make_inverse_operator(
         evoked.info,
         fwd,
         noise_cov,
@@ -984,75 +963,15 @@ def test_make_inverse_operator_free(evoked, noise_cov):
         loose=1.0,
         source_cov=np.ones(fwd["nsource"]),
     )
-    _compare_inverses_approx(inv, inv_op_source_cov_ones, evoked, rtol=1e-5, atol=1e-8)
-    # Test that non-uniform source covariance input correctly scales the final source
-    # covariance matrix.
-    source_cov_input = np.ones(fwd["nsource"])
-    source_cov_input[-1] = 5.0
-    inv_op_scaled = make_inverse_operator(
-        evoked.info,
-        fwd,
-        noise_cov,
-        depth=None,
-        loose=1.0,
-        source_cov=source_cov_input,
+    _compare_inverses_approx(inv, inv_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale all three orientations of a source
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[-1] = 5.0
+    inv_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, depth=None, loose=1.0, source_cov=source_cov
     )
-    # Last source (all three orientations) should be scaled by 5x.
-    final_source_cov = inv_op_scaled["source_cov"]["data"]
-    assert_allclose(final_source_cov[-3:] / final_source_cov[-4], 5.0)
-    assert_allclose(final_source_cov[:-3] / final_source_cov[-4], 1.0)
-
-
-def test_handle_source_cov():
-    """Test the private _handle_source_cov helper."""
-    n_sources = 5
-    source_cov = np.arange(1, n_sources + 1, dtype=float)
-
-    # Matching length is returned unchanged, as an independent copy.
-    out = _handle_source_cov(source_cov, fixed_inverse=True, n_sources=n_sources)
-    assert_allclose(out, source_cov)
-    out[0] = -1
-    assert source_cov[0] == 1
-
-    # Free-orientation-shaped input is picked down for a fixed-orientation inverse.
-    free_shaped = np.repeat(source_cov, 3)
-    out = _handle_source_cov(free_shaped, fixed_inverse=True, n_sources=n_sources)
-    assert_allclose(out, source_cov)
-
-    # Fixed-orientation-shaped input is repeated for a free-orientation inverse.
-    out = _handle_source_cov(source_cov, fixed_inverse=False, n_sources=n_sources)
-    assert_allclose(out, np.repeat(source_cov, 3))
-
-    # int dtype and plain list input are coerced to float64.
-    for arraylike in (list(source_cov), source_cov.astype(int)):
-        out = _handle_source_cov(arraylike, fixed_inverse=True, n_sources=n_sources)
-        assert out.dtype == np.float64
-
-    # A length-1 input is not squeezed away to a 0D array.
-    out = _handle_source_cov(np.array([2.5]), fixed_inverse=True, n_sources=1)
-    assert out.shape == (1,)
-
-    # Invalid inputs.
-    with pytest.raises(ValueError, match="not compatible with the number of sources"):
-        _handle_source_cov(
-            np.ones(n_sources + 1), fixed_inverse=True, n_sources=n_sources
-        )
-    with pytest.raises(ValueError, match="finite, positive"):
-        _handle_source_cov(-source_cov, fixed_inverse=True, n_sources=n_sources)
-    with pytest.raises(ValueError, match="finite, positive"):
-        _handle_source_cov(np.zeros(n_sources), fixed_inverse=True, n_sources=n_sources)
-    with pytest.raises(ValueError, match="finite, positive"):
-        source_cov_nan = source_cov.copy()
-        source_cov_nan[0] = np.nan
-        _handle_source_cov(source_cov_nan, fixed_inverse=True, n_sources=n_sources)
-    with pytest.raises(ValueError, match="finite, positive"):
-        source_cov_inf = source_cov.copy()
-        source_cov_inf[0] = np.inf
-        _handle_source_cov(source_cov_inf, fixed_inverse=True, n_sources=n_sources)
-    with pytest.raises(ValueError, match="1D array of variances"):
-        _handle_source_cov(
-            np.ones((2, n_sources)), fixed_inverse=True, n_sources=n_sources
-        )
+    got = inv_scaled["source_cov"]["data"]
+    assert_allclose(got / got[0], np.repeat(source_cov, 3))
 
 
 @pytest.mark.slowtest
