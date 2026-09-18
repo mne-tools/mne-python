@@ -879,7 +879,29 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
     assert "EEG channels: 0" in repr(inv_op)
     assert "MEG channels: 305" in repr(inv_op)
     assert "Fixed" in repr(inv_op)
-    del fwd_fixed
+
+    # uniform source_cov should be equivalent to the default (None)
+    kwargs = dict(depth=0.0, fixed=True, use_cps=False)
+    inv_op_ones = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=np.ones(fwd["nsource"]), **kwargs
+    )
+    _compare_inverses_approx(inv_op, inv_op_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale the final source covariance
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[0] = 4.0
+    inv_op_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=source_cov, **kwargs
+    )
+    got = inv_op_scaled["source_cov"]["data"]
+    assert_allclose(got / got[1], source_cov)
+    with pytest.raises(ValueError, match="must have shape"):
+        make_inverse_operator(evoked.info, fwd, noise_cov, source_cov=[1.0], **kwargs)
+    with pytest.raises(ValueError, match="finite, positive"):
+        make_inverse_operator(
+            evoked.info, fwd, noise_cov, source_cov=-source_cov, **kwargs
+        )
+    del fwd_fixed, inv_op_ones, inv_op_scaled, source_cov, kwargs
+
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
     # assert 'EEG channels: 0' in repr(inverse_operator_nodepth)
@@ -931,6 +953,25 @@ def test_make_inverse_operator_free(evoked, noise_cov):
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
         stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
         assert_allclose(stc_surf.data, stc.data, atol=1e-2)
+
+    # uniform source_cov should be equivalent to the default (None)
+    inv_ones = make_inverse_operator(
+        evoked.info,
+        fwd,
+        noise_cov,
+        depth=None,
+        loose=1.0,
+        source_cov=np.ones(fwd["nsource"]),
+    )
+    _compare_inverses_approx(inv, inv_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale all three orientations of a source
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[-1] = 5.0
+    inv_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, depth=None, loose=1.0, source_cov=source_cov
+    )
+    got = inv_scaled["source_cov"]["data"]
+    assert_allclose(got / got[0], np.repeat(source_cov, 3))
 
 
 @pytest.mark.slowtest
