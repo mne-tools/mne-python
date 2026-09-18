@@ -1037,8 +1037,18 @@ def test_handle_source_cov():
         _handle_source_cov(
             np.ones(n_sources + 1), fixed_inverse=True, n_sources=n_sources
         )
-    with pytest.raises(ValueError, match="non-negative"):
+    with pytest.raises(ValueError, match="finite, positive"):
         _handle_source_cov(-source_cov, fixed_inverse=True, n_sources=n_sources)
+    with pytest.raises(ValueError, match="finite, positive"):
+        _handle_source_cov(np.zeros(n_sources), fixed_inverse=True, n_sources=n_sources)
+    with pytest.raises(ValueError, match="finite, positive"):
+        source_cov_nan = source_cov.copy()
+        source_cov_nan[0] = np.nan
+        _handle_source_cov(source_cov_nan, fixed_inverse=True, n_sources=n_sources)
+    with pytest.raises(ValueError, match="finite, positive"):
+        source_cov_inf = source_cov.copy()
+        source_cov_inf[0] = np.inf
+        _handle_source_cov(source_cov_inf, fixed_inverse=True, n_sources=n_sources)
     with pytest.raises(ValueError, match="1D array of variances"):
         _handle_source_cov(
             np.ones((2, n_sources)), fixed_inverse=True, n_sources=n_sources
