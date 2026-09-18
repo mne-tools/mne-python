@@ -4,6 +4,7 @@
 
 import os
 import platform
+import subprocess
 import sys
 from contextlib import nullcontext
 
@@ -15,7 +16,6 @@ from numpy.testing import assert_allclose
 import mne
 from mne.datasets import testing
 from mne.transforms import quat_to_rot, rot_to_quat
-from mne.utils import run_subprocess
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 from mne.viz.backends.renderer import _get_renderer
@@ -299,7 +299,8 @@ def test_renderer(renderer, monkeypatch):
         f"assert backend != 'jupyterlite_notebook' or 'vtk' not in sys.modules",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
-    run_subprocess(cmd)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
 
 
 def test_set_3d_backend_bad(monkeypatch, tmp_path):
@@ -588,6 +589,10 @@ sys.modules["js"] = js
 from mne.viz.backends._jupyterlite import setup_notebook
 
 setup_notebook(str(root))
+setup_notebook(str(root))  # running the cell twice must not wrap the wrappers
+from mne.viz.backends import _jupyterlite
+
+assert _jupyterlite._orig["read_raw_kit"] is not mne.io.read_raw_kit
 assert mne.viz.get_3d_backend() == "jupyterlite_notebook"
 assert mne.datasets.sample.data_path() == root / "MNE-sample-data"
 data = root / "MNE-testing-data"
@@ -622,4 +627,5 @@ def test_lite_setup_notebook(renderer_lite, tmp_path):
         )
     )
     args = [sys.executable, str(script), str(tmp_path / "mne_data"), str(_data_path)]
-    run_subprocess(args, env=env)
+    proc = subprocess.run(args, capture_output=True, text=True, env=env, timeout=60)
+    assert proc.returncode == 0, proc.stderr

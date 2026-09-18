@@ -40,6 +40,8 @@ def setup_notebook(data_path="/tmp/mne_data"):
         Where fetched data files are written; ``MNE_DATA`` is set to it.
     """
     global _base, _data_root
+    if _data_root is not None:  # the cell ran again: the wrappers below would
+        return  # otherwise wrap their own wrapped selves and recurse
     import js  # only exists inside Pyodide
 
     # The docs serve the data next to the pages (/mne_data/, via

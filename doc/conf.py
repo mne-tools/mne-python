@@ -505,6 +505,8 @@ if build_jupyterlite:
     # sphinx-gallery writes link to auto_*/... at the root
     jupyterlite_contents = ["jupyterlite_contents/auto_*"]
     jupyterlite_bind_ipynb_suffix = False
+    # bakes the browser's extra packages into the Pyodide lock at build time
+    jupyterlite_config = "jupyter_lite_config.py"
     # served at the docs root (/mne_data/...) through html_extra_path below
     stage_lite_data(curpath / "lite_extra" / "mne_data")
 
