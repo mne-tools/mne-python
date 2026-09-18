@@ -15,12 +15,18 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _read_segments_file
 from ...transforms import Transform, apply_trans, get_ras_to_neuromag_trans
-from ...utils import _check_fname, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _verbose_control,
+    logger,
+    verbose_static,
+    warn,
+)
 from ..base import BaseRaw
 from .utils import _load_mne_locs, _read_pos
 
 
-@verbose
+@verbose_static("preload")
 def read_raw_artemis123(
     input_fname: Path | str,
     preload: bool | str = False,
@@ -36,8 +42,25 @@ def read_raw_artemis123(
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     pos_fname : path-like | None
         If not None, load digitized head points from this file.
     add_head_trans : bool
@@ -332,7 +355,7 @@ class RawArtemis123(BaseRaw):
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,

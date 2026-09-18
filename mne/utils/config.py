@@ -29,7 +29,7 @@ from .check import (
     _soft_import,
     _validate_type,
 )
-from .docs import fill_doc
+from .docs import fill_doc_static
 from .misc import _pl
 
 _temp_home_dir = None
@@ -593,7 +593,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -605,7 +605,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     ----------
     stim_channel : str | list of str | None
         The stim channel selected by the user.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Returns
     -------

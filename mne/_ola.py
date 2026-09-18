@@ -4,7 +4,13 @@
 
 import numpy as np
 
-from .utils import _ensure_int, _validate_type, check_version, logger, verbose
+from .utils import (
+    _ensure_int,
+    _validate_type,
+    _verbose_control,
+    check_version,
+    logger,
+)
 
 ###############################################################################
 # Class for interpolation between adjacent points
@@ -283,7 +289,7 @@ class _COLA:
     window are asymmetric.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         process,
@@ -357,7 +363,7 @@ class _COLA:
         """Compute from current processing window start and buffer len."""
         return self.starts[self._idx] + self._in_buffers[0].shape[-1]
 
-    @verbose
+    @_verbose_control
     def feed(self, *datas, verbose=None, **kwargs):
         """Pass in a chunk of data."""
         # Append to our input buffer

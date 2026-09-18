@@ -105,7 +105,7 @@ repos:
         require_serial: true
         additional_dependencies: [numpy, scipy, matplotlib, decorator, lazy_loader, packaging, jinja2, pooch, tqdm]
         files: '^mne/.*\.py$'
-        exclude: '^mne/.*/tests/'
+        exclude: '^mne/(.*/)?tests/'
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit

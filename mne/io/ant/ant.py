@@ -17,10 +17,10 @@ from ...utils import (
     _check_fname,
     _soft_import,
     _validate_type,
-    copy_doc,
-    fill_doc,
+    _verbose_control,
+    copy_doc_static,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
@@ -28,7 +28,7 @@ from ..base import BaseRaw
 _UNITS: dict[str, float] = {"uv": 1e-6, "µv": 1e-6}
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawANT(BaseRaw):
     r"""Reader for Raw ANT files in .cnt format.
 
@@ -76,11 +76,28 @@ class RawANT(BaseRaw):
             cover the discontinuity in its entirety.
     encoding : str
         Encoding to use for :class:`str` in the CNT file. Defaults to ``'latin-1'``.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         fname: str | Path,
@@ -294,7 +311,7 @@ def _scale_data(data: NDArray[np.float64], ch_units: list[str]) -> None:
             )
 
 
-@copy_doc(RawANT)
+@copy_doc_static("meth:mne.io.ant.ant.RawANT")
 def read_raw_ant(
     fname: Path | str,
     eog: str | None = None,
@@ -306,7 +323,72 @@ def read_raw_ant(
     preload: bool | str = False,
     verbose: bool | str | int | None = None,
 ) -> RawANT:
-    """
+    r"""Reader for Raw ANT files in .cnt format.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to the ANT raw file to load. The file should have the extension ``.cnt``.
+    eog : str | None
+        Regex pattern to find EOG channel labels. If None, no EOG channels are
+        automatically detected.
+    misc : str | None
+        Regex pattern to find miscellaneous channels. If None, no miscellaneous channels
+        are automatically detected. The default pattern ``"BIP\d+"`` will mark all
+        bipolar channels as ``misc``.
+
+        .. note::
+
+            A bipolar channel might actually contain ECG, EOG or other signal types
+            which might have a dedicated channel type in MNE-Python. In this case, use
+            :meth:`mne.io.Raw.set_channel_types` to change the channel type of the
+            channel.
+    bipolars : list of str | tuple of str | None
+        The list of channels to treat as bipolar EEG channels. Each element should be
+        a string of the form ``'anode-cathode'`` or in ANT terminology as ``'label-
+        reference'``. If None, all channels are interpreted as ``'eeg'`` channels
+        referenced to the same reference electrode. Bipolar channels are treated
+        as EEG channels with a special coil type in MNE-Python, see also
+        :func:`mne.set_bipolar_reference`
+
+        .. warning::
+
+            Do not provide auxiliary channels in this argument, provide them in the
+            ``eog`` and ``misc`` arguments.
+    impedance_annotation : str
+        The string to use for impedance annotations. Defaults to ``"impedance"``,
+        however, the impedance measurement might mark the end of a segment and the
+        beginning of a new segment, in which case a discontinuity similar to what
+        :func:`mne.concatenate_raws` produces is present. In this case, it's better to
+        include a ``BAD_xxx`` annotation to mark the discontinuity.
+
+        .. note::
+
+            Note that the impedance annotation will likely have a duration of ``0``.
+            If the measurement marks a discontinuity, the duration should be modified to
+            cover the discontinuity in its entirety.
+    encoding : str
+        Encoding to use for :class:`str` in the CNT file. Defaults to ``'latin-1'``.
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+
     Returns
     -------
     raw : instance of RawANT

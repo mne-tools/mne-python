@@ -4,7 +4,7 @@
 
 from pathlib import Path
 
-from ...utils import _check_option, logger, verbose
+from ...utils import _check_option, _verbose_control, logger
 from ..utils import (
     _data_path_doc,
     _download_mne_dataset,
@@ -28,7 +28,7 @@ _N170_REGISTRY = {
 }
 
 
-@verbose
+@_verbose_control
 def data_path(
     path=None, force_update=False, update_path=True, download=True, *, verbose=None
 ):  # noqa: D103

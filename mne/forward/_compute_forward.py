@@ -20,7 +20,15 @@ from ..bem import _import_openmeeg, _make_openmeeg_geometry
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface
 from ..transforms import apply_trans, invert_transform
-from ..utils import _check_option, _pl, fill_doc, logger, verbose, warn
+from ..utils import (
+    _check_option,
+    _pl,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+    verbose_static,
+    warn,
+)
 
 # #############################################################################
 # COIL SPECIFICATION AND FIELD COMPUTATION MATRIX
@@ -56,7 +64,7 @@ def _check_coil_frame(coils, coord_frame, bem):
     return coils, coord_frame
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
     """Parallel wrapper for _do_lin_field_coeff to compute linear coefficients.
 
@@ -75,7 +83,13 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
         Weights for MEG coil integration points
     bins : ndarray, shape (n_integration_points,)
         The sensor assignments for each rmag/cosmag/w.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
     Returns
     -------
@@ -115,7 +129,7 @@ def _concatenate_coils(coils):
     return rmags, cosmags, ws, bins
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     """Set up for computing the solution at a set of MEG coils.
 
@@ -129,7 +143,13 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
         Class constant identifying coordinate frame
     mults : ndarray, shape (1, n_BEM_vertices)
         Multiplier for every vertex in BEM
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
     Returns
     -------
@@ -237,7 +257,7 @@ _MAG_FACTOR = 1e-7  # μ_0 / (4π)
 #     return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs, coil_type):
     """Calculate the magnetic field or electric potential forward solution.
 
@@ -259,7 +279,13 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs, coil_t
         Comes from _bem_specify_coils
     bem_rr : ndarray, shape (n_BEM_vertices, 3)
         3D vertex positions for all surfaces in the BEM
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     coil_type : str
         'meg' or 'eeg'
 
@@ -447,7 +473,7 @@ def _magnetic_dipole_field_vec(rrs, coils, too_close="raise"):
 # MAIN TRIAGING FUNCTION
 
 
-@verbose
+@verbose_static("n_jobs")
 def _prep_field_computation(*, sensors, bem, n_jobs, verbose=None):
     """Precompute and store some things that are used for both MEG and EEG.
 
@@ -464,8 +490,18 @@ def _prep_field_computation(*, sensors, bem, n_jobs, verbose=None):
         Dict containing sensor information in the head coordinate frame.
         Gets updated here with BEM and sensor information for later forward
         calculations.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem["is_sphere"]:
@@ -523,7 +559,7 @@ def _prep_field_computation(*, sensors, bem, n_jobs, verbose=None):
     return fwd_data
 
 
-@fill_doc
+@fill_doc_static()
 def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
     """Compute MEG and EEG forward solutions for all sensor types."""
     Bs = dict()
@@ -568,7 +604,7 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
     return Bs
 
 
-@verbose
+@_verbose_control
 def _compute_forwards(rr, *, bem, sensors, n_jobs, verbose=None):
     """Compute the MEG and EEG forward solutions."""
     # Split calculation into two steps to save (potentially) a lot of time

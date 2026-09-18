@@ -16,13 +16,15 @@ from ..utils import (
     _parse_verbose,
     _verbose_safe_false,
     array_split_idx,
-    fill_doc,
+    fill_doc_static,
 )
 from .base import _check_estimator
 from .transformer import MNETransformerMixin
 
 
-@fill_doc
+@fill_doc_static(
+    "base_estimator", "scoring", "n_jobs", "position", "allow_2d", "axis", "verbose"
+)
 class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
     """Search Light.
 
@@ -32,13 +34,34 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    %(base_estimator)s
-    %(scoring)s
-    %(n_jobs)s
-    %(position)s
-    %(allow_2d)s
-    %(axis)s
-    %(verbose)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    scoring : callable | str | None
+        Score function (or loss function) with signature
+        ``score_func(y, y_pred, **kwargs)``.
+        Note that the "predict" method is automatically identified if scoring is
+        a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+        **not**  automatically set if ``scoring`` is a callable (e.g.
+        ``scoring=sklearn.metrics.roc_auc_score``).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    position : int
+        The position for the progress bar.
+    allow_2d : bool
+        If True, allow 2D data as input (i.e. n_samples, n_features).
+    axis : int
+        Axis of the input data along which independent estimators are fitted.
+        The default ``-1`` uses the final axis.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -369,7 +392,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         return self.estimators_[0].classes_
 
 
-@fill_doc
+@fill_doc_static("base_estimator")
 def _sl_fit(estimator, X, y, pb, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
@@ -377,7 +400,8 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
 
     Parameters
     ----------
-    %(base_estimator)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
     X : array, shape (n_samples, nd_features, n_estimators)
         The target data. The feature dimension can be multidimensional e.g.
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
@@ -488,7 +512,9 @@ def _check_method(estimator, method):
     return method
 
 
-@fill_doc
+@fill_doc_static(
+    "base_estimator", "scoring", "n_jobs", "position", "allow_2d", "axis", "verbose"
+)
 class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
@@ -498,13 +524,34 @@ class GeneralizingEstimator(SlidingEstimator):
 
     Parameters
     ----------
-    %(base_estimator)s
-    %(scoring)s
-    %(n_jobs)s
-    %(position)s
-    %(allow_2d)s
-    %(axis)s
-    %(verbose)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    scoring : callable | str | None
+        Score function (or loss function) with signature
+        ``score_func(y, y_pred, **kwargs)``.
+        Note that the "predict" method is automatically identified if scoring is
+        a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+        **not**  automatically set if ``scoring`` is a callable (e.g.
+        ``scoring=sklearn.metrics.roc_auc_score``).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    position : int
+        The position for the progress bar.
+    allow_2d : bool
+        If True, allow 2D data as input (i.e. n_samples, n_features).
+    axis : int
+        Axis of the input data along which independent estimators are fitted.
+        The default ``-1`` uses the final axis.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
 
     def __repr__(self):  # noqa: D105

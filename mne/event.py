@@ -23,21 +23,24 @@ from .utils import (
     _on_missing,
     _pl,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 
 
-@fill_doc
+@fill_doc_static("events")
 def pick_events(events, include=None, exclude=None, step=False):
     """Select some :term:`events`.
 
     Parameters
     ----------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -200,7 +203,7 @@ def _read_events_fif(fid, tree):
     return event_list, event_id
 
 
-@verbose
+@verbose_static("events")
 def read_events(
     filename,
     include=None,
@@ -244,11 +247,17 @@ def read_events(
         ``-annot.fif`` files produced with MNE-C ``mne_browse_raw``.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     event_id : dict
         Dictionary of ``{str: int}`` mappings of event IDs.
 
@@ -325,7 +334,7 @@ def read_events(
     return out
 
 
-@verbose
+@verbose_static("events", "overwrite")
 def write_events(filename, events, *, overwrite=False, verbose=None):
     """Write :term:`events` to file.
 
@@ -338,9 +347,17 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
         ``.lst``, ``.txt``) events are written as plain text.
         Note that new format event files do not contain
         the ``"time"`` column (used to be the second column).
-    %(events)s
-    %(overwrite)s
-    %(verbose)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -473,7 +490,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=No
     )
 
 
-@verbose
+@_verbose_control
 def _find_events(
     data,
     first_samp,
@@ -587,7 +604,7 @@ def _find_unique_events(events):
     return events[idx]
 
 
-@verbose
+@verbose_static("events")
 def find_events(
     raw,
     stim_channel=None,
@@ -656,11 +673,17 @@ def find_events(
         at t=0s is present.
 
         .. versionadded:: 0.16
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
 
     See Also
     --------
@@ -887,13 +910,15 @@ def merge_events(events, ids, new_id, replace_events=True):
     return events_out
 
 
-@fill_doc
+@fill_doc_static("events")
 def shift_time_events(events, ids, tshift, sfreq):
     """Shift a set of :term:`events`.
 
     Parameters
     ----------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
@@ -917,7 +942,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-@fill_doc
+@fill_doc_static("events")
 def make_fixed_length_events(
     raw,
     id=1,  # noqa: A002
@@ -956,7 +981,9 @@ def make_fixed_length_events(
 
     Returns
     -------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     """
     from .io import BaseRaw
 
@@ -1041,7 +1068,7 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 class AcqParserFIF:
     """Parser for Elekta data acquisition settings.
 
@@ -1053,7 +1080,10 @@ class AcqParserFIF:
 
     Parameters
     ----------
-    %(info_not_none)s This is where the DACQ parameters will be taken from.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        This is where the DACQ parameters will be taken from.
 
     Attributes
     ----------

@@ -7,11 +7,11 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from ..time_frequency.tfr import _compute_tfr
-from ..utils import _check_option, fill_doc
+from ..utils import _check_option, fill_doc_static
 from .transformer import MNETransformerMixin
 
 
-@fill_doc
+@fill_doc_static("n_jobs", "verbose")
 class TimeFrequency(MNETransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
@@ -50,10 +50,20 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
