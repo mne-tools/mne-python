@@ -118,16 +118,9 @@ def build_wheel():
 
 
 if __name__ == "__main__":
-    from jupyterlite_lock_specs import mne_pypi_spec
-
-    if mne_pypi_spec() is not None:
-        # a stable/maint build locks the real PyPI release instead
-        print("[JupyterLite] Stable build: no wheel needed, using the PyPI release")
-    else:
-        # Reuse a wheel that is already there, so repeat `make html` runs do
-        # not rebuild it. Remove doc/pypi (or `make clean`) to force a fresh
-        # one.
-        existing = find_wheels()
-        wheels = ", ".join(str(wheel) for wheel in (existing or build_wheel()))
-        verb = "Reusing" if existing else "Built"
-        print(f"[JupyterLite] {verb} MNE wheel(s) for the browser kernel: {wheels}")
+    # Reuse a wheel that is already there, so repeat `make html` runs do not
+    # rebuild it. Remove doc/pypi (or `make clean`) to force a fresh one.
+    existing = find_wheels()
+    wheels = ", ".join(str(wheel) for wheel in (existing or build_wheel()))
+    verb = "Reusing" if existing else "Built"
+    print(f"[JupyterLite] {verb} MNE wheel(s) for the browser kernel: {wheels}")

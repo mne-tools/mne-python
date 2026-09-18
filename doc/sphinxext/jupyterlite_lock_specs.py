@@ -5,10 +5,6 @@ the lock (see ``pyodide_lock.uv_pip_compile.constraints_txt``) and resolves
 it fresh from PyPI instead, a smaller and differently versioned set than
 Pyodide's own curated wheels. :func:`jupyterlite_specs_to_lock` avoids that
 by only including specs Pyodide's own lock does not already satisfy.
-
-:func:`mne_pypi_spec` is the same idea for MNE itself: a stable/maint build
-can lock the real PyPI release, but a dev build's version has no PyPI release
-to lock, so it needs the wheel ``build_lite_wheel.py`` builds instead.
 """
 
 # Authors: The MNE-Python contributors.
@@ -50,12 +46,3 @@ def jupyterlite_specs_to_lock():
         if pkg is None or not req.specifier.contains(pkg["version"]):
             to_lock.append(spec)
     return to_lock
-
-
-def mne_pypi_spec():
-    """Return the ``mne==<version>`` spec for a stable/maint build, else None."""
-    import mne
-
-    if ".dev" in mne.__version__:
-        return None
-    return f"mne=={mne.__version__}"
