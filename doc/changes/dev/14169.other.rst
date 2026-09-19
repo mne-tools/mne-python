@@ -1,0 +1,1 @@
+Add an example code script using ``VertexSelect`` leveraging ``source_id`` in ``20_ui_events.py``, by `Lifeng Qiu Lin`_.
