@@ -1,0 +1,1 @@
+Warn when :func:`mne.preprocessing.interpolate_bridged_electrodes` ignores bad channels during interpolation, by `Deepesh Sonar`_.
