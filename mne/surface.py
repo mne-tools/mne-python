@@ -40,11 +40,12 @@ from .utils import (
     _soft_import,
     _TempDir,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     run_subprocess,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -55,7 +56,7 @@ _helmet_path = Path(__file__).parent / "data" / "helmets"
 # AUTOMATED SURFACE FINDING
 
 
-@verbose
+@verbose_static("on_defects")
 def get_head_surf(
     subject, source=("bem", "head"), subjects_dir=None, on_defects="raise", verbose=None
 ):
@@ -75,10 +76,21 @@ def get_head_surf(
     subjects_dir : path-like | None
         Path to the ``SUBJECTS_DIR``. If None, the path is obtained by using
         the environment variable ``SUBJECTS_DIR``.
-    %(on_defects)s
+    on_defects : 'raise' | 'warn' | 'ignore'
+        What to do if the surface is found to have topological defects.
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore when one or more defects are found.
+        Note that a lot of computations in MNE-Python assume the surfaces to be
+        topologically correct, topological defects may still make other
+        computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
+        fail irrespective of this parameter.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -166,19 +178,28 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
 # mne.write_bem_surfaces(bem_fname, surfs, overwrite=True)
 
 
-@verbose
+@verbose_static("info_not_none", "helmet_upsampling")
 def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
     """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     trans : dict
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
-    %(helmet_upsampling)s
-    %(verbose)s
+    upsampling : int
+        The upsampling factor to use for the helmet mesh. The default (1) does no
+        upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+        the number of vertices increases as a factor of ``4**(upsampling-1)``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -430,7 +451,7 @@ def _normal_orth(nn):
     return u.swapaxes(-1, -2)
 
 
-@verbose
+@verbose_static()
 def complete_surface_info(
     surf, do_neighbor_vert=False, copy=True, do_neighbor_tri=True, *, verbose=None
 ):
@@ -446,7 +467,11 @@ def complete_surface_info(
         If True (default), make a copy. If False, operate in-place.
     do_neighbor_tri : bool
         If True (default), compute triangle neighbors.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -641,7 +666,7 @@ class _DistanceQuery:
         self.data = xhs
 
 
-@verbose
+@_verbose_control
 def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     """Check whether points are outside a surface.
 
@@ -694,7 +719,7 @@ def _polydata_to_surface(pd, normals=True):
 class _CheckInside:
     """Efficiently check if points are inside a surface."""
 
-    @verbose
+    @_verbose_control
     def __init__(self, surf, *, mode="old", verbose=None):
         assert mode in ("pyvista", "old")
         self.mode = mode
@@ -731,7 +756,7 @@ class _CheckInside:
         else:
             self.pdata = _surface_to_polydata(self.surf).clean()
 
-    @verbose
+    @_verbose_control
     def __call__(self, rr, *, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
@@ -888,6 +913,7 @@ def read_curvature(filepath, binary=True):
     curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
+    filepath = _check_fname(filepath, "read", must_exist=True, name="Curvature file")
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
         if magic == 16777215:
@@ -903,7 +929,7 @@ def read_curvature(filepath, binary=True):
         return curv
 
 
-@verbose
+@verbose_static()
 def read_surface(
     fname, read_metadata=False, return_dict=False, file_format="auto", verbose=None
 ):
@@ -940,7 +966,11 @@ def read_surface(
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1342,7 +1372,7 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
-@verbose
+@verbose_static("overwrite")
 def write_surface(
     fname,
     coords,
@@ -1392,8 +1422,14 @@ def write_surface(
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1509,7 +1545,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     return rr[idx], ico_surf["tris"]
 
 
-@verbose
+@verbose_static()
 def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbose=None):
     """Decimate surface data.
 
@@ -1527,7 +1563,11 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
         octahedral mesh.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1599,7 +1639,7 @@ def mesh_edges(tris):
 
     Returns
     -------
-    edges : scipy.sparse.spmatrix
+    edges : scipy.sparse.sparray
         The adjacency matrix.
     """
     tris = _hashable_ndarray(tris)
@@ -1653,7 +1693,7 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-@verbose
+@verbose_static()
 def read_tri(fname_in, swap=False, verbose=None):
     """Read triangle definitions from an ascii file.
 
@@ -1664,7 +1704,11 @@ def read_tri(fname_in, swap=False, verbose=None):
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1758,7 +1802,7 @@ def _complete_sphere_surf(sphere, idx, level, complete=True):
     return surf
 
 
-@verbose
+@verbose_static("info_not_none", "dig_kinds", "exclude_frontal", "on_defects")
 def dig_mri_distances(
     info,
     trans,
@@ -1777,7 +1821,10 @@ def dig_mri_distances(
 
     Parameters
     ----------
-    %(info_not_none)s Must contain the head shape points in ``info['dig']``.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Must contain the head shape points in ``info['dig']``.
     trans : str | instance of Transform
         The head<->MRI transform. If str is passed it is the
         path to file on disk.
@@ -1786,13 +1833,31 @@ def dig_mri_distances(
     subjects_dir : str | None
         Directory containing subjects data. If None use
         the FreeSurfer SUBJECTS_DIR environment variable.
-    %(dig_kinds)s
-    %(exclude_frontal)s
+    dig_kinds : list of str | str
+        Kind of digitization points to use in the fitting. These can be any
+        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+        be 'auto' (default), which will use only the 'extra' points if
+        enough (more than 4) are available, and if not, uses 'extra' and
+        'eeg' points.
+    exclude_frontal : bool
+        If True, exclude points that have both negative Z values
+        (below the nasion) and positive Y values (in front of the LPA/RPA).
         Default is False.
-    %(on_defects)s
+    on_defects : 'raise' | 'warn' | 'ignore'
+        What to do if the surface is found to have topological defects.
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore when one or more defects are found.
+        Note that a lot of computations in MNE-Python assume the surfaces to be
+        topologically correct, topological defects may still make other
+        computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
+        fail irrespective of this parameter.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1929,7 +1994,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     return out
 
 
-@verbose
+@_verbose_control
 def _vtk_smooth(pd, smooth, *, verbose=None):
     _validate_type(smooth, "numeric", smooth)
     smooth = float(smooth)
@@ -1966,7 +2031,7 @@ def _vtk_smooth(pd, smooth, *, verbose=None):
 _VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
-@fill_doc
+@fill_doc_static("montage", "subject", "subjects_dir", "aseg")
 def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", dist=2):
     """Get regions of interest near channels from a FreeSurfer parcellation.
 
@@ -1975,10 +2040,29 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", 
 
     Parameters
     ----------
-    %(montage)s
-    %(subject)s
-    %(subjects_dir)s
-    %(aseg)s
+    montage : None | str | DigMontage
+        A montage containing channel positions. If a string or
+        :class:`~mne.channels.DigMontage` is
+        specified, the existing channel information will be updated with the
+        channel positions from the montage. Valid strings are the names of the
+        built-in montages that ship with MNE-Python; you can list those via
+        :func:`mne.channels.get_builtin_montages`.
+        If ``None`` (default), the channel positions will be removed from the
+        :class:`~mne.Info`.
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    aseg : str
+        The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+        if available and ``wmparc`` if not. This may be any anatomical
+        segmentation file in the mri subdirectory of the FreeSurfer subject
+        directory.
+
+        .. versionchanged:: 1.8
+           Added support for the new default ``'auto'``.
     dist : float
         The distance in mm to use for identifying regions of interest.
 

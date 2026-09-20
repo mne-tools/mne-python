@@ -27,9 +27,10 @@ from ...utils import (
     _check_fname,
     _check_option,
     _stamp_to_dt,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..base import BaseRaw
@@ -82,7 +83,19 @@ class UnsupportedKITFormat(ValueError):
         ValueError.__init__(self, *args, **kwargs)
 
 
-@fill_doc
+@fill_doc_static(
+    "kit_mrk",
+    "kit_elp",
+    "kit_hsp",
+    "kit_stim",
+    "kit_slope",
+    "kit_stimthresh",
+    "preload",
+    "kit_stimcode",
+    "standardize_names",
+    "kit_badcoils",
+    "verbose",
+)
 class RawKIT(BaseRaw):
     r"""Raw object from KIT SQD file.
 
@@ -90,20 +103,64 @@ class RawKIT(BaseRaw):
     ----------
     input_fname : path-like
         Path to the SQD file.
-    %(kit_mrk)s
-    %(kit_elp)s
-    %(kit_hsp)s
-    %(kit_stim)s
-    %(kit_slope)s
-    %(kit_stimthresh)s
-    %(preload)s
-    %(kit_stimcode)s
+    mrk : path-like | array of shape (5, 3) | list | None
+        Marker points representing the location of the marker coils with
+        respect to the MEG sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
+    elp : path-like | array of shape (8, 3) | None
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : path-like | array of shape (n_points, 3) | None
+        Digitizer head shape points, or path to head shape file. If more than
+        10,000 points are in the head shape, they are automatically decimated.
+    stim : list of int | ``'<'`` | ``'>'`` | None
+        Channel-value correspondence when converting KIT trigger channels to a
+        Neuromag-style stim channel. For ``'<'``\, the largest values are
+        assigned to the first channel (default). For ``'>'``\, the largest
+        values are assigned to the last channel. Can also be specified as a
+        list of trigger channel indexes. If None, no synthesized channel is
+        generated.
+    slope : ``'+'`` | ``'-'``
+        How to interpret values on KIT trigger channels when synthesizing a
+        Neuromag-style stim channel. With ``'+'``\, a positive slope (low-to-high)
+        is interpreted as an event. With ``'-'``\, a negative slope (high-to-low)
+        is interpreted as an event.
+    stimthresh : float | None
+        The threshold level for accepting voltage changes in KIT trigger
+        channels as a trigger event. If None, stim must also be set to None.
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    stim_code : ``'binary'`` | ``'channel'``
+        How to decode trigger values from stim channels. ``'binary'`` read stim
+        channel events as binary code, 'channel' encodes channel number.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    %(standardize_names)s
-    %(kit_badcoils)s
-    %(verbose)s
+    standardize_names : bool
+        If True, standardize MEG and EEG channel names to be
+        ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
+        channel names in the file will be used when possible.
+    bad_coils : array-like of int | None
+        Indices of (up to two) bad marker coils to be removed.
+        These marker coils must be present in the elp and mrk files.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----
@@ -122,7 +179,7 @@ class RawKIT(BaseRaw):
 
     _extra_attributes = ("read_stim_ch",)
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -149,6 +206,10 @@ class RawKIT(BaseRaw):
         )
         kit_info["slope"] = slope
         kit_info["stimthresh"] = stimthresh
+        # Each block is cast to float64 and scaled, so a smaller one stays in cache
+        kit_info["max_block_samples"] = max(
+            1, 2 * 1024**2 // kit_info["dtype"].itemsize // kit_info["nchan"]
+        )
         if kit_info["acq_type"] != KIT.CONTINUOUS:
             raise TypeError("SQD file contains epochs, not raw data. Wrong reader.")
         logger.info("Creating Info structure...")
@@ -209,8 +270,7 @@ class RawKIT(BaseRaw):
 
         n_bytes = sqd["dtype"].itemsize
         assert n_bytes in (2, 4)
-        # Read up to 100 MB of data at a time.
-        blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
+        blk_size = min(data_left, sqd["max_block_samples"] * nchan)
         with open(self.filenames[fi], "rb", buffering=0) as fid:
             # extract data
             pointer = start * nchan * n_bytes
@@ -331,7 +391,18 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code, trigger_values)
     return np.array(trig_chs.sum(axis=0), ndmin=2)
 
 
-@fill_doc
+@fill_doc_static(
+    "event_id",
+    "baseline_epochs",
+    "reject_epochs",
+    "flat",
+    "epochs_reject_tmin_tmax",
+    "kit_mrk",
+    "kit_elp",
+    "kit_hsp",
+    "standardize_names",
+    "verbose",
+)
 class EpochsKIT(BaseEpochs):
     """Epochs Array object from KIT SQD file.
 
@@ -346,21 +417,101 @@ class EpochsKIT(BaseEpochs):
         events.
         If some events don't match the events of interest as specified by
         ``event_id``, they will be marked as ``IGNORED`` in the drop log.
-    %(event_id)s
+    event_id : int | list of int | dict | str | list of str | None
+        The id of the :term:`events` to consider. If dict, the keys can later be used to
+        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
+        dict will be created with the id as string. If a list of int, all :term:`events`
+        with the IDs specified in the list are used. If a str or list of str, ``events``
+        must be ``None`` to use annotations and then the IDs must be the name(s) of the
+        annotations to use. If None, all :term:`events` will be used and a dict is
+        created with string integer names corresponding to the event id integers.
     tmin : float
         Start time before event.
-    %(baseline_epochs)s
-    %(reject_epochs)s
-    %(flat)s
-    %(epochs_reject_tmin_tmax)s
-    %(kit_mrk)s
-    %(kit_elp)s
-    %(kit_hsp)s
+    baseline : None | tuple of length 2
+        The time interval to consider as "baseline" when applying baseline
+        correction. If ``None``, do not apply baseline correction.
+        If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+        (in seconds), including the endpoints.
+        If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+        is ``None``, it is set to the **end** of the data.
+        If ``(None, None)``, the entire time interval is used.
+
+        .. note::
+            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+            ``t`` such that ``a <= t <= b``.
+
+        Correction is applied **to each epoch and channel individually** in the
+        following way:
+
+        1. Calculate the mean signal of the baseline period.
+        2. Subtract this mean from the **entire** epoch.
+    reject : dict | None
+        Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
+        i.e. the absolute difference between the lowest and the highest signal
+        value. In each individual epoch, the PTP is calculated for every channel.
+        If the PTP of any one channel exceeds the rejection threshold, the
+        respective epoch will be dropped.
+
+        The dictionary keys correspond to the different channel types; valid
+        **keys** can be any channel type present in the object.
+
+        Example::
+
+            reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                          mag=4e-12,      # unit: T (magnetometers)
+                          eeg=40e-6,      # unit: V (EEG channels)
+                          eog=250e-6      # unit: V (EOG channels)
+                          )
+
+        .. note:: Since rejection is based on a signal **difference**
+                  calculated for each channel separately, applying baseline
+                  correction does not affect the rejection procedure, as the
+                  difference will be preserved.
+
+        .. note:: To constrain the time period used for estimation of signal
+                  quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
+
+        If ``reject`` is ``None`` (default), no rejection is performed.
+    flat : dict | None
+        Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
+        Valid **keys** can be any channel type present in the object. The
+        **values** are floats that set the minimum acceptable PTP. If the PTP
+        is smaller than this threshold, the epoch will be dropped. If ``None``
+        then no rejection is performed based on flatness of the signal.
+
+        .. note:: To constrain the time period used for estimation of signal
+                  quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
+    reject_tmin, reject_tmax : float | None
+        Start and end of the time window used to reject epochs based on
+        peak-to-peak (PTP) amplitudes as specified via ``reject`` and ``flat``.
+        The default ``None`` corresponds to the first and last time points of the
+        epochs, respectively.
+
+        .. note:: This parameter controls the time period used in conjunction with
+                  both, ``reject`` and ``flat``.
+    mrk : path-like | array of shape (5, 3) | list | None
+        Marker points representing the location of the marker coils with
+        respect to the MEG sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
+    elp : path-like | array of shape (8, 3) | None
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : path-like | array of shape (n_points, 3) | None
+        Digitizer head shape points, or path to head shape file. If more than
+        10,000 points are in the head shape, they are automatically decimated.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    %(standardize_names)s
-    %(verbose)s
+    standardize_names : bool
+        If True, standardize MEG and EEG channel names to be
+        ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
+        channel names in the file will be used when possible.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----
@@ -374,7 +525,7 @@ class EpochsKIT(BaseEpochs):
     mne.Epochs : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -489,7 +640,7 @@ def _read_dir(fid):
     )
 
 
-@verbose
+@_verbose_control
 def _read_dirs(fid, verbose=None):
     dirs = list()
     dirs.append(_read_dir(fid))
@@ -500,7 +651,7 @@ def _read_dirs(fid, verbose=None):
     return dirs
 
 
-@verbose
+@verbose_static("standardize_names", "info_not_none")
 def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=None):
     """Extract all the information from the sqd/con file.
 
@@ -511,12 +662,21 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    %(standardize_names)s
-    %(verbose)s
+    standardize_names : bool
+        If True, standardize MEG and EEG channel names to be
+        ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
+        channel names in the file will be used when possible.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     sqd : dict
         A dict containing all the sqd parameter settings.
     """
@@ -909,7 +1069,19 @@ def _read_name(fid, ch_type=None, n=None):
     return fid.read(n).split(b"\x00")[0].decode("utf-8")
 
 
-@fill_doc
+@fill_doc_static(
+    "kit_mrk",
+    "kit_elp",
+    "kit_hsp",
+    "kit_stim",
+    "kit_slope",
+    "kit_stimthresh",
+    "preload",
+    "kit_stimcode",
+    "standardize_names",
+    "kit_badcoils",
+    "verbose",
+)
 def read_raw_kit(
     input_fname: Path | str,
     mrk: Path | str | np.ndarray | list | None = None,
@@ -932,20 +1104,64 @@ def read_raw_kit(
     ----------
     input_fname : path-like
         Path to the SQD file.
-    %(kit_mrk)s
-    %(kit_elp)s
-    %(kit_hsp)s
-    %(kit_stim)s
-    %(kit_slope)s
-    %(kit_stimthresh)s
-    %(preload)s
-    %(kit_stimcode)s
+    mrk : path-like | array of shape (5, 3) | list | None
+        Marker points representing the location of the marker coils with
+        respect to the MEG sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
+    elp : path-like | array of shape (8, 3) | None
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : path-like | array of shape (n_points, 3) | None
+        Digitizer head shape points, or path to head shape file. If more than
+        10,000 points are in the head shape, they are automatically decimated.
+    stim : list of int | ``'<'`` | ``'>'`` | None
+        Channel-value correspondence when converting KIT trigger channels to a
+        Neuromag-style stim channel. For ``'<'``\, the largest values are
+        assigned to the first channel (default). For ``'>'``\, the largest
+        values are assigned to the last channel. Can also be specified as a
+        list of trigger channel indexes. If None, no synthesized channel is
+        generated.
+    slope : ``'+'`` | ``'-'``
+        How to interpret values on KIT trigger channels when synthesizing a
+        Neuromag-style stim channel. With ``'+'``\, a positive slope (low-to-high)
+        is interpreted as an event. With ``'-'``\, a negative slope (high-to-low)
+        is interpreted as an event.
+    stimthresh : float | None
+        The threshold level for accepting voltage changes in KIT trigger
+        channels as a trigger event. If None, stim must also be set to None.
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    stim_code : ``'binary'`` | ``'channel'``
+        How to decode trigger values from stim channels. ``'binary'`` read stim
+        channel events as binary code, 'channel' encodes channel number.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    %(standardize_names)s
-    %(kit_badcoils)s
-    %(verbose)s
+    standardize_names : bool
+        If True, standardize MEG and EEG channel names to be
+        ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
+        channel names in the file will be used when possible.
+    bad_coils : array-like of int | None
+        Indices of (up to two) bad marker coils to be removed.
+        These marker coils must be present in the elp and mrk files.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -984,7 +1200,9 @@ def read_raw_kit(
     )
 
 
-@fill_doc
+@fill_doc_static(
+    "event_id", "kit_mrk", "kit_elp", "kit_hsp", "standardize_names", "verbose"
+)
 def read_epochs_kit(
     input_fname: Path | str,
     events: np.ndarray | Path | str,
@@ -1009,15 +1227,37 @@ def read_epochs_kit(
         events.
         If some events don't match the events of interest as specified by
         ``event_id``, they will be marked as ``IGNORED`` in the drop log.
-    %(event_id)s
-    %(kit_mrk)s
-    %(kit_elp)s
-    %(kit_hsp)s
+    event_id : int | list of int | dict | str | list of str | None
+        The id of the :term:`events` to consider. If dict, the keys can later be used to
+        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
+        dict will be created with the id as string. If a list of int, all :term:`events`
+        with the IDs specified in the list are used. If a str or list of str, ``events``
+        must be ``None`` to use annotations and then the IDs must be the name(s) of the
+        annotations to use. If None, all :term:`events` will be used and a dict is
+        created with string integer names corresponding to the event id integers.
+    mrk : path-like | array of shape (5, 3) | list | None
+        Marker points representing the location of the marker coils with
+        respect to the MEG sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
+    elp : path-like | array of shape (8, 3) | None
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : path-like | array of shape (n_points, 3) | None
+        Digitizer head shape points, or path to head shape file. If more than
+        10,000 points are in the head shape, they are automatically decimated.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    %(standardize_names)s
-    %(verbose)s
+    standardize_names : bool
+        If True, standardize MEG and EEG channel names to be
+        ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
+        channel names in the file will be used when possible.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

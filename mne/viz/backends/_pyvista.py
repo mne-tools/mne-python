@@ -26,11 +26,11 @@ from pyvista import (
 )
 from pyvista.plotting.plotter import _ALL_PLOTTERS
 from pyvistaqt import BackgroundPlotter
-from vtkmodules.util.numpy_support import numpy_to_vtk
+from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
 from vtkmodules.vtkCommonTransforms import vtkTransform
-from vtkmodules.vtkFiltersCore import vtkGlyph3D
+from vtkmodules.vtkFiltersCore import vtkContourFilter, vtkGlyph3D, vtkTubeFilter
 from vtkmodules.vtkFiltersGeneral import vtkMarchingContourFilter
 from vtkmodules.vtkFiltersHybrid import vtkPolyDataSilhouette
 from vtkmodules.vtkFiltersSources import (
@@ -59,9 +59,12 @@ from ...utils import _check_option, _require_version, _validate_type, warn
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
+    LIGHTS,
     _alpha_blend_background,
     _get_colormap_from_array,
     _init_mne_qtapp,
+    _to_pos,
+    _vtk_faces,
 )
 
 try:
@@ -315,12 +318,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         return self.figure
 
     def update_lighting(self):
-        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        # below and centered, left and above, right and above
-        az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
         for renderer in self._all_renderers:
             renderer.remove_all_lights()
-            for azimuth, elevation, intensity in az_el_in:
+            for azimuth, elevation, intensity in LIGHTS:
                 light = pyvista.Light(
                     position=_to_pos(azimuth, elevation),
                     color="white",
@@ -438,7 +438,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         **kwargs,
     ):
         vertices = np.c_[x, y, z].astype(float)
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         return self.polydata(
             mesh=mesh,
@@ -475,18 +475,35 @@ class _PyVistaRenderer(_AbstractRenderer):
             colormap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface["rr"])
         triangles = np.array(surface["tris"])
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         mesh.point_data["scalars"] = scalars
-        contour = mesh.contour(isosurfaces=contours)
+        # Leave the contour filter connected to the mesh instead of computing the
+        # contours once (as `mesh.contour()` would): the rendering pipeline is then
+        # attached to the filter, so pushing new scalars in with `_update_contour`
+        # re-runs it on the next render, with no actor to rebuild.
+        alg = vtkContourFilter()
+        alg.SetInputDataObject(mesh)
+        alg.SetComputeNormals(False)
+        alg.SetComputeGradients(False)
+        alg.SetComputeScalars(True)
+        # args: (idx, port, connection, field, name), field 0 being point data
+        alg.SetInputArrayToProcess(0, 0, 0, 0, "scalars")
+        _set_contour_values(alg, contours, mesh)
+        source = alg
         line_width = width
         if kind == "tube":
-            contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
+            tube = vtkTubeFilter()
+            tube.SetInputConnection(alg.GetOutputPort())
+            tube.SetCapping(True)
+            tube.SetRadius(width)
+            tube.SetNumberOfSides(max(self.tube_n_sides, 3))
+            tube.SetRadiusFactor(10.0)
+            source = tube
             line_width = 1.0
         actor = _add_mesh(
             plotter=self.plotter,
-            mesh=contour,
+            mesh=source,
             show_scalar_bar=False,
             line_width=line_width,
             color=color,
@@ -495,7 +512,28 @@ class _PyVistaRenderer(_AbstractRenderer):
             opacity=opacity,
             smooth_shading=self.smooth_shading,
         )
-        return actor, contour
+        return actor, alg
+
+    def _update_contour(self, alg, *, scalars=None, contours=None):
+        """Update the data and/or the levels of a contour created by `contour`.
+
+        Parameters
+        ----------
+        alg : instance of vtkContourFilter
+            The contour filter returned by :meth:`contour`.
+        scalars : ndarray, shape (n_vertices,) | None
+            New scalar values for the vertices of the surface being contoured.
+        contours : int | list | None
+            New contour levels.
+        """
+        mesh = alg.GetInputDataObject(0, 0)
+        if scalars is not None:
+            array = mesh.GetPointData().GetArray("scalars")
+            vtk_to_numpy(array)[:] = scalars
+            array.Modified()
+            mesh.Modified()  # so that the filter re-runs on the next render
+        if contours is not None:
+            _set_contour_values(alg, contours, mesh)
 
     def surface(
         self,
@@ -514,7 +552,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         normals = surface.get("nn", None)
         vertices = np.array(surface["rr"])
         triangles = np.array(surface["tris"])
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         colormap = _get_colormap_from_array(colormap, normalized_colormap)
         if scalars is not None:
@@ -705,7 +743,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         *,
         name=None,
     ):
-        faces = np.c_[np.full(len(tris), 3), tris]
+        faces = _vtk_faces(tris)
         geom = PolyData(np.asarray(rr, float), faces)
         _compute_normals(geom)
 
@@ -794,17 +832,23 @@ class _PyVistaRenderer(_AbstractRenderer):
         _hide_testing_actor(actor)
         return actor
 
-    def text3d(self, x, y, z, text, scale, color="white"):
+    def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
+        # x, y, z can be scalars (one label) or arrays (one label per point)
+        single = isinstance(text, str)
         actor = self.plotter.add_point_labels(
-            points=np.array([x, y, z]).astype(float),
-            labels=[text],
-            point_size=scale,
+            points=np.array([x, y, z], float).T,
+            labels=[text] if single else list(text),
+            font_size=font_size,
             text_color=color,
             font_family=self.font_family,
-            name=text,
+            name=text if single else None,
             shape_opacity=0,
+            shadow=shadow,
+            show_points=False,
             always_visible=True,
         )
+        # otherwise vtkLabelPlacementMapper silently drops labels that would overlap
+        actor.GetMapper().SetPlaceAllLabels(True)
         _hide_testing_actor(actor)
         return actor
 
@@ -1252,6 +1296,18 @@ def _quat_to_vtk_wxyz(quat):
     return np.concatenate([w[..., np.newaxis], quat], axis=-1)
 
 
+def _set_contour_values(alg, contours, mesh):
+    """Set the levels of a contour filter (mirroring ``PolyData.contour``)."""
+    if isinstance(contours, int):
+        rng = mesh.GetPointData().GetArray("scalars").GetRange()
+        alg.GenerateValues(contours, rng[0], rng[1])
+    else:
+        contours = np.asarray(contours, dtype=float)
+        alg.SetNumberOfContours(len(contours))
+        for idx, value in enumerate(contours):
+            alg.SetValue(idx, value)
+
+
 def _add_mesh(plotter, **kwargs):
     """Patch PyVista add_mesh."""
     mesh = kwargs.get("mesh")
@@ -1266,7 +1322,8 @@ def _add_mesh(plotter, **kwargs):
     if "reset_camera" not in kwargs:
         kwargs["reset_camera"] = False
     actor = plotter.add_mesh(**kwargs)
-    if smooth_shading and "Normals" in mesh.point_data:
+    # `mesh` can also be a vtkAlgorithm (see `contour`), which has no point data
+    if smooth_shading and "Normals" in getattr(mesh, "point_data", ()):
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
     _hide_testing_actor(actor)
@@ -1284,15 +1341,6 @@ def _truncate_scalar_bar_title(title, max_chars=20):
     if title is None or len(title) <= max_chars:
         return title
     return title[: max_chars - 1] + "…"
-
-
-def _to_pos(azimuth, elevation):
-    theta = azimuth * np.pi / 180.0
-    phi = (90.0 - elevation) * np.pi / 180.0
-    x = np.sin(theta) * np.sin(phi)
-    y = np.cos(phi)
-    z = np.cos(theta) * np.sin(phi)
-    return x, y, z
 
 
 def _3d_to_2d(plotter, xyz):

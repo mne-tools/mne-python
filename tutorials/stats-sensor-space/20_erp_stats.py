@@ -13,6 +13,12 @@ and how to visualise the results.
 
 The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs.
 short words. TFCE is described in :footcite:`SmithNichols2009`.
+
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 
 # Authors: The MNE-Python contributors.

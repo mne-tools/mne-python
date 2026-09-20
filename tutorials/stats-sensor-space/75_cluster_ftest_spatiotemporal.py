@@ -21,6 +21,12 @@ the possible interpretation of "significant" clusters.
 
 For more information on cluster-based permutation testing in MNE-Python,
 see also: :ref:`tut-cluster-one-samp-tfr`.
+
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>

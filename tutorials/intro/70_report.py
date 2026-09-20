@@ -156,11 +156,10 @@ report.save("report_evoked.html", overwrite=True)
 # Adding `~mne.Covariance`
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# (Noise) covariance objects can be added via
-# :meth:`mne.Report.add_covariance`. The method accepts `~mne.Covariance`
-# objects and the path to a file on disk. It also expects us to pass an
-# `~mne.Info` object or the path to a file to read the measurement info from,
-# as well as a title.
+# (Noise) covariance objects can be added via :meth:`mne.Report.add_covariance`. The
+# method accepts `~mne.Covariance` objects and the path to a file on disk. It also
+# expects us to pass an `~mne.Info` object or the path to a file to read the measurement
+# info from, as well as a title.
 
 cov_path = sample_dir / "sample_audvis-cov.fif"
 

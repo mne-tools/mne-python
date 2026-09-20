@@ -1999,11 +1999,15 @@ def test_equalize_channels():
 
 def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
+    # a couple of seconds is plenty to exercise the memmap bookkeeping, and
+    # keeps the four on-disk memmaps below from adding up to ~200 MB
+    short_fname = tmp_path / "short_raw.fif"
+    read_raw_fif(test_fif_fname).crop(0, 2).save(short_fname)
     # concatenate_raw
     memmaps = [str(tmp_path / str(ii)) for ii in range(4)]
-    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
+    raw_0 = read_raw_fif(short_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
-    raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])
+    raw_1 = read_raw_fif(short_fname, preload=memmaps[1])
     assert raw_1._data.filename == memmaps[1]
     raw_0.append(raw_1, preload=memmaps[2])
     assert raw_0._data.filename == memmaps[2]
@@ -2025,7 +2029,7 @@ def test_memmap(tmp_path):
     # now let's see if .copy() actually works; it does, but eventually
     # we should make it optionally memmap to a new filename rather than
     # create an in-memory version (filename=None)
-    raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[3])
+    raw_0 = read_raw_fif(short_fname, preload=memmaps[3])
     assert raw_0._data.filename == memmaps[3]
     assert raw_0._data[:1, 3:5].all()
     raw_1 = raw_0.copy()
@@ -2118,6 +2122,15 @@ def test_file_like(kind, preload, split, tmp_path):
         else:
             assert fname.name in raw._repr_html_()
     assert file_fid.closed
+
+
+def test_file_like_auto_preload_rejected(tmp_path, monkeypatch):
+    """Test that automatic caching cannot misidentify a named stream."""
+    monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
+    stream = BytesIO(test_fif_fname.read_bytes())
+    stream.name = str(test_fif_fname)
+    with pytest.raises(ValueError, match="stable source files"):
+        read_raw_fif(stream, preload="auto")
 
 
 def test_str_like():

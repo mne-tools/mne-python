@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "58002a0960583014c4885185388c1c135b7f34c6",
+  "authors": [
+    {
+      "n": "Marcus Campbell",
+      "e": "21266489+marcus-campbell@users.noreply.github.com",
+      "l": "marcus-campbell"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_freesurfer.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

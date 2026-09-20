@@ -7,10 +7,13 @@
 import copy
 import itertools
 import warnings
-from functools import partial
+from functools import cache, partial
 from numbers import Integral
 
 import matplotlib.artist
+import matplotlib.axes
+import matplotlib.contour
+import matplotlib.figure
 import matplotlib.patches
 import numpy as np
 
@@ -41,10 +44,10 @@ from ..utils import (
     _is_numeric,
     _time_mask,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     legacy,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
@@ -419,24 +422,44 @@ def _plot_update_evoked_topomap(params, bools):
     ):
         Zi = interp.set_values(d)()
         im.set_data(Zi)
-        new_contours.append(_update_contours(cont, ax, Xi, Yi, Zi, params["contours"]))
+        new_contours.append(_update_contours(cont, Xi, Yi, Zi, params["contours"]))
     params["contours_"][:] = new_contours
     params["fig"].canvas.draw()
 
 
-def _update_contours(cont, ax, Xi, Yi, Zi, contours):
+class _NoOpAxes(matplotlib.axes.Axes):
+    """Axes that throws away whatever is drawn on it.
+
+    `~matplotlib.contour.QuadContourSet` attaches itself to an Axes on construction,
+    but :func:`_update_contours` only wants the geometry it computes.
+    """
+
+    def add_collection(self, collection, *args, **kwargs):
+        return collection
+
+    def update_datalim(self, *args, **kwargs):
+        pass
+
+    def autoscale_view(self, *args, **kwargs):
+        pass
+
+
+@cache
+def _no_op_axes():
+    """Get the one throwaway Axes used to compute contour geometry."""
+    return _NoOpAxes(matplotlib.figure.Figure(), [0, 0, 1, 1])
+
+
+def _update_contours(cont, Xi, Yi, Zi, contours):
     if cont is None:
         return cont
-    lw = cont.get_linewidth()
-    visible = cont.get_visible()
-    patch_ = cont.get_clip_path()
-    color = cont.get_edgecolors()
-    zorder = _TOPOMAP_ZORDER["contours"]
-    if cont in ax.collections:
-        cont.remove()
-    cont = ax.contour(Xi, Yi, Zi, contours, colors=color, linewidths=lw, zorder=zorder)
-    cont.set_visible(visible)
-    cont.set_clip_path(patch_)
+    # Swap the new geometry into the existing artist rather than replacing it: adding
+    # an artist marks the figure stale, and an interactive backend then services that
+    # pending draw from inside ``canvas.blit()`` -- a full redraw, which omits every
+    # animated artist and so undoes the blit. Keeping the artist also keeps its color,
+    # linewidth, zorder and clip path, which used to have to be copied over.
+    new = matplotlib.contour.QuadContourSet(_no_op_axes(), Xi, Yi, Zi, levels=contours)
+    cont.set_paths(new.get_paths())
     return cont
 
 
@@ -483,7 +506,27 @@ def _eliminate_zeros(proj):
     return proj
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none",
+    "sensors_topomap",
+    "show_names_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap_proj",
+    "cnorm",
+    "colorbar_topomap",
+    "cbar_fmt_topomap",
+    "units_topomap",
+    "axes_plot_projs_topomap",
+    "show",
+)
 def plot_projs_topomap(
     projs,
     info,
@@ -513,19 +556,98 @@ def plot_projs_topomap(
     ----------
     projs : list of Projection
         The projections.
-    %(info_not_none)s Must be associated with the channels in the projectors.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Must be associated with the channels in the projectors.
 
         .. versionchanged:: 0.20
             The positional argument ``layout`` was replaced by ``info``.
-    %(sensors_topomap)s
-    %(show_names_topomap)s
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
 
         .. versionadded:: 1.2
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionadded:: 0.20
 
@@ -534,25 +656,80 @@ def plot_projs_topomap(
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap_proj)s
-    %(cnorm)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2 | "joint"
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data. Elements of the :class:`tuple` may also be
+        callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+        return a scalar.
+
+        If both entries are ``None``, the bounds are set at
+        ± the maximum absolute value
+        of the data (yielding a colormap with midpoint at 0), or
+        ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+        limits jointly across all projectors of the same channel type (instead of
+        separately for each projector), using the min/max of the data for that
+        channel type. If vlim is ``"joint"``, ``info`` must not be
+        ``None``. Defaults to ``(None, None)``.
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.2
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap)s
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
 
         .. versionadded:: 1.2
-    %(units_topomap)s
+    units : str | None
+        The units to use for the colorbar label. Ignored if ``colorbar=False``.
+        If ``None`` the label will be "AU" indicating arbitrary units.
+        Default is ``None``.
 
         .. versionadded:: 1.2
-    %(axes_plot_projs_topomap)s
-    %(show)s
+    axes : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the number of projectors. Default is ``None``.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
 
     Returns
     -------
@@ -562,7 +739,7 @@ def plot_projs_topomap(
     Notes
     -----
     .. versionadded:: 0.9.0
-    """
+    """  # noqa: E501
     fig = _plot_projs_topomap(
         projs,
         info,
@@ -1084,7 +1261,28 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     return pos, outlines
 
 
-@fill_doc
+@fill_doc_static(
+    "pos_topomap",
+    "ch_type_topomap",
+    "sensors_topomap",
+    "names_topomap",
+    "mask_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap",
+    "cnorm",
+    "axes_plot_topomap",
+    "show",
+)
 def plot_topomap(
     data,
     pos,
@@ -1116,25 +1314,119 @@ def plot_topomap(
     ----------
     data : array, shape (n_chan,)
         The data values to plot.
-    %(pos_topomap)s
+    pos : array, shape (n_channels, 2) | instance of Info
+        Location information for the channels. If an array, should provide the x
+        and y coordinates for plotting the channels in 2D.
         If an :class:`~mne.Info` object it must contain only one channel type
         and exactly ``len(data)`` channels; the x/y coordinates will
         be inferred from the montage in the :class:`~mne.Info` object.
-    %(ch_type_topomap)s
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the RMS for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
 
         .. versionadded:: 0.21
-    %(sensors_topomap)s
-    %(names_topomap)s
-    %(mask_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    names : None | list
+        Labels for the sensors. If a :class:`list`, labels should correspond
+        to the order of channels in ``data``. If ``None`` (default), no channel
+        names are plotted.
+    mask : ndarray of bool, shape (n_channels,) | None
+        Array indicating channel(s) to highlight with a distinct
+        plotting style.
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionadded:: 0.18
 
@@ -1143,24 +1435,61 @@ def plot_topomap(
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data.
+        If both entries are ``None``, the bounds are set at
+        ``(min(data), max(data))``.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. Defaults to ``(None, None)``.
 
         .. versionadded:: 1.2
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 0.24
-    %(axes_plot_topomap)s
+    axes : instance of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created. Default is ``None``.
 
         .. versionchanged:: 1.2
            If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
            created instead of plotting into the current axes.
-    %(show)s
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
     onselect : callable | None
         A function to be called when the user selects a set of channels by
         click-dragging (uses a matplotlib
@@ -1173,7 +1502,7 @@ def plot_topomap(
         The interpolated data.
     cn : matplotlib.contour.ContourSet
         The fieldlines.
-    """
+    """  # noqa: E501
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
@@ -1671,7 +2000,27 @@ def _plot_ica_topomap(
     _hide_frame(axes)
 
 
-@verbose
+@verbose_static(
+    "picks_ica",
+    "ch_type_topomap",
+    "sensors_topomap",
+    "show_names_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap",
+    "cnorm",
+    "colorbar_topomap",
+    "cbar_fmt_topomap",
+    "nrows_ncols_ica_components",
+    "show",
+)
 def plot_ica_components(
     ica,
     picks=None,
@@ -1710,8 +2059,17 @@ def plot_ica_components(
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    %(picks_ica)s
-    %(ch_type_topomap)s
+    picks : int | list of int | slice | None
+        Indices of the independent components (ICs) to visualize. If an integer,
+        represents the index of the IC to pick. Multiple ICs can be selected using a
+        list of int or a slice. The indices are 0-indexed, so ``picks=1`` will pick
+        the second IC: ``ICA001``. ``None`` will pick all independent components in
+        the order fitted.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the RMS for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
     inst : Raw | Epochs | None
         To be able to see component properties after clicking on component
         topomap you need to pass relevant data - instances of Raw or Epochs
@@ -1728,31 +2086,138 @@ def plot_ica_components(
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
-    %(sensors_topomap)s
-    %(show_names_topomap)s
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionadded:: 1.3
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 1.3
-    %(res_topomap)s
-    %(size_topomap)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
 
         .. versionadded:: 1.3
-    %(cmap_topomap)s
-    %(vlim_plot_topomap)s
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data.
+        If both entries are ``None``, the bounds are set at
+        ``(min(data), max(data))``.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. Defaults to ``(None, None)``.
 
         .. versionadded:: 1.3
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.3
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap)s
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
     axes : Axes | array of Axes | None
         The subplot(s) to plot to. Either a single Axes or an iterable of Axes
         if more than one subplot is needed. The number of subplots must match
@@ -1764,10 +2229,24 @@ def plot_ica_components(
         ``axes=None``, a default title of "Independent Components" will be used.
         If ``axes=None`` and the components shown in a given figure form a
         contiguous range, that range is appended to the title.
-    %(nrows_ncols_ica_components)s
+    nrows, ncols : int | 'auto'
+        The number of rows and columns of topographies to plot. If both ``nrows``
+        and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
+        and return multiple figures if more than 20 components are requested.
+        If one is ``'auto'`` and the other a scalar, a single figure is generated.
+        If scalars are provided for both arguments, will plot up to ``nrows*ncols``
+        components in a grid and return multiple figures as needed. Default is
+        ``nrows='auto', ncols='auto'``.
 
         .. versionadded:: 1.3
-    %(show)s
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
     image_args : dict | None
         Dictionary of arguments to pass to :func:`~mne.viz.plot_epochs_image`
         in interactive mode. Ignored if ``inst`` is not supplied. If ``None``,
@@ -1776,7 +2255,11 @@ def plot_ica_components(
         Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
         interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
         nothing is passed. Defaults to ``None``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2017,7 +2500,33 @@ def plot_ica_components(
     return figs[0] if len(figs) == 1 else figs
 
 
-@fill_doc
+@fill_doc_static(
+    "tmin_tmax_psd",
+    "fmin_fmax_psd",
+    "ch_type_topomap_psd",
+    "baseline_mode",
+    "sensors_topomap",
+    "show_names_topomap",
+    "mask_evoked_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap",
+    "cnorm",
+    "colorbar_topomap",
+    "cbar_fmt_topomap",
+    "units_topomap",
+    "axes_plot_topomap",
+    "show",
+)
 def plot_tfr_topomap(
     tfr,
     tmin=None,
@@ -2056,51 +2565,216 @@ def plot_tfr_topomap(
     ----------
     tfr : AverageTFR
         The AverageTFR object.
-    %(tmin_tmax_psd)s
-    %(fmin_fmax_psd)s
-    %(ch_type_topomap_psd)s
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    fmin, fmax : float
+        The lower- and upper-bound on frequencies of interest. Default is
+        ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the mean for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction. If None do
         not apply it. If baseline is (a, b) the interval is between "a (s)" and
         "b (s)". If a is None the beginning of the data is used and if b is
         None then b is set to the end of the interval. If baseline is equal to
         (None, None) the whole time interval is used.
-    %(baseline_mode)s
-    %(sensors_topomap)s
-    %(show_names_topomap)s
-    %(mask_evoked_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+        Perform baseline correction by:
+
+        ``"mean"``
+          Subtracting the mean of baseline values
+        ``"ratio"``
+          Dividing by the mean of baseline values
+        ``"logratio"``
+          Dividing by the mean of baseline values and taking the log
+        ``"meanlogratio"``
+          Dividing by the mean of baseline values, taking the log and then
+          subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+          .. note:: this baseline mode has not been tested at the source-level!
+        ``"percent"``
+          Subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values
+        ``"zscore"``
+          Subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values
+        ``"zlogratio"``
+          Dividing by the mean of baseline values, taking the log, and
+          dividing by the standard deviation of log baseline values
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        Array indicating channel-time combinations to highlight with a distinct
+        plotting style (useful for, e.g. marking which channels at which times a
+        statistical test of the data reaches significance).
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionchanged:: 0.21
 
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data.
+        If both entries are ``None``, the bounds are set at
+        ``(min(data), max(data))``.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. Defaults to ``(None, None)``.
 
         .. versionadded:: 1.2
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.2
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap)s
-    %(units_topomap)s
-    %(axes_plot_topomap)s
-    %(show)s
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
+    units : str | None
+        The units to use for the colorbar label. Ignored if ``colorbar=False``.
+        If ``None`` the label will be "AU" indicating arbitrary units.
+        Default is ``None``.
+    axes : instance of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created. Default is ``None``.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
 
     Returns
     -------
@@ -2243,7 +2917,34 @@ def plot_tfr_topomap(
     return fig
 
 
-@fill_doc
+@fill_doc_static(
+    "average_plot_evoked_topomap",
+    "ch_type_topomap",
+    "scalings_topomap",
+    "proj_plot",
+    "sensors_topomap",
+    "show_names_topomap",
+    "mask_evoked_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap_psd",
+    "cnorm",
+    "colorbar_topomap",
+    "cbar_fmt_topomap",
+    "units_topomap_evoked",
+    "axes_evoked_plot_topomap",
+    "nrows_ncols_topomap",
+    "show",
+)
 def plot_evoked_topomap(
     evoked,
     times="auto",
@@ -2292,22 +2993,137 @@ def plot_evoked_topomap(
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(average_plot_evoked_topomap)s
-    %(ch_type_topomap)s
-    %(scalings_topomap)s
-    %(proj_plot)s
-    %(sensors_topomap)s
-    %(show_names_topomap)s
-    %(mask_evoked_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    average : float | array-like of float, shape (n_times,) | None
+        The time window (in seconds) around a given time point to be used for
+        averaging. For example, 0.2 would translate into a time window that
+        starts 0.1 s before and ends 0.1 s after the given time point. If the
+        time window exceeds the duration of the data, it will be clipped.
+        Different time windows (one per time point) can be provided by
+        passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
+        ``None`` (default), no averaging will take place.
+
+        .. versionchanged:: 1.1
+           Support for ``array-like`` input.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the RMS for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
+    scalings : dict | float | None
+        The scalings of the channel types to be applied for plotting.
+        If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
+    proj : bool | 'interactive' | 'reconstruct'
+        If true SSP projections are applied before display. If ``'interactive'``,
+        a check box for reversible selection of SSP projection vectors will
+        be shown. If ``'reconstruct'``, projection vectors will be applied and then
+        M/EEG data will be reconstructed via field mapping to reduce the signal
+        bias caused by projection.
+
+        .. versionchanged:: 0.21
+           Support for 'reconstruct' was added.
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        Array indicating channel-time combinations to highlight with a distinct
+        plotting style (useful for, e.g. marking which channels at which times a
+        statistical test of the data reaches significance).
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionadded:: 0.18
 
@@ -2316,34 +3132,94 @@ def plot_evoked_topomap(
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap_psd)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2 | "joint"
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data. Elements of the :class:`tuple` may also be
+        callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+        return a scalar.
+
+        If both entries are ``None``, the bounds are set at
+        ± the maximum absolute value
+        of the data (yielding a colormap with midpoint at 0), or
+        ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+        limits jointly across all topomaps of the same channel type (instead of
+        separately for each topomap), using the min/max of the data for that
+        channel type. Defaults to ``(None, None)``.
 
         .. versionadded:: 1.2
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.2
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap)s
-    %(units_topomap_evoked)s
-    %(axes_evoked_plot_topomap)s
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
+    units : dict | str | None
+        The units to use for the colorbar label. Ignored if ``colorbar=False``.
+        If ``None`` and ``scalings=None`` the unit is automatically determined,
+        otherwise the label will be "AU" indicating arbitrary units.
+        Default is ``None``.
+    axes : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the number of ``times`` provided (unless ``times`` is
+        ``None``). Default is ``None``.
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
     time_format : str | None
-        String format for topomap values. Defaults (None) to "%%01d ms" if
-        ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
-        "%%g" otherwise. Can be an empty string to omit the time label.
-    %(nrows_ncols_topomap)s Ignored when times == 'interactive'.
+        String format for topomap values. Defaults (None) to "%01d ms" if
+        ``time_unit='ms'``, "%0.3f s" if ``time_unit='s'``, and
+        "%g" otherwise. Can be an empty string to omit the time label.
+    nrows, ncols : int | 'auto'
+        The number of rows and columns of topographies to plot. If either ``nrows``
+        or ``ncols`` is ``'auto'``, the necessary number will be inferred. Defaults
+        to ``nrows=1, ncols='auto'``.
+        Ignored when times == 'interactive'.
 
         .. versionadded:: 0.20
-    %(show)s
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
 
     Returns
     -------
@@ -2380,7 +3256,7 @@ def plot_evoked_topomap(
     following UI events:
 
     * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
-    """
+    """  # noqa: E501
     fig, _params = _plot_evoked_topomap(
         evoked=evoked,
         times=times,
@@ -2519,7 +3395,7 @@ def _plot_evoked_topomap(
     if proj is True and not evoked.proj:
         evoked.apply_proj()
     elif proj == "reconstruct":
-        evoked._reconstruct_proj()
+        evoked.reconstruct_proj()
 
     # remove compensation matrices (safe: only plotting & already made copy)
     with evoked.info._unlock():
@@ -3003,7 +3879,38 @@ def _plot_topomap_multi_cbar(
 
 
 @legacy(alt="Epochs.compute_psd().plot_topomap()")
-@verbose
+@verbose_static(
+    "bands_psd_topo",
+    "tmin_tmax_psd",
+    "proj_psd",
+    "normalization",
+    "ch_type_topomap_psd",
+    "normalize_psd_topo",
+    "agg_fun_psd_topo",
+    "dB_plot_topomap",
+    "sensors_topomap",
+    "names_topomap",
+    "mask_evoked_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap_psd",
+    "cnorm",
+    "colorbar_topomap",
+    "cbar_fmt_topomap_psd",
+    "units_topomap",
+    "axes_spectrum_plot_topomap",
+    "show",
+    "n_jobs",
+)
 def plot_epochs_psd_topomap(
     epochs,
     bands=None,
@@ -3049,9 +3956,33 @@ def plot_epochs_psd_topomap(
     ----------
     epochs : instance of Epochs
         The epochs object.
-    %(bands_psd_topo)s
-    %(tmin_tmax_psd)s
-    %(proj_psd)s
+    bands : None | dict | list of tuple
+        The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+        be used as subplot titles and values should be either a single frequency
+        (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+        and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+        frequency is provided, the plot will show the frequency bin that is closest
+        to the requested value. If ``None`` (the default), expands to::
+
+            bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                     'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                     'Gamma (30-45 Hz)': (30, 45)}
+
+        .. note::
+           For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+           also accepted, where the last element of the tuple is the subplot title
+           and the other entries are frequency values (a single value or band
+           edges). New code should use :class:`dict` or ``None``.
+
+        .. versionchanged:: 1.2
+           Allow passing a dict and discourage passing tuples.
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4 Hz.
@@ -3059,56 +3990,225 @@ def plot_epochs_psd_topomap(
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
-    %(normalization)s
-    %(ch_type_topomap_psd)s
-    %(normalize_psd_topo)s
-    %(agg_fun_psd_topo)s
-    %(dB_plot_topomap)s
-    %(sensors_topomap)s
-    %(names_topomap)s
-    %(mask_evoked_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    normalization : 'full' | 'length'
+        Normalization strategy. If "full", the PSD will be normalized by the
+        sampling rate as well as the length of the signal (as in
+        :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the mean for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
+    normalize : bool
+        If True, each band will be divided by the total power. Defaults to
+        False.
+    agg_fun : callable
+        The function used to aggregate over frequencies. Defaults to
+        :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+    dB : bool
+        Whether to plot on a decibel scale. If ``True``, plots
+        10 × log₁₀(spectral_power/Hz), following the application of
+        ``agg_fun``. Ignored if ``normalize=True``.
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    names : None | list
+        Labels for the sensors. If a :class:`list`, labels should correspond
+        to the order of channels in ``data``. If ``None`` (default), no channel
+        names are plotted.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        Array indicating channel-time combinations to highlight with a distinct
+        plotting style (useful for, e.g. marking which channels at which times a
+        statistical test of the data reaches significance).
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionchanged:: 0.21
 
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap_psd)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2 | "joint"
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data. Elements of the :class:`tuple` may also be
+        callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+        return a scalar.
+
+        If both entries are ``None``, the bounds are set at
+        ± the maximum absolute value
+        of the data (yielding a colormap with midpoint at 0), or
+        ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+        limits jointly across all topomaps of the same channel type (instead of
+        separately for each topomap), using the min/max of the data for that
+        channel type. Defaults to ``(None, None)``.
 
         .. versionadded:: 0.21
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.2
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap_psd)s
-    %(units_topomap)s
-    %(axes_spectrum_plot_topomap)s
-    %(show)s
-    %(n_jobs)s
-    %(verbose)s
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
+        If ``'auto'``, is equivalent to '%0.3f' if ``dB=False`` and '%0.1f' if
+        ``dB=True``. Defaults to ``'auto'``.
+    units : str | None
+        The units to use for the colorbar label. Ignored if ``colorbar=False``.
+        If ``None`` the label will be "AU" indicating arbitrary units.
+        Default is ``None``.
+    axes : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the length of ``bands``. Default is ``None``.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
     fig : instance of Figure
         Figure showing one scalp topography per frequency band.
-    """
+    """  # noqa: E501
     from ..channels import rename_channels
     from ..time_frequency import Spectrum
 
@@ -3123,7 +4223,34 @@ def plot_epochs_psd_topomap(
     return spectrum.plot_topomap(**plot_kw)
 
 
-@fill_doc
+@fill_doc_static(
+    "pos_topomap_psd",
+    "bands_psd_topo",
+    "ch_type_topomap",
+    "normalize_psd_topo",
+    "agg_fun_psd_topo",
+    "dB_plot_topomap",
+    "sensors_topomap",
+    "names_topomap",
+    "mask_evoked_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap_psd",
+    "cnorm",
+    "colorbar_topomap",
+    "cbar_fmt_topomap_psd",
+    "axes_spectrum_plot_topomap",
+    "show",
+)
 def plot_psds_topomap(
     psds,
     freqs,
@@ -3164,55 +4291,229 @@ def plot_psds_topomap(
         Power spectral densities.
     freqs : array of float, shape (n_freqs,)
         Frequencies used to compute psds.
-    %(pos_topomap_psd)s
-    %(bands_psd_topo)s
-    %(ch_type_topomap)s
-    %(normalize_psd_topo)s
-    %(agg_fun_psd_topo)s
-    %(dB_plot_topomap)s
-    %(sensors_topomap)s
-    %(names_topomap)s
-    %(mask_evoked_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    pos : array, shape (n_channels, 2)
+        Location information for the channels. If an array, should provide the x
+        and y coordinates for plotting the channels in 2D.
+    bands : None | dict | list of tuple
+        The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+        be used as subplot titles and values should be either a single frequency
+        (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+        and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+        frequency is provided, the plot will show the frequency bin that is closest
+        to the requested value. If ``None`` (the default), expands to::
+
+            bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                     'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                     'Gamma (30-45 Hz)': (30, 45)}
+
+        .. note::
+           For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+           also accepted, where the last element of the tuple is the subplot title
+           and the other entries are frequency values (a single value or band
+           edges). New code should use :class:`dict` or ``None``.
+
+        .. versionchanged:: 1.2
+           Allow passing a dict and discourage passing tuples.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the RMS for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
+    normalize : bool
+        If True, each band will be divided by the total power. Defaults to
+        False.
+    agg_fun : callable
+        The function used to aggregate over frequencies. Defaults to
+        :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+    dB : bool
+        Whether to plot on a decibel scale. If ``True``, plots
+        10 × log₁₀(spectral_power/Hz), following the application of
+        ``agg_fun``. Ignored if ``normalize=True``.
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    names : None | list
+        Labels for the sensors. If a :class:`list`, labels should correspond
+        to the order of channels in ``data``. If ``None`` (default), no channel
+        names are plotted.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        Array indicating channel-time combinations to highlight with a distinct
+        plotting style (useful for, e.g. marking which channels at which times a
+        statistical test of the data reaches significance).
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionchanged:: 0.21
 
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap_psd)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2 | "joint"
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data. Elements of the :class:`tuple` may also be
+        callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+        return a scalar.
+
+        If both entries are ``None``, the bounds are set at
+        ± the maximum absolute value
+        of the data (yielding a colormap with midpoint at 0), or
+        ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+        limits jointly across all topomaps of the same channel type (instead of
+        separately for each topomap), using the min/max of the data for that
+        channel type. Defaults to ``(None, None)``.
 
         .. versionadded:: 0.21
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.2
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap_psd)s
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
+        If ``'auto'``, is equivalent to '%0.3f' if ``dB=False`` and '%0.1f' if
+        ``dB=True``. Defaults to ``'auto'``.
     unit : str | None
         Measurement unit to be displayed with the colorbar. If ``None``, no
         unit is displayed (only "power" or "dB" as appropriate).
-    %(axes_spectrum_plot_topomap)s
-    %(show)s
+    axes : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the length of ``bands``. Default is ``None``.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
         Figure with a topomap subplot for each band.
-    """
+    """  # noqa: E501
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
 
@@ -3322,7 +4623,7 @@ def plot_psds_topomap(
     return fig
 
 
-@fill_doc
+@fill_doc_static("picks_layout")
 def plot_layout(layout, picks=None, show_axes=False, show=True):
     """Plot the sensor positions.
 
@@ -3330,7 +4631,10 @@ def plot_layout(layout, picks=None, show_axes=False, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    %(picks_layout)s
+    picks : array-like of str or int | slice | ``'all'`` | None
+        Channels to include in the layout. Slices and lists of integers will be
+        interpreted as channel indices. Can also be the string value ``'all'`` to
+        pick all channels. None (default) will pick all channels.
     show_axes : bool
             Show layout axes if True. Defaults to False.
     show : bool
@@ -3504,8 +4808,6 @@ def _topomap_animation(
     blit,
     axes,
     show,
-    vmin,
-    vmax,
     # pass-through kwargs
     average,
     ch_type,
@@ -3572,16 +4874,6 @@ def _topomap_animation(
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-    if vmin is not None or vmax is not None:
-        # Once this dep is done: remove vmin and vmax, and remove vlim from explicit
-        # pass below and above as a kwarg (so it just gets absorbed by
-        # _plot_evoked_topomap_kwargs)
-        vlim = (vmin, vmax)
-        warn(
-            f"vmax and vmin are deprecated, use vlim instead; using {vlim=}",
-            FutureWarning,
-        )
-        del vmin, vmax
     fig, topomap_params = _plot_evoked_topomap(
         evoked=evoked,
         # we handle these separately
@@ -3644,9 +4936,21 @@ def _topomap_animation(
     if butterfly:
         ax_line.plot(all_times, all_data.T, color="k", lw=0.5, alpha=0.5)
         ax_line.set_xlim(all_times[0], all_times[-1])
-        butterfly_vline = ax_line.axvline(used_times[0], color="r")
+        # zorder: above the axes spines, otherwise drawing the cursor on top of a
+        # cached background (blitting) does not match a full redraw
+        butterfly_vline = ax_line.axvline(used_times[0], color="r", zorder=3)
 
     params = dict(frame=0, frames=list(range(len(used_times))), pause=False, cont=cont)
+    # Blitting draws only the artists that ``animate`` returns, on top of a cached
+    # background, so everything sitting on top of the topomap image (time label, head
+    # outlines, sensor markers, channel names, ...) has to be redrawn along with it.
+    overdrawn = [
+        artist
+        for artist in ax.lines + ax.collections + ax.texts
+        if artist.get_zorder() > im.get_zorder() and artist is not cont
+    ]
+    if butterfly:
+        overdrawn.append(butterfly_vline)
     del cont
 
     def animate(frame):
@@ -3655,10 +4959,12 @@ def _topomap_animation(
         im.set_data(Zi)
         if time_format:
             text.set_text(time_format % (used_times[frame] * scaling_time))
-        params["cont"] = _update_contours(params["cont"], ax, Xi, Yi, Zi, contours)
-        items = [im]
+        params["cont"] = _update_contours(params["cont"], Xi, Yi, Zi, contours)
         if butterfly:
             butterfly_vline.set_xdata([used_times[frame]])
+        items = [im] + overdrawn
+        if params["cont"] is not None:
+            items.append(params["cont"])
         return _validate_artists(items)
 
     interval = 1000 / frame_rate  # interval is in ms
@@ -3696,6 +5002,9 @@ def _topomap_animation(
     fig.canvas.mpl_connect("key_press_event", key_press)
 
     fig.mne_animation = anim  # to make sure anim is not garbage collected
+    # Matplotlib only keeps the frame function privately (as ``anim._func``), and
+    # drawing a single frame without the timer is useful (e.g. in Report)
+    anim.mne_frame_func = animate
     plt_show(show, block=False)
 
     return fig, anim
@@ -3834,7 +5143,24 @@ def _trigradient(x, y, z):
     return dx, dy
 
 
-@fill_doc
+@fill_doc_static(
+    "vlim_plot_topomap",
+    "cnorm",
+    "cmap_topomap_simple",
+    "sensors_topomap",
+    "res_topomap",
+    "axes_plot_topomap",
+    "show_names_topomap",
+    "mask_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "outlines_topomap",
+    "contours_topomap",
+    "image_interp_topomap",
+    "show",
+    "extrapolate_topomap",
+    "sphere_topomap_auto",
+)
 def plot_arrowmap(
     data,
     info_from,
@@ -3882,32 +5208,111 @@ def plot_arrowmap(
         to be the same as info_from.
     scale : float
         To scale the arrows.
-    %(vlim_plot_topomap)s
+    vlim : tuple of length 2
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data.
+        If both entries are ``None``, the bounds are set at
+        ``(min(data), max(data))``.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. Defaults to ``(None, None)``.
 
         .. versionadded:: 1.2
-    %(cnorm)s
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
         .. versionadded:: 1.2
-    %(cmap_topomap_simple)s
-    %(sensors_topomap)s
-    %(res_topomap)s
-    %(axes_plot_topomap)s
-    %(show_names_topomap)s
+    cmap : str | matplotlib.colors.Colormap | None
+        Colormap to use. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'.
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    axes : instance of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created. Default is ``None``.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    %(mask_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    mask : ndarray of bool, shape (n_channels,) | None
+        Array indicating channel(s) to highlight with a distinct
+        plotting style.
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(outlines_topomap)s
-    %(contours_topomap)s
-    %(image_interp_topomap)s
-    %(show)s
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
     onselect : callable | None
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
-    %(extrapolate_topomap)s
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionadded:: 0.18
 
@@ -3916,7 +5321,41 @@ def plot_arrowmap(
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(sphere_topomap_auto)s
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
 
     Returns
     -------
@@ -3930,7 +5369,7 @@ def plot_arrowmap(
     References
     ----------
     .. footbibliography::
-    """
+    """  # noqa: E501
     from matplotlib import pyplot as plt
 
     from ..forward import _map_meg_or_eeg_channels
@@ -4018,7 +5457,7 @@ def plot_arrowmap(
     return fig
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def plot_bridged_electrodes(
     info, bridged_idx, ed_matrix, title=None, topomap_args=None
 ):
@@ -4026,7 +5465,9 @@ def plot_bridged_electrodes(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
@@ -4318,7 +5759,30 @@ def _set_adjacency(adjacency, both_nodes, value):
         adjacency[both_nodes, both_nodes[::-1]] = value
 
 
-@fill_doc
+@fill_doc_static(
+    "ch_type_topomap",
+    "sensors_topomap",
+    "show_names_topomap",
+    "mask_topomap",
+    "mask_params_topomap",
+    "mask_label_params_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "res_topomap",
+    "size_topomap",
+    "cmap_topomap",
+    "vlim_plot_topomap",
+    "cnorm",
+    "axes_evoked_plot_topomap",
+    "colorbar_topomap",
+    "cbar_fmt_topomap",
+    "title_none",
+    "show",
+)
 def plot_regression_weights(
     model,
     *,
@@ -4351,38 +5815,178 @@ def plot_regression_weights(
     ----------
     model : EOGRegression
         The fitted EOGRegression model whose weights will be plotted.
-    %(ch_type_topomap)s
-    %(sensors_topomap)s
-    %(show_names_topomap)s
-    %(mask_topomap)s
-    %(mask_params_topomap)s
-    %(mask_label_params_topomap)s
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+        The channel type to plot. For ``'grad'``, the gradiometers are
+        collected in pairs and the RMS for each pair is plotted. If ``None``
+        the first available channel type from order
+        shown above is used. Defaults to ``None``.
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
+    mask : ndarray of bool, shape (n_channels,) | None
+        Array indicating channel(s) to highlight with a distinct
+        plotting style.
+        Array elements set to ``True`` will be plotted
+        with the parameters given in ``mask_params``. Defaults to ``None``,
+        equivalent to an array of all ``False`` elements.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+    mask_label_params : dict | None
+        Additional plotting parameters for significant sensor labels.
+        Default (None) equals::
+
+            dict(fontsize='medium', fontweight='bold')
 
         .. versionadded:: 1.13
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
-    %(extrapolate_topomap)s
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionchanged:: 0.21
 
            - The default was changed to ``'local'`` for MEG sensors.
            - ``'local'`` was changed to use a convex hull mask
            - ``'head'`` was changed to extrapolate out to the clipping circle.
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 0.20
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cmap_topomap)s
-    %(vlim_plot_topomap)s
-    %(cnorm)s
-    %(axes_evoked_plot_topomap)s
-    %(colorbar_topomap)s
-    %(cbar_fmt_topomap)s
-    %(title_none)s
-    %(show)s
+    res : int
+        The resolution of the topomap image (number of pixels along each side).
+    size : float
+        Side length of each subplot in inches.
+    cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+        Colormap to use. If :class:`tuple`, the first value indicates the colormap
+        to use and the second value is a boolean defining interactivity. In
+        interactive mode the colors are adjustable by clicking and dragging the
+        colorbar with left and right mouse button. Left mouse button moves the
+        scale up and down and right mouse button adjusts the range. Hitting
+        space bar resets the range. Up and down arrows can be used to change
+        the colormap. If ``None``, ``'Reds'`` is used for data that is either
+        all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+        ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+        .. warning::  Interactive mode works smoothly only for a small amount
+            of topomaps. Interactive mode is disabled by default for more than
+            2 topomaps.
+    vlim : tuple of length 2
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data.
+        If both entries are ``None``, the bounds are set at
+        ``(min(data), max(data))``.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. Defaults to ``(None, None)``.
+    cnorm : matplotlib.colors.Normalize | None
+        How to normalize the colormap. If ``None``, standard linear normalization
+        is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+        See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+        for more details on colormap normalization, and
+        :ref:`the ERDs example<cnorm-example>` for an example of its use.
+    axes : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the number of ``times`` provided (unless ``times`` is
+        ``None``). Default is ``None``.
+    colorbar : bool
+        Plot a colorbar in the rightmost column of the figure.
+    cbar_fmt : str
+        Formatting string for colorbar tick labels. See :ref:`formatspec` for
+        details.
+    title : str | None
+        The title of the generated figure. If ``None`` (default), no title is
+        displayed.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
 
     Returns
     -------
@@ -4392,7 +5996,7 @@ def plot_regression_weights(
     Notes
     -----
     .. versionadded:: 1.2
-    """
+    """  # noqa: E501
     import matplotlib
     import matplotlib.pyplot as plt
 

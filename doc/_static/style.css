@@ -460,16 +460,10 @@ div.sphx-glr-animation video {
     margin-right: 0 !important;
 }
 
-/* widen main content area */
-.bd-page-width {
-    max-width: 100rem;
-}
+/* widen main content area; article selector must match the theme's 3-class one or its 60em wins */
 .bd-sidebar-primary {
     max-width: 16rem;
 }
-.bd-article-container {
-    max-width: 75em;
-}
-.bd-main .bd-content {
-    justify-content: flex-start;
+.bd-main .bd-content .bd-article-container {
+    max-width: none;
 }

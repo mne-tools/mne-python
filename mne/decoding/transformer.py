@@ -18,7 +18,12 @@ from ..cov import _check_scalings_user
 from ..epochs import BaseEpochs
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
-from ..utils import _check_option, _validate_type, check_version, fill_doc
+from ..utils import (
+    _check_option,
+    _validate_type,
+    check_version,
+    fill_doc_static,
+)
 from ._fixes import validate_data
 
 
@@ -123,7 +128,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
         return X
 
 
-@fill_doc
+@fill_doc_static("info")
 class Scaler(MNETransformerMixin, BaseEstimator):
     """Standardize channel data.
 
@@ -136,7 +141,10 @@ class Scaler(MNETransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    %(info)s Only necessary if ``scalings`` is a dict or None.
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Only necessary if ``scalings`` is a dict or None.
     scalings : dict | str | None
         Scaling method to be applied to data channel wise.
 
@@ -397,7 +405,7 @@ class Vectorizer(MNETransformerMixin, BaseEstimator):
         return X.reshape(X.shape[:-1] + self.features_shape_)
 
 
-@fill_doc
+@fill_doc_static("normalization")
 class PSDEstimator(MNETransformerMixin, BaseEstimator):
     """Compute power spectral density (PSD) using a multi-taper method.
 
@@ -415,11 +423,14 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    %(normalization)s
+    normalization : 'full' | 'length'
+        Normalization strategy. If "full", the PSD will be normalized by the
+        sampling rate as well as the length of the signal (as in
+        :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.
 
     See Also
     --------
@@ -503,7 +514,16 @@ class PSDEstimator(MNETransformerMixin, BaseEstimator):
         return psd
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none",
+    "l_freq",
+    "h_freq",
+    "picks_good_data",
+    "filter_length",
+    "l_trans_bandwidth",
+    "h_trans_bandwidth",
+    "fir_design",
+)
 class FilterEstimator(MNETransformerMixin, BaseEstimator):
     """Estimator to filter RtEpochs.
 
@@ -523,13 +543,54 @@ class FilterEstimator(MNETransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(l_freq)s
-    %(h_freq)s
-    %(picks_good_data)s
-    %(filter_length)s
-    %(l_trans_bandwidth)s
-    %(h_trans_bandwidth)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    l_freq : float | None
+        For FIR filters, the lower pass-band edge; for IIR filters, the lower
+        cutoff frequency. If None the data are only low-passed.
+    h_freq : float | None
+        For FIR filters, the upper pass-band edge; for IIR filters, the upper
+        cutoff frequency. If None the data are only high-passed.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+        * **'auto' (default)**: The filter length is chosen based
+          on the size of the transition regions (6.6 times the reciprocal
+          of the shortest transition band for fir_window='hamming'
+          and fir_design="firwin2", and half that for "firwin").
+        * **str**: A human-readable time in
+          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+          converted to that number of samples if ``phase="zero"``, or
+          the shortest power-of-two length at least that duration for
+          ``phase="zero-double"``.
+        * **int**: Specified length in samples. For fir_design="firwin",
+          this should not be used.
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
     n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
@@ -539,7 +600,13 @@ class FilterEstimator(MNETransformerMixin, BaseEstimator):
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    %(fir_design)s
+    fir_design : str
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        .. versionadded:: 0.15
 
     See Also
     --------
@@ -774,7 +841,7 @@ class UnsupervisedSpatialFilter(MNETransformerMixin, BaseEstimator):
         return X
 
 
-@fill_doc
+@fill_doc_static()
 class TemporalFilter(MNETransformerMixin, BaseEstimator):
     """Estimator to filter data array along the last dimension.
 

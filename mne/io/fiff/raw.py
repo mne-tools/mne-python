@@ -22,10 +22,10 @@ from ...utils import (
     _check_fname,
     _file_like,
     _on_missing,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ...utils._typing import FileLike, Self
@@ -38,7 +38,7 @@ from ..base import (
 )
 
 
-@fill_doc
+@fill_doc_static("preload", "on_split_missing", "verbose", "info_not_none")
 class Raw(BaseRaw):
     """Raw data in FIF format.
 
@@ -60,13 +60,37 @@ class Raw(BaseRaw):
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    %(preload)s
-    %(on_split_missing)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    on_split_missing : str
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when split file is missing.
+
+        .. versionadded:: 0.22
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     ch_names : list of string
         List of channels' names.
     n_times : int
@@ -89,7 +113,7 @@ class Raw(BaseRaw):
         "_read_raw_file",  # this would be ugly to move, but maybe we should
     )
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         fname: Path | str | FileLike | None,
@@ -98,6 +122,12 @@ class Raw(BaseRaw):
         on_split_missing: str = "raise",
         verbose: bool | str | int | None = None,
     ):
+        if isinstance(preload, str) and preload == "auto":
+            if _file_like(fname):
+                raise ValueError(
+                    'preload="auto" requires stable source files and is not '
+                    "supported for file-like FIF inputs"
+                )
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname
@@ -176,7 +206,7 @@ class Raw(BaseRaw):
             if not isinstance(extra["filename"], Path):
                 extra["filename"] = None
 
-    @verbose
+    @_verbose_control
     def _read_raw_file(
         self, fname, allow_maxshield, preload, do_check_ext=True, verbose=None
     ):
@@ -198,7 +228,9 @@ class Raw(BaseRaw):
                 check_fname(fname, "raw", endings)
             # filename
             fname = _check_fname(fname, "read", True, "fname")
-            whole_file = preload if fname.suffix == ".gz" else False
+            whole_file = (
+                preload if preload != "auto" and fname.suffix == ".gz" else False
+            )
         else:
             # file-like
             if not preload:
@@ -498,7 +530,7 @@ def _check_entry(first, nent):
         raise OSError("Could not read data, perhaps this is a corrupt file")
 
 
-@fill_doc
+@fill_doc_static("preload", "on_split_missing", "verbose")
 def read_raw_fif(
     fname: Path | str | FileLike,
     allow_maxshield: bool | str = False,
@@ -525,9 +557,31 @@ def read_raw_fif(
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    %(preload)s
-    %(on_split_missing)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    on_split_missing : str
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when split file is missing.
+
+        .. versionadded:: 0.22
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

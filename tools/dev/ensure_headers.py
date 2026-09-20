@@ -49,20 +49,18 @@ def get_paths_from_tree(root, level=0):
 def first_commentable_line(lines):
     """Find the first line where we can add a comment."""
     max_len = 100
-    if lines[0].startswith(('"""', 'r"""')):
-        if lines[0].count('"""') == 2:
-            return 1
-        for insert in range(1, min(max_len, len(lines))):
+    start = 1 if lines[0].startswith("#!") else 0  # keep a shebang first
+    if lines[start].startswith(('"""', 'r"""')):
+        if lines[start].count('"""') == 2:
+            return start + 1
+        for insert in range(start + 1, min(start + max_len, len(lines))):
             if '"""' in lines[insert]:
                 return insert + 1
         else:
             raise RuntimeError(
                 f"Failed to find end of file docstring within {max_len} lines"
             )
-    if lines[0].startswith("#!"):
-        return 1
-    else:
-        return 0
+    return start
 
 
 def path_multi_author(path):

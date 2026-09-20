@@ -20,7 +20,7 @@ from ..utils import (
     _ensure_int,
     _to_rgb,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
 )
 from ._3d_overlay import LayeredMesh
 from .ui_events import (
@@ -34,7 +34,7 @@ from .ui_events import (
 from .utils import mne_analyze_colormap
 
 
-@fill_doc
+@fill_doc_static("n_jobs", "interpolation_brain_time", "interaction_scene", "verbose")
 class EvokedField:
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
@@ -49,12 +49,23 @@ class EvokedField:
         the average peak latency (across sensor types) is used.
     time_label : str | None
         How to print info about the time instant visualized.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     fig : instance of Figure3D | None
         If None (default), a new figure will be created, otherwise it will
-        plot into the given figure.
+        plot into the given figure. When a figure is given, the caller is in charge
+        of its presentation: the camera, the interaction style, and showing the
+        window.
 
         .. versionadded:: 0.20
+        .. versionchanged:: 1.13
+           When a figure is given, the camera and interaction style are no longer
+           changed, and the figure is no longer shown.
     vmax : float | dict | None
         Maximum intensity. Can be a dictionary with two entries ``"eeg"`` and ``"meg"``
         to specify separate values for EEG and MEG fields respectively. Can be
@@ -68,6 +79,14 @@ class EvokedField:
         The number of contours.
 
         .. versionadded:: 0.21
+    contour_line_width : float
+        The line_width of the contour lines.
+
+        .. versionadded:: 1.12
+    contour_line_opacity : float
+        The opacity of the contour lines (between 0 and 1).
+
+        .. versionadded:: 1.12
     show_density : bool
         Whether to draw the field density as an overlay on top of the helmet/head
         surface. Defaults to ``True``.
@@ -78,10 +97,19 @@ class EvokedField:
         map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
 
         .. versionadded:: 1.4
-    %(interpolation_brain_time)s
+    interpolation : str | None
+        Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
+        Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+        ``'quadratic'`` or ``'cubic'``.
 
         .. versionadded:: 1.6
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
@@ -90,7 +118,21 @@ class EvokedField:
         ``True`` if there is more than one time point and ``False`` otherwise.
 
         .. versionadded:: 1.6
-    %(verbose)s
+    background : tuple(int, int, int)
+        The color definition of the background: (red, green, blue).
+
+        .. versionadded:: 1.12
+    foreground : matplotlib color
+        Color of the foreground (will be used for colorbars and text).
+        None (default) will use black or white depending on the value
+        of ``background``.
+
+        .. versionadded:: 1.12
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----
@@ -112,11 +154,15 @@ class EvokedField:
         fig=None,
         vmax=None,
         n_contours=21,
+        contour_line_width=1,
+        contour_line_opacity=1.0,
         show_density=True,
         alpha=None,
         interpolation="nearest",
         interaction="terrain",
         time_viewer="auto",
+        background="black",
+        foreground=None,
         verbose=None,
     ):
         from .backends.renderer import _get_3d_backend, _get_renderer
@@ -133,6 +179,8 @@ class EvokedField:
 
         self._vmax = _validate_type(vmax, (None, "numeric", dict), "vmax")
         self._n_contours = _ensure_int(n_contours, "n_contours")
+        self._contour_line_width = contour_line_width
+        self._contour_line_opacity = contour_line_opacity
         self._time_interpolation = _check_option(
             "interpolation",
             interpolation,
@@ -141,6 +189,10 @@ class EvokedField:
         self._interaction = _check_option(
             "interaction", interaction, ["trackball", "terrain"]
         )
+        self._bg_color = _to_rgb(background, name="background")
+        if foreground is None:
+            foreground = "w" if sum(self._bg_color) < 2 else "k"
+        self._fg_color = _to_rgb(foreground, name="foreground")
 
         surf_map_kinds = [surf_map["kind"] for surf_map in surf_maps]
         if vmax is None:
@@ -182,9 +234,11 @@ class EvokedField:
 
         from ._brain import Brain
 
+        # When plotting into an existing figure (Brain or Figure3D), the caller owns
+        # the presentation: the camera, the interaction style and showing the window.
+        self._own_figure = fig is None
         if isinstance(fig, Brain):
             self._renderer = fig._renderer
-            self._in_brain_figure = True
             self._units = fig._units
             if _get_3d_backend() == "notebook":
                 raise NotImplementedError(
@@ -192,13 +246,9 @@ class EvokedField:
                     "is currently not supported inside a notebook."
                 )
         else:
-            self._renderer = _get_renderer(
-                fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600)
-            )
-            self._in_brain_figure = False
+            self._renderer = _get_renderer(fig, bgcolor=background, size=(600, 600))
             self._units = "m"
 
-        self.plotter = self._renderer.plotter
         self.interaction = interaction
 
         # Prepare the surface maps
@@ -236,7 +286,7 @@ class EvokedField:
                     if "%" in time_label:
                         time_label = time_label % np.round(1e3 * time)
                     self._time_label_actor = self._renderer.text2d(
-                        x_window=0.01, y_window=0.01, text=time_label
+                        x_window=0.01, y_window=0.01, text=time_label, color=foreground
                     )
             self._configure_dock()
 
@@ -244,10 +294,14 @@ class EvokedField:
         subscribe(self, "colormap_range", self._on_colormap_range)
         subscribe(self, "contours", self._on_contours)
 
-        if not self._in_brain_figure:
+        if self._own_figure:
             self._renderer.set_interaction(interaction)
             self._renderer.set_camera(azimuth=10, elevation=60, distance="auto")
             self._renderer.show()
+
+    @property
+    def plotter(self):
+        return self._renderer.plotter
 
     def _prepare_surf_map(self, surf_map, color, alpha):
         """Compute all the data required to render a fieldlines map."""
@@ -318,17 +372,19 @@ class EvokedField:
         # And the field lines on top
         if self._n_contours > 1:
             contours = np.linspace(-map_vmax, map_vmax, self._n_contours)
-            contours_actor, _ = self._renderer.contour(
+            contours_actor, contours_alg = self._renderer.contour(
                 surface=surf,
                 scalars=current_data,
                 contours=contours,
                 vmin=-map_vmax,
                 vmax=map_vmax,
                 colormap=self._colormap_lines,
+                width=self._contour_line_width,
+                opacity=self._contour_line_opacity,
             )
         else:
             contours = None  # noqa
-            contours_actor = None
+            contours_actor = contours_alg = None
 
         return dict(
             pick=pick,
@@ -338,6 +394,7 @@ class EvokedField:
             mesh=mesh,
             contours=contours,
             contours_actor=contours_actor,
+            contours_alg=contours_alg,
             surf=surf,
             map_vmax=map_vmax,
         )
@@ -348,18 +405,39 @@ class EvokedField:
             current_data = surf_map["data_interp"](self._current_time)
             surf_map["mesh"].update_overlay(name="field", scalars=current_data)
 
-            if surf_map["contours"] is not None:
+            show_contours = surf_map["contours"] is not None and self._n_contours > 1
+            if show_contours and surf_map["contours_alg"] is not None:
+                # The filter is still connected to its surface, so pushing the new
+                # values in re-runs it on the next render: no need to build a new
+                # actor for every time point.
+                self._renderer._update_contour(
+                    surf_map["contours_alg"],
+                    scalars=current_data,
+                    contours=surf_map["contours"],
+                )
+                actor = surf_map["contours_actor"]
+                actor.prop.line_width = self._contour_line_width
+                actor.prop.opacity = self._contour_line_opacity
+            elif show_contours or surf_map["contours_actor"] is not None:
+                # The contours appeared or disappeared entirely, which needs a
+                # new actor (or none at all).
                 self._renderer.plotter.remove_actor(
                     surf_map["contours_actor"], render=False
                 )
-                if self._n_contours > 1:
-                    surf_map["contours_actor"], _ = self._renderer.contour(
+                surf_map["contours_actor"] = surf_map["contours_alg"] = None
+                if show_contours:
+                    (
+                        surf_map["contours_actor"],
+                        surf_map["contours_alg"],
+                    ) = self._renderer.contour(
                         surface=surf_map["surf"],
                         scalars=current_data,
                         contours=surf_map["contours"],
                         vmin=-surf_map["map_vmax"],
                         vmax=surf_map["map_vmax"],
                         colormap=self._colormap_lines,
+                        width=self._contour_line_width,
+                        opacity=self._contour_line_opacity,
                     )
         if self._time_label is not None:
             if hasattr(self, "_time_label_actor"):
@@ -370,7 +448,7 @@ class EvokedField:
             if "%" in self._time_label:
                 time_label = self._time_label % np.round(1e3 * self._current_time)
             self._time_label_actor = self._renderer.text2d(
-                x_window=0.01, y_window=0.01, text=time_label
+                x_window=0.01, y_window=0.01, text=time_label, color=self._fg_color
             )
 
         self._renderer._update()
@@ -379,11 +457,12 @@ class EvokedField:
         """Configure the widgets shown in the dock on the left."""
         r = self._renderer
 
-        if not hasattr(r, "_dock"):
+        existing_dock = hasattr(r, "_dock")
+        if not existing_dock:
             r._dock_initialize()
 
         # Fieldline configuration
-        layout = r._dock_add_group_box("Fieldlines", collapse=True)
+        layout = r._dock_add_group_box("Fieldlines", collapse=False)
 
         r._dock_add_label(value="max value", align=True, layout=layout)
 
@@ -416,6 +495,10 @@ class EvokedField:
             )
             r._layout_add_widget(layout, hlayout)
 
+        @_auto_weakref
+        def _rescale():
+            self._rescale()
+
         hlayout = r._dock_add_layout(vertical=False)
         r._dock_add_label(
             value="Rescale",
@@ -424,11 +507,15 @@ class EvokedField:
         )
         r._dock_add_button(
             name="↺",
-            callback=self._rescale,
+            callback=_rescale,
             layout=hlayout,
             style="toolbutton",
         )
         r._layout_add_widget(layout, hlayout)
+
+        @_auto_weakref
+        def _set_contours(n_contours):
+            self.set_contours(n_contours)
 
         self._widgets["contours"] = r._dock_add_spin_box(
             name="Contour lines",
@@ -436,10 +523,38 @@ class EvokedField:
             rng=[0, 99],
             step=1,
             double=False,
-            callback=self.set_contours,
+            callback=_set_contours,
             layout=layout,
         )
-        r._dock_finalize()
+
+        @_auto_weakref
+        def _set_contour_line_width(line_width):
+            self.set_contour_line_width(line_width)
+
+        self._widgets["contour_line_width"] = r._dock_add_slider(
+            name="Thickness",
+            value=self._contour_line_width,
+            rng=[0, 5],
+            callback=_set_contour_line_width,
+            double=True,
+            layout=layout,
+        )
+
+        @_auto_weakref
+        def _set_contour_line_opacity(opacity):
+            self.set_contour_line_opacity(opacity)
+
+        self._widgets["contour_line_opacity"] = r._dock_add_slider(
+            name="Opacity",
+            value=self._contour_line_opacity,
+            rng=[0, 1],
+            callback=_set_contour_line_opacity,
+            double=True,
+            layout=layout,
+        )
+
+        if not existing_dock:
+            r._dock_finalize()
 
     def _on_time_change(self, event):
         """Respond to time_change UI event."""
@@ -500,9 +615,13 @@ class EvokedField:
                 break
         surf_map["contours"] = event.contours
         self._n_contours = len(event.contours)
+        if event.line_width is not None:
+            self._contour_line_width = event.line_width
         with disable_ui_events(self):
             if "contours" in self._widgets:
                 self._widgets["contours"].set_value(len(event.contours))
+            if "contour_line_width" in self._widgets and event.line_width is not None:
+                self._widgets["contour_line_width"].set_value(event.line_width)
         self._update()
 
     def set_time(self, time):
@@ -537,6 +656,7 @@ class EvokedField:
                     contours=np.linspace(
                         -surf_map["map_vmax"], surf_map["map_vmax"], n_contours
                     ).tolist(),
+                    line_width=self._contour_line_width,
                 ),
             )
 
@@ -571,3 +691,30 @@ class EvokedField:
             current_data = surf_map["data_interp"](self._current_time)
             vmax = float(np.max(current_data))
             self.set_vmax(vmax, kind=surf_map["map_kind"])
+
+    def set_contour_line_width(self, line_width):
+        """Set the line_width of the contour lines.
+
+        Parameters
+        ----------
+        line_width : float
+            The desired line_width of the contour lines.
+        """
+        self._contour_line_width = line_width
+        self.set_contours(self._n_contours)
+
+    def set_contour_line_opacity(self, opacity):
+        """Set the opacity of the contour lines.
+
+        Parameters
+        ----------
+        opacity : float
+            The desired opacity of the contour lines (between 0 and 1).
+        """
+        self._contour_line_opacity = opacity
+        widget = self._widgets.get("contour_line_opacity", None)
+        if widget is not None and widget.get_value() != opacity:
+            # this re-enters this method through the widget callback, which is where
+            # the redraw below then happens
+            widget.set_value(opacity)
+        self._update()

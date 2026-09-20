@@ -181,7 +181,6 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
 """  # noqa: E501
 
 
-@pytest.mark.parametrize("preload", (True, False))
 @pytest.mark.parametrize(
     "version, n_ch, n_times, lowpass, sex, date, end",
     [
@@ -193,10 +192,10 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
         (["1.18", "1.18"], 92, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
     ],
 )
-def test_hitachi_basic(
-    preload, version, n_ch, n_times, lowpass, sex, date, end, tmp_path
-):
+def test_hitachi_basic(version, n_ch, n_times, lowpass, sex, date, end, tmp_path):
     """Test NIRSport1 file with no saturation."""
+    # preload=True/False (and memmapped, and "auto") is covered by
+    # _test_raw_reader below, so this test does not parametrize over it
     if not isinstance(version, list):
         versions = [version]
     else:
@@ -213,7 +212,7 @@ def test_hitachi_basic(
             fid.write(CONTENTS[v])
         fnames.append(fname)
         del fname
-    raw = read_raw_hitachi(fnames, preload=preload, verbose=True)
+    raw = read_raw_hitachi(fnames, preload=True, verbose=True)
     data = raw.get_data()
     assert data.shape == (n_ch, n_times)
     assert raw.info["sfreq"] == 10

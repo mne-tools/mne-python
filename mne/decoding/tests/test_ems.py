@@ -11,10 +11,10 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 pytest.importorskip("sklearn")
 
 from sklearn.model_selection import StratifiedKFold
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, io, pick_types, read_events
 from mne.decoding import EMS, compute_ems
+from mne.decoding.tests._sklearn import parametrize_with_checks
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"

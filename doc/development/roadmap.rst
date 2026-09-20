@@ -39,7 +39,11 @@ dictionary called the ``docdict``). There are two major downsides:
    hover-tooltips in IDEs are less useful than they would be if the docstrings were
    complete in-place.
 
-A possible route forward:
+The route now being taken (see :ref:`the contributing guide <contributing>`):
+keep the ``docdict`` as the single place shared text is *authored*, but expand it
+into the source code (``@fill_doc_static`` / ``@verbose_static``) and enforce
+consistency with a pre-commit hook that can also apply ``docdict`` changes to every
+docstring. An earlier alternative that was considered:
 
 - Convert all docstrings to be fully spelled out in the source code.
 - Instead of maintaining the ``docdict``, maintain a registry of sets of

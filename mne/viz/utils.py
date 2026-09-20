@@ -50,10 +50,10 @@ from ..utils import (
     _pl,
     _to_rgb,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     get_config,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.misc import _identity_function
@@ -549,7 +549,7 @@ def _get_figsize_from_config():
     return figsize
 
 
-@verbose
+@verbose_static()
 def compare_fiff(
     fname_1,
     fname_2,
@@ -581,7 +581,11 @@ def compare_fiff(
     max_str : int
         Max number of characters of string representation to print for
         each tag's data.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -674,6 +678,137 @@ def _key_press(event):
 
     if event.key == "escape":
         plt.close(event.canvas.figure)
+
+
+class _BlitManager:
+    """Redraw a few fast-changing artists without redrawing the whole figure.
+
+    Artists added with :meth:`add` are left out of the cached figure background, so
+    that moving them (a time cursor, a label that travels with it, ...) costs a blit
+    of that background rather than a full redraw of the figure. They are drawn on top
+    of that background, so they should be the topmost artists of their axes for the
+    blitted figure to match a full redraw.
+
+    Parameters
+    ----------
+    fig : instance of matplotlib.figure.Figure
+        The figure to blit.
+    draw : callable | None
+        What to call for a full, *synchronous* redraw of the figure. Defaults to the
+        figure canvas' ``draw``.
+    """
+
+    def __init__(self, fig, draw=None):
+        self._fig = fig
+        self._draw = fig.canvas.draw if draw is None else draw
+        self._artists = list()
+        self._background = None
+        self._capturing = False
+        self._cid = None
+        # Connect as early as possible: Matplotlib's blitting widgets redraw the
+        # figure from inside their own draw_event callback (see
+        # `SpanSelector.update_background`), so a manager connected after one of
+        # those would see a canvas they had already drawn on.
+        self._connect()
+
+    def add(self, artist):
+        """Mark an artist as fast-updating, to be drawn by :meth:`update`.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to draw separately.
+        """
+        self._connect()
+        if not self._fig.canvas.supports_blit:  # e.g. ipympl in a notebook
+            return
+        if artist in self._artists:
+            return
+        self._artists.append(artist)
+        self._background = None  # the cached background may contain this artist
+
+    def remove(self, artist):
+        """Stop drawing an artist separately, putting it back in the background.
+
+        Parameters
+        ----------
+        artist : instance of matplotlib.artist.Artist
+            The artist to stop drawing separately. Artists that were never added
+            are ignored.
+        """
+        if artist not in self._artists:
+            return
+        self._artists.remove(artist)
+        self._background = None
+        self._draw()
+
+    def update(self, artists=None):
+        """Redraw only the artists added with :meth:`add`.
+
+        This is the fast path taken while the artists move; any other change to the
+        figure needs a full redraw instead.
+
+        Parameters
+        ----------
+        artists : list of matplotlib.artist.Artist | None
+            Artists to draw instead of the ones added so far, for callers that
+            rebuild some of them for every frame (e.g. a contour set, which
+            Matplotlib cannot update in place). The cached background stays valid,
+            as it never contained any of them.
+        """
+        if artists is not None and self._fig.canvas.supports_blit:
+            self._artists = list(artists)
+        if not self._artists:  # nothing to draw fast (e.g. blitting unsupported)
+            self._draw()
+            return
+        if self._background is None:
+            self._capture()
+        self._fig.canvas.restore_region(self._background)
+        self._draw_artists()
+        self._fig.canvas.blit(self._fig.bbox)
+
+    def close(self):
+        """Forget the artists and stop tracking the figure background."""
+        if self._cid is not None:
+            self._fig.canvas.mpl_disconnect(self._cid)
+            self._cid = None
+        self._artists.clear()  # the artists go away with the figure
+        self._background = None
+
+    def _connect(self):
+        # Drop the cached background after every full redraw, whatever caused it (an
+        # explicit draw, a resize, a DPI change, ...). The canvas can still be missing
+        # when the manager is built alongside its figure, hence the retry from
+        # :meth:`add`.
+        if self._cid is None and self._fig.canvas is not None:
+            self._cid = self._fig.canvas.mpl_connect("draw_event", self._on_draw)
+
+    def _capture(self):
+        """Cache a picture of the figure without the fast-updating artists."""
+        # Hiding the artists for one redraw is how Matplotlib's own blitting widgets
+        # keep themselves out of their background, see `SpanSelector.update_background`.
+        # Marking them ``animated`` instead would keep them out of *every* redraw,
+        # which costs those same widgets a full redraw of the figure per draw event.
+        visible = [artist.get_visible() for artist in self._artists]
+        self._capturing = True
+        try:
+            for artist in self._artists:
+                artist.set_visible(False)
+            self._draw()
+            self._background = self._fig.canvas.copy_from_bbox(self._fig.bbox)
+        finally:
+            for artist, was_visible in zip(self._artists, visible):
+                artist.set_visible(was_visible)
+            self._capturing = False
+
+    def _draw_artists(self):
+        for artist in sorted(self._artists, key=lambda artist: artist.get_zorder()):
+            self._fig.draw_artist(artist)
+
+    def _on_draw(self, event=None):
+        """Drop the cached background after a full redraw (draw_event callback)."""
+        if not self._capturing:  # ... except the one :meth:`_capture` just asked for
+            self._background = None
 
 
 class ClickableImage:
@@ -921,7 +1056,7 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     return use_times
 
 
-@verbose
+@verbose_static("info_not_none", "axes_montage", "sphere_topomap_auto")
 def plot_sensors(
     info,
     kind="topomap",
@@ -944,7 +1079,9 @@ def plot_sensors(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
@@ -960,7 +1097,7 @@ def plot_sensors(
         above.
     title : str | None
         Title for the figure. If None (default), equals to
-        ``'Sensor positions (%%s)' %% ch_type``.
+        ``'Sensor positions (%s)' % ch_type``.
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
@@ -979,7 +1116,9 @@ def plot_sensors(
         subject's head. Has no effect when ``kind='3d'``. Defaults to True.
 
         .. versionadded:: 0.14.0
-    %(axes_montage)s
+    axes : instance of Axes | instance of Axes3D | None
+        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+        of Axes3D. If None (default), a new axes will be created.
 
         .. versionadded:: 0.13.0
     block : bool | None
@@ -995,7 +1134,41 @@ def plot_sensors(
            The default changed from ``False`` to ``None`` (follow Matplotlib).
     show : bool
         Show figure if True. Defaults to True.
-    %(sphere_topomap_auto)s
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
     pointsize : float | None
         The size of the points. If None (default), will bet set to ``75`` if
         ``kind='3d'``, or ``25`` otherwise.
@@ -1005,7 +1178,11 @@ def plot_sensors(
         Colormap for coloring ch_groups. Has effect only when ``ch_groups``
         is list of list. If None, set to ``matplotlib.rcParams["image.cmap"]``.
         Defaults to None.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1025,7 +1202,7 @@ def plot_sensors(
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
-    """
+    """  # noqa: E501
     from .evoked import _rgb
 
     _check_option("kind", kind, ["topomap", "3d", "select"])
@@ -2375,7 +2552,7 @@ def _plot_masked_image(
     return im, t_end
 
 
-@fill_doc
+@fill_doc_static()
 def _make_combine_callable(
     combine,
     *,

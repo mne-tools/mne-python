@@ -23,9 +23,9 @@ from ...utils import (
     _check_fname,
     _file_like,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ...utils._typing import FileLike
@@ -59,7 +59,14 @@ CH_TYPE_MAPPING = {
 }
 
 
-@fill_doc
+@fill_doc_static(
+    "preload",
+    "units_edf_bdf_io",
+    "encoding_edf",
+    "exclude_after_unique",
+    "verbose",
+    "edf_resamp_note",
+)
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+ file.
 
@@ -103,11 +110,39 @@ class RawEDF(BaseRaw):
         expression. 'exclude' must be empty if include is assigned.
 
         .. versionadded:: 1.1
-    %(preload)s
-    %(units_edf_bdf_io)s
-    %(encoding_edf)s
-    %(exclude_after_unique)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    units : dict | str
+        The units of the channels as stored in the file. This argument
+        is useful only if the units are missing from the original file.
+        If a dict, it must map a channel name to its unit, and if str
+        it is assumed that all channels have the same units.
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.  If False, the original names are checked.
+
+        .. versionchanged:: 1.7
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -116,7 +151,11 @@ class RawEDF(BaseRaw):
 
     Notes
     -----
-    %(edf_resamp_note)s
+    :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+    Therefore, if mixed sampling frequency signals are requested, all signals
+    are upsampled to the highest loaded sampling frequency. In this case, using
+    preload=True is recommended, as otherwise, edge artifacts appear when
+    slices of the signal are requested.
 
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
     codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
@@ -154,7 +193,7 @@ class RawEDF(BaseRaw):
     encoded in such analog stim channels.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -252,9 +291,11 @@ class RawEDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -271,7 +312,14 @@ def _path_from_fname(fname) -> Path | None:
         return None
 
 
-@fill_doc
+@fill_doc_static(
+    "preload",
+    "units_edf_bdf_io",
+    "encoding_edf",
+    "exclude_after_unique",
+    "verbose",
+    "edf_resamp_note",
+)
 class RawBDF(BaseRaw):
     """Raw object from BDF file.
 
@@ -315,11 +363,39 @@ class RawBDF(BaseRaw):
         expression. 'exclude' must be empty if include is assigned.
 
         .. versionadded:: 1.1
-    %(preload)s
-    %(units_edf_bdf_io)s
-    %(encoding_edf)s
-    %(exclude_after_unique)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    units : dict | str
+        The units of the channels as stored in the file. This argument
+        is useful only if the units are missing from the original file.
+        If a dict, it must map a channel name to its unit, and if str
+        it is assumed that all channels have the same units.
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.  If False, the original names are checked.
+
+        .. versionchanged:: 1.7
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -328,7 +404,11 @@ class RawBDF(BaseRaw):
 
     Notes
     -----
-    %(edf_resamp_note)s
+    :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+    Therefore, if mixed sampling frequency signals are requested, all signals
+    are upsampled to the highest loaded sampling frequency. In this case, using
+    preload=True is recommended, as otherwise, edge artifacts appear when
+    slices of the signal are requested.
 
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
     codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
@@ -366,7 +446,7 @@ class RawBDF(BaseRaw):
     encoded in such analog stim channels.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -464,15 +544,17 @@ class RawBDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawGDF(BaseRaw):
     """Raw object from GDF file.
 
@@ -507,8 +589,25 @@ class RawGDF(BaseRaw):
         expression. 'exclude' must be empty if include is assigned.
 
         .. versionadded:: 1.1
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -522,7 +621,7 @@ class RawGDF(BaseRaw):
     encoded in such analog stim channels.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -582,9 +681,11 @@ class RawGDF(BaseRaw):
             start,
             stop,
             self._raw_extras[fi],
-            self.filenames[fi]
-            if self._raw_extras[fi]["blob"] is None
-            else self._raw_extras[fi]["blob"],
+            (
+                self.filenames[fi]
+                if self._raw_extras[fi]["blob"] is None
+                else self._raw_extras[fi]["blob"]
+            ),
             cals,
             mult,
         )
@@ -595,11 +696,37 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     assert dtype is not None
     # BDF
     if subtype == "bdf":
-        ch_data = read_from_file_or_buffer(fid, dtype=dtype, count=samp * dtype_byte)
-        ch_data = ch_data.reshape(-1, 3).astype(INT32)
-        ch_data = (ch_data[:, 0]) + (ch_data[:, 1] << 8) + (ch_data[:, 2] << 16)
-        # 24th bit determines the sign
-        ch_data[ch_data >= (1 << 23)] -= 1 << 24
+        assert dtype_byte == 3
+        expected = samp * dtype_byte
+        try:
+            raw = read_from_file_or_buffer(fid, dtype=dtype, count=expected)
+        except ValueError as err:
+            raise RuntimeError(
+                f"Could not read {expected} requested BDF bytes"
+            ) from err
+        if raw.size != expected:
+            raise RuntimeError(
+                f"Only {raw.size} of {expected} requested BDF bytes could be read"
+            )
+        # Read each 3-byte sample as the low bytes of an overlapping 4-byte
+        # word, mask off the byte borrowed from the next sample, then move the
+        # sign bit to bit 31 and shift back down to sign-extend it. The last
+        # sample has no next sample to borrow from, so it is done by hand.
+        # This is equivalent to, and ~3x faster than, the readable version:
+        #
+        #     ch_data = raw.reshape(-1, 3).astype(INT32)
+        #     ch_data = ch_data[:, 0] | (ch_data[:, 1] << 8) | (ch_data[:, 2] << 16)
+        #     ch_data <<= 8  # sign-extend bit 23
+        #     ch_data >>= 8
+        ch_data = np.empty(samp, dtype=INT32)
+        packed = np.ndarray(
+            (max(samp - 1, 0),), dtype="<u4", buffer=raw, strides=(dtype_byte,)
+        )
+        np.bitwise_and(packed, (1 << 24) - 1, out=ch_data[:-1])
+        if samp:
+            ch_data[-1] = int(raw[-3]) | int(raw[-2]) << 8 | int(raw[-1]) << 16
+        ch_data <<= 8
+        ch_data >>= 8
 
     # GDF data and EDF data
     else:
@@ -608,10 +735,11 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
+_EDF_CHUNK_BYTES = 10 * 1024 * 1024  # read roughly this much per chunk
+
+
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
-    from scipy.interpolate import interp1d
-
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]
@@ -634,11 +762,20 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
     # We could read this one EDF block at a time, which would be this:
     ch_offsets = np.cumsum(np.concatenate([[0], n_samps]), dtype=np.int64)
-    block_start_idx, r_lims, _ = _blk_read_lims(start, stop, buf_len)
+    block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
     # But to speed it up, we really need to read multiple blocks at once,
     # Otherwise we can end up with e.g. 18,181 chunks for a 20 MB file!
-    # Let's do ~10 MB chunks:
-    n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
+    n_per = max(_EDF_CHUNK_BYTES // (ch_offsets[-1] * dtype_byte), 1)
+
+    # When every picked channel stores buf_len samples per data record there is
+    # nothing to resample, so the picks form a plain (n_picks, n_times) block we
+    # can calibrate in one go straight into `data`. Mixed sampling rates, a
+    # projector, or a stim channel that needs interpolating use the per-channel
+    # loop below instead.
+    n_picks = len(idx_arr)
+    picks = read_sel[:n_picks]  # picked signal channels, in output row order
+    uniform = mult is None and bool((n_samps[picks] == buf_len).all())
+    stim_rows = [j for j, i in enumerate(idx_arr) if i in stim_channel_idxs]
 
     with _gdf_edf_get_fid(filenames, buffering=0) as fid:
         # Extract data
@@ -647,7 +784,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
         # first read everything into the `ones` array. For channels with
         # lower sampling frequency, there will be zeros left at the end of the
         # row. Ignore TAL/annotations channel and only store `orig_sel`
-        ones = np.zeros((len(orig_sel), data.shape[-1]), dtype=data.dtype)
+        # `ones` has no rows on the fast path, which writes into `data` itself
+        n_stage = 0 if uniform else len(orig_sel)
+        ones = np.zeros((n_stage, data.shape[-1]), dtype=data.dtype)
         # save how many samples have already been read per channel
         n_smp_read = [0 for _ in range(len(orig_sel))]
 
@@ -662,6 +801,23 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             ).reshape(n_read, -1)
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
+
+            if uniform:
+                block = np.empty((n_picks, n_read, buf_len), many_chunk.dtype)
+                for j, ci in enumerate(picks):
+                    block[j] = many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]]
+                for ci in read_sel[n_picks:]:  # annotation channels
+                    tal_data.append(
+                        many_chunk[:, ch_offsets[ci] : ch_offsets[ci + 1]].copy()
+                    )
+                out = data[:, d_lims[ai][0] : d_lims[ai + n_read - 1][1]]
+                flat = block.reshape(n_picks, n_read * buf_len)[:, r_sidx:r_eidx]
+                np.multiply(flat, cal[idx_arr, np.newaxis], out=out)
+                out += offsets[idx_arr, np.newaxis]
+                out *= gains[idx_arr, np.newaxis]
+                for j in stim_rows:
+                    out[j] = np.bitwise_and(out[j].astype(int), 2**17 - 1)
+                continue
 
             # loop over selected channels, ci=channel selection
             for ii, ci in enumerate(read_sel):
@@ -682,6 +838,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
                 if n_samps[ci] != buf_len:
                     if orig_idx in stim_channel_idxs:
+                        from scipy.interpolate import interp1d
+
                         # Stim channel will be interpolated
                         old = np.linspace(0, 1, n_samps[ci] + 1, True)
                         new = np.linspace(0, 1, buf_len, False)
@@ -735,13 +893,18 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
             _mult_cal_one(data[:, :], ones, idx, cals, mult)
 
+    if uniform:
+        # stands in for the `data_view *= cals` that _mult_cal_one applies; the
+        # block above is skipped because the fast path leaves n_smp_read zero
+        data *= cals
+
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
         tal_data = tal_data[np.newaxis, :]
     return tal_data
 
 
-@fill_doc
+@fill_doc_static("exclude_after_unique")
 def _read_header(
     fname,
     exclude,
@@ -771,7 +934,12 @@ def _read_header(
     include : list of str | str
         Channel names to be included. A str is interpreted as a regular
         expression. 'exclude' must be empty if include is assigned.
-    %(exclude_after_unique)s
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.  If False, the original names are checked.
+
+        .. versionchanged:: 1.7
 
     Returns
     -------
@@ -827,15 +995,17 @@ def _get_info(
     else:
         n_samps = edf_info["n_samps"][sel]
     nchan = edf_info["nchan"]
+    # handle channels where the physical range is 0 or
+    # the digital_max is not strictly greater than digital_min
     physical_ranges = edf_info["physical_max"] - edf_info["physical_min"]
-    cals = edf_info["digital_max"] - edf_info["digital_min"]
-    bad_idx = np.where((~np.isfinite(cals)) | (cals == 0))[0]
+    digital_ranges = edf_info["digital_max"] - edf_info["digital_min"]
+    bad_idx = np.where((~np.isfinite(digital_ranges)) | (digital_ranges == 0))[0]
     if len(bad_idx) > 0:
         warn(
-            "Scaling factor is not defined in following channels:\n"
+            "Scaling factor will not be defined in the following channels:\n"
             + ", ".join(ch_names[i] for i in bad_idx)
         )
-        cals[bad_idx] = 1
+        digital_ranges[bad_idx] = 1
     bad_idx = np.where(physical_ranges == 0)[0]
     if len(bad_idx) > 0:
         warn(
@@ -998,15 +1168,14 @@ def _get_info(
     info._unlocked = False
     info._update_redundant()
 
-    # Later used for reading
-    edf_info["cal"] = physical_ranges / cals
+    # Later used for reading. Unit is uV per bit
+    edf_info["cal"] = physical_ranges / digital_ranges
 
-    # physical dimension in µV
+    # physical dimension in µV. Difference between attested lowest uV value and lowest
+    # possible stored uV value (in light of what digital_min is)
     edf_info["offsets"] = (
         edf_info["physical_min"] - edf_info["digital_min"] * edf_info["cal"]
     )
-    del edf_info["physical_min"]
-    del edf_info["digital_min"]
 
     if edf_info["subtype"] == "bdf":
         edf_info["cal"][stim_channel_idxs] = 1
@@ -1252,6 +1421,9 @@ def _read_edf_header(
         digital_max = np.array([float(_edf_str_num(fid.read(8))) for ch in channels])[
             sel
         ]
+        # let's make sure we don't accidentally change these
+        for arr in (physical_min, physical_max, digital_min, digital_max):
+            arr.flags["WRITEABLE"] = False
         prefiltering = np.array([_edf_str(fid.read(80)).strip() for ch in channels])
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
@@ -1889,7 +2061,14 @@ def _check_args(input_fname, preload, target_ext):
             raise ValueError("preload must be used with file-like objects")
 
 
-@fill_doc
+@fill_doc_static(
+    "preload",
+    "units_edf_bdf_io",
+    "encoding_edf",
+    "exclude_after_unique",
+    "verbose",
+    "edf_resamp_note",
+)
 def read_raw_edf(
     input_fname: Path | str | FileLike,
     eog: list | tuple | None = None,
@@ -1947,11 +2126,39 @@ def read_raw_edf(
         expression. 'exclude' must be empty if include is assigned.
 
         .. versionadded:: 1.1
-    %(preload)s
-    %(units_edf_bdf_io)s
-    %(encoding_edf)s
-    %(exclude_after_unique)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    units : dict | str
+        The units of the channels as stored in the file. This argument
+        is useful only if the units are missing from the original file.
+        If a dict, it must map a channel name to its unit, and if str
+        it is assumed that all channels have the same units.
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.  If False, the original names are checked.
+
+        .. versionchanged:: 1.7
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1968,7 +2175,11 @@ def read_raw_edf(
 
     Notes
     -----
-    %(edf_resamp_note)s
+    :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+    Therefore, if mixed sampling frequency signals are requested, all signals
+    are upsampled to the highest loaded sampling frequency. In this case, using
+    preload=True is recommended, as otherwise, edge artifacts appear when
+    slices of the signal are requested.
 
     It is worth noting that in some special cases, it may be necessary to shift
     event values in order to retrieve correct event triggers. This depends on
@@ -2028,7 +2239,9 @@ def read_raw_edf(
     )
 
 
-@fill_doc
+@fill_doc_static(
+    "preload", "units_edf_bdf_io", "encoding_edf", "exclude_after_unique", "verbose"
+)
 def read_raw_bdf(
     input_fname: Path | str | FileLike,
     eog: list | tuple | None = None,
@@ -2086,11 +2299,39 @@ def read_raw_bdf(
         expression. 'exclude' must be empty if include is assigned.
 
         .. versionadded:: 1.1
-    %(preload)s
-    %(units_edf_bdf_io)s
-    %(encoding_edf)s
-    %(exclude_after_unique)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    units : dict | str
+        The units of the channels as stored in the file. This argument
+        is useful only if the units are missing from the original file.
+        If a dict, it must map a channel name to its unit, and if str
+        it is assumed that all channels have the same units.
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
+    exclude_after_unique : bool
+        If True, exclude channels are searched for after they have been made
+        unique. This is useful to choose channels that have been made unique
+        by adding a suffix.  If False, the original names are checked.
+
+        .. versionchanged:: 1.7
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2167,7 +2408,7 @@ def read_raw_bdf(
     )
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw_gdf(
     input_fname: Path | str | FileLike,
     eog: list | tuple | None = None,
@@ -2208,8 +2449,25 @@ def read_raw_gdf(
     include : list of str | str
         Channel names to be included. A str is interpreted as a regular
         expression. 'exclude' must be empty if include is assigned.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2243,7 +2501,7 @@ def read_raw_gdf(
     )
 
 
-@fill_doc
+@fill_doc_static("encoding_edf")
 def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
     """Annotation File Reader.
 
@@ -2253,7 +2511,9 @@ def _read_annotations_edf(annotations, ch_names=None, encoding="utf8"):
         Channel data in EDF+ TAL format or path to annotation file.
     ch_names : list of string
         List of channels' names.
-    %(encoding_edf)s
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
 
     Returns
     -------

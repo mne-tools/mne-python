@@ -1,0 +1,43 @@
+# Every dataset CI knows how to download, in one place: which cache holds it,
+# where it lands under ~/mne_data, and the line an example matches when it needs
+# it. Read by tools/circleci_triage.sh and tools/circleci_download.sh.
+#
+# The directories must agree with the save_cache paths in config.yml, which
+# cannot read this file (CircleCI config is static); circleci_triage.sh compares
+# the two and fails if they drift, which is how ~/mne_data/HF_SEF managed to be
+# wrong for years while its cache silently stored 16 B.
+#
+# dataset              cache               directory                              matches
+sample                 sample              MNE-sample-data                        .*datasets.*sample.*
+hcp_mmp_parcellation   sample              MNE-sample-data                        .*datasets.*hcp_mmp_parcellation.*
+fsaverage              fsaverage           MNE-fsaverage-data                     .*datasets.*fetch_fsaverage.*
+spm_face               spm-face            MNE-spm-face                           .*datasets.*spm_face.*
+somato                 somato              MNE-somato-data                        .*datasets.*somato.*
+eegbci                 tiny                MNE-eegbci-data                        .*datasets.*eegbci.*
+misc                   tiny                MNE-misc-data                          .*datasets.*misc.*
+kiloword               tiny                MNE-kiloword-data                      .*datasets.*kiloword.*
+mtrf                   tiny                mTRF_1.5                               .*datasets.*mtrf.*
+phantom_4dbti          tiny                MNE-phantom-4DBTi                      .*datasets.*phantom_4dbti.*
+sleep_physionet        tiny                physionet-sleep-data                   .*datasets.*sleep_physionet.*
+fnirs_motor            tiny                MNE-fNIRS-motor-data                   .*datasets.*fnirs_motor.*
+refmeg_noise           tiny                MNE-refmeg-noise-data                  .*datasets.*refmeg_noise.*
+ssvep                  ssvep               ssvep-example-data                     .*datasets.*ssvep.*
+epilepsy_ecog          epilepsy-ecog       MNE-epilepsy-ecog-data                 .*datasets.*epilepsy_ecog.*
+erp_core               erp-core            MNE-ERP-CORE-data                      .*datasets.*erp_core.*
+eyelink                eyelink             MNE-eyelink-data                       .*datasets.*eyelink.*
+hf_sef                 hf-sef              hf_sef                                 .*datasets.*hf_sef.*
+bst_auditory           bst-auditory        MNE-brainstorm-data/bst_auditory       .*brainstorm.*bst_auditory.*
+bst_resting            bst-resting         MNE-brainstorm-data/bst_resting        .*brainstorm.*bst_resting.*
+bst_raw                bst-raw             MNE-brainstorm-data/bst_raw            .*brainstorm.*bst_raw.*
+bst_phantom_ctf        bst-phantom-ctf     MNE-brainstorm-data/bst_phantom_ctf    .*brainstorm.*bst_phantom_ctf.*
+bst_phantom_elekta     bst-phantom-elekta  MNE-brainstorm-data/bst_phantom_elekta .*brainstorm.*bst_phantom_elekta.*
+phantom_kernel         bst-phantom-kernel  MNE-phantom-kernel-data                .*datasets.*phantom_kernel.*
+testing                testing             MNE-testing-data                       .*datasets.*testing.*
+fieldtrip_cmc          fieldtrip           MNE-fieldtrip_cmc-data                 .*datasets.*fieldtrip_cmc.*
+multimodal             multimodal          MNE-multimodal-data                    .*datasets.*multimodal.*
+opm                    opm                 MNE-OPM-data                           .*datasets[^_]*opm.*
+limo                   limo                MNE-limo-data                          .*datasets.*limo.*
+ucl_opm_auditory       ucl-opm-auditory    auditory_OPM_stationary                .*datasets.*ucl_opm_auditory.*
+phantom_kit            phantom-kit         MNE-phantom-KIT-data                   .*datasets.*phantom_kit.*
+visual_92_categories   visual              MNE-visual_92_categories-data          .*datasets.*visual_92_categories.*
+ds004388               ds004388            ds004388                               .*ds004388.*

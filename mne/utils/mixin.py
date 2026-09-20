@@ -11,7 +11,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from ._logging import verbose, warn
+from ._logging import _verbose_control, verbose_static, warn
 from ._typing import Self
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
@@ -220,12 +220,23 @@ class GetEpochsMixin:
             subset of epochs (and optionally array with kept epoch indices)
         """
         self._sanity_check_event_id()
-        inst = self.copy() if copy else self
-        if self._data is not None:
-            np.copyto(inst._data, self._data, casting="no")
+        select = self._item_to_select(item)
+        # np.require makes each instance own its data (so it can be resized later)
+        new_data = None
+        if copy and select_data and self.preload and self._data is not None:
+            orig_data = self._data
+            new_data = np.require(orig_data[select], requirements=["O"])
+            # placeholder for the deepcopy, will be replaced for `inst` later
+            self._data = new_data[:0]
+            try:
+                inst = self.copy()
+            finally:
+                self._data = orig_data
+            del orig_data
+        else:
+            inst = self.copy() if copy else self
         del self
 
-        select = inst._item_to_select(item)
         has_selection = hasattr(inst, "selection")
         if has_selection:
             key_selection = inst.selection[select]
@@ -257,9 +268,9 @@ class GetEpochsMixin:
             # will reset the index for us
             GetEpochsMixin.metadata.fset(inst, metadata, verbose=False)
         if inst.preload and select_data:
-            # ensure that each Epochs instance owns its own data so we can
-            # resize later if necessary
-            inst._data = np.require(inst._data[select], requirements=["O"])
+            if new_data is None:
+                new_data = np.require(inst._data[select], requirements=["O"])
+            inst._data = new_data
         if drop_event_id:
             # update event id to reflect new content of inst
             inst.event_id = {
@@ -464,7 +475,7 @@ class GetEpochsMixin:
         return self._metadata
 
     @metadata.setter
-    @verbose
+    @_verbose_control
     def metadata(self, metadata, verbose=None):
         metadata = self._check_metadata(metadata, reset_index=True)
         if metadata is not None:
@@ -617,7 +628,7 @@ class ExtendedTimeMixin(TimeMixin):
         """Last time point."""
         return self.times[-1]
 
-    @verbose
+    @verbose_static("include_tmax", "notes_tmax_included_by_default")
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None) -> Self:
         """Crop data to a given time interval.
 
@@ -627,8 +638,16 @@ class ExtendedTimeMixin(TimeMixin):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
-        %(include_tmax)s
-        %(verbose)s
+        include_tmax : bool
+            If True (default), include tmax. If False, exclude tmax (similar to how
+            Python indexing typically works).
+
+            .. versionadded:: 0.19
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -637,7 +656,10 @@ class ExtendedTimeMixin(TimeMixin):
 
         Notes
         -----
-        %(notes_tmax_included_by_default)s
+        Unlike Python slices, MNE time intervals by default include **both**
+        their end points; ``crop(tmin, tmax)`` returns the interval
+        ``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
+        interval ``tmin <= t < tmax`` instead.
         """
         t_vars = dict(tmin=tmin, tmax=tmax)
         for name, t_var in t_vars.items():
@@ -676,15 +698,32 @@ class ExtendedTimeMixin(TimeMixin):
 
         return self
 
-    @verbose
+    @verbose_static("decim", "offset_decim", "decim_notes")
     def decimate(self, decim, offset=0, *, verbose=None) -> Self:
         """Decimate the time-series data.
 
         Parameters
         ----------
-        %(decim)s
-        %(offset_decim)s
-        %(verbose)s
+        decim : int
+            Factor by which to subsample the data.
+
+            .. warning:: Low-pass filtering is not performed, this simply selects
+                         every Nth sample (where N is the value passed to
+                         ``decim``), i.e., it compresses the signal (see Notes).
+                         If the data are not properly filtered, aliasing artifacts
+                         may occur.
+                         See :ref:`resampling-and-decimating` for more information.
+        offset : int
+            Apply an offset to where the decimation starts relative to the
+            sample corresponding to t=0. The offset is in samples at the
+            current sampling rate.
+
+            .. versionadded:: 0.12
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -698,7 +737,23 @@ class ExtendedTimeMixin(TimeMixin):
 
         Notes
         -----
-        %(decim_notes)s
+        For historical reasons, ``decim`` / "decimation" refers to simply subselecting
+        samples from a given signal. This contrasts with the broader signal processing
+        literature, where decimation is defined as (quoting
+        :footcite:`OppenheimEtAl1999`, p. 172; which cites
+        :footcite:`CrochiereRabiner1983`):
+
+            "... a general system for downsampling by a factor of M is the one shown
+            in Figure 4.23. Such a system is called a decimator, and downsampling
+            by lowpass filtering followed by compression [i.e, subselecting samples]
+            has been termed decimation (Crochiere and Rabiner, 1983)."
+
+        Hence "decimation" in MNE is what is considered "compression" in the signal
+        processing community.
+
+        Decimation can be done multiple times. For example,
+        ``inst.decimate(2).decimate(2)`` will be the same as
+        ``inst.decimate(4)``.
 
         If ``decim`` is 1, this method does not copy the underlying data.
 
