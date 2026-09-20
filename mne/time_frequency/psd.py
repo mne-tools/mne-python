@@ -7,7 +7,7 @@ from functools import partial
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, _pl, logger, verbose, warn
+from ..utils import _check_option, _ensure_int, _pl, logger, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
