@@ -63,7 +63,7 @@ X = epochs.get_data(copy=False)
 
 ##############################################################################
 # Transform data with PCA computed on the average ie evoked response
-pca = UnsupervisedSpatialFilter(PCA(30), average=False)
+pca = UnsupervisedSpatialFilter(PCA(30, random_state=193), average=False)
 pca_data = pca.fit_transform(X)
 ev = mne.EvokedArray(
     np.mean(pca_data, axis=0),
@@ -74,7 +74,9 @@ ev.plot(show=False, window_title="PCA", time_unit="s")
 
 ##############################################################################
 # Transform data with ICA computed on the raw epochs (no averaging)
-ica = UnsupervisedSpatialFilter(FastICA(30, whiten="unit-variance"), average=False)
+ica = UnsupervisedSpatialFilter(
+    FastICA(30, whiten="unit-variance", random_state=197), average=False
+)
 ica_data = ica.fit_transform(X)
 ev1 = mne.EvokedArray(
     np.mean(ica_data, axis=0),

@@ -4,7 +4,8 @@
 
 import sys
 from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta
 from itertools import repeat
 from pathlib import Path
 
@@ -97,7 +98,7 @@ def test_basics():
             assert annot.orig_time is None
         else:
             assert isinstance(annot.orig_time, datetime)
-            assert annot.orig_time.tzinfo is timezone.utc
+            assert annot.orig_time.tzinfo is UTC
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
@@ -993,7 +994,7 @@ def _assert_annotations_equal(a, b, tol=0, comp_extras_as_str=False):
             assert exa == exb, f"extras[{i}][{col}]"
 
 
-_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, UTC)
 
 
 @pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
@@ -1250,7 +1251,7 @@ def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
     if out is not None:
         assert out >= 0  # otherwise it'll break on Windows
-        out = datetime.fromtimestamp(out, timezone.utc)
+        out = datetime.fromtimestamp(out, UTC)
     assert _handle_meas_date(meas_date) == out
 
 
@@ -1268,7 +1269,7 @@ def test_read_annotation_txt_header(tmp_path):
     with open(fname, "w") as f:
         f.write(content)
     orig_time, _, n_rows_header = _read_annotations_txt_parse_header(fname)
-    want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+    want = datetime.fromtimestamp(1038942071.7201, UTC)
     assert orig_time == want
     assert n_rows_header == 5
 
@@ -1296,7 +1297,7 @@ def test_read_annotation_txt_empty(tmp_path):
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
-    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, str)  # str, not np.str_
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
 
@@ -1734,6 +1735,49 @@ def test_annotation_rename():
     assert_array_equal(a.description, ["B", "A", "C"])
 
 
+def _assert_no_truncation(annot):
+    """Check that in-place description assignment keeps the whole string."""
+    assert annot.description.dtype == np.dtypes.StringDType()
+    long_description = "a_very_much_longer_description"
+    annot.description[-1] = long_description
+    assert annot.description[-1] == long_description
+
+
+@pytest.mark.parametrize("fmt", ("fif", "csv", "txt"))
+def test_description_assignment_not_truncated(tmp_path, fmt):
+    """Test that assigning into description does not truncate strings."""
+    if fmt != "fif":
+        pytest.importorskip("pandas")
+    annot = Annotations([1.0, 2.0], [1.0, 1.0], ["short", "b"], extras=[dict(a=1)] * 2)
+    _assert_no_truncation(annot.copy())
+    # the copy must be independent (and not crash: numpy/numpy#28609)
+    annot_copy = deepcopy(annot)
+    annot_copy.description[0] = "changed"
+    assert annot.description[0] == "short"
+    annot.append(3.0, 1.0, "c", extras=[dict(a=1)])
+    annot.rename({"b": "b_renamed"})
+    other = annot.copy()
+    other.onset += 10.0
+    cropped, deleted = annot.copy(), annot.copy()
+    cropped.crop(0.0, 100.0)
+    deleted.delete(0)
+    for modified in (annot.copy(), annot + other, cropped, deleted):
+        _assert_no_truncation(modified)
+    # round-trip through disk (Annotations.save and raw.save)
+    annot_fname = tmp_path / f"test-annot.{fmt}"
+    annot.save(annot_fname)
+    round_tripped = [read_annotations(annot_fname)]
+    if fmt == "fif":
+        raw = RawArray(np.zeros((1, 2000)), create_info(1, 100.0, "eeg"))
+        raw.set_annotations(annot)
+        raw_fname = tmp_path / "test_raw.fif"
+        raw.save(raw_fname)
+        round_tripped.append(read_raw_fif(raw_fname).annotations)
+    for got in round_tripped:
+        assert_array_equal(got.description, annot.description)
+        _assert_no_truncation(got)
+
+
 def test_annotation_duration_setting():
     """Test annotation duration setting works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
@@ -1847,9 +1891,9 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
     meas_date_1 = meas_date_2 = None
     assert meas_date in (None, "first", "second", "both")
     if meas_date in ("first", "both"):
-        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     if meas_date in ("second", "both"):
-        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     del meas_date
 
     def _create_raw(eeg, sfreq, onset, description, meas_date, first_samp, setting):

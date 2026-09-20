@@ -9,7 +9,6 @@ from itertools import combinations
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info
@@ -22,12 +21,11 @@ from ..utils import (
     _check_sphere,
     _clean_names,
     _ensure_int,
-    fill_doc,
+    fill_doc_static,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
-from ..viz.topomap import plot_layout
 from .channels import _get_ch_info
 
 
@@ -119,13 +117,18 @@ class Layout:
             ", ".join(self.names[:3]),
         )
 
-    @fill_doc
+    @fill_doc_static("picks_nostr")
     def plot(self, picks=None, show_axes=False, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
-        %(picks_nostr)s
+        picks : list | slice | None
+            Channels to include.
+            Slices and lists of integers will be interpreted as channel indices.
+            None (default) will pick all channels.
+            Note that channels in ``info['bads']`` *will be included* if
+            their indices are explicitly provided.
         show_axes : bool
             Show layout axes if True. Defaults to False.
         show : bool
@@ -140,19 +143,28 @@ class Layout:
         -----
         .. versionadded:: 0.12.0
         """
+        from ..viz.topomap import plot_layout
+
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
-    @verbose
+    @verbose_static("picks_layout")
     def pick(self, picks=None, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
         Parameters
         ----------
-        %(picks_layout)s
+        picks : array-like of str or int | slice | ``'all'`` | None
+            Channels to include in the layout. Slices and lists of integers will be
+            interpreted as channel indices. Can also be the string value ``'all'`` to
+            pick all channels. None (default) will pick all channels.
         exclude : str | int | array-like of str or int
             Set of channels to exclude, only used when ``picks`` is set to ``'all'`` or
             ``None``. Exclude will not drop channels explicitly provided in ``picks``.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -401,7 +413,7 @@ def read_layout(fname=None, *, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def make_eeg_layout(
     info, radius=0.5, width=None, height=None, exclude="bads", csd=False
 ):
@@ -409,7 +421,9 @@ def make_eeg_layout(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     radius : float
         Viewport radius as a fraction of main figure height. Defaults to 0.5.
     width : float | None
@@ -484,7 +498,7 @@ def make_eeg_layout(
     return layout
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "picks_base")
 def make_grid_layout(info, picks=None, n_col=None):
     """Make a grid Layout object.
 
@@ -492,8 +506,17 @@ def make_grid_layout(info, picks=None, n_col=None):
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(picks_base)s all good misc channels.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick
+        all good misc channels.
     n_col : int | None
         Number of columns to generate. If None, a square grid will be produced.
 
@@ -557,13 +580,15 @@ def make_grid_layout(info, picks=None, n_col=None):
     return layout
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def find_layout(info, ch_type=None, exclude="bads"):
     """Choose a layout based on the channels in the info 'chs' field.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for
@@ -660,13 +685,15 @@ def find_layout(info, ch_type=None, exclude="bads"):
     return layout
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _find_kit_layout(info, n_grads):
     """Determine the KIT layout.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     n_grads : int
         Number of KIT-gradiometers in the info.
 
@@ -767,6 +794,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
+    from scipy.spatial.distance import pdist
 
     def xdiff(a, b):
         return np.abs(a[0] - b[0])
@@ -827,7 +855,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
     return width, height
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _find_topomap_coords(
     info, picks, layout=None, ignore_overlap=False, to_sphere=True, sphere=None
 ):
@@ -835,7 +863,9 @@ def _find_topomap_coords(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     picks : str | list | slice | None
         None will choose all channels.
     layout : None | instance of Layout
@@ -868,7 +898,7 @@ def _find_topomap_coords(
     return pos
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
 
@@ -878,7 +908,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     picks : list | str | slice | None
         None will pick all channels.
     ignore_overlap : bool
@@ -895,6 +927,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
+    from scipy.spatial.distance import pdist, squareform
+
     sphere = _check_sphere(sphere, info)
     logger.debug(f"Generating coords using: {sphere}")
 
@@ -1024,7 +1058,7 @@ def _topo_to_sphere(pos, eegs):
     return np.column_stack([xs, ys, zs])
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _pair_grad_sensors(
     info, layout=None, topomap_coords=True, exclude="bads", raise_error=True
 ):
@@ -1032,7 +1066,9 @@ def _pair_grad_sensors(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     layout : Layout | None
         The layout if available. Defaults to None.
     topomap_coords : bool

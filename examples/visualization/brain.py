@@ -6,6 +6,8 @@ Plotting with ``mne.viz.Brain``
 ===============================
 
 In this example, we'll show how to use :class:`mne.viz.Brain`.
+
+.. include:: ../../links.inc
 """
 # Author: Alex Rockhill <aprockhill@mailbox.org>
 #

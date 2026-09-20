@@ -19,7 +19,7 @@ from numpy.testing import (
 import mne
 from mne import read_trans, write_trans
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata, _reshape_view
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.transforms import (
     _angle_between_quats,
@@ -76,7 +76,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph = _reshape_view(sph, (3, -1))
+    sph = sph.reshape((3, -1), copy=False)
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()
@@ -386,6 +386,19 @@ def test_vector_rotation():
     quat_1 = rot_to_quat(rot)
     quat_2 = rot_to_quat(np.eye(3))
     assert_allclose(_angle_between_quats(quat_1, quat_2), np.pi / 2.0)
+    # many at once, including the parallel, antiparallel and nearly antiparallel
+    # cases, the first two of which have no rotation axis of their own
+    b = np.random.default_rng(0).normal(size=(20, 3))
+    b = np.concatenate([b, [x, -x, [-1, 1e-8, 0]]])
+    b /= np.linalg.norm(b, axis=1, keepdims=True)
+    rots = _find_vector_rotation(x, b)
+    assert_allclose(rots @ x, b, atol=1e-12)
+    eye = np.broadcast_to(np.eye(3), rots.shape)
+    assert_allclose(rots @ rots.transpose(0, 2, 1), eye, atol=1e-12)
+    assert_allclose(rots[-2], np.diag([-1, -1, 1]), atol=1e-12)
+    for rot, this_b in zip(rots[:3], b):  # each is the minimal rotation
+        angle = _angle_between_quats(rot_to_quat(rot), np.zeros(3))
+        assert_allclose(angle, np.arccos(x @ this_b))
 
 
 def test_average_quats():
@@ -468,13 +481,13 @@ def _check_fit_matched_points(
     p, x, weights, do_scale, angtol=1e-5, dtol=1e-5, stol=1e-7
 ):
     __tracebackhide__ = True
-    mne.coreg._ALLOW_ANALITICAL = False
+    mne.transforms._ALLOW_ANALITICAL = False
     try:
-        params = mne.coreg.fit_matched_points(
+        params = mne.transforms.fit_matched_points(
             p, x, weights=weights, scale=do_scale, out="params"
         )
     finally:
-        mne.coreg._ALLOW_ANALITICAL = True
+        mne.transforms._ALLOW_ANALITICAL = True
     quat_an, scale_an = _fit_matched_points(p, x, weights, scale=do_scale)
     assert len(params) == 6 + int(do_scale)
     q_co = _euler_to_quat(params[:3])
@@ -491,7 +504,7 @@ def _check_fit_matched_points(
     trans[:3, :3] *= scale_an
     weights = np.ones(1) if weights is None else weights
     err_an = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
-    trans = mne.coreg._trans_from_params((True, True, do_scale), params)
+    trans = mne.transforms._trans_from_params((True, True, do_scale), params)
     err_co = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
     if err_an > 1e-14:
         assert err_an < err_co * 1.5

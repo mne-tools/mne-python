@@ -12,7 +12,6 @@
 
 import numpy as np
 from scipy.optimize import minimize_scalar
-from scipy.stats import gaussian_kde
 
 from .._fiff.constants import FIFF
 from .._fiff.pick import pick_types
@@ -21,7 +20,13 @@ from ..channels.interpolation import _calc_g, _calc_h
 from ..epochs import BaseEpochs, make_fixed_length_epochs
 from ..evoked import Evoked
 from ..io import BaseRaw
-from ..utils import _check_preload, _ensure_int, _validate_type, logger, verbose
+from ..utils import (
+    _check_preload,
+    _ensure_int,
+    _validate_type,
+    logger,
+    verbose_static,
+)
 
 
 def _prepare_G(G, lambda2):
@@ -51,7 +56,7 @@ def _compute_csd(G_precomputed, H, radius):
     return X
 
 
-@verbose
+@verbose_static()
 def compute_current_source_density(
     inst,
     sphere="auto",
@@ -86,7 +91,11 @@ def compute_current_source_density(
         Number of Legendre terms to evaluate.
     copy : bool
         Whether to overwrite instance data or create a copy.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -195,7 +204,7 @@ def compute_current_source_density(
     return inst
 
 
-@verbose
+@verbose_static()
 def compute_bridged_electrodes(
     inst,
     lm_cutoff=16,
@@ -243,7 +252,11 @@ def compute_bridged_electrodes(
         :class:`mne.io.BaseRaw`. The default is 2 seconds.
     bw_method : None
         ``bw_method`` to pass to :class:`scipy.stats.gaussian_kde`.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -261,6 +274,8 @@ def compute_bridged_electrodes(
     ----------
     .. footbibliography::
     """
+    from scipy.stats import gaussian_kde
+
     _check_preload(inst, "Computing bridged electrodes")
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)

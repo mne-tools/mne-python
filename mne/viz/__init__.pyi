@@ -14,6 +14,7 @@ __all__ = [
     "backends",
     "centers_to_edges",
     "circular_layout",
+    "clear_3d_figure",
     "close_3d_figure",
     "close_all_3d_figures",
     "compare_fiff",
@@ -108,6 +109,7 @@ from ._figure import get_browser_backend, set_browser_backend, use_browser_backe
 from ._proj import plot_projs_joint
 from .backends._abstract import Figure3D
 from .backends.renderer import (
+    clear_3d_figure,
     close_3d_figure,
     close_all_3d_figures,
     create_3d_figure,

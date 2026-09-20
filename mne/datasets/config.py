@@ -88,7 +88,7 @@ I agree to the following:
 # here: ↓↓↓↓↓↓↓↓
 RELEASES = dict(
     testing="0.176",
-    misc="0.27",
+    misc="0.30",
     phantom_kit="0.2",
     ucl_opm_auditory="0.2",
 )
@@ -129,7 +129,7 @@ MNE_DATASETS["testing"] = dict(
 )
 MNE_DATASETS["misc"] = dict(
     archive_name=f"{MISC_VERSIONED}.tar.gz",  # 'mne-misc-data',
-    hash="md5:e343d3a00cb49f8a2f719d14f4758afe",
+    hash="md5:201d35531d3c03701cf50e38bb73481f",
     url=(
         f"https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/{RELEASES['misc']}"
     ),
@@ -207,6 +207,15 @@ MNE_DATASETS["sample"] = dict(
     url="https://osf.io/download/86qa2?version=6",
     folder_name="MNE-sample-data",
     config_key="MNE_DATASETS_SAMPLE_PATH",
+)
+
+# TODO VERSION: remove in 1.15 with the deprecated mne.datasets.lite_data
+MNE_DATASETS["lite_data"] = dict(
+    archive_name="MNE-lite-data.tar.gz",
+    hash="md5:5f9c4fffed32e79bc2bc2061bf22ce99",
+    url="https://osf.io/download/a8qbx",
+    folder_name="MNE-lite-data",
+    config_key="MNE_DATASETS_LITE_DATA_PATH",
 )
 
 MNE_DATASETS["somato"] = dict(

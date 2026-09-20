@@ -7,11 +7,11 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from ..time_frequency.tfr import _compute_tfr
-from ..utils import _check_option, fill_doc
+from ..utils import _check_option, fill_doc_static
 from .transformer import MNETransformerMixin
 
 
-@fill_doc
+@fill_doc_static("n_jobs", "verbose")
 class TimeFrequency(MNETransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
@@ -21,23 +21,23 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
     ----------
     freqs : array-like of float, shape (n_freqs,)
         The frequencies.
-    sfreq : float | int, default 1.0
+    sfreq : float | int
         Sampling frequency of the data.
-    method : 'multitaper' | 'morlet', default 'morlet'
+    method : 'multitaper' | 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
         'multitaper' uses Morlet wavelets windowed with multiple DPSS
         multitapers.
-    n_cycles : float | array of float, default 7.0
+    n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    time_bandwidth : float, default None
+    time_bandwidth : float | None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
-    use_fft : bool, default True
+    use_fft : bool
         Use the FFT for convolutions or not.
-    decim : int | slice, default 1
+    decim : int | slice
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -46,14 +46,24 @@ class TimeFrequency(MNETransformerMixin, BaseEstimator):
         .. note:: Decimation may create aliasing artifacts, yet decimation
                   is done after the convolutions.
 
-    output : str, default 'complex'
+    output : str
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------

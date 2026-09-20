@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "a0eb9250f927f4f6f718af9755b27090f150944f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 104,
+      "d": 95
+    },
+    ".github/workflows/tests.yml": {
+      "a": 7,
+      "d": 9
+    },
+    ".gitignore": {
+      "a": 8,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/_testing.py": {
+      "a": 22,
+      "d": 7
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 0,
+      "d": 90
+    },
+    "tools/get_testing_version.sh": {
+      "a": 8,
+      "d": 2
+    },
+    "tools/github_actions_download.sh": {
+      "a": 13,
+      "d": 5
+    },
+    "tools/github_actions_test.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

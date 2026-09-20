@@ -5,7 +5,6 @@
 import logging
 
 import numpy as np
-from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
@@ -17,28 +16,52 @@ from ..utils import (
     _parse_verbose,
     _verbose_safe_false,
     array_split_idx,
-    fill_doc,
+    fill_doc_static,
 )
 from .base import _check_estimator
 from .transformer import MNETransformerMixin
 
 
-@fill_doc
+@fill_doc_static(
+    "base_estimator", "scoring", "n_jobs", "position", "allow_2d", "axis", "verbose"
+)
 class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
     along the last dimension. Each entry in the last dimension is referred
-    to as a task.
+    to as a task. The task axis can be selected with ``axis``.
 
     Parameters
     ----------
-    %(base_estimator)s
-    %(scoring)s
-    %(n_jobs)s
-    %(position)s
-    %(allow_2d)s
-    %(verbose)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    scoring : callable | str | None
+        Score function (or loss function) with signature
+        ``score_func(y, y_pred, **kwargs)``.
+        Note that the "predict" method is automatically identified if scoring is
+        a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+        **not**  automatically set if ``scoring`` is a callable (e.g.
+        ``scoring=sklearn.metrics.roc_auc_score``).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    position : int
+        The position for the progress bar.
+    allow_2d : bool
+        If True, allow 2D data as input (i.e. n_samples, n_features).
+    axis : int
+        Axis of the input data along which independent estimators are fitted.
+        The default ``-1`` uses the final axis.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -54,6 +77,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         *,
         position=0,
         allow_2d=False,
+        axis=-1,
         verbose=None,
     ):
         self.base_estimator = base_estimator
@@ -62,6 +86,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         self.position = position
         self.allow_2d = allow_2d
         self.verbose = verbose
+        self.axis = axis
 
     @property
     def _estimator_type(self):
@@ -100,7 +125,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -151,7 +176,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -289,7 +314,9 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     def _check_Xy(self, X, y=None, fit=False):
         """Aux. function to check input data."""
-        X = self._check_data(X, y=y, atleast_3d=False, fit=fit)
+        X = self._check_data(
+            X, y=y, atleast_3d=False, fit=False, check_n_features=False
+        )
         is_nd = X.ndim >= 3
         if not is_nd:
             err = None
@@ -300,6 +327,12 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             if err:
                 raise ValueError(f"X must have at least {err} dimensions.")
             X = X[..., np.newaxis]
+
+        if self.axis in (0, -X.ndim):
+            raise ValueError("axis must not be the sample axis (0).")
+        if self.axis != -1 and self.axis != (X.ndim - 1):
+            X = np.moveaxis(X, self.axis, -1)
+        X = self._check_data(X, atleast_3d=False, fit=fit)
         return X, is_nd
 
     def score(self, X, y):
@@ -359,7 +392,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         return self.estimators_[0].classes_
 
 
-@fill_doc
+@fill_doc_static("base_estimator")
 def _sl_fit(estimator, X, y, pb, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
@@ -367,7 +400,8 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
 
     Parameters
     ----------
-    %(base_estimator)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
     X : array, shape (n_samples, nd_features, n_estimators)
         The target data. The feature dimension can be multidimensional e.g.
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
@@ -478,21 +512,46 @@ def _check_method(estimator, method):
     return method
 
 
-@fill_doc
+@fill_doc_static(
+    "base_estimator", "scoring", "n_jobs", "position", "allow_2d", "axis", "verbose"
+)
 class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
     Fit a search-light along the last dimension and use them to apply a
-    systematic cross-tasks generalization.
+    systematic cross-tasks generalization. The task axis is selected by
+    ``axis``.
 
     Parameters
     ----------
-    %(base_estimator)s
-    %(scoring)s
-    %(n_jobs)s
-    %(position)s
-    %(allow_2d)s
-    %(verbose)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    scoring : callable | str | None
+        Score function (or loss function) with signature
+        ``score_func(y, y_pred, **kwargs)``.
+        Note that the "predict" method is automatically identified if scoring is
+        a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+        **not**  automatically set if ``scoring`` is a callable (e.g.
+        ``scoring=sklearn.metrics.roc_auc_score``).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    position : int
+        The position for the progress bar.
+    allow_2d : bool
+        If True, allow 2D data as input (i.e. n_samples, n_features).
+    axis : int
+        Axis of the input data along which independent estimators are fitted.
+        The default ``-1`` uses the final axis.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
 
     def __repr__(self):  # noqa: D105
@@ -799,6 +858,8 @@ def _make_batched_score(score_func, response_method, method, y, sign, kwargs):
             # Mann-Whitney U identity with average-rank tie correction.
             # Equivalent to sklearn's roc_auc within floating point precision,
             # but different computation.
+            from scipy.stats import rankdata
+
             ranks = rankdata(y_pred, method="average", axis=0)
             return (
                 sign

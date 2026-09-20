@@ -4,7 +4,7 @@
 
 from functools import partial
 
-from ...utils import get_config, verbose
+from ...utils import _verbose_control, get_config
 from ..utils import (
     _data_path_doc_accept,
     _download_mne_dataset,
@@ -30,7 +30,7 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 """
 
 
-@verbose
+@_verbose_control
 def data_path(
     path=None,
     force_update=False,

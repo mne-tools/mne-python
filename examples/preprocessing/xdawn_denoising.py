@@ -49,14 +49,15 @@ events = read_events(event_fname)
 
 raw.info["bads"] = ["MEG 2443"]  # set bad channels
 picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False, exclude="bads")
-# Epoching
+# Epoching, applying the SSP projectors that come with this dataset
+raw.apply_proj()
 epochs = Epochs(
     raw,
     events,
     event_id,
     tmin,
     tmax,
-    proj=False,
+    proj=True,
     picks=picks,
     baseline=None,
     preload=True,
@@ -69,12 +70,19 @@ plot_epochs_image(epochs["vis_r"], picks=[230], vmin=-500, vmax=500)
 # %%
 # Now, we estimate a set of xDAWN filters for the epochs (which contain only
 # the ``vis_r`` class).
+#
+# Applying the three SSP projectors above makes the data rank deficient (302
+# instead of 305), so the generalized eigenvalue decomposition that xDAWN
+# relies on is ill-conditioned (and can fail outright) unless we tell it about
+# the rank of the data. Passing ``rank="info"`` restricts the decomposition to
+# the 302-dimensional principal subspace of the signal covariance and projects
+# the resulting filters and patterns back out to the 305 sensors.
 
 # Estimates signal covariance
 signal_cov = compute_raw_covariance(raw, picks=picks)
 
 # Xdawn instance
-xd = Xdawn(n_components=2, signal_cov=signal_cov)
+xd = Xdawn(n_components=2, signal_cov=signal_cov, rank="info")
 
 # Fit xdawn
 xd.fit(epochs)

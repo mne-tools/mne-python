@@ -54,7 +54,6 @@ from mne.utils import (
     _record_warnings,
     assert_meg_snr,
     catch_logging,
-    check_version,
     object_diff,
     verbose,
 )
@@ -482,10 +481,9 @@ def test_initial_fit_redo():
     angles = np.rad2deg(np.arccos(np.abs(np.sum(coil_ori * py_ori, axis=1))))
     assert_array_less(angles, 20)
 
-    # check resulting dev_head_t (also the one place we exercise the deprecated
-    # default value of ``weighted``, see gh-11330)
-    with pytest.warns(FutureWarning, match="weighted will change"):
-        head_pos = compute_head_pos(raw.info, chpi_locs)
+    # check resulting dev_head_t (also the one place we exercise the default
+    # value of ``weighted``, see gh-11330)
+    head_pos = compute_head_pos(raw.info, chpi_locs)
     assert head_pos.shape == (1, 10)
     nm_pos = raw.info["dev_head_t"]["trans"]
     dist = 1000 * np.linalg.norm(nm_pos[:3, 3] - head_pos[0, 4:7])
@@ -495,7 +493,7 @@ def test_initial_fit_redo():
     )
     assert 0.1 < angle < 2
     gof = head_pos[0, 7]
-    assert_allclose(gof, 0.9999, atol=1e-4)
+    assert_allclose(gof, 0.9998, atol=1e-4)
 
 
 def test_fit_chpi_quat_weighted():
@@ -965,11 +963,6 @@ def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
 @testing.requires_testing_data
 def test_refit_hpi_locs_basic():
     """Test that HPI locations can be refit."""
-    if not check_version("scipy", "1.14"):
-        # TODO VERSION remove when scipy >= 1.14 is required (gh mne-python #13814)
-        # Test fails on "old" job with SciPy 1.12 and 1.13. Will need to see after
-        # 2026-06-24 whether bumping min SciPy version to 1.14 fixes this.
-        pytest.xfail("SciPy 1.13 has an lwork bug affecting this test")
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
     # These should be similar (and both should work)
     locs = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1)

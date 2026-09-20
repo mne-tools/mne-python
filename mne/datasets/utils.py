@@ -23,11 +23,12 @@ from ..utils import (
     _pl,
     _safe_input,
     _validate_type,
+    _verbose_control,
     get_config,
     get_subjects_dir,
     logger,
     set_config,
-    verbose,
+    verbose_static,
 )
 from ..utils.docs import _docformat, docdict
 from .config import MNE_DATASETS, _hcp_mmp_license_text
@@ -93,13 +94,17 @@ def _dataset_version(path, name):
     return version
 
 
-@verbose
+@verbose_static()
 def default_path(*, verbose=None):
     """Get the default MNE_DATA path.
 
     Parameters
     ----------
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -136,7 +141,7 @@ def _get_path(path, key, name):
     if not path.is_dir():
         logger.info(f"Creating {path}")
         try:
-            path.mkdir()
+            path.mkdir(exist_ok=True)  # exist_ok for parallel calls
         except OSError:
             raise OSError(
                 "User does not have write permissions "
@@ -325,7 +330,7 @@ def has_dataset(name):
     return str(dp).endswith(check)
 
 
-@verbose
+@_verbose_control
 def _download_all_example_data(verbose=True):
     """Download all datasets used in examples and tutorials."""
     # This function is designed primarily to be used by CircleCI, to:
@@ -346,7 +351,7 @@ def _download_all_example_data(verbose=True):
         "refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink "
         "erp_core brainstorm.bst_raw brainstorm.bst_auditory "
         "brainstorm.bst_resting brainstorm.bst_phantom_ctf "
-        "brainstorm.bst_phantom_elekta phantom_kernel"
+        "brainstorm.bst_phantom_elekta phantom_kernel visual_92_categories"
     ).split():
         mod = importlib.import_module(f"mne.datasets.{kind}")
         data_path_func = getattr(mod, "data_path")
@@ -366,10 +371,18 @@ def _download_all_example_data(verbose=True):
         limo,
         sleep_physionet,
     )
+    from .erp_core import fetch_file as fetch_erp_core_file
 
-    eegbci.load_data(subjects=1, runs=[6, 10, 14], update_path=True)
+    # keep in sync with the eegbci.load_data calls in examples/ and tutorials/
+    eegbci.load_data(subjects=range(1, 11), runs=[1], update_path=True)
     eegbci.load_data(subjects=range(1, 5), runs=[3], update_path=True)
+    eegbci.load_data(subjects=1, runs=[2, 6, 10, 14], update_path=True)
     logger.info("[done eegbci]")
+
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_eeg.fdt")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_eeg.set")
+    fetch_erp_core_file("sub-001/eeg/sub-001_task-N170_events.tsv")
+    logger.info("[done erp_core N170]")
 
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
     logger.info("[done sleep_physionet]")
@@ -404,7 +417,7 @@ def _download_all_example_data(verbose=True):
         openneuro.download(dataset=ds, target_dir=target_dir, include=run_name[:-4])
 
 
-@verbose
+@verbose_static()
 def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     """Fetch the modified subdivided aparc parcellation.
 
@@ -417,7 +430,11 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     References
     ----------
@@ -445,7 +462,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
             )
 
 
-@verbose
+@verbose_static("accept")
 def fetch_hcp_mmp_parcellation(
     subjects_dir=None, combine=True, *, accept=False, verbose=None
 ):
@@ -464,8 +481,13 @@ def fetch_hcp_mmp_parcellation(
         If True, also produce the combined/reduced set of 23 labels per
         hemisphere as ``HCPMMP1_combined.annot``
         :footcite:`GlasserEtAl2016supp`.
-    %(accept)s
-    %(verbose)s
+    accept : bool
+        If True (default False), accept the license terms of this dataset.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----

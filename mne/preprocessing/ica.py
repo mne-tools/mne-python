@@ -4,7 +4,6 @@
 # Copyright the MNE-Python contributors.
 
 import json
-import math
 import warnings
 from collections import namedtuple
 from collections.abc import Sequence
@@ -16,8 +15,6 @@ from time import time
 from typing import Literal
 
 import numpy as np
-from scipy import stats
-from scipy.spatial import distance
 from scipy.special import expit
 
 from .._fiff.constants import FIFF
@@ -66,6 +63,7 @@ from ..utils import (
     _check_on_missing,
     _check_option,
     _check_preload,
+    _check_rng,
     _ensure_int,
     _get_inst_data,
     _limit_blas_threads,
@@ -73,27 +71,21 @@ from ..utils import (
     _pl,
     _reject_data_segments,
     _require_version,
+    _soft_import,
     _validate_type,
+    _verbose_control,
     check_fname,
     check_random_state,
     compute_corr,
-    copy_function_doc_to_method_doc,
-    fill_doc,
+    copy_function_doc_to_method_doc_static,
+    fill_doc_static,
     int_like,
     logger,
     pinv,
     repr_html,
-    verbose,
+    verbose_static,
     warn,
 )
-from ..viz import (
-    plot_ica_components,
-    plot_ica_overlay,
-    plot_ica_scores,
-    plot_ica_sources,
-)
-from ..viz.ica import plot_ica_properties
-from ..viz.topomap import _plot_corrmap
 from .bads import _find_outliers
 from .ctps_ import ctps
 from .ecg import _get_ecg_channel_index, _make_ecg, create_ecg_epochs, qrs_detector
@@ -141,6 +133,9 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
+    from scipy import stats
+    from scipy.spatial import distance
+
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -194,10 +189,17 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
         )
 
 
-_KNOWN_ICA_METHODS = ("fastica", "infomax", "picard")
+_KNOWN_ICA_METHODS = ("fastica", "infomax", "jamica", "picard")
 
 
-@fill_doc
+def _rng_to_seed(rng):
+    """Adapt a Generator for third-party random_state parameters."""
+    if isinstance(rng, np.random.Generator):
+        return int(rng.integers(np.iinfo(np.int32).max))
+    return rng
+
+
+@fill_doc_static("rng", "random_state_rng", "verbose", "info")
 class ICA(ContainsMixin):
     """Data decomposition using Independent Component Analysis (ICA).
 
@@ -222,11 +224,11 @@ class ICA(ContainsMixin):
             Will select the smallest number of components required to explain
             the cumulative variance of the data greater than ``n_components``.
             Consider this hypothetical example: we have 3 components, the first
-            explaining 70%%, the second 20%%, and the third the remaining 10%%
-            of the variance. Passing 0.8 here (corresponding to 80%% of
+            explaining 70%, the second 20%, and the third the remaining 10%
+            of the variance. Passing 0.8 here (corresponding to 80% of
             explained variance) would yield the first two components,
-            explaining 90%% of the variance: only by using both components the
-            requested threshold of 80%% explained variance can be exceeded. The
+            explaining 90% of the variance: only by using both components the
+            requested threshold of 80% explained variance can be exceeded. The
             third component, on the other hand, would be excluded.
         - ``None``
             ``0.999999`` will be used. This is done to avoid numerical
@@ -246,29 +248,51 @@ class ICA(ContainsMixin):
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
-    %(random_state)s
-    method : 'fastica' | 'infomax' | 'picard'
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
+    method : 'fastica' | 'infomax' | 'jamica' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
         Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
         (this also works for ``method='picard'``). Defaults to ``'fastica'``.
-        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
+        ``method='jamica'`` fits a single ICA model. For multi-model adaptive
+        mixture ICA and other advanced functionality, use the
+        `jamica package <https://snesmaeili.github.io/jamica/>`__ directly. For
+        reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018,PalmerEtAl2011`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``. Allowed entries are determined by the various algorithm
         implementations: see :class:`~sklearn.decomposition.FastICA`,
-        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`.
+        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`, and the
+        ``jamica.amica`` function from the ``jamica`` package.
     max_iter : int | 'auto'
         Maximum number of iterations during fit. If ``'auto'``, it
         will set maximum iterations to ``1000`` for ``'fastica'``
-        and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
-        iterations it took :meth:`ICA.fit` to complete will be stored in the
-        ``n_iter_`` attribute.
+        and to ``500`` for ``'infomax'``, ``'jamica'``, or ``'picard'``. The
+        actual number of iterations it took :meth:`ICA.fit` to complete will be
+        stored in the ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -308,7 +332,9 @@ class ICA(ContainsMixin):
         (There is also an ``exclude`` parameter in the :meth:`ICA.apply`
         method.) To scrap all marked components, set this attribute to an empty
         list.
-    %(info)s
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     n_samples_ : int
         The number of samples used on fit.
     labels_ : dict
@@ -433,12 +459,13 @@ class ICA(ContainsMixin):
     .. footbibliography::
     """  # noqa: E501
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         n_components=None,
         *,
         noise_cov=None,
+        rng=None,
         random_state=None,
         method="fastica",
         fit_params=None,
@@ -473,7 +500,14 @@ class ICA(ContainsMixin):
         self._max_pca_components = None
         self.n_pca_components = None
         self.ch_names = None
+        if rng is not None and random_state is not None:
+            raise TypeError("Specify only one of rng or random_state")
+        if random_state is not None:
+            logger.info("Use rng= instead of random_state= in new code")
         self.random_state = random_state
+        # stored un-normalized so that integer seeds stay intact for the
+        # third-party ``random_state`` parameters used during fitting
+        self.rng = rng
 
         if fit_params is None:
             fit_params = {}
@@ -491,7 +525,7 @@ class ICA(ContainsMixin):
             _check_option("max_iter", max_iter, ("auto",), "when str")
             if method == "fastica":
                 max_iter = 1000
-            elif method in ["infomax", "picard"]:
+            elif method in ["infomax", "jamica", "picard"]:
                 max_iter = 500
         fit_params.setdefault("max_iter", max_iter)
         self.max_iter = max_iter
@@ -507,7 +541,9 @@ class ICA(ContainsMixin):
         @dataclass
         class _InfosForRepr:
             fit_on: Literal["raw data", "epochs"] | None
-            fit_method: Literal["fastica", "infomax", "extended-infomax", "picard"]
+            fit_method: Literal[
+                "fastica", "infomax", "extended-infomax", "jamica", "picard"
+            ]
             fit_params: dict[str, str | float]
             fit_n_iter: int | None
             fit_n_samples: int | None
@@ -590,7 +626,7 @@ class ICA(ContainsMixin):
         )
         return html
 
-    @verbose
+    @verbose_static("picks_good_data_noref", "reject_by_annotation_raw")
     def fit(
         self,
         inst,
@@ -615,7 +651,15 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw or Epochs
             The data to be decomposed.
-        %(picks_good_data_noref)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
             This selection remains throughout the initialized ICA solution.
         start, stop : int | float | None
             First and last sample to include. If float, data will be
@@ -654,10 +698,19 @@ class ICA(ContainsMixin):
 
             .. note:: This parameter only has an effect if ``inst`` is
                       `~mne.io.Raw` data.
-        %(reject_by_annotation_raw)s
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If ``True``
+            (default), annotated segments whose description begins with ``'bad'`` are
+            omitted. If ``False``, no rejection based on annotations is performed.
+
+            Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 
             .. versionadded:: 0.14.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -668,7 +721,6 @@ class ICA(ContainsMixin):
         for method, mod in req_map.items():
             if self.method == method:
                 _require_version(mod, f"use method={repr(method)}")
-
         _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
 
         if np.isclose(inst.info["highpass"], 0.0):
@@ -894,7 +946,14 @@ class ICA(ContainsMixin):
         if not np.isfinite(data).all():
             raise ValueError("Input data contains non-finite values (NaN/Inf). ")
 
-        random_state = check_random_state(self.random_state)
+        rng = getattr(self, "rng", None)
+        if self.random_state is None:
+            # Keep integer seeds intact for third-party ``random_state``
+            # parameters, but use an independent Generator for the default.
+            if rng is None:
+                rng = _check_rng(None)
+        else:
+            rng = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
         self._compute_pre_whitener(data)
         data = self._pre_whiten(data)
@@ -962,14 +1021,16 @@ class ICA(ContainsMixin):
         if self.method == "fastica":
             from sklearn.decomposition import FastICA
 
-            ica = FastICA(whiten=False, random_state=random_state, **self.fit_params)
+            ica = FastICA(
+                whiten=False, random_state=_rng_to_seed(rng), **self.fit_params
+            )
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ("infomax", "extended-infomax"):
             unmixing_matrix, n_iter = infomax(
                 data[:, sel],
-                random_state=random_state,
+                rng=_check_rng(rng),
                 return_n_iter=True,
                 **self.fit_params,
             )
@@ -983,11 +1044,26 @@ class ICA(ContainsMixin):
                 data[:, sel].T,
                 whiten=False,
                 return_n_iter=True,
-                random_state=random_state,
+                random_state=_rng_to_seed(rng),
                 **self.fit_params,
             )
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            del _, n_iter
+        elif self.method == "jamica":
+            jamica = _soft_import(
+                "jamica", "fitting ICA with method='jamica'", min_version="0.3.0"
+            )
+
+            _, W, _, n_iter = jamica.amica(
+                data[:, sel].T,
+                whiten=False,
+                return_n_iter=True,
+                random_state=_rng_to_seed(rng),
+                **self.fit_params,
+            )
+            self.unmixing_matrix_ = W
+            self.n_iter_ = n_iter
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         norms = self.pca_explained_variance_
@@ -1383,7 +1459,7 @@ class ICA(ContainsMixin):
             info["projs"] = []  # make sure projections are removed.
         info["bads"] = [ch_names[k] for k in self.exclude]
 
-    @verbose
+    @verbose_static("reject_by_annotation_all")
     def score_sources(
         self,
         inst,
@@ -1427,10 +1503,17 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        %(reject_by_annotation_all)s
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If ``True``
+            (default), annotated segments whose description begins with ``'bad'`` are
+            omitted. If ``False``, no rejection based on annotations is performed.
 
             .. versionadded:: 0.14.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1577,31 +1660,7 @@ class ICA(ContainsMixin):
 
         return labels, scores
 
-    def _get_ctps_threshold(self, pk_threshold=20):
-        """Automatically decide the threshold of Kuiper index for CTPS method.
-
-        This function finds the threshold of Kuiper index based on the
-        threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
-        is returned. It is assumed that the data are appropriately filtered and
-        bad data are rejected at least based on peak-to-peak amplitude
-        when/before running the ICA decomposition on data.
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        N = self.info["sfreq"]
-        Vs = np.arange(1, 100) / 100
-        C = math.sqrt(N) + 0.155 + 0.24 / math.sqrt(N)
-        # in formula (13), when k gets large, only k=1 matters for the
-        # summation. k*V*C thus becomes V*C
-        Pks = 2 * (4 * (Vs * C) ** 2 - 1) * (np.exp(-2 * (Vs * C) ** 2))
-        # NOTE: the threshold of pk is transformed to Pk for comparison
-        # pk = -log10(Pk)
-        return Vs[np.argmin(np.abs(Pks - 10 ** (-pk_threshold)))]
-
-    @verbose
+    @verbose_static("ch_name_ecg", "reject_by_annotation_all", "measure")
     def find_bads_ecg(
         self,
         inst,
@@ -1630,7 +1689,12 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from.
-        %(ch_name_ecg)s
+        ch_name : None | str
+            The name of the channel to use for ECG peak detection.
+            If ``None`` (default), ECG channel is used if present. If ``None`` and
+            **no** ECG channel is present, a synthetic ECG channel is created from
+            the cross-channel average. This synthetic channel can only be created from
+            MEG channels.
         threshold : float | 'auto'
             Value above which a feature is classified as outlier. See Notes.
 
@@ -1651,11 +1715,28 @@ class ICA(ContainsMixin):
             The method used for detection. If ``'ctps'``, cross-trial phase
             statistics :footcite:`DammersEtAl2008` are used to detect
             ECG-related components. See Notes.
-        %(reject_by_annotation_all)s
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If ``True``
+            (default), annotated segments whose description begins with ``'bad'`` are
+            omitted. If ``False``, no rejection based on annotations is performed.
 
             .. versionadded:: 0.14.0
-        %(measure)s
-        %(verbose)s
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers among the components:
+
+            - ``'zscore'`` (default) is the iterative z-scoring method. This method
+              computes the z-score of the component's scores and masks the components
+              with a z-score above threshold. This process is repeated until no
+              supra-threshold component remains.
+            - ``'correlation'`` is an absolute raw correlation threshold ranging from 0
+              to 1.
+
+            .. versionadded:: 0.21
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1674,9 +1755,9 @@ class ICA(ContainsMixin):
         The ``threshold``, ``method``, and ``measure`` parameters interact in
         the following ways:
 
-        - If ``method='ctps'``, ``threshold`` refers to the significance value
-          of a Kuiper statistic, and ``threshold='auto'`` will compute the
-          threshold automatically based on the sampling frequency.
+        - If ``method='ctps'``, ``threshold`` refers to the maximum normalized
+          Kuiper index across time, and ``threshold='auto'`` sets the threshold
+          to 0.3, independent of the sampling frequency and number of trials.
         - If ``method='correlation'`` and ``measure='correlation'``,
           ``threshold`` refers to the Pearson correlation value, and
           ``threshold='auto'`` sets the threshold to 0.9.
@@ -1707,9 +1788,6 @@ class ICA(ContainsMixin):
             ecg = inst.ch_names[idx_ecg]
 
         if method == "ctps":
-            if threshold == "auto":
-                threshold = self._get_ctps_threshold()
-                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(
                     create_ecg_epochs(
@@ -1731,6 +1809,9 @@ class ICA(ContainsMixin):
                 sources = self.get_sources(inst).get_data(copy=False)
             else:
                 raise ValueError("With `ctps` only Raw and Epochs input is supported")
+            if threshold == "auto":
+                threshold = 0.3
+                logger.info(f"Using threshold: {threshold:.2f} for CTPS ECG detection")
             _, p_vals, _ = ctps(sources)
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
@@ -1761,7 +1842,7 @@ class ICA(ContainsMixin):
 
         return self.labels_["ecg"], scores
 
-    @verbose
+    @verbose_static("reject_by_annotation_all", "measure")
     def find_bads_ref(
         self,
         inst,
@@ -1809,14 +1890,31 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        %(reject_by_annotation_all)s
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If ``True``
+            (default), annotated segments whose description begins with ``'bad'`` are
+            omitted. If ``False``, no rejection based on annotations is performed.
         method : 'together' | 'separate'
             Method to use to identify reference channel related components.
             Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        %(measure)s
-        %(verbose)s
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers among the components:
+
+            - ``'zscore'`` (default) is the iterative z-scoring method. This method
+              computes the z-score of the component's scores and masks the components
+              with a z-score above threshold. This process is repeated until no
+              supra-threshold component remains.
+            - ``'correlation'`` is an absolute raw correlation threshold ranging from 0
+              to 1.
+
+            .. versionadded:: 0.21
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1932,7 +2030,7 @@ class ICA(ContainsMixin):
 
         return self.labels_["ref_meg"], scores
 
-    @verbose
+    @verbose_static("sphere_topomap_auto")
     def find_bads_muscle(
         self,
         inst,
@@ -1980,8 +2078,46 @@ class ICA(ContainsMixin):
             Low frequency for muscle-related power.
         h_freq : float
             High frequency for muscle-related power.
-        %(sphere_topomap_auto)s
-        %(verbose)s
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1997,7 +2133,9 @@ class ICA(ContainsMixin):
         Notes
         -----
         .. versionadded:: 1.1
-        """
+        """  # noqa: E501
+        from scipy.spatial import distance
+
         _validate_type(threshold, "numeric", "threshold")
 
         slope_score, focus_score, smoothness_score = None, None, None
@@ -2079,7 +2217,7 @@ class ICA(ContainsMixin):
         ]
         return self.labels_["muscle"], scores
 
-    @verbose
+    @verbose_static("reject_by_annotation_all", "measure")
     def find_bads_eog(
         self,
         inst,
@@ -2128,11 +2266,28 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        %(reject_by_annotation_all)s
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If ``True``
+            (default), annotated segments whose description begins with ``'bad'`` are
+            omitted. If ``False``, no rejection based on annotations is performed.
 
             .. versionadded:: 0.14.0
-        %(measure)s
-        %(verbose)s
+        measure : 'zscore' | 'correlation'
+            Which method to use for finding outliers among the components:
+
+            - ``'zscore'`` (default) is the iterative z-scoring method. This method
+              computes the z-score of the component's scores and masks the components
+              with a z-score above threshold. This process is repeated until no
+              supra-threshold component remains.
+            - ``'correlation'`` is an absolute raw correlation threshold ranging from 0
+              to 1.
+
+            .. versionadded:: 0.21
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2173,7 +2328,7 @@ class ICA(ContainsMixin):
         )
         return self.labels_["eog"], scores
 
-    @verbose
+    @verbose_static("n_pca_components_apply", "on_baseline_ica")
     def apply(
         self,
         inst,
@@ -2209,15 +2364,29 @@ class ICA(ContainsMixin):
             empty list, only components from ``ica.exclude`` will be
             excluded. Else, the union of ``exclude`` and ``ica.exclude``
             will be excluded.
-        %(n_pca_components_apply)s
+        n_pca_components : int | float | None
+            The number of PCA components to be kept, either absolute (int)
+            or fraction of the explained variance (float). If None (default),
+            the ``ica.n_pca_components`` from initialization will be used in 0.22;
+            in 0.23 all components will be used.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
-        %(on_baseline_ica)s
-        %(verbose)s
+        on_baseline : str
+            How to handle baseline-corrected epochs or evoked data.
+            Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+            warning, ``'ignore'`` to ignore, or "reapply" to reapply the baseline
+            after applying ICA.
+
+            .. versionadded:: 1.2
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2424,7 +2593,7 @@ class ICA(ContainsMixin):
 
         return data
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Store ICA solution into a fiff file.
 
@@ -2433,10 +2602,16 @@ class ICA(ContainsMixin):
         fname : path-like
             The absolute path of the file name to save the ICA solution into.
             The file name should end with ``-ica.fif`` or ``-ica.fif.gz``.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2470,7 +2645,7 @@ class ICA(ContainsMixin):
         """
         return deepcopy(self)
 
-    @copy_function_doc_to_method_doc(plot_ica_components)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_ica_components")
     def plot_components(
         self,
         picks=None,
@@ -2503,6 +2678,230 @@ class ICA(ContainsMixin):
         psd_args=None,
         verbose=None,
     ):
+        """Project mixing matrix on interpolated sensor topography.
+
+        Parameters
+        ----------
+        picks : int | list of int | slice | None
+            Indices of the independent components (ICs) to visualize. If an integer,
+            represents the index of the IC to pick. Multiple ICs can be selected using a
+            list of int or a slice. The indices are 0-indexed, so ``picks=1`` will pick
+            the second IC: ``ICA001``. ``None`` will pick all independent components in
+            the order fitted.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the RMS for each pair is plotted. If ``None``
+            the first available channel type from order
+            shown above is used. Defaults to ``None``.
+        inst : Raw | Epochs | None
+            To be able to see component properties after clicking on component
+            topomap you need to pass relevant data - instances of Raw or Epochs
+            (for example the data that ICA was trained on). This takes effect
+            only when running matplotlib in interactive mode.
+        plot_std : bool | float
+            Whether to plot standard deviation in ERP/ERF and spectrum plots.
+            Defaults to True, which plots one standard deviation above/below.
+            If set to float allows to control how many standard deviations are
+            plotted. For example 2.5 will plot 2.5 standard deviation above/below.
+        reject : ``'auto'`` | dict | None
+            Allows to specify rejection parameters used to drop epochs
+            (or segments if continuous signal is passed as inst).
+            If None, no rejection is applied. The default is 'auto',
+            which applies the rejection parameters used when fitting
+            the ICA object.
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. If ``colorbar=True``, the colorbar will have ticks
+            corresponding to the contour levels. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
+
+            .. versionadded:: 1.3
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+
+            .. versionadded:: 1.3
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+
+            .. versionadded:: 1.3
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ``(min(data), max(data))``.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. Defaults to ``(None, None)``.
+
+            .. versionadded:: 1.3
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+
+            .. versionadded:: 1.3
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
+        axes : Axes | array of Axes | None
+            The subplot(s) to plot to. Either a single Axes or an iterable of Axes
+            if more than one subplot is needed. The number of subplots must match
+            the number of selected components. If None, new figures will be created
+            with the number of subplots per figure controlled by ``nrows`` and
+            ``ncols``.
+        title : str | None
+            The window title of the generated figure. If ``None`` (default) and
+            ``axes=None``, a default title of "Independent Components" will be used.
+            If ``axes=None`` and the components shown in a given figure form a
+            contiguous range, that range is appended to the title.
+        nrows, ncols : int | 'auto'
+            The number of rows and columns of topographies to plot. If both ``nrows``
+            and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
+            and return multiple figures if more than 20 components are requested.
+            If one is ``'auto'`` and the other a scalar, a single figure is generated.
+            If scalars are provided for both arguments, will plot up to ``nrows*ncols``
+            components in a grid and return multiple figures as needed. Default is
+            ``nrows='auto', ncols='auto'``.
+
+            .. versionadded:: 1.3
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        image_args : dict | None
+            Dictionary of arguments to pass to :func:`~mne.viz.plot_epochs_image`
+            in interactive mode. Ignored if ``inst`` is not supplied. If ``None``,
+            nothing is passed. Defaults to ``None``.
+        psd_args : dict | None
+            Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+            interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+            nothing is passed. Defaults to ``None``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure | list of matplotlib.figure.Figure
+            The figure object(s).
+
+        Notes
+        -----
+        When run in interactive mode, ``plot_ica_components`` allows to reject
+        components by clicking on their title label. The state of each component
+        is indicated by its label color (gray: rejected; black: retained). It is
+        also possible to open component properties by clicking on the component
+        topomap (this option is only available when the ``inst`` argument is
+        supplied).
+        """  # noqa: E501
+        from ..viz import (
+            plot_ica_components,
+        )
+
         return plot_ica_components(
             self,
             picks=picks,
@@ -2535,7 +2934,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_properties)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.ica.plot_ica_properties")
     def plot_properties(
         self,
         inst,
@@ -2555,6 +2954,99 @@ class ICA(ContainsMixin):
         estimate="power",
         verbose=None,
     ):
+        """Display component properties.
+
+        Properties include the topography, epochs image, ERP/ERF, power
+        spectrum, and epoch variance.
+
+        Parameters
+        ----------
+        inst : instance of Epochs or Raw
+            The data to use in plotting properties.
+
+            .. note::
+               You can interactively cycle through topographic maps for different
+               channel types by pressing :kbd:`T`.
+        picks : int | list of int | slice | None
+            Indices of the independent components (ICs) to visualize.
+            If an integer, represents the index of the IC to pick.
+            Multiple ICs can be selected using a list of int or a slice.
+            The indices are 0-indexed, so ``picks=1`` will pick the second
+            IC: ``ICA001``. ``None`` will pick the first 5 components.
+        axes : list of Axes | None
+            List of five matplotlib axes to use in plotting: [topomap_axis,
+            image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
+            figure with relevant axes is created. Defaults to None.
+        dB : bool
+            Whether to plot spectrum in dB. Defaults to True.
+        plot_std : bool | float
+            Whether to plot standard deviation/confidence intervals in ERP/ERF and
+            spectrum plots.
+            Defaults to True, which plots one standard deviation above/below for
+            the spectrum. If set to float allows to control how many standard
+            deviations are plotted for the spectrum. For example 2.5 will plot 2.5
+            standard deviation above/below.
+            For the ERP/ERF, by default, plot the 95 percent parametric confidence
+            interval is calculated. To change this, use ``ci`` in ``ts_args`` in
+            ``image_args`` (see below).
+        log_scale : bool
+            Whether to use a logarithmic frequency axis to plot the spectrum.
+            Defaults to ``False``.
+
+            .. note::
+               You can interactively toggle this setting by pressing :kbd:`L`.
+
+            .. versionadded:: 1.1
+        topomap_args : dict | None
+            Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
+            additional arguments. Defaults to None.
+        image_args : dict | None
+            Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
+            any additional arguments. Defaults to None.
+        psd_args : dict | None
+            Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
+            ``None``, doesn't pass any additional arguments. Defaults to ``None``.
+        figsize : array-like, shape (2,) | None
+            Allows to control size of the figure. If None, the figure size
+            defaults to [7., 6.].
+        show : bool
+            Show figure if True.
+        reject : 'auto' | dict | None
+            Allows to specify rejection parameters used to drop epochs
+            (or segments if continuous signal is passed as inst).
+            If None, no rejection is applied. The default is 'auto',
+            which applies the rejection parameters used when fitting
+            the ICA object.
+        reject_by_annotation : bool
+            Whether to omit bad segments from the data before fitting. If ``True``
+            (default), annotated segments whose description begins with ``'bad'`` are
+            omitted. If ``False``, no rejection based on annotations is performed.
+
+            Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
+
+            .. versionadded:: 0.21.0
+        estimate : str, {'power', 'amplitude'}
+            Can be "power" for power spectral density (PSD; default), "amplitude" for
+            amplitude spectrum density (ASD).
+
+            .. versionadded:: 1.8.0
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : list
+            List of matplotlib figures.
+
+        Notes
+        -----
+        .. versionadded:: 0.13
+        """
+        from ..viz.ica import plot_ica_properties
+
         return plot_ica_properties(
             self,
             inst,
@@ -2574,7 +3066,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_sources)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_ica_sources")
     def plot_sources(
         self,
         inst,
@@ -2597,6 +3089,152 @@ class ICA(ContainsMixin):
         overview_mode=None,
         splash=True,
     ):
+        """Plot estimated latent sources given the unmixing matrix.
+
+        Typical usecases:
+
+        1. plot evolution of latent sources over time based on (Raw input)
+        2. plot latent source around event related time windows (Epochs input)
+        3. plot time-locking in ICA space (Evoked input)
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            The object to plot the sources from.
+        picks : int | list of int | slice | None
+            Indices of the independent components (ICs) to visualize. If an integer,
+            represents the index of the IC to pick. Multiple ICs can be selected using a
+            list of int or a slice. The indices are 0-indexed, so ``picks=1`` will pick
+            the second IC: ``ICA001``. ``None`` will pick all independent components in
+            the order fitted.
+        start, stop : float | int | None
+           If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
+           last time point (in seconds) of the data to plot. If ``inst`` is a
+           `~mne.io.Raw` object, ``start=None`` and ``stop=None`` will be
+           translated into ``start=0.`` and ``stop=3.``, respectively. For
+           `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+           signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
+           the first and last epoch to show.
+        n_components : int
+            Maximum number of ICA components to plot. Defaults to 20.
+
+            .. versionadded:: 1.13
+        title : str | None
+            The window title. If None a default is provided.
+        show : bool
+            Show figure if True.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for interactive selection of components in raw and epoch
+            plotter. For evoked, this parameter has no effect. Defaults to False.
+        show_first_samp : bool
+            If True, show time axis relative to the ``raw.first_samp``.
+        show_scrollbars : bool
+            Whether to show scrollbars when the plot is initialized. Can be toggled
+            after initialization by pressing :kbd:`z` ("zen mode") while the plot
+            window is focused. Default is ``True``.
+
+            .. versionadded:: 0.19.0
+        time_format : 'float' | 'clock'
+            Style of time labels on the horizontal axis. If ``'float'``, labels will be
+            number of seconds from the start of the recording. If ``'clock'``,
+            labels will show "clock time" (hours/minutes/seconds) inferred from
+            ``raw.info['meas_date']``. Default is ``'float'``.
+
+            .. versionadded:: 0.24
+        precompute : bool | str
+            Whether to load all data (not just the visible portion) into RAM and
+            apply preprocessing (e.g., projectors) to the full data array in a separate
+            processor thread, instead of window-by-window during scrolling. The default
+            None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
+            ``'auto'``. ``'auto'`` compares available RAM space to the expected size of
+            the precomputed data, and precomputes only if enough RAM is available.
+            This is only used with the Qt backend.
+
+            .. versionadded:: 0.24
+            .. versionchanged:: 1.0
+               Support for the ``MNE_BROWSER_PRECOMPUTE`` config variable.
+        use_opengl : bool | None
+            Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+            May increase performance, but effect is dependent on system CPU and
+            graphics hardware. Only works if using the Qt backend. Default is
+            None, which will use False unless the user configuration variable
+            ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+            see :func:`mne.set_config`.
+
+            .. versionadded:: 0.24
+        annotation_regex : str
+            A regex pattern applied to each annotation's label.
+            Matching labels remain visible, non-matching labels are hidden.
+
+            .. versionadded:: 1.11
+        psd_args : dict | None
+            Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+            interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+            nothing is passed. Defaults to ``None``.
+
+            .. versionadded:: 1.9
+        theme : str | path-like
+            Can be "auto", "light", or "dark" or a path-like to a
+            custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+            `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+            `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+            respectively, are required.
+            If None (default), the config option MNE_BROWSER_THEME will be used,
+            defaulting to "auto" if it's not found.
+
+            For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``, and
+            ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a
+            custom stylesheet is also accepted.
+
+            .. versionadded:: 1.0
+        overview_mode : str | None
+            Can be "channels", "empty", or "hidden" to set the overview bar mode
+            for the ``'qt'`` backend. If None (default), the config option
+            ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+            if it's not found.
+
+            .. versionadded:: 1.1
+        splash : bool
+            If True (default), a splash screen is shown during the application
+            startup. Only applicable to the ``qt`` backend.
+
+            .. versionadded:: 1.6
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
+            Browser instance.
+
+        Notes
+        -----
+        For raw and epoch instances, it is possible to select components for
+        exclusion by clicking on the line. The selected components are added to
+        ``ica.exclude`` on close.
+
+        MNE-Python provides two different backends for browsing plots (i.e.,
+        :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
+        and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
+        based on :mod:`matplotlib`, and the other is based on
+        :doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the
+        context manager :func:`mne.viz.use_browser_backend`, you can set it for the
+        duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
+        can set the default for your computer via
+        :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib')<mne.set_config>`
+        (or ``'qt'``).
+
+        .. note:: For the PyQtGraph backend to run in IPython with ``block=False``
+                  you must run the magic command ``%gui qt5`` first.
+        .. note:: To report issues with the PyQtGraph backend, please use the
+                  `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+                  of ``mne-qt-browser``.
+
+        .. versionadded:: 0.10.0
+        """
+        from ..viz import (
+            plot_ica_sources,
+        )
+
         return plot_ica_sources(
             self,
             inst=inst,
@@ -2619,7 +3257,7 @@ class ICA(ContainsMixin):
             splash=splash,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_scores)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_ica_scores")
     def plot_scores(
         self,
         scores,
@@ -2631,6 +3269,47 @@ class ICA(ContainsMixin):
         n_cols=None,
         show=True,
     ):
+        """Plot scores related to detected components.
+
+        Use this function to asses how well your score describes outlier
+        sources and how well you were detecting them.
+
+        Parameters
+        ----------
+        scores : array-like of float, shape (n_ica_components,) | list of array
+            Scores based on arbitrary metric to characterize ICA components.
+        exclude : array-like of int
+            The components marked for exclusion. If None (default), ICA.exclude
+            will be used.
+        labels : str | list | 'ecg' | 'eog' | None
+            The labels to consider for the axes tests. Defaults to None.
+            If list, should match the outer shape of ``scores``.
+            If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
+            Note that '/' is used internally for sublabels specifying ECG and
+            EOG channels.
+        axhline : float
+            Draw horizontal line to e.g. visualize rejection threshold.
+        title : str
+            The figure title.
+        figsize : tuple of int | None
+            The figure size. If None it gets set automatically.
+        n_cols : int | None
+            Scores are plotted in a grid. This parameter controls how
+            many to plot side by side before starting a new row. By
+            default, a number will be chosen to make the grid as square as
+            possible.
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : instance of Figure
+            The figure object.
+        """
+        from ..viz import (
+            plot_ica_scores,
+        )
+
         return plot_ica_scores(
             ica=self,
             scores=scores,
@@ -2643,7 +3322,7 @@ class ICA(ContainsMixin):
             show=show,
         )
 
-    @copy_function_doc_to_method_doc(plot_ica_overlay)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_ica_overlay")
     def plot_overlay(
         self,
         inst,
@@ -2658,6 +3337,74 @@ class ICA(ContainsMixin):
         on_baseline="warn",
         verbose=None,
     ):
+        """Overlay of raw and cleaned signals given the unmixing matrix.
+
+        This method helps visualizing signal quality and artifact rejection.
+
+        Parameters
+        ----------
+        inst : instance of Raw or Evoked
+            The signal to plot. If `~mne.io.Raw`, the raw data per channel type is displayed
+            before and after cleaning. A second panel with the RMS for MEG sensors and the
+            :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
+            signals before and after cleaning will be superimposed.
+        exclude : array-like of int | None
+            The components marked for exclusion. If ``None`` (default), the components
+            listed in ``ICA.exclude`` will be used.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick
+            all channels that were included during fitting.
+        start, stop : float | None
+           The first and last time point (in seconds) of the data to plot. If
+           ``inst`` is a `~mne.io.Raw` object, ``start=None`` and ``stop=None``
+           will be translated into ``start=0.`` and ``stop=3.``, respectively. For
+           `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+           signal.
+        title : str | None
+            The title of the generated figure. If ``None`` (default), no title is
+            displayed.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        n_pca_components : int | float | None
+            The number of PCA components to be kept, either absolute (int)
+            or fraction of the explained variance (float). If None (default),
+            the ``ica.n_pca_components`` from initialization will be used in 0.22;
+            in 0.23 all components will be used.
+
+            .. versionadded:: 0.22
+        on_baseline : str
+            How to handle baseline-corrected epochs or evoked data.
+            Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+            warning, ``'ignore'`` to ignore, or "reapply" to reapply the baseline
+            after applying ICA.
+
+            .. versionadded:: 1.2
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : instance of Figure
+            The figure.
+        """  # noqa: E501
+        from ..viz import (
+            plot_ica_overlay,
+        )
+
         return plot_ica_overlay(
             self,
             inst=inst,
@@ -2672,7 +3419,7 @@ class ICA(ContainsMixin):
             verbose=verbose,
         )
 
-    @verbose
+    @_verbose_control
     def _check_n_pca_components(self, _n_pca_comp, verbose=None):
         """Aux function."""
         if isinstance(_n_pca_comp, float):
@@ -2715,7 +3462,7 @@ def _check_start_stop(raw, start, stop):
     return out
 
 
-@verbose
+@verbose_static()
 def ica_find_ecg_events(
     raw,
     ecg_source,
@@ -2747,7 +3494,11 @@ def ica_find_ecg_events(
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2779,7 +3530,7 @@ def ica_find_ecg_events(
     return ecg_events
 
 
-@verbose
+@verbose_static()
 def ica_find_eog_events(
     raw, eog_source=None, event_id=998, l_freq=1, h_freq=10, verbose=None
 ):
@@ -2797,7 +3548,11 @@ def ica_find_eog_events(
         Low cut-off frequency in Hz.
     h_freq : float
         High cut-off frequency in Hz.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3027,7 +3782,7 @@ def _write_ica(fid, ica):
     end_block(fid, FIFF.FIFFB_MNE_ICA)
 
 
-@verbose
+@verbose_static()
 def read_ica(fname, verbose=None):
     """Restore ICA solution from fif file.
 
@@ -3036,7 +3791,11 @@ def read_ica(fname, verbose=None):
     fname : path-like
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3163,7 +3922,7 @@ def read_ica(fname, verbose=None):
 _ica_node = namedtuple("Node", "name target score_func criterion")
 
 
-@verbose
+@_verbose_control
 def _band_pass_filter(inst, sources, target, l_freq, h_freq, verbose=None):
     """Optionally band-pass filter the data."""
     if l_freq is not None and h_freq is not None:
@@ -3244,7 +4003,18 @@ def _find_max_corrs(all_maps, target, threshold):
     return newtarget, median_corr_with_target, sim_i_o, subj_idxs
 
 
-@verbose
+@verbose_static(
+    "sensors_topomap",
+    "show_names_topomap",
+    "contours_topomap",
+    "outlines_topomap",
+    "sphere_topomap_auto",
+    "image_interp_topomap",
+    "extrapolate_topomap",
+    "border_topomap",
+    "cmap_topomap_simple",
+    "show",
+)
 def corrmap(
     icas,
     template,
@@ -3316,26 +4086,117 @@ def corrmap(
         and the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. Defaults to 'eeg'.
-    %(sensors_topomap)s
-    %(show_names_topomap)s
-    %(contours_topomap)s
-    %(outlines_topomap)s
-    %(sphere_topomap_auto)s
-    %(image_interp_topomap)s
+    sensors : bool | str
+        Whether to add markers for sensor locations. If :class:`str`, should be a
+        valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+        Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+        default), black circles will be used.
+    show_names : bool | callable
+        If ``True``, show channel names next to each sensor marker. If callable,
+        channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+        non-masked sensor names will be shown.
+    contours : int | array-like
+        The number of contour lines to draw. If ``0``, no contours will be drawn.
+        If a positive integer, that number of contour levels are chosen using the
+        matplotlib tick locator (may sometimes be inaccurate, use array for
+        accuracy). If array-like, the array values are used as the contour levels.
+        The values should be in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. If ``colorbar=True``, the colorbar will have ticks
+        corresponding to the contour levels. Default is ``6``.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If dict, each key refers to a tuple of x and y positions, the values
+        in 'mask_pos' will serve as image mask.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    image_interp : str
+        The image interpolation to be used. Options are ``'cubic'`` (default)
+        to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+        ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+        ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
 
         .. versionadded:: 1.2
-    %(extrapolate_topomap)s
+    extrapolate : str
+        Options:
+
+        - ``'box'``
+            Extrapolate to four points placed to form a square encompassing all
+            data points, where each side of the square is three times the range
+            of the data in the respective dimension.
+        - ``'local'`` (default for MEG sensors)
+            Extrapolate only to nearby points (approximately to points closer than
+            median inter-electrode distance). This will also set the
+            mask to be polygonal based on the convex hull of the sensors.
+        - ``'head'`` (default for non-MEG sensors)
+            Extrapolate out to the edges of the clipping circle. This will be on
+            the head circle when the sensors are contained within the head circle,
+            but it can extend beyond the head when sensors are plotted outside
+            the head circle.
 
         .. versionadded:: 1.2
-    %(border_topomap)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+        then each extrapolated point has the average value of its neighbours.
 
         .. versionadded:: 1.2
-    %(cmap_topomap_simple)s
+    cmap : str | matplotlib.colors.Colormap | None
+        Colormap to use. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'.
     plot : bool
         Should constructed template and selected maps be plotted? Defaults
         to True.
-    %(show)s
-    %(verbose)s
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3347,7 +4208,9 @@ def corrmap(
     References
     ----------
     .. footbibliography::
-    """
+    """  # noqa: E501
+    from ..viz.topomap import _plot_corrmap
+
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
 
@@ -3489,7 +4352,7 @@ def corrmap(
         return None
 
 
-@verbose
+@verbose_static("montage_units")
 def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     """Load ICA information saved in an EEGLAB .set file.
 
@@ -3497,10 +4360,19 @@ def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     ----------
     fname : path-like
         Complete path to a ``.set`` EEGLAB file that contains an ICA object.
-    %(montage_units)s
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
 
         .. versionadded:: 1.6
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

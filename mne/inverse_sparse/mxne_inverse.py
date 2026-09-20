@@ -6,7 +6,7 @@ import numpy as np
 
 from .._fiff.proj import deactivate_proj
 from ..dipole import Dipole
-from ..fixes import _reshape_view, _safe_svd
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import (
     _check_reference,
@@ -18,11 +18,12 @@ from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..utils import (
     _check_depth,
     _check_option,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
+    _verbose_control,
     logger,
     sum_squared,
-    verbose,
+    verbose_static,
     warn,
 )
 from .mxne_optim import (
@@ -131,7 +132,7 @@ def _compute_residual(forward, evoked, X, active_set, info):
     return residual
 
 
-@verbose
+@_verbose_control
 def _make_sparse_stc(
     X,
     active_set,
@@ -221,7 +222,7 @@ def _split_gof(M, X, gain):
     return gof_back
 
 
-@verbose
+@_verbose_control
 def _make_dipoles_sparse(
     X,
     active_set,
@@ -253,8 +254,8 @@ def _make_dipoles_sparse(
         _, keep = np.unique(active_idx, return_index=True)
         keep.sort()  # maintain old order
         active_idx = active_idx[keep]
-        gof_split = _reshape_view(
-            gof_split, (len(active_idx), n_dip_per_pos, len(times))
+        gof_split = gof_split.reshape(
+            (len(active_idx), n_dip_per_pos, len(times)), copy=False
         )
         gof_split = gof_split.sum(1)
         assert (gof_split < 100).all()
@@ -288,7 +289,7 @@ def _make_dipoles_sparse(
     return dipoles
 
 
-@verbose
+@verbose_static()
 def make_stc_from_dipoles(dipoles, src, verbose=None):
     """Convert a list of spatio-temporal dipoles into a SourceEstimate.
 
@@ -298,7 +299,11 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
         The dipoles to convert.
     src : instance of SourceSpaces
         The source space used to generate the forward operator.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -341,7 +346,8 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     return stc
 
 
-@verbose
+@_legacy_rng("random_state")
+@verbose_static("loose", "depth", "rank_none", "pick_ori", "rng", "random_state_rng")
 def mixed_norm(
     evoked,
     forward,
@@ -364,8 +370,10 @@ def mixed_norm(
     rank=None,
     pick_ori=None,
     sure_alpha_grid="auto",
-    random_state=None,
     verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
@@ -388,8 +396,26 @@ def mixed_norm(
 
         .. versionchanged:: 0.24
           The default was changed to ``'sure'``.
-    %(loose)s
-    %(depth)s
+    loose : float | 'auto' | dict
+        Value that weights the source variances of the dipole components
+        that are parallel (tangential) to the cortical surface. Can be:
+
+        - float between 0 and 1 (inclusive)
+            If 0, then the solution is computed with fixed orientation.
+            If 1, it corresponds to free orientations.
+        - ``'auto'`` (default)
+            Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+            1.0 for other source spaces (volume or mixed).
+        - dict
+            Mapping from the key for a given source space type (surface, volume,
+            discrete) to the loose value. Useful mostly for mixed source spaces.
+    depth : None | float | dict
+        How to weight (or normalize) the forward using a depth prior.
+        If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+        to use. None is equivalent to 0, meaning no depth weighting is performed.
+        It can also be a :class:`dict` containing keyword arguments to pass to
+        :func:`mne.forward.compute_depth_prior` (see docstring for details and
+        defaults).
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -422,22 +448,97 @@ def mixed_norm(
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
-    %(rank_none)s
+    rank : None | 'info' | 'full' | dict
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. When a noise covariance
+        is used for whitening, this should reflect the rank of that covariance,
+        otherwise amplification of noise components can occur in whitening (e.g.,
+        often during source localization).
+
+        :data:`python:None`
+            The rank will be estimated from the data after proper scaling of
+            different channel types.
+        ``'info'``
+            The rank is inferred from ``info``. If data have been processed
+            with Maxwell filtering, the Maxwell filtering header is used.
+            Otherwise, the channel counts themselves are used.
+            In both cases, the number of projectors is subtracted from
+            the (effective) number of channels in the data.
+            For example, if Maxwell filtering reduces the rank to 68, with
+            two projectors the returned value will be 66.
+        ``'full'``
+            The rank is assumed to be full, i.e. equal to the
+            number of good channels. If a `~mne.Covariance` is passed, this can
+            make sense if it has been (possibly improperly) regularized without
+            taking into account the true data rank.
+        :class:`dict`
+            Calculate the rank only for a subset of channel types, and explicitly
+            specify the rank for the remaining channel types. This can be
+            extremely useful if you already **know** the rank of (part of) your
+            data, for instance in case you have calculated it earlier.
+
+            This parameter must be a dictionary whose **keys** correspond to
+            channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+            ``'eeg'``), and whose **values** are integers representing the
+            respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+            a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+            respectively.
+
+            The ranks for all channel types present in the data, but
+            **not** specified in the dictionary will be estimated empirically.
+            That is, if you passed a dataset containing magnetometer, gradiometer,
+            and EEG data together with the dictionary from the previous example,
+            only the gradiometer rank would be determined, while the specified
+            magnetometer and EEG ranks would be taken for granted.
+
+        The default is ``None``.
 
         .. versionadded:: 0.18
-    %(pick_ori)s
+    pick_ori : None | "normal" | "vector"
+
+        Options:
+
+        - ``None``
+            Pooling is performed by taking the norm of loose/free
+            orientations. In case of a fixed source space no norm is computed
+            leading to signed source activity.
+        - ``"normal"``
+            Only the normal to the cortical surface is kept. This is only
+            implemented when working with loose orientations.
+
+        - ``"vector"``
+            No pooling of the orientations is done, and the vector result
+            will be returned in the form of a :class:`mne.VectorSourceEstimate`
+            object.
     sure_alpha_grid : array | str
         If ``'auto'`` (default), the SURE is evaluated along 15 uniformly
         distributed alphas between alpha_max and 0.1 * alpha_max. If array, the
         grid is directly specified. Ignored if alpha is not "sure".
 
         .. versionadded:: 0.24
-    random_state : int | None
-        The random state used in a random number generator for delta and
-        epsilon used for the SURE computation. Defaults to None.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
+        Used for the random delta and epsilon in the SURE computation.
 
         .. versionadded:: 0.24
-    %(verbose)s
 
     Returns
     -------
@@ -541,7 +642,7 @@ def mixed_norm(
             gain,
             alpha_grid,
             sigma=1,
-            random_state=random_state,
+            rng=rng,
             n_mxne_iter=n_mxne_iter,
             maxit=maxit,
             tol=tol,
@@ -666,7 +767,7 @@ def _window_evoked(evoked, size):
     return evoked
 
 
-@verbose
+@verbose_static("loose", "depth", "rank_none", "pick_ori")
 def tf_mixed_norm(
     evoked,
     forward,
@@ -706,8 +807,26 @@ def tf_mixed_norm(
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    %(loose)s
-    %(depth)s
+    loose : float | 'auto' | dict
+        Value that weights the source variances of the dipole components
+        that are parallel (tangential) to the cortical surface. Can be:
+
+        - float between 0 and 1 (inclusive)
+            If 0, then the solution is computed with fixed orientation.
+            If 1, it corresponds to free orientations.
+        - ``'auto'`` (default)
+            Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+            1.0 for other source spaces (volume or mixed).
+        - dict
+            Mapping from the key for a given source space type (surface, volume,
+            discrete) to the loose value. Useful mostly for mixed source spaces.
+    depth : None | float | dict
+        How to weight (or normalize) the forward using a depth prior.
+        If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+        to use. None is equivalent to 0, meaning no depth weighting is performed.
+        It can also be a :class:`dict` containing keyword arguments to pass to
+        :func:`mne.forward.compute_depth_prior` (see docstring for details and
+        defaults).
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -755,13 +874,75 @@ def tf_mixed_norm(
         * l1_ratio. 0 means no time regularization a.k.a. MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    %(rank_none)s
+    rank : None | 'info' | 'full' | dict
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. When a noise covariance
+        is used for whitening, this should reflect the rank of that covariance,
+        otherwise amplification of noise components can occur in whitening (e.g.,
+        often during source localization).
+
+        :data:`python:None`
+            The rank will be estimated from the data after proper scaling of
+            different channel types.
+        ``'info'``
+            The rank is inferred from ``info``. If data have been processed
+            with Maxwell filtering, the Maxwell filtering header is used.
+            Otherwise, the channel counts themselves are used.
+            In both cases, the number of projectors is subtracted from
+            the (effective) number of channels in the data.
+            For example, if Maxwell filtering reduces the rank to 68, with
+            two projectors the returned value will be 66.
+        ``'full'``
+            The rank is assumed to be full, i.e. equal to the
+            number of good channels. If a `~mne.Covariance` is passed, this can
+            make sense if it has been (possibly improperly) regularized without
+            taking into account the true data rank.
+        :class:`dict`
+            Calculate the rank only for a subset of channel types, and explicitly
+            specify the rank for the remaining channel types. This can be
+            extremely useful if you already **know** the rank of (part of) your
+            data, for instance in case you have calculated it earlier.
+
+            This parameter must be a dictionary whose **keys** correspond to
+            channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+            ``'eeg'``), and whose **values** are integers representing the
+            respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+            a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+            respectively.
+
+            The ranks for all channel types present in the data, but
+            **not** specified in the dictionary will be estimated empirically.
+            That is, if you passed a dataset containing magnetometer, gradiometer,
+            and EEG data together with the dictionary from the previous example,
+            only the gradiometer rank would be determined, while the specified
+            magnetometer and EEG ranks would be taken for granted.
+
+        The default is ``None``.
 
         .. versionadded:: 0.18
-    %(pick_ori)s
+    pick_ori : None | "normal" | "vector"
+
+        Options:
+
+        - ``None``
+            Pooling is performed by taking the norm of loose/free
+            orientations. In case of a fixed source space no norm is computed
+            leading to signed source activity.
+        - ``"normal"``
+            Only the normal to the cortical surface is kept. This is only
+            implemented when working with loose orientations.
+
+        - ``"vector"``
+            No pooling of the orientations is done, and the vector result
+            will be returned in the form of a :class:`mne.VectorSourceEstimate`
+            object.
     n_tfmxne_iter : int
         Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -912,7 +1093,7 @@ def tf_mixed_norm(
     return out
 
 
-@verbose
+@_verbose_control
 def _compute_mxne_sure(
     M,
     gain,
@@ -926,7 +1107,7 @@ def _compute_mxne_sure(
     debias,
     solver,
     dgap_freq,
-    random_state,
+    rng,
     verbose,
 ):
     """Stein Unbiased Risk Estimator (SURE).
@@ -964,9 +1145,9 @@ def _compute_mxne_sure(
         The algorithm to use for the optimization.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    random_state : int | None
-        The random state used in a random number generator for delta and
-        epsilon used for the SURE computation.
+    rng : instance of numpy.random.Generator
+        The random number generator used for delta and epsilon in the SURE
+        computation.
 
     Returns
     -------
@@ -1072,7 +1253,6 @@ def _compute_mxne_sure(
 
     sure_path = np.empty(len(alpha_grid))
 
-    rng = check_random_state(random_state)
     # See Deledalle et al. 20214 Sec. 5.1
     eps = 2 * sigma / (M.shape[0] ** 0.3)
     delta = rng.standard_normal(M.shape)

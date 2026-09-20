@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "f03ed4879fe786004560da4ecda91db3ce2edc64",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14149.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 127,
+      "d": 18
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 108,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 81,
+      "d": 15
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 212,
+      "d": 8
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 7,
+      "d": 0
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 7,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

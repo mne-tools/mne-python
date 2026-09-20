@@ -50,7 +50,8 @@ def test_otp_array():
         assert otp_2_snr > 3 + orig_snr
         assert "1 data chunk" in log.getvalue()
     with catch_logging() as log:
-        raw_otp = oversampled_temporal_projection(raw, duration=1.2, verbose=True)
+        # odd number of samples (1201) must still satisfy COLA
+        raw_otp = oversampled_temporal_projection(raw, duration=1.201, verbose=True)
         otp_1p5_snr = snr(raw_otp[:][0])
         assert otp_1p5_snr > 3 + orig_snr
         assert "2 data chunks" in log.getvalue()

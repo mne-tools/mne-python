@@ -81,9 +81,9 @@ def _read_mff_events(filename, sfreq, start_time, *, event_key=None):
             duration = event["duration"] / 1e9
             if "label" in event or "description" in event:
                 extras = dict(
-                    label=event["label"],
+                    label=event.get("label", ""),
                     # description is reserved by mne/annotations.py
-                    desc=event["description"],
+                    desc=event.get("description", ""),
                 )
             else:
                 extras = {}
@@ -100,7 +100,7 @@ def _read_mff_events(filename, sfreq, start_time, *, event_key=None):
                 {
                     "name": code_str,
                     "start": start_sec,
-                    "start_sample": int(np.trunc(start_sec * sfreq)),
+                    "start_sample": int(np.round(start_sec * sfreq)),
                     "end": start_sec + duration,
                     "chan": None,
                     "extras": extras,

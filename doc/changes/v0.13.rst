@@ -42,7 +42,7 @@ Changelog
 
 - Add the option to plot brain surfaces and source spaces to :func:`viz.plot_bem` by `Christian Brodbeck`_
 
-- Add the ``--filterchpi`` option to :ref:`mne browse_raw`, by `Felix Raimundo`_
+- Add the ``--filterchpi`` option to :ref:`mne browse_raw`, by `Félix Raimundo`_
 
 - Add the ``--no-decimate`` option to :ref:`mne make_scalp_surfaces` to skip the high-resolution surface decimation step, by `Eric Larson`_
 
@@ -87,7 +87,7 @@ BUG
 
 - Fixed color ranges to correspond to the colorbar when plotting several time instances with :func:`mne.viz.plot_evoked_topomap` by `Jaakko Leppakangas`_
 
-- Added units to :func:`mne.io.read_raw_brainvision` for reading non-data channels and enable default behavior of inferring channel type by unit by `Jaakko Leppakangas`_ and `Pablo-Arias`_
+- Added units to :func:`mne.io.read_raw_brainvision` for reading non-data channels and enable default behavior of inferring channel type by unit by `Jaakko Leppakangas`_ and `Pablo Arias Sarah`_
 
 - Fixed minor bugs with :func:`mne.Epochs.resample` and :func:`mne.Epochs.decimate` by `Eric Larson`_
 
@@ -127,7 +127,7 @@ BUG
 
 - Fixed plotting and timing of :class:`Annotations` and restricted addition of annotations outside data range to prevent problems with cropping and concatenating data by `Jaakko Leppakangas`_
 
-- Fixed ICA plotting functions to refer to IC index instead of component number by `Andreas Hojlund`_ and `Jaakko Leppakangas`_
+- Fixed ICA plotting functions to refer to IC index instead of component number by `Andreas Højlund`_ and `Jaakko Leppakangas`_
 
 - Fixed bug with ``picks`` when interpolating MEG channels by `Mainak Jas`_.
 
@@ -150,7 +150,7 @@ API
 
   5. Previously, if the filter was as long or longer than the signal of interest, direct FFT-based computations were used. Now a single code path (overlap-add filtering) is used for all FIR filters. This could cause minor changes in how short signals are filtered.
 
-- Support for Python 2.6 has been dropped, and the minimum supported dependencies are NumPy_ 1.8, SciPy_ 0.12, and Matplotlib_ 1.3 by `Eric Larson`_
+- Support for Python 2.6 has been dropped, and the minimum supported dependencies are `NumPy <http://www.numpy.org>`__ 1.8, `SciPy <http://www.scipy.org>`__ 0.12, and Matplotlib_ 1.3 by `Eric Larson`_
 
 - When CTF gradient compensation is applied to raw data, it is no longer reverted on save of :meth:`mne.io.Raw.save` by `Eric Larson`_
 
@@ -178,11 +178,11 @@ API
 
 - Add ``zorder`` parameter to :func:`mne.Evoked.plot` and derived functions to sort allow sorting channels by e.g. standard deviation, by `Jona Sassenhagen`_
 
-- The ``baseline`` parameter of :func:`mne.Epochs.apply_baseline` is set by default (None, 0), by `Felix Raimundo`_
+- The ``baseline`` parameter of :func:`mne.Epochs.apply_baseline` is set by default (None, 0), by `Félix Raimundo`_
 
-- Adds :func:`mne.Evoked.apply_baseline` to be consistent with :func:`mne.Epochs.apply_baseline`, by `Felix Raimundo`_
+- Adds :func:`mne.Evoked.apply_baseline` to be consistent with :func:`mne.Epochs.apply_baseline`, by `Félix Raimundo`_
 
-- Deprecated the ``baseline`` parameter in :class:`mne.Evoked`, by `Felix Raimundo`_
+- Deprecated the ``baseline`` parameter in :class:`mne.Evoked`, by `Félix Raimundo`_
 
 - The API of :meth:`mne.SourceEstimate.plot` and :func:`mne.viz.plot_source_estimates` has been updated to reflect current PySurfer 0.6 API. The ``config_opts`` parameter is now deprecated and will be removed in mne 0.14, and the default representation for time will change from ``ms`` to ``s`` in mne 0.14. By `Christian Brodbeck`_
 
@@ -246,3 +246,7 @@ The committer list for this release is the following (sorted by alphabetical ord
 * Simon-Shlomo Poil
 * Teon Brooks
 * Yaroslav Halchenko
+
+.. include:: names.inc
+
+.. include:: ../links.inc

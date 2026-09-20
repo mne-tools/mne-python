@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "9268e85b1db88e26ed961ec615cf5829b2dfb917",
+  "authors": [
+    {
+      "n": "Cedric Conday",
+      "e": "277679649+CedricConday@users.noreply.github.com",
+      "l": "CedricConday"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14005.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_filter.py": {
+      "a": 8,
+      "d": 0
+    }
+  }
+}

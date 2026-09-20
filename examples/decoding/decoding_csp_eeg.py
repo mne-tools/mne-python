@@ -11,7 +11,7 @@ classifier is then applied to features extracted on CSP-filtered signals.
 See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 :footcite:`Koles1991`. The EEGBCI dataset is documented in
 :footcite:`SchalkEtAl2004` and on the
-`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+`PhysioNet documentation page`_.
 The dataset is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 """
 
@@ -80,7 +80,7 @@ labels = epochs.events[:, -1] - 2
 scores = []
 epochs_data = epochs.get_data(copy=False)
 epochs_data_train = epochs_train.get_data(copy=False)
-cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+cv = ShuffleSplit(10, test_size=0.2, random_state=103)
 cv_split = cv.split(epochs_data_train)
 
 # Assemble a classifier
@@ -145,3 +145,5 @@ plt.show()
 # References
 # ----------
 # .. footbibliography::
+#
+# .. include:: ../../links.inc

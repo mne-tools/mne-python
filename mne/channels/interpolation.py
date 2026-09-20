@@ -8,14 +8,13 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy.interpolate import RectBivariateSpline
 from scipy.linalg import pinv
-from scipy.spatial.distance import pdist, squareform
 
 from .._fiff.meas_info import _simplify_info, create_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from ..bem import _check_origin
 from ..surface import _normalize_vectors
-from ..utils import _validate_type, logger, verbose, warn
+from ..utils import _validate_type, _verbose_control, logger, warn
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -134,7 +133,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     )
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     if exclude is None:
         exclude = list()
@@ -175,7 +174,7 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_ecog(inst, *, origin, exclude=None, verbose=None):
     _interpolate_bads_eeg(inst, origin, exclude=exclude, ecog=True, verbose=verbose)
 
@@ -188,7 +187,7 @@ def _interpolate_bads_meg(
     )
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_nan(
     inst,
     *,
@@ -208,7 +207,7 @@ def _interpolate_bads_nan(
     inst._data[..., picks_bad, :] = np.nan
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_meeg(
     inst,
     mode="accurate",
@@ -255,8 +254,10 @@ def _interpolate_bads_meeg(
         _do_interp_dots(inst, mapping, picks_good, picks_bad)
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
+    from scipy.spatial.distance import pdist, squareform
+
     from ..preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
@@ -302,6 +303,8 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
     # 1) find nearest neighbor to define the electrode shaft line
     # 2) find all contacts on the same line
     # 3) remove contacts with large distances
+
+    from scipy.spatial.distance import pdist, squareform
 
     dist = squareform(pdist(pos))
     np.fill_diagonal(dist, np.inf)
@@ -365,7 +368,7 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
     return shafts, shaft_ts
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_seeg(
     inst, exclude=None, tol_shaft=0.002, tol_spacing=1, verbose=None
 ):
@@ -449,7 +452,9 @@ def _interpolate_to_eeg(inst, sensors, origin, method, reg):
     if method == "spline":
         origin_val = _check_origin(origin, inst.info)
         pos_from = inst.info._get_channel_positions(picks_good_eeg) - origin_val
-        pos_to = np.stack(list(ch_pos.values()), axis=0)
+        # Use info_to (rather than ch_pos directly) so that the target positions
+        # are in the head frame, and center both sets on the fitted origin
+        pos_to = info_to._get_channel_positions() - origin_val
 
         def _check_pos_sphere(pos):
             d = np.linalg.norm(pos, axis=-1)

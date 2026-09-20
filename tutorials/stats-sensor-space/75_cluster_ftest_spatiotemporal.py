@@ -21,6 +21,12 @@ the possible interpretation of "significant" clusters.
 
 For more information on cluster-based permutation testing in MNE-Python,
 see also: :ref:`tut-cluster-one-samp-tfr`.
+
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
@@ -144,7 +150,7 @@ cluster_stats = spatio_temporal_cluster_test(
     n_jobs=None,
     buffer_size=None,
     adjacency=adjacency,
-    seed=0,
+    rng=149,
 )
 F_obs, clusters, p_values, _ = cluster_stats
 
@@ -318,7 +324,7 @@ cluster_stats = spatio_temporal_cluster_test(
     n_jobs=None,
     buffer_size=None,
     adjacency=tfr_adjacency,
-    seed=0,
+    rng=151,
 )
 
 # %%

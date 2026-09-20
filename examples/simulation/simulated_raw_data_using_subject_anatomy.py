@@ -204,9 +204,9 @@ stc_data = source_simulator.get_stc()
 raw_sim = mne.simulation.simulate_raw(info, source_simulator, forward=fwd)
 raw_sim.set_eeg_reference(projection=True)
 
-mne.simulation.add_noise(raw_sim, cov=noise_cov, random_state=0)
-mne.simulation.add_eog(raw_sim, random_state=0)
-mne.simulation.add_ecg(raw_sim, random_state=0)
+mne.simulation.add_noise(raw_sim, cov=noise_cov, rng=211)
+mne.simulation.add_eog(raw_sim, rng=223)
+mne.simulation.add_ecg(raw_sim, rng=227)
 
 # Plot original and simulated raw data.
 raw_sim.plot(title="Simulated raw data")

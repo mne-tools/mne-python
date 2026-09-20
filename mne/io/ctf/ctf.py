@@ -11,14 +11,13 @@ import numpy as np
 
 from ..._fiff._digitization import _format_dig_points
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
-from ...fixes import _reshape_view
 from ...utils import (
     _check_fname,
     _check_option,
     _clean_names,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
 )
 from ..base import BaseRaw
 from .constants import CTF
@@ -30,7 +29,7 @@ from .res4 import _make_ctf_name, _read_res4
 from .trans import _make_ctf_coord_trans_set
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw_ctf(
     directory: Path | str,
     system_clock: str = "truncate",
@@ -49,11 +48,28 @@ def read_raw_ctf(
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    %(preload)s
-    clean_names : bool, optional
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    clean_names : bool
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -78,7 +94,7 @@ def read_raw_ctf(
     )
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawCTF(BaseRaw):
     """Raw object from CTF directory.
 
@@ -91,18 +107,35 @@ class RawCTF(BaseRaw):
         the data file when the system clock drops to zero, and use ``"ignore"``
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    %(preload)s
-    clean_names : bool, optional
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    clean_names : bool
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         directory,
@@ -213,7 +246,7 @@ class RawCTF(BaseRaw):
                     pos += np.int64(samp_offset) * si["n_chan"] * 4
                 fid.seek(pos, 0)
                 this_data = np.fromfile(fid, ">i4", count=si["n_chan"] * n_read)
-                this_data = _reshape_view(this_data, (si["n_chan"], n_read))
+                this_data = this_data.reshape((si["n_chan"], n_read), copy=False)
                 this_data = this_data[:, r_lims[bi, 0] : r_lims[bi, 1]]
                 data_view = data[:, d_lims[bi, 0] : d_lims[bi, 1]]
                 _mult_cal_one(data_view, this_data, idx, cals, mult)

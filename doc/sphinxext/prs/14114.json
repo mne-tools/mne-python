@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "d58b117c05fbe34ef0d60232a2f946df2865ad97",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": "4377312+cbrnr@users.noreply.github.com",
+      "l": "cbrnr"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14114.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/filter.py": {
+      "a": 13,
+      "d": 11
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 6
+    }
+  }
+}

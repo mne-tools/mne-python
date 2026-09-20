@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "d3a8eacc201cf61028c917bd15e3e0b6b3fc20d9",
+  "authors": [
+    {
+      "n": "Christian Brodbeck",
+      "e": "145771+christianbrodbeck@users.noreply.github.com",
+      "l": "christianbrodbeck"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14142.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_ola.py": {
+      "a": 40,
+      "d": 12
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 45,
+      "d": 14
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 97,
+      "d": 0
+    },
+    "mne/tests/test_ola.py": {
+      "a": 46,
+      "d": 1
+    }
+  }
+}

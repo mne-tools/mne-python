@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "5b2b8f2b6e14e4bd58b46b5e47f91bae3778b23e",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com",
+      "l": "PragnyaKhandelwal"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14047.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 0,
+      "d": 3
+    }
+  }
+}
