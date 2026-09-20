@@ -7,6 +7,8 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 from scipy.signal import welch
 
+from mne import Annotations, create_info
+from mne.io import RawArray
 from mne.time_frequency import psd_array_multitaper, psd_array_welch
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.psd import _median_biases
@@ -78,9 +80,9 @@ def test_psd_welch_short_span_kept():
     assert np.all(np.isfinite(psds))
 
     # Even when *every* good span is shorter than n_per_seg, each is analyzed on
-    # its own; the estimate is still computed (previously this raised). Use three
-    # short spans so the total length exceeds n_fft (else the n_fft > n_times
-    # guard fires first).
+    # its own; the estimate is still computed (previously this raised a scipy
+    # error). Use three short spans so the total length exceeds n_fft (else the
+    # n_fft > n_times guard fires first).
     nan_col = np.full((n_chan, 1), np.nan)
     x_all_short = np.concatenate((short, nan_col, short, nan_col, short), axis=-1)
     with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
@@ -161,6 +163,31 @@ def test_psd_welch_short_span_array_window_raises():
     )
     assert psds.shape == (n_chan, len(freqs))
     assert np.all(np.isfinite(psds))
+
+
+def test_compute_psd_welch_short_span_annotations():
+    """Test n_per_seg shorter than n_overlap warning and band power change."""
+    sfreq = 100.0
+    n_times = int(60 * sfreq)
+    rng = np.random.default_rng(42)
+    times = np.arange(n_times) / sfreq
+    data = np.sin(2 * np.pi * 10 * times) + 0.1 * rng.standard_normal((2, n_times))
+    raw = RawArray(data, create_info(2, sfreq, "eeg"))
+    kwargs = dict(method="welch", n_fft=256, n_overlap=128)
+    ref = raw.compute_psd(**kwargs)
+
+    # leave a 1 s good span (100 samples < n_overlap) between two bad segments
+    raw.set_annotations(Annotations([10.0, 21.0], [10.0, 10.0], "bad_segment"))
+    # test warning
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        spec = raw.compute_psd(**kwargs)
+    # alpha-band power should match the uninterrupted recording closely
+    band = (spec.freqs >= 8) & (spec.freqs <= 12)
+    assert_allclose(
+        spec.get_data()[:, band].sum(axis=-1),
+        ref.get_data()[:, band].sum(axis=-1),
+        rtol=0.1,
+    )
 
 
 def _make_psd_data():
