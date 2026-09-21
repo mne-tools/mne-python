@@ -31,7 +31,8 @@ _data_root = None  # where the fetched files land
 _orig = dict()  # the functions patched below that are imported lazily, by name
 
 
-def setup_notebook(data_path="/tmp/mne_data"):
+# /tmp here is the Pyodide in-browser virtual filesystem, not a shared host dir
+def setup_notebook(data_path="/tmp/mne_data"):  # nosec B108
     """Patch MNE for the browser kernel; the docs' first cell calls this.
 
     Parameters
