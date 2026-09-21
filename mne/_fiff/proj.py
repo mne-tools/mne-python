@@ -15,10 +15,11 @@ from ..utils import (
     _check_option,
     _check_rank,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
     object_diff,
-    verbose,
+    verbose_static,
     warn,
 )
 from .constants import FIFF
@@ -103,7 +104,27 @@ class Projection(dict):
         """Different != method."""
         return not self.__eq__(other)
 
-    @fill_doc
+    @fill_doc_static(
+        "info_not_none",
+        "sensors_topomap",
+        "show_names_topomap",
+        "contours_topomap",
+        "outlines_topomap",
+        "sphere_topomap_auto",
+        "image_interp_topomap",
+        "extrapolate_topomap",
+        "border_topomap",
+        "res_topomap",
+        "size_topomap",
+        "cmap_topomap",
+        "vlim_plot_topomap_proj",
+        "cnorm",
+        "colorbar_topomap",
+        "cbar_fmt_topomap",
+        "units_topomap",
+        "axes_plot_projs_topomap",
+        "show",
+    )
     def plot_topomap(
         self,
         info,
@@ -131,37 +152,171 @@ class Projection(dict):
 
         Parameters
         ----------
-        %(info_not_none)s Used to determine the layout.
-        %(sensors_topomap)s
-        %(show_names_topomap)s
+        info : mne.Info
+            The :class:`mne.Info` object with information about the
+            sensors and methods of measurement.
+            Used to determine the layout.
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
 
             .. versionadded:: 1.2
-        %(contours_topomap)s
-        %(outlines_topomap)s
-        %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. If ``colorbar=True``, the colorbar will have ticks
+            corresponding to the contour levels. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
 
-            .. versionadded:: 1.2
-        %(border_topomap)s
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
 
             .. versionadded:: 0.20
-        %(res_topomap)s
-        %(size_topomap)s
-        %(cmap_topomap)s
-        %(vlim_plot_topomap_proj)s
-        %(cnorm)s
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
 
             .. versionadded:: 1.2
-        %(colorbar_topomap)s
-        %(cbar_fmt_topomap)s
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+
+            .. versionadded:: 0.20
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2 | "joint"
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data. Elements of the :class:`tuple` may also be
+            callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+            return a scalar.
+
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+            limits jointly across all projectors of the same channel type (instead of
+            separately for each projector), using the min/max of the data for that
+            channel type. If vlim is ``"joint"``, ``info`` must not be
+            ``None``. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
             .. versionadded:: 1.2
-        %(units_topomap)s
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
 
             .. versionadded:: 1.2
-        %(axes_plot_projs_topomap)s
-        %(show)s
+        units : str | None
+            The units to use for the colorbar label. Ignored if ``colorbar=False``.
+            If ``None`` the label will be "AU" indicating arbitrary units.
+            Default is ``None``.
+
+            .. versionadded:: 1.2
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the number of projectors. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
 
         Returns
         -------
@@ -231,7 +386,7 @@ class ProjMixin:
             p["active"] for p in self.info["projs"]
         )
 
-    @verbose
+    @verbose_static()
     def add_proj(self, projs, remove_existing=False, verbose=None):
         """Add SSP projection vectors.
 
@@ -241,7 +396,11 @@ class ProjMixin:
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -275,7 +434,7 @@ class ProjMixin:
             )
         return self
 
-    @verbose
+    @verbose_static()
     def apply_proj(self, *, projs=None, verbose=None):
         """Apply the signal space projection (SSP) operators to the data.
 
@@ -284,7 +443,11 @@ class ProjMixin:
         projs : Projection | list of Projection | None
             The projectors to apply. All projectors must already be present in
             ``self.info["projs"]``. If ``None``, all projectors are applied.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -434,7 +597,27 @@ class ProjMixin:
             self.info["projs"] = [p for p, k in zip(self.info["projs"], keep) if k]
         return self
 
-    @fill_doc
+    @fill_doc_static(
+        "ch_type_topomap_proj",
+        "sensors_topomap",
+        "show_names_topomap",
+        "contours_topomap",
+        "outlines_topomap",
+        "sphere_topomap_auto",
+        "image_interp_topomap",
+        "extrapolate_topomap",
+        "border_topomap",
+        "res_topomap",
+        "size_topomap",
+        "cmap_topomap",
+        "vlim_plot_topomap_proj",
+        "cnorm",
+        "colorbar_topomap",
+        "cbar_fmt_topomap",
+        "units_topomap",
+        "axes_plot_projs_topomap",
+        "show",
+    )
     def plot_projs_topomap(
         self,
         ch_type=None,
@@ -462,16 +645,97 @@ class ProjMixin:
 
         Parameters
         ----------
-        %(ch_type_topomap_proj)s
-        %(sensors_topomap)s
-        %(show_names_topomap)s
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the RMS for each pair is plotted. If ``None``
+            it will return all channel types
+            present. If a list of ch_types is provided, it will return multiple
+            figures. Defaults to ``None``.
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
 
             .. versionadded:: 1.2
-        %(contours_topomap)s
-        %(outlines_topomap)s
-        %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. If ``colorbar=True``, the colorbar will have ticks
+            corresponding to the contour levels. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
 
             .. versionadded:: 0.20
 
@@ -480,32 +744,87 @@ class ProjMixin:
                - The default was changed to ``'local'`` for MEG sensors.
                - ``'local'`` was changed to use a convex hull mask
                - ``'head'`` was changed to extrapolate out to the clipping circle.
-        %(border_topomap)s
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
 
             .. versionadded:: 0.20
-        %(res_topomap)s
-        %(size_topomap)s
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
             Only applies when plotting multiple topomaps at a time.
-        %(cmap_topomap)s
-        %(vlim_plot_topomap_proj)s
-        %(cnorm)s
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2 | "joint"
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data. Elements of the :class:`tuple` may also be
+            callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+            return a scalar.
+
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+            limits jointly across all projectors of the same channel type (instead of
+            separately for each projector), using the min/max of the data for that
+            channel type. If vlim is ``"joint"``, ``info`` must not be
+            ``None``. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
             .. versionadded:: 1.2
-        %(colorbar_topomap)s
-        %(cbar_fmt_topomap)s
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
 
             .. versionadded:: 1.2
-        %(units_topomap)s
+        units : str | None
+            The units to use for the colorbar label. Ignored if ``colorbar=False``.
+            If ``None`` the label will be "AU" indicating arbitrary units.
+            Default is ``None``.
 
             .. versionadded:: 1.2
-        %(axes_plot_projs_topomap)s
-        %(show)s
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the number of projectors. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
 
         Returns
         -------
         fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
-        """
+        """  # noqa: E501
         _projs = [deepcopy(_proj) for _proj in self.info["projs"]]
         if _projs is None or len(_projs) == 0:
             raise ValueError("No projectors in Info; nothing to plot.")
@@ -562,7 +881,7 @@ class ProjMixin:
         )
         return fig
 
-    @verbose
+    @verbose_static("rank")
     def reconstruct_proj(
         self,
         *,
@@ -595,7 +914,48 @@ class ProjMixin:
         forward : instance of Forward | None
             Forward model used to construct the reconstruction field mapping.
             If ``None`` (default), use the geometry-based field mapping model.
-        %(rank)s
+        rank : None | 'info' | 'full' | dict
+            This controls the rank computation that can be read from the
+            measurement info or estimated from the data. When a noise covariance
+            is used for whitening, this should reflect the rank of that covariance,
+            otherwise amplification of noise components can occur in whitening (e.g.,
+            often during source localization).
+
+            :data:`python:None`
+                The rank will be estimated from the data after proper scaling of
+                different channel types.
+            ``'info'``
+                The rank is inferred from ``info``. If data have been processed
+                with Maxwell filtering, the Maxwell filtering header is used.
+                Otherwise, the channel counts themselves are used.
+                In both cases, the number of projectors is subtracted from
+                the (effective) number of channels in the data.
+                For example, if Maxwell filtering reduces the rank to 68, with
+                two projectors the returned value will be 66.
+            ``'full'``
+                The rank is assumed to be full, i.e. equal to the
+                number of good channels. If a `~mne.Covariance` is passed, this can
+                make sense if it has been (possibly improperly) regularized without
+                taking into account the true data rank.
+            :class:`dict`
+                Calculate the rank only for a subset of channel types, and explicitly
+                specify the rank for the remaining channel types. This can be
+                extremely useful if you already **know** the rank of (part of) your
+                data, for instance in case you have calculated it earlier.
+
+                This parameter must be a dictionary whose **keys** correspond to
+                channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+                ``'eeg'``), and whose **values** are integers representing the
+                respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+                a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+                respectively.
+
+                The ranks for all channel types present in the data, but
+                **not** specified in the dictionary will be estimated empirically.
+                That is, if you passed a dataset containing magnetometer, gradiometer,
+                and EEG data together with the dictionary from the previous example,
+                only the gradiometer rank would be determined, while the specified
+                magnetometer and EEG ranks would be taken for granted.
 
             Only used when ``forward`` is provided, where the default ``None``
             estimates the rank of the projected field covariance. ``'full'`` is
@@ -603,7 +963,11 @@ class ProjMixin:
             projection. Without ``forward``, ``rank`` must be ``None``, and the
             geometry-based field mapping uses its own internal truncation
             rather than a rank estimated from the data.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -693,7 +1057,7 @@ def _proj_equal(a, b, check_active=True):
     return equal
 
 
-@verbose
+@_verbose_control
 def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
     ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
     projs = list()
@@ -1033,7 +1397,7 @@ def _normalize_proj(info):
     )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def make_projector_info(info, include_active=True):
     """Make an SSP operator using the measurement info.
 
@@ -1041,7 +1405,9 @@ def make_projector_info(info, include_active=True):
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     include_active : bool
         Also include projectors that are already active.
 
@@ -1058,7 +1424,7 @@ def make_projector_info(info, include_active=True):
     return proj, nproj
 
 
-@verbose
+@verbose_static()
 def activate_proj(projs, copy=True, verbose=None):
     """Set all projections to active.
 
@@ -1070,7 +1436,11 @@ def activate_proj(projs, copy=True, verbose=None):
         The projectors.
     copy : bool
         Modify projs in place or operate on a copy.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1089,7 +1459,7 @@ def activate_proj(projs, copy=True, verbose=None):
     return projs
 
 
-@verbose
+@verbose_static()
 def deactivate_proj(projs, copy=True, verbose=None):
     """Set all projections to inactive.
 
@@ -1101,7 +1471,11 @@ def deactivate_proj(projs, copy=True, verbose=None):
         The projectors.
     copy : bool
         Modify projs in place or operate on a copy.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1124,13 +1498,15 @@ def deactivate_proj(projs, copy=True, verbose=None):
 _EEG_AVREF_PICK_DICT = {k: True for k in _ELECTRODE_CH_TYPES}
 
 
-@verbose
+@verbose_static("info_not_none")
 def make_eeg_average_ref_proj(info, activate=True, *, ch_type="eeg", verbose=None):
     """Create an EEG average reference SSP projection vector.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     activate : bool
         If True projections are activated.
     ch_type : str
@@ -1138,7 +1514,11 @@ def make_eeg_average_ref_proj(info, activate=True, *, ch_type="eeg", verbose=Non
         Valid types are ``'eeg'``, ``'ecog'``, ``'seeg'`` and ``'dbs'``.
 
         .. versionadded:: 1.2
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1195,7 +1575,7 @@ def make_eeg_average_ref_proj(info, activate=True, *, ch_type="eeg", verbose=Non
     return proj
 
 
-@verbose
+@_verbose_control
 def _has_eeg_average_ref_proj(
     info, *, projs=None, check_active=False, ch_type=None, verbose=None
 ):
@@ -1252,7 +1632,7 @@ def _needs_eeg_average_ref_proj(info):
     return True
 
 
-@verbose
+@verbose_static("info_not_none")
 def setup_proj(
     info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type="eeg", verbose=None
 ):
@@ -1260,7 +1640,10 @@ def setup_proj(
 
     Parameters
     ----------
-    %(info_not_none)s Warning: will be modified in-place.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Warning: will be modified in-place.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
@@ -1271,7 +1654,11 @@ def setup_proj(
         Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
 
         .. versionadded:: 1.2
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -55,10 +55,11 @@ from ..utils import (
     _pl,
     _time_mask,
     _validate_type,
+    _verbose_control,
     _verbose_safe_false,
     logger,
     use_log_level,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -67,7 +68,7 @@ from ..utils import (
 # differences between algorithms
 
 
-@verbose
+@verbose_static("emit_warning")
 def maxwell_filter_prepare_emptyroom(
     raw_er,
     *,
@@ -112,11 +113,16 @@ def maxwell_filter_prepare_emptyroom(
         it as is (default). If you intend to manually transfer annotations
         from ``raw`` **after** running this function, you should set this to
         ``'from_raw'``.
-    %(emit_warning)s
+    emit_warning : bool
+        Whether to emit warnings when cropping or omitting annotations.
         Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
         default here is ``False``, as empty-room recordings are often shorter
         than raw.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -145,7 +151,7 @@ def maxwell_filter_prepare_emptyroom(
         included in the empty room recording. If provided, they will be ignored.
 
     .. versionadded:: 1.1
-    """  # noqa: E501
+    """
     _validate_type(item=raw_er, types=BaseRaw, item_name="raw_er")
     _validate_type(item=raw, types=BaseRaw, item_name="raw")
     _validate_type(item=bads, types=str, item_name="bads")
@@ -217,7 +223,24 @@ def maxwell_filter_prepare_emptyroom(
 
 
 # Changes to arguments here should also be made in find_bad_channels_maxwell
-@verbose
+@verbose_static(
+    "origin_maxwell",
+    "int_order_maxwell",
+    "ext_order_maxwell",
+    "calibration_maxwell_cal",
+    "cross_talk_maxwell",
+    "coord_frame_maxwell",
+    "destination_maxwell_dest",
+    "regularize_maxwell_reg",
+    "ignore_ref_maxwell",
+    "bad_condition_maxwell_cond",
+    "head_pos_maxwell",
+    "st_fixed_maxwell_only",
+    "mag_scale_maxwell",
+    "skip_by_annotation_maxwell",
+    "extended_proj_maxwell",
+    "maxwell_mc_interp",
+)
 def maxwell_filter(
     raw,
     origin="auto",
@@ -253,11 +276,39 @@ def maxwell_filter(
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(origin_maxwell)s
-    %(int_order_maxwell)s
-    %(ext_order_maxwell)s
-    %(calibration_maxwell_cal)s
-    %(cross_talk_maxwell)s
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    calibration : path-like | bool | None
+        Path to the .dat file with fine calibration information.
+        If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no calibration will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control calibration using
+           ``info["fine_calibration"]``, and ``None`` now uses
+           ``info["fine_calibration"]`` if available.
+    cross_talk : path-like | bool | None
+        Path to the FIF file with cross-talk correction information.
+        If ``None``, will use the ``info["cross_talk"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no cross-talk correction will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control cross-talk correction using
+           ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+           if available.
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -271,29 +322,122 @@ def maxwell_filter(
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
         overlapping intersecting inner/outer signals during spatiotemporal SSS.
-    %(coord_frame_maxwell)s
-    %(destination_maxwell_dest)s
-    %(regularize_maxwell_reg)s
-    %(ignore_ref_maxwell)s
-    %(bad_condition_maxwell_cond)s
-    %(head_pos_maxwell)s
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
+    destination : path-like | array-like, shape (3,) | instance of Transform | None
+        The destination location for the head. Can be:
+
+        ``None``
+          Will not change the head position.
+        :class:`~mne.transforms.Transform`
+          A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
+        :class:`numpy.ndarray`
+          A 3-element array giving the coordinates to translate to (with no rotations).
+          For example, ``destination=(0, 0, 0.04)`` would translate the bases
+          as ``--trans default`` would in MaxFilter™ (i.e., to the default
+          head location).
+        ``path-like``
+          A path to a FIF file containing the destination MEG device<->head
+          transformation.
+    regularize : str | None
+        Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+        Both ``"in"`` options use the same information-theoretic component ordering
+        as the ``-regularize in`` option in MaxFilter™, and differ only in where
+        the total-information curve is cut:
+
+        ``"in"`` (default)
+          Keeps the components giving at least 98% of the peak total information. The
+          curve can be quite flat, so this errs on the side of including rather than
+          excluding components. This is the criterion MaxFilter™ 3.0 uses.
+        ``"in_argmax"``
+          Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+          Use this to match MaxFilter™ 2.2 output more closely; it generally excludes
+          more components than ``"in"``.
+
+          .. versionadded:: 1.13
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+        (default), ``"warning"``, ``"info"``, or ``"ignore"``.
+    head_pos : array | None
+        If array, movement compensation will be performed.
+        The array should be of shape (N, 10), holding the position
+        parameters as returned by e.g. ``read_head_pos``.
 
         .. versionadded:: 0.12
-    %(st_fixed_maxwell_only)s
-    %(mag_scale_maxwell)s
+    st_fixed : bool
+        If True (default), do tSSS using the median head position during the
+        ``st_duration`` window. This is the default behavior of MaxFilter
+        and has been most extensively tested.
+
+        .. versionadded:: 0.12
+    st_only : bool
+        If True, only tSSS (temporal) projection of MEG data will be
+        performed on the output data. The non-tSSS parameters (e.g.,
+        ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
+        used to form the SSS bases used to calculate temporal projectors,
+        but the output MEG data will *only* have temporal projections
+        performed. Noise reduction from SSS basis multiplication,
+        cross-talk cancellation, movement compensation, and so forth
+        will not be applied to the data. This is useful, for example, when
+        evoked movement compensation will be performed with
+        :func:`~mne.epochs.average_movements`.
+
+        .. versionadded:: 0.12
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
 
         .. versionadded:: 0.13
-    %(skip_by_annotation_maxwell)s
+    skip_by_annotation : str | list of str
+        If a string (or list of str), any annotation segment that begins
+        with the given string will not be included in filtering, and
+        segments on either side of the given excluded annotated segment
+        will be filtered separately (i.e., as independent signals).
+        The default ``('edge', 'bad_acq_skip')`` will separately filter
+        any segments that were concatenated by :func:`mne.concatenate_raws`
+        or :meth:`mne.io.Raw.append`, or separated during acquisition.
+        To disable, provide an empty list.
 
         .. versionadded:: 0.17
-    %(extended_proj_maxwell)s
+    extended_proj : list
+        The empty-room projection vectors used to extend the external
+        SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+        pure *external* noise that you expect to be present in your signal.
+        Typically, this should be the case during an empty room recording. Get the
+        projections e.g. by calling::
+
+            proj = mne.compute_proj_raw(
+                raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+            )
+
+        .. versionadded:: 0.21
     st_overlap : bool
         If True (default in 1.11), tSSS processing will use a constant
         overlap-add method. If False, then non-overlapping windows will be used.
 
         .. versionadded:: 1.10
-    %(maxwell_mc_interp)s
-    %(verbose)s
+    mc_interp : str
+        Interpolation to use between adjacent time points in movement
+        compensation. Can be "zero" (used by MaxFilter),
+        "linear", or "hann" (default in 1.11).
+
+        .. versionadded:: 1.10
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -440,7 +584,7 @@ def maxwell_filter(
     return raw_sss
 
 
-@verbose
+@_verbose_control
 def _prep_maxwell_filter(
     raw,
     origin="auto",
@@ -795,7 +939,7 @@ def _run_maxwell_filter(
         assert n > 0
         tsss_valid = n >= st_duration
         if st_overlap and tsss_valid and st_correlation is not None:
-            n_overlap = st_duration // 2
+            n_overlap = (st_duration + 1) // 2
             window = "hann"
         else:
             n_overlap = 0
@@ -1128,7 +1272,7 @@ def _check_destination(destination, info, coord_frame):
     return recon_trans
 
 
-@verbose
+@_verbose_control
 def _prep_mf_coils(info, ignore_ref=True, *, accuracy="accurate", verbose=None):
     """Get all coil integration information loaded and sorted."""
     meg_sensors = _prep_meg_channels(
@@ -1463,7 +1607,7 @@ def _get_s_decomp(
     return S_decomp
 
 
-@verbose
+@_verbose_control
 def _regularize(
     regularize, exp, S_decomp, mag_or_fine, extended_remove, t, verbose=None
 ):
@@ -1503,7 +1647,7 @@ def _regularize(
     return S_decomp, reg_moments, n_use_in
 
 
-@verbose
+@_verbose_control
 def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose=None):
     """Pick types for Maxwell filtering and fix magnetometers."""
     # Check for T1/T2 mag types
@@ -2679,7 +2823,22 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.0):
 
 # intentionally omitted: st_duration, st_correlation, destination, st_fixed,
 # st_only, st_overlap
-@verbose
+@verbose_static(
+    "origin_maxwell",
+    "int_order_maxwell",
+    "ext_order_maxwell",
+    "calibration_maxwell_cal",
+    "cross_talk_maxwell",
+    "coord_frame_maxwell",
+    "regularize_maxwell_reg",
+    "ignore_ref_maxwell",
+    "bad_condition_maxwell_cond",
+    "head_pos_maxwell",
+    "mag_scale_maxwell",
+    "skip_by_annotation_maxwell",
+    "extended_proj_maxwell",
+    "maxwell_mc_interp",
+)
 def find_bad_channels_maxwell(
     raw,
     limit=7.0,
@@ -2736,26 +2895,115 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(origin_maxwell)s
-    %(int_order_maxwell)s
-    %(ext_order_maxwell)s
-    %(calibration_maxwell_cal)s
-    %(cross_talk_maxwell)s
-    %(coord_frame_maxwell)s
-    %(regularize_maxwell_reg)s
-    %(ignore_ref_maxwell)s
-    %(bad_condition_maxwell_cond)s
-    %(head_pos_maxwell)s
-    %(mag_scale_maxwell)s
-    %(skip_by_annotation_maxwell)s
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    calibration : path-like | bool | None
+        Path to the .dat file with fine calibration information.
+        If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no calibration will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control calibration using
+           ``info["fine_calibration"]``, and ``None`` now uses
+           ``info["fine_calibration"]`` if available.
+    cross_talk : path-like | bool | None
+        Path to the FIF file with cross-talk correction information.
+        If ``None``, will use the ``info["cross_talk"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no cross-talk correction will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control cross-talk correction using
+           ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+           if available.
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
+    regularize : str | None
+        Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+        Both ``"in"`` options use the same information-theoretic component ordering
+        as the ``-regularize in`` option in MaxFilter™, and differ only in where
+        the total-information curve is cut:
+
+        ``"in"`` (default)
+          Keeps the components giving at least 98% of the peak total information. The
+          curve can be quite flat, so this errs on the side of including rather than
+          excluding components. This is the criterion MaxFilter™ 3.0 uses.
+        ``"in_argmax"``
+          Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+          Use this to match MaxFilter™ 2.2 output more closely; it generally excludes
+          more components than ``"in"``.
+
+          .. versionadded:: 1.13
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+        (default), ``"warning"``, ``"info"``, or ``"ignore"``.
+    head_pos : array | None
+        If array, movement compensation will be performed.
+        The array should be of shape (N, 10), holding the position
+        parameters as returned by e.g. ``read_head_pos``.
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
+    skip_by_annotation : str | list of str
+        If a string (or list of str), any annotation segment that begins
+        with the given string will not be included in filtering, and
+        segments on either side of the given excluded annotated segment
+        will be filtered separately (i.e., as independent signals).
+        The default ``('edge', 'bad_acq_skip')`` will separately filter
+        any segments that were concatenated by :func:`mne.concatenate_raws`
+        or :meth:`mne.io.Raw.append`, or separated during acquisition.
+        To disable, provide an empty list.
     h_freq : float | None
         The cutoff frequency (in Hz) of the low-pass filter that will be
         applied before processing the data. This defaults to ``40.``, which
         should provide similar results to MaxFilter. If you do not wish to
         apply a filter, set this to ``None``.
-    %(extended_proj_maxwell)s
-    %(maxwell_mc_interp)s
-    %(verbose)s
+    extended_proj : list
+        The empty-room projection vectors used to extend the external
+        SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+        pure *external* noise that you expect to be present in your signal.
+        Typically, this should be the case during an empty room recording. Get the
+        projections e.g. by calling::
+
+            proj = mne.compute_proj_raw(
+                raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+            )
+
+        .. versionadded:: 0.21
+    mc_interp : str
+        Interpolation to use between adjacent time points in movement
+        compensation. Can be "zero" (used by MaxFilter),
+        "linear", or "hann" (default in 1.11).
+
+        .. versionadded:: 1.10
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3089,7 +3337,19 @@ def _read_cross_talk(cross_talk, ch_names):
     return ctc, sss_ctc
 
 
-@verbose
+@verbose_static(
+    "info_not_none",
+    "origin_maxwell",
+    "int_order_maxwell",
+    "ext_order_maxwell",
+    "calibration_maxwell_cal",
+    "coord_frame_maxwell",
+    "regularize_maxwell_reg",
+    "ignore_ref_maxwell",
+    "bad_condition_maxwell_cond",
+    "mag_scale_maxwell",
+    "extended_proj_maxwell",
+)
 def compute_maxwell_basis(
     info,
     origin="auto",
@@ -3108,18 +3368,84 @@ def compute_maxwell_basis(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(origin_maxwell)s
-    %(int_order_maxwell)s
-    %(ext_order_maxwell)s
-    %(calibration_maxwell_cal)s
-    %(coord_frame_maxwell)s
-    %(regularize_maxwell_reg)s
-    %(ignore_ref_maxwell)s
-    %(bad_condition_maxwell_cond)s
-    %(mag_scale_maxwell)s
-    %(extended_proj_maxwell)s
-    %(verbose)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    calibration : path-like | bool | None
+        Path to the .dat file with fine calibration information.
+        If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no calibration will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control calibration using
+           ``info["fine_calibration"]``, and ``None`` now uses
+           ``info["fine_calibration"]`` if available.
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
+    regularize : str | None
+        Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+        Both ``"in"`` options use the same information-theoretic component ordering
+        as the ``-regularize in`` option in MaxFilter™, and differ only in where
+        the total-information curve is cut:
+
+        ``"in"`` (default)
+          Keeps the components giving at least 98% of the peak total information. The
+          curve can be quite flat, so this errs on the side of including rather than
+          excluding components. This is the criterion MaxFilter™ 3.0 uses.
+        ``"in_argmax"``
+          Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+          Use this to match MaxFilter™ 2.2 output more closely; it generally excludes
+          more components than ``"in"``.
+
+          .. versionadded:: 1.13
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+        (default), ``"warning"``, ``"info"``, or ``"ignore"``.
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
+    extended_proj : list
+        The empty-room projection vectors used to extend the external
+        SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+        pure *external* noise that you expect to be present in your signal.
+        Typically, this should be the case during an empty room recording. Get the
+        projections e.g. by calling::
+
+            proj = mne.compute_proj_raw(
+                raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+            )
+
+        .. versionadded:: 0.21
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

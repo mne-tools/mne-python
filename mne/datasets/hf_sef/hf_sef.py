@@ -8,12 +8,12 @@
 import os
 import os.path as op
 
-from ...utils import _check_option, verbose
+from ...utils import _check_option, verbose_static
 from ..config import MNE_DATASETS
 from ..utils import _do_path_update, _download_mne_dataset, _get_path
 
 
-@verbose
+@verbose_static()
 def data_path(
     dataset="evoked", path=None, force_update=False, update_path=True, *, verbose=None
 ):
@@ -39,7 +39,11 @@ def data_path(
     update_path : bool | None
         If True, set the MNE_DATASETS_HF_SEF_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

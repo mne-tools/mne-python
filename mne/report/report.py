@@ -23,7 +23,6 @@ from shutil import copyfile
 
 import matplotlib
 import numpy as np
-from matplotlib.animation import AbstractMovieWriter
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
@@ -58,13 +57,14 @@ from ..utils import (
     _record_warnings,
     _safe_input,
     _validate_type,
+    _verbose_control,
     _verbose_safe_false,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     sys_info,
     use_log_level,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.spectrum import _split_psd_kwargs
@@ -72,7 +72,6 @@ from ..viz import (
     Figure3D,
     _get_plot_ch_type,
     create_3d_figure,
-    get_3d_backend,
     plot_alignment,
     plot_compare_evokeds,
     plot_cov,
@@ -85,7 +84,7 @@ from ..viz import (
 from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
-from ..viz.utils import _ndarray_to_fig
+from ..viz.utils import _BlitManager, _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
@@ -231,7 +230,7 @@ def _html_slider_element(
         tags=tags,
         title=title,
         start_idx=start_idx,
-        image_format=image_format,
+        image_format=_mime_format(image_format),
         klass=klass,
         show="show" if show else "",
     )
@@ -256,7 +255,7 @@ def _html_image_element(
         caption=caption,
         tags=tags,
         title=title,
-        image_format=image_format,
+        image_format=_mime_format(image_format),
         div_klass=div_klass,
         img_klass=img_klass,
         embedded=embedded,
@@ -369,27 +368,6 @@ def _check_tags(tags) -> tuple[str]:
 # PLOTTING FUNCTIONS
 
 
-class _NdArrayCapture(AbstractMovieWriter):
-    def __init__(self, frames: list):
-        super().__init__(fps=1, metadata={}, bitrate=0)
-        self.frames = frames
-
-    def grab_frame(self, **savefig_kwargs):
-        img = _fig_to_img(
-            fig=self.fig, image_format="ndarray", pad_inches=0, **savefig_kwargs
-        )
-        self.frames.append(img)
-
-    def save(self, filename, *args, **kwargs):
-        pass
-
-    def finish(self):
-        pass
-
-    def setup(self, fig, outfile, dpi=None):
-        self.fig = fig
-
-
 def _use_agg(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -430,6 +408,31 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
         fig.set_dpi(dpi)
 
 
+def _compress_img(img, image_format, dpi):
+    """Drop the alpha channel and compress, for space and to avoid rendering issues."""
+    from PIL import Image
+
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+    pil_kwargs = dict()
+    if image_format == "webp":
+        # Here quality means speed/size tradeoff (either way the result is lossless);
+        # 20 rather than 50 encodes ~1.5x faster for a few percent more bytes
+        pil_kwargs.update(lossless=True, quality=20)
+    elif image_format == "webp-lossy":
+        # ~as cheap to encode as PNG and ~3x smaller, at the cost of exactness
+        pil_kwargs.update(lossless=False, quality=90)
+    else:
+        assert image_format == "png", image_format  # _fig_to_img checks this
+        # optimize=True forces maximum effort regardless of compress_level and
+        # encodes ~3x slower for ~1% fewer bytes, so favor speed here
+        pil_kwargs.update(compress_level=6)
+    background = Image.new("RGBA", img.size, (255, 255, 255))
+    img = Image.alpha_composite(background, img).convert("RGB")
+    output = BytesIO()
+    img.save(output, format=_mime_format(image_format), dpi=(dpi, dpi), **pil_kwargs)
+    return output
+
+
 def _fig_to_img(
     fig,
     *,
@@ -444,13 +447,31 @@ def _fig_to_img(
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
 
+    # Report validates its own image_format, but add_figure and friends pass whatever
+    # they are given straight through, and e.g. "PNG" is used in the docs
+    _validate_type(image_format, str, "image_format")
+    image_format = image_format.lower()
+    _check_option("image_format", image_format, _ALLOWED_IMAGE_FORMATS + ("ndarray",))
+
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
         # auto-close in all cases
-        fig = _ndarray_to_fig(fig)
+        img, fig = fig, _ndarray_to_fig(fig)
+        dpi = fig.get_dpi()
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
         own_figure = True  # close the figure we just created
+        if fig.get_dpi() == dpi and image_format not in ("svg", "ndarray"):
+            # Nothing rescaled the pixels, so compress them as they are rather than
+            # rendering them back through the figure only to read them out again
+            from PIL import Image
+
+            plt.close(fig)
+            if img.dtype.kind == "f":  # float in [0, 1], as _fig_to_img returns
+                img = np.clip(img, 0, 1) * 255
+            img = Image.fromarray(img.astype(np.uint8)).convert("RGBA")
+            output = _compress_img(img, image_format, dpi)
+            return base64.b64encode(output.getvalue()).decode("ascii")
     elif isinstance(fig, Figure):
         if own_figure:
             _constrain_fig_resolution(fig, max_width=max_width, max_res=max_res)
@@ -486,7 +507,17 @@ def _fig_to_img(
     logger.debug(
         f"Saving figure with dimension {fig.get_size_inches()} inches with {dpi} dpi"
     )
-    mpl_format = "svg" if image_format == "svg" else "png"
+    if image_format == "svg":
+        mpl_format = "svg"
+    elif image_format != "ndarray" and "bbox_inches" in mpl_kwargs:
+        # bbox_inches changes the rendered size, so the raw buffer could no longer be
+        # reshaped from the figure's own bbox
+        mpl_format = "png"
+    else:
+        mpl_format = "rgba"
+        # Agg truncates the figure size to whole pixels (`RendererAgg.__init__`),
+        # so rounding here would mis-shape the buffer at fractional DPI
+        shape = (int(fig.bbox.size[1]), int(fig.bbox.size[0]), 4)
     fig.savefig(output, format=mpl_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
@@ -496,24 +527,21 @@ def _fig_to_img(
     if image_format not in ("svg", "ndarray"):
         from PIL import Image
 
-        # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-        pil_kwargs = dict()
-        if image_format == "webp":
-            # Here quality means speed/size tradeoff (either way the result is lossless)
-            pil_kwargs.update(lossless=True, quality=50)
-        elif image_format == "png":
-            pil_kwargs.update(optimize=True, compress_level=9)
-        output.seek(0)
-        orig = Image.open(output)
+        if mpl_format == "rgba":
+            # Raw RGBA: the pixels can be decoded directly
+            orig = Image.frombuffer(
+                "RGBA", shape[1::-1], output.getbuffer(), "raw", "RGBA", 0, 1
+            )
+        else:
+            output.seek(0)
+            orig = Image.open(output)
         if orig.mode == "RGBA":
-            background = Image.new("RGBA", orig.size, (255, 255, 255))
-            new = Image.alpha_composite(background, orig).convert("RGB")
-            output = BytesIO()
-            new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+            output = _compress_img(orig, image_format, dpi)
 
     if image_format == "ndarray":
-        output.seek(0)
-        output = plt.imread(output, format="png")
+        # float in [0, 1], like the PNG this used to go through
+        output = np.frombuffer(output.getbuffer(), np.uint8).reshape(shape)
+        output = output.astype(np.float32) / 255
     else:
         output = output.getvalue()
         if image_format == "svg":
@@ -771,7 +799,12 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / "icons" / "mne_icon-cropped.png"
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 
-_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
+_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp", "webp-lossy")
+
+
+def _mime_format(image_format):
+    """Strip our lossy/lossless qualifier to get the PIL/MIME name."""
+    return image_format.split("-")[0]
 
 
 def _check_image_format(rep, image_format):
@@ -787,7 +820,7 @@ def _check_image_format(rep, image_format):
     return image_format
 
 
-@fill_doc
+@fill_doc_static("subjects_dir", "baseline_report", "verbose")
 class Report:
     r"""Object for rendering HTML.
 
@@ -795,25 +828,50 @@ class Report:
     ----------
     info_fname : None | str
         Name of the file containing the info dictionary.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     subject : str | None
         Subject name.
     title : str
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    %(baseline_report)s
+    baseline : None | tuple of length 2
+        The time interval to consider as "baseline" when applying baseline
+        correction. If ``None``, do not apply baseline correction.
+        If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+        (in seconds), including the endpoints.
+        If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+        is ``None``, it is set to the **end** of the data.
+        If ``(None, None)``, the entire time interval is used.
+
+        .. note::
+            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+            ``t`` such that ``a <= t <= b``.
+
+        Correction is applied in the following way **to each channel:**
+
+        1. Calculate the mean signal of the baseline period.
+        2. Subtract this mean from the **entire** time period.
+
+        For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'webp' | 'auto'
+    image_format : 'png' | 'svg' | 'webp' | 'webp-lossy' | 'auto'
         Default image format to use (default is ``'auto'``, which will use
         ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
+        ``'webp-lossy'`` gives much smaller files than the (lossless) ``'webp'``
+        at a comparable encoding cost, at the price of exact pixel fidelity.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
            Added support for ``'webp'`` format, removed support for GIF, and
            set the default to ``'auto'``.
+        .. versionchanged:: 1.13
+           Added support for ``'webp-lossy'`` format.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -840,20 +898,45 @@ class Report:
         For now the only option it can contain is "section".
 
         .. versionadded:: 1.9
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
     info_fname : None | str
         Name of the file containing the info dictionary.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     subject : str | None
         Subject name.
     title : str
         Title of the report.
     cov_fname : None | str
         Name of the file containing the noise covariance.
-    %(baseline_report)s
+    baseline : None | tuple of length 2
+        The time interval to consider as "baseline" when applying baseline
+        correction. If ``None``, do not apply baseline correction.
+        If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+        (in seconds), including the endpoints.
+        If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+        is ``None``, it is set to the **end** of the data.
+        If ``(None, None)``, the entire time interval is used.
+
+        .. note::
+            The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+            ``t`` such that ``a <= t <= b``.
+
+        Correction is applied in the following way **to each channel:**
+
+        1. Calculate the mean signal of the baseline period.
+        2. Subtract this mean from the **entire** time period.
+
+        For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
         Defaults to ``None``, i.e. no baseline correction.
     image_format : str
         Default image format to use.
@@ -872,7 +955,11 @@ class Report:
         the data. Defaults to ``False``.
 
         .. versionadded:: 0.21
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     html : list of str
         Contains items of html-page.
     include : list of str
@@ -903,7 +990,7 @@ class Report:
     .. versionadded:: 0.8.0
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         info_fname=None,
@@ -1299,7 +1386,7 @@ class Report:
         self.include += script
         self._unsaved_changes = True
 
-    @fill_doc
+    @fill_doc_static("projs_report", "topomap_kwargs", "tags_report", "replace_report")
     def add_epochs(
         self,
         epochs,
@@ -1335,7 +1422,9 @@ class Report:
 
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
-        %(projs_report)s
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         image_kwargs : dict | None
             Keyword arguments to pass to the "epochs image"-generating
             function (:meth:`mne.Epochs.plot_image`).
@@ -1348,13 +1437,19 @@ class Report:
                 )
 
             .. versionadded:: 1.7
-        %(topomap_kwargs)s
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
             All epochs for which a drop reason listed here appears in
             ``epochs.drop_log`` will be excluded from the drop log plot.
-        %(tags_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1375,7 +1470,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "projs_report", "tags_report", "replace_report", "topomap_kwargs", "n_jobs"
+    )
     def add_evokeds(
         self,
         evokeds,
@@ -1405,15 +1502,29 @@ class Report:
             A noise covariance matrix. If provided, will be used to whiten
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
             provided upon report creation.
-        %(projs_report)s
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render each `~mne.Evoked` at 21 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(tags_report)s
-        %(replace_report)s
-        %(topomap_kwargs)s
-        %(n_jobs)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
 
             .. versionchanged:: 1.13
                This parameter is currently unused, as parallelization of evoked topomap
@@ -1468,7 +1579,9 @@ class Report:
                 replace=replace,
             )
 
-    @fill_doc
+    @fill_doc_static(
+        "projs_report", "scalings", "tags_report", "replace_report", "topomap_kwargs"
+    )
     def add_raw(
         self,
         raw,
@@ -1494,7 +1607,9 @@ class Report:
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
-        %(projs_report)s
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         butterfly : bool | int
             Whether to add butterfly plots of the data. Can be useful to
             spot problematic channels. If ``True``, 10 equally-spaced 1-second
@@ -1502,10 +1617,33 @@ class Report:
             1-second segments to plot. Larger numbers may take a considerable
             amount of time if the data contains many sensors. You can disable
             butterfly plots altogether by passing ``False``.
-        %(scalings)s
-        %(tags_report)s
-        %(replace_report)s
-        %(topomap_kwargs)s
+        scalings : 'auto' | dict | None
+            Scaling factors for the traces. If a dictionary where any
+            value is ``'auto'``, the scaling factor is set to match the 99.5th
+            percentile of the respective data. If ``'auto'``, all scalings (for all
+            channel types) are set to ``'auto'``. If any values are ``'auto'`` and the
+            data is not preloaded, a subset up to 100 MB will be loaded. If ``None``,
+            defaults to::
+
+                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                     resp=1, chpi=1e-4, whitened=1e2)
+
+            .. note::
+                A particular scaling value ``s`` corresponds to half of the visualized
+                signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+                ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+                signals means that the visualized range will be 40 µV (20 µV in the
+                positive direction and 20 µV in the negative direction).
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
 
         Notes
         -----
@@ -1535,7 +1673,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "tags_report", "replace_report", "section_report", "stc_plot_kwargs_report"
+    )
     def add_stc(
         self,
         stc,
@@ -1568,12 +1708,28 @@ class Report:
             The number of equidistant time points to render. If ``None``,
             will render ``stc`` at 51 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(tags_report)s
-        %(replace_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(stc_plot_kwargs_report)s
+        stc_plot_kwargs : dict
+            Dictionary of keyword arguments to pass to
+            :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+            mode.
             Note that the default ``stc_plot_kwargs["size"] = (450, 450)``.
             The ``width`` parameter will be constrained to
             ``min(size[1], self.img_max_width)`` if ``self.img_max_width``
@@ -1597,7 +1753,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_forward(
         self,
         forward,
@@ -1627,11 +1783,24 @@ class Report:
             If True, plot the source space of the forward solution.
 
             .. versionadded:: 1.10
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1651,7 +1820,7 @@ class Report:
             plot=plot,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_inverse_operator(
         self,
         inverse_operator,
@@ -1682,11 +1851,24 @@ class Report:
             If True, plot the source space of the inverse operator.
 
             .. versionadded:: 1.10
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1705,7 +1887,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("trans", "tags_report", "section_report", "replace_report")
     def add_trans(
         self,
         trans,
@@ -1725,7 +1907,12 @@ class Report:
 
         Parameters
         ----------
-        %(trans)s "auto" will load trans from the FreeSurfer directory
+        trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            If trans is None, an identity matrix is assumed.
+            "auto" will load trans from the FreeSurfer directory
             specified by ``subject`` and ``subjects_dir`` parameters.
 
             .. versionchanged:: 1.10
@@ -1757,11 +1944,24 @@ class Report:
             ``dict(dig=True, meg=("helmet", "sensors"), show_axes=True)``.
 
             .. versionadded:: 1.10
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1782,7 +1982,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "replace_report")
     def add_covariance(self, cov, *, info, title, tags=("covariance",), replace=False):
         """Add covariance to the report.
 
@@ -1794,8 +1994,13 @@ class Report:
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
-        %(tags_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1811,7 +2016,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_events(
         self,
         events,
@@ -1845,11 +2050,24 @@ class Report:
             parameter is directly passed to :func:`mne.viz.plot_events`.
 
             .. versionadded:: 1.8.0
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -1869,7 +2087,13 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "topomap_kwargs",
+        "tags_report",
+        "picks_plot_projs_joint_trace",
+        "section_report",
+        "replace_report",
+    )
     def add_projs(
         self,
         *,
@@ -1895,8 +2119,10 @@ class Report:
             The projection vectors to add to the report. Can be the path to a
             file that will be loaded via `mne.read_proj`. If ``None``, the
             projectors are taken from ``info['projs']``.
-        %(topomap_kwargs)s
-        %(tags_report)s
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
         joint : bool
             If True (default False), plot the projectors using
             :func:`mne.viz.plot_projs_joint`, otherwise use
@@ -1904,14 +2130,36 @@ class Report:
             instance of :class:`mne.Evoked`.
 
             .. versionadded:: 1.9
-        %(picks_plot_projs_joint_trace)s
+        picks_trace : str | array-like | slice | None
+            Channels to show alongside the projected time courses. Typically
+            these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
+            ``'ecg'``).
+            Slices and lists of integers will be interpreted as channel indices.
+            In lists, channel *type* strings (e.g., ``['meg', 'eeg']``) will
+            pick channels of those types, channel *name* strings (e.g., ``['MEG0111',
+            'MEG2623']`` will pick the given channels.
+            Can also be the string values ``'all'`` to pick
+            all channels, or ``'data'`` to pick :term:`data channels`.
+            None (default) will pick no channels.
             Only used when ``joint=True``.
 
             .. versionadded:: 1.9
-        %(section_report)s
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2267,7 +2515,7 @@ class Report:
                 replace=replace,
             )
 
-    @fill_doc
+    @fill_doc_static("picks_ica", "n_jobs", "tags_report", "replace_report")
     def add_ica(
         self,
         ica,
@@ -2297,7 +2545,13 @@ class Report:
             The data to use for visualization of the effects of ICA cleaning.
             To only plot the ICA component topographies, explicitly pass
             ``None``.
-        %(picks_ica)s This only affects the behavior of the component
+        picks : int | list of int | slice | None
+            Indices of the independent components (ICs) to visualize. If an integer,
+            represents the index of the IC to pick. Multiple ICs can be selected using a
+            list of int or a slice. The indices are 0-indexed, so ``picks=1`` will pick
+            the second IC: ``ICA001``. ``None`` will pick all independent components in
+            the order fitted.
+            This only affects the behavior of the component
             topography and properties plots.
         n_components : int
             Maximum number of ICA components to plot. Defaults to 20.
@@ -2311,9 +2565,20 @@ class Report:
             and :meth:`mne.preprocessing.ICA.find_bads_eog`, respectively.
             If passed, will be used to visualize the scoring for each ICA
             component.
-        %(n_jobs)s
-        %(tags_report)s
-        %(replace_report)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
         plot_sources : bool
             Whether to add a plot of the ICA source time-courses using
             :meth:`mne.preprocessing.ICA.plot_sources`. Requires ``inst``
@@ -2402,7 +2667,7 @@ class Report:
 
         return remove_idx
 
-    @fill_doc
+    @fill_doc_static("section_report")
     def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
@@ -2410,7 +2675,15 @@ class Report:
         ----------
         title : str
             The title entry.
-        %(section_report)s
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
         tags : tuple of str
             The tags associated with the added element.
         html_partial : callable
@@ -2465,7 +2738,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_code(
         self,
         code,
@@ -2491,11 +2764,24 @@ class Report:
         language : str
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2512,7 +2798,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "replace_report")
     def add_sys_info(self, title, *, tags=("mne-sysinfo",), replace=False):
         """Add a MNE-Python system information to the report.
 
@@ -2523,8 +2809,13 @@ class Report:
         ----------
         title : str
             The title to assign.
-        %(tags_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2605,7 +2896,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "image_format_report", "tags_report", "section_report", "replace_report"
+    )
     def add_figure(
         self,
         fig,
@@ -2631,10 +2924,27 @@ class Report:
             The title corresponding to the figure(s).
         caption : str | array-like of str | None
             The caption(s) to add to the figure(s).
-        %(image_format_report)s
-        %(tags_report)s
-        %(section_report)s
-        %(replace_report)s
+        image_format : 'png' | 'svg' | 'gif' | None
+            The image format to be used for the report, can be ``'png'``,
+            ``'svg'``, or ``'gif'``.
+            None (default) will use the default specified during `~mne.Report`
+            instantiation.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2696,7 +3006,7 @@ class Report:
                 replace=replace,
             )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_image(
         self,
         image,
@@ -2717,9 +3027,22 @@ class Report:
             Title corresponding to the images.
         caption : str | None
             If not ``None``, the caption to add to the image.
-        %(tags_report)s
-        %(section_report)s
-        %(replace_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2744,7 +3067,7 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static("tags_report", "section_report", "replace_report")
     def add_html(
         self, html, title, *, tags=("custom-html",), section=None, replace=False
     ):
@@ -2756,11 +3079,24 @@ class Report:
             The HTML content to add.
         title : str
             The title corresponding to ``html``.
-        %(tags_report)s
-        %(section_report)s
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.3
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2783,7 +3119,9 @@ class Report:
             replace=replace,
         )
 
-    @fill_doc
+    @fill_doc_static(
+        "subjects_dir", "n_jobs", "tags_report", "section_report", "replace_report"
+    )
     def add_bem(
         self,
         subject,
@@ -2805,7 +3143,10 @@ class Report:
             The FreeSurfer subject name.
         title : str
             The title corresponding to the BEM image.
-        %(subjects_dir)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -2814,12 +3155,31 @@ class Report:
             clearer surface lines, but will create larger HTML files.
             Typically a factor of 2 more than the number of MRI voxels along
             each dimension (typically 512, default) is reasonable.
-        %(n_jobs)s
-        %(tags_report)s
-        %(section_report)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        tags : array-like of str | str
+            Tags to add for later interactive filtering. Must not contain spaces.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
 
             .. versionadded:: 1.9
-        %(replace_report)s
+        replace : bool
+            If ``True``, content already present that has the same ``title`` and
+            ``section`` will be replaced. Defaults to ``False``, which will cause
+            duplicate entries in the table of contents if an entry for ``title``
+            already exists.
 
         Notes
         -----
@@ -2928,7 +3288,7 @@ class Report:
 
     ###########################################################################
     # global rendering functions
-    @verbose
+    @_verbose_control
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
         inc_fnames = [
@@ -3068,7 +3428,9 @@ class Report:
                 elif on_error == "raise":
                     raise
 
-    @verbose
+    @verbose_static(
+        "n_jobs", "image_format_report", "stc_plot_kwargs_report", "topomap_kwargs"
+    )
     def parse_folder(
         self,
         data_path,
@@ -3102,7 +3464,13 @@ class Report:
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
-        %(n_jobs)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -3115,7 +3483,11 @@ class Report:
         on_error : ``'ignore'`` | ``'warn'`` | ``'raise'``
             What to do if a file cannot be rendered. Can be ``'ignore'``, ``'warn'``
             (default), or ``'raise'``.
-        %(image_format_report)s
+        image_format : 'png' | 'svg' | 'gif' | None
+            The image format to be used for the report, can be ``'png'``,
+            ``'svg'``, or ``'gif'``.
+            None (default) will use the default specified during `~mne.Report`
+            instantiation.
 
             .. versionadded:: 0.15
         render_bem : bool
@@ -3139,13 +3511,21 @@ class Report:
             Whether to render butterfly plots for (decimated) :class:`~mne.io.Raw` data.
 
             .. versionadded:: 0.24.0
-        %(stc_plot_kwargs_report)s
+        stc_plot_kwargs : dict
+            Dictionary of keyword arguments to pass to
+            :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+            mode.
 
             .. versionadded:: 0.24.0
-        %(topomap_kwargs)s
+        topomap_kwargs : dict | None
+            Keyword arguments to pass to the topomap-generating functions.
 
             .. versionadded:: 0.24.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         self.data_path = _check_fname(
             data_path,
@@ -3299,7 +3679,7 @@ class Report:
         self._unsaved_changes = True
         return state
 
-    @verbose
+    @verbose_static("overwrite")
     def save(
         self,
         fname=None,
@@ -3327,7 +3707,9 @@ class Report:
         open_browser : bool
             Whether to open the rendered HTML report in the default web browser
             after saving. This is ignored when writing an HDF5 file.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
         sort_content : bool
             If ``True``, sort the content based on tags before saving in the
             order:
@@ -3342,7 +3724,11 @@ class Report:
             is always written.
 
             .. versionadded:: 1.13
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -3942,8 +4328,6 @@ class Report:
             fig.delaxes(axes[1, 1])
             axes = axes.ravel()[:3]
             axes[0].set_title(ch_type)
-            frames[ch_type] = list()
-            this_writer = _NdArrayCapture(frames[ch_type])
             _, ch_anim = evoked.animate_topomap(
                 times=times,
                 ch_type=ch_type,
@@ -3952,10 +4336,22 @@ class Report:
                 show=False,
                 time_format="",  # we impose our own in HTML
                 butterfly=True,
+                blit=False,  # we do our own, `Animation.save` cannot blit at all
                 **topomap_kwargs,
             )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+            fig.canvas.draw()  # the animation does its initial draw here
             ch_anim.pause()
-            ch_anim.save("", writer=this_writer)
+            # Only the topomap image, its contours and the butterfly cursor change
+            # from one frame to the next, so blit those onto a cached picture of the
+            # rest of the figure and read the pixels straight out of the canvas.
+            blit = _BlitManager(fig)
+            frames[ch_type] = list()
+            for frame in range(len(times)):
+                blit.update(ch_anim.mne_frame_func(frame))
+                frames[ch_type].append(
+                    np.asarray(fig.canvas.buffer_rgba(), dtype=np.float32) / 255
+                )
             plt.close(fig)
             del (
                 fig,
@@ -4592,12 +4988,6 @@ class Report:
             )
         t_zero_idx = np.abs(times).argmin()  # index of time closest to zero
 
-        # Plot using 3d backend if available, and use Matplotlib
-        # otherwise.
-        # TODO: the Matplotlib fallback below is deprecated, remove it (and require a
-        # 3D backend here) once the mpl 3D backend goes away in 1.15
-        import matplotlib.pyplot as plt
-
         stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
         # we need to set the size based on the min (img_max_width can be None)
@@ -4606,12 +4996,8 @@ class Report:
                 stc_plot_kwargs["size"][0],
                 min(stc_plot_kwargs["size"][1], self.img_max_width),
             )
-        if get_3d_backend() is not None:
-            brain = stc.plot(**stc_plot_kwargs)
-            brain._renderer.plotter.subplot(0, 0)
-            backend_is_3d = True
-        else:
-            backend_is_3d = False
+        brain = stc.plot(**stc_plot_kwargs)
+        brain._renderer.plotter.subplot(0, 0)
 
         figs = []
         for t in times:
@@ -4622,51 +5008,10 @@ class Report:
                     category=RuntimeWarning,
                 )
 
-                if backend_is_3d:
-                    brain.set_time(t)
-                    figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
-                else:
-                    fig_lh = plt.figure(layout="constrained")
-                    fig_rh = plt.figure(layout="constrained")
+                brain.set_time(t)
+                figs.append(brain.screenshot(time_viewer=True, mode="rgb"))
 
-                    brain_lh = stc.plot(
-                        views="lat",
-                        hemi="lh",
-                        initial_time=t,
-                        backend="matplotlib",
-                        subject=subject,
-                        subjects_dir=subjects_dir,
-                        figure=fig_lh,
-                    )
-                    brain_rh = stc.plot(
-                        views="lat",
-                        hemi="rh",
-                        initial_time=t,
-                        subject=subject,
-                        subjects_dir=subjects_dir,
-                        backend="matplotlib",
-                        figure=fig_rh,
-                    )
-                    _constrain_fig_resolution(
-                        fig_lh,
-                        max_width=stc_plot_kwargs["size"][0],
-                        max_res=self.img_max_res,
-                    )
-                    _constrain_fig_resolution(
-                        fig_rh,
-                        max_width=stc_plot_kwargs["size"][0],
-                        max_res=self.img_max_res,
-                    )
-                    figs.append(brain_lh)
-                    figs.append(brain_rh)
-                    plt.close(fig_lh)
-                    plt.close(fig_rh)
-
-        if backend_is_3d:
-            brain.close()
-        else:
-            brain_lh.close()
-            brain_rh.close()
+        brain.close()
 
         captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
         self._add_slider(
@@ -4681,9 +5026,6 @@ class Report:
             replace=replace,
             own_figure=False,  # prevent rescaling
         )
-        for fig in figs:
-            if not isinstance(fig, np.ndarray):
-                plt.close(fig)
 
     @_use_agg
     def _add_bem(

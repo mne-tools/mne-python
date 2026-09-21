@@ -59,7 +59,6 @@ fooof # categories: oscillations
 hedtools # categories: organization
 jamica # categories: preproc
 meegkit # categories: preproc
-meggie # categories: visu
 mffpy # categories: io
 mne-ari # categories: stats
 mne-bids-pipeline # categories: organization
@@ -67,6 +66,7 @@ mne-denoise # categories: preproc
 mne-faster # categories: preproc
 mne-features # categories: stats
 mne-icalabel # categories: preproc
+mne-kit-gui # categories: preproc
 mne-lsl # categories: visu
 mne-microstates # categories: microstates
 mne-nirs # categories: modalities

@@ -29,7 +29,7 @@ from .check import (
     _soft_import,
     _validate_type,
 )
-from .docs import fill_doc
+from .docs import fill_doc_static
 from .misc import _pl
 
 _temp_home_dir = None
@@ -186,6 +186,10 @@ _known_config_types = {
     "MNE_MEMMAP_MIN_SIZE": (
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
+    ),
+    "MNE_PROPAGATE_DOC_CHANGES": (
+        "bool, propagate edits made to a shared docstring back to docdict and every "
+        "other docstring using it (tools/hooks/check_static_docs.py; developers only)"
     ),
     "MNE_REPR_HTML": (
         "bool, represent some objects with rich HTML in a notebook environment"
@@ -589,7 +593,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -601,7 +605,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     ----------
     stim_channel : str | list of str | None
         The stim channel selected by the user.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Returns
     -------
@@ -942,6 +948,7 @@ def sys_info(
             "nbclient",
             "nbformat",
             "nitime",
+            "pyvista-js",
             "imageio",
             "imageio-ffmpeg",
             "snirf",

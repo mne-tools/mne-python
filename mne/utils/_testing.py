@@ -57,6 +57,20 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
+# Filled in by the autouse ``_track_request`` fixture in mne/conftest.py.
+_current_pytest_request = None
+
+
+def _pytest_tmp_path():
+    """Get the ``tmp_path`` of the test that is currently running.
+
+    This lets plain helper functions (rather than fixtures) write under
+    ``--basetemp``, so their output is cleaned up by pytest and shows up in
+    temp-space accounting, without every call site having to pass it in.
+    """
+    return _current_pytest_request.getfixturevalue("tmp_path")
+
+
 def _apply_marks(marks, func):
     """Apply several pytest marks to a test function."""
     for mark in reversed(marks):

@@ -48,10 +48,10 @@ from .utils import (
     _stamp_to_dt,
     _validate_type,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     int_like,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from .utils.check import _soft_import
@@ -246,7 +246,7 @@ def _ndarray_ch_names(ch_names):
     return out
 
 
-@fill_doc
+@fill_doc_static("ch_names_annot")
 class Annotations:
     """Annotation object for annotating segments of raw data.
 
@@ -274,10 +274,20 @@ class Annotations:
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
-        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
+        More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' ' and at most
         microsecond precision (nanoseconds are not supported).
-    %(ch_names_annot)s
+    ch_names : list | None
+        List of lists of channel names associated with the annotations.
+        Empty entries are assumed to be associated with no specific channel,
+        i.e., with all channels or with the time slice itself. None (default) is
+        the same as passing all empty lists. For example, this creates three
+        annotations, associating the first with the time interval itself, the
+        second with two channels, and the third with a single channel::
+
+            Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                        description=['Start', 'BAD_flux', 'BAD_noise'],
+                        ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 
         .. versionadded:: 0.23
     extras : list[dict[str, int | float | str | None] | None] | None
@@ -412,7 +422,7 @@ class Annotations:
     ``BAD_ACQ_SKIP`` annotation leads to specific reading/writing file
     behaviours. See :meth:`mne.io.read_raw_fif` and
     :meth:`Raw.save() <mne.io.Raw.save>` notes for details.
-    """  # noqa: E501
+    """
 
     def __init__(
         self,
@@ -697,7 +707,7 @@ class Annotations:
                 extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
             )
 
-    @fill_doc
+    @fill_doc_static("ch_names_annot")
     def append(self, onset, duration, description, ch_names=None, *, extras=None):
         """Add an annotated segment. Operates inplace.
 
@@ -711,7 +721,17 @@ class Annotations:
         description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'.
-        %(ch_names_annot)s
+        ch_names : list | None
+            List of lists of channel names associated with the annotations.
+            Empty entries are assumed to be associated with no specific channel,
+            i.e., with all channels or with the time slice itself. None (default) is
+            the same as passing all empty lists. For example, this creates three
+            annotations, associating the first with the time interval itself, the
+            second with two channels, and the third with a single channel::
+
+                Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                            description=['Start', 'BAD_flux', 'BAD_noise'],
+                            ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 
             .. versionadded:: 0.23
         extras : list[dict[str, int | float | str | None] | None] | None
@@ -789,13 +809,21 @@ class Annotations:
             for i in np.sort(np.arange(len(self.extras))[idx])[::-1]:
                 del self.extras[i]
 
-    @fill_doc
+    @fill_doc_static("time_format_df_raw")
     def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
 
         Parameters
         ----------
-        %(time_format_df_raw)s
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values. If ``'datetime'``, time values will be
+            converted to :class:`pandas.Timestamp` values, relative to
+            ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
+            Default is ``None`` unless specified otherwise.
             Default is ``datetime``.
 
             .. versionadded:: 1.7
@@ -865,7 +893,7 @@ class Annotations:
             self.delete(drop_idx)
         return self
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save annotations to FIF, CSV or TXT.
 
@@ -878,10 +906,16 @@ class Annotations:
         ----------
         fname : path-like
             The filename to use.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 0.23
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -948,7 +982,7 @@ class Annotations:
             )
         return offset, absolute_tmin, absolute_tmax
 
-    @verbose
+    @verbose_static()
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
@@ -968,7 +1002,11 @@ class Annotations:
         use_orig_time : bool
             Whether to use orig_time as an offset.
             Defaults to True.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1046,7 +1084,7 @@ class Annotations:
 
         return self
 
-    @verbose
+    @verbose_static()
     def set_durations(self, mapping, verbose=None):
         """Set annotation duration(s). Operates inplace.
 
@@ -1057,7 +1095,11 @@ class Annotations:
             seconds e.g. ``{'ShortStimulus' : 3, 'LongStimulus' : 12}``.
             Alternatively, if a number is provided, then all annotations
             durations are set to the single provided value.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1093,7 +1135,7 @@ class Annotations:
 
         return self
 
-    @verbose
+    @verbose_static()
     def rename(self, mapping, verbose=None):
         """Rename annotation description(s). Operates inplace.
 
@@ -1102,7 +1144,11 @@ class Annotations:
         mapping : dict
             A dictionary mapping the old description to a new description,
             e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1171,7 +1217,7 @@ def _hed_extras_from_hed_annotations(annot):
     return [{**d, "HED": str(hs)} for d, hs in zip(annot.extras, annot.hed_string)]
 
 
-@fill_doc
+@fill_doc_static("ch_names_annot")
 class HEDAnnotations(Annotations):
     """Annotations object for annotating segments of raw data with HED tags.
 
@@ -1200,9 +1246,19 @@ class HEDAnnotations(Annotations):
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
-        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
+        More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
-    %(ch_names_annot)s
+    ch_names : list | None
+        List of lists of channel names associated with the annotations.
+        Empty entries are assumed to be associated with no specific channel,
+        i.e., with all channels or with the time slice itself. None (default) is
+        the same as passing all empty lists. For example, this creates three
+        annotations, associating the first with the time interval itself, the
+        second with two channels, and the third with a single channel::
+
+            Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                        description=['Start', 'BAD_flux', 'BAD_noise'],
+                        ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
     extras : list[dict[str, int | float | str | None] | None] | None
         Optional list of dicts containing extra fields for each annotation.
         The number of items must match the number of annotations.
@@ -1383,7 +1439,7 @@ class HEDAnnotations(Annotations):
             state["hed_string"], hed_version=self._hed_version
         )
 
-    @fill_doc
+    @fill_doc_static("ch_names_annot")
     def append(
         self, *, onset, duration, description, hed_string, ch_names=None, extras=None
     ):
@@ -1403,7 +1459,17 @@ class HEDAnnotations(Annotations):
             Sequence of strings containing a HED tag (or comma-separated list of HED
             tags) for each annotation. If a single string is provided, all annotations
             are assigned the same HED string.
-        %(ch_names_annot)s
+        ch_names : list | None
+            List of lists of channel names associated with the annotations.
+            Empty entries are assumed to be associated with no specific channel,
+            i.e., with all channels or with the time slice itself. None (default) is
+            the same as passing all empty lists. For example, this creates three
+            annotations, associating the first with the time interval itself, the
+            second with two channels, and the third with a single channel::
+
+                Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                            description=['Start', 'BAD_flux', 'BAD_noise'],
+                            ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
         extras : list[dict[str, int | float | str | None] | None] | None
             Optional list of dicts containing extras fields for each annotation.
 
@@ -1489,7 +1555,7 @@ class HEDAnnotations(Annotations):
                 i, self.hed_string._objs[i].get_original_hed_string()
             )
 
-    @verbose
+    @verbose_static()
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
@@ -1509,7 +1575,11 @@ class HEDAnnotations(Annotations):
         use_orig_time : bool
             Whether to use orig_time as an offset.
             Defaults to True.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1547,13 +1617,21 @@ class HEDAnnotations(Annotations):
         )
         return self
 
-    @fill_doc
+    @fill_doc_static("time_format_df_raw")
     def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
 
         Parameters
         ----------
-        %(time_format_df_raw)s
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values. If ``'datetime'``, time values will be
+            converted to :class:`pandas.Timestamp` values, relative to
+            ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
+            Default is ``None`` unless specified otherwise.
 
         Returns
         -------
@@ -1582,7 +1660,7 @@ class EpochAnnotationsMixin:
     def annotations(self):  # noqa: D102
         return self._annotations
 
-    @verbose
+    @verbose_static("on_missing_ch_names")
     def set_annotations(self, annotations, on_missing="raise", *, verbose=None):
         """Setter for Epoch annotations from Raw.
 
@@ -1594,8 +1672,17 @@ class EpochAnnotationsMixin:
         ----------
         annotations : instance of mne.Annotations | None
             Annotations to set.
-        %(on_missing_ch_names)s
-        %(verbose)s
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2011,7 +2098,7 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
-@fill_doc
+@fill_doc_static("encoding_edf")
 def read_annotations(
     fname,
     sfreq="auto",
@@ -2047,7 +2134,9 @@ def read_annotations(
         too small". ``uint16_codec`` allows to specify what codec (for example:
         ``'latin1'`` or ``'utf-8'``) should be used when reading character
         arrays and can therefore help you solve this problem.
-    %(encoding_edf)s
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
         Only used when reading EDF annotations.
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
@@ -2481,7 +2570,7 @@ def _check_event_description(event_desc, events):
     return event_desc
 
 
-@verbose
+@verbose_static("events")
 def events_from_annotations(
     raw,
     event_id="auto",
@@ -2537,11 +2626,17 @@ def events_from_annotations(
         ``chunk_duration`` is not ``None``. If the duration from a computed
         chunk onset to the end of the annotation is smaller than
         ``chunk_duration`` minus ``tol``, the onset will be discarded.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     event_id : dict
         The event_id variable that can be passed to :class:`~mne.Epochs`.
 
@@ -2604,7 +2699,7 @@ def events_from_annotations(
     return events, event_id_
 
 
-@verbose
+@verbose_static()
 def annotations_from_events(
     events, sfreq, event_desc=None, first_samp=0, orig_time=None, verbose=None
 ):
@@ -2634,7 +2729,11 @@ def annotations_from_events(
         Determines the starting time of annotation acquisition. If None
         (default), starting time is determined from beginning of raw data
         acquisition. For details, see :meth:`mne.Annotations` docstring.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

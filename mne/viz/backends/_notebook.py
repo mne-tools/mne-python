@@ -1065,7 +1065,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         widget = Button(**kwargs)
         widget.on_click(lambda x: callback())
         if icon is not None:
-            widget.icon = icon
+            widget.icon = self._icons[icon]
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -1500,6 +1500,9 @@ class _IpyWidget(_AbstractWdgt):
 
     def hide(self):
         self._widget.layout.visibility = "hidden"
+
+    def remove(self):
+        self._widget.close()
 
     def set_enabled(self, state):
         self._widget.disabled = not state

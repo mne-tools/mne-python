@@ -28,10 +28,10 @@ from .surface import (
     _triangle_neighbors,
     read_surface,
 )
-from .utils import get_subjects_dir, logger, verbose, warn
+from .utils import get_subjects_dir, logger, verbose_static, warn
 
 
-@verbose
+@verbose_static()
 def read_morph_map(
     subject_from, subject_to, subjects_dir=None, xhemi=False, verbose=None
 ):
@@ -53,7 +53,11 @@ def read_morph_map(
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes of
         :func:`mne.compute_source_morph`.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

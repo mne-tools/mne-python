@@ -1,0 +1,44 @@
+{
+  "merge_commit_sha": "1d1ae055c40e2e7fb348f163af244775f6fd94cc",
+  "authors": [
+    {
+      "n": "Amirali Moradniaei",
+      "e": "176031135+AtomicGlance@users.noreply.github.com",
+      "l": "AtomicGlance"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14279.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 6,
+      "d": 31
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 23,
+      "d": 3
+    },
+    "tutorials/preprocessing/40_artifact_correction_ica.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

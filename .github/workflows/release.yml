@@ -45,3 +45,19 @@ jobs:
           path: dist
       - uses: pypa/gh-action-pypi-publish@release/v1
         if: github.event_name == 'release'
+
+  # Asks the conda-forge bot to open the version-bump PR on the feedstock right
+  # away rather than waiting for its next scheduled scan
+  conda-forge:
+    needs: pypi-upload
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions: {}
+    env:
+      GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - run: |
+          gh issue create --repo conda-forge/mne-feedstock \
+            --title "@conda-forge-admin, please update version" \
+            --body "mne-tools/mne-python ${TAG} has been released and uploaded to PyPI."

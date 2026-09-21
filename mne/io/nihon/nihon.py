@@ -12,7 +12,13 @@ import numpy as np
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import _check_fname, fill_doc, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+    warn,
+)
 from ..base import BaseRaw
 
 
@@ -23,7 +29,7 @@ def _ensure_path(fname):
     return out
 
 
-@fill_doc
+@fill_doc_static("encoding_nihon", "verbose")
 def read_raw_nihon(
     fname: Path | str,
     preload: bool = False,
@@ -39,10 +45,15 @@ def read_raw_nihon(
         Path to the Nihon Kohden data file (``.EEG``).
     preload : bool
         If True, all data are loaded at initialization.
-    %(encoding_nihon)s
+    encoding : str
+        Text encoding of Nihon Kohden annotations. See :ref:`standard-encodings`.
 
         .. versionadded:: 1.11
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -418,7 +429,7 @@ def _map_ch_to_specs(ch_name, chan_labels_upper):
     return out
 
 
-@fill_doc
+@fill_doc_static("encoding_nihon", "verbose")
 class RawNihon(BaseRaw):
     """Raw object from a Nihon Kohden EEG file.
 
@@ -428,17 +439,22 @@ class RawNihon(BaseRaw):
         Path to the Nihon Kohden data ``.eeg`` file.
     preload : bool
         If True, all data are loaded at initialization.
-    %(encoding_nihon)s
+    encoding : str
+        Text encoding of Nihon Kohden annotations. See :ref:`standard-encodings`.
 
         .. versionadded:: 1.11
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, preload=False, *, encoding="utf-8", verbose=None):
         fname = _check_fname(fname, "read", True, "fname")
         data_name = fname.name

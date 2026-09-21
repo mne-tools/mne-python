@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose_static
 from .base import _set_cv
 from .transformer import MNETransformerMixin
 
@@ -103,7 +103,7 @@ class EMS(MNETransformerMixin, BaseEstimator):
         return Xt
 
 
-@verbose
+@verbose_static("picks_good_data", "n_jobs")
 def compute_ems(
     epochs, conditions=None, picks=None, n_jobs=None, cv=None, *, verbose=None
 ):
@@ -135,12 +135,30 @@ def compute_ems(
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
-    %(picks_good_data)s
-    %(n_jobs)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     cv : cross-validation object | str | None
         The cross-validation scheme. If None,
         :class:`sklearn.model_selection.LeaveOneOut` is used.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

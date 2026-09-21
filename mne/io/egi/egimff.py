@@ -21,7 +21,15 @@ from ...annotations import Annotations
 from ...channels.montage import make_dig_montage
 from ...evoked import EvokedArray
 from ...fixes import _get_mffpy_pns_sensors
-from ...utils import _check_fname, _check_option, _soft_import, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _check_option,
+    _soft_import,
+    _verbose_control,
+    logger,
+    verbose_static,
+    warn,
+)
 from ..base import BaseRaw
 from .events import _combine_triggers, _read_events, _triage_include_exclude
 from .general import (
@@ -393,7 +401,7 @@ def _add_pns_channel_info(chs, egi_info, ch_names):
     return chs
 
 
-@verbose
+@_verbose_control
 def _read_raw_egi_mff(
     input_fname,
     eog=None,
@@ -427,7 +435,7 @@ class RawMff(BaseRaw):
 
     _extra_attributes = ("event_id",)
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -717,7 +725,7 @@ class RawMff(BaseRaw):
         _mult_cal_one(data, one, idx, cals, mult)
 
 
-@verbose
+@verbose_static()
 def read_evokeds_mff(
     fname: Path | str,
     condition: int | str | list[int] | list[str] | None = None,
@@ -738,7 +746,7 @@ def read_evokeds_mff(
         name. If ``condition`` is a list or None, a list of EvokedArray objects
         is returned.
     channel_naming : str
-        Channel naming convention for EEG channels. Defaults to 'E%%d'
+        Channel naming convention for EEG channels. Defaults to 'E%d'
         (resulting in channel names 'E1', 'E2', 'E3'...).
     baseline : tuple of length 2 | None
         The time interval to apply baseline correction. If None do not apply
@@ -749,7 +757,11 @@ def read_evokeds_mff(
         of the baseline period and subtracting it from the data. The baseline
         (a, b) includes both endpoints, i.e. all timepoints t such that
         a <= t <= b.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

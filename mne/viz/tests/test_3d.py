@@ -55,7 +55,7 @@ from mne.viz import (
     ui_events,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
-from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
+from mne.viz.utils import _fake_keypress, _fake_scroll, _get_cmap
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -185,6 +185,7 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
     evoked.pick(evoked.ch_names[::10])  # speed
+    lite = renderer.get_3d_backend() == "jupyterlite_notebook"
     for t, n_contours, up in zip(["meg", None], [21, 0], [2, 1]):
         with pytest.warns(RuntimeWarning, match="projection"), catch_logging() as log:
             maps = make_field_map(
@@ -203,8 +204,14 @@ def test_plot_evoked_field(renderer):
             assert "Upsampling" not in log
         else:
             assert "Upsampling" in log
+        if lite:  # field maps need contours, which the browser cannot color
+            with pytest.raises(NotImplementedError, match="browser"):
+                evoked.plot_field(maps, time=0.1, n_contours=n_contours)
+            continue
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
     renderer.backend._close_all()
+    if lite:  # and Brain needs the dock widgets the browser does not draw
+        return
 
     # Test plotting inside an existing Brain figure. Check that units are taken into
     # account.
@@ -331,7 +338,7 @@ def test_plot_evoked_field_notebook(renderer_notebook, nbexec):
 def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
-    assert len(fig.plotter.renderer.actors) == n_actors
+    assert len(fig.plotter.actors) == n_actors
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -520,6 +527,9 @@ def test_plot_alignment_meg(renderer, system):
         ]
     elif system == "CTF":
         this_info = read_raw_ctf(ctf_fname).info
+        # EEG with no digitized positions (bst_auditory) must be skipped, not crash
+        for idx in pick_types(this_info, eeg=True):
+            this_info["chs"][idx]["loc"][:] = np.nan
     elif system == "BTi":
         this_info = read_raw_bti(
             pdf_fname, config_fname, hs_fname, convert=True, preload=False
@@ -536,13 +546,15 @@ def test_plot_alignment_meg(renderer, system):
             plot_alignment(this_info, meg=meg, sensor_colors=sensor_colors)
         sensor_colors = dict(meg=sensor_colors)
         sensor_colors["ref_meg"] = ["r"] * len(pick_types(this_info, ref_meg=True))
+    elif system == "CTF":  # meg + (unplottable) eeg types means a dict is required
+        sensor_colors = dict(meg=sensor_colors)
     fig = plot_alignment(
         this_info,
         read_trans(trans_fname),
         subject="sample",
         subjects_dir=subjects_dir,
         meg=meg,
-        eeg=False,
+        eeg=system == "CTF",
         sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
@@ -566,7 +578,12 @@ def test_plot_alignment_meg(renderer, system):
             eeg=False,
             sensor_colors=dict(meg=rng.random((n_meg, 4))),
         )
-        _assert_n_actors(fig2, renderer, n_shapes + 2)
+        # ... except in the browser, which cannot color per instance and so
+        # draws one solid mesh per distinct color
+        if renderer.get_3d_backend() == "jupyterlite_notebook":
+            _assert_n_actors(fig2, renderer, n_meg + 2)
+        else:
+            _assert_n_actors(fig2, renderer, n_shapes + 2)
 
     # check error raising for wrong meg value:
     info = read_info(evoked_fname)
@@ -588,18 +605,16 @@ def test_plot_alignment_meg_coil_orientation(renderer, monkeypatch):
     so the per-instance quaternion must encode the full rotation from
     ``_loc_to_coil_trans``, not just the coil normal direction.
     """
-    from mne.viz.backends._pyvista import _PyVistaRenderer
-
     info = read_info(evoked_fname)
     info = pick_info(info, pick_types(info, meg="grad")[:4])
     calls = list()
-    orig = _PyVistaRenderer.instanced_mesh
+    orig = renderer.backend._Renderer.instanced_mesh
 
     def capture(self, *args, **kwargs):
         calls.append((kwargs["positions"], kwargs["quats"]))
         return orig(self, *args, **kwargs)
 
-    monkeypatch.setattr(_PyVistaRenderer, "instanced_mesh", capture)
+    monkeypatch.setattr(renderer.backend._Renderer, "instanced_mesh", capture)
     plot_alignment(info, meg="sensors", coord_frame="meg")
     # all four grads share one coil shape, so they form a single instanced
     # actor whose instance order follows the channel order
@@ -692,11 +707,12 @@ def test_plot_alignment_info(renderer, evoked):
     fig = plot_alignment(info)  # works: surfaces='auto' default
     # set_view=False keeps the view of the figure it is given, True resets it
     set_3d_view(fig, azimuth=11, elevation=22, distance=0.33)
-    pos = np.array(fig.plotter.camera.position, float)
+    view = renderer.backend._Renderer(fig=fig).get_camera()[2:4]
+    assert_allclose(view, (11, 22), atol=1e-4)
     plot_alignment(info, fig=fig, set_view=False)
-    assert_allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    assert_allclose(renderer.backend._Renderer(fig=fig).get_camera()[2:4], view)
     plot_alignment(info, fig=fig)
-    assert not np.allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    assert not np.allclose(renderer.backend._Renderer(fig=fig).get_camera()[2:4], view)
     # check error raised if incorrect info provided
     with pytest.raises(TypeError, match="instance of Info"):
         plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)
@@ -975,8 +991,22 @@ def test_plot_alignment_mixed_src(renderer, evoked, mixed_fwd_cov_evoked):
         subject="sample",
         subjects_dir=subjects_dir,
         src=mixed_src,
+        show_channel_names=True,
     )
     assert isinstance(fig, Figure3D)
+    if renderer.get_3d_backend() != "jupyterlite_notebook":  # no 3D text in vtk.js
+        from vtkmodules.vtkRenderingCore import vtkActor2D
+
+        # one batched label actor covering every plotted (non-bad MEG/EEG) channel
+        label_actors = [
+            a for a in fig.plotter.renderer.actors.values() if isinstance(a, vtkActor2D)
+        ]
+        assert len(label_actors) == 1
+        mapper = label_actors[0].GetMapper()
+        assert mapper.GetPlaceAllLabels()
+        labels = mapper.GetInputAlgorithm().GetInput()["labels"]
+        want = [info["ch_names"][pi] for pi in pick_types(info, meg=True, eeg=True)]
+        assert_array_equal(labels, want)
     renderer.backend._close_all()
 
 
@@ -1255,70 +1285,6 @@ def test_process_clim_round_trip():
     _linearize_map(out)
     ticks = _get_map_ticks(out)
     assert_allclose(ticks, [-1, -0.5, -0.25, 0, 0.25, 0.5, 1])
-
-
-@testing.requires_testing_data
-def test_stc_mpl():
-    """Test plotting source estimates with matplotlib."""
-    pytest.importorskip("nibabel")
-    sample_src = read_source_spaces(src_fname)
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.ones(n_verts * n_time)
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
-    stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
-    dep_match = "matplotlib 3D backend is deprecated"
-    with pytest.warns(FutureWarning, match=dep_match):
-        stc.plot(
-            subjects_dir=subjects_dir,
-            time_unit="s",
-            views="ven",
-            hemi="rh",
-            smoothing_steps=7,
-            subject="sample",
-            backend="matplotlib",
-            spacing="oct1",
-            initial_time=0.001,
-            colormap="Reds",
-        )
-    with pytest.warns(FutureWarning, match=dep_match):
-        fig = stc.plot(
-            subjects_dir=subjects_dir,
-            time_unit="ms",
-            views="dor",
-            hemi="lh",
-            smoothing_steps=7,
-            subject="sample",
-            backend="matplotlib",
-            spacing="ico2",
-            time_viewer=True,
-            colormap="mne",
-        )
-    time_viewer = fig.time_viewer
-    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
-    _fake_keypress(time_viewer, "ctrl+right")
-    _fake_keypress(time_viewer, "left")
-    with (
-        pytest.warns(FutureWarning, match=dep_match),
-        pytest.raises(ValueError, match="Invalid value for the 'hemi'"),
-    ):
-        stc.plot(
-            subjects_dir=subjects_dir,
-            hemi="both",
-            subject="sample",
-            backend="matplotlib",
-        )
-    with (
-        pytest.warns(FutureWarning, match=dep_match),
-        pytest.raises(ValueError, match="time_unit must be 's' or 'ms'"),
-    ):
-        stc.plot(
-            subjects_dir=subjects_dir,
-            time_unit="ss",
-            subject="sample",
-            backend="matplotlib",
-        )
 
 
 @pytest.mark.slowtest

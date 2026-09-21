@@ -7,7 +7,7 @@ from scipy import linalg
 
 from .._fiff.pick import _picks_by_type, _picks_to_idx, pick_info
 from ..defaults import _handle_default
-from ..utils import _apply_scaling_array, verbose
+from ..utils import _apply_scaling_array, verbose_static
 
 
 def _yule_walker(X, order=1):
@@ -29,7 +29,7 @@ def _yule_walker(X, order=1):
     return rho, np.sqrt(sigmasq)
 
 
-@verbose
+@verbose_static("picks_good_data")
 def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None, verbose=None):
     r"""Fit an AR model to raw data and creates the corresponding IIR filter.
 
@@ -46,12 +46,24 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None, verbose=No
         An instance of Raw.
     order : int
         Order of the FIR filter.
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
     tmin : float
         The beginning of time interval in seconds.
     tmax : float
         The end of time interval in seconds.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

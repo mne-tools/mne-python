@@ -5,25 +5,51 @@
 import os
 
 from mne.export._egimff import export_evokeds_mff
-from mne.utils import _check_fname, _validate_type, logger, verbose, warn
+from mne.utils import (
+    _check_fname,
+    _validate_type,
+    logger,
+    verbose_static,
+    warn,
+)
 
 
-@verbose
+@verbose_static(
+    "export_fmt_support_raw",
+    "export_warning",
+    "fname_export_params",
+    "export_fmt_params_raw",
+    "physical_range_export_params",
+    "digital_range_export_params",
+    "add_ch_type_export_params",
+    "overwrite",
+    "export_warning_note_raw",
+    "export_eeglab_note",
+    "export_edf_note",
+)
 def export_raw(
     fname,
     raw,
     fmt="auto",
-    physical_range="auto",
-    add_ch_type=False,
     *,
+    physical_range="auto",
+    digital_range="auto",
+    add_ch_type=False,
     overwrite=False,
     verbose=None,
 ):
     """Export Raw to external formats.
 
-    %(export_fmt_support_raw)s
+    Supported formats:
 
-    %(export_warning)s
+    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv
+      <https://github.com/bids-standard/pybv>`_)
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+    - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
+
+    .. warning::
+        Since we are exporting to external formats, there's no guarantee that all
+        the info will be preserved in the external format. See Notes for details.
 
     .. warning::
         When exporting ``Raw`` with annotations, ``raw.info["meas_date"]`` must be the
@@ -35,24 +61,81 @@ def export_raw(
 
     Parameters
     ----------
-    %(fname_export_params)s
+    fname : str
+        Name of the output file.
     raw : instance of Raw
         The raw instance to export.
-    %(export_fmt_params_raw)s
-    %(physical_range_export_params)s
-    %(add_ch_type_export_params)s
-    %(overwrite)s
+    fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
+        Format of the export. Defaults to ``'auto'``, which will infer the format
+        from the filename extension. See supported formats above for more
+        information.
+    physical_range : str | tuple
+        The physical range of the data. If 'auto' (default), the physical range is
+        inferred from the data: if the data came from and EDF/BDF/GDF file, the
+        physical range of the original file will be preserved (with a warning if
+        clipping will occur). If the data did not originate from an EDF/BDF/GDF
+        file, ``"auto"`` will set the physical range as the minimum and maximum
+        values *per channel type*. If ``'channelwise'``, the range will be defined
+        *per channel*. If a tuple of minimum and maximum, that manually-specified
+        physical range will be used for all channels. Only used for exporting EDF
+        files.
+    digital_range : "auto" | "orig"
+        For EDF/BDF files, this controls the amplitude resolution of the
+        signals. "auto" uses the maximum available (16-bit for EDF, 24-bit for BDF).
+        If the :class:`~mne.io.Raw` object was originally read from and EDF or BDF
+        file, "orig" will use the digital range that was present in that file. For
+        :class:`~mne.io.Raw` objects that did not originate from EDF/BDF files,
+        "orig" falls back to the behavior of "auto".
+
+        .. versionadded:: 1.13.1
+    add_ch_type : bool
+        Whether to incorporate the channel type into the signal label (e.g. whether
+        to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
+        ``False``.
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 0.24.1
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----
     .. versionadded:: 0.24
 
-    %(export_warning_note_raw)s
-    %(export_eeglab_note)s
-    %(export_edf_note)s
+    Export to external format may not preserve all the information from the
+    instance. To save in native MNE format (``.fif``) without information loss,
+    use :meth:`mne.io.Raw.save` instead.
+    Export does not apply projector(s). Unapplied projector(s) will be lost.
+    Consider applying projector(s) before exporting with
+    :meth:`mne.io.Raw.apply_proj`.
+
+    For EEGLAB exports, channel locations are expanded to full EEGLAB format.
+    For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+
+    Although this function supports storing channel types in the signal label (e.g.
+    ``EEG Fz`` or ``MISC E``), other software may not support this (optional)
+    feature of the EDF standard.
+
+    If ``add_ch_type`` is True, then channel types are written based on what they
+    are currently set in MNE-Python. One should double check that all their channels
+    are set correctly. You can call :meth:`mne.io.Raw.set_channel_types` to set
+    channel types.
+
+    In addition, EDF does not support storing a montage. You will need to store the
+    montage separately and call :meth:`mne.io.Raw.set_montage`.
+
+    The physical range of the signals is determined by signal type by default
+    (``physical_range="auto"``). However, if individual channel ranges vary
+    significantly due to the presence of e.g. drifts/offsets/biases, setting
+    ``physical_range="channelwise"`` might be more appropriate. This will ensure a
+    maximum resolution for each individual channel, but some tools might not be able
+    to handle this appropriately (even though channel-wise ranges are covered by the
+    EDF standard).
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {  # format : (extensions,)
@@ -78,7 +161,7 @@ def export_raw(
         case "bdf":
             from mne.export._edf_bdf import _export_raw_bdf
 
-            _export_raw_bdf(fname, raw, physical_range, add_ch_type)
+            _export_raw_bdf(fname, raw, physical_range, digital_range, add_ch_type)
         case "brainvision":
             from mne.export._brainvision import _export_raw
 
@@ -86,38 +169,67 @@ def export_raw(
         case "edf":
             from mne.export._edf_bdf import _export_raw_edf
 
-            _export_raw_edf(fname, raw, physical_range, add_ch_type)
+            _export_raw_edf(fname, raw, physical_range, digital_range, add_ch_type)
         case "eeglab":
             from mne.export._eeglab import _export_raw
 
             _export_raw(fname, raw)
 
 
-@verbose
+@verbose_static(
+    "export_fmt_support_epochs",
+    "export_warning",
+    "fname_export_params",
+    "export_fmt_params_epochs",
+    "overwrite",
+    "export_warning_note_epochs",
+    "export_eeglab_note",
+)
 def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
-    %(export_fmt_support_epochs)s
+    Supported formats:
 
-    %(export_warning)s
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+
+    .. warning::
+        Since we are exporting to external formats, there's no guarantee that all
+        the info will be preserved in the external format. See Notes for details.
 
     Parameters
     ----------
-    %(fname_export_params)s
+    fname : str
+        Name of the output file.
     epochs : instance of Epochs
         The epochs to export.
-    %(export_fmt_params_epochs)s
-    %(overwrite)s
+    fmt : 'auto' | 'eeglab'
+        Format of the export. Defaults to ``'auto'``, which will infer the format
+        from the filename extension. See supported formats above for more
+        information.
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 0.24.1
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----
     .. versionadded:: 0.24
 
-    %(export_warning_note_epochs)s
-    %(export_eeglab_note)s
+    Export to external format may not preserve all the information from the
+    instance. To save in native MNE format (``.fif``) without information loss,
+    use :meth:`mne.Epochs.save` instead.
+    Export does not apply projector(s). Unapplied projector(s) will be lost.
+    Consider applying projector(s) before exporting with
+    :meth:`mne.Epochs.apply_proj`.
+
+    For EEGLAB exports, channel locations are expanded to full EEGLAB format.
+    For more details see :func:`eeglabio.utils.cart_to_eeglab`.
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {
@@ -138,7 +250,14 @@ def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
         _export_epochs(fname, epochs)
 
 
-@verbose
+@verbose_static(
+    "export_fmt_support_evoked",
+    "export_warning",
+    "fname_export_params",
+    "export_fmt_params_evoked",
+    "overwrite",
+    "export_warning_note_evoked",
+)
 def export_evokeds(fname, evoked, fmt="auto", *, overwrite=False, verbose=None):
     """Export evoked dataset to external formats.
 
@@ -146,22 +265,36 @@ def export_evokeds(fname, evoked, fmt="auto", *, overwrite=False, verbose=None):
     function is selected based on the inferred file format. For additional
     options, use the format-specific functions.
 
-    %(export_fmt_support_evoked)s
+    Supported formats:
 
-    %(export_warning)s
+    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+
+    .. warning::
+        Since we are exporting to external formats, there's no guarantee that all
+        the info will be preserved in the external format. See Notes for details.
 
     Parameters
     ----------
-    %(fname_export_params)s
+    fname : str
+        Name of the output file.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to export to one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
-    %(export_fmt_params_evoked)s
-    %(overwrite)s
+    fmt : 'auto' | 'mff'
+        Format of the export. Defaults to ``'auto'``, which will infer the format
+        from the filename extension. See supported formats above for more
+        information.
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 0.24.1
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -172,7 +305,12 @@ def export_evokeds(fname, evoked, fmt="auto", *, overwrite=False, verbose=None):
     -----
     .. versionadded:: 0.24
 
-    %(export_warning_note_evoked)s
+    Export to external format may not preserve all the information from the
+    instance. To save in native MNE format (``.fif``) without information loss,
+    use :meth:`mne.Evoked.save` instead.
+    Export does not apply projector(s). Unapplied projector(s) will be lost.
+    Consider applying projector(s) before exporting with
+    :meth:`mne.Evoked.apply_proj`.
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {

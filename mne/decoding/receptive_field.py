@@ -14,13 +14,13 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
-from ..utils import _validate_type, fill_doc, pinv
+from ..utils import _validate_type, fill_doc_static, pinv
 from ._fixes import _check_n_features_3d, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
 
-@fill_doc
+@fill_doc_static()
 class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
     """Fit a receptive field model.
 

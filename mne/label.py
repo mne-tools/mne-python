@@ -46,10 +46,11 @@ from .utils import (
     _import_nibabel,
     _legacy_rng,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -174,7 +175,7 @@ def _n_colors(n, bytes_=False, cmap="hsv"):
     return colors
 
 
-@fill_doc
+@fill_doc_static("subject_label", "verbose")
 class Label:
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
@@ -201,10 +202,16 @@ class Label:
         Kept as information but not used by the object itself.
     filename : str
         Kept as information but not used by the object itself.
-    %(subject_label)s
+    subject : str | None
+        Subject which this label belongs to. Should only be specified if it is not
+        specified in the label.
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -229,7 +236,7 @@ class Label:
         Vertex indices (0 based)
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         vertices=(),
@@ -591,7 +598,7 @@ class Label:
         )
         return label
 
-    @verbose
+    @verbose_static("subject_label", "subjects_dir", "n_jobs")
     def smooth(
         self,
         subject=None,
@@ -608,7 +615,9 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used. For a
@@ -625,9 +634,22 @@ class Label:
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        %(subjects_dir)s
-        %(n_jobs)s
-        %(verbose)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -645,7 +667,7 @@ class Label:
             subject, subject, smooth, grade, subjects_dir, n_jobs, verbose=verbose
         )
 
-    @verbose
+    @verbose_static("subjects_dir", "n_jobs")
     def morph(
         self,
         subject_from=None,
@@ -682,9 +704,22 @@ class Label:
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        %(subjects_dir)s
-        %(n_jobs)s
-        %(verbose)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -744,7 +779,7 @@ class Label:
         self.subject = subject_to
         return self
 
-    @fill_doc
+    @fill_doc_static("subject_label", "subjects_dir")
     def split(self, parts=2, subject=None, subjects_dir=None, freesurfer=False):
         """Split the Label into two or more parts.
 
@@ -756,8 +791,13 @@ class Label:
             or 'contiguous' to split the label into connected components.
             If a number or 'contiguous' is specified, names of the new labels
             will be the input label's name with div1, div2 etc. appended.
-        %(subject_label)s
-        %(subjects_dir)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         freesurfer : bool
             By default (``False``) ``split_label`` uses an algorithm that is
             slightly optimized for performance and numerical precision. Set
@@ -847,7 +887,7 @@ class Label:
 
         return label_tris
 
-    @fill_doc
+    @fill_doc_static("subject_label", "subjects_dir")
     def center_of_mass(
         self, subject=None, restrict_vertices=False, subjects_dir=None, surf="sphere"
     ):
@@ -858,7 +898,9 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
             it could be any vertex from surf. If an array of int, the
@@ -866,7 +908,10 @@ class Label:
             SourceSpaces (as of 0.13), the returned vertex will be from
             the given source space. For most accuruate estimates, do not
             restrict vertices.
-        %(subjects_dir)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         surf : str
             The surface to use for Euclidean distance center of mass
             finding. The default here is "sphere", which finds the center
@@ -914,7 +959,7 @@ class Label:
         )
         return vertex
 
-    @verbose
+    @verbose_static("subject_label", "subjects_dir", "surface")
     def distances_to_outside(
         self, subject=None, subjects_dir=None, surface="white", *, verbose=None
     ):
@@ -922,10 +967,21 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
-        %(subjects_dir)s
-        %(surface)s
-        %(verbose)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        surface : str
+            The surface along which to do the computations, defaults to ``'white'``
+            (the gray-white matter boundary).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -958,7 +1014,7 @@ class Label:
         outside = outside[self.vertices]
         return dist, outside
 
-    @verbose
+    @verbose_static("subject_label", "subjects_dir", "surface")
     def compute_area(
         self, subject=None, subjects_dir=None, surface="white", *, verbose=None
     ):
@@ -966,10 +1022,21 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
-        %(subjects_dir)s
-        %(surface)s
-        %(verbose)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        surface : str
+            The surface along which to do the computations, defaults to ``'white'``
+            (the gray-white matter boundary).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1136,7 +1203,7 @@ class BiHemiLabel:
             return BiHemiLabel(lh, rh, name, self.color)
 
 
-@verbose
+@verbose_static("subject_label")
 def read_label(filename, subject=None, color=None, *, verbose=None):
     """Read FreeSurfer Label file.
 
@@ -1144,7 +1211,9 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     ----------
     filename : str
         Path to label file.
-    %(subject_label)s
+    subject : str | None
+        Subject which this label belongs to. Should only be specified if it is not
+        specified in the label.
         It is good practice to set this attribute to avoid combining
         incompatible labels and SourceEstimates (e.g., ones from other
         subjects). Note that due to file specification limitations, the
@@ -1153,7 +1222,11 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
         Note that due to file specification limitations, the color isn't saved
         to or loaded from files written to disk.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1172,6 +1245,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError("subject must be a string")
+    filename = _check_fname(filename, "read", must_exist=True, name="Label file")
 
     # find hemi
     basename = op.basename(filename)
@@ -1227,7 +1301,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     return label
 
 
-@verbose
+@verbose_static()
 def write_label(filename, label, verbose=None):
     """Write a FreeSurfer label.
 
@@ -1237,7 +1311,11 @@ def write_label(filename, label, verbose=None):
         Path to label file to produce.
     label : Label
         The label object to save.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1371,7 +1449,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     return labels
 
 
-@fill_doc
+@fill_doc_static("subject_label", "subjects_dir")
 def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=False):
     """Split a Label into two or more parts.
 
@@ -1384,8 +1462,13 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
         posterior to anterior), or the number of new labels to create (default
         is 2). If a number is specified, names of the new labels will be the
         input label's name with div1, div2 etc. appended.
-    %(subject_label)s
-    %(subjects_dir)s
+    subject : str | None
+        Subject which this label belongs to. Should only be specified if it is not
+        specified in the label.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     freesurfer : bool
         By default (``False``) ``split_label`` uses an algorithm that is
         slightly optimized for performance and numerical precision. Set
@@ -1547,7 +1630,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-@verbose
+@verbose_static("subjects_dir")
 def stc_to_label(
     stc, src=None, smooth=True, connected=False, subjects_dir=None, verbose=None
 ):
@@ -1569,8 +1652,15 @@ def stc_to_label(
         If True a list of connected labels will be returned in each
         hemisphere. The labels are ordered in decreasing order depending
         of the maximum value in the stc.
-    %(subjects_dir)s
-    %(verbose)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1744,7 +1834,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "n_jobs", "surface")
 def grow_labels(
     subject,
     seeds,
@@ -1766,7 +1856,8 @@ def grow_labels(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     seeds : int | list
         Seed, or list of seeds. Each seed can be either a vertex number or
         a list of vertex numbers.
@@ -1774,8 +1865,17 @@ def grow_labels(
         Extents (radius in mm) of the labels.
     hemis : array | int
         Hemispheres to use for the labels (0: left, 1: right).
-    %(subjects_dir)s
-    %(n_jobs)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Likely only useful if tens or hundreds of labels are being expanded
         simultaneously. Does not apply with ``overlap=False``.
     overlap : bool
@@ -1785,7 +1885,9 @@ def grow_labels(
     names : None | list of str
         Assign names to the new labels (list needs to have the same length as
         seeds).
-    %(surface)s
+    surface : str
+        The surface along which to do the computations, defaults to ``'white'``
+        (the gray-white matter boundary).
     colors : array, shape (n, 4) or (, 4) | None
         How to assign colors to each label. If None then unique colors will be
         chosen automatically (default), otherwise colors will be broadcast
@@ -1956,7 +2058,7 @@ def _grow_nonoverlapping_labels(
 
 
 @_legacy_rng("random_state")
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "surface", "rng", "random_state_rng")
 def random_parcellation(
     subject,
     n_parcel,
@@ -1975,17 +2077,36 @@ def random_parcellation(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     n_parcel : int
         Total number of cortical parcels.
     hemi : str
         Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``). In the case
         of ``'both'``, both hemispheres are processed with ``(n_parcel // 2)``
         parcels per hemisphere.
-    %(subjects_dir)s
-    %(surface)s
-    %(rng)s
-    %(random_state_rng)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    surface : str
+        The surface along which to do the computations, defaults to ``'white'``
+        (the gray-white matter boundary).
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -2143,87 +2264,6 @@ def _read_annot_cands(dir_name, raise_error=True):
     return cands
 
 
-def _read_annot(fname):
-    """Read a Freesurfer annotation from a .annot file.
-
-    Note : Copied from PySurfer
-
-    Parameters
-    ----------
-    fname : str
-        Path to annotation file
-
-    Returns
-    -------
-    annot : numpy array, shape=(n_verts)
-        Annotation id at each vertex
-    ctab : numpy array, shape=(n_entries, 5)
-        RGBA + label id colortable array
-    names : list of str
-        List of region names as stored in the annot file
-
-    """
-    if not op.isfile(fname):
-        dir_name = op.split(fname)[0]
-        cands = _read_annot_cands(dir_name)
-        if len(cands) == 0:
-            raise OSError(
-                f"No such file {fname}, no candidate parcellations found in directory"
-            )
-        else:
-            raise OSError(
-                f"No such file {fname}, candidate parcellations in "
-                "that directory:\n" + "\n".join(cands)
-            )
-    with open(fname, "rb") as fid:
-        n_verts = np.fromfile(fid, ">i4", 1)[0]
-        data = np.fromfile(fid, ">i4", n_verts * 2).reshape(n_verts, 2)
-        annot = data[data[:, 0], 1]
-        ctab_exists = np.fromfile(fid, ">i4", 1)[0]
-        if not ctab_exists:
-            raise Exception("Color table not found in annotation file")
-        n_entries = np.fromfile(fid, ">i4", 1)[0]
-        if n_entries > 0:
-            length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, ">c", length)  # discard orig_tab
-
-            names = list()
-            ctab = np.zeros((n_entries, 5), np.int64)
-            for i in range(n_entries):
-                name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
-                names.append(name)
-                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
-                ctab[i, 4] = (
-                    ctab[i, 0]
-                    + ctab[i, 1] * (2**8)
-                    + ctab[i, 2] * (2**16)
-                    + ctab[i, 3] * (2**24)
-                )
-        else:
-            ctab_version = -n_entries
-            if ctab_version != 2:
-                raise Exception("Color table version not supported")
-            n_entries = np.fromfile(fid, ">i4", 1)[0]
-            ctab = np.zeros((n_entries, 5), np.int64)
-            length = np.fromfile(fid, ">i4", 1)[0]
-            np.fromfile(fid, f"|S{length}", 1)  # Orig table path
-            entries_to_read = np.fromfile(fid, ">i4", 1)[0]
-            names = list()
-            for i in range(entries_to_read):
-                np.fromfile(fid, ">i4", 1)  # Structure
-                name_length = np.fromfile(fid, ">i4", 1)[0]
-                name = np.fromfile(fid, f"|S{name_length}", 1)[0]
-                names.append(name)
-                ctab[i, :4] = np.fromfile(fid, ">i4", 4)
-                ctab[i, 4] = ctab[i, 0] + ctab[i, 1] * (2**8) + ctab[i, 2] * (2**16)
-
-        # convert to more common alpha value
-        ctab[:, 3] = 255 - ctab[:, 3]
-
-    return annot, ctab, names
-
-
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
     """Get the .annot filenames and hemispheres."""
     if annot_fname is not None:
@@ -2265,7 +2305,7 @@ def _load_vert_pos(subject, subjects_dir, surf_name, hemi, n_expected, extra="")
     return vert_pos
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def read_labels_from_annot(
     subject,
     parc="aparc",
@@ -2284,7 +2324,8 @@ def read_labels_from_annot(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     parc : str
         The parcellation to use, e.g., ``'aparc'`` or ``'aparc.a2009s'``.
     hemi : str
@@ -2299,12 +2340,19 @@ def read_labels_from_annot(
         Regular expression or substring to select particular labels from the
         parcellation. E.g. ``'superior'`` will return all labels in which this
         substring is contained.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     sort : bool
         If true, labels will be sorted by name before being returned.
 
         .. versionadded:: 0.21.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2417,7 +2465,7 @@ def _check_labels_subject(labels, subject, name):
     return subject
 
 
-@verbose
+@verbose_static("subjects_dir")
 def morph_labels(
     labels,
     subject_to,
@@ -2441,10 +2489,17 @@ def morph_labels(
     subject_from : str | None
         The subject to morph labels from. Can be None if the labels
         have the ``.subject`` property defined.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     surf_name : str
         Surface used to obtain vertex locations, e.g., ``'white'``, ``'pial'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2494,7 +2549,7 @@ def morph_labels(
     return out_labels
 
 
-@verbose
+@verbose_static("labels_eltc", "subject", "src_eltc")
 def labels_to_stc(
     labels, values, tmin=0, tstep=1, subject=None, src=None, verbose=None
 ):
@@ -2505,21 +2560,40 @@ def labels_to_stc(
 
     Parameters
     ----------
-    %(labels_eltc)s
+    labels : Label | BiHemiLabel | list | tuple | str
+        If using a surface or mixed source space, this should be the
+        :class:`~mne.Label`'s for which to extract the time course.
+        If working with whole-brain volume source estimates, this must be one of:
+
+        - a string path to a FreeSurfer atlas for the subject (e.g., their
+          'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+          atlas
+        - a two-element list or tuple, the first element being a path to an atlas,
+          and the second being a list or dict of ``volume_labels`` to extract
+          (see :func:`mne.setup_volume_source_space` for details).
+
+        .. versionchanged:: 0.21.0
+           Support for volume source estimates.
     values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float
         The tmin to use for the STC.
     tstep : float
         The tstep to use for the STC.
-    %(subject)s
-    %(src_eltc)s
+    subject : str
+        The FreeSurfer subject name.
+    src : instance of SourceSpaces
+        The source spaces for the source time courses.
         Can be omitted if using a surface source space, in which case
         the label vertices will determine the output STC vertices.
         Required if using a volumetric source space.
 
         .. versionadded:: 0.22
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2671,7 +2745,7 @@ def _write_annot_str(fid, s):
     fid.write(s)
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def write_labels_to_annot(
     labels,
     subject=None,
@@ -2691,12 +2765,16 @@ def write_labels_to_annot(
     ----------
     labels : list with instances of mne.Label
         The labels to create a parcellation from.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     parc : str | None
         The parcellation name to use.
     overwrite : bool
         Overwrite files if they already exist.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     annot_fname : str | None
         Filename of the ``.annot file``. If not None, only this file is written
         and the arguments ``parc`` and ``subject`` are ignored.
@@ -2714,7 +2792,11 @@ def write_labels_to_annot(
         The table name to use for the colortable.
 
         .. versionadded:: 0.21.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -2931,7 +3013,7 @@ def write_labels_to_annot(
 
 
 @_legacy_rng("random_state")
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "rng", "random_state_rng")
 def select_sources(
     subject,
     label,
@@ -2949,7 +3031,8 @@ def select_sources(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     label : instance of Label | str
         Define where the seed will be chosen. If str, can be 'lh' or 'rh',
         which correspond to left or right hemisphere, respectively.
@@ -2964,13 +3047,29 @@ def select_sources(
     grow_outside : bool
         Let the region grow outside the original label where location was
         defined.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     name : None | str
         Assign name to the new label.
     surf : str
         The surface used to simulated the label, defaults to the white surface.
-    %(rng)s
-    %(random_state_rng)s
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -3106,7 +3205,7 @@ def label_adjacency(labels, src):
     return _label_adjacency(label_src_ind, src_adjacency)
 
 
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "aseg", "labels_aseg")
 def volume_label_adjacency(src, subject, subjects_dir, *, aseg="auto", labels=None):
     """Compute adjacency between volume labels.
 
@@ -3117,10 +3216,25 @@ def volume_label_adjacency(src, subject, subjects_dir, *, aseg="auto", labels=No
     ----------
     src : mne.SourceSpaces
         The volumetric source space on which the labels are defined.
-    %(subject)s
-    %(subjects_dir)s
-    %(aseg)s
-    %(labels_aseg)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    aseg : str
+        The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+        if available and ``wmparc`` if not. This may be any anatomical
+        segmentation file in the mri subdirectory of the FreeSurfer subject
+        directory.
+
+        .. versionchanged:: 1.8
+           Added support for the new default ``'auto'``.
+    labels : list of str | None
+        Labeled regions of interest to plot. See
+        :func:`mne.get_montage_volume_labels` for one way to determine regions of
+        interest. Regions can also be chosen from the :term:`FreeSurfer LUT`. If
+        ``None``, all labels that are defined in the segmentation file are used.
 
     Returns
     -------

@@ -45,6 +45,7 @@ from mne.utils import (
     _pl,
     _record_warnings,
     _TempDir,
+    _testing,
     numerics,
 )
 from mne.viz._figure import use_browser_backend
@@ -219,7 +220,6 @@ def pytest_configure(config: pytest.Config):
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
-    ignore:Passing a non-Collection iterable to parametrize[.\n]*:
     # matplotlib<->nilearn
     ignore:[\S\s]*You are using the 'agg' matplotlib backend[\S\s]*:UserWarning
     # matplotlib<->pyparsing
@@ -288,6 +288,18 @@ def check_verbose(request):
             ".".join([request.module.__name__, request.function.__name__])
             + " modifies logger.level"
         )
+
+
+@pytest.fixture(autouse=True)
+def _track_request(request):
+    """Make the running test's fixtures reachable from plain helper functions.
+
+    Used by ``mne.utils._testing._pytest_tmp_path``; nothing is instantiated
+    here, so tests that never ask for it do not get a ``tmp_path`` directory.
+    """
+    _testing._current_pytest_request = request
+    yield
+    _testing._current_pytest_request = None
 
 
 @pytest.fixture(autouse=True)
@@ -697,18 +709,22 @@ def pg_backend(request, garbage_collect):
         # and hence its browser alive. Requiring *zero* browsers would then
         # blame the next test that uses this fixture for a browser it never
         # created, turning one real failure into a cascade of errors. Only
-        # report browsers this test itself leaked. Snapshot stores only ids,
-        # so it pins nothing alive.
-        snap = Snapshot(MNEQtBrowser, collect=False)
-        yield backend
-        backend._close_all()
-        # This shouldn't be necessary, but let's make sure nothing is stale
-        import mne_qt_browser
+        # report browsers this test itself leaked. Snapshot pins nothing alive.
+        # freeze=True: see brain_gc for why, and for the thaw() discipline it
+        # obliges us to.
+        snap = Snapshot(MNEQtBrowser, freeze=True)
+        try:
+            yield backend
+            backend._close_all()
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
 
-        mne_qt_browser._browser_instances.clear()
-        if not _test_passed(request):
-            return
-        snap.assert_no_new(f"Closure of {request.node.name}", request=request)
+            mne_qt_browser._browser_instances.clear()
+            if not _test_passed(request):
+                return
+            snap.assert_no_new(f"Closure of {request.node.name}", request=request)
+        finally:
+            snap.thaw()  # no-op once assert_no_new() has thawed
 
 
 @pytest.fixture(
@@ -736,7 +752,12 @@ def browser_backend(request, garbage_collect, monkeypatch):
             mne_qt_browser._browser_instances.clear()
 
 
-@pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
+@pytest.fixture(
+    params=[
+        pytest.param("pyvistaqt", marks=pytest.mark.pvtest),
+        pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest),
+    ]
+)
 def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -753,6 +774,13 @@ def renderer_pyvistaqt(request, options_3d, garbage_collect):
 @pytest.fixture(params=[pytest.param("notebook", marks=pytest.mark.pvtest)])
 def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(params=[pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest)])
+def renderer_lite(request, options_3d):
+    """Yield the JupyterLite (vtk.js) renderer alone, for its own tests."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
@@ -784,15 +812,21 @@ def _use_backend(backend_name, interactive):
     # figure-count test (in other modules) fails. Restore it on teardown.
     mpl_backend = matplotlib.get_backend()
     _check_skip_backend(backend_name)
+    from mne.viz.backends import renderer
+
+    # use_3d_backend only puts a backend back if one was already selected, so
+    # the first renderer test of a session would otherwise decide the backend
+    # every later test inherits; the JupyterLite one draws for a browser, so
+    # that must never be it
+    was = (renderer.MNE_3D_BACKEND, renderer.backend)
     try:
         with _use_test_3d_backend(backend_name, interactive=interactive):
-            from mne.viz.backends import renderer
-
             try:
                 yield renderer
             finally:
                 renderer.backend._close_all()
     finally:
+        renderer.MNE_3D_BACKEND, renderer.backend = was
         if matplotlib.get_backend() != mpl_backend:
             matplotlib.use(mpl_backend, force=True)
 
@@ -800,6 +834,10 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
 
+    if name == "jupyterlite_notebook":
+        # draws with vtk.js in a browser: no VTK, no Qt, no ffmpeg
+        pytest.importorskip("pyvista_js")
+        return
     pytest.importorskip("pyvista")
     pytest.importorskip("imageio_ffmpeg")
     if name == "pyvistaqt":
@@ -837,9 +875,10 @@ def pixel_ratio(qapp):
 
 @pytest.fixture(scope="function", params=[testing._pytest_param()])
 def subjects_dir_tmp(tmp_path):
-    """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
-    for key in ("sample", "fsaverage"):
-        shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    """Copy the MNE-testing-data ``sample`` subject to a temp dir."""
+    # Only "sample" is copied: it is ~200 MB on its own, and no user of this
+    # fixture needs "fsaverage".
+    shutil.copytree(op.join(subjects_dir, "sample"), str(tmp_path / "sample"))
     _chmod_rw_R(tmp_path)
     return str(tmp_path)
 
@@ -1111,40 +1150,43 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
-    # Snapshot stores only ids (pins nothing alive) so VTK objects that
-    # pre-date the test (e.g. held by module-level state) are never reported.
-    # collect=False: a gc.collect() here would cost as much as the one that
-    # actually matters at teardown, and we only care about objects going *up*
-    # (new ones surviving), not down. Skipping it just means some snapshotted
-    # objects are already garbage and vanish by teardown, which is fine; the
-    # only cost is a slightly wider id-reuse window (a missed leak at worst,
-    # never a false report).
-    snap = Snapshot(_is_vtk, label="VTK", collect=False)
-    yield
-    close_func()
-    # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
-    # (deleteLater) on close; until Qt processes it, the C++ window object
-    # keeps its Python wrapper (and thereby the whole plotter graph) alive.
-    from qtpy.QtCore import QEvent
-    from qtpy.QtWidgets import QApplication
+    # Snapshot pins nothing alive, so VTK objects that pre-date the test (e.g.
+    # held by module-level state) are never reported. freeze=True moves the live
+    # heap into the permanent generation instead of recording ids
+    snap = Snapshot(_is_vtk, label="VTK", freeze=True)
+    try:
+        yield
+        close_func()
+        # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
+        # (deleteLater) on close; until Qt processes it, the C++ window object
+        # keeps its Python wrapper (and thereby the whole plotter graph) alive.
+        from qtpy.QtCore import QEvent
+        from qtpy.QtWidgets import QApplication
 
-    app = QApplication.instance()
-    if app is not None:
-        for _ in range(2):
-            app.processEvents()
-            app.sendPostedEvents(None, QEvent.DeferredDelete)
-    if not _test_passed(request):
-        return
-    # The collect must happen *before* list(Brain._instances) is evaluated:
-    # a Brain in a dead reference cycle is still in the WeakSet until
-    # collected, and the list would pin it alive and falsely report it.
-    gc_collect_once(request)
-    # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
-    # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
-    # scan of the whole process to check for lingering Brain instances.
-    assert_no_instances(Brain, "after", request=request, objs=list(Brain._instances))
-    # VTK objects aren't individually tracked, so this one is a full heap scan.
-    snap.assert_no_new("after", request=request)
+        app = QApplication.instance()
+        if app is not None:
+            for _ in range(2):
+                app.processEvents()
+                app.sendPostedEvents(None, QEvent.DeferredDelete)
+        if not _test_passed(request):
+            return
+        # The collect must happen *before* list(Brain._instances) is evaluated:
+        # a Brain in a dead reference cycle is still in the WeakSet until
+        # collected, and the list would pin it alive and falsely report it.
+        gc_collect_once(request)
+        # VTK objects aren't individually tracked, so this is the check the
+        # freeze exists for. It has to run before the Brain check, because it is
+        # what thaws: a referrer chain built on a frozen heap cannot see any of
+        # the containers that pre-date the freeze.
+        snap.assert_no_new("after", request=request)
+        # Brain._instances is a WeakSet populated only when MNE_3D_BACKEND_TESTING
+        # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
+        # scan of the whole process to check for lingering Brain instances.
+        assert_no_instances(
+            Brain, "after", request=request, objs=list(Brain._instances)
+        )
+    finally:
+        snap.thaw()  # no-op once assert_no_new() has thawed
 
 
 _files = list()

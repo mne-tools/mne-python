@@ -11,7 +11,7 @@ import numpy as np
 from numpy.polynomial import legendre
 
 from ..parallel import parallel_func
-from ..utils import fill_doc
+from ..utils import fill_doc_static
 
 ##############################################################################
 # LEGENDRE (DERIVATIVE) POLYNOMIALS
@@ -276,7 +276,7 @@ def _fast_sphere_dot_r0(
     return out
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _do_self_dots(intrad, volume, coils, r0, ch_type, leg_fun, n_fact, n_jobs):
     """Perform the lead field dot product integrations.
 
@@ -297,7 +297,13 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, leg_fun, n_fact, n_jobs):
         Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
     Returns
     -------
@@ -418,7 +424,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, leg_fun, n_fact)
     return products
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _do_surface_dots(
     intrad, volume, coils, surf, sel, r0, ch_type, leg_fun, n_fact, n_jobs
 ):
@@ -445,7 +451,13 @@ def _do_surface_dots(
         Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
     Returns
     -------

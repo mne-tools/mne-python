@@ -29,7 +29,13 @@ VALID_BROWSE_BACKENDS = (
 VALID_3D_BACKENDS = (
     "pyvistaqt",  # default 3d backend
     "notebook",
+    "jupyterlite_notebook",
 )
+# The backends _get_3d_backend() falls back to when none has been set. The
+# JupyterLite one is left out on purpose: it draws through vtk.js and only
+# displays inside a browser kernel, so picking it on a desktop that happens to
+# have pyvista-js installed would quietly produce figures nothing can show.
+_AUTO_3D_BACKENDS = ("pyvistaqt", "notebook")
 ALLOWED_QUIVER_MODES = ("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")
 _ICONS_PATH = Path(__file__).parents[2] / "icons"
 
@@ -48,6 +54,16 @@ def _get_colormap_from_array(
     else:
         cmap = ListedColormap(np.array(colormap) / 255.0)
     return cmap
+
+
+def _vtk_faces(tris):
+    """Return triangles as the (n, 4) face array VTK and vtk.js both accept.
+
+    Each row is ``(3, i, j, k)``: the leading 3 is the vertex count the VTK cell
+    format expects ahead of every triangle.
+    """
+    tris = np.asarray(tris)
+    return np.c_[np.full(len(tris), 3), tris]
 
 
 def _check_color(color):
@@ -534,3 +550,19 @@ def _qt_safe_window(
         return func
 
     return dec
+
+
+# Inspired from Mayavi's version of Raymond Maple 3-lights illumination: below
+# and centered, left and above, right and above, as (azimuth, elevation,
+# intensity) of camera lights
+LIGHTS = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
+
+
+def _to_pos(azimuth, elevation):
+    """Return the unit-sphere position of a camera light."""
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z

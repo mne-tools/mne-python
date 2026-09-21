@@ -12,7 +12,13 @@ from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _read_segments_file
 from ...annotations import Annotations
-from ...utils import _check_fname, _validate_type, logger, verbose
+from ...utils import (
+    _check_fname,
+    _validate_type,
+    _verbose_control,
+    logger,
+    verbose_static,
+)
 from ..base import BaseRaw
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers, _triage_include_exclude
@@ -103,7 +109,7 @@ def _read_events(fid, info):
     return events
 
 
-@verbose
+@verbose_static("preload")
 def read_raw_egi(
     input_fname: Path | str,
     eog: list | tuple | None = None,
@@ -138,13 +144,26 @@ def read_raw_egi(
        The event channels to be ignored when creating the synthetic
        trigger or annotations. Defaults to None. If None, the ``sync`` and ``TREV``
        channels will be ignored. This is ignored when ``include`` is not None.
-    %(preload)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
 
         .. versionadded:: 0.11
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to ``'E%%d'``
+        Channel naming convention for the data channels. Defaults to ``'E%d'``
         (resulting in channel names ``'E1'``, ``'E2'``, ``'E3'``...). The
-        effective default prior to 0.14.0 was ``'EEG %%03d'``.
+        effective default prior to 0.14.0 was ``'EEG %03d'``.
 
         .. versionadded:: 0.14.0
 
@@ -164,7 +183,11 @@ def read_raw_egi(
         Only supported for MFF files.
 
         .. versionadded:: 1.11.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -198,7 +221,7 @@ def read_raw_egi(
     <https://www.egi.com/images/stories/manuals/amp-server-pro-sdk-3-0-network-apis-user-guide-rev-01.pdf>`__.
     For example, E-Prime driven experiments sometimes store the experimental condition
     in a ``'cel#'`` event key.
-    """
+    """  # noqa: E501
     _validate_type(input_fname, "path-like", "input_fname")
     input_fname = str(input_fname)
     _validate_type(events_as_annotations, bool, "events_as_annotations")
@@ -236,7 +259,7 @@ class RawEGI(BaseRaw):
 
     _extra_attributes = ("event_id",)
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,

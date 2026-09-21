@@ -359,6 +359,9 @@ def test_ch_names_comma(tmp_path):
 @pytest.mark.filterwarnings("ignore:.*different.*:RuntimeWarning")
 def test_brainvision_data_highpass_filters():
     """Test reading raw Brain Vision files with amplifier filter settings."""
+    # These headers all point at the same .eeg data file and differ only in
+    # their filter fields, so the full reader round-trip is run once (here) and
+    # the remaining variants only need their parsed filter settings checked.
     # Homogeneous highpass in seconds (default measurement unit)
     raw = _test_raw_reader(read_raw_brainvision, vhdr_fname=vhdr_highpass_path, eog=eog)
 
@@ -367,9 +370,7 @@ def test_brainvision_data_highpass_filters():
 
     # Heterogeneous highpass in seconds (default measurement unit)
     with pytest.warns(RuntimeWarning, match="different .*pass filters") as w:
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path, eog=eog
-        )
+        raw = read_raw_brainvision(vhdr_mixed_highpass_path, eog=eog)
 
     w = [str(ww.message) for ww in w]
     assert not any("different lowpass filters" in ww for ww in w), w
@@ -379,18 +380,14 @@ def test_brainvision_data_highpass_filters():
     assert raw.info["lowpass"] == 250.0
 
     # Homogeneous highpass in Hertz
-    raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path, eog=eog
-    )
+    raw = read_raw_brainvision(vhdr_highpass_hz_path, eog=eog)
 
     assert raw.info["highpass"] == 10.0
     assert raw.info["lowpass"] == 250.0
 
     # Heterogeneous highpass in Hertz
     with pytest.warns(RuntimeWarning, match="different .*pass filters") as w:
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path, eog=eog
-        )
+        raw = read_raw_brainvision(vhdr_mixed_highpass_hz_path, eog=eog)
 
     w = [str(ww.message) for ww in w]
     assert not any("will be dropped" in ww for ww in w), w
@@ -403,17 +400,18 @@ def test_brainvision_data_highpass_filters():
 
 def test_brainvision_data_lowpass_filters():
     """Test files with amplifier LP filter settings."""
+    # As above, these differ only in their filter fields (and the first one is
+    # the very file already round-tripped by the highpass test), so only the
+    # parsed filter settings need checking here.
     # Homogeneous lowpass in Hertz (default measurement unit)
-    raw = _test_raw_reader(read_raw_brainvision, vhdr_fname=vhdr_lowpass_path, eog=eog)
+    raw = read_raw_brainvision(vhdr_lowpass_path, eog=eog)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 250.0
 
     # Heterogeneous lowpass in Hertz (default measurement unit)
     with pytest.warns(RuntimeWarning) as w:  # event parsing
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path, eog=eog
-        )
+        raw = read_raw_brainvision(vhdr_mixed_lowpass_path, eog=eog)
 
     lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
     highpass_warning = ["different highpass filters" in str(ww.message) for ww in w]
@@ -426,18 +424,14 @@ def test_brainvision_data_lowpass_filters():
     assert raw.info["lowpass"] == 250.0
 
     # Homogeneous lowpass in seconds
-    raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path, eog=eog
-    )
+    raw = read_raw_brainvision(vhdr_lowpass_s_path, eog=eog)
 
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 10)
     assert raw.info["lowpass"] == 1.0 / (2 * np.pi * 0.004)
 
     # Heterogeneous lowpass in seconds
     with pytest.warns(RuntimeWarning) as w:  # filter settings
-        raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path, eog=eog
-        )
+        raw = read_raw_brainvision(vhdr_mixed_lowpass_s_path, eog=eog)
 
     lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
     highpass_warning = ["different highpass filters" in str(ww.message) for ww in w]
@@ -453,11 +447,7 @@ def test_brainvision_data_lowpass_filters():
 def test_brainvision_data_partially_disabled_hw_filters():
     """Test heterogeneous filter settings including non-numeric values."""
     with pytest.warns(RuntimeWarning) as w:  # event parsing
-        raw = _test_raw_reader(
-            read_raw_brainvision,
-            vhdr_fname=vhdr_partially_disabled_hw_filter_path,
-            eog=eog,
-        )
+        raw = read_raw_brainvision(vhdr_partially_disabled_hw_filter_path, eog=eog)
 
     trigger_warning = ["will be dropped" in str(ww.message) for ww in w]
     lowpass_warning = ["different lowpass filters" in str(ww.message) for ww in w]
@@ -484,11 +474,10 @@ def test_brainvision_data_software_filters_latin1_global_units():
     assert raw.info["highpass"] == 1.0 / (2 * np.pi * 0.9)
     assert raw.info["lowpass"] == 50.0
 
-    # test sensor name with spaces (#9299)
+    # test sensor name with spaces (#9299); same .eeg file as above
     with _no_dig, pytest.warns(RuntimeWarning, match="software filter"):
-        raw = _test_raw_reader(
-            read_raw_brainvision,
-            vhdr_fname=vhdr_old_longname_path,
+        raw = read_raw_brainvision(
+            vhdr_old_longname_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"),
             misc=("A2",),
         )

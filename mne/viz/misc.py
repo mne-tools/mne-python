@@ -36,10 +36,10 @@ from ..utils import (
     _mask_to_onsets_offsets,
     _on_missing,
     _pl,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from .utils import (
@@ -106,7 +106,7 @@ def _index_info_cov(info, cov, exclude):
     return info, C, ch_names, idx_names
 
 
-@verbose
+@verbose_static("info_not_none")
 def plot_cov(
     cov,
     info,
@@ -123,7 +123,9 @@ def plot_cov(
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
@@ -136,7 +138,11 @@ def plot_cov(
         type. We show square roots ie. standard deviations.
     show : bool
         Show figure if True.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -615,7 +621,7 @@ def _plot_mri_contours(
         return figs
 
 
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "trans")
 def plot_bem(
     subject,
     subjects_dir=None,
@@ -634,8 +640,12 @@ def plot_bem(
 
     Parameters
     ----------
-    %(subject)s
-    %(subjects_dir)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int | None
@@ -654,7 +664,11 @@ def plot_bem(
         .. versionchanged:: 0.20
            All sources are shown on the nearest slice rather than some
            being omitted.
-    %(trans)s
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
 
         .. versionadded:: 1.10
     show : bool
@@ -776,7 +790,7 @@ def _get_bem_plotting_surfaces(bem_path):
     return surfaces
 
 
-@verbose
+@verbose_static("events", "on_missing_events")
 def plot_events(
     events,
     sfreq=None,
@@ -793,7 +807,9 @@ def plot_events(
 
     Parameters
     ----------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     sfreq : float | None
         The sample frequency. If None, data will be displayed in samples (not
         seconds).
@@ -817,8 +833,20 @@ def plot_events(
         Use equal spacing between events in y-axis.
     show : bool
         Show figure if True.
-    %(on_missing_events)s
-    %(verbose)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when event numbers from ``event_id`` are missing from
+        :term:`events`. When numbers from :term:`events` are missing from
+        ``event_id`` they will be ignored and a warning emitted; consider
+        using ``verbose='error'`` in this case.
+
+        .. versionadded:: 0.21
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1460,7 +1488,7 @@ def _handle_event_colors(color_dict, unique_events, event_id):
     return default_colors
 
 
-@fill_doc
+@fill_doc_static("info")
 def plot_csd(
     csd, info=None, mode="csd", colorbar=True, cmap=None, n_cols=None, show=True
 ):
@@ -1473,7 +1501,9 @@ def plot_csd(
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    %(info)s
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
         Used to split the figure by channel-type, if provided.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'

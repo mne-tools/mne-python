@@ -59,9 +59,12 @@ from ...utils import _check_option, _require_version, _validate_type, warn
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
+    LIGHTS,
     _alpha_blend_background,
     _get_colormap_from_array,
     _init_mne_qtapp,
+    _to_pos,
+    _vtk_faces,
 )
 
 try:
@@ -315,12 +318,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         return self.figure
 
     def update_lighting(self):
-        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        # below and centered, left and above, right and above
-        az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
         for renderer in self._all_renderers:
             renderer.remove_all_lights()
-            for azimuth, elevation, intensity in az_el_in:
+            for azimuth, elevation, intensity in LIGHTS:
                 light = pyvista.Light(
                     position=_to_pos(azimuth, elevation),
                     color="white",
@@ -438,7 +438,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         **kwargs,
     ):
         vertices = np.c_[x, y, z].astype(float)
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         return self.polydata(
             mesh=mesh,
@@ -475,8 +475,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             colormap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface["rr"])
         triangles = np.array(surface["tris"])
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         mesh.point_data["scalars"] = scalars
         # Leave the contour filter connected to the mesh instead of computing the
@@ -553,7 +552,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         normals = surface.get("nn", None)
         vertices = np.array(surface["rr"])
         triangles = np.array(surface["tris"])
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        triangles = _vtk_faces(triangles)
         mesh = PolyData(vertices, triangles)
         colormap = _get_colormap_from_array(colormap, normalized_colormap)
         if scalars is not None:
@@ -744,7 +743,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         *,
         name=None,
     ):
-        faces = np.c_[np.full(len(tris), 3), tris]
+        faces = _vtk_faces(tris)
         geom = PolyData(np.asarray(rr, float), faces)
         _compute_normals(geom)
 
@@ -833,17 +832,23 @@ class _PyVistaRenderer(_AbstractRenderer):
         _hide_testing_actor(actor)
         return actor
 
-    def text3d(self, x, y, z, text, scale, color="white"):
+    def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
+        # x, y, z can be scalars (one label) or arrays (one label per point)
+        single = isinstance(text, str)
         actor = self.plotter.add_point_labels(
-            points=np.array([x, y, z]).astype(float),
-            labels=[text],
-            point_size=scale,
+            points=np.array([x, y, z], float).T,
+            labels=[text] if single else list(text),
+            font_size=font_size,
             text_color=color,
             font_family=self.font_family,
-            name=text,
+            name=text if single else None,
             shape_opacity=0,
+            shadow=shadow,
+            show_points=False,
             always_visible=True,
         )
+        # otherwise vtkLabelPlacementMapper silently drops labels that would overlap
+        actor.GetMapper().SetPlaceAllLabels(True)
         _hide_testing_actor(actor)
         return actor
 
@@ -1336,15 +1341,6 @@ def _truncate_scalar_bar_title(title, max_chars=20):
     if title is None or len(title) <= max_chars:
         return title
     return title[: max_chars - 1] + "…"
-
-
-def _to_pos(azimuth, elevation):
-    theta = azimuth * np.pi / 180.0
-    phi = (90.0 - elevation) * np.pi / 180.0
-    x = np.sin(theta) * np.sin(phi)
-    y = np.cos(phi)
-    z = np.cos(theta) * np.sin(phi)
-    return x, y, z
 
 
 def _3d_to_2d(plotter, xyz):

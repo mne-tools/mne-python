@@ -7,21 +7,31 @@ import re
 import numpy as np
 
 from ..._fiff.pick import _picks_to_idx, pick_types
-from ...utils import _check_option, _validate_type, fill_doc
+from ...utils import _check_option, _validate_type, fill_doc_static
 
 # Standardized fNIRS channel name regexs
 _S_D_F_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*)")
 _S_D_H_RE = re.compile(r"S(\d+)_D(\d+) (\w+)")
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "picks_all_data")
 def source_detector_distances(info, picks=None):
     r"""Determine the distance between NIRS source and detectors.
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(picks_all_data)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
 
     Returns
     -------
@@ -40,7 +50,7 @@ def source_detector_distances(info, picks=None):
     )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def short_channels(info, threshold=0.01):
     r"""Determine which NIRS channels are short.
 
@@ -49,7 +59,9 @@ def short_channels(info, threshold=0.01):
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     threshold : float
         The threshold distance for what is considered short in meters.
 

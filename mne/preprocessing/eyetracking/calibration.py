@@ -9,10 +9,10 @@ from copy import deepcopy
 import numpy as np
 
 from ...io.eyelink._utils import _parse_calibration
-from ...utils import _check_fname, _validate_type, fill_doc, logger
+from ...utils import _check_fname, _validate_type, fill_doc_static, logger
 
 
-@fill_doc
+@fill_doc_static()
 class Calibration(dict):
     """Eye-tracking calibration info.
 
@@ -193,7 +193,7 @@ class Calibration(dict):
         return fig
 
 
-@fill_doc
+@fill_doc_static()
 def read_eyelink_calibration(
     fname, screen_size=None, screen_distance=None, screen_resolution=None
 ):

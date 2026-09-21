@@ -7,7 +7,14 @@ from collections import Counter
 
 import numpy as np
 
-from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
+from ..utils import (
+    Bunch,
+    _check_fname,
+    _validate_type,
+    logger,
+    verbose_static,
+    warn,
+)
 from .constants import FIFF, _coord_frame_named
 from .tag import read_tag
 from .tree import dir_tree_find
@@ -199,7 +206,7 @@ def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
     return out
 
 
-@verbose
+@verbose_static("overwrite")
 def write_dig(
     fname, pts, coord_frame=None, *, ch_names=None, overwrite=False, verbose=None
 ):
@@ -220,10 +227,16 @@ def write_dig(
         Channel names associated with the digitization points, if available.
 
         .. versionadded:: 1.9
-    %(overwrite)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
         .. versionadded:: 1.0
     """

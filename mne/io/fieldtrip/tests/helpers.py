@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import os
-from functools import partial
+from functools import cache, partial
 
 import numpy as np
 
@@ -106,8 +106,11 @@ def get_data_paths(system):
     return testing_path / "fieldtrip" / "ft_test_data" / system
 
 
+# Each of the parametrized tests below asks for the same handful of files, so
+# read them once and hand out copies (mutation by the tests is expected).
+@cache
 def get_cfg_local(system):
-    """Return cfg_local field for the system."""
+    """Return cfg_local field for the system (cached, treat as read-only)."""
     from pymatreader import read_mat
 
     cfg_local = read_mat(
@@ -117,8 +120,8 @@ def get_cfg_local(system):
     return cfg_local
 
 
-def get_raw_info(system):
-    """Return the info dict of the raw data."""
+@cache
+def _get_raw_info(system):
     cfg_local = get_cfg_local(system)
 
     raw_data_file = os.path.join(testing_path, cfg_local["file_name"])
@@ -130,8 +133,13 @@ def get_raw_info(system):
     return info
 
 
-def get_raw_data(system, drop_extra_chs=False):
-    """Find, load and process the raw data."""
+def get_raw_info(system):
+    """Return the info dict of the raw data."""
+    return _get_raw_info(system).copy()
+
+
+@cache
+def _get_raw_data(system, drop_extra_chs):
     cfg_local = get_cfg_local(system)
 
     raw_data_file = os.path.join(testing_path, cfg_local["file_name"])
@@ -160,6 +168,11 @@ def get_raw_data(system, drop_extra_chs=False):
         raw_data.drop_channels(drop_extra_chans_dict[system])
 
     return raw_data
+
+
+def get_raw_data(system, drop_extra_chs=False):
+    """Find, load and process the raw data."""
+    return _get_raw_data(system, drop_extra_chs).copy()
 
 
 def get_epochs(system):

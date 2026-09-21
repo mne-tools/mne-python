@@ -57,7 +57,10 @@ _dir_ignore_names = (
     "viewkeys",
     "viewvalues",  # Py2
 )
-_tag_ignore_names = ()
+_tag_ignore_names = (
+    # for fiff-constants pending updates
+    "FIFFT_LAYER_STRUCT",  # layer_struct has no primitive type code upstream
+)
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     "bem_surf_id",
     "cardinal_point_cardiac",

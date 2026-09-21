@@ -444,8 +444,8 @@ ica.plot_sources(eog_evoked)
 # necessary to pass a specific channel name.
 # `~mne.preprocessing.ICA.find_bads_ecg` also has two options for its
 # ``method`` parameter: ``'ctps'`` (cross-trial phase statistics
-# :footcite:`DammersEtAl2008`) and
-# ``'correlation'`` (Pearson correlation between data and ECG channel).
+# :footcite:`DammersEtAl2008`) and ``'correlation'`` (Pearson correlation
+# between data and ECG channel).
 
 ica.exclude = []
 # find which ICs match the ECG pattern
