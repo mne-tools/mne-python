@@ -7,7 +7,7 @@
 from functools import partial
 from pathlib import Path
 
-from ..utils import fill_doc
+from ..utils import fill_doc_static
 from .base import BaseRaw
 
 
@@ -122,7 +122,7 @@ def split_name_ext(fname):
     return fname, None  # unknown file extension
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw(
     fname: Path | str,
     *,
@@ -170,8 +170,25 @@ def read_raw(
     ----------
     fname : path-like
         Name of the file to read.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     **kwargs
         Additional keyword arguments to pass to the underlying reader. For
         details, see the arguments of the reader for the respective file

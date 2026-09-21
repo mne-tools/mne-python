@@ -436,6 +436,8 @@ def test_check_sphere():
     # Test passing None.
     assert_equal(_check_sphere(None), [0, 0, 0, 0.095])  # default head pos
     assert not np.any(_check_sphere(None, info) == 0)  # fit to dig points
+    info.set_head_sphere([1, 2, 3, 4])  # storing a head sphere inside the info
+    assert_equal(_check_sphere(None, info), [1, 2, 3, 4])  # value in info is now used
 
     # Test passing a 4-element array-like as sphere parameter.
     assert_equal(_check_sphere([1, 2, 3, 4], info), [1, 2, 3, 4])

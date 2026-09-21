@@ -25,9 +25,9 @@ from ...utils import (
     Bunch,
     _check_fname,
     _check_head_radius,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
@@ -283,7 +283,7 @@ def _handle_montage_units(montage_units, mean_radius):
     return scale_units
 
 
-@fill_doc
+@fill_doc_static("preload", "uint16_codec", "montage_units", "verbose")
 def read_raw_eeglab(
     input_fname: Path | str,
     eog: list | tuple | Literal["auto"] = (),
@@ -303,13 +303,40 @@ def read_raw_eeglab(
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(preload)s
-    %(uint16_codec)s
-    %(montage_units)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    uint16_codec : str | None
+        If your set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
 
         .. versionchanged:: 1.6
            Support for ``'auto'`` was added and is the new default.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -335,7 +362,7 @@ def read_raw_eeglab(
     )
 
 
-@fill_doc
+@fill_doc_static("uint16_codec", "montage_units", "verbose")
 def read_epochs_eeglab(
     input_fname: Path | str,
     events: Path | str | np.ndarray | None = None,
@@ -374,12 +401,26 @@ def read_epochs_eeglab(
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(uint16_codec)s
-    %(montage_units)s
+    uint16_codec : str | None
+        If your set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
 
         .. versionchanged:: 1.6
            Support for ``'auto'`` was added and is the new default.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -406,7 +447,7 @@ def read_epochs_eeglab(
     return epochs
 
 
-@fill_doc
+@fill_doc_static("preload", "uint16_codec", "montage_units", "verbose")
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -419,10 +460,37 @@ class RawEEGLAB(BaseRaw):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(preload)s
-    %(uint16_codec)s
-    %(montage_units)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    uint16_codec : str | None
+        If your set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -433,7 +501,7 @@ class RawEEGLAB(BaseRaw):
     .. versionadded:: 0.11.0
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -633,7 +701,7 @@ class EpochsEEGLAB(BaseEpochs):
     .. versionadded:: 0.11.0
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,

@@ -92,14 +92,15 @@ from ..utils import (
     _stamp_to_dt,
     _time_mask,
     _validate_type,
+    _verbose_control,
     check_fname,
-    copy_doc,
+    copy_doc_static,
     copy_function_doc_to_method_doc_static,
-    fill_doc,
+    fill_doc_static,
     logger,
     repr_html,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils._typing import Color, Self
@@ -119,7 +120,7 @@ if TYPE_CHECKING:
     from ..viz._figure import BrowserBase as MNEQtBrowser
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "verbose")
 class BaseRaw(
     ProjMixin,
     ContainsMixin,
@@ -136,7 +137,9 @@ class BaseRaw(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     preload : bool | str | ndarray
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -176,7 +179,11 @@ class BaseRaw(
         the header file. Example: {'FC1': 'nV'}.
 
         .. versionadded:: 0.17
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -205,7 +212,7 @@ class BaseRaw(
     _filenames: list[Path | None]
     _data: np.ndarray | None
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         info: Info,
@@ -332,7 +339,7 @@ class BaseRaw(
             self._preload_data(preload)
         self._init_kwargs = _get_argvalues()
 
-    @verbose
+    @verbose_static()
     def apply_gradient_compensation(
         self, grade: int, verbose: bool | str | int | None = None
     ) -> Self:
@@ -350,7 +357,11 @@ class BaseRaw(
         ----------
         grade : int
             CTF gradient compensation level.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -391,7 +402,7 @@ class BaseRaw(
         # most classes only store real data, they won't need anything special
         return self._dtype_
 
-    @verbose
+    @verbose_static()
     def _read_segment(
         self, start=0, stop=None, sel=None, data_buffer=None, *, verbose=None
     ):
@@ -413,7 +424,11 @@ class BaseRaw(
             to store the data.
         projector : array
             SSP operator to apply to the data.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -594,7 +609,7 @@ class BaseRaw(
                     return str(descr)
         return self._getitem((picks, slice(start, stop)), return_times=False)
 
-    @verbose
+    @verbose_static()
     def load_data(
         self,
         *,
@@ -615,7 +630,11 @@ class BaseRaw(
             If ``None`` (default), preload data into RAM.
 
             .. versionadded:: 1.13
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -789,7 +808,7 @@ class BaseRaw(
             filenames.append(fname)
         self._filenames = filenames
 
-    @verbose
+    @verbose_static("emit_warning", "on_missing_ch_names")
     def set_annotations(
         self,
         annotations: Annotations | None,
@@ -807,10 +826,20 @@ class BaseRaw(
         annotations : instance of mne.Annotations | None
             Annotations to set. If None, the annotations is defined
             but empty.
-        %(emit_warning)s
+        emit_warning : bool
+            Whether to emit warnings when cropping or omitting annotations.
             The default is True.
-        %(on_missing_ch_names)s
-        %(verbose)s
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -971,7 +1000,7 @@ class BaseRaw(
         # set the data
         self._data[sel, start:stop] = value
 
-    @verbose
+    @verbose_static("picks_all", "units")
     def get_data(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -990,7 +1019,15 @@ class BaseRaw(
 
         Parameters
         ----------
-        %(picks_all)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
@@ -1002,7 +1039,22 @@ class BaseRaw(
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
-        %(units)s
+        units : str | dict | None
+            Specify the unit(s) that the data should be returned in. If
+            ``None`` (default), the data is returned in the
+            channel-type-specific default units, which are SI units (see
+            :ref:`units` and :term:`data channels`). If a string, must be a
+            sub-multiple of SI units that will be used to scale the data from
+            all channels of the type associated with that unit. This only works
+            if the data contains one channel type that has a unit (unitless
+            channel types are left unchanged). For example if there are only
+            EEG and STIM channels, ``units='uV'`` will scale EEG channels to
+            micro-Volts while STIM channels will be unchanged. Finally, if a
+            dictionary is provided, keys must be channel types, and values must
+            be units to scale the data of that channel type to. For example
+            ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
+            accordingly, but all other channel types will remain in their
+            channel-type-specific default unit.
         exclude : list[str] | Literal["bads"]
             Channels to exclude. If ``'bads'``, channels in ``info['bads']`` are
             excluded; pass an empty list or tuple (the default) to include all
@@ -1021,7 +1073,11 @@ class BaseRaw(
             ignored if the ``stop`` parameter is defined.
 
             .. versionadded:: 0.24.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1154,7 +1210,15 @@ class BaseRaw(
             return data, times
         return data
 
-    @verbose
+    @verbose_static(
+        "applyfun_summary_raw",
+        "fun_applyfun",
+        "picks_all_data_noref",
+        "dtype_applyfun",
+        "n_jobs",
+        "channel_wise_applyfun",
+        "kwargs_fun",
+    )
     def apply_function(
         self,
         fun: Callable,
@@ -1167,20 +1231,70 @@ class BaseRaw(
     ) -> Self:
         """Apply a function to a subset of channels.
 
-        %(applyfun_summary_raw)s
+        The function ``fun`` is applied to the channels defined in ``picks``. The
+        raw object's data is modified in-place. If the function returns a
+        different data type (e.g. :py:obj:`numpy.complex128`) it must be specified
+        using the ``dtype`` parameter, which causes the data type of **all** the data
+        to change (even if the function is only applied to channels in
+        ``picks``). The object has to have the data loaded e.g. with
+        ``preload=True`` or ``self.load_data()``.
+
+        .. note:: If ``n_jobs`` > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporarily stored in memory.
+        .. note:: If the data type changes (``dtype != None``), more memory is
+                  required since the original and the converted data needs
+                  to be stored in memory.
 
         Parameters
         ----------
-        %(fun_applyfun)s
-        %(picks_all_data_noref)s
-        %(dtype_applyfun)s
-        %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
+        fun : callable
+            A function to be applied to the channels. The first argument of
+            fun has to be a timeseries (:class:`numpy.ndarray`). The function must
+            operate on an array of shape ``(n_times,)``  if ``channel_wise=True`` and
+            ``(len(picks), n_times)`` otherwise.
+            The function must return an :class:`~numpy.ndarray` shaped like its input.
+
+            .. note::
+                If ``channel_wise=True``, one can optionally access the index and/or the
+                name of the currently processed channel within the applied function.
+                This can enable tailored computations for different channels.
+                To use this feature, add ``ch_idx`` and/or ``ch_name`` as
+                additional argument(s) to your function definition.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
+        dtype : numpy.dtype
+            Data type to use after applying the function. If None
+            (default) the data type is not modified.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+            Ignored if ``channel_wise=False`` as the workload
             is split across channels.
-        %(channel_wise_applyfun)s
+        channel_wise : bool
+            Whether to apply the function to each channel individually. If
+            ``False``, the function will be applied to all channels at once.
+            Default ``True``.
 
             .. versionadded:: 0.18
-        %(verbose)s
-        %(kwargs_fun)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **kwargs : dict
+            Additional keyword arguments to pass to ``fun``.
 
         Returns
         -------
@@ -1248,7 +1362,7 @@ class BaseRaw(
         return self
 
     # Need a separate method because the default pad is different for raw
-    @copy_doc(FilterMixin.filter)
+    @copy_doc_static("meth:mne.filter.FilterMixin.filter")
     def filter(
         self,
         l_freq: float | None,
@@ -1270,6 +1384,180 @@ class BaseRaw(
         pad: str = "reflect_limited",
         verbose: bool | str | int | None = None,
     ) -> Self:
+        """Filter a subset of channels/vertices.
+
+        Parameters
+        ----------
+        l_freq : float | None
+            For FIR filters, the lower pass-band edge; for IIR filters, the lower
+            cutoff frequency. If None the data are only low-passed.
+        h_freq : float | None
+            For FIR filters, the upper pass-band edge; for IIR filters, the upper
+            cutoff frequency. If None the data are only high-passed.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        filter_length : str | int
+            Length of the FIR filter to use (if applicable):
+
+            * **'auto' (default)**: The filter length is chosen based
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming'
+              and fir_design="firwin2", and half that for "firwin").
+            * **str**: A human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+            * **int**: Specified length in samples. For fir_design="firwin",
+              this should not be used.
+        l_trans_bandwidth : float | str
+            Width of the transition band at the low cut-off frequency in Hz
+            (high pass or cutoff 1 in bandpass). Can be "auto"
+            (default) to use a multiple of ``l_freq``::
+
+                min(max(l_freq * 0.25, 2), l_freq)
+
+            Only used for ``method='fir'``.
+        h_trans_bandwidth : float | str
+            Width of the transition band at the high cut-off frequency in Hz
+            (low pass or cutoff 2 in bandpass). Can be "auto"
+            (default in 0.14) to use a multiple of ``h_freq``::
+
+                min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+            Only used for ``method='fir'``.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+            is installed properly and ``method='fir'``.
+        method : str
+            ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+            forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
+        iir_params : dict | None
+            Dictionary of parameters to use for IIR filtering. If ``iir_params=None``
+            and ``method="iir"``, 4th order Butterworth will be used. For more
+            information, see :func:`mne.filter.construct_iir_filter`.
+        phase : str
+            Phase of the filter.
+            When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+            with the following behaviors when ``method="fir"``:
+
+            ``"zero"`` (default)
+                The delay of this filter is compensated for, making it non-causal.
+            ``"minimum"``
+                A minimum-phase filter will be constructed by decomposing the zero-phase
+                filter into a minimum-phase and all-pass systems, and then retaining
+                only the minimum-phase system (of the same length as the original
+                zero-phase filter) via :func:`scipy.signal.minimum_phase`.
+            ``"zero-double"``
+                *This is a legacy option for compatibility with MNE <= 0.13.*
+                The filter is applied twice, once forward, and once backward
+                (also making it non-causal).
+            ``"minimum-half"``
+                *This is a legacy option for compatibility with MNE <= 1.6.* A
+                minimum-phase filter will be reconstructed from the zero-phase filter
+                with half the length of the original filter.
+
+            When ``method='iir'``, ``phase='zero'`` (default) or equivalently
+            ``'zero-double'`` constructs and applies IIR filter twice, once forward, and
+            once backward (making it non-causal) using :func:`~scipy.signal.filtfilt`;
+            ``phase='forward'`` will apply the filter once in the forward (causal)
+            direction using :func:`~scipy.signal.lfilter`.
+
+            .. versionadded:: 0.13
+            .. versionchanged:: 1.7
+
+               The behavior for ``phase="minimum"`` was fixed to use a filter of the
+               requested length and improved suppression.
+        fir_window : str
+            The window to use in FIR design, can be "hamming" (default),
+            "hann" (default in 0.13), or "blackman".
+
+            .. versionadded:: 0.15
+        fir_design : str
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
+
+            .. versionadded:: 0.15
+        skip_by_annotation : str | list of str
+            If a string (or list of str), any annotation segment that begins
+            with the given string will not be included in filtering, and
+            segments on either side of the given excluded annotated segment
+            will be filtered separately (i.e., as independent signals).
+            The default (``('edge', 'bad_acq_skip')`` will separately filter
+            any segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`, or separated during acquisition.
+            To disable, provide an empty list. Only used if ``inst`` is raw.
+
+            .. versionadded:: 0.16.
+        pad : str
+            The type of padding to use. Supports
+            all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+            which pads with a reflected version of each vector mirrored on the first
+            and last values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        inst : same type as the input data
+            The filtered data.
+
+        See Also
+        --------
+        mne.filter.create_filter
+        mne.Evoked.savgol_filter
+        mne.io.Raw.notch_filter
+        mne.io.Raw.resample
+        mne.filter.create_filter
+        mne.filter.filter_data
+        mne.filter.construct_iir_filter
+
+        Notes
+        -----
+        Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
+        filter to the channels selected by ``picks``.
+        The data are modified inplace.
+
+        The object has to have the data loaded e.g. with ``preload=True``
+        or ``self.load_data()``.
+
+        ``l_freq`` and ``h_freq`` are the frequencies below which and above
+        which, respectively, to filter out of the data. Thus the uses are:
+
+            * ``l_freq < h_freq``: band-pass filter
+            * ``l_freq > h_freq``: band-stop filter
+            * ``l_freq is not None and h_freq is None``: high-pass filter
+            * ``l_freq is None and h_freq is not None``: low-pass filter
+
+        ``self.info['lowpass']`` and ``self.info['highpass']`` are only
+        updated with picks=None.
+
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporarily stored in memory.
+
+        When working on SourceEstimates the sample rate of the original
+        data is inferred from tstep.
+
+        For more information, see the tutorials
+        :ref:`disc-filtering` and :ref:`tut-filter-resample` and
+        :func:`mne.filter.create_filter`.
+
+        .. versionadded:: 0.15
+        """
         return super().filter(
             l_freq,
             h_freq,
@@ -1288,7 +1576,18 @@ class BaseRaw(
             verbose=verbose,
         )
 
-    @verbose
+    @verbose_static(
+        "picks_all_data",
+        "filter_length_notch",
+        "n_jobs_fir",
+        "method_fir",
+        "iir_params",
+        "phase",
+        "fir_window",
+        "fir_design",
+        "pad_fir",
+        "skip_by_annotation",
+    )
     def notch_filter(
         self,
         freqs: float | np.ndarray | None,
@@ -1321,17 +1620,53 @@ class BaseRaw(
             in Europe. ``None`` can only be used with the mode
             ``'spectrum_fit'``, where an F test is used to find sinusoidal
             components.
-        %(picks_all_data)s
-        %(filter_length_notch)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        filter_length : str | int
+            Length of the FIR filter to use (if applicable):
+
+            ``"auto"`` (default)
+                The filter length is chosen based on the size of the transition regions
+                (6.6 times the reciprocal of the shortest transition band for
+                ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+                ``fir_design="firwin"``).
+            str
+                A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or
+                ``"5500ms"``) will be converted to that number of samples if
+                ``phase="zero"``, or the shortest power-of-two length at least that
+                duration for ``phase="zero-double"``.
+            int
+                Specified length in samples. For ``fir_design="firwin"``, this should
+                not be used.
+
+            When ``method=="spectrum_fit"``, this sets the effective window duration
+            over which fits are computed. Longer window lengths will give more stable
+            frequency estimates, but require (potentially much) more processing and are
+            not able to adapt as well to non-stationarities. The default ``"auto"``
+            corresponds to ``"10s"``.
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
             Only used for ``method='fir'`` and ``method='iir'``.
-        %(n_jobs_fir)s
-        %(method_fir)s
-        %(iir_params)s
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+            is installed properly and ``method='fir'``.
+        method : str
+            ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+            forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
+        iir_params : dict | None
+            Dictionary of parameters to use for IIR filtering. If ``iir_params=None``
+            and ``method="iir"``, 4th order Butterworth will be used. For more
+            information, see :func:`mne.filter.construct_iir_filter`.
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
@@ -1340,15 +1675,73 @@ class BaseRaw(
             sinusoidal components to remove when ``method='spectrum_fit'`` and
             ``freqs=None``. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
-        %(phase)s
-        %(fir_window)s
-        %(fir_design)s
-        %(pad_fir)s
+        phase : str
+            Phase of the filter.
+            When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+            with the following behaviors when ``method="fir"``:
+
+            ``"zero"`` (default)
+                The delay of this filter is compensated for, making it non-causal.
+            ``"minimum"``
+                A minimum-phase filter will be constructed by decomposing the zero-phase
+                filter into a minimum-phase and all-pass systems, and then retaining
+                only the minimum-phase system (of the same length as the original
+                zero-phase filter) via :func:`scipy.signal.minimum_phase`.
+            ``"zero-double"``
+                *This is a legacy option for compatibility with MNE <= 0.13.*
+                The filter is applied twice, once forward, and once backward
+                (also making it non-causal).
+            ``"minimum-half"``
+                *This is a legacy option for compatibility with MNE <= 1.6.* A
+                minimum-phase filter will be reconstructed from the zero-phase filter
+                with half the length of the original filter.
+
+            When ``method='iir'``, ``phase='zero'`` (default) or equivalently
+            ``'zero-double'`` constructs and applies IIR filter twice, once forward, and
+            once backward (making it non-causal) using :func:`~scipy.signal.filtfilt`;
+            ``phase='forward'`` will apply the filter once in the forward (causal)
+            direction using :func:`~scipy.signal.lfilter`.
+
+            .. versionadded:: 0.13
+            .. versionchanged:: 1.7
+
+               The behavior for ``phase="minimum"`` was fixed to use a filter of the
+               requested length and improved suppression.
+        fir_window : str
+            The window to use in FIR design, can be "hamming" (default),
+            "hann" (default in 0.13), or "blackman".
+
+            .. versionadded:: 0.15
+        fir_design : str
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
+
+            .. versionadded:: 0.15
+        pad : str
+            The type of padding to use. Supports
+            all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+            which pads with a reflected version of each vector mirrored on the first
+            and last values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
-        %(skip_by_annotation)s
-        %(verbose)s
+        skip_by_annotation : str | list of str
+            If a string (or list of str), any annotation segment that begins
+            with the given string will not be included in filtering, and
+            segments on either side of the given excluded annotated segment
+            will be filtered separately (i.e., as independent signals).
+            The default (``('edge', 'bad_acq_skip')`` will separately filter
+            any segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`, or separated during acquisition.
+            To disable, provide an empty list. Only used if ``inst`` is raw.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1404,7 +1797,13 @@ class BaseRaw(
             )
         return self
 
-    @verbose
+    @verbose_static(
+        "npad_resample",
+        "window_resample",
+        "n_jobs_cuda",
+        "pad_resample_auto",
+        "method_resample",
+    )
     def resample(
         self,
         sfreq: float,
@@ -1444,26 +1843,55 @@ class BaseRaw(
         ----------
         sfreq : float
             New sample rate to use.
-        %(npad_resample)s
-        %(window_resample)s
+        npad : int | str
+            Amount to pad the start and end of the data. Can also be ``"auto"`` to use a
+            padding that will result in a power-of-two size (can be much faster).
+
+            Only used when ``method="fft"``.
+        window : str | tuple
+            When ``method="fft"``, this is the *frequency-domain* window to use in
+            resampling, and should be the same length as the signal; see
+            :func:`scipy.signal.resample` for details. When ``method="polyphase"``, this
+            is the *time-domain* linear-phase window to use after upsampling the signal;
+            see :func:`scipy.signal.resample_poly` for details. The default ``"auto"``
+            will use ``"boxcar"`` for ``method="fft"`` and ``("kaiser", 5.0)`` for
+            ``method="polyphase"``.
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             :func:`mne.pick_types`.
-        %(n_jobs_cuda)s
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+            is installed properly.
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad_resample_auto)s
+        pad : str
+            The type of padding to use. When ``method="fft"``, supports
+            all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+            which pads with a reflected version of each vector mirrored on the first
+            and last values of the vector, followed by zeros.
+            When ``method="polyphase"``, supports all modes of
+            :func:`scipy.signal.upfirdn`.
+            The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
+            ``'reflect'`` for ``method='polyphase'``.
 
             .. versionadded:: 0.15
-        %(method_resample)s
+        method : str
+            Resampling method to use. Can be ``"fft"`` (default) or ``"polyphase"`` to
+            use FFT-based on polyphase FIR resampling, respectively. These wrap to
+            :func:`scipy.signal.resample` and :func:`scipy.signal.resample_poly`,
+            respectively.
 
             .. versionadded:: 1.7
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1608,7 +2036,7 @@ class BaseRaw(
             )
             return self, events
 
-    @verbose
+    @verbose_static()
     def rescale(
         self, scalings: int | float | dict, *, verbose: bool | str | int | None = None
     ) -> Self:
@@ -1627,7 +2055,11 @@ class BaseRaw(
             scaling factor is applied to all channels (this works only if all channels
             are of the same type). If a dict, the keys must be valid channel types and
             the values the scaling factors to apply to the corresponding channels.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1675,7 +2107,7 @@ class BaseRaw(
 
         return self
 
-    @verbose
+    @verbose_static("tmin_raw", "tmax_raw", "include_tmax")
     def crop(
         self,
         tmin: float = 0.0,
@@ -1698,9 +2130,16 @@ class BaseRaw(
 
         Parameters
         ----------
-        %(tmin_raw)s
-        %(tmax_raw)s
-        %(include_tmax)s
+        tmin : float
+            Start time of the raw data to use in seconds (must be >= 0).
+        tmax : float | None
+            End time of the raw data to use in seconds (cannot exceed data duration).
+            If ``None`` (default), the current end of the data is used.
+        include_tmax : bool
+            If True (default), include tmax. If False, exclude tmax (similar to how
+            Python indexing typically works).
+
+            .. versionadded:: 0.19
         reset_first_samp : bool
             If True, reset :term:`first_samp` to 0 after cropping, treating
             the cropped segment as an independent recording. Note that this
@@ -1708,7 +2147,11 @@ class BaseRaw(
             to use them afterward. Default is False.
 
             .. versionadded:: 1.12
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1811,7 +2254,7 @@ class BaseRaw(
             self._cropped_samp -= delta
         return self
 
-    @verbose
+    @verbose_static()
     def crop_by_annotations(
         self,
         annotations: Annotations | None = None,
@@ -1825,7 +2268,11 @@ class BaseRaw(
         annotations : instance of Annotations | None
             The annotations to use for cropping the raw file. If None,
             the annotations from the instance are used.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1847,7 +2294,7 @@ class BaseRaw(
 
         return raws
 
-    @verbose
+    @verbose_static("picks_all", "tmin_raw", "tmax_raw", "overwrite", "split_naming")
     def save(
         self,
         fname: Path | str,
@@ -1876,9 +2323,20 @@ class BaseRaw(
             ``_meg.fif`` (common MEG data), ``_eeg.fif`` (common EEG data),
             or ``_ieeg.fif`` (common intracranial EEG data). You may also
             append an additional ``.gz`` suffix to enable gzip compression.
-        %(picks_all)s
-        %(tmin_raw)s
-        %(tmax_raw)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
+        tmin : float
+            Start time of the raw data to use in seconds (must be >= 0).
+        tmax : float | None
+            End time of the raw data to use in seconds (cannot exceed data duration).
+            If ``None`` (default), the current end of the data is used.
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1900,7 +2358,9 @@ class BaseRaw(
             and neither complex data types nor real data stored as 'double'
             can be loaded with the MNE command-line tools. See raw.orig_format
             to determine the format the original data were stored in.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
             To overwrite original file (the same one that was loaded),
             data must be preloaded upon reading.
         split_size : str | int
@@ -1911,10 +2371,21 @@ class BaseRaw(
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
-        %(split_naming)s
+        split_naming : 'neuromag' | 'bids'
+            When splitting files, append a filename partition with the appropriate
+            naming schema. For ``'neuromag'``, a split file ``fname.fif`` will be named
+            ``fname.fif``, ``fname-1.fif``, ``fname-2.fif``, and so on. For ``'bids'``,
+            a filename is expected to consist of parts separated by underscores, like
+            ``<part-1>_<part-N>_<suffix>.fif``, and the according split naming will
+            return filenames like ``<part-1>_<part-N>_split-01_<suffix>.fif``,
+            ``<part-1>_<part-N>_split-02_<suffix>.fif``, and so on.
 
             .. versionadded:: 0.17
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2006,7 +2477,19 @@ class BaseRaw(
         filenames = _write_raw(raw_fid_writer, fname, split_naming, overwrite)
         return filenames
 
-    @verbose
+    @verbose_static(
+        "export_fmt_support_raw",
+        "export_warning",
+        "fname_export_params",
+        "export_fmt_params_raw",
+        "physical_range_export_params",
+        "digital_range_export_params",
+        "add_ch_type_export_params",
+        "overwrite",
+        "export_warning_note_raw",
+        "export_eeglab_note",
+        "export_edf_note",
+    )
     def export(
         self,
         fname: str,
@@ -2020,29 +2503,92 @@ class BaseRaw(
     ) -> None:
         """Export Raw to external formats.
 
-        %(export_fmt_support_raw)s
+        Supported formats:
 
-        %(export_warning)s
+        - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv
+          <https://github.com/bids-standard/pybv>`_)
+        - EEGLAB (``.set``, uses :mod:`eeglabio`)
+        - EDF (``.edf``, uses `edfio <https://github.com/the-siesta-group/edfio>`_)
+
+        .. warning::
+            Since we are exporting to external formats, there's no guarantee that all
+            the info will be preserved in the external format. See Notes for details.
 
         Parameters
         ----------
-        %(fname_export_params)s
-        %(export_fmt_params_raw)s
-        %(physical_range_export_params)s
-        %(digital_range_export_params)s
-        %(add_ch_type_export_params)s
-        %(overwrite)s
+        fname : str
+            Name of the output file.
+        fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
+            Format of the export. Defaults to ``'auto'``, which will infer the format
+            from the filename extension. See supported formats above for more
+            information.
+        physical_range : str | tuple
+            The physical range of the data. If 'auto' (default), the physical range is
+            inferred from the data: if the data came from and EDF/BDF/GDF file, the
+            physical range of the original file will be preserved (with a warning if
+            clipping will occur). If the data did not originate from an EDF/BDF/GDF
+            file, ``"auto"`` will set the physical range as the minimum and maximum
+            values *per channel type*. If ``'channelwise'``, the range will be defined
+            *per channel*. If a tuple of minimum and maximum, that manually-specified
+            physical range will be used for all channels. Only used for exporting EDF
+            files.
+        digital_range : "auto" | "orig"
+            For EDF/BDF files, this controls the amplitude resolution of the
+            signals. "auto" uses the maximum available (16-bit for EDF, 24-bit for BDF).
+            If the :class:`~mne.io.Raw` object was originally read from and EDF or BDF
+            file, "orig" will use the digital range that was present in that file. For
+            :class:`~mne.io.Raw` objects that did not originate from EDF/BDF files,
+            "orig" falls back to the behavior of "auto".
+
+            .. versionadded:: 1.13.1
+        add_ch_type : bool
+            Whether to incorporate the channel type into the signal label (e.g. whether
+            to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
+            ``False``.
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 0.24.1
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
         .. versionadded:: 0.24
 
-        %(export_warning_note_raw)s
-        %(export_eeglab_note)s
-        %(export_edf_note)s
+        Export to external format may not preserve all the information from the
+        instance. To save in native MNE format (``.fif``) without information loss,
+        use :meth:`mne.io.Raw.save` instead.
+        Export does not apply projector(s). Unapplied projector(s) will be lost.
+        Consider applying projector(s) before exporting with
+        :meth:`mne.io.Raw.apply_proj`.
+
+        For EEGLAB exports, channel locations are expanded to full EEGLAB format.
+        For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+
+        Although this function supports storing channel types in the signal label (e.g.
+        ``EEG Fz`` or ``MISC E``), other software may not support this (optional)
+        feature of the EDF standard.
+
+        If ``add_ch_type`` is True, then channel types are written based on what they
+        are currently set in MNE-Python. One should double check that all their channels
+        are set correctly. You can call :meth:`mne.io.Raw.set_channel_types` to set
+        channel types.
+
+        In addition, EDF does not support storing a montage. You will need to store the
+        montage separately and call :meth:`mne.io.Raw.set_montage`.
+
+        The physical range of the signals is determined by signal type by default
+        (``physical_range="auto"``). However, if individual channel ranges vary
+        significantly due to the presence of e.g. drifts/offsets/biases, setting
+        ``physical_range="channelwise"`` might be more appropriate. This will ensure a
+        maximum resolution for each individual channel, but some tools might not be able
+        to handle this appropriately (even though channel-wise ranges are covered by the
+        EDF standard).
         """
         from ..export import export_raw
 
@@ -2500,7 +3046,7 @@ class BaseRaw(
         """
         return self.n_times
 
-    @verbose
+    @verbose_static()
     def load_bad_channels(
         self,
         bad_file: Path | str | None = None,
@@ -2523,7 +3069,11 @@ class BaseRaw(
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of
             raising an error. Defaults to ``False``.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         prev_bads = self.info["bads"]
         new_bads = []
@@ -2551,7 +3101,7 @@ class BaseRaw(
         else:
             logger.info(f"No channels updated. Bads are: {prev_bads}")
 
-    @fill_doc
+    @fill_doc_static("preload_concatenate")
     def append(
         self, raws: "BaseRaw | list[BaseRaw]", preload: bool | str | None = None
     ) -> None:
@@ -2567,7 +3117,15 @@ class BaseRaw(
         raws : list, or Raw instance
             List of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
-        %(preload_concatenate)s
+        preload : bool | str | None
+            Preload data into memory for data manipulation and faster indexing.
+            If True, the data will be preloaded into memory (fast, requires
+            large amount of memory). If preload is a string, it is the name of a
+            freshly created memory-mapped file used to store the data on the hard
+            drive (slower, requires less memory). An existing file is overwritten.
+            The caller owns the file and is responsible for removing it after the
+            Raw object is no longer in use. If preload is None, preload=True or False
+            is inferred using the preload status of the instances passed in.
         """
         if isinstance(raws, BaseRaw):
             raw_list: list[BaseRaw] = [raws]
@@ -2766,7 +3324,18 @@ class BaseRaw(
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info["sfreq"]))
 
-    @verbose
+    @verbose_static(
+        "method_psd",
+        "fmin_fmax_psd",
+        "tmin_tmax_psd",
+        "picks_good_data_noref",
+        "exclude_psd",
+        "proj_psd",
+        "remove_dc",
+        "reject_by_annotation_psd",
+        "n_jobs",
+        "method_kw_psd",
+    )
     def compute_psd(
         self,
         method: Literal["welch", "multitaper"] = "welch",
@@ -2788,20 +3357,65 @@ class BaseRaw(
 
         Parameters
         ----------
-        %(method_psd)s
+        method : ``'welch'`` | ``'multitaper'``
+            Spectral estimation method. ``'welch'`` uses Welch's
+            method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+            tapers :footcite:p:`Slepian1978`.
             Note that ``"multitaper"`` cannot be used if ``reject_by_annotation=True``
             and there are ``"bad_*"`` annotations in the :class:`~mne.io.Raw` data;
             in such cases use ``"welch"``. Default is ``'welch'``.
-        %(fmin_fmax_psd)s
-        %(tmin_tmax_psd)s
-        %(picks_good_data_noref)s
-        %(exclude_psd)s
-        %(proj_psd)s
-        %(remove_dc)s
-        %(reject_by_annotation_psd)s
-        %(n_jobs)s
-        %(verbose)s
-        %(method_kw_psd)s
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude. If ``'bads'``, channels
+            in ``info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
+        proj : bool
+            Whether to apply SSP projection vectors before spectral estimation.
+            Default is ``False``.
+        remove_dc : bool
+            If ``True``, the mean is subtracted from each segment before computing
+            its spectrum.
+        reject_by_annotation : bool
+            Whether to omit bad spans of data before spectral estimation. If
+            ``True``, spans with annotations whose description begins with
+            ``bad`` will be omitted.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **method_kw
+            Additional keyword arguments passed to the spectral estimation
+            function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+            for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+            for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+            and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+            that for Welch method if ``n_fft`` is unspecified its default will be
+            the smaller of ``2048`` or the number of available time samples (taking into
+            account ``tmin`` and ``tmax``), not ``256`` as in
+            :func:`~mne.time_frequency.psd_array_welch`.
 
         Returns
         -------
@@ -2836,7 +3450,18 @@ class BaseRaw(
             **method_kw,
         )
 
-    @verbose
+    @verbose_static(
+        "method_tfr",
+        "freqs_tfr",
+        "tmin_tmax_psd",
+        "picks_good_data_noref",
+        "proj_psd",
+        "output_compute_tfr",
+        "reject_by_annotation_tfr",
+        "decim_tfr",
+        "n_jobs",
+        "method_kw_tfr",
+    )
     def compute_tfr(
         self,
         method: Literal["morlet", "multitaper"] | None,
@@ -2857,17 +3482,70 @@ class BaseRaw(
 
         Parameters
         ----------
-        %(method_tfr)s
-        %(freqs_tfr)s
-        %(tmin_tmax_psd)s
-        %(picks_good_data_noref)s
-        %(proj_psd)s
-        %(output_compute_tfr)s
-        %(reject_by_annotation_tfr)s
-        %(decim_tfr)s
-        %(n_jobs)s
-        %(verbose)s
-        %(method_kw_tfr)s
+        method : ``'morlet'`` | ``'multitaper'`` | None
+            Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
+            ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`.
+            ``None`` (the default) only works when using ``__setstate__`` and will
+            raise an error otherwise.
+        freqs : array-like | None
+            The frequencies at which to compute the power estimates.
+            Must be an array of shape (n_freqs,). ``None`` (the
+            default) only works when using ``__setstate__`` and will raise an
+            error otherwise.
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
+        proj : bool
+            Whether to apply SSP projection vectors before spectral estimation.
+            Default is ``False``.
+        output : str
+            What kind of estimate to return. Allowed values are ``"complex"``,
+            ``"phase"``, and ``"power"``. Default is ``"power"``.
+        reject_by_annotation : bool
+            Whether to omit bad spans of data before spectrotemporal power
+            estimation. If ``True``, spans with annotations whose description
+            begins with ``bad`` will be represented with ``np.nan`` in the
+            time-frequency representation.
+        decim : int | slice
+            Decimation factor, applied *after* time-frequency decomposition.
+
+            - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+              sample along the time axis).
+            - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+              slice along the time axis).
+
+            .. note::
+                Decimation is done after convolutions and may create aliasing
+                artifacts.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **method_kw
+            Additional keyword arguments passed to the spectrotemporal estimation
+            function (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet
+            method
+            or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+            See :func:`~mne.time_frequency.tfr_array_morlet`
+            and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
 
         Returns
         -------
@@ -2901,7 +3579,15 @@ class BaseRaw(
             **method_kw,
         )
 
-    @verbose
+    @verbose_static(
+        "picks_all",
+        "index_df_raw",
+        "scalings_df",
+        "copy_df",
+        "long_format_df_raw",
+        "time_format_df_raw",
+        "df_return",
+    )
     def to_data_frame(
         self,
         picks: str | np.ndarray | slice | None = None,
@@ -2927,11 +3613,30 @@ class BaseRaw(
 
         Parameters
         ----------
-        %(picks_all)s
-        %(index_df_raw)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
+        index : 'time' | None
+            Kind of index to use for the DataFrame. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
+            ``pandas.Index``, :class:`pandas.DatetimeIndex`, or
+            :class:`pandas.TimedeltaIndex` will be used
+            (depending on the value of ``time_format``).
             Defaults to ``None``.
-        %(scalings_df)s
-        %(copy_df)s
+        scalings : dict | None
+            Scaling factor applied to the channels picked. If ``None``, defaults to
+            ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
+            magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+            and :term:`non-data channels` for full list of default scalings.
+        copy : bool
+            If ``True``, data will be copied. Otherwise data may be modified in place.
+            Defaults to ``True``.
         start : int | None
             Starting sample index for creating the DataFrame from a temporal
             span of the Raw object. ``None`` (the default) uses the first
@@ -2939,15 +3644,34 @@ class BaseRaw(
         stop : int | None
             Ending sample index for creating the DataFrame from a temporal span
             of the Raw object. ``None`` (the default) uses the last sample.
-        %(long_format_df_raw)s
-        %(time_format_df_raw)s
+        long_format : bool
+            If True, the DataFrame is returned in long format where each row is one
+            observation of the signal at a unique combination of
+            time point and channel.
+            For convenience, a ``ch_type`` column is added to facilitate
+            subsetting the resulting DataFrame. Defaults to ``False``.
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values. If ``'datetime'``, time values will be
+            converted to :class:`pandas.Timestamp` values, relative to
+            ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
+            Default is ``None`` unless specified otherwise.
 
             .. versionadded:: 0.20
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(df_return)s
+        df : instance of pandas.DataFrame
+            A dataframe suitable for usage with other statistical/plotting/analysis
+            packages.
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
@@ -3527,7 +4251,7 @@ def _write_raw_data(
     return new_start
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     """Start write raw data in file.
 
@@ -3535,7 +4259,9 @@ def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     ----------
     fid : file
         The created file.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
@@ -3649,7 +4375,7 @@ def _check_raw_compatibility(raw):
         raw[0].orig_format = "unknown"
 
 
-@verbose
+@verbose_static("preload_concatenate", "on_mismatch_info")
 def concatenate_raws(
     raws: list,
     preload: bool | str | None = None,
@@ -3671,11 +4397,29 @@ def concatenate_raws(
     ----------
     raws : list
         List of `~mne.io.Raw` instances to concatenate (in order).
-    %(preload_concatenate)s
+    preload : bool | str | None
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. If preload is None, preload=True or False
+        is inferred using the preload status of the instances passed in.
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
-    %(on_mismatch_info)s
-    %(verbose)s
+    on_mismatch : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when the device-to-head transformation differs between
+        instances.
+
+        .. versionadded:: 0.24
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3721,7 +4465,7 @@ def concatenate_raws(
         return out, events
 
 
-@fill_doc
+@fill_doc_static("copy_df")
 def match_channel_orders(insts: list, copy: bool = True) -> list:
     """Ensure consistent channel order across instances (Raw, Epochs, or Evoked).
 
@@ -3730,7 +4474,9 @@ def match_channel_orders(insts: list, copy: bool = True) -> list:
     insts : list
         List of :class:`~mne.io.Raw`, :class:`~mne.Epochs`,
         or :class:`~mne.Evoked` instances to order.
-    %(copy_df)s
+    copy : bool
+        If ``True``, data will be copied. Otherwise data may be modified in place.
+        Defaults to ``True``.
 
     Returns
     -------

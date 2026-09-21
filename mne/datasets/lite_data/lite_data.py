@@ -8,11 +8,11 @@ The documentation build now serves the browser notebooks from the regular
 datasets, so this archive is no longer needed.
 """
 
-from ...utils import deprecated, verbose
+from ...utils import _verbose_control, deprecated
 from ..utils import _data_path_doc, _download_mne_dataset, _get_version, _version_doc
 
 
-@verbose
+@_verbose_control
 def data_path(
     path=None, force_update=False, update_path=True, download=True, *, verbose=None
 ):  # noqa: D103

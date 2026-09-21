@@ -20,7 +20,7 @@ from ..utils import (
     _ensure_int,
     _to_rgb,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
 )
 from ._3d_overlay import LayeredMesh
 from .ui_events import (
@@ -34,7 +34,7 @@ from .ui_events import (
 from .utils import mne_analyze_colormap
 
 
-@fill_doc
+@fill_doc_static("n_jobs", "interpolation_brain_time", "interaction_scene", "verbose")
 class EvokedField:
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
@@ -49,7 +49,13 @@ class EvokedField:
         the average peak latency (across sensor types) is used.
     time_label : str | None
         How to print info about the time instant visualized.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     fig : instance of Figure3D | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure. When a figure is given, the caller is in charge
@@ -91,10 +97,19 @@ class EvokedField:
         map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
 
         .. versionadded:: 1.4
-    %(interpolation_brain_time)s
+    interpolation : str | None
+        Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
+        Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+        ``'quadratic'`` or ``'cubic'``.
 
         .. versionadded:: 1.6
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
@@ -113,7 +128,11 @@ class EvokedField:
         of ``background``.
 
         .. versionadded:: 1.12
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----

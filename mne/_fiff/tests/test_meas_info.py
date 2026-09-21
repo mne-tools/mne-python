@@ -54,7 +54,7 @@ from mne._fiff.meas_info import (
 )
 from mne._fiff.proj import Projection
 from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
-from mne._fiff.write import DATE_NONE, _generate_meas_id
+from mne._fiff.write import DATE_NONE, _generate_meas_id, write_layer_struct
 from mne.channels import (
     equalize_channels,
     make_standard_montage,
@@ -288,7 +288,7 @@ def test_info():
     assert info2["temp"] is info2
 
 
-def test_read_write_info(tmp_path):
+def test_read_write_info(tmp_path, monkeypatch):
     """Test IO of info."""
     info = read_info(raw_fname)
     temp_file = tmp_path / "info.fif"
@@ -314,6 +314,8 @@ def test_read_write_info(tmp_path):
             info["gantry_angle"] = 0  # Elekta supine position
     gantry_angle = info["gantry_angle"]
 
+    info.set_head_sphere([0.1, 0.2, 0.3, 0.4])
+
     meas_id = info["meas_id"]
     with pytest.raises(FileExistsError, match="Destination file exists"):
         write_info(temp_file, info)
@@ -328,6 +330,18 @@ def test_read_write_info(tmp_path):
     for key in ["secs", "usecs", "version"]:
         assert info["meas_id"][key] == meas_id[key]
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
+    assert_allclose(info["head_sphere"], [0.1, 0.2, 0.3, 0.4])
+
+    # a conductor model whose outermost layer is not the scalp is not a head sphere
+    def _write_brain_layer(fid, kind, layers):
+        layers = [dict(layer, id=FIFF.FIFFV_BEM_SURF_ID_BRAIN) for layer in layers]
+        write_layer_struct(fid, kind, layers)
+
+    monkeypatch.setattr(meas_info, "write_layer_struct", _write_brain_layer)
+    write_info(temp_file, info, overwrite=True)
+    assert read_info(temp_file).get("head_sphere") is None
+    monkeypatch.undo()
+    write_info(temp_file, info, overwrite=True)
 
     # Test that writing twice produces the same file
     m1 = _empty_hash()
@@ -724,6 +738,17 @@ def test_check_consistency():
         info2["subject_info"]["weight"] = [0]
     with pytest.raises(TypeError, match=r'subject_info\["height"\] must be an .*'):
         info2["subject_info"] = {"height": "bad"}
+
+    # bad head sphere
+    info2 = info.copy()
+    with info2._unlock():
+        info2["head_sphere"] = "foo"
+    with pytest.raises(TypeError, match="must be an ndarray"):
+        info2._check_consistency()
+    with info2._unlock():
+        info2["head_sphere"] = np.array([1, 2, 3])
+    with pytest.raises(TypeError, match="with 4 elements"):
+        info2._check_consistency()
 
 
 def _test_anonymize_info(base_info, tmp_path):

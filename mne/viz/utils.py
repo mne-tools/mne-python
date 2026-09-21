@@ -50,10 +50,10 @@ from ..utils import (
     _pl,
     _to_rgb,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     get_config,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.misc import _identity_function
@@ -549,7 +549,7 @@ def _get_figsize_from_config():
     return figsize
 
 
-@verbose
+@verbose_static()
 def compare_fiff(
     fname_1,
     fname_2,
@@ -581,7 +581,11 @@ def compare_fiff(
     max_str : int
         Max number of characters of string representation to print for
         each tag's data.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1052,7 +1056,7 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     return use_times
 
 
-@verbose
+@verbose_static("info_not_none", "axes_montage", "sphere_topomap_auto")
 def plot_sensors(
     info,
     kind="topomap",
@@ -1075,7 +1079,9 @@ def plot_sensors(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
@@ -1091,7 +1097,7 @@ def plot_sensors(
         above.
     title : str | None
         Title for the figure. If None (default), equals to
-        ``'Sensor positions (%%s)' %% ch_type``.
+        ``'Sensor positions (%s)' % ch_type``.
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
@@ -1110,7 +1116,9 @@ def plot_sensors(
         subject's head. Has no effect when ``kind='3d'``. Defaults to True.
 
         .. versionadded:: 0.14.0
-    %(axes_montage)s
+    axes : instance of Axes | instance of Axes3D | None
+        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+        of Axes3D. If None (default), a new axes will be created.
 
         .. versionadded:: 0.13.0
     block : bool | None
@@ -1126,7 +1134,41 @@ def plot_sensors(
            The default changed from ``False`` to ``None`` (follow Matplotlib).
     show : bool
         Show figure if True. Defaults to True.
-    %(sphere_topomap_auto)s
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
     pointsize : float | None
         The size of the points. If None (default), will bet set to ``75`` if
         ``kind='3d'``, or ``25`` otherwise.
@@ -1136,7 +1178,11 @@ def plot_sensors(
         Colormap for coloring ch_groups. Has effect only when ``ch_groups``
         is list of list. If None, set to ``matplotlib.rcParams["image.cmap"]``.
         Defaults to None.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1156,7 +1202,7 @@ def plot_sensors(
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
-    """
+    """  # noqa: E501
     from .evoked import _rgb
 
     _check_option("kind", kind, ["topomap", "3d", "select"])
@@ -2506,7 +2552,7 @@ def _plot_masked_image(
     return im, t_end
 
 
-@fill_doc
+@fill_doc_static()
 def _make_combine_callable(
     combine,
     *,

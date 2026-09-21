@@ -50,13 +50,14 @@ from .utils import (
     _pl,
     _time_mask,
     _validate_type,
-    copy_function_doc_to_method_doc,
-    fill_doc,
+    _verbose_control,
+    copy_function_doc_to_method_doc_static,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     object_size,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -488,7 +489,7 @@ def _verify_source_estimate_compat(a, b):
 class _BaseSourceEstimate(TimeMixin, FilterMixin):
     _data_ndim = 2
 
-    @verbose
+    @_verbose_control
     def __init__(self, data, vertices, tmin, tstep, subject=None, verbose=None):
         assert hasattr(self, "_data_ndim"), self.__class__.__name__
         assert hasattr(self, "_src_type"), self.__class__.__name__
@@ -566,7 +567,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         s += f", ~{sizeof_fmt(sz)}"
         return f"<{type(self).__name__} | {s}>"
 
-    @fill_doc
+    @fill_doc_static("get_peak_parameters")
     def get_peak(
         self, tmin=None, tmax=None, mode="abs", vert_as_index=False, time_as_index=False
     ):
@@ -574,7 +575,21 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Parameters
         ----------
-        %(get_peak_parameters)s
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
+        vert_as_index : bool
+            Whether to return the vertex index (True) instead of of its ID
+            (False, default).
+        time_as_index : bool
+            Whether to return the time index (True) instead of the latency
+            (False, default).
 
         Returns
         -------
@@ -593,7 +608,14 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             time_idx = self.times[time_idx]
         return vert_idx, time_idx
 
-    @verbose
+    @verbose_static(
+        "labels_eltc",
+        "src_eltc",
+        "mode_eltc",
+        "allow_empty_eltc",
+        "label_tc_el_returns",
+        "eltc_mode_notes",
+    )
     def extract_label_time_course(
         self, labels, src, mode="auto", allow_empty=False, verbose=None
     ):
@@ -604,15 +626,43 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Parameters
         ----------
-        %(labels_eltc)s
-        %(src_eltc)s
-        %(mode_eltc)s
-        %(allow_empty_eltc)s
-        %(verbose)s
+        labels : Label | BiHemiLabel | list | tuple | str
+            If using a surface or mixed source space, this should be the
+            :class:`~mne.Label`'s for which to extract the time course.
+            If working with whole-brain volume source estimates, this must be one of:
+
+            - a string path to a FreeSurfer atlas for the subject (e.g., their
+              'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+              atlas
+            - a two-element list or tuple, the first element being a path to an atlas,
+              and the second being a list or dict of ``volume_labels`` to extract
+              (see :func:`mne.setup_volume_source_space` for details).
+
+            .. versionchanged:: 0.21.0
+               Support for volume source estimates.
+        src : instance of SourceSpaces
+            The source spaces for the source time courses.
+        mode : str
+            Extraction mode, see Notes.
+        allow_empty : bool | str
+            ``False`` (default) will emit an error if there are labels that have no
+            vertices in the source estimate. ``True`` and ``'ignore'`` will return
+            all-zero time courses for labels that do not have any vertices in the
+            source estimate, and True will emit a warning while and "ignore" will
+            just log a message.
+
+            .. versionchanged:: 0.21.0
+               Support for "ignore".
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(label_tc_el_returns)s
+        label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
+            Extracted time course for each label and source estimate.
 
         See Also
         --------
@@ -620,8 +670,43 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Notes
         -----
-        %(eltc_mode_notes)s
-        """
+        Valid values for ``mode`` are:
+
+        - ``'max'``
+            Maximum absolute value across vertices at each time point within each label.
+        - ``'mean'``
+            Average across vertices at each time point within each label. Ignores
+            orientation of sources for standard source estimates, which varies
+            across the cortical surface, which can lead to cancellation.
+            Vector source estimates are always in XYZ / RAS orientation, and are thus
+            already geometrically aligned.
+        - ``'mean_flip'``
+            Finds the dominant direction of source space normal vector orientations
+            within each label, applies a sign-flip to time series at vertices whose
+            orientation is more than 90° different from the dominant direction, and
+            then averages across vertices at each time point within each label.
+        - ``'pca_flip'``
+            Applies singular value decomposition to the time courses within each label,
+            and uses the first right-singular vector as the representative label time
+            course. This signal is scaled so that its power matches the average
+            (per-vertex) power within the label, and sign-flipped by multiplying by
+            ``np.sign(u @ flip)``, where ``u`` is the first left-singular vector and
+            ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
+            sign-flip ensures that extracting time courses from the same label in
+            similar STCs does not result in 180° direction/phase changes.
+        - ``'auto'`` (default)
+            Uses ``'mean_flip'`` when a standard source estimate is applied, and
+            ``'mean'`` when a vector source estimate is supplied.
+        - ``None``
+            No aggregation is performed, and an array of shape ``(n_vertices, n_times)``
+            is returned.
+
+            .. versionadded:: 0.21
+               Support for ``'auto'``, vector, and volume source estimates.
+
+        The only modes that work for vector and volume source estimates are ``'mean'``,
+        ``'max'``, and ``'auto'``.
+        """  # noqa: E501
         return extract_label_time_course(
             self,
             labels,
@@ -632,23 +717,76 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             verbose=verbose,
         )
 
-    @verbose
+    @verbose_static(
+        "applyfun_summary_stc",
+        "fun_applyfun_stc",
+        "picks_all",
+        "dtype_applyfun",
+        "n_jobs",
+        "kwargs_fun",
+    )
     def apply_function(
         self, fun, picks=None, dtype=None, n_jobs=None, verbose=None, **kwargs
     ):
         """Apply a function to a subset of vertices.
 
-        %(applyfun_summary_stc)s
+        The function ``fun`` is applied to the vertices defined in ``picks``. The
+        source estimate object's data is modified in-place. If the function returns a
+        different data type (e.g. :py:obj:`numpy.complex128`) it must be specified
+        using the ``dtype`` parameter, which causes the data type of **all** the data
+        to change (even if the function is only applied to vertices in
+        ``picks``).
+
+        .. note:: If ``n_jobs`` > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporarily stored in memory.
+        .. note:: If the data type changes (``dtype != None``), more memory is
+                  required since the original and the converted data needs
+                  to be stored in memory.
 
         Parameters
         ----------
-        %(fun_applyfun_stc)s
-        %(picks_all)s
-        %(dtype_applyfun)s
-        %(n_jobs)s Ignored if ``vertice_wise=False`` as the workload
+        fun : callable
+            A function to be applied to the channels. The first argument of
+            fun has to be a timeseries (:class:`numpy.ndarray`). The function must
+            operate on an array of shape ``(n_times,)``  because it will apply
+            vertex-wise.
+            The function must return an :class:`~numpy.ndarray` shaped like its input.
+
+            .. note::
+                If ``channel_wise=True``, one can optionally access the index and/or the
+                name of the currently processed channel within the applied function.
+                This can enable tailored computations for different channels.
+                To use this feature, add ``ch_idx`` and/or ``ch_name`` as
+                additional argument(s) to your function definition.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
+        dtype : numpy.dtype
+            Data type to use after applying the function. If None
+            (default) the data type is not modified.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+            Ignored if ``vertice_wise=False`` as the workload
             is split across vertices.
-        %(verbose)s
-        %(kwargs_fun)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **kwargs : dict
+            Additional keyword arguments to pass to ``fun``.
 
         Returns
         -------
@@ -683,16 +821,45 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         return self
 
-    @verbose
+    @verbose_static("baseline_stc")
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct source estimate data.
 
         Parameters
         ----------
-        %(baseline_stc)s
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
+
+            Correction is applied **to each source individually** in the following
+            way:
+
+            1. Calculate the mean signal of the baseline period.
+            2. Subtract this mean from the **entire** source estimate data.
+
+            .. note:: Baseline correction is appropriate when signal and noise are
+                      approximately additive, and the noise level can be estimated from
+                      the baseline interval. This can be the case for non-normalized
+                      source activities (e.g. signed and unsigned MNE), but it is not
+                      the case for normalized estimates (e.g. signal-to-noise ratios,
+                      dSPM, sLORETA).
+
             Defaults to ``(None, 0)``, i.e. beginning of the data until
             time point zero.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -706,7 +873,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         self.data = rescale(self.data, self.times, baseline, copy=False)
         return self
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, ftype="h5", *, overwrite=False, verbose=None):
         """Save the full source estimate to an HDF5 file.
 
@@ -717,10 +884,16 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             ``'-stc.h5'``.
         ftype : str
             File format to use. Currently, the only allowed values is ``"h5"``.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         fname = _check_fname(fname=fname, overwrite=True)  # check below
         if ftype != "h5":
@@ -745,7 +918,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             overwrite=True,
         )
 
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_source_estimates")
     def plot(
         self,
         subject=None,
@@ -780,6 +953,194 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         block=False,
         verbose=None,
     ):
+        """Plot SourceEstimate.
+
+        Parameters
+        ----------
+        subject : str | None
+            The FreeSurfer subject name.
+            If ``None``, ``stc.subject`` will be used.
+        surface : str
+            The type of surface (inflated, white etc.).
+        hemi : str
+            Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``, or ``'split'``). In
+            the case of ``'both'``, both hemispheres are shown in the same window.
+            In the case of ``'split'`` hemispheres are displayed side-by-side
+            in different viewing panes.
+        colormap : str | matplotlib.colors.Colormap
+            Name of colormap to use or a custom Matplotlib colormap instance. If passing
+            a custom colormap, it must be an instance of
+            :class:`matplotlib.colors.Colormap` (e.g.,
+            :class:`matplotlib.colors.ListedColormap`).
+            The default ('auto') uses ``'hot'`` for one-sided data and
+            'mne' for two-sided data.
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+            is more than one time point.
+        smoothing_steps : int
+            The amount of smoothing.
+        transparent : bool | None
+            If True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps). None will choose automatically based on colormap
+            type.
+        alpha : float
+            Alpha value to apply globally to the overlay.
+        time_viewer : bool | str
+            Display time viewer GUI. Can also be 'auto', which will mean True
+            for the PyVista backend and False otherwise.
+
+            .. versionchanged:: 0.20.0
+               "auto" mode added.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        figure : instance of Figure3D | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the PyVista
+            figure by it's id or create a new figure with the given id.
+        views : str | list
+            View to use. Using multiple views (list) is not supported for mpl
+            backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+            valid string options.
+
+            When plotting a standard SourceEstimate (not volume, mixed, or vector)
+            and using the PyVista backend, ``views='flat'`` is also supported to
+            plot cortex as a flatmap.
+
+            .. versionchanged:: 0.21.0
+               Support for flatmaps.
+        colorbar : bool
+            If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim automatically
+            based on data percentiles. If dict, should contain:
+
+                ``kind`` : 'value' | 'percent'
+                    Flag to specify type of limits.
+                ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bounds for colormap.
+                ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
+            .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                      Only sequential colormaps should be used with ``lims``, and
+                      only divergent colormaps should be used with ``pos_lims``.
+        cortex : str | tuple
+            Specifies how binarized curvature values are rendered.
+            Either the name of a preset Brain cortex colorscheme (one of
+            ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
+            or the name of a colormap, or a tuple with values
+            ``(colormap, min, max, reverse)`` to fully specify the curvature
+            colors.
+        size : float or tuple of float
+            The size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color | None
+            Color of the foreground of the display window. None will choose white or
+            black based on the background color.
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
+        time_unit : ``'s'`` | ``'ms'``
+            Whether time is represented in seconds ("s", default) or
+            milliseconds ("ms").
+        backend : ``'auto'`` | ``'pyvistaqt'`` | ``'notebook'``
+            Which backend to use. If ``'auto'`` (default), tries to plot with
+            pyvistaqt.
+
+            .. versionadded:: 0.15.0
+        title : str | None
+            Title for the figure window. If ``None``, the subject name will be used.
+
+            .. versionadded:: 0.17.0
+        show_traces : bool | str | float
+            If True, enable interactive picking of a point on the surface of the
+            brain and plot its time course.
+            This feature is only available with the PyVista 3d backend, and requires
+            ``time_viewer=True``. Defaults to 'auto', which will use True if and
+            only if ``time_viewer=True``, the backend is PyVista, and there is more
+            than one time point. If float (between zero and one), it specifies what
+            proportion of the total window should be devoted to traces (True is
+            equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+            .. versionadded:: 0.20.0
+        src : instance of SourceSpaces | None
+            The source space corresponding to the source estimate. Only necessary
+            if the STC is a volume or mixed source estimate.
+        volume_options : float | dict | None
+            Options for volumetric source estimate plotting, with key/value pairs:
+
+            - ``'resolution'`` : float | None
+                Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+                better at the cost of speed. None (default) uses the volume source
+                space resolution, which is often something like 7 or 5 mm,
+                without resampling.
+            - ``'blending'`` : str
+                Can be "mip" (default) for :term:`maximum intensity projection` or
+                "composite" for composite blending using alpha values.
+            - ``'alpha'`` : float | None
+                Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+                estimates and 1.0 for scalar source estimates.
+            - ``'surface_alpha'`` : float | None
+                Alpha for the surface enclosing the volume(s). None (default) will use
+                half the volume alpha. Set to zero to avoid plotting the surface.
+            - ``'silhouette_alpha'`` : float | None
+                Alpha for a silhouette along the outside of the volume. None (default)
+                will use ``0.25 * surface_alpha``.
+            - ``'silhouette_linewidth'`` : float
+                The line width to use for the silhouette. Default is 2.
+            - ``'interpolation'`` : str
+                The interpolation method to use for resampling the volume source space
+                to the specified resolution (and for sampling in the volume rendering).
+                Can be "linear" (default) or "nearest".
+
+                .. versionadded:: 1.13
+
+            A float input (default 1.) or None will be used for the ``'resolution'``
+            entry.
+        view_layout : str
+            Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+            the PyVista backend must be used and hemi cannot be "split".
+        add_data_kwargs : dict | None
+            Additional arguments to brain.add_data (e.g.,
+            ``dict(time_label_size=10)``).
+        brain_kwargs : dict | None
+            Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+            ``dict(silhouette=True)``).
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            May not work on all systems / platforms. Defaults to ``False``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        figure : instance of mne.viz.Brain | matplotlib.figure.Figure
+            An instance of :class:`mne.viz.Brain` or matplotlib figure.
+
+        Notes
+        -----
+        Flatmaps are available by default for ``fsaverage`` but not for other
+        subjects reconstructed by FreeSurfer. We recommend using
+        :func:`mne.compute_source_morph` to morph source estimates to ``fsaverage``
+        for flatmap plotting. If you want to construct your own flatmap for a given
+        subject, these links might help:
+
+        - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
+        - https://openwetware.org/wiki/Beauchamp:FreeSurfer
+        """
         from .viz import plot_source_estimates
 
         brain = plot_source_estimates(
@@ -834,7 +1195,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             self._kernel = None
             self._sens_data = None
 
-    @fill_doc
+    @fill_doc_static("include_tmax")
     def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Restrict SourceEstimate to a time interval.
 
@@ -844,7 +1205,11 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             The first time point in seconds. If None the first present is used.
         tmax : float | None
             The last time point in seconds. If None the last present is used.
-        %(include_tmax)s
+        include_tmax : bool
+            If True (default), include tmax. If False, exclude tmax (similar to how
+            Python indexing typically works).
+
+            .. versionadded:: 0.19
 
         Returns
         -------
@@ -862,7 +1227,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         return self  # return self for chaining methods
 
-    @verbose
+    @verbose_static("method_resample", "window_resample", "pad_resample_auto", "n_jobs")
     def resample(
         self,
         sfreq,
@@ -887,17 +1252,46 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        %(method_resample)s
+        method : str
+            Resampling method to use. Can be ``"fft"`` (default) or ``"polyphase"`` to
+            use FFT-based on polyphase FIR resampling, respectively. These wrap to
+            :func:`scipy.signal.resample` and :func:`scipy.signal.resample_poly`,
+            respectively.
 
             .. versionadded:: 1.7
-        %(window_resample)s
+        window : str | tuple
+            When ``method="fft"``, this is the *frequency-domain* window to use in
+            resampling, and should be the same length as the signal; see
+            :func:`scipy.signal.resample` for details. When ``method="polyphase"``, this
+            is the *time-domain* linear-phase window to use after upsampling the signal;
+            see :func:`scipy.signal.resample_poly` for details. The default ``"auto"``
+            will use ``"boxcar"`` for ``method="fft"`` and ``("kaiser", 5.0)`` for
+            ``method="polyphase"``.
 
             .. versionadded:: 1.7
-        %(pad_resample_auto)s
+        pad : str
+            The type of padding to use. When ``method="fft"``, supports
+            all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+            which pads with a reflected version of each vector mirrored on the first
+            and last values of the vector, followed by zeros.
+            When ``method="polyphase"``, supports all modes of
+            :func:`scipy.signal.upfirdn`.
+            The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
+            ``'reflect'`` for ``method='polyphase'``.
 
             .. versionadded:: 1.7
-        %(n_jobs)s
-        %(verbose)s
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1448,7 +1842,13 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         return stcs
 
-    @verbose
+    @verbose_static(
+        "index_df_evk",
+        "scalings_df",
+        "long_format_df_stc",
+        "time_format_df",
+        "df_return",
+    )
     def to_data_frame(
         self,
         index=None,
@@ -1466,18 +1866,43 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Parameters
         ----------
-        %(index_df_evk)s
+        index : 'time' | None
+            Kind of index to use for the DataFrame. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
+            ``pandas.Index`` or
+            :class:`pandas.TimedeltaIndex` will be used
+            (depending on the value of ``time_format``).
             Defaults to ``None``.
-        %(scalings_df)s
-        %(long_format_df_stc)s
-        %(time_format_df)s
+        scalings : dict | None
+            Scaling factor applied to the channels picked. If ``None``, defaults to
+            ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
+            magnetometers to fT, and gradiometers to fT/cm. See :term:`data channels`
+            and :term:`non-data channels` for full list of default scalings.
+        long_format : bool
+            If True, the DataFrame is returned in long format where each row is one
+            observation of the signal at a unique combination of
+            time point and vertex.
+            Defaults to ``False``.
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values.
+            Default is ``None`` unless specified otherwise.
 
             .. versionadded:: 0.20
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(df_return)s
+        df : instance of pandas.DataFrame
+            A dataframe suitable for usage with other statistical/plotting/analysis
+            packages.
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
@@ -1548,7 +1973,7 @@ def _center_of_mass(
     return vertex
 
 
-@fill_doc
+@fill_doc_static("tmin", "tstep", "subject_optional", "verbose")
 class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     """Abstract base class for surface source estimates.
 
@@ -1560,10 +1985,18 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -1791,7 +2224,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         self.data = np.insert(self.data, inds, new_data, axis=0)
         return self
 
-    @verbose
+    @verbose_static("subjects_dir")
     def to_original_src(
         self, src_orig, subject_orig=None, subjects_dir=None, verbose=None
     ):
@@ -1805,8 +2238,15 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         subject_orig : str | None
             The original subject. For most source spaces this shouldn't need
             to be provided, since it is stored in the source space itself.
-        %(subjects_dir)s
-        %(verbose)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1832,7 +2272,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             self._data[data_idx], vertices, self.tmin, self.tstep, subject_orig
         )
 
-    @fill_doc
+    @fill_doc_static("get_peak_parameters")
     def get_peak(
         self,
         hemi=None,
@@ -1849,7 +2289,21 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         hemi : {'lh', 'rh', None}
             The hemi to be considered. If None, the entire source space is
             considered.
-        %(get_peak_parameters)s
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
+        vert_as_index : bool
+            Whether to return the vertex index (True) instead of of its ID
+            (False, default).
+        time_as_index : bool
+            Whether to return the time index (True) instead of the latency
+            (False, default).
 
         Returns
         -------
@@ -1884,7 +2338,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         return out
 
 
-@fill_doc
+@fill_doc_static("tmin", "tstep", "subject_optional", "verbose")
 class SourceEstimate(_BaseSurfaceSourceEstimate):
     """Container for surface source estimates.
 
@@ -1905,10 +2359,18 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -1932,7 +2394,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                           estimates.
     """
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
@@ -1947,10 +2409,16 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             File format to use. Allowed values are ``"stc"`` (default),
             ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
             time point.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
         _check_option("ftype", ftype, ["stc", "w", "h5"])
@@ -1995,7 +2463,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             super().save(fname, overwrite=overwrite)
         logger.info("[done]")
 
-    @verbose
+    @verbose_static("info_not_none")
     def estimate_snr(self, info, fwd, cov, verbose=None):
         r"""Compute time-varying SNR in the source space.
 
@@ -2008,13 +2476,19 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        %(info_not_none)s
+        info : mne.Info
+            The :class:`mne.Info` object with information about the
+            sensors and methods of measurement.
         fwd : instance of Forward
             The forward solution used to create the source estimate.
         cov : instance of Covariance
             The noise covariance used to estimate the resting cortical
             activations. Should be an evoked covariance, not empty room.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2079,7 +2553,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         snr_stc._data[:] = 10 * np.log10((self.data * self.data) * scaling)
         return snr_stc
 
-    @fill_doc
+    @fill_doc_static("subjects_dir")
     def center_of_mass(
         self,
         subject=None,
@@ -2116,7 +2590,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             will come from that array. If instance of SourceSpaces (as of
             0.13), the returned vertex will be from the given source space.
             For most accuruate estimates, do not restrict vertices.
-        %(subjects_dir)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         surf : str
             The surface to use for Euclidean distance center of mass
             finding. The default here is "sphere", which finds the center
@@ -2183,7 +2660,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 class _BaseVectorSourceEstimate(_BaseSourceEstimate):
     _data_ndim = 3
 
-    @verbose
+    @_verbose_control
     def __init__(
         self, data, vertices=None, tmin=None, tstep=None, subject=None, verbose=None
     ):
@@ -2209,7 +2686,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         )
         return normals
 
-    @fill_doc
+    @fill_doc_static("use_cps")
     def project(self, directions, src=None, use_cps=True):
         """Project the data for each vertex in a given direction.
 
@@ -2229,7 +2706,9 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             The source spaces corresponding to the source estimate.
             Not used when ``directions`` is an array, optional when
             ``directions='pca'``.
-        %(use_cps)s
+        use_cps : bool
+            Whether to use cortical patch statistics to define normal orientations for
+            surfaces (default True).
             Should be the same value that was used when the forward model
             was computed (typically True).
 
@@ -2291,7 +2770,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         )
         return stc, directions
 
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_vector_source_estimates")
     def plot(
         self,
         subject=None,
@@ -2326,6 +2805,175 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         brain_kwargs=None,
         verbose=None,
     ):
+        """Plot VectorSourceEstimate with PyVista.
+
+        A "glass brain" is drawn and all dipoles defined in the source estimate
+        are shown using arrows, depicting the direction and magnitude of the
+        current moment at the dipole. Additionally, an overlay is plotted on top of
+        the cortex with the magnitude of the current.
+
+        Parameters
+        ----------
+        subject : str | None
+            The FreeSurfer subject name.
+            If ``None``, ``stc.subject`` will be used.
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display.
+        colormap : str | matplotlib.colors.Colormap
+            Name of colormap to use or a custom Matplotlib colormap instance. If passing
+            a custom colormap, it must be an instance of
+            :class:`matplotlib.colors.Colormap` (e.g.,
+            :class:`matplotlib.colors.ListedColormap`).
+            This should be a sequential colormap.
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+            is more than one time point.
+        smoothing_steps : int
+            The amount of smoothing.
+        transparent : bool | None
+            If True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps). None will choose automatically based on colormap
+            type.
+        brain_alpha : float
+            Alpha value to apply globally to the surface meshes. Defaults to 0.4.
+        overlay_alpha : float
+            Alpha value to apply globally to the overlay. Defaults to
+            ``brain_alpha``.
+        vector_alpha : float
+            Alpha value to apply globally to the vector glyphs. Defaults to 1.
+        scale_factor : float | None
+            Scaling factor for the vector glyphs. By default, an attempt is made to
+            automatically determine a sane value.
+        time_viewer : bool | str
+            Display time viewer GUI. Can be "auto", which is True for the PyVista
+            backend and False otherwise.
+
+            .. versionchanged:: 0.20
+               Added "auto" option and default.
+        subjects_dir : str
+            The path to the freesurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        figure : instance of Figure3D | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the PyVista
+            figure by it's id or create a new figure with the given id.
+        views : str | list
+            View to use. Using multiple views (list) is not supported for mpl
+            backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+            valid string options.
+        colorbar : bool
+            If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim automatically
+            based on data percentiles. If dict, should contain:
+
+                ``kind`` : 'value' | 'percent'
+                    Flag to specify type of limits.
+                ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bound for colormap.
+
+            Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+            ``pos_lims``, as the surface plot must show the magnitude.
+        cortex : str or tuple
+            Specifies how binarized curvature values are rendered.
+            either the name of a preset Brain cortex colorscheme (one of
+            'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+            name of a colormap, or a tuple with values (colormap, min,
+            max, reverse) to fully specify the curvature colors.
+        size : float or tuple of float
+            The size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color | None
+            Color of the foreground of the display window.
+            None will choose black or white based on the background color.
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
+        time_unit : 's' | 'ms'
+            Whether time is represented in seconds ("s", default) or
+            milliseconds ("ms").
+        title : str | None
+            Title for the figure window. If ``None``, the subject name will be used.
+
+            .. versionadded:: 1.9
+        show_traces : bool | str | float
+            If True, enable interactive picking of a point on the surface of the
+            brain and plot its time course.
+            This feature is only available with the PyVista 3d backend, and requires
+            ``time_viewer=True``. Defaults to 'auto', which will use True if and
+            only if ``time_viewer=True``, the backend is PyVista, and there is more
+            than one time point. If float (between zero and one), it specifies what
+            proportion of the total window should be devoted to traces (True is
+            equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+            .. versionadded:: 0.20.0
+        src : instance of SourceSpaces | None
+            The source space corresponding to the source estimate. Only necessary
+            if the STC is a volume or mixed source estimate.
+        volume_options : float | dict | None
+            Options for volumetric source estimate plotting, with key/value pairs:
+
+            - ``'resolution'`` : float | None
+                Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+                better at the cost of speed. None (default) uses the volume source
+                space resolution, which is often something like 7 or 5 mm,
+                without resampling.
+            - ``'blending'`` : str
+                Can be "mip" (default) for :term:`maximum intensity projection` or
+                "composite" for composite blending using alpha values.
+            - ``'alpha'`` : float | None
+                Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+                estimates and 1.0 for scalar source estimates.
+            - ``'surface_alpha'`` : float | None
+                Alpha for the surface enclosing the volume(s). None (default) will use
+                half the volume alpha. Set to zero to avoid plotting the surface.
+            - ``'silhouette_alpha'`` : float | None
+                Alpha for a silhouette along the outside of the volume. None (default)
+                will use ``0.25 * surface_alpha``.
+            - ``'silhouette_linewidth'`` : float
+                The line width to use for the silhouette. Default is 2.
+            - ``'interpolation'`` : str
+                The interpolation method to use for resampling the volume source space
+                to the specified resolution (and for sampling in the volume rendering).
+                Can be "linear" (default) or "nearest".
+
+                .. versionadded:: 1.13
+
+            A float input (default 1.) or None will be used for the ``'resolution'``
+            entry.
+        view_layout : str
+            Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+            the PyVista backend must be used and hemi cannot be "split".
+        add_data_kwargs : dict | None
+            Additional arguments to brain.add_data (e.g.,
+            ``dict(time_label_size=10)``).
+        brain_kwargs : dict | None
+            Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+            ``dict(silhouette=True)``).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        brain : mne.viz.Brain
+            A instance of :class:`mne.viz.Brain`.
+
+        Notes
+        -----
+        .. versionadded:: 0.15
+
+        If the current magnitude overlay is not desired, set ``overlay_alpha=0``
+        and ``smoothing_steps=1``.
+        """
         from .viz import plot_vector_source_estimates
 
         return plot_vector_source_estimates(
@@ -2367,7 +3015,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     _src_type = "volume"
     _src_count = None
 
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_source_estimates")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -2401,6 +3049,194 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         block=False,
         verbose=None,
     ):
+        """Plot SourceEstimate.
+
+        Parameters
+        ----------
+        subject : str | None
+            The FreeSurfer subject name.
+            If ``None``, ``stc.subject`` will be used.
+        surface : str
+            The type of surface (inflated, white etc.).
+        hemi : str
+            Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``, or ``'split'``). In
+            the case of ``'both'``, both hemispheres are shown in the same window.
+            In the case of ``'split'`` hemispheres are displayed side-by-side
+            in different viewing panes.
+        colormap : str | matplotlib.colors.Colormap
+            Name of colormap to use or a custom Matplotlib colormap instance. If passing
+            a custom colormap, it must be an instance of
+            :class:`matplotlib.colors.Colormap` (e.g.,
+            :class:`matplotlib.colors.ListedColormap`).
+            The default ('auto') uses ``'hot'`` for one-sided data and
+            'mne' for two-sided data.
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+            is more than one time point.
+        smoothing_steps : int
+            The amount of smoothing.
+        transparent : bool | None
+            If True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps). None will choose automatically based on colormap
+            type.
+        alpha : float
+            Alpha value to apply globally to the overlay.
+        time_viewer : bool | str
+            Display time viewer GUI. Can also be 'auto', which will mean True
+            for the PyVista backend and False otherwise.
+
+            .. versionchanged:: 0.20.0
+               "auto" mode added.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        figure : instance of Figure3D | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the PyVista
+            figure by it's id or create a new figure with the given id.
+        views : str | list
+            View to use. Using multiple views (list) is not supported for mpl
+            backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+            valid string options.
+
+            When plotting a standard SourceEstimate (not volume, mixed, or vector)
+            and using the PyVista backend, ``views='flat'`` is also supported to
+            plot cortex as a flatmap.
+
+            .. versionchanged:: 0.21.0
+               Support for flatmaps.
+        colorbar : bool
+            If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim automatically
+            based on data percentiles. If dict, should contain:
+
+                ``kind`` : 'value' | 'percent'
+                    Flag to specify type of limits.
+                ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bounds for colormap.
+                ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
+            .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                      Only sequential colormaps should be used with ``lims``, and
+                      only divergent colormaps should be used with ``pos_lims``.
+        cortex : str | tuple
+            Specifies how binarized curvature values are rendered.
+            Either the name of a preset Brain cortex colorscheme (one of
+            ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
+            or the name of a colormap, or a tuple with values
+            ``(colormap, min, max, reverse)`` to fully specify the curvature
+            colors.
+        size : float or tuple of float
+            The size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color | None
+            Color of the foreground of the display window. None will choose white or
+            black based on the background color.
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
+        time_unit : ``'s'`` | ``'ms'``
+            Whether time is represented in seconds ("s", default) or
+            milliseconds ("ms").
+        backend : ``'auto'`` | ``'pyvistaqt'`` | ``'notebook'``
+            Which backend to use. If ``'auto'`` (default), tries to plot with
+            pyvistaqt.
+
+            .. versionadded:: 0.15.0
+        title : str | None
+            Title for the figure window. If ``None``, the subject name will be used.
+
+            .. versionadded:: 0.17.0
+        show_traces : bool | str | float
+            If True, enable interactive picking of a point on the surface of the
+            brain and plot its time course.
+            This feature is only available with the PyVista 3d backend, and requires
+            ``time_viewer=True``. Defaults to 'auto', which will use True if and
+            only if ``time_viewer=True``, the backend is PyVista, and there is more
+            than one time point. If float (between zero and one), it specifies what
+            proportion of the total window should be devoted to traces (True is
+            equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+            .. versionadded:: 0.20.0
+        src : instance of SourceSpaces | None
+            The source space corresponding to the source estimate. Only necessary
+            if the STC is a volume or mixed source estimate.
+        volume_options : float | dict | None
+            Options for volumetric source estimate plotting, with key/value pairs:
+
+            - ``'resolution'`` : float | None
+                Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+                better at the cost of speed. None (default) uses the volume source
+                space resolution, which is often something like 7 or 5 mm,
+                without resampling.
+            - ``'blending'`` : str
+                Can be "mip" (default) for :term:`maximum intensity projection` or
+                "composite" for composite blending using alpha values.
+            - ``'alpha'`` : float | None
+                Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+                estimates and 1.0 for scalar source estimates.
+            - ``'surface_alpha'`` : float | None
+                Alpha for the surface enclosing the volume(s). None (default) will use
+                half the volume alpha. Set to zero to avoid plotting the surface.
+            - ``'silhouette_alpha'`` : float | None
+                Alpha for a silhouette along the outside of the volume. None (default)
+                will use ``0.25 * surface_alpha``.
+            - ``'silhouette_linewidth'`` : float
+                The line width to use for the silhouette. Default is 2.
+            - ``'interpolation'`` : str
+                The interpolation method to use for resampling the volume source space
+                to the specified resolution (and for sampling in the volume rendering).
+                Can be "linear" (default) or "nearest".
+
+                .. versionadded:: 1.13
+
+            A float input (default 1.) or None will be used for the ``'resolution'``
+            entry.
+        view_layout : str
+            Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+            the PyVista backend must be used and hemi cannot be "split".
+        add_data_kwargs : dict | None
+            Additional arguments to brain.add_data (e.g.,
+            ``dict(time_label_size=10)``).
+        brain_kwargs : dict | None
+            Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+            ``dict(silhouette=True)``).
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            May not work on all systems / platforms. Defaults to ``False``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        figure : instance of mne.viz.Brain | matplotlib.figure.Figure
+            An instance of :class:`mne.viz.Brain` or matplotlib figure.
+
+        Notes
+        -----
+        Flatmaps are available by default for ``fsaverage`` but not for other
+        subjects reconstructed by FreeSurfer. We recommend using
+        :func:`mne.compute_source_morph` to morph source estimates to ``fsaverage``
+        for flatmap plotting. If you want to construct your own flatmap for a given
+        subject, these links might help:
+
+        - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
+        - https://openwetware.org/wiki/Beauchamp:FreeSurfer
+        """
         return super().plot(
             subject=subject,
             surface=surface,
@@ -2434,7 +3270,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             verbose=verbose,
         )
 
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_volume_source_estimates")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_volume_source_estimates")
     def plot(
         self,
         src,
@@ -2451,6 +3287,119 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         initial_pos=None,
         verbose=None,
     ):
+        """Plot Nutmeg style volumetric source estimates using nilearn.
+
+        Parameters
+        ----------
+        src : instance of SourceSpaces | instance of SourceMorph
+            The source space. Can also be a SourceMorph to morph the STC to
+            a new subject (see Examples).
+
+            .. versionchanged:: 0.18
+               Support for :class:`~nibabel.spatialimages.SpatialImage`.
+        subject : str | None
+            The FreeSurfer subject name.
+            If ``None``, ``stc.subject`` will be used.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        mode : ``'stat_map'`` | ``'glass_brain'``
+            The plotting mode to use. For ``'glass_brain'``, activations are displayed
+            after being transformed to a standard MNI brain. With a diverging colormap
+            (e.g., ``clim=dict(pos_lims=...)``), the signed value with the maximum
+            absolute value along each projection is shown; otherwise, absolute values
+            are shown.
+
+            .. versionchanged:: 1.13.1
+               Signed values can be shown in ``'glass_brain'`` mode.
+        bg_img : instance of SpatialImage | str
+            The background image used in the nilearn plotting function.
+            Can also be a string to use the ``bg_img`` file in the subject's
+            MRI directory (default is ``'T1.mgz'``).
+            Not used in "glass brain" plotting.
+        colorbar : bool
+            If True, display a colorbar on the right of the plots.
+        colormap : str | matplotlib.colors.Colormap
+            Name of colormap to use or a custom Matplotlib colormap instance. If passing
+            a custom colormap, it must be an instance of
+            :class:`matplotlib.colors.Colormap` (e.g.,
+            :class:`matplotlib.colors.ListedColormap`).
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim automatically
+            based on data percentiles. If dict, should contain:
+
+                ``kind`` : 'value' | 'percent'
+                    Flag to specify type of limits.
+                ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bounds for colormap.
+                ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
+            .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                      Only sequential colormaps should be used with ``lims``, and
+                      only divergent colormaps should be used with ``pos_lims``.
+        transparent : bool | None
+            If True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps). None will choose automatically based on colormap
+            type.
+        show : bool
+            Show figures if True. Defaults to True.
+        initial_time : float | None
+            The initial time to plot. Can be None (default) to use the time point
+            with the maximal absolute value activation across all voxels
+            or the ``initial_pos`` voxel (if ``initial_pos is None`` or not,
+            respectively).
+
+            .. versionadded:: 0.19
+        initial_pos : ndarray, shape (3,) | None
+            The initial position to use (in m). Can be None (default) to use the
+            voxel with the maximum absolute value activation across all time points
+            or at ``initial_time`` (if ``initial_time is None`` or not,
+            respectively).
+
+            .. versionadded:: 0.19
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : instance of Figure
+            The figure.
+
+        Notes
+        -----
+        Click on any of the anatomical slices to explore the time series.
+        Clicking on any time point will bring up the corresponding anatomical map.
+
+        The left and right arrow keys can be used to navigate in time.
+        To move in time by larger steps, use shift+left and shift+right.
+
+        In ``'glass_brain'`` mode, values are transformed to the standard MNI
+        brain using the FreeSurfer Talairach transformation
+        ``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``.
+
+        .. versionadded:: 0.17
+
+        .. versionchanged:: 0.19
+           MRI volumes are automatically transformed to MNI space in
+           ``'glass_brain'`` mode.
+
+        Examples
+        --------
+        Passing a :class:`mne.SourceMorph` as the ``src``
+        parameter can be useful for plotting in a different subject's space
+        (here, a ``'sample'`` STC in ``'fsaverage'``'s space)::
+
+        >>> morph = mne.compute_source_morph(src_sample, subject_to='fsaverage')  # doctest: +SKIP
+        >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
+        """  # noqa: E501
         from .viz import plot_volume_source_estimates
 
         data = self.magnitude() if self._data_ndim == 3 else self
@@ -2473,7 +3422,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         )
 
     # Override here to provide the volume-specific options
-    @verbose
+    @verbose_static(
+        "labels_eltc",
+        "src_eltc",
+        "mode_eltc",
+        "allow_empty_eltc",
+        "mri_resolution_eltc",
+        "label_tc_el_returns",
+        "eltc_mode_notes",
+    )
     def extract_label_time_course(
         self,
         labels,
@@ -2491,16 +3448,51 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        %(labels_eltc)s
-        %(src_eltc)s
-        %(mode_eltc)s
-        %(allow_empty_eltc)s
-        %(mri_resolution_eltc)s
-        %(verbose)s
+        labels : Label | BiHemiLabel | list | tuple | str
+            If using a surface or mixed source space, this should be the
+            :class:`~mne.Label`'s for which to extract the time course.
+            If working with whole-brain volume source estimates, this must be one of:
+
+            - a string path to a FreeSurfer atlas for the subject (e.g., their
+              'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+              atlas
+            - a two-element list or tuple, the first element being a path to an atlas,
+              and the second being a list or dict of ``volume_labels`` to extract
+              (see :func:`mne.setup_volume_source_space` for details).
+
+            .. versionchanged:: 0.21.0
+               Support for volume source estimates.
+        src : instance of SourceSpaces
+            The source spaces for the source time courses.
+        mode : str
+            Extraction mode, see Notes.
+        allow_empty : bool | str
+            ``False`` (default) will emit an error if there are labels that have no
+            vertices in the source estimate. ``True`` and ``'ignore'`` will return
+            all-zero time courses for labels that do not have any vertices in the
+            source estimate, and True will emit a warning while and "ignore" will
+            just log a message.
+
+            .. versionchanged:: 0.21.0
+               Support for "ignore".
+        mri_resolution : bool
+            If True (default), the volume source space will be upsampled to the
+            original MRI resolution via trilinear interpolation before the atlas values
+            are extracted. This ensnures that each atlas label will contain source
+            activations. When False, only the original source space points are used,
+            and some atlas labels thus may not contain any source space vertices.
+
+            .. versionadded:: 0.21.0
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(label_tc_el_returns)s
+        label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
+            Extracted time course for each label and source estimate.
 
         See Also
         --------
@@ -2508,8 +3500,43 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
-        %(eltc_mode_notes)s
-        """
+        Valid values for ``mode`` are:
+
+        - ``'max'``
+            Maximum absolute value across vertices at each time point within each label.
+        - ``'mean'``
+            Average across vertices at each time point within each label. Ignores
+            orientation of sources for standard source estimates, which varies
+            across the cortical surface, which can lead to cancellation.
+            Vector source estimates are always in XYZ / RAS orientation, and are thus
+            already geometrically aligned.
+        - ``'mean_flip'``
+            Finds the dominant direction of source space normal vector orientations
+            within each label, applies a sign-flip to time series at vertices whose
+            orientation is more than 90° different from the dominant direction, and
+            then averages across vertices at each time point within each label.
+        - ``'pca_flip'``
+            Applies singular value decomposition to the time courses within each label,
+            and uses the first right-singular vector as the representative label time
+            course. This signal is scaled so that its power matches the average
+            (per-vertex) power within the label, and sign-flipped by multiplying by
+            ``np.sign(u @ flip)``, where ``u`` is the first left-singular vector and
+            ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
+            sign-flip ensures that extracting time courses from the same label in
+            similar STCs does not result in 180° direction/phase changes.
+        - ``'auto'`` (default)
+            Uses ``'mean_flip'`` when a standard source estimate is applied, and
+            ``'mean'`` when a vector source estimate is supplied.
+        - ``None``
+            No aggregation is performed, and an array of shape ``(n_vertices, n_times)``
+            is returned.
+
+            .. versionadded:: 0.21
+               Support for ``'auto'``, vector, and volume source estimates.
+
+        The only modes that work for vector and volume source estimates are ``'mean'``,
+        ``'max'``, and ``'auto'``.
+        """  # noqa: E501
         return extract_label_time_course(
             self,
             labels,
@@ -2521,7 +3548,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             verbose=verbose,
         )
 
-    @verbose
+    @verbose_static()
     def in_label(self, label, mri, src, *, verbose=None):
         """Get a source estimate object restricted to a label.
 
@@ -2538,7 +3565,11 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The volumetric source space. It must be a single, whole-brain
             volume.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2573,7 +3604,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         )
         return label_stc
 
-    @verbose
+    @verbose_static("overwrite")
     def save_as_volume(
         self,
         fname,
@@ -2606,10 +3637,16 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             Either ``'nifti1'`` (default) or ``'nifti2'``.
 
             .. versionadded:: 0.17
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
             .. versionadded:: 1.0
 
@@ -2672,7 +3709,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         )
 
 
-@fill_doc
+@fill_doc_static("vertices_volume", "tmin", "tstep", "subject_optional", "verbose")
 class VolSourceEstimate(_BaseVolSourceEstimate):
     """Container for volume source estimates.
 
@@ -2683,11 +3720,21 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to ``np.dot(kernel, sens_data)``.
-    %(vertices_volume)s
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    vertices : list of array of int
+        The indices of the dipoles in the source space. Should be a single
+        array of shape (n_dipoles,) unless there are subvolumes.
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -2695,7 +3742,9 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    %(vertices_volume)s
+    vertices : list of array of int
+        The indices of the dipoles in the source space. Should be a single
+        array of shape (n_dipoles,) unless there are subvolumes.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
@@ -2714,7 +3763,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     .. versionadded:: 0.9.0
     """
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
@@ -2727,10 +3776,16 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             File format to use. Allowed values are ``"stc"`` (default),
             ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
             time point.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         # check overwrite individually below
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
@@ -2767,7 +3822,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         logger.info("[done]")
 
 
-@fill_doc
+@fill_doc_static("vertices_volume", "tmin", "tstep", "subject_optional", "verbose")
 class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate):
     """Container for volume source estimates.
 
@@ -2776,11 +3831,21 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    %(vertices_volume)s
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    vertices : list of array of int
+        The indices of the dipoles in the source space. Should be a single
+        array of shape (n_dipoles,) unless there are subvolumes.
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -2788,7 +3853,9 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    %(vertices_volume)s
+    vertices : list of array of int
+        The indices of the dipoles in the source space. Should be a single
+        array of shape (n_dipoles,) unless there are subvolumes.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
@@ -2810,7 +3877,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
     _scalar_class = VolSourceEstimate
 
     # defaults differ: hemi='both', views='axial'
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_vector_source_estimates")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_vector_source_estimates")
     def plot_3d(
         self,
         subject=None,
@@ -2845,6 +3912,175 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         brain_kwargs=None,
         verbose=None,
     ):
+        """Plot VectorSourceEstimate with PyVista.
+
+        A "glass brain" is drawn and all dipoles defined in the source estimate
+        are shown using arrows, depicting the direction and magnitude of the
+        current moment at the dipole. Additionally, an overlay is plotted on top of
+        the cortex with the magnitude of the current.
+
+        Parameters
+        ----------
+        subject : str | None
+            The FreeSurfer subject name.
+            If ``None``, ``stc.subject`` will be used.
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display.
+        colormap : str | matplotlib.colors.Colormap
+            Name of colormap to use or a custom Matplotlib colormap instance. If passing
+            a custom colormap, it must be an instance of
+            :class:`matplotlib.colors.Colormap` (e.g.,
+            :class:`matplotlib.colors.ListedColormap`).
+            This should be a sequential colormap.
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+            is more than one time point.
+        smoothing_steps : int
+            The amount of smoothing.
+        transparent : bool | None
+            If True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps). None will choose automatically based on colormap
+            type.
+        brain_alpha : float
+            Alpha value to apply globally to the surface meshes. Defaults to 0.4.
+        overlay_alpha : float
+            Alpha value to apply globally to the overlay. Defaults to
+            ``brain_alpha``.
+        vector_alpha : float
+            Alpha value to apply globally to the vector glyphs. Defaults to 1.
+        scale_factor : float | None
+            Scaling factor for the vector glyphs. By default, an attempt is made to
+            automatically determine a sane value.
+        time_viewer : bool | str
+            Display time viewer GUI. Can be "auto", which is True for the PyVista
+            backend and False otherwise.
+
+            .. versionchanged:: 0.20
+               Added "auto" option and default.
+        subjects_dir : str
+            The path to the freesurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        figure : instance of Figure3D | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the PyVista
+            figure by it's id or create a new figure with the given id.
+        views : str | list
+            View to use. Using multiple views (list) is not supported for mpl
+            backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+            valid string options.
+        colorbar : bool
+            If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim automatically
+            based on data percentiles. If dict, should contain:
+
+                ``kind`` : 'value' | 'percent'
+                    Flag to specify type of limits.
+                ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Lower, middle, and upper bound for colormap.
+
+            Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+            ``pos_lims``, as the surface plot must show the magnitude.
+        cortex : str or tuple
+            Specifies how binarized curvature values are rendered.
+            either the name of a preset Brain cortex colorscheme (one of
+            'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+            name of a colormap, or a tuple with values (colormap, min,
+            max, reverse) to fully specify the curvature colors.
+        size : float or tuple of float
+            The size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color | None
+            Color of the foreground of the display window.
+            None will choose black or white based on the background color.
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
+        time_unit : 's' | 'ms'
+            Whether time is represented in seconds ("s", default) or
+            milliseconds ("ms").
+        title : str | None
+            Title for the figure window. If ``None``, the subject name will be used.
+
+            .. versionadded:: 1.9
+        show_traces : bool | str | float
+            If True, enable interactive picking of a point on the surface of the
+            brain and plot its time course.
+            This feature is only available with the PyVista 3d backend, and requires
+            ``time_viewer=True``. Defaults to 'auto', which will use True if and
+            only if ``time_viewer=True``, the backend is PyVista, and there is more
+            than one time point. If float (between zero and one), it specifies what
+            proportion of the total window should be devoted to traces (True is
+            equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+            .. versionadded:: 0.20.0
+        src : instance of SourceSpaces | None
+            The source space corresponding to the source estimate. Only necessary
+            if the STC is a volume or mixed source estimate.
+        volume_options : float | dict | None
+            Options for volumetric source estimate plotting, with key/value pairs:
+
+            - ``'resolution'`` : float | None
+                Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+                better at the cost of speed. None (default) uses the volume source
+                space resolution, which is often something like 7 or 5 mm,
+                without resampling.
+            - ``'blending'`` : str
+                Can be "mip" (default) for :term:`maximum intensity projection` or
+                "composite" for composite blending using alpha values.
+            - ``'alpha'`` : float | None
+                Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+                estimates and 1.0 for scalar source estimates.
+            - ``'surface_alpha'`` : float | None
+                Alpha for the surface enclosing the volume(s). None (default) will use
+                half the volume alpha. Set to zero to avoid plotting the surface.
+            - ``'silhouette_alpha'`` : float | None
+                Alpha for a silhouette along the outside of the volume. None (default)
+                will use ``0.25 * surface_alpha``.
+            - ``'silhouette_linewidth'`` : float
+                The line width to use for the silhouette. Default is 2.
+            - ``'interpolation'`` : str
+                The interpolation method to use for resampling the volume source space
+                to the specified resolution (and for sampling in the volume rendering).
+                Can be "linear" (default) or "nearest".
+
+                .. versionadded:: 1.13
+
+            A float input (default 1.) or None will be used for the ``'resolution'``
+            entry.
+        view_layout : str
+            Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+            the PyVista backend must be used and hemi cannot be "split".
+        add_data_kwargs : dict | None
+            Additional arguments to brain.add_data (e.g.,
+            ``dict(time_label_size=10)``).
+        brain_kwargs : dict | None
+            Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+            ``dict(silhouette=True)``).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        brain : mne.viz.Brain
+            A instance of :class:`mne.viz.Brain`.
+
+        Notes
+        -----
+        .. versionadded:: 0.15
+
+        If the current magnitude overlay is not desired, set ``overlay_alpha=0``
+        and ``smoothing_steps=1``.
+        """
         return _BaseVectorSourceEstimate.plot(
             self,
             subject=subject,
@@ -2880,7 +4116,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         )
 
 
-@fill_doc
+@fill_doc_static("tmin", "tstep", "subject_optional", "verbose")
 class VectorSourceEstimate(_BaseVectorSourceEstimate, _BaseSurfaceSourceEstimate):
     """Container for vector surface source estimates.
 
@@ -2896,10 +4132,18 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate, _BaseSurfaceSourceEstimate
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -2933,7 +4177,7 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
     _src_type = "mixed"
     _src_count = None
 
-    @verbose
+    @_verbose_control
     def __init__(
         self, data, vertices=None, tmin=None, tstep=None, subject=None, verbose=None
     ):
@@ -2996,7 +4240,7 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
         )
 
 
-@fill_doc
+@fill_doc_static("tmin", "tstep", "subject_optional", "verbose")
 class MixedSourceEstimate(_BaseMixedSourceEstimate):
     """Container for mixed surface and volume source estimates.
 
@@ -3010,10 +4254,18 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     vertices : list of array
         Vertex numbers corresponding to the data. The list contains arrays
         with one array per source space.
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -3042,7 +4294,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     """
 
 
-@fill_doc
+@fill_doc_static("tmin", "tstep", "subject_optional", "verbose")
 class MixedVectorSourceEstimate(_BaseVectorSourceEstimate, _BaseMixedSourceEstimate):
     """Container for volume source estimates.
 
@@ -3053,10 +4305,18 @@ class MixedVectorSourceEstimate(_BaseVectorSourceEstimate, _BaseMixedSourceEstim
         denote the dipole strength in X, Y and Z directions over time.
     vertices : list of array, shape (n_src,)
         Vertex numbers corresponding to the data.
-    %(tmin)s
-    %(tstep)s
-    %(subject_optional)s
-    %(verbose)s
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str
+        The FreeSurfer subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -3149,7 +4409,7 @@ def _spatio_temporal_src_adjacency_surf(src, n_times):
     return adjacency
 
 
-@verbose
+@verbose_static()
 def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
     """Compute adjacency for a source space activation over time.
 
@@ -3164,7 +4424,11 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3192,7 +4456,7 @@ def spatio_temporal_src_adjacency(src, n_times, dist=None, verbose=None):
     return adjacency
 
 
-@verbose
+@verbose_static()
 def grade_to_tris(grade, verbose=None):
     """Get tris defined for a certain grade.
 
@@ -3200,7 +4464,11 @@ def grade_to_tris(grade, verbose=None):
     ----------
     grade : int
         Grade of an icosahedral mesh.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3213,7 +4481,7 @@ def grade_to_tris(grade, verbose=None):
     return tris
 
 
-@verbose
+@verbose_static()
 def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=None):
     """Compute adjacency from triangles and time instants.
 
@@ -3226,7 +4494,11 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3248,7 +4520,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
     return _get_adjacency_from_edges(edges, n_times)
 
 
-@verbose
+@verbose_static()
 def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
     """Compute adjacency from distances in a source space and time instants.
 
@@ -3264,7 +4536,11 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3299,7 +4575,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
     return _get_adjacency_from_edges(edges, n_times)
 
 
-@verbose
+@verbose_static()
 def spatial_src_adjacency(src, dist=None, verbose=None):
     """Compute adjacency for a source space activation.
 
@@ -3312,7 +4588,11 @@ def spatial_src_adjacency(src, dist=None, verbose=None):
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3322,7 +4602,7 @@ def spatial_src_adjacency(src, dist=None, verbose=None):
     return spatio_temporal_src_adjacency(src, 1, dist)
 
 
-@verbose
+@verbose_static()
 def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
     """Compute adjacency from triangles.
 
@@ -3333,7 +4613,11 @@ def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3343,7 +4627,7 @@ def spatial_tris_adjacency(tris, remap_vertices=False, verbose=None):
     return spatio_temporal_tris_adjacency(tris, 1, remap_vertices)
 
 
-@verbose
+@verbose_static()
 def spatial_dist_adjacency(src, dist, verbose=None):
     """Compute adjacency from distances in a source space.
 
@@ -3357,7 +4641,11 @@ def spatial_dist_adjacency(src, dist, verbose=None):
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3367,7 +4655,7 @@ def spatial_dist_adjacency(src, dist, verbose=None):
     return spatio_temporal_dist_adjacency(src, 1, dist)
 
 
-@verbose
+@verbose_static()
 def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     """Get vertices on each hemisphere that are close to the other hemisphere.
 
@@ -3378,7 +4666,11 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     dist : float
         Maximal Euclidean distance (in m) between vertices in one hemisphere
         compared to the other to consider neighbors.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3401,7 +4693,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
     return adj
 
 
-@verbose
+@_verbose_control
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
     from scipy import sparse
@@ -3429,7 +4721,7 @@ def _get_adjacency_from_edges(edges, n_times, verbose=None):
     return adjacency
 
 
-@verbose
+@_verbose_control
 def _get_ico_tris(grade, verbose=None, return_surf=False):
     """Get triangles for ico surface."""
     ico = _get_ico_surface(grade)
@@ -3814,7 +5106,15 @@ def _gen_extract_label_time_course(
         yield label_tc
 
 
-@verbose
+@verbose_static(
+    "labels_eltc",
+    "src_eltc",
+    "mode_eltc",
+    "allow_empty_eltc",
+    "mri_resolution_eltc",
+    "label_tc_el_returns",
+    "eltc_mode_notes",
+)
 def extract_label_time_course(
     stcs,
     labels,
@@ -3836,29 +5136,99 @@ def extract_label_time_course(
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    %(labels_eltc)s
-    %(src_eltc)s
-    %(mode_eltc)s
-    %(allow_empty_eltc)s
+    labels : Label | BiHemiLabel | list | tuple | str
+        If using a surface or mixed source space, this should be the
+        :class:`~mne.Label`'s for which to extract the time course.
+        If working with whole-brain volume source estimates, this must be one of:
+
+        - a string path to a FreeSurfer atlas for the subject (e.g., their
+          'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+          atlas
+        - a two-element list or tuple, the first element being a path to an atlas,
+          and the second being a list or dict of ``volume_labels`` to extract
+          (see :func:`mne.setup_volume_source_space` for details).
+
+        .. versionchanged:: 0.21.0
+           Support for volume source estimates.
+    src : instance of SourceSpaces
+        The source spaces for the source time courses.
+    mode : str
+        Extraction mode, see Notes.
+    allow_empty : bool | str
+        ``False`` (default) will emit an error if there are labels that have no
+        vertices in the source estimate. ``True`` and ``'ignore'`` will return
+        all-zero time courses for labels that do not have any vertices in the
+        source estimate, and True will emit a warning while and "ignore" will
+        just log a message.
+
+        .. versionchanged:: 0.21.0
+           Support for "ignore".
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(mri_resolution_eltc)s
-    %(verbose)s
+    mri_resolution : bool
+        If True (default), the volume source space will be upsampled to the
+        original MRI resolution via trilinear interpolation before the atlas values
+        are extracted. This ensnures that each atlas label will contain source
+        activations. When False, only the original source space points are used,
+        and some atlas labels thus may not contain any source space vertices.
+
+        .. versionadded:: 0.21.0
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(label_tc_el_returns)s
+    label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
+        Extracted time course for each label and source estimate.
 
     Notes
     -----
-    %(eltc_mode_notes)s
+    Valid values for ``mode`` are:
+
+    - ``'max'``
+        Maximum absolute value across vertices at each time point within each label.
+    - ``'mean'``
+        Average across vertices at each time point within each label. Ignores
+        orientation of sources for standard source estimates, which varies
+        across the cortical surface, which can lead to cancellation.
+        Vector source estimates are always in XYZ / RAS orientation, and are thus
+        already geometrically aligned.
+    - ``'mean_flip'``
+        Finds the dominant direction of source space normal vector orientations
+        within each label, applies a sign-flip to time series at vertices whose
+        orientation is more than 90° different from the dominant direction, and
+        then averages across vertices at each time point within each label.
+    - ``'pca_flip'``
+        Applies singular value decomposition to the time courses within each label,
+        and uses the first right-singular vector as the representative label time
+        course. This signal is scaled so that its power matches the average
+        (per-vertex) power within the label, and sign-flipped by multiplying by
+        ``np.sign(u @ flip)``, where ``u`` is the first left-singular vector and
+        ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
+        sign-flip ensures that extracting time courses from the same label in
+        similar STCs does not result in 180° direction/phase changes.
+    - ``'auto'`` (default)
+        Uses ``'mean_flip'`` when a standard source estimate is applied, and
+        ``'mean'`` when a vector source estimate is supplied.
+    - ``None``
+        No aggregation is performed, and an array of shape ``(n_vertices, n_times)``
+        is returned.
+
+        .. versionadded:: 0.21
+           Support for ``'auto'``, vector, and volume source estimates.
+
+    The only modes that work for vector and volume source estimates are ``'mean'``,
+    ``'max'``, and ``'auto'``.
 
     If encountering a ``ValueError`` due to mismatch between number of
     source points in the subject source space and computed ``stc`` object set
     ``src`` argument to ``fwd['src']`` or ``inv['src']`` to ensure the source
     space is the one actually used by the inverse to compute the source
     time courses.
-    """
+    """  # noqa: E501
     # convert inputs to lists
     if not isinstance(stcs, list | tuple | GeneratorType):
         stcs = [stcs]
@@ -3887,7 +5257,7 @@ def extract_label_time_course(
     return label_tc
 
 
-@verbose
+@verbose_static("trans", "subjects_dir", "picks_base")
 def stc_near_sensors(
     evoked,
     trans,
@@ -3907,7 +5277,11 @@ def stc_near_sensors(
     ----------
     evoked : instance of Evoked
         The evoked data. Must contain ECoG, sEEG or DBS channels.
-    %(trans)s
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
 
         .. versionchanged:: 0.19
             Support for 'fsaverage' argument.
@@ -3927,14 +5301,24 @@ def stc_near_sensors(
         If True, project the sensors to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
         surface projection.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     src : instance of SourceSpaces
         The source space.
 
         .. warning:: If a surface source space is used, make sure that
                      ``surface='pial'`` was used during construction,
                      or that you set ``surface='pial'`` here.
-    %(picks_base)s good sEEG, ECoG, and DBS channels.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick
+        good sEEG, ECoG, and DBS channels.
 
         .. versionadded:: 0.24
     surface : str | None
@@ -3942,7 +5326,11 @@ def stc_near_sensors(
         Otherwise, the source space surface will be used.
 
         .. versionadded:: 0.24.1
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -124,9 +124,6 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         raise RuntimeError(
             f"Montage channel positions must be in ``head`` got {pos['coord_frame']}"
         )
-    # store bads orig to put back at the end
-    bads_orig = inst.info["bads"]
-    inst.info["bads"] = list()
 
     # look for group of bad channels
     nodes = sorted(set(chain(*bridged_idx)))
@@ -152,6 +149,10 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
                 "and form a large area of bridged electrodes. Interpolation "
                 "might be inaccurate."
             )
+
+    # store bads orig to put back at the end
+    bads_orig = inst.info["bads"]
+    inst.info["bads"] = list()
 
     # make virtual channels
     virtual_chs = dict()

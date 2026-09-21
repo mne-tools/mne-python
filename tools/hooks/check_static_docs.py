@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Check (or fix) statically filled docstrings against ``mne.utils.docs.docdict``.
 
-Functions/methods decorated with ``@fill_doc_static(*keys)`` or
+Classes, functions and methods decorated with ``@fill_doc_static(*keys)`` or
 ``@verbose_static(*keys)`` must contain, verbatim, the expanded text of
 ``docdict[key]`` for each key (``verbose_static`` implies the ``"verbose"`` key).
 Methods decorated with ``@copy_doc_static(source)`` or
@@ -23,10 +23,12 @@ running ``--fix``.
 How blocks are located (no fences are needed):
 
 - A *parameter* entry (``name : type`` ...) is found by its parameter name and
-  extends to the next line at the same or lower indentation.
+  spans as many parameters as the ``docdict`` entry has.
 - Any other entry is found by its first line and spans as many paragraphs as the
   ``docdict`` entry has. If the first line itself changed, the previous version of
   ``docdict`` (from ``git HEAD``) is used to find the old block.
+- An entry used twice in one docstring (in ``Parameters`` and again in
+  ``Attributes``, say) is checked and updated in both places.
 
 Text specific to one docstring may follow a shared block (a ``.. versionadded::``
 note, an extra sentence); the block's previous version (from ``git HEAD``) is used
@@ -65,8 +67,19 @@ from mne.utils.docs import _copy_doc, _copy_function_doc, docdict  # noqa: E402
 
 _FILL_DECORATORS = {"fill_doc_static", "verbose_static"}
 _COPY_DECORATORS = {"copy_doc_static", "copy_function_doc_to_method_doc_static"}
-_PLACEHOLDER_RE = re.compile(r"%\((\w+)\)s")
+# keys may contain a "*", as in ``docdict["notes_plot_*_psd_func"]``
+_PLACEHOLDER_RE = re.compile(r"%\(([\w*]+)\)s")
 _PARAM_RE = re.compile(r"^(\*{0,2}\w+(?:, \*{0,2}\w+)*)\s*:")
+# import-time docstring filling is kept for downstream packages only
+_DYNAMIC_DECORATORS = {
+    "fill_doc": "@fill_doc_static()",
+    "verbose": "@verbose_static() (or @_verbose_control if verbose is undocumented)",
+    "copy_doc": '@copy_doc_static("meth:...")',
+    "copy_function_doc_to_method_doc": (
+        '@copy_function_doc_to_method_doc_static("func:...")'
+    ),
+}
+_DYNAMIC_RE = re.compile(r"@(" + "|".join(_DYNAMIC_DECORATORS) + r")\b(?!_static)")
 _LINE_LENGTH = 88  # ruff's default, which pyproject.toml does not override
 
 
@@ -106,18 +119,22 @@ def _old_docdict():
 
 
 def _iter_functions(tree):
-    """Yield ``(qualname, node)`` for every function definition in ``tree``."""
+    """Yield ``(qualname, node)`` for every class/function definition in ``tree``."""
     stack = [(tree, "")]
     while stack:
         node, prefix = stack.pop()
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
                 qualname = f"{prefix}{child.name}"
-                if not isinstance(child, ast.ClassDef):
-                    yield qualname, child
+                yield qualname, child  # a class docstring is filled just like a def's
                 stack.append((child, qualname + "."))
-            else:
-                stack.append((child, prefix))
+            elif isinstance(child, ast.stmt | ast.ExceptHandler | ast.match_case):
+                stack.append((child, prefix))  # a def cannot hide in an expression
+
+
+def _definitions(source):
+    """Return the ``(qualname, node)`` list of every definition in ``source``."""
+    return list(_iter_functions(ast.parse(source)))
 
 
 def _docstring_node(node):
@@ -196,13 +213,22 @@ def _deindent(lines, indent):
 
 def _block_end(lines, start, entry):
     """Return the end of the block starting at ``start`` for ``entry``."""
-    if _PARAM_RE.match(entry[0]):  # structural: until the next line at <= indent
+    if _PARAM_RE.match(entry[0]):  # structural: as many parameters as the entry has
         indent = _indent_of(lines[start])
-        stop = start + 1
+        want = sum(
+            1 for line in entry if _indent_of(line) == 0 and _PARAM_RE.match(line)
+        )
+        stop, seen = start + 1, 1
         while stop < len(lines):
             line = lines[stop]
             if line.strip() and _indent_of(line) <= indent:
-                break
+                if (
+                    seen == want
+                    or _indent_of(line) < indent
+                    or not _PARAM_RE.match(line.strip())
+                ):
+                    break
+                seen += 1
             stop += 1
     else:  # prose: as many paragraphs as the entry has
         spans = list(_paragraphs(lines, start))[: _n_paragraphs(entry)]
@@ -240,28 +266,42 @@ def _score(lines, start, entry):
 
 
 def _locate(lines, key, entry, min_indent):
-    """Return ``(start, stop, version)`` of the block for ``entry`` in ``lines``.
+    """Return ``(start, stop, version)`` of the first block for ``entry``."""
+    return _locate_all(lines, key, entry, min_indent)[0]
 
-    ``version`` is the entry text the block was found with: the current one, or
-    the ``git HEAD`` one if the entry's anchor line changed.
+
+def _locate_all(lines, key, entry, min_indent):
+    """Return the ``(start, stop, version)`` of every block for ``entry``.
+
+    An entry may be used more than once in one docstring (in ``Parameters`` and
+    again in ``Attributes``, say); the copies are then identical, and all of them
+    are returned. ``version`` is the entry text the blocks were found with: the
+    current one, or the ``git HEAD`` one if the entry's anchor line changed.
     """
     versions = [entry]
     old = _old_docdict().get(key)
     if old is not None and _entry_lines(old) != entry:
         versions.append(_entry_lines(old))
+    ambiguous = None
     for version in versions:
         candidates = _anchor_candidates(lines, version, min_indent)
         if not candidates:
             continue
         scored = sorted((_score(lines, c, version), c) for c in candidates)
-        best, start = scored[-1]
-        if len(scored) > 1 and scored[-2][0] == best:
-            raise DocError(
+        best = scored[-1][0]
+        # a block matching beyond its anchor line is an (edited) copy of the entry,
+        # one sharing only e.g. ``info : mne.Info`` is some other parameter
+        starts = sorted(c for sc, c in scored if sc == best or sc > 1)
+        if len(starts) > 1 and best < len(version):
+            # partial matches cannot be told apart; a later version may still fit
+            ambiguous = DocError(
                 f"ambiguous location for docdict[{key!r}]: lines "
-                f"{[c + 1 for sc, c in scored if sc == best]} all start with "
-                f"{version[0].strip()!r}"
+                f"{[c + 1 for c in starts]} all start with {version[0].strip()!r}"
             )
-        return start, _block_end(lines, start, version), version
+            continue
+        return [(s, _block_end(lines, s, version), version) for s in starts]
+    if ambiguous is not None:
+        raise ambiguous
     raise DocError(
         f"could not find the block for docdict[{key!r}] (first line "
         f"{entry[0].strip()!r}); add it (``%({key})s`` on its own line) or paste it "
@@ -274,7 +314,7 @@ def _expand_placeholders(lines, keys, entries=None):
     entries = docdict if entries is None else entries
     found = []
     out = []
-    for line in lines:
+    for ii, line in enumerate(lines):
         found_here = _PLACEHOLDER_RE.findall(line)
         if not found_here:
             out.append(line)
@@ -293,6 +333,18 @@ def _expand_placeholders(lines, keys, entries=None):
         suffix = line.split(")s", 1)[1].strip()
         if suffix:  # trailing text moves to its own line, at the entry's indent
             out.append(" " * _indent_of(out[-1]) + suffix)
+        else:
+            # Text right after the placeholder is the docstring's own (or, for
+            # prose, the next paragraph): keep it apart with a blank line, as the
+            # entry's trailing newline did when filled dynamically.
+            following = lines[ii + 1] if ii + 1 < len(lines) else ""
+            # (a one-line entry is a bare ``name : type`` whose description follows)
+            deeper = len(entry) > 1 and _indent_of(following) > len(indent)
+            prose = not _PARAM_RE.match(entry[0]) and _indent_of(following) == len(
+                indent
+            )
+            if following.strip() and (deeper or prose):
+                out.append("")
         found.append(key)
     lines[:] = out
     return found
@@ -400,14 +452,14 @@ def _split_block_raw(current, entry, old_entry, old_own):
     return list(head), list(old_own)
 
 
-def expected_fill(body, keys, reverse, old_body=None, where=""):
+def expected_fill(body, keys, reverse, old_body=lambda: None, where=""):
     """Return (new body, all keys) with every entry matching ``docdict``.
 
     If an entry is unchanged since ``git HEAD`` but the docstring's copy of it was
     edited, the edit is recorded in ``reverse`` (key -> new text) to be pushed
-    back into ``docdict`` rather than overwritten. ``old_body`` is this
-    docstring as of ``git HEAD``, used to tell shared text apart from the
-    site-specific text that may follow it.
+    back into ``docdict`` rather than overwritten. ``old_body()`` returns this
+    docstring as of ``git HEAD`` (fetched only when a block differs), used to
+    tell shared text apart from the site-specific text that may follow it.
     """
     lines = body.splitlines()
     widths = [_indent_of(x) for x in lines[1:] if x.strip()]
@@ -420,50 +472,71 @@ def expected_fill(body, keys, reverse, old_body=None, where=""):
         if key not in docdict:
             raise DocError(f"unknown docdict key {key!r}")
         entry = _entry_lines(docdict[key])
-        start, stop, _ = _locate(lines, key, entry, min_indent)
-        indent = _indent_of(lines[start])
-        current = _deindent(lines[start:stop], indent)
-        old_entry = _old_docdict().get(key)
-        old_entry = _entry_lines(old_entry) if old_entry is not None else None
-        old_info = _old_block_info(old_body, key, entry, old_entry)
-        old_own = old_info[0] if old_info is not None else None
-        knowns = [k for k in (entry, old_entry) if k is not None]
-        if old_info is not None and old_entry is not None and old_entry != entry:
-            # a stale copy may extend past the new entry's extent (e.g. the
-            # entry lost a paragraph); recognize it by the old entry's full text
-            bounded = _bounded_stop(lines, start, old_info[1])
-            if bounded is not None and bounded > stop:
-                extended = _deindent(lines[start:bounded], indent)
-                if extended[: len(old_entry)] == old_entry:
-                    stop, current = bounded, extended
-        if old_info is not None and not any(current[: len(k)] == k for k in knowns):
-            # The block content matches no known version of the entry, so its
-            # extent cannot be trusted either; bound it by the line that
-            # followed the old block instead.
-            bounded = _bounded_stop(lines, start, old_info[1])
-            if bounded is None:
-                raise DocError(
-                    f"docdict[{key!r}]: cannot tell where the edited shared text "
-                    "ends (the text that used to follow it is gone); make the "
-                    "change in mne/utils/docs.py instead"
-                )
-            stop = bounded
-            current = _deindent(lines[start:stop], indent)
-        try:
-            shared, own = _split_block(current, entry, old_entry, old_own)
-        except DocError as exc:
-            raise DocError(f"docdict[{key!r}]: {exc}") from None
-        if shared == entry:
-            continue  # in sync; anything after the entry is the site's own text
-        if old_entry == entry:
-            # docdict is unchanged, so the docstring's copy is what was edited
-            reverse[key] = (where, shared)
-            continue
-        lines[start:stop] = _reindent(entry + own, " " * indent)
+        # replace from the bottom up, so that the earlier blocks keep their
+        # line numbers when a block above them changes length
+        blocks = _locate_all(lines, key, entry, min_indent)
+        for index, (start, stop, _) in reversed(list(enumerate(blocks))):
+            # only one block can be matched up with the previous version of this
+            # docstring, so a repeated entry may not have site-specific text
+            _sync_block(
+                lines,
+                start,
+                stop,
+                key,
+                entry,
+                old_body if index == 0 else lambda: None,
+                reverse,
+                where,
+            )
     new = "\n".join(lines)
     if body.endswith("\n"):
         new += "\n"
     return new, keys
+
+
+def _sync_block(lines, start, stop, key, entry, old_body, reverse, where):
+    """Rewrite the block at ``start`` in place so its shared text matches ``entry``."""
+    indent = _indent_of(lines[start])
+    current = _deindent(lines[start:stop], indent)
+    if current == entry:
+        return  # in sync, whatever the previous version looked like
+    old_entry = _old_docdict().get(key)
+    old_entry = _entry_lines(old_entry) if old_entry is not None else None
+    old_info = _old_block_info(old_body(), key, entry, old_entry)
+    old_own = old_info[0] if old_info is not None else None
+    knowns = [k for k in (entry, old_entry) if k is not None]
+    if old_info is not None and old_entry is not None and old_entry != entry:
+        # a stale copy may extend past the new entry's extent (e.g. the
+        # entry lost a paragraph); recognize it by the old entry's full text
+        bounded = _bounded_stop(lines, start, old_info[1])
+        if bounded is not None and bounded > stop:
+            extended = _deindent(lines[start:bounded], indent)
+            if extended[: len(old_entry)] == old_entry:
+                stop, current = bounded, extended
+    if old_info is not None and not any(current[: len(k)] == k for k in knowns):
+        # The block content matches no known version of the entry, so its
+        # extent cannot be trusted either; bound it by the line that
+        # followed the old block instead.
+        bounded = _bounded_stop(lines, start, old_info[1])
+        if bounded is None:
+            raise DocError(
+                f"docdict[{key!r}]: cannot tell where the edited shared text "
+                "ends (the text that used to follow it is gone); make the "
+                "change in mne/utils/docs.py instead"
+            )
+        stop = bounded
+        current = _deindent(lines[start:stop], indent)
+    try:
+        shared, own = _split_block(current, entry, old_entry, old_own)
+    except DocError as exc:
+        raise DocError(f"docdict[{key!r}]: {exc}") from None
+    if shared == entry:
+        return  # in sync; anything after the entry is the site's own text
+    if old_entry == entry:
+        # docdict is unchanged, so the docstring's copy is what was edited
+        reverse[key] = (where, shared)
+        return
+    lines[start:stop] = _reindent(entry + own, " " * indent)
 
 
 def _resolve(source):
@@ -500,6 +573,8 @@ def expected_copy(body, source, default_indent):
     n_match = sum(1 for a, b in zip(expected, current) if a.rstrip() == b.rstrip())
     if n_match == len(expected):
         own = current[len(expected) :]
+    elif not n_match:  # the copy is not in the docstring yet: it is all own text
+        own = current
     else:  # copied part changed: assume it still spans the same paragraphs
         spans = list(_paragraphs(current, 0))[: _n_paragraphs(expected)]
         own = current[spans[-1][1] :] if spans else []
@@ -562,7 +637,7 @@ def process_file(path, fix, reverse, *, kinds=_FILL_DECORATORS | _COPY_DECORATOR
     errors = []
     edits = []  # (start, stop, replacement)
     rerun = False  # a docstring was inserted and still needs filling
-    for qualname, node in _iter_functions(ast.parse(source)):
+    for qualname, node in _definitions(source):
         where = f"{path}:{node.lineno} {node.name}"
         try:
             found = _decorator(node)
@@ -590,9 +665,12 @@ def process_file(path, fix, reverse, *, kinds=_FILL_DECORATORS | _COPY_DECORATOR
                 new_args = args
             else:
                 implied = ["verbose"] if name == "verbose_static" else []
-                old_body = _old_bodies(path).get(qualname)
                 want, keys = expected_fill(
-                    body, implied + args, reverse, old_body, where=where
+                    body,
+                    implied + args,
+                    reverse,
+                    lambda: _old_bodies(path).get(qualname),
+                    where=where,
                 )
                 new_args = [k for k in keys if k not in implied]
         except DocError as exc:
@@ -740,6 +818,25 @@ def _files_using(keys):
     return out
 
 
+def _dynamic_decorator_errors(path):
+    """Return an error for each import-time docstring decorator used in ``path``."""
+    source = path.read_text()
+    if not _DYNAMIC_RE.search(source):
+        return []
+    errors = []
+    for _, node in _definitions(source):
+        for dec in node.decorator_list:
+            func = dec.func if isinstance(dec, ast.Call) else dec
+            name = getattr(func, "attr", None) or getattr(func, "id", "")
+            if name in _DYNAMIC_DECORATORS:
+                errors.append(
+                    f"{path}:{dec.lineno} {node.name}: @{name} fills the docstring at "
+                    "import time, which IDEs cannot see; use "
+                    f"{_DYNAMIC_DECORATORS[name]} and run this hook with --fix"
+                )
+    return errors
+
+
 def _propagation_enabled():
     """Whether edits to shared text in a docstring may be propagated everywhere."""
     from mne.utils import get_config
@@ -755,11 +852,16 @@ def main(argv=None):
     args = parser.parse_args(argv)
     errors = []
     reverse = {}
+    for path in args.files:
+        if path.suffix == ".py":
+            errors.extend(_dynamic_decorator_errors(path))
     files = [p for p in args.files if p.suffix == ".py" and "_static(" in p.read_text()]
     # fill sites first, so that copies of them (processed second) see fixed text
-    for kinds in (_FILL_DECORATORS, _COPY_DECORATORS):
-        for path in files:
-            errors.extend(process_file(path, args.fix, reverse, kinds=kinds))
+    for path in files:
+        errors.extend(process_file(path, args.fix, reverse, kinds=_FILL_DECORATORS))
+    for path in files:
+        if any(f"{name}(" in path.read_text() for name in _COPY_DECORATORS):
+            errors.extend(process_file(path, args.fix, reverse, kinds=_COPY_DECORATORS))
     if reverse and not _propagation_enabled():
         for key, (where, _) in reverse.items():
             users = [str(user.relative_to(REPO)) for user in _files_using([key])]

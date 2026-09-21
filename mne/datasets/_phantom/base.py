@@ -4,13 +4,18 @@
 
 from pathlib import Path
 
-from ...utils import _check_option, _validate_type, get_subjects_dir, verbose
+from ...utils import (
+    _check_option,
+    _validate_type,
+    get_subjects_dir,
+    verbose_static,
+)
 from ..utils import _manifest_check_download
 
 PHANTOM_MANIFEST_PATH = Path(__file__).parent
 
 
-@verbose
+@verbose_static("subjects_dir")
 def fetch_phantom(kind="otaniemi", subjects_dir=None, *, verbose=None):
     """Fetch and update a phantom subject.
 
@@ -22,8 +27,15 @@ def fetch_phantom(kind="otaniemi", subjects_dir=None, *, verbose=None):
         .. versionchanged:: 1.12
            The default is now properly set in the signature so it doesn't need to be
            provided.
-    %(subjects_dir)s
-    %(verbose)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

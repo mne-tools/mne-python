@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.7
+    rev: v0.16.8
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,7 +24,7 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.80
+    rev: v0.0.82
     hooks:
       - id: ty
         additional_dependencies:
@@ -105,7 +105,7 @@ repos:
         require_serial: true
         additional_dependencies: [numpy, scipy, matplotlib, decorator, lazy_loader, packaging, jinja2, pooch, tqdm]
         files: '^mne/.*\.py$'
-        exclude: '^mne/.*/tests/'
+        exclude: '^mne/(.*/)?tests/'
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
