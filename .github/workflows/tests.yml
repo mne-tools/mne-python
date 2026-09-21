@@ -135,6 +135,13 @@ jobs:
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
+      # TODO VERSION: remove this draft-only pin once an eeglabio release includes
+      # https://github.com/jackz314/eeglabio/pull/26.
+      - name: Install temporary eeglabio epoch-event fix
+        if: matrix.kind != 'minimal' && matrix.kind != 'old'
+        run: >-
+          python -m pip install --no-deps --force-reinstall
+          "eeglabio @ https://github.com/jackz314/eeglabio/archive/710ff1fbf29b9011419f0c5fc951c84813ef44d6.zip"
       - name: Check 'old' CI environment
         uses: mne-tools/mne-tools/actions/check-environment@main
         with:
