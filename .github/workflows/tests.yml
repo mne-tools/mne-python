@@ -124,7 +124,7 @@ jobs:
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -177,7 +177,7 @@ jobs:
         # nothing to cache, and an empty directory would just poison the key
         if: env.NUMBA_VERSION != 'none'
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v7.0.0
+      - uses: codecov/codecov-action@v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         # COV_ARGS is empty on jobs where we don't measure coverage (Python < 3.14)
