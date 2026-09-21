@@ -16,6 +16,9 @@ doc = [
   # the two resolve together. Below either, the browser drops to Pyodide 0.29
   # and its matplotlib 3.8.4, a minor under the 3.9 MNE declares.
   "jupyterlite-pyodide-kernel >= 0.8",
+  # [lock] brings pyodide-lock and uv for jupyter_lite_config.py; pyodide-lock
+  # needs 3.12, which every docs build has
+  "jupyterlite-pyodide-kernel[lock] >= 0.8; python_version >= '3.12'",
   "jupyterlite-sphinx >= 0.23",
   "memory_profiler >= 0.16",
   "mne-bids",
@@ -44,6 +47,21 @@ doc = [
   "sphinxcontrib-youtube",
 ]
 doc-full = ["rpy2", { include-group = "doc" }]
+# Packages installed into the browser Pyodide kernel for JupyterLite notebooks;
+# unpinned, since Pyodide's curated version wins where it has one and the rest
+# resolve to the latest release (see doc/sphinxext/jupyterlite_lock_specs.py)
+jupyterlite = [
+  "joblib",
+  "mffpy",
+  "mne-connectivity",
+  "nibabel",
+  "pandas",
+  "python-picard",
+  "pyvista-js",
+  "pyxdf",
+  "scikit-learn",
+  "seaborn",
+]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [

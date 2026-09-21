@@ -175,9 +175,7 @@ def stage_lite_data(dst_base):
     sphinx_logger.info(
         f"[JupyterLite] Served data: {n_copied} files copied, {n_missing} missing"
     )
-    # the development wheel, so the browser installs this MNE rather than the
-    # PyPI release: doc/sphinxext/build_lite_wheel.py puts it in doc/pypi, where
-    # the piplite addon indexes it; `make html` runs that first, so this is
-    # only a fallback for a bare sphinx-build
+    # the MNE wheel jupyter_lite_config.py locks for the browser: `make html`
+    # builds it first, so this is only a fallback for a bare sphinx-build
     wheels = find_wheels() or build_wheel()
     sphinx_logger.info(f"[JupyterLite] MNE wheel for the browser kernel: {wheels}")
