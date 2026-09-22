@@ -173,287 +173,187 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.0)
 
 
-@pytest.mark.skipif(
-    os.getenv("SCIPY_ARRAY_API") != "1", reason="Requires SCIPY_ARRAY_API=1 at startup"
-)
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.fixture(params=["torch", "array_api_strict"])
+def rf_array_api(request):
+    """Exercise MNE-specific behavior beyond sklearn's estimator checks."""
+    from sklearn import config_context
+
+    if os.getenv("SCIPY_ARRAY_API") != "1":
+        pytest.skip("Requires SCIPY_ARRAY_API=1 at startup")
+    backend = pytest.importorskip(request.param)
+    compat = pytest.importorskip("array_api_compat")
+    with config_context(array_api_dispatch=True):
+        yield compat.array_namespace(backend.asarray([0.0]))
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64", "int64"])
 @pytest.mark.parametrize("epoched", [False, True])
 @pytest.mark.parametrize("n_outputs", [1, 2])
 @pytest.mark.parametrize("fit_intercept", [False, True])
 @pytest.mark.parametrize("limits", [(-2, 0), (0, 2), (-1, 1)])
-@pytest.mark.parametrize("patterns", [False, True])
-@pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_receptive_field_array_api(
-    dtype, epoched, n_outputs, fit_intercept, limits, patterns, device
+    rf_array_api, monkeypatch, dtype, epoched, n_outputs, fit_intercept, limits
 ):
-    """Preserve delay/epoch ordering, precision, and the array backend."""
-    from unittest.mock import patch
+    """Check epoch/lag order, patterns, vector scores, and no host conversion."""
+    from unittest.mock import Mock
 
-    from sklearn import config_context
-
-    torch = pytest.importorskip("torch")
-    if device == "cuda" and not torch.cuda.is_available():
-        pytest.skip("CUDA is unavailable")
+    xp = rf_array_api
+    if xp.__name__ == "array_api_strict" and n_outputs > 1:
+        # TODO VERSION remove once sklearn >= 1.9 is required.
+        # Older Ridge cannot broadcast a scalar alpha for strict multi-output y.
+        pytest.importorskip("sklearn", minversion="1.9")
+    tol = 3e-5 if dtype == "float32" else 1e-10
     rng = np.random.default_rng(42)
-    x = rng.standard_normal((64, 2, 3)).astype(dtype)
-    x[:, 1] += 4  # distinguish epochs, including at delayed boundaries
-    weights = rng.standard_normal((3, 3, n_outputs)).astype(dtype)
-    y = np.zeros((64, 2, n_outputs), dtype=dtype)
-    for lag, weight in zip(range(limits[0], limits[1] + 1), weights):
-        if lag < 0:
-            y[:lag] += x[-lag:] @ weight
-        elif lag > 0:
-            y[lag:] += x[:-lag] @ weight
-        else:
-            y += x @ weight
+    x = rng.standard_normal((32, 2, 3 if epoched else 1)).astype(dtype)
+    x[:, 1] += 4
+    y = rng.standard_normal((32, 2, n_outputs))
     if not epoched:
         x, y = x[:, 0], y[:, 0]
+        y[...] = y[:, :1]  # rank-deficient multi-output covariance
     if n_outputs == 1:
         y = y[..., 0]
-    estimator = Ridge(
-        alpha=0, solver="svd", fit_intercept=fit_intercept, random_state=0
+    estimator = Ridge(solver="svd", fit_intercept=fit_intercept, random_state=0)
+    expected = ReceptiveField(*limits, 1, estimator=estimator, patterns=True).fit(x, y)
+    x_list, y_list = x.tolist(), y.tolist()
+    assert_array_equal(
+        expected.score(x_list, y_list),
+        expected.score(np.asarray(x_list), np.asarray(y_list)),
     )
-    expected = ReceptiveField(
-        *limits, sfreq=1, estimator=estimator, patterns=patterns
-    ).fit(x, y)
-    x_original, y_original = x.copy(), y.copy()
-    xt, yt = torch.asarray(x, device=device), torch.asarray(y, device=device)
-    model = ReceptiveField(*limits, sfreq=1, estimator=estimator, patterns=patterns)
-    with config_context(array_api_dispatch=True):
-        with (
-            patch.object(
-                torch.Tensor,
-                "__array__",
-                side_effect=AssertionError("NumPy conversion"),
-            ),
-            patch.object(
-                torch.Tensor, "numpy", side_effect=AssertionError("NumPy conversion")
-            ),
-            patch.object(
-                torch.Tensor, "cpu", side_effect=AssertionError("CPU transfer")
-            ),
-        ):
-            model.fit(xt, yt)
-            predicted = model.predict(xt)
-            score = model.score(xt, yt)
-            model.scoring = "corrcoef"
-            correlation = model.score(xt, yt)
-    assert isinstance(model.coef_, torch.Tensor)
-    assert isinstance(predicted, torch.Tensor)
-    assert model.coef_.dtype == predicted.dtype == xt.dtype
-    assert model.coef_.device == predicted.device == xt.device
-    assert score.device == correlation.device == xt.device
-    tol = 3e-5 if dtype == "float32" else 1e-10
-    assert_allclose(model.coef_.cpu().numpy(), expected.coef_, atol=tol, rtol=tol)
-    assert_allclose(predicted.cpu().numpy(), expected.predict(x), atol=tol, rtol=tol)
-    assert_allclose(score.cpu().numpy(), expected.score(x, y), atol=tol, rtol=tol)
-    expected.scoring = "corrcoef"
-    assert_allclose(correlation.cpu().numpy(), expected.score(x, y), atol=tol, rtol=tol)
-    if patterns:
-        assert model.patterns_.dtype == xt.dtype
-        assert model.patterns_.device == xt.device
-        assert_allclose(
-            model.patterns_.cpu().numpy(), expected.patterns_, atol=tol, rtol=tol
-        )
-    assert_array_equal(xt.cpu().numpy(), x_original)
-    assert_array_equal(yt.cpu().numpy(), y_original)
-    if not fit_intercept:
-        assert_allclose(predicted.cpu().numpy().reshape(y.shape), y, atol=tol, rtol=tol)
+    xt, yt = xp.asarray(x.copy()), xp.asarray(y.copy())
+    model = ReceptiveField(*limits, 1, estimator=estimator, patterns=True)
+    with monkeypatch.context() as patch:
+        for method in ("__array__", "numpy", "cpu"):
+            if hasattr(type(xt), method):
+                patch.setattr(
+                    type(xt), method, Mock(side_effect=AssertionError(method))
+                )
+        model.fit(xt, yt)
+        predicted = model.predict(xt)
+        scores = []
+        for scoring in ("r2", "corrcoef"):
+            model.scoring = scoring
+            scores.append(model.score(xt, yt))
+    for actual, reference in (
+        (model.coef_, expected.coef_),
+        (model.patterns_, expected.patterns_),
+        (predicted, expected.predict(x)),
+    ):
+        assert actual.device == xt.device
+        assert actual.dtype == (xp.float64 if dtype == "int64" else xt.dtype)
+        assert_allclose(np.asarray(actual), reference, atol=tol, rtol=tol)
+    for scoring, actual in zip(("r2", "corrcoef"), scores):
+        expected.scoring = scoring
+        assert actual.device == xt.device
+        assert actual.shape == (n_outputs,)
+        assert_allclose(np.asarray(actual), expected.score(x, y), atol=tol, rtol=tol)
+    assert_array_equal(np.asarray(xt), x)
+    assert_array_equal(np.asarray(yt), y)
+    assert model.delays_.device == xt.device
+    assert_array_equal(np.asarray(model.delays_), expected.delays_)
+    with pytest.raises(ValueError, match="only one sample"):
+        model.set_params(tmin=0, tmax=0).fit(xp.ones((1, 1)), xp.ones((1, n_outputs)))
+    for unsupported in (None, 0.1, TimeDelayingRidge(0, 1, 1)):
+        with pytest.raises(ValueError, match="compatible estimator"):
+            ReceptiveField(0, 1, 1, estimator=unsupported).fit(xt, yt)
 
 
-@pytest.mark.skipif(
-    os.getenv("SCIPY_ARRAY_API") != "1", reason="Requires SCIPY_ARRAY_API=1 at startup"
-)
-def test_receptive_field_array_api_unsupported():
-    """Unsupported modes must not silently move data to NumPy."""
-    from sklearn import config_context
+@pytest.mark.parametrize("scoring", ["r2", "corrcoef"])
+@pytest.mark.parametrize("target_dtype", ["float64", "int64"])
+def test_receptive_field_array_api_score_precision(rf_array_api, scoring, target_dtype):
+    """Keep target precision even when it exceeds the feature precision."""
+    from scipy.stats import pearsonr
+    from sklearn.metrics import r2_score
 
-    torch = pytest.importorskip("torch")
-    x, y = torch.ones((8, 2)), torch.ones(8)
-    with config_context(array_api_dispatch=True):
-        for estimator in (None, 0.1, TimeDelayingRidge(0, 1, 1)):
-            with pytest.raises(ValueError, match="compatible estimator"):
-                ReceptiveField(0, 1, 1, estimator=estimator).fit(x, y)
-
-
-@pytest.mark.skipif(
-    os.getenv("SCIPY_ARRAY_API") != "1", reason="Requires SCIPY_ARRAY_API=1 at startup"
-)
-@pytest.mark.parametrize("dtype", ["int64", "float32", "float64"])
-@pytest.mark.parametrize("n_outputs", [1, 3])
-def test_receptive_field_array_api_degenerate(dtype, n_outputs):
-    """Single-feature and rank-deficient patterns retain their backend."""
-    from sklearn import config_context
-
-    torch = pytest.importorskip("torch")
-    x = torch.arange(8, dtype=getattr(torch, dtype))[:, None]
-    # Identical targets make the multi-output covariance rank deficient.
-    y = torch.arange(8, dtype=torch.float64)[:, None].repeat(1, n_outputs)
-    expected = ReceptiveField(
-        0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+    xp = rf_array_api
+    x = np.linspace(-1, 1, 100, dtype="float32")[:, None]
+    y = np.arange(100).astype(target_dtype)
+    y = 1e6 + 1e-3 * np.sin(y) if target_dtype == "float64" else 2**26 + y
+    xt, yt = xp.asarray(x.copy()), xp.asarray(y.copy())
+    model = ReceptiveField(
+        0,
+        0,
+        1,
+        estimator=Ridge(solver="svd", random_state=0),
+        scoring=scoring,
+        patterns=True,
+    ).fit(xt, xt[:, 0])
+    expected_model = ReceptiveField(**model.get_params(deep=False)).fit(x, x[:, 0])
+    assert_allclose(np.asarray(model.patterns_), expected_model.patterns_, rtol=1e-5)
+    predicted = model.predict(xt)
+    expected = (
+        np.asarray(r2_score(yt, predicted, multioutput="raw_values"))
+        if scoring == "r2"
+        else pearsonr(y, np.asarray(predicted)).statistic
     )
-    expected.fit(x.numpy(), y.numpy())
-    with config_context(array_api_dispatch=True):
-        model = ReceptiveField(
-            0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
-        )
-        model.fit(x, y)
-        predicted = model.predict(x)
-        score = model.score(x, y)
-        model.scoring = "corrcoef"
-        assert_allclose(model.score(x, y).numpy(), 1.0, atol=1e-6)
-        with pytest.raises(ValueError, match="only one sample"):
-            ReceptiveField(
-                0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
-            ).fit(x[:1], y[:1])
-    assert isinstance(model.patterns_, torch.Tensor)
-    assert_allclose(model.patterns_.numpy(), expected.patterns_, rtol=1e-5, atol=1e-6)
-    assert_allclose(
-        predicted.numpy(), expected.predict(x.numpy()), rtol=1e-5, atol=1e-6
-    )
-    assert_allclose(score.numpy(), expected.score(x.numpy(), y.numpy()), atol=1e-6)
+    assert_allclose(np.asarray(model.score(xt, yt)), expected, rtol=1e-7, atol=1e-12)
+    assert_array_equal(np.asarray(yt), y)
 
 
-@pytest.mark.skipif(
-    os.getenv("SCIPY_ARRAY_API") != "1", reason="Requires SCIPY_ARRAY_API=1 at startup"
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "regular",
+        "constant",
+        "large",
+        "small",
+        "two-positive",
+        "two-negative",
+        "two-nan",
+        "two-inf",
+        "complex",
+    ],
 )
-@pytest.mark.parametrize("kind", ["regular", "two", "constant", "large", "small"])
-def test_receptive_field_array_api_correlation(kind):
-    """Correlation needs no p-value or host conversion, including extreme scales."""
+def test_receptive_field_array_api_correlation(rf_array_api, dtype, kind):
+    """Check MNE's tensor correlation at constant and extreme-valued inputs."""
     from contextlib import nullcontext
-    from unittest.mock import patch
 
     from scipy.stats import ConstantInputWarning, pearsonr
-    from sklearn import config_context
 
-    torch = pytest.importorskip("torch")
-    rng = np.random.default_rng(20)
-    x, y = rng.standard_normal((2, 8, 2))
-    if kind == "two":
-        x, y = x[:2], y[:2]
-    elif kind == "constant":
-        x[:, 0] = 1
-    elif kind == "large":
-        x, y = x * 1e200, y * 1e200
-    elif kind == "small":
-        x, y = x * 1e-200, y * 1e-200
+    xp = rf_array_api
+    x, y = np.random.default_rng(20).standard_normal((2, 7, 2)).astype(dtype)
+    if kind == "complex":
+        with pytest.raises(ValueError, match="Complex data"):
+            _SCORERS["corrcoef"](
+                xp.asarray(x + 1j), xp.asarray(y), multioutput="raw_values"
+            )
+        return
+    if kind == "constant":
+        x[...] = 0.1
+    elif kind in ("large", "small"):
+        scale = 1e10 if dtype == "float32" else 1e200
+        scale = 1 / scale if kind == "small" else scale
+        x, y = x * scale, y * scale
+    elif kind.startswith("two"):
+        eps = np.finfo(dtype).eps
+        x = np.array([[1], [1 + eps]], dtype=dtype)
+        y = np.array([[1], [1 + 2 * eps]], dtype=dtype)
+        if kind == "two-negative":
+            y = y[::-1].copy()
+        elif kind in ("two-nan", "two-inf"):
+            y[1] = float(kind.removeprefix("two-"))
+    context = (
+        pytest.warns(ConstantInputWarning) if kind == "constant" else nullcontext()
+    )
+    with context, np.errstate(invalid="ignore"):
+        if kind.startswith("two"):
+            expected = {"two-positive": 1.0, "two-negative": -1.0}.get(kind, np.nan)
+        else:
+            expected = pearsonr(x, y, axis=0).statistic
     context = (
         pytest.warns(ConstantInputWarning) if kind == "constant" else nullcontext()
     )
     with context:
-        expected = pearsonr(x, y, axis=0).statistic
-    with (
-        config_context(array_api_dispatch=True),
-        patch.object(
-            torch.Tensor, "numpy", side_effect=AssertionError("NumPy conversion")
-        ),
-    ):
-        context = (
-            pytest.warns(ConstantInputWarning) if kind == "constant" else nullcontext()
+        actual = _SCORERS["corrcoef"](
+            xp.asarray(x), xp.asarray(y), multioutput="raw_values"
         )
-        with context:
-            result = _SCORERS["corrcoef"](
-                torch.asarray(x), torch.asarray(y), multioutput="raw_values"
-            )
-        with pytest.raises(ValueError, match="at least 2"):
-            _SCORERS["corrcoef"](
-                torch.asarray(x[:1]), torch.asarray(y[:1]), multioutput="raw_values"
-            )
-    assert_allclose(result.numpy(), expected, atol=1e-14, rtol=1e-14, equal_nan=True)
-
-
-@pytest.mark.skipif(
-    os.getenv("SCIPY_ARRAY_API") != "1", reason="Requires SCIPY_ARRAY_API=1 at startup"
-)
-@pytest.mark.parametrize("scoring", ["r2", "corrcoef"])
-@pytest.mark.parametrize("target_dtype", ["float64", "int64"])
-def test_receptive_field_array_api_score_precision(scoring, target_dtype):
-    """Scoring must retain target information not representable by the model dtype."""
-    from unittest.mock import patch
-
-    from scipy.stats import pearsonr
-    from sklearn import config_context
-    from sklearn.metrics import r2_score
-
-    torch = pytest.importorskip("torch")
-    x = torch.linspace(-1, 1, 100, dtype=torch.float32)[:, None]
-    y = torch.arange(100, dtype=getattr(torch, target_dtype))
-    y = 1e6 + 1e-3 * torch.sin(y) if target_dtype == "float64" else 2**26 + y
-    original = y.clone()
-    with config_context(array_api_dispatch=True):
-        model = ReceptiveField(
-            0, 0, 1, estimator=Ridge(solver="svd", random_state=0), scoring=scoring
+    assert_allclose(
+        np.asarray(actual), expected, atol=1e-6 if dtype == "float32" else 1e-14
+    )
+    with pytest.raises(ValueError, match="at least 2"):
+        _SCORERS["corrcoef"](
+            xp.asarray(x[:1]), xp.asarray(y[:1]), multioutput="raw_values"
         )
-        model.fit(x, x[:, 0])
-        predicted = model.predict(x)
-        if scoring == "r2":
-            expected = r2_score(y, predicted, multioutput="raw_values").numpy()
-        else:
-            expected = pearsonr(y.numpy(), predicted.numpy()).statistic
-        with (
-            patch.object(torch.Tensor, "__array__", side_effect=AssertionError),
-            patch.object(torch.Tensor, "numpy", side_effect=AssertionError),
-            patch.object(torch.Tensor, "cpu", side_effect=AssertionError),
-        ):
-            actual = model.score(x, y)
-    assert_allclose(actual.numpy(), expected, rtol=1e-7, atol=1e-12)
-    assert torch.equal(y, original)
-
-
-@pytest.mark.skipif(
-    os.getenv("SCIPY_ARRAY_API") != "1", reason="Requires SCIPY_ARRAY_API=1 at startup"
-)
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-@pytest.mark.parametrize(
-    "kind",
-    ["constant", "two-positive", "two-negative", "two-nan", "two-inf", "complex"],
-)
-def test_receptive_field_array_api_score_correlation_edges(dtype, kind):
-    """Detect exact constants before centering, and handle two distinct samples."""
-    from contextlib import nullcontext
-
-    from scipy.stats import ConstantInputWarning
-    from sklearn import config_context
-
-    torch = pytest.importorskip("torch")
-    dtype = getattr(torch, dtype)
-    train_x = torch.tensor([[1], [0]], dtype=dtype)
-    train_y = train_x[:, 0] * (0.1 if kind == "constant" else 1)
-    if kind == "constant":
-        n = 7 if dtype == torch.float32 else 3
-        x = torch.ones((n, 1), dtype=dtype)
-        y = torch.full((n,), 0.1, dtype=dtype)
-        expected = np.nan
-    else:
-        eps = torch.finfo(dtype).eps
-        x = torch.tensor([[1], [1 + eps]], dtype=dtype)
-        y = torch.tensor([1, 1 + 2 * eps], dtype=dtype)
-        expected = 1 if kind == "two-positive" else -1
-        if kind == "two-negative":
-            y = y.flip(0)
-        elif kind in ("two-nan", "two-inf"):
-            y[1] = float(kind.removeprefix("two-"))
-            expected = np.nan
-        elif kind == "complex":
-            y = y + 1j
-    with config_context(array_api_dispatch=True):
-        model = ReceptiveField(
-            0,
-            0,
-            1,
-            estimator=Ridge(alpha=0, solver="svd", fit_intercept=False, random_state=0),
-            scoring="corrcoef",
-        ).fit(train_x, train_y)
-        if kind == "complex":
-            with pytest.raises(ValueError, match="Complex data"):
-                model.score(x, y)
-            return
-        context = (
-            pytest.warns(ConstantInputWarning) if kind == "constant" else nullcontext()
-        )
-        with context:
-            result = model.score(x, y)
-    assert_allclose(result.numpy(), expected, rtol=1e-7, equal_nan=True)
 
 
 @pytest.mark.slowtest  # slow on Azure
@@ -897,7 +797,11 @@ def test_tdr_sklearn_compliance(estimator, check):
 
 @pytest.mark.filterwarnings("ignore:.*invalid value encountered in subtract.*:")
 @parametrize_with_checks(
-    [ReceptiveField(-1, 2, 1.0, estimator=Ridge(random_state=0), patterns=True)]
+    [
+        ReceptiveField(
+            -1, 2, 1.0, estimator=Ridge(solver="svd", random_state=0), patterns=True
+        )
+    ]
 )
 def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
@@ -910,4 +814,22 @@ def test_rf_sklearn_compliance(estimator, check):
     )
     if any(ignore in str(check) for ignore in ignores):
         return
+    if "check_array_api" in str(check):
+        estimator = _ScalarScoreReceptiveField(**estimator.get_params(deep=False))
+        if "check_array_api_same_namespace" not in str(check):
+            # NumPy's legacy delay buffer promotes float32 to float64; compare
+            # values here and check tensor dtype in the MNE-specific tests.
+            check(estimator, check_values=True)
+            return
     check(estimator)
+
+
+class _ScalarScoreReceptiveField(ReceptiveField):
+    """Adapt MNE's per-output score to sklearn's scalar-score test contract."""
+
+    def score(self, X, y):
+        from mne.decoding._fixes import _get_array_namespace
+
+        scores = super().score(X, y)
+        xp, _ = _get_array_namespace(scores)
+        return float(xp.mean(scores))

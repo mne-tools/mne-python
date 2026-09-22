@@ -46,11 +46,11 @@ jobs:
           SKLEARN_REQUIREMENT: '${{ matrix.sklearn }}'
         run: |
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install -e . "$SKLEARN_REQUIREMENT" array-api-compat pytest pytest-cov pytest-xdist pytest-timeout numpydoc refleak
+          python -m pip install -e '.[array-api]' "$SKLEARN_REQUIREMENT" array-api-strict pytest pytest-cov pytest-xdist pytest-timeout numpydoc refleak
       - name: Test receptive fields without backend conversion
         run: |
           python -c "import torch; print(torch.__version__)"
-          python -m pytest mne/decoding/tests/test_receptive_field.py -k 'receptive_field_array_api and not cuda' -o addopts='' --tb=short --timeout=120
+          python -m pytest mne/decoding/tests/test_receptive_field.py -k 'receptive_field_array_api or test_rf_sklearn_compliance' -o addopts='' --tb=short --timeout=120
 
   bandit:
     name: Bandit

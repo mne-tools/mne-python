@@ -15,7 +15,7 @@ from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
 from ..utils import _validate_type, fill_doc_static, pinv, warn
-from ._fixes import _check_n_features_3d, validate_data
+from ._fixes import _check_n_features_3d, _get_array_namespace, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
@@ -103,19 +103,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
     to previous input time samples, while negative lags correspond to
     future input time samples.
 
-    With scikit-learn's ``array_api_dispatch=True``, Array API inputs can be
-    used with a compatible estimator, such as ``Ridge(solver="svd")``.
-    Inputs, coefficients, patterns, predictions, and scores stay on the input
-    device. Set ``SCIPY_ARRAY_API=1`` before
-    importing SciPy or scikit-learn to enable their Array API support.
-    The default :class:`TimeDelayingRidge` estimator currently requires NumPy
-    inputs. Array API support requires a backend with mutable arrays, such as
-    PyTorch or CuPy, and support for the chosen estimator's operations.
-    Integer tensor features are converted to float64; tensor targets are cast
-    to the feature dtype during fitting, but not during scoring. Use float32
-    or float64 for ``Ridge(solver="svd")``.
-    Tensor correlation scores are NaN for constant or non-finite target
-    columns; complex-valued targets are not supported.
+    See :ref:`array_api` for experimental Array API support with compatible
+    estimators, including setup, supported operations, and limitations.
 
     References
     ----------
@@ -168,7 +157,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
     def __sklearn_tags__(self):
         """..."""
-        from sklearn.utils import RegressorTags
+        from sklearn.utils import RegressorTags, get_tags
 
         tags = super().__sklearn_tags__()
         tags.estimator_type = "regressor"
@@ -177,6 +166,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         tags.target_tags.one_d_labels = True
         tags.target_tags.multi_output = True
         tags.target_tags.required = True
+        if self.estimator is not None and not isinstance(self.estimator, numbers.Real):
+            tags.array_api_support = get_tags(self.estimator).array_api_support
         return tags
 
     def _delay_and_reshape(self, X, y=None):
@@ -237,8 +228,6 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
-        from sklearn.utils._array_api import get_namespace
-
         X, y = self._check_data(X, y, reset=True)
         if not isinstance(X, np.ndarray):
             if self.estimator is None or isinstance(
@@ -256,6 +245,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
         # Define the slice that we should use in the middle
         self.valid_samples_ = _delays_to_slice(self.delays_)
+        xp, device = _get_array_namespace(X)
+        self.delays_ = xp.asarray(self.delays_, device=device)
 
         if self.estimator is None or isinstance(self.estimator, numbers.Real):
             alpha = self.estimator if self.estimator is not None else 0.0
@@ -297,7 +288,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         # Create input features
         n_times, n_epochs, n_feats = X.shape
         n_outputs = y.shape[-1]
-        n_delays = len(self.delays_)
+        n_delays = self.delays_.shape[0]
 
         # Update feature names if we have none
         if (self.feature_names is not None) and (len(self.feature_names) != n_feats):
@@ -314,7 +305,6 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         shape = [n_feats, n_delays]
         if self._y_dim > 1:
             shape.insert(0, -1)
-        xp, _ = get_namespace(coef)
         self.coef_ = xp.reshape(coef, tuple(shape))
 
         # Inverse-transform model weights
@@ -375,11 +365,14 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             unaffected by edge artifacts during the time delaying step) can
             be obtained using ``y_pred[rf.valid_samples_]``.
         """
-        from sklearn.utils._array_api import get_namespace
-
         if not hasattr(self, "delays_"):
             raise NotFittedError("Estimator has not been fit yet.")
 
+        if _get_array_namespace(X) != _get_array_namespace(self.coef_):
+            raise ValueError(
+                f"{type(self).__name__}.predict() inputs must use the same namespace "
+                "and the same device as those passed to fit."
+            )
         X, _ = self._check_data(X)
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
 
@@ -398,7 +391,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         else:
             extra = 1
         shape = shape[: self._y_dim + extra]
-        xp, _ = get_namespace(y_pred)
+        xp, _ = _get_array_namespace(y_pred)
         y_pred = xp.reshape(y_pred, tuple(shape))
         return y_pred
 
@@ -429,8 +422,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         X, y = self._check_dimensions(X, y, predict=True)[:2]
         n_times, n_epochs, n_outputs = y.shape
         y_pred = self.predict(X)
-        y_pred = y_pred[self.valid_samples_]
-        y = y[self.valid_samples_]
+        y_pred = y_pred[self.valid_samples_, ...]
+        y = y[self.valid_samples_, ...]
 
         # Re-vectorize and call scorer
         y = _reshape_fortran(y, (-1, n_outputs))
@@ -440,17 +433,16 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         return scores
 
     def _check_dimensions(self, X, y, predict=False):
-        from sklearn.utils._array_api import get_namespace
-
-        xp, is_array_api = get_namespace(X, y)
-        if not is_array_api:
-            _validate_type(X, "array-like", "X")
-            _validate_type(y, ("array-like", None), "y")
-        elif not isinstance(X, np.ndarray):
-            if not xp.isdtype(X.dtype, "real floating"):
-                X = xp.asarray(X, dtype=xp.float64)
-            if y is not None and not predict:
-                y = xp.asarray(y, dtype=X.dtype)
+        xp, device = _get_array_namespace(X)
+        if xp is np:
+            X = np.asarray(X)
+        elif not xp.isdtype(X.dtype, "real floating"):
+            X = xp.asarray(X, dtype=xp.float64)
+        if y is not None:
+            dtype = X.dtype if xp is not np and not predict else None
+            if hasattr(y, "__dlpack__") and _get_array_namespace(y)[0] not in (np, xp):
+                y = xp.from_dlpack(y)
+            y = xp.asarray(y, dtype=dtype, device=device)
         X_dim = X.ndim
         y_dim = y.ndim if y is not None else 0
         if X_dim == 2:
@@ -492,7 +484,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                     f"X and y do not have the same n_epochs\n{X.shape[1]} != "
                     f"{y.shape[1]}"
                 )
-            if predict and y.shape[-1] not in (len(self.estimator_.coef_), 1):
+            if predict and y.shape[-1] not in (self.estimator_.coef_.shape[0], 1):
                 raise ValueError(
                     "Number of outputs does not match estimator coefficients dimensions"
                 )
@@ -538,34 +530,30 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
      [5. 4. 3. 2.]
      [0. 5. 4. 3.]]
     """
-    from sklearn.utils._array_api import device, get_namespace
-
-    xp, _ = get_namespace(X)
+    xp, device = _get_array_namespace(X)
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
     # Iterate through indices and append
     dtype = None if isinstance(X, np.ndarray) else X.dtype
-    delayed = xp.zeros(X.shape + (len(delays),), dtype=dtype, device=device(X))
+    delayed = xp.zeros(X.shape + (len(delays),), dtype=dtype, device=device)
     if fill_mean:
         mean_value = xp.mean(X, axis=0)
         if X.ndim == 3:
             mean_value = xp.mean(mean_value, axis=0)
-        delayed[:] = mean_value[:, None]
+        delayed[...] = mean_value[:, None]
     for ii, ix_delay in enumerate(delays):
         if ix_delay < 0:
             rows = slice(None, ix_delay)
-            use_X = X[-ix_delay:]
+            use_X = X[-ix_delay:, ...]
         elif ix_delay > 0:
             rows = slice(ix_delay, None)
-            use_X = X[:-ix_delay]
+            use_X = X[:-ix_delay, ...]
         else:  # == 0
             rows = slice(None)
             use_X = X
         delayed[rows, ..., ii] = use_X
         if fill_mean:
-            delayed[rows, ..., ii] = delayed[rows, ..., ii] + (
-                mean_value - xp.mean(use_X, axis=0)
-            )
+            delayed[rows, ..., ii] += mean_value - xp.mean(use_X, axis=0)
     return delayed
 
 
@@ -597,9 +585,7 @@ def _check_delayer_params(tmin, tmax, sfreq):
 
 def _reshape_fortran(X, shape):
     """Reshape with Fortran ordering without changing the array namespace."""
-    from sklearn.utils._array_api import get_namespace
-
-    xp, _ = get_namespace(X)
+    xp, _ = _get_array_namespace(X)
     X = xp.permute_dims(X, tuple(range(X.ndim - 1, -1, -1)))
     X = xp.reshape(X, tuple(shape)[::-1])
     return xp.permute_dims(X, tuple(range(len(shape) - 1, -1, -1)))
@@ -607,9 +593,7 @@ def _reshape_fortran(X, shape):
 
 def _reshape_for_est(X_del):
     """Convert X_del to a sklearn-compatible shape."""
-    from sklearn.utils._array_api import get_namespace
-
-    xp, _ = get_namespace(X_del)
+    xp, _ = _get_array_namespace(X_del)
     n_times, n_epochs, n_feats, n_delays = X_del.shape
     X_del = xp.reshape(X_del, (n_times, n_epochs, -1))  # concatenate feats
     X_del = _reshape_fortran(X_del, (n_times * n_epochs, -1))
@@ -619,7 +603,6 @@ def _reshape_for_est(X_del):
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
     from scipy.stats import ConstantInputWarning, pearsonr
-    from sklearn.utils._array_api import get_namespace
 
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
@@ -633,7 +616,7 @@ def _corr_score(y_true, y, multioutput=None):
         )
     if y.shape[0] < 2:
         raise ValueError("Correlation requires at least 2 samples.")
-    xp, _ = get_namespace(y_true, y)
+    xp, _ = _get_array_namespace(y)
     if any(xp.isdtype(values.dtype, "complex floating") for values in (y_true, y)):
         raise ValueError("Complex data not supported")
     dtype = xp.result_type(
@@ -643,14 +626,18 @@ def _corr_score(y_true, y, multioutput=None):
         ]
     )
     y_true, y = (xp.asarray(values, dtype=dtype) for values in (y_true, y))
-    constant = xp.all(y_true == y_true[:1], axis=0) | xp.all(y == y[:1], axis=0)
+    constant = xp.all(y_true == y_true[:1, ...], axis=0) | xp.all(
+        y == y[:1, ...], axis=0
+    )
     if xp.any(constant):
         warn(
             "An input array is constant; the correlation coefficient is not defined.",
             ConstantInputWarning,
         )
     if y.shape[0] == 2:
-        result = xp.sign(y_true[1] - y_true[0]) * xp.sign(y[1] - y[0])
+        result = xp.sign(y_true[1, ...] - y_true[0, ...]) * xp.sign(
+            y[1, ...] - y[0, ...]
+        )
         finite = xp.all(xp.isfinite(y_true) & xp.isfinite(y), axis=0)
         return xp.where(constant | ~finite, xp.nan, result)
     normalized = []

@@ -24,6 +24,7 @@ directly from a terminal, see :ref:`python_commands`.
     :maxdepth: 2
 
     most_used_classes
+    array_api
     reading_raw_data
     file_io
     creating_from_arrays

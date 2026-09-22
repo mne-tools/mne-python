@@ -38,37 +38,8 @@ import mne
 from mne.decoding import ReceptiveField
 
 # %%
-# Keeping tensor data on their device
-# -----------------------------------
-#
-# If your features already reside on a GPU, use an Array API-compatible
-# scikit-learn estimator instead of the default
-# :class:`~mne.decoding.TimeDelayingRidge`.
-# Set the environment variable ``SCIPY_ARRAY_API=1`` **before** importing SciPy
-# or scikit-learn. With PyTorch installed, the following uses existing floating
-# tensors ``X_train``, ``y_train``, ``X_test``, and ``y_test`` on the same device:
-#
-# .. code-block:: python
-#
-#     from sklearn import config_context
-#     from sklearn.linear_model import Ridge
-#
-#     rf = ReceptiveField(
-#         -0.2, 0.4, sfreq,
-#         estimator=Ridge(alpha=1.0, solver="svd", random_state=0),
-#         scoring="corrcoef", patterns=True,
-#     )
-#     with config_context(array_api_dispatch=True):
-#         rf.fit(X_train, y_train)
-#         predicted = rf.predict(X_test)
-#         scores = rf.score(X_test, y_test)
-#
-# The coefficients, patterns, predictions, and scores remain tensors on the
-# input device. Both ``"r2"`` and ``"corrcoef"`` scoring are supported. The
-# explicit delayed design uses memory proportional to the number of samples,
-# features, and delays; this is not the FFT-based ``TimeDelayingRidge`` algorithm.
-# Check that the design and the estimator's workspace fit in device memory.
-# The NumPy workflow below does not require PyTorch or Array API dispatch.
+# For tensor inputs with a compatible estimator, see :ref:`array_api`.
+# The NumPy workflow below does not require Array API dispatch.
 
 # %%
 # Load the data from the publication
