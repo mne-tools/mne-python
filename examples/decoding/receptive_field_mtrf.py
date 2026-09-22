@@ -39,7 +39,7 @@ from mne.decoding import ReceptiveField
 
 # %%
 # Keeping tensor data on their device
-# ----------------------------------
+# -----------------------------------
 #
 # If your features already reside on a GPU, use an Array API-compatible
 # scikit-learn estimator instead of the default
@@ -55,7 +55,7 @@ from mne.decoding import ReceptiveField
 #
 #     rf = ReceptiveField(
 #         -0.2, 0.4, sfreq,
-#         estimator=Ridge(alpha=1.0, solver="svd"),
+#         estimator=Ridge(alpha=1.0, solver="svd", random_state=0),
 #         scoring="corrcoef", patterns=True,
 #     )
 #     with config_context(array_api_dispatch=True):

@@ -210,7 +210,9 @@ def test_receptive_field_array_api(
         x, y = x[:, 0], y[:, 0]
     if n_outputs == 1:
         y = y[..., 0]
-    estimator = Ridge(alpha=0, solver="svd", fit_intercept=fit_intercept)
+    estimator = Ridge(
+        alpha=0, solver="svd", fit_intercept=fit_intercept, random_state=0
+    )
     expected = ReceptiveField(
         *limits, sfreq=1, estimator=estimator, patterns=patterns
     ).fit(x, y)
@@ -287,19 +289,23 @@ def test_receptive_field_array_api_degenerate(dtype, n_outputs):
     x = torch.arange(8, dtype=getattr(torch, dtype))[:, None]
     # Identical targets make the multi-output covariance rank deficient.
     y = torch.arange(8, dtype=torch.float64)[:, None].repeat(1, n_outputs)
-    expected = ReceptiveField(0, 0, 1, estimator=Ridge(solver="svd"), patterns=True)
+    expected = ReceptiveField(
+        0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+    )
     expected.fit(x.numpy(), y.numpy())
     with config_context(array_api_dispatch=True):
-        model = ReceptiveField(0, 0, 1, estimator=Ridge(solver="svd"), patterns=True)
+        model = ReceptiveField(
+            0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+        )
         model.fit(x, y)
         predicted = model.predict(x)
         score = model.score(x, y)
         model.scoring = "corrcoef"
         assert_allclose(model.score(x, y).numpy(), 1.0, atol=1e-6)
         with pytest.raises(ValueError, match="only one sample"):
-            ReceptiveField(0, 0, 1, estimator=Ridge(solver="svd"), patterns=True).fit(
-                x[:1], y[:1]
-            )
+            ReceptiveField(
+                0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+            ).fit(x[:1], y[:1])
     assert isinstance(model.patterns_, torch.Tensor)
     assert_allclose(model.patterns_.numpy(), expected.patterns_, rtol=1e-5, atol=1e-6)
     assert_allclose(
@@ -375,7 +381,9 @@ def test_receptive_field_array_api_score_precision(scoring, target_dtype):
     y = 1e6 + 1e-3 * torch.sin(y) if target_dtype == "float64" else 2**26 + y
     original = y.clone()
     with config_context(array_api_dispatch=True):
-        model = ReceptiveField(0, 0, 1, estimator=Ridge(solver="svd"), scoring=scoring)
+        model = ReceptiveField(
+            0, 0, 1, estimator=Ridge(solver="svd", random_state=0), scoring=scoring
+        )
         model.fit(x, x[:, 0])
         predicted = model.predict(x)
         if scoring == "r2":
@@ -433,7 +441,7 @@ def test_receptive_field_array_api_score_correlation_edges(dtype, kind):
             0,
             0,
             1,
-            estimator=Ridge(alpha=0, solver="svd", fit_intercept=False),
+            estimator=Ridge(alpha=0, solver="svd", fit_intercept=False, random_state=0),
             scoring="corrcoef",
         ).fit(train_x, train_y)
         if kind == "complex":
