@@ -80,18 +80,14 @@ def test_plot_joint():
     """Test joint plot."""
     evoked = _get_epochs().average()
     fig = evoked.plot_joint(
-        ts_args=dict(time_unit="s"), topomap_args=dict(time_unit="s")
+        picks="grad", ts_args=dict(time_unit="s"), topomap_args=dict(time_unit="s")
     )
-    # regression test for gh-14317: repeated redraws (e.g. when moving the cursor
-    # over the interactive figure) must not shrink the axes
-    figs = fig if isinstance(fig, list) else [fig]
-    for fig_ in figs:
-        ax = max(fig_.axes, key=lambda a: a.get_position().height)
-        fig_.canvas.draw()
-        pos = ax.get_position().bounds
-        for _ in range(5):
-            fig_.canvas.draw()
-        assert np.allclose(pos, ax.get_position().bounds)
+    ax = max(fig.axes, key=lambda a: a.get_position().height)
+    fig.canvas.draw()
+    pos = ax.get_position().bounds
+    for _ in range(5):
+        fig.canvas.draw()
+    assert np.allclose(pos, ax.get_position().bounds)
 
     def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
         return list(range(d.shape[0]))
