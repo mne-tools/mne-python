@@ -51,6 +51,9 @@ doc-full = ["rpy2", { include-group = "doc" }]
 # unpinned, since Pyodide's curated version wins where it has one and the rest
 # resolve to the latest release (see doc/sphinxext/jupyterlite_lock_specs.py)
 jupyterlite = [
+  "ipyevents",
+  "ipympl",
+  "ipywidgets",
   "joblib",
   "mffpy",
   "mne-connectivity",

@@ -2,11 +2,13 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import asyncio
 import os
 import platform
 import subprocess
 import sys
 from contextlib import nullcontext
+from functools import partial
 
 import numpy as np
 import pytest
@@ -18,14 +20,14 @@ from mne.datasets import testing
 from mne.transforms import quat_to_rot, rot_to_quat
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
-from mne.viz.backends.renderer import _get_renderer
+from mne.viz.backends.renderer import _check_3d_backend_name, _get_renderer
 
 _data_path = testing.data_path(download=False)
 
 
 def _unsupported(renderer):
     """Return a context for what the browser backend says it cannot draw."""
-    if renderer.get_3d_backend() == "jupyterlite_notebook":
+    if renderer.get_3d_backend() == "notebook_js":
         return pytest.raises(NotImplementedError, match="browser")
     return nullcontext()
 
@@ -185,7 +187,7 @@ def test_3d_backend(renderer):
     # highlighting/hover) without rebuilding the actor or its geometry; the
     # browser backend merges instances into solid meshes, so it has no such
     # per-instance colors to update
-    if renderer.get_3d_backend() != "jupyterlite_notebook":
+    if renderer.get_3d_backend() != "notebook_js":
         inst_cloud.point_data["colors"][0] = [0, 0, 255, 255]
         inst_cloud.Modified()
 
@@ -296,7 +298,7 @@ def test_renderer(renderer, monkeypatch):
         "backend = mne.viz.get_3d_backend(); "
         f"assert backend == {repr(backend)}, backend; "
         # the browser backend must never import VTK, since there is none there
-        f"assert backend != 'jupyterlite_notebook' or 'vtk' not in sys.modules",
+        f"assert backend != 'notebook_js' or 'vtk' not in sys.modules",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -305,9 +307,13 @@ def test_renderer(renderer, monkeypatch):
 
 def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'notebook', and 'jupyterlite_notebook'"
+    match = "Allowed values are 'pyvistaqt', 'notebook', and 'notebook_js'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend("invalid")
+    with pytest.warns(
+        FutureWarning, match='renamed "notebook_js"'
+    ):  # TODO VERSION: 1.16
+        assert _check_3d_backend_name("jupyterlite_notebook") == "notebook_js"
 
     # gh-9607
     def fail(x):
@@ -358,7 +364,7 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     assert not _pyvista._is_osmesa(plotter)
 
 
-# -- jupyterlite_notebook (pyvista-js) backend --------------------------------
+# -- notebook_js (pyvista-js) backend --------------------------------
 # What the shared tests above cannot pin down, mostly geometry, since nothing
 # here can be screenshotted. A unit square, split into two triangles:
 _RR = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], float)
@@ -512,7 +518,7 @@ def test_lite_notebook_kernel(renderer_lite, nbexec):
 
     from mne.viz.backends import renderer
 
-    renderer.set_3d_backend("jupyterlite_notebook")
+    renderer.set_3d_backend("notebook_js")
     rend = renderer._get_renderer(bgcolor="white")
     rr = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
     rend.mesh(*rr.T, [[0, 1, 2], [0, 2, 3]], color="red")
@@ -530,8 +536,10 @@ def test_lite_notebook_kernel(renderer_lite, nbexec):
 
 
 @testing.requires_testing_data
-def test_lite_brain(renderer_lite):
+def test_lite_brain(renderer_lite, monkeypatch):
     """Test Brain draws a static, per-vertex-colored surface through the backend."""
+    from ipywidgets import GridBox
+
     import mne
 
     stc = mne.read_source_estimate(
@@ -557,6 +565,59 @@ def test_lite_brain(renderer_lite):
     with pytest.raises(NotImplementedError, match="browser"):  # two columns
         mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})
     assert list(mne.viz.Brain._instances) == [brain]  # the failed one died
+
+    # time_viewer=True builds the ipywidgets GUI shared with the notebook backend
+    brain = stc.plot(views="lat", initial_time=0.1, time_viewer=True, **kwargs)
+    rend = brain._renderer
+    assert "left" in rend._docks and "time_slider" in rend._widgets
+    assert isinstance(rend._viewer, GridBox)  # the widget the scene is drawn into
+    assert rend._pages[rend._n_drawn % 2].value.startswith("<iframe srcdoc=")
+    colors = rend.plotter.actors[0]["mesh"].point_data["Data"].copy()
+    draws, label = list(), brain.time_actor.input
+    monkeypatch.setattr(type(rend), "_draw_scene", partial(_count_draw, draws))
+    rend._widgets["time_slider"].set_value(0)  # drag the slider back to the start
+    assert brain._current_time == 0 and len(draws) and brain.time_actor.input != label
+    assert not np.array_equal(colors, rend.plotter.actors[0]["mesh"].point_data["Data"])
+    asyncio.run(_updates_coalesce(rend, draws))
+    monkeypatch.undo()  # the real _draw_scene, to check it skips an unchanged scene
+    _same_page_not_resent(rend)
+    brain.close()
+
+
+def _count_draw(draws, rend):
+    """Stand in for _draw_scene: count, and clear what it clears."""
+    draws.append(1)
+    rend._dirty = False
+
+
+async def _updates_coalesce(rend, draws):
+    """Check changes in one kernel message draw once, and the next waits for the ack."""
+    draws.clear()
+    rend._update()
+    rend._update()
+    assert draws == [] and rend._busy.layout.visibility == "visible"
+    await asyncio.sleep(0)  # the loop runs what is scheduled
+    assert draws == [1]
+    rend._in_flight = asyncio.get_running_loop().call_later(60, rend._on_painted)
+    rend._update()  # while the page is on its way: nothing until it reports
+    await asyncio.sleep(0)
+    assert draws == [1]
+    rend._on_painted()  # the click of the page's button
+    await asyncio.sleep(0)
+    assert draws == [1, 1] and rend._in_flight is None
+    rend._on_painted()  # nothing changed since, so the overlay goes
+    assert rend._busy.layout.visibility == "hidden"
+
+
+def _same_page_not_resent(rend):
+    """Check a redraw of an unchanged scene sends nothing and clears the overlay."""
+    rend._draw_scene()  # the scene as it is now
+    rend._busy.layout.visibility = "visible"
+    n_drawn = rend._n_drawn
+    page = rend._pages[n_drawn % 2].value
+    rend._draw_scene()  # the scene has not changed since
+    assert rend._n_drawn == n_drawn and rend._pages[n_drawn % 2].value == page
+    assert rend._busy.layout.visibility == "hidden"
 
 
 _SETUP_SCRIPT = """
@@ -596,7 +657,7 @@ setup_notebook(str(root))  # running the cell twice must not wrap the wrappers
 from mne.viz.backends import _jupyterlite
 
 assert _jupyterlite._orig["read_raw_kit"] is not mne.io.read_raw_kit
-assert mne.viz.get_3d_backend() == "jupyterlite_notebook"
+assert mne.viz.get_3d_backend() == "notebook_js"
 assert mne.datasets.sample.data_path() == root / "MNE-sample-data"
 data = root / "MNE-testing-data"
 ave = data / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"

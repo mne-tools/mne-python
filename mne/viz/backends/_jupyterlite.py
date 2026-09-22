@@ -60,7 +60,7 @@ def setup_notebook(data_path="/tmp/mne_data"):  # nosec B108
     from ...viz import set_3d_backend
 
     try:
-        set_3d_backend("jupyterlite_notebook")
+        set_3d_backend("notebook_js")
     except Exception as exc:
         print(f"[JupyterLite] could not select the pyvista-js renderer: {exc!r}")
 

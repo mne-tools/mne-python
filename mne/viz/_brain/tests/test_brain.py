@@ -2264,13 +2264,20 @@ def test_auto_scalar_bar_fmt():
 def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     """Test responding to Brain related UI events."""
     brain = _create_testing_brain(hemi="lh", show_traces="vertex")
+    # each event must render once: a notebook backend redraws the whole scene
+    renders, update = list(), brain._renderer._update
+    brain._renderer._update = lambda: (renders.append(1), update())
 
-    ui_events.publish(brain, ui_events.TimeChange(time=1))
-    assert brain._current_time == 1
+    new_time = brain._times[-1]
+    assert brain._current_time != new_time  # so this is a change
+    ui_events.publish(brain, ui_events.TimeChange(time=new_time))
+    assert brain._current_time == new_time
+    assert len(renders) == 1
 
     ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=1))
     assert 1 in brain.get_picked_points()["lh"]
 
+    n_renders = len(renders)
     ui_events.publish(
         brain,
         ui_events.ColormapRange(
@@ -2278,6 +2285,7 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
         ),
     )
     assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+    assert len(renders) == n_renders + 1
 
     # This event should be ignored.
     ui_events.publish(

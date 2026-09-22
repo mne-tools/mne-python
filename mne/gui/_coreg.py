@@ -1716,7 +1716,7 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command("mri_fiducials_label", "set_value", text)
 
     def _configure_dock(self):
-        if self._renderer._kind == "notebook":
+        if self._renderer._kind.startswith("notebook"):  # either notebook backend
             collapse = True  # collapsible and collapsed
         else:
             collapse = None  # not collapsible
