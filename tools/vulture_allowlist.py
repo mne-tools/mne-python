@@ -179,6 +179,12 @@ _.restype
 _.labelpad
 _.fake_keypress
 
+# Called through the ipywidgets GUI mixin in the ignored _notebook.py
+_._display_default_tool_bar
+_._viewer_widget
+_._window_get_size
+_._ensure_minimum_sizes
+
 # Used in ignored files
 _qt_raise_window
 _qt_disable_paint

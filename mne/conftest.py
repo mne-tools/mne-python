@@ -755,7 +755,7 @@ def browser_backend(request, garbage_collect, monkeypatch):
 @pytest.fixture(
     params=[
         pytest.param("pyvistaqt", marks=pytest.mark.pvtest),
-        pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest),
+        pytest.param("notebook_js", marks=pytest.mark.pvtest),
     ]
 )
 def renderer(request, options_3d, garbage_collect):
@@ -778,7 +778,7 @@ def renderer_notebook(request, options_3d):
         yield renderer
 
 
-@pytest.fixture(params=[pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest)])
+@pytest.fixture(params=[pytest.param("notebook_js", marks=pytest.mark.pvtest)])
 def renderer_lite(request, options_3d):
     """Yield the JupyterLite (vtk.js) renderer alone, for its own tests."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -834,9 +834,12 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends._utils import _notebook_vtk_works
 
-    if name == "jupyterlite_notebook":
+    if name == "notebook_js":
         # draws with vtk.js in a browser: no VTK, no Qt, no ffmpeg
         pytest.importorskip("pyvista_js")
+        # ... but the same ipywidgets GUI as the notebook backend
+        pytest.importorskip("ipympl")
+        pytest.importorskip("ipyevents")
         return
     pytest.importorskip("pyvista")
     pytest.importorskip("imageio_ffmpeg")

@@ -134,7 +134,7 @@ class PyVistaFigure(Figure3D):
             if "app_window_class" in signature(_SafeBackgroundPlotter).parameters:
                 self.store["app_window_class"] = _MNEMainWindow
         else:
-            from ._notebook import _NotebookPlotter
+            from ._trame import _NotebookPlotter
 
             self._plotter_class = _NotebookPlotter
 

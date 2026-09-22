@@ -29,7 +29,7 @@ VALID_BROWSE_BACKENDS = (
 VALID_3D_BACKENDS = (
     "pyvistaqt",  # default 3d backend
     "notebook",
-    "jupyterlite_notebook",
+    "notebook_js",
 )
 # The backends _get_3d_backend() falls back to when none has been set. The
 # JupyterLite one is left out on purpose: it draws through vtk.js and only

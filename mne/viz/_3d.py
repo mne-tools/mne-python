@@ -2752,8 +2752,9 @@ def _check_st_tv(show_traces, time_viewer, times):
     if time_viewer == "auto":
         from .backends.renderer import _get_3d_backend
 
-        # the browser backend writes a static scene, so there is no slider to show
-        time_viewer = _get_3d_backend() != "jupyterlite_notebook"
+        # the browser backend has to serialize the whole scene again for every
+        # step of the slider, so it offers one only when asked for explicitly
+        time_viewer = _get_3d_backend() != "notebook_js"
     if show_traces == "auto":
         show_traces = time_viewer and times is not None and len(times) > 1
     if show_traces and not time_viewer:

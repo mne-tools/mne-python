@@ -641,9 +641,13 @@ class Brain:
         self._active_data_key = next(iter(self._all_data))
         self._configure_time_label()
         self._configure_scalar_bar()
-        self._configure_shortcuts()
-        self._configure_picking()
-        self._configure_hover()
+        # keyboard shortcuts, picking and hover all need mouse and key events
+        # from the interactor, plus VTK actors (see the TODO in _add_volume_data),
+        # which a page drawn by the notebook_js backend has neither of
+        if self._renderer._kind != "notebook_js":
+            self._configure_shortcuts()
+            self._configure_picking()
+            self._configure_hover()
         self._configure_dock()
         self._configure_tool_bar()
         self._configure_status_bar()
@@ -839,7 +843,9 @@ class Brain:
     def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name, collapse=True)
         # Renderer widget
-        rends = [str(i) for i in range(len(self._renderer._all_renderers))]
+        # one entry per subplot, which is what VTK's renderers are (asking the
+        # renderer for them would reach past its interface, see _add_volume_data)
+        rends = [str(i) for i in range(int(np.prod(self._subplot_shape)))]
         if len(rends) > 1:
 
             @_auto_weakref
@@ -1646,8 +1652,7 @@ class Brain:
                     self.widgets["time"].set_value(time_idx)
                 if "current_time" in self.widgets:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-            self.plot_time_line(update=True)
-        self._renderer._update()
+            self.plot_time_line(update=True)  # _update_current_time_idx rendered
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -1666,9 +1671,7 @@ class Brain:
                     entry_key = "entry_" + key
                     if entry_key in self.widgets:
                         self.widgets[entry_key].set_value(val * self._data["fscale"])
-        # Update the render.
-        self._update_colormap_range(**lims)
-        self._renderer._update()
+        self._update_colormap_range(**lims)  # renders
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
@@ -2671,7 +2674,7 @@ class Brain:
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
             # TODO: reaches into VTK through the renderer, which the
-            # jupyterlite_notebook backend cannot offer (its pages are excluded
+            # notebook_js backend cannot offer (its pages are excluded
             # in doc/conf.py); refactor the renderer interface so Brain only
             # uses its abstract methods. Same for the time label and glyph
             # actors below.
