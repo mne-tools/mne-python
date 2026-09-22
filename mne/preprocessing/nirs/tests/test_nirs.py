@@ -26,6 +26,7 @@ from mne.preprocessing.nirs import (
     scalp_coupling_index,
     tddr,
 )
+from mne.utils import _record_warnings
 
 fname_nirx_15_0 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"
@@ -669,3 +670,46 @@ def test_nirs_channel_grouping(fname, readerfn):
         ValueError, match="NIRS channels is missing wavelength information"
     ):
         _check_channels_ordered(raw_locnone.info, freqs)
+
+
+def _fnirs_raw(data, ch_type):
+    """Wrap fNIRS data in a Raw with the channel metadata fNIRS checks require."""
+    ch_names = ["S1_D1 760", "S1_D1 850", "S2_D1 760", "S2_D1 850"]
+    info = create_info(ch_names, 10.0, np.repeat(ch_type, 4))
+    for ch, freq in zip(info["chs"], [760, 850, 760, 850]):
+        ch["loc"][9] = freq
+    return RawArray(data, info, verbose=False)
+
+
+def test_optical_density_names_negative_channels():
+    """Test that optical_density names the channels with negative intensities."""
+    data = np.random.default_rng(0).normal(1e5, 1e3, (4, 100))
+    data[2, 50] = -1e5
+    raw = _fnirs_raw(data, "fnirs_cw_amplitude")
+    with _record_warnings() as caught:
+        optical_density(raw)
+    msgs = " ".join(str(w.message) for w in caught)
+    assert {name for name in raw.ch_names if name in msgs} == {"S2_D1 760"}
+
+
+def test_optical_density_names_nonfinite_channels():
+    """Test that optical_density names the channels that become non-finite."""
+    data = np.random.default_rng(0).normal(1e5, 1e3, (4, 100))
+    # positive, but the dynamic range makes the normalized value underflow
+    data[2, 50], data[2, 51] = 1e300, 1e-300
+    raw = _fnirs_raw(data, "fnirs_cw_amplitude")
+    with _record_warnings() as caught:
+        optical_density(raw)
+    msgs = " ".join(str(w.message) for w in caught)
+    assert {name for name in raw.ch_names if name in msgs} == {"S2_D1 760"}
+
+
+def test_tddr_names_nonfinite_channels():
+    """Test that TDDR names the channels that are non-finite."""
+    data = np.random.default_rng(0).normal(0, 1, (4, 100))
+    data[2, 50] = np.inf
+    raw = _fnirs_raw(data, "fnirs_od")
+    with _record_warnings() as caught:
+        tddr(raw)
+    msgs = " ".join(str(w.message) for w in caught)
+    assert {name for name in raw.ch_names if name in msgs} == {"S2_D1 760"}
