@@ -160,7 +160,6 @@ requires-python = ">= 3.11"
 scripts = { mne = "mne.commands.utils:main" }
 
 [project.optional-dependencies]
-array-api = ["array-api-compat >= 1.12", "scikit-learn >= 1.5"]
 # Leave this one here for backward-compat
 data = []
 full = ["mne[full-no-qt]", "PySide6 != 6.7.0, != 6.8.0, != 6.8.0.1, != 6.9.1"]

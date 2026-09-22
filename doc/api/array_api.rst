@@ -14,9 +14,9 @@ not make all MNE-Python functions or data containers GPU-compatible.
 Installation and configuration
 ------------------------------
 
-Install the optional dependencies with ``pip install 'mne[array-api]'`` and
-install the array backend separately, for example PyTorch. NumPy workflows
-do not require this extra or PyTorch.
+Install ``array-api-compat >= 1.12``, ``scikit-learn >= 1.5``, and the array
+backend separately, for example PyTorch. NumPy workflows do not require
+``array-api-compat`` or PyTorch.
 
 Set ``SCIPY_ARRAY_API=1`` in the environment **before** importing SciPy,
 scikit-learn, or MNE-Python. Enable scikit-learn's ``array_api_dispatch`` during
@@ -71,10 +71,10 @@ PyTorch tensors. It requires no downloaded data:
 Use arrays on the desired device when fitting and predicting. GPU execution
 also requires that the backend, solver, and hardware support the necessary
 operations; CPU tests alone do not establish GPU compatibility or speedups.
-PyTorch CPU and the strict reference Array API implementation are exercised
-with the minimum and current scikit-learn versions. Strict multi-output tests
-require scikit-learn 1.9 or newer because older Ridge implementations have
-restrictions on these inputs.
+An Array API step in the Ubuntu pip CI job exercises PyTorch CPU and the strict
+reference implementation with the current scikit-learn version. Strict
+multi-output tests require scikit-learn 1.9 or newer because older Ridge
+implementations have restrictions on these inputs.
 
 Limitations
 -----------

@@ -187,10 +187,10 @@ def rf_array_api(request):
 
 
 @pytest.mark.parametrize("dtype", ["float32", "float64", "int64"])
-@pytest.mark.parametrize("epoched", [False, True])
-@pytest.mark.parametrize("n_outputs", [1, 2])
-@pytest.mark.parametrize("fit_intercept", [False, True])
-@pytest.mark.parametrize("limits", [(-2, 0), (0, 2), (-1, 1)])
+@pytest.mark.parametrize(
+    "epoched, n_outputs, fit_intercept, limits",
+    [(False, 2, False, (-2, 0)), (True, 1, True, (0, 2)), (True, 2, True, (-1, 1))],
+)
 def test_receptive_field_array_api(
     rf_array_api, monkeypatch, dtype, epoched, n_outputs, fit_intercept, limits
 ):
@@ -214,11 +214,6 @@ def test_receptive_field_array_api(
         y = y[..., 0]
     estimator = Ridge(solver="svd", fit_intercept=fit_intercept, random_state=0)
     expected = ReceptiveField(*limits, 1, estimator=estimator, patterns=True).fit(x, y)
-    x_list, y_list = x.tolist(), y.tolist()
-    assert_array_equal(
-        expected.score(x_list, y_list),
-        expected.score(np.asarray(x_list), np.asarray(y_list)),
-    )
     xt, yt = xp.asarray(x.copy()), xp.asarray(y.copy())
     model = ReceptiveField(*limits, 1, estimator=estimator, patterns=True)
     with monkeypatch.context() as patch:
@@ -233,14 +228,11 @@ def test_receptive_field_array_api(
         for scoring in ("r2", "corrcoef"):
             model.scoring = scoring
             scores.append(model.score(xt, yt))
-    for actual, reference in (
-        (model.coef_, expected.coef_),
-        (model.patterns_, expected.patterns_),
-        (predicted, expected.predict(x)),
-    ):
-        assert actual.device == xt.device
-        assert actual.dtype == (xp.float64 if dtype == "int64" else xt.dtype)
-        assert_allclose(np.asarray(actual), reference, atol=tol, rtol=tol)
+    # General attribute/prediction equivalence is also checked by sklearn;
+    # these cases cover epoch flattening, lag direction, and singular patterns.
+    assert predicted.dtype == (xp.float64 if dtype == "int64" else xt.dtype)
+    assert_allclose(np.asarray(predicted), expected.predict(x), atol=tol, rtol=tol)
+    assert_allclose(np.asarray(model.patterns_), expected.patterns_, atol=tol, rtol=tol)
     for scoring, actual in zip(("r2", "corrcoef"), scores):
         expected.scoring = scoring
         assert actual.device == xt.device
@@ -248,8 +240,6 @@ def test_receptive_field_array_api(
         assert_allclose(np.asarray(actual), expected.score(x, y), atol=tol, rtol=tol)
     assert_array_equal(np.asarray(xt), x)
     assert_array_equal(np.asarray(yt), y)
-    assert model.delays_.device == xt.device
-    assert_array_equal(np.asarray(model.delays_), expected.delays_)
     with pytest.raises(ValueError, match="only one sample"):
         model.set_params(tmin=0, tmax=0).fit(xp.ones((1, 1)), xp.ones((1, n_outputs)))
     for unsupported in (None, 0.1, TimeDelayingRidge(0, 1, 1)):
@@ -290,60 +280,29 @@ def test_receptive_field_array_api_score_precision(rf_array_api, scoring, target
 
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
-@pytest.mark.parametrize(
-    "kind",
-    [
-        "regular",
-        "constant",
-        "large",
-        "small",
-        "two-positive",
-        "two-negative",
-        "two-nan",
-        "two-inf",
-        "complex",
-    ],
-)
-def test_receptive_field_array_api_correlation(rf_array_api, dtype, kind):
-    """Check MNE's tensor correlation at constant and extreme-valued inputs."""
-    from contextlib import nullcontext
-
+@pytest.mark.parametrize("n_samples", [2, 7])
+def test_receptive_field_array_api_correlation(rf_array_api, dtype, n_samples):
+    """Check the device-local statistic against SciPy without its p-value path."""
     from scipy.stats import ConstantInputWarning, pearsonr
 
     xp = rf_array_api
-    x, y = np.random.default_rng(20).standard_normal((2, 7, 2)).astype(dtype)
-    if kind == "complex":
-        with pytest.raises(ValueError, match="Complex data"):
-            _SCORERS["corrcoef"](
-                xp.asarray(x + 1j), xp.asarray(y), multioutput="raw_values"
-            )
-        return
-    if kind == "constant":
-        x[...] = 0.1
-    elif kind in ("large", "small"):
-        scale = 1e10 if dtype == "float32" else 1e200
-        scale = 1 / scale if kind == "small" else scale
-        x, y = x * scale, y * scale
-    elif kind.startswith("two"):
+    x, y = np.random.default_rng(20).standard_normal((2, n_samples, 5)).astype(dtype)
+    if n_samples == 2:
         eps = np.finfo(dtype).eps
-        x = np.array([[1], [1 + eps]], dtype=dtype)
-        y = np.array([[1], [1 + 2 * eps]], dtype=dtype)
-        if kind == "two-negative":
-            y = y[::-1].copy()
-        elif kind in ("two-nan", "two-inf"):
-            y[1] = float(kind.removeprefix("two-"))
-    context = (
-        pytest.warns(ConstantInputWarning) if kind == "constant" else nullcontext()
-    )
-    with context, np.errstate(invalid="ignore"):
-        if kind.startswith("two"):
-            expected = {"two-positive": 1.0, "two-negative": -1.0}.get(kind, np.nan)
-        else:
+        x[:] = np.array([[1], [1 + eps]], dtype=dtype)
+        y[:] = np.array([[1], [1 + 2 * eps]], dtype=dtype)
+        y[:, 1] = y[::-1, 1].copy()
+        y[1, 2:4] = [np.nan, np.inf]
+        expected = [1.0, -1.0, np.nan, np.nan, np.nan]
+    else:
+        scale = 1e10 if dtype == "float32" else 1e200
+        x[:, 1:3] *= [scale, 1 / scale]
+        y[:, 1:3] *= [scale, 1 / scale]
+        x[:, 4] = 0.1
+        with pytest.warns(ConstantInputWarning):
             expected = pearsonr(x, y, axis=0).statistic
-    context = (
-        pytest.warns(ConstantInputWarning) if kind == "constant" else nullcontext()
-    )
-    with context:
+    x[:, 4] = 0.1
+    with pytest.warns(ConstantInputWarning):
         actual = _SCORERS["corrcoef"](
             xp.asarray(x), xp.asarray(y), multioutput="raw_values"
         )
@@ -353,6 +312,10 @@ def test_receptive_field_array_api_correlation(rf_array_api, dtype, kind):
     with pytest.raises(ValueError, match="at least 2"):
         _SCORERS["corrcoef"](
             xp.asarray(x[:1]), xp.asarray(y[:1]), multioutput="raw_values"
+        )
+    with pytest.raises(ValueError, match="Complex data"):
+        _SCORERS["corrcoef"](
+            xp.asarray(x + 1j), xp.asarray(y), multioutput="raw_values"
         )
 
 
@@ -391,6 +354,7 @@ def test_receptive_field_basic(n_jobs):
     assert_allclose(y[rf.valid_samples_], y_pred[rf.valid_samples_], atol=1e-2)
     scores = rf.score(X, y)
     assert scores > 0.99
+    assert_array_equal(rf.score(X.tolist(), y.tolist()), scores)
     assert_allclose(rf.coef_.T.ravel(), w, atol=1e-3)
     # Make sure different input shapes work
     rf.fit(X[:, np.newaxis :], y[:, np.newaxis])

@@ -14,7 +14,7 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
-from ..utils import _validate_type, fill_doc_static, pinv, warn
+from ..utils import _validate_type, fill_doc_static, warn
 from ._fixes import _check_n_features_3d, _get_array_namespace, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
@@ -320,21 +320,15 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order="F")
             else:
                 X = X - xp.mean(X, axis=0, keepdims=True)
-                if isinstance(X, np.ndarray):
-                    cov_ = np.cov(X.T)
-                else:
-                    cov_ = (xp.matrix_transpose(X) @ X) / (n_total_samples - 1)
+                cov_ = (X.T @ X) / (n_total_samples - 1)  # equivalent to np.cov(X.T)
             del X
 
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
+                y = xp.asarray(y, dtype=cov_.dtype)
                 y = y - xp.mean(y, axis=0, keepdims=True)
-                if isinstance(y, np.ndarray):
-                    inv_Y = pinv(np.cov(y.T))
-                else:
-                    inv_Y = xp.linalg.pinv(
-                        (xp.matrix_transpose(y) @ y) / (n_total_samples - 1)
-                    )
+                cov_y = (y.T @ y) / (n_total_samples - 1)
+                inv_Y = xp.linalg.pinv(cov_y, rtol=None)
             else:
                 inv_Y = 1.0 / float(n_times * n_epochs - 1)
             del y
@@ -342,10 +336,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             # Inverse coef according to Haufe's method
             # patterns has shape (n_feats * n_delays, n_outputs)
             coef = xp.reshape(self.coef_, (n_feats * n_delays, n_outputs))
-            if isinstance(coef, np.ndarray):
-                patterns = cov_.dot(coef.dot(inv_Y))
-            else:
-                patterns = cov_ @ (coef * inv_Y if n_outputs == 1 else coef @ inv_Y)
+            patterns = cov_ @ (coef * inv_Y if n_outputs == 1 else coef @ inv_Y)
             self.patterns_ = xp.reshape(patterns, tuple(shape))
 
         return self
@@ -447,12 +438,12 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         y_dim = y.ndim if y is not None else 0
         if X_dim == 2:
             # Ensure we have a 3D input by adding singleton epochs dimension
-            X = X[:, None, :]
+            X = X[:, np.newaxis, :]
             if y is not None:
                 if y_dim == 1:
-                    y = y[:, None, None]  # epochs, outputs
+                    y = y[:, np.newaxis, np.newaxis]  # epochs, outputs
                 elif y_dim == 2:
-                    y = y[:, None, :]  # epochs
+                    y = y[:, np.newaxis, :]  # epochs
                 else:
                     raise ValueError(
                         "y must be shape (n_times[, n_epochs][,n_outputs], got "
@@ -461,7 +452,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         elif X.ndim == 3:
             if y is not None:
                 if y.ndim == 2:
-                    y = y[:, :, None]  # Add an outputs dim
+                    y = y[:, :, np.newaxis]  # Add an outputs dim
                 elif y.ndim != 3:
                     raise ValueError(
                         "If X has 3 dimensions, y must have 2 or 3 dimensions"
@@ -619,36 +610,32 @@ def _corr_score(y_true, y, multioutput=None):
     xp, _ = _get_array_namespace(y)
     if any(xp.isdtype(values.dtype, "complex floating") for values in (y_true, y)):
         raise ValueError("Complex data not supported")
+    # SciPy's pearsonr also computes p-values, requiring a host transfer for
+    # PyTorch. Compute only the statistic here to keep GPU arrays on-device.
     dtype = xp.result_type(
         *[
-            values.dtype if xp.isdtype(values.dtype, "real floating") else xp.float64
-            for values in (y_true, y)
+            v.dtype if xp.isdtype(v.dtype, "real floating") else xp.float64
+            for v in (y_true, y)
         ]
     )
-    y_true, y = (xp.asarray(values, dtype=dtype) for values in (y_true, y))
-    constant = xp.all(y_true == y_true[:1, ...], axis=0) | xp.all(
-        y == y[:1, ...], axis=0
-    )
+    values = xp.stack([xp.asarray(v, dtype=dtype) for v in (y_true, y)])
+    constant = xp.any(xp.all(values == values[:, :1, :], axis=1), axis=0)
     if xp.any(constant):
         warn(
             "An input array is constant; the correlation coefficient is not defined.",
             ConstantInputWarning,
         )
     if y.shape[0] == 2:
-        result = xp.sign(y_true[1, ...] - y_true[0, ...]) * xp.sign(
-            y[1, ...] - y[0, ...]
-        )
-        finite = xp.all(xp.isfinite(y_true) & xp.isfinite(y), axis=0)
+        result = xp.prod(xp.sign(values[:, 1, :] - values[:, 0, :]), axis=0)
+        finite = xp.all(xp.isfinite(values), axis=(0, 1))
         return xp.where(constant | ~finite, xp.nan, result)
-    normalized = []
-    for values in (y_true, y):
-        centered = values - xp.mean(values, axis=0, keepdims=True)
-        # Scale before the norm to avoid squaring very large/small values.
-        scale = xp.max(xp.abs(centered), axis=0, keepdims=True)
-        scaled = centered / xp.where(scale == 0, 1, scale)
-        norm = xp.sqrt(xp.sum(scaled * scaled, axis=0, keepdims=True))
-        normalized.append(scaled / xp.where(norm == 0, 1, norm))
-    result = xp.clip(xp.sum(normalized[0] * normalized[1], axis=0), -1, 1)
+    values = values - xp.mean(values, axis=1, keepdims=True)
+    # Scale before the norm to avoid squaring very large/small values.
+    scale = xp.max(xp.abs(values), axis=1, keepdims=True)
+    values = values / xp.where(scale == 0, 1, scale)
+    norm = xp.linalg.vector_norm(values, axis=1, keepdims=True)
+    values = values / xp.where(norm == 0, 1, norm)
+    result = xp.clip(xp.sum(values[0, ...] * values[1, ...], axis=0), -1, 1)
     return xp.where(constant, xp.nan, result)
 
 
