@@ -8,7 +8,8 @@ trigger:
 pr:
   branches:
     include:
-      - '*'  # must quote since "*" is a YAML reserved character; we want a string
+      - 'main'
+      - 'maint/*'
 
 
 stages:
