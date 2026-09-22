@@ -14,7 +14,7 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
-from ..utils import _validate_type, fill_doc_static, pinv
+from ..utils import _validate_type, fill_doc_static, pinv, warn
 from ._fixes import _check_n_features_3d, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
@@ -103,6 +103,20 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
     to previous input time samples, while negative lags correspond to
     future input time samples.
 
+    With scikit-learn's ``array_api_dispatch=True``, Array API inputs can be
+    used with a compatible estimator, such as ``Ridge(solver="svd")``.
+    Inputs, coefficients, patterns, predictions, and scores stay on the input
+    device. Set ``SCIPY_ARRAY_API=1`` before
+    importing SciPy or scikit-learn to enable their Array API support.
+    The default :class:`TimeDelayingRidge` estimator currently requires NumPy
+    inputs. Array API support requires a backend with mutable arrays, such as
+    PyTorch or CuPy, and support for the chosen estimator's operations.
+    Integer tensor features are converted to float64; tensor targets are cast
+    to the feature dtype during fitting, but not during scoring. Use float32
+    or float64 for ``Ridge(solver="svd")``.
+    Tensor correlation scores are NaN for constant or non-finite target
+    columns; complex-valued targets are not supported.
+
     References
     ----------
     .. footbibliography::
@@ -179,7 +193,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             X = _reshape_for_est(X)
             # Concat times + epochs
             if y is not None:
-                y = y.reshape(-1, y.shape[-1], order="F")
+                y = _reshape_fortran(y, (-1, y.shape[-1]))
         return X, y
 
     def _check_data(self, X, y=None, reset=False):
@@ -223,7 +237,17 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        from sklearn.utils._array_api import get_namespace
+
         X, y = self._check_data(X, y, reset=True)
+        if not isinstance(X, np.ndarray):
+            if self.estimator is None or isinstance(
+                self.estimator, (numbers.Real, TimeDelayingRidge)
+            ):
+                raise ValueError(
+                    "Array API inputs require a compatible estimator, such as "
+                    "Ridge(solver='svd'); TimeDelayingRidge requires NumPy inputs."
+                )
         self._validate_params(X)
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
@@ -290,7 +314,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         shape = [n_feats, n_delays]
         if self._y_dim > 1:
             shape.insert(0, -1)
-        self.coef_ = coef.reshape(shape)
+        xp, _ = get_namespace(coef)
+        self.coef_ = xp.reshape(coef, tuple(shape))
 
         # Inverse-transform model weights
         if self.patterns:
@@ -304,23 +329,34 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 cov_ = self.estimator_.cov_ / float(n_times * n_epochs - 1)
                 y = y.reshape(-1, y.shape[-1], order="F")
             else:
-                X = X - X.mean(0, keepdims=True)
-                cov_ = np.cov(X.T)
+                X = X - xp.mean(X, axis=0, keepdims=True)
+                if isinstance(X, np.ndarray):
+                    cov_ = np.cov(X.T)
+                else:
+                    cov_ = (xp.matrix_transpose(X) @ X) / (n_total_samples - 1)
             del X
 
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
-                y = y - y.mean(0, keepdims=True)
-                inv_Y = pinv(np.cov(y.T))
+                y = y - xp.mean(y, axis=0, keepdims=True)
+                if isinstance(y, np.ndarray):
+                    inv_Y = pinv(np.cov(y.T))
+                else:
+                    inv_Y = xp.linalg.pinv(
+                        (xp.matrix_transpose(y) @ y) / (n_total_samples - 1)
+                    )
             else:
                 inv_Y = 1.0 / float(n_times * n_epochs - 1)
             del y
 
             # Inverse coef according to Haufe's method
             # patterns has shape (n_feats * n_delays, n_outputs)
-            coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
-            patterns = cov_.dot(coef.dot(inv_Y))
-            self.patterns_ = patterns.reshape(shape)
+            coef = xp.reshape(self.coef_, (n_feats * n_delays, n_outputs))
+            if isinstance(coef, np.ndarray):
+                patterns = cov_.dot(coef.dot(inv_Y))
+            else:
+                patterns = cov_ @ (coef * inv_Y if n_outputs == 1 else coef @ inv_Y)
+            self.patterns_ = xp.reshape(patterns, tuple(shape))
 
         return self
 
@@ -339,6 +375,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             unaffected by edge artifacts during the time delaying step) can
             be obtained using ``y_pred[rf.valid_samples_]``.
         """
+        from sklearn.utils._array_api import get_namespace
+
         if not hasattr(self, "delays_"):
             raise NotFittedError("Estimator has not been fit yet.")
 
@@ -352,7 +390,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             pred_shape = pred_shape + (self.coef_.shape[0],)
         X, _ = self._delay_and_reshape(X)
         y_pred = self.estimator_.predict(X)
-        y_pred = y_pred.reshape(pred_shape, order="F")
+        y_pred = _reshape_fortran(y_pred, pred_shape)
         shape = list(y_pred.shape)
         if X_dim <= 2:
             shape.pop(1)  # epochs
@@ -360,7 +398,8 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         else:
             extra = 1
         shape = shape[: self._y_dim + extra]
-        y_pred = y_pred.reshape(shape, copy=False)
+        xp, _ = get_namespace(y_pred)
+        y_pred = xp.reshape(y_pred, tuple(shape))
         return y_pred
 
     def score(self, X, y):
@@ -379,7 +418,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
         Returns
         -------
-        scores : list of float, shape (n_outputs,)
+        scores : array, shape (n_outputs,)
             The scores estimated by the model for each output (e.g. mean
             R2 of ``predict(X)``).
         """
@@ -394,25 +433,34 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         y = y[self.valid_samples_]
 
         # Re-vectorize and call scorer
-        y = y.reshape([-1, n_outputs], order="F")
-        y_pred = y_pred.reshape([-1, n_outputs], order="F")
+        y = _reshape_fortran(y, (-1, n_outputs))
+        y_pred = _reshape_fortran(y_pred, (-1, n_outputs))
         assert y.shape == y_pred.shape
         scores = scorer_(y, y_pred, multioutput="raw_values")
         return scores
 
     def _check_dimensions(self, X, y, predict=False):
-        _validate_type(X, "array-like", "X")
-        _validate_type(y, ("array-like", None), "y")
+        from sklearn.utils._array_api import get_namespace
+
+        xp, is_array_api = get_namespace(X, y)
+        if not is_array_api:
+            _validate_type(X, "array-like", "X")
+            _validate_type(y, ("array-like", None), "y")
+        elif not isinstance(X, np.ndarray):
+            if not xp.isdtype(X.dtype, "real floating"):
+                X = xp.asarray(X, dtype=xp.float64)
+            if y is not None and not predict:
+                y = xp.asarray(y, dtype=X.dtype)
         X_dim = X.ndim
         y_dim = y.ndim if y is not None else 0
         if X_dim == 2:
             # Ensure we have a 3D input by adding singleton epochs dimension
-            X = X[:, np.newaxis, :]
+            X = X[:, None, :]
             if y is not None:
                 if y_dim == 1:
-                    y = y[:, np.newaxis, np.newaxis]  # epochs, outputs
+                    y = y[:, None, None]  # epochs, outputs
                 elif y_dim == 2:
-                    y = y[:, np.newaxis, :]  # epochs
+                    y = y[:, None, :]  # epochs
                 else:
                     raise ValueError(
                         "y must be shape (n_times[, n_epochs][,n_outputs], got "
@@ -421,7 +469,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
         elif X.ndim == 3:
             if y is not None:
                 if y.ndim == 2:
-                    y = y[:, :, np.newaxis]  # Add an outputs dim
+                    y = y[:, :, None]  # Add an outputs dim
                 elif y.ndim != 3:
                     raise ValueError(
                         "If X has 3 dimensions, y must have 2 or 3 dimensions"
@@ -490,29 +538,34 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
      [5. 4. 3. 2.]
      [0. 5. 4. 3.]]
     """
+    from sklearn.utils._array_api import device, get_namespace
+
+    xp, _ = get_namespace(X)
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
     # Iterate through indices and append
-    delayed = np.zeros(X.shape + (len(delays),))
+    dtype = None if isinstance(X, np.ndarray) else X.dtype
+    delayed = xp.zeros(X.shape + (len(delays),), dtype=dtype, device=device(X))
     if fill_mean:
-        mean_value = X.mean(axis=0)
+        mean_value = xp.mean(X, axis=0)
         if X.ndim == 3:
-            mean_value = np.mean(mean_value, axis=0)
-        delayed[:] = mean_value[:, np.newaxis]
+            mean_value = xp.mean(mean_value, axis=0)
+        delayed[:] = mean_value[:, None]
     for ii, ix_delay in enumerate(delays):
-        # Create zeros to populate w/ delays
         if ix_delay < 0:
-            out = delayed[:ix_delay, ..., ii]
+            rows = slice(None, ix_delay)
             use_X = X[-ix_delay:]
         elif ix_delay > 0:
-            out = delayed[ix_delay:, ..., ii]
+            rows = slice(ix_delay, None)
             use_X = X[:-ix_delay]
         else:  # == 0
-            out = delayed[..., ii]
+            rows = slice(None)
             use_X = X
-        out[:] = use_X
+        delayed[rows, ..., ii] = use_X
         if fill_mean:
-            out[:] += mean_value - use_X.mean(axis=0)
+            delayed[rows, ..., ii] = delayed[rows, ..., ii] + (
+                mean_value - xp.mean(use_X, axis=0)
+            )
     return delayed
 
 
@@ -542,17 +595,31 @@ def _check_delayer_params(tmin, tmax, sfreq):
         raise ValueError("tmin must be <= tmax")
 
 
+def _reshape_fortran(X, shape):
+    """Reshape with Fortran ordering without changing the array namespace."""
+    from sklearn.utils._array_api import get_namespace
+
+    xp, _ = get_namespace(X)
+    X = xp.permute_dims(X, tuple(range(X.ndim - 1, -1, -1)))
+    X = xp.reshape(X, tuple(shape)[::-1])
+    return xp.permute_dims(X, tuple(range(len(shape) - 1, -1, -1)))
+
+
 def _reshape_for_est(X_del):
     """Convert X_del to a sklearn-compatible shape."""
+    from sklearn.utils._array_api import get_namespace
+
+    xp, _ = get_namespace(X_del)
     n_times, n_epochs, n_feats, n_delays = X_del.shape
-    X_del = X_del.reshape(n_times, n_epochs, -1)  # concatenate feats
-    X_del = X_del.reshape(n_times * n_epochs, -1, order="F")
+    X_del = xp.reshape(X_del, (n_times, n_epochs, -1))  # concatenate feats
+    X_del = _reshape_fortran(X_del, (n_times * n_epochs, -1))
     return X_del
 
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import pearsonr
+    from scipy.stats import ConstantInputWarning, pearsonr
+    from sklearn.utils._array_api import get_namespace
 
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
@@ -560,7 +627,42 @@ def _corr_score(y_true, y, multioutput=None):
             raise ValueError(
                 f"inputs must be shape (samples, outputs), got {this_y.shape}"
             )
-    return np.array([pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])])
+    if isinstance(y_true, np.ndarray) and isinstance(y, np.ndarray):
+        return np.array(
+            [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
+        )
+    if y.shape[0] < 2:
+        raise ValueError("Correlation requires at least 2 samples.")
+    xp, _ = get_namespace(y_true, y)
+    if any(xp.isdtype(values.dtype, "complex floating") for values in (y_true, y)):
+        raise ValueError("Complex data not supported")
+    dtype = xp.result_type(
+        *[
+            values.dtype if xp.isdtype(values.dtype, "real floating") else xp.float64
+            for values in (y_true, y)
+        ]
+    )
+    y_true, y = (xp.asarray(values, dtype=dtype) for values in (y_true, y))
+    constant = xp.all(y_true == y_true[:1], axis=0) | xp.all(y == y[:1], axis=0)
+    if xp.any(constant):
+        warn(
+            "An input array is constant; the correlation coefficient is not defined.",
+            ConstantInputWarning,
+        )
+    if y.shape[0] == 2:
+        result = xp.sign(y_true[1] - y_true[0]) * xp.sign(y[1] - y[0])
+        finite = xp.all(xp.isfinite(y_true) & xp.isfinite(y), axis=0)
+        return xp.where(constant | ~finite, xp.nan, result)
+    normalized = []
+    for values in (y_true, y):
+        centered = values - xp.mean(values, axis=0, keepdims=True)
+        # Scale before the norm to avoid squaring very large/small values.
+        scale = xp.max(xp.abs(centered), axis=0, keepdims=True)
+        scaled = centered / xp.where(scale == 0, 1, scale)
+        norm = xp.sqrt(xp.sum(scaled * scaled, axis=0, keepdims=True))
+        normalized.append(scaled / xp.where(norm == 0, 1, norm))
+    result = xp.clip(xp.sum(normalized[0] * normalized[1], axis=0), -1, 1)
+    return xp.where(constant, xp.nan, result)
 
 
 def _r2_score(y_true, y, multioutput=None):

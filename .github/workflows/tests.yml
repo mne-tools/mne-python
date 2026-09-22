@@ -20,6 +20,38 @@ permissions:
   contents: read
 
 jobs:
+  array-api:
+    name: 'Array API / PyTorch CPU / ${{ matrix.sklearn }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        sklearn: ['scikit-learn==1.5.2', 'scikit-learn']
+    env:
+      SCIPY_ARRAY_API: '1'
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Install CPU backend and test dependencies
+        env:
+          SKLEARN_REQUIREMENT: '${{ matrix.sklearn }}'
+        run: |
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . "$SKLEARN_REQUIREMENT" array-api-compat pytest pytest-cov pytest-xdist pytest-timeout numpydoc refleak
+      - name: Test receptive fields without backend conversion
+        run: |
+          python -c "import torch; print(torch.__version__)"
+          python -m pytest mne/decoding/tests/test_receptive_field.py -k 'receptive_field_array_api and not cuda' -o addopts='' --tb=short --timeout=120
+
   bandit:
     name: Bandit
     runs-on: ubuntu-latest
