@@ -815,6 +815,9 @@ def test_rf_sklearn_compliance(estimator, check):
     if any(ignore in str(check) for ignore in ignores):
         return
     if "check_array_api" in str(check):
+        # Check opt-in before sklearn probes optional backends.
+        if os.getenv("SCIPY_ARRAY_API") != "1":
+            pytest.skip("Requires SCIPY_ARRAY_API=1 at startup")
         estimator = _ScalarScoreReceptiveField(**estimator.get_params(deep=False))
         if "check_array_api_same_namespace" not in str(check):
             # NumPy's legacy delay buffer promotes float32 to float64; compare
