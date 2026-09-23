@@ -99,6 +99,7 @@ elif [[ "$MNE_CI_KIND" == "pixi" ]]; then
     if [[ "$RUNNER_OS" == "macOS" ]]; then
         echo "PYTEST_DEBUG_TEMPROOT=/tmp" | tee -a $GITHUB_ENV
     fi
+    echo "MNE_TEST_ALLOW_SKIP=.*(Requires (spm|brainstorm|misc) dataset|SCIPY_ARRAY_API|FreeSurfer|CUDA not|macOS|PySide6 causes segfaults).*" | tee -a $GITHUB_ENV
 else
     echo "::error::Unrecognized MNE_CI_KIND=${MNE_CI_KIND}"
     exit 1
