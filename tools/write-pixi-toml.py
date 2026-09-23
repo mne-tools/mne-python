@@ -51,6 +51,13 @@ workspace = dict(
     platforms=["osx-64"],
     version="0.1.0",
 )
+
+# By default, Pixi assumes the environment it is solving is compatible with macOS
+# 13.0 and later, but conda-forge's libblas newaccelerate build requires macOS >=13.3.
+# And below we add this build variant as a dependency.
+# https://pixi.prefix.dev/v0.39.5/features/system_requirements/#__tabbed_1_3
+system_requirements = dict(macos="13.3")  # Minimum version
+
 dependencies = pyproject["project"]["dependencies"]
 dependencies.extend(pyproject["dependency-groups"]["dev"])
 dependencies.extend(pyproject["dependency-groups"]["test"])
@@ -81,10 +88,14 @@ dependencies = [
     for dep in dependencies
     if dep.name not in {pdep.name for pdep in pypi_dependencies}
 ]
+dependencies_out = pip_to_pixi(dependencies)
+# Our tests run faster with Apple's Accelerate BLAS numerical backend.
+dependencies_out["libblas"] = {"version": "*", "build": "*_newaccelerate"}
 
 out = {
     "workspace": workspace,
-    "dependencies": pip_to_pixi(dependencies),
+    "system-requirements": system_requirements,
+    "dependencies": dependencies_out,
     "pypi-dependencies": pip_to_pixi(pypi_dependencies),
 }
 out["dependencies"].update(python=python_version)
