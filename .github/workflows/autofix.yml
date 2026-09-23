@@ -59,6 +59,8 @@ jobs:
   autofix-dependencies:
     name: Autoupdate 'old' CI lockfile, README dependencies, and environment file
     runs-on: ubuntu-latest
+    needs: changed-files
+    if: needs.changed-files.outputs.dependencies == 'true'
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -90,7 +92,7 @@ jobs:
           project-root: ${{ github.workspace }}
           ignore-upper-pins: numpy
       - name: Sync dependencies to environment file
-        uses: tsbinns/mne-tools/actions/sync-dependencies-to-environment-file@env-deps-sync
+        uses: mne-tools/mne-tools/actions/sync-dependencies-to-environment-file@main
         with:
           project-root: ${{ github.workspace }}
           extras: full,full-no-qt,hdf5
