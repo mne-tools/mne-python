@@ -14,7 +14,7 @@ from .._fiff.pick import pick_channels, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from ..bem import _check_origin
 from ..surface import _normalize_vectors
-from ..utils import _validate_type, logger, verbose, warn
+from ..utils import _validate_type, _verbose_control, logger, warn
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -133,7 +133,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     )
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     if exclude is None:
         exclude = list()
@@ -174,7 +174,7 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_ecog(inst, *, origin, exclude=None, verbose=None):
     _interpolate_bads_eeg(inst, origin, exclude=exclude, ecog=True, verbose=verbose)
 
@@ -187,7 +187,7 @@ def _interpolate_bads_meg(
     )
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_nan(
     inst,
     *,
@@ -207,7 +207,7 @@ def _interpolate_bads_nan(
     inst._data[..., picks_bad, :] = np.nan
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_meeg(
     inst,
     mode="accurate",
@@ -254,7 +254,7 @@ def _interpolate_bads_meeg(
         _do_interp_dots(inst, mapping, picks_good, picks_bad)
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     from scipy.spatial.distance import pdist, squareform
 
@@ -291,7 +291,7 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
         # Find closest remaining channels for same frequency
         closest_dist_idx = np.argmin(dists_to_bad) + (bad_dist_idx % 2)
         closest_raw_idx = picks_nirs[closest_dist_idx]
-        inst._data[bad_raw_idx] = inst._data[closest_raw_idx]
+        inst._data[..., bad_raw_idx, :] = inst._data[..., closest_raw_idx, :]
 
     # TODO: this seems like a bug because it does not respect reset_bads
     inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]
@@ -368,7 +368,7 @@ def _find_seeg_electrode_shaft(pos, tol_shaft=0.002, tol_spacing=1):
     return shafts, shaft_ts
 
 
-@verbose
+@_verbose_control
 def _interpolate_bads_seeg(
     inst, exclude=None, tol_shaft=0.002, tol_spacing=1, verbose=None
 ):

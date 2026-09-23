@@ -13,7 +13,7 @@ from ..decoding.xdawn import XdawnTransformer
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..io import BaseRaw
-from ..utils import _check_option, fill_doc, logger, pinv, warn
+from ..utils import _check_option, fill_doc_static, logger, pinv, warn
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -234,7 +234,7 @@ def _fit_xdawn(
     return filters, patterns, evokeds
 
 
-@fill_doc
+@fill_doc_static("rank_full")
 class Xdawn(XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
@@ -262,7 +262,50 @@ class Xdawn(XdawnTransformer):
         If float, shrinkage is used (0 <= shrinkage <= 1).
         For str options, ``reg`` will be passed as ``method`` to
         :func:`mne.compute_covariance`.
-    %(rank_full)s
+    rank : None | 'info' | 'full' | dict
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. When a noise covariance
+        is used for whitening, this should reflect the rank of that covariance,
+        otherwise amplification of noise components can occur in whitening (e.g.,
+        often during source localization).
+
+        :data:`python:None`
+            The rank will be estimated from the data after proper scaling of
+            different channel types.
+        ``'info'``
+            The rank is inferred from ``info``. If data have been processed
+            with Maxwell filtering, the Maxwell filtering header is used.
+            Otherwise, the channel counts themselves are used.
+            In both cases, the number of projectors is subtracted from
+            the (effective) number of channels in the data.
+            For example, if Maxwell filtering reduces the rank to 68, with
+            two projectors the returned value will be 66.
+        ``'full'``
+            The rank is assumed to be full, i.e. equal to the
+            number of good channels. If a `~mne.Covariance` is passed, this can
+            make sense if it has been (possibly improperly) regularized without
+            taking into account the true data rank.
+        :class:`dict`
+            Calculate the rank only for a subset of channel types, and explicitly
+            specify the rank for the remaining channel types. This can be
+            extremely useful if you already **know** the rank of (part of) your
+            data, for instance in case you have calculated it earlier.
+
+            This parameter must be a dictionary whose **keys** correspond to
+            channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+            ``'eeg'``), and whose **values** are integers representing the
+            respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+            a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+            respectively.
+
+            The ranks for all channel types present in the data, but
+            **not** specified in the dictionary will be estimated empirically.
+            That is, if you passed a dataset containing magnetometer, gradiometer,
+            and EEG data together with the dictionary from the previous example,
+            only the gradiometer rank would be determined, while the specified
+            magnetometer and EEG ranks would be taken for granted.
+
+        The default is ``'full'``.
         If not ``'full'``, the covariances are restricted to their
         ``rank``-dimensional principal subspace before computing the spatial
         filters, which are then projected back out to the full sensor space.

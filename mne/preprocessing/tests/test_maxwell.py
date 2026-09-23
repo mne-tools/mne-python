@@ -855,10 +855,10 @@ def test_spatiotemporal_only():
         )
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
     _assert_shielding(raw_tsss, power, 9.2, max_factor=9.4)
-    # COLA
+    # COLA, with an odd number of samples (251)
     raw_tsss = maxwell_filter(
         raw,
-        st_duration=tmax / 2.0,
+        st_duration=0.251,
         st_only=True,
         head_pos=head_pos,
         st_overlap=True,

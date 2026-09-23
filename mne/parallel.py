@@ -15,12 +15,12 @@ from .utils import (
     get_config,
     logger,
     use_log_level,
-    verbose,
+    verbose_static,
     warn,
 )
 
 
-@verbose
+@verbose_static("n_jobs")
 def parallel_func(
     func,
     n_jobs,
@@ -40,7 +40,13 @@ def parallel_func(
     ----------
     func : callable
         A function.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     max_nbytes : int | str | None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memory mapping. Can be an int in Bytes,
@@ -64,7 +70,12 @@ def parallel_func(
         of a the maximum number of calls into :class:`joblib.Parallel` that
         you will possibly want or need, and the returned ``n_jobs`` should not
         exceed this value regardless of how many jobs the user requests.
-    %(verbose)s INFO or DEBUG
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+        INFO or DEBUG
         will print parallel status, others will not.
 
     Returns

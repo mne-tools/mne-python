@@ -50,8 +50,13 @@ echo "::endgroup::"
 # No Numba because it forces an old NumPy version
 
 echo "::group::VTK"
-# unsafe-best-match because uv's default stops at the first index carrying vtk (PyPI)
-uv pip install $STD_ARGS --only-binary ":all:" --index-strategy unsafe-best-match --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260517.dev0,!=9.6.20260601,!=9.6.20260618"
+# unsafe-best-match because uv's default stops at the first index carrying vtk (PyPI).
+# wheels.vtk.org goes down now and then; rather than block every PR on it, fall
+# back to the PyPI release and say so in the log.
+if ! uv pip install $STD_ARGS --only-binary ":all:" --index-strategy unsafe-best-match --extra-index-url "https://wheels.vtk.org" "vtk>=9.6.20260517.dev0,!=9.6.20260601,!=9.6.20260618"; then
+	echo "::warning::Could not install the VTK nightly from wheels.vtk.org, using the PyPI release instead"
+	uv pip install $STD_ARGS --only-binary ":all:" vtk
+fi
 python -c "import vtk"
 echo "::endgroup::"
 

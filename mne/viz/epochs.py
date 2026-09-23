@@ -16,7 +16,14 @@ from .._fiff.pick import (
     _picks_to_idx,
 )
 from ..defaults import _handle_default
-from ..utils import _check_option, fill_doc, legacy, logger, verbose, warn
+from ..utils import (
+    _check_option,
+    fill_doc_static,
+    legacy,
+    logger,
+    verbose_static,
+    warn,
+)
 from ..utils.spectrum import _split_psd_kwargs
 from .raw import _setup_channel_selections
 from .utils import (
@@ -38,7 +45,7 @@ from .utils import (
 )
 
 
-@fill_doc
+@fill_doc_static("picks_good_data", "combine_plot_epochs_image")
 def plot_epochs_image(
     epochs,
     picks=None,
@@ -67,7 +74,15 @@ def plot_epochs_image(
     ----------
     epochs : instance of Epochs
         The epochs.
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
         ``picks`` interacts with ``group_by`` and ``combine`` to determine the
         number of figures generated; see Notes.
     sigma : float
@@ -136,7 +151,23 @@ def plot_epochs_image(
         ``overlay_times`` should be ordered to correspond with the
         :class:`~mne.Epochs` object (i.e., ``overlay_times[0]`` corresponds to
         ``epochs[0]``, etc).
-    %(combine_plot_epochs_image)s
+    combine : 'mean' | 'median' | 'std' | 'gfp' | callable | None
+        How to aggregate across channels.
+        If ``None``, channels are combined by
+        computing GFP/RMS, unless ``group_by`` is also ``None`` and ``picks`` is a
+        list of specific channels (not channel types), in which case no combining
+        is performed and each channel gets its own figure. If a string,
+        ``"mean"`` uses :func:`numpy.mean`, ``"median"`` computes the `marginal
+        median <https://en.wikipedia.org/wiki/Median#Marginal_median>`__,
+        ``"std"`` uses :func:`numpy.std`, and ``"gfp"`` computes global field power
+        for EEG channels and RMS amplitude for MEG channels.
+        If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+        of shape ``(n_epochs, n_channels, n_times)`` and return an array of shape
+        ``(n_epochs, n_times)``. For example::
+
+            combine = lambda data: np.median(data, axis=1)
+
+        See Notes for further details. Defaults to ``None``.
     group_by : None | dict
         Specifies which channels are aggregated into a single figure, with
         aggregation method determined by the ``combine`` parameter. If not
@@ -738,7 +769,23 @@ def plot_drop_log(
     return fig
 
 
-@fill_doc
+@fill_doc_static(
+    "picks_good_data",
+    "scalings",
+    "event_color",
+    "show_scrollbars",
+    "show_scalebars",
+    "show_zero_line",
+    "group_by_browse",
+    "precompute",
+    "use_opengl",
+    "theme_pg",
+    "overview_mode",
+    "splash",
+    "figure_class",
+    "browser",
+    "notes_2d_backend",
+)
 def plot_epochs(
     epochs,
     picks=None,
@@ -780,8 +827,33 @@ def plot_epochs(
     ----------
     epochs : instance of Epochs
         The epochs object.
-    %(picks_good_data)s
-    %(scalings)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    scalings : 'auto' | dict | None
+        Scaling factors for the traces. If a dictionary where any
+        value is ``'auto'``, the scaling factor is set to match the 99.5th
+        percentile of the respective data. If ``'auto'``, all scalings (for all
+        channel types) are set to ``'auto'``. If any values are ``'auto'`` and the
+        data is not preloaded, a subset up to 100 MB will be loaded. If ``None``,
+        defaults to::
+
+            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                 resp=1, chpi=1e-4, whitened=1e2)
+
+        .. note::
+            A particular scaling value ``s`` corresponds to half of the visualized
+            signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+            ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+            signals means that the visualized range will be 40 µV (20 µV in the
+            positive direction and 20 µV in the negative direction).
     n_epochs : int
         The number of epochs per view. Defaults to 20.
     n_channels : int
@@ -803,7 +875,13 @@ def plot_epochs(
         .. versionchanged:: 1.6
             Passing ``events=None`` was disallowed.
             The new equivalent is ``events=False``.
-    %(event_color)s
+    event_color : color object | dict | None
+        Color(s) to use for :term:`events`. To show all :term:`events` in the same
+        color, pass any matplotlib-compatible color. To color events differently,
+        pass a `dict` that maps event names or integer event numbers to colors
+        (must include entries for *all* events, or include a "fallback" entry with
+        key ``-1``). If ``None``, colors are chosen from the current Matplotlib
+        color cycle.
         Defaults to ``None``.
     order : array-like of int | None
         Order in which to plot data. If the array is shorter than the number of
@@ -844,11 +922,26 @@ def plot_epochs(
         Whether to directly call the butterfly view.
 
         .. versionadded:: 0.18.0
-    %(show_scrollbars)s
-    %(show_scalebars)s
+    show_scrollbars : bool
+        Whether to show scrollbars when the plot is initialized. Can be toggled
+        after initialization by pressing :kbd:`z` ("zen mode") while the plot
+        window is focused. Default is ``True``.
+
+        .. versionadded:: 0.19.0
+    show_scalebars : bool
+        Whether to show scale bars when the plot is initialized. Can be toggled
+        after initialization by pressing :kbd:`s` while the plot window is focused.
+        Default is ``True``.
 
         .. versionadded:: 0.24.0
-    %(show_zero_line)s
+    show_zero_line : bool
+        Whether to show the zero line for each channel trace when the plot is
+        initialized. The line always marks the true zero of the channel, even
+        if the currently-visible window's mean has been subtracted for display
+        (see ``remove_dc``). Can be toggled after initialization by pressing
+        :kbd:`0` while the plot window is focused. Default is ``False``.
+
+        .. versionadded:: 1.13
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : bool | dict
@@ -859,16 +952,61 @@ def plot_epochs(
         ``events=False``.
 
         .. versionadded:: 0.20
-    %(group_by_browse)s
-    %(precompute)s
-    %(use_opengl)s
-    %(theme_pg)s
+    group_by : str
+        How to group channels. ``'type'`` groups by channel type,
+        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+        Elekta's channel groupings (only works for Neuromag data),
+        ``'position'`` groups the channels by the positions of the sensors.
+        ``'selection'`` and ``'position'`` modes allow custom selections by
+        using a lasso selector on the topomap. In butterfly mode, ``'type'``
+        and ``'original'`` group the channels by type, whereas ``'selection'``
+        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+        modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
+    precompute : bool | str
+        Whether to load all data (not just the visible portion) into RAM and
+        apply preprocessing (e.g., projectors) to the full data array in a separate
+        processor thread, instead of window-by-window during scrolling. The default
+        None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
+        ``'auto'``. ``'auto'`` compares available RAM space to the expected size of
+        the precomputed data, and precomputes only if enough RAM is available.
+        This is only used with the Qt backend.
+
+        .. versionadded:: 0.24
+        .. versionchanged:: 1.0
+           Support for the ``MNE_BROWSER_PRECOMPUTE`` config variable.
+    use_opengl : bool | None
+        Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+        May increase performance, but effect is dependent on system CPU and
+        graphics hardware. Only works if using the Qt backend. Default is
+        None, which will use False unless the user configuration variable
+        ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+        see :func:`mne.set_config`.
+
+        .. versionadded:: 0.24
+    theme : str | path-like
+        Can be "auto", "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+        `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+        respectively, are required.
+        If None (default), the config option MNE_BROWSER_THEME will be used,
+        defaulting to "auto" if it's not found.
+
+        For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``, and
+        ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a
+        custom stylesheet is also accepted.
 
         .. versionadded:: 1.0
-    %(overview_mode)s
+    overview_mode : str | None
+        Can be "channels", "empty", or "hidden" to set the overview bar mode
+        for the ``'qt'`` backend. If None (default), the config option
+        ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+        if it's not found.
 
         .. versionadded:: 1.1
-    %(splash)s
+    splash : bool
+        If True (default), a splash screen is shown during the application
+        startup. Only applicable to the ``qt`` backend.
 
         .. versionadded:: 1.6
     annotation_colors : dict | None
@@ -879,13 +1017,18 @@ def plot_epochs(
         will trigger a warning. If ``None`` (default), automatic colors are used.
 
         .. versionadded:: 1.12.1
-    %(figure_class)s
+    figure_class : class
+        The backend specific ``MNEBrowseFigure`` class to use. This is typically
+        used to pass a subclass in order to customize the plot. This parameter
+        requires cooperation from the backend, and is currently only supported by
+        the ``matplotlib`` backend.
 
         .. versionadded:: 1.13
 
     Returns
     -------
-    %(browser)s
+    fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
+        Browser instance.
 
     Notes
     -----
@@ -900,7 +1043,22 @@ def plot_epochs(
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
 
-    %(notes_2d_backend)s
+    MNE-Python provides two different backends for browsing plots (i.e.,
+    :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
+    and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
+    based on :mod:`matplotlib`, and the other is based on
+    :doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the
+    context manager :func:`mne.viz.use_browser_backend`, you can set it for the
+    duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
+    can set the default for your computer via
+    :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib')<mne.set_config>`
+    (or ``'qt'``).
+
+    .. note:: For the PyQtGraph backend to run in IPython with ``block=False``
+              you must run the magic command ``%gui qt5`` first.
+    .. note:: To report issues with the PyQtGraph backend, please use the
+              `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+              of ``mne-qt-browser``.
 
     .. versionadded:: 0.10.0
     """
@@ -1106,7 +1264,27 @@ def plot_epochs(
 
 
 @legacy(alt="Epochs.compute_psd().plot()")
-@verbose
+@verbose_static(
+    "fmin_fmax_psd",
+    "tmin_tmax_psd",
+    "proj_psd",
+    "normalization",
+    "picks_good_data_noref",
+    "ax_plot_psd",
+    "color_plot_psd",
+    "xscale_plot_psd",
+    "area_mode_plot_psd",
+    "area_alpha_plot_psd",
+    "dB_plot_psd",
+    "estimate_plot_psd",
+    "show",
+    "n_jobs",
+    "average_plot_psd",
+    "line_alpha_plot_psd",
+    "spatial_colors_psd",
+    "sphere_topomap_auto",
+    "notes_plot_*_psd_func",
+)
 def plot_epochs_psd(
     epochs,
     fmin=0,
@@ -1135,15 +1313,29 @@ def plot_epochs_psd(
     exclude="bads",
     verbose=None,
 ):
-    """%(plot_psd_doc)s.
+    """Plot power or amplitude spectra.
+
+    Separate plots are drawn for each channel type. When the data have been
+    processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
+    indicate the boundaries of the filter. The line noise frequency is also
+    indicated with a dashed line (⋮). If ``average=False``, the plot will
+    be interactive, and click-dragging on the spectrum will generate a
+    scalp topography plot for the chosen frequency range in a new figure.
 
     Parameters
     ----------
     epochs : instance of Epochs
         The epochs object.
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    %(proj_psd)s
+    fmin, fmax : float
+        The lower- and upper-bound on frequencies of interest. Default is
+        ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -1151,30 +1343,121 @@ def plot_epochs_psd(
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
-    %(normalization)s
-    %(picks_good_data_noref)s
-    %(ax_plot_psd)s
-    %(color_plot_psd)s
-    %(xscale_plot_psd)s
-    %(area_mode_plot_psd)s
-    %(area_alpha_plot_psd)s
-    %(dB_plot_psd)s
-    %(estimate_plot_psd)s
-    %(show)s
-    %(n_jobs)s
-    %(average_plot_psd)s
-    %(line_alpha_plot_psd)s
-    %(spatial_colors_psd)s
-    %(sphere_topomap_auto)s
+    normalization : 'full' | 'length'
+        Normalization strategy. If "full", the PSD will be normalized by the
+        sampling rate as well as the length of the signal (as in
+        :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    ax : instance of Axes | list of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created with the correct number of axes. If
+        :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+        a :class:`list` of axes), the number of axes provided must
+        match the number of channel types present in
+        the object. Default is ``None``.
+    color : str | tuple
+        A matplotlib-compatible color to use. Has no effect when
+        spatial_colors=True.
+    xscale : 'linear' | 'log'
+        Scale of the frequency axis. Default is ``'linear'``.
+    area_mode : str | None
+        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+        will be plotted. If 'range', the min and max (across channels) will be
+        plotted. Bad channels will be excluded from these calculations.
+        If None, no area will be plotted. If average=False, no area is plotted.
+    area_alpha : float
+        Alpha for the area.
+    dB : bool
+        Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
+        ``estimate='power'``. Plot PSD in units (amplitude**2/Hz) if ``dB=False``
+        and ``estimate='power'``. Plot amplitude spectral density (ASD) in units
+        (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'``. Plot ASD
+        in units (dB/sqrt(Hz)) if ``dB=True`` and ``estimate='amplitude'``.
+    estimate : str, {'power', 'amplitude'}
+        Can be "power" for power spectral density (PSD; default), "amplitude" for
+        amplitude spectrum density (ASD).
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    average : bool
+        If False, the PSDs of all channels is displayed. No averaging
+        is done and parameters area_mode and area_alpha are ignored. When
+        False, it is possible to paint an area (hold left mouse button and
+        drag) to plot a topomap.
+    line_alpha : float | None
+        Alpha for the PSD line. Can be None (default) to use 1.0 when
+        ``average=True`` and 0.1 when ``average=False``.
+    spatial_colors : bool
+        Whether to color spectrum lines by channel location. Ignored if
+        ``average=True``.
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the bad channels
         are excluded. Pass an empty list to plot all channels (including
         channels marked "bad", if any).
 
         .. versionadded:: 0.24.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1183,8 +1466,10 @@ def plot_epochs_psd(
 
     Notes
     -----
-    %(notes_plot_*_psd_func)s
-    """
+    This function exists to support legacy code; for new code the preferred
+    idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+    of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+    """  # noqa: E501
     from ..time_frequency import Spectrum
 
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)

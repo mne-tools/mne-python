@@ -71,11 +71,13 @@ from ..utils import (
     _soft_import,
     _to_rgb,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_config,
     get_subjects_dir,
     logger,
     verbose,
+    verbose_static,
     warn,
 )
 from ._dipole import _check_concat_dipoles, _plot_dipole_3d, _plot_dipole_mri_outlines
@@ -90,7 +92,7 @@ from .utils import (
 verbose_dec = verbose
 
 
-@fill_doc
+@fill_doc_static("info")
 def plot_head_positions(
     pos,
     mode="traces",
@@ -126,7 +128,10 @@ def plot_head_positions(
         :func:`mne.preprocessing.maxwell_filter` for details.
 
         .. versionadded:: 0.16
-    %(info)s If provided, will be used to show the destination position when
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        If provided, will be used to show the destination position when
         ``destination is None``, and for showing the MEG sensors.
 
         .. versionadded:: 0.16
@@ -392,7 +397,7 @@ def _set_aspect_equal(ax):
         pass
 
 
-@verbose
+@verbose_static("n_jobs", "interpolation_brain_time", "interaction_scene")
 def plot_evoked_field(
     evoked,
     surf_maps,
@@ -423,7 +428,13 @@ def plot_evoked_field(
         the average peak latency (across sensor types) is used.
     time_label : str | None
         How to print info about the time instant visualized.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     fig : Figure3D | mne.viz.Brain | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
@@ -456,10 +467,19 @@ def plot_evoked_field(
         map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
 
         .. versionadded:: 1.4
-    %(interpolation_brain_time)s
+    interpolation : str | None
+        Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
+        Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+        ``'quadratic'`` or ``'cubic'``.
 
         .. versionadded:: 1.6
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
@@ -468,7 +488,11 @@ def plot_evoked_field(
         ``True`` if there is more than one time point and ``False`` otherwise.
 
         .. versionadded:: 1.6
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -499,7 +523,22 @@ def plot_evoked_field(
         return ef._renderer.scene()
 
 
-@verbose
+@verbose_static(
+    "info",
+    "trans",
+    "subject",
+    "subjects_dir",
+    "meg",
+    "eeg",
+    "fwd",
+    "ecog",
+    "seeg",
+    "fnirs",
+    "dbs",
+    "interaction_scene",
+    "sensor_colors",
+    "sensor_scales",
+)
 def plot_alignment(
     info=None,
     trans=None,
@@ -532,14 +571,27 @@ def plot_alignment(
 
     Parameters
     ----------
-    %(info)s If None (default), no sensor information will be shown.
-    %(trans)s "auto" will load trans from the FreeSurfer directory
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        If None (default), no sensor information will be shown.
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
+        "auto" will load trans from the FreeSurfer directory
         specified by ``subject`` and ``subjects_dir`` parameters.
 
         .. versionchanged:: 0.19
             Support for 'fsaverage' argument.
-    %(subject)s Can be omitted if ``src`` is provided.
-    %(subjects_dir)s
+    subject : str
+        The FreeSurfer subject name.
+        Can be omitted if ``src`` is provided.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     surfaces : str | list | dict
         Surfaces to plot. Supported values:
 
@@ -566,13 +618,38 @@ def plot_alignment(
 
         .. versionchanged:: 1.0
            Defaults to ``'auto'``.
-    %(meg)s
-    %(eeg)s
-    %(fwd)s
+    meg : str | list | dict | bool | None
+        Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+        reference sensors respectively, or a combination like ``('helmet',
+        'sensors')`` (same as None, default). True translates to ``('helmet',
+        'sensors', 'ref')``. Can also be a dict to specify alpha values, e.g.
+        ``{"helmet": 0.1, "sensors": 0.8}``.
+
+        .. versionchanged:: 1.6
+           Added support for specifying alpha values as a dict.
+    eeg : bool | str | list | dict
+        String options are:
+
+        - "original" (default; equivalent to ``True``)
+            Shows EEG sensors using their digitized locations (after
+            transformation to the chosen ``coord_frame``)
+        - "projected"
+            The EEG locations projected onto the scalp, as is done in
+            forward modeling
+
+        Can also be a list of these options, or a dict to specify the alpha values
+        to use, e.g. ``dict(original=0.2, projected=0.8)``.
+
+        .. versionchanged:: 1.6
+           Added support for specifying alpha values as a dict.
+    fwd : instance of Forward
+        The forward solution. If present, the orientations of the dipoles
+        present in the forward solution are displayed.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
-    %(ecog)s
+    ecog : bool
+        If True (default), show ECoG sensors.
     src : instance of SourceSpaces | None
         If not None, also plot the source space points.
     mri_fiducials : bool | str | path-like
@@ -590,8 +667,18 @@ def plot_alignment(
         for ``'$SUBJECT*$SOURCE.fif'`` in the same directory. For
         ``'outer_skin'``, the subjects bem and bem/flash folders are searched.
         Defaults to None.
-    %(seeg)s
-    %(fnirs)s
+    seeg : bool
+        If True (default), show sEEG electrodes.
+    fnirs : str | list | dict | bool | None
+        Can be "channels", "pairs", "detectors", and/or "sources" to show the
+        fNIRS channel locations, optode locations, or line between
+        source-detector pairs, or a combination like ``('pairs', 'channels')``.
+        True translates to ``('pairs',)``. A dict can also be used to specify
+        alpha values (but only "channels" and "pairs" will be used), e.g.
+        ``dict(channels=0.2, pairs=0.7)``.
+
+        .. versionchanged:: 1.6
+           Added support for specifying alpha values as a dict.
         .. versionadded:: 0.20
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
@@ -602,22 +689,50 @@ def plot_alignment(
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
-    %(dbs)s
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     fig : Figure3D | None
         PyVista scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
 
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
-    %(sensor_colors)s
+    sensor_colors : array-like of color | dict | None
+        Colors to use for the sensor glyphs. Can be None (default) to use default
+        colors. A dict should provide the colors (values) for each channel type
+        (keys), e.g.::
+
+            dict(eeg=eeg_colors)
+
+        Where the value (``eeg_colors`` above) can be broadcast to an array of
+        colors with length that matches the number of channels of that type, i.e.,
+        is compatible with :func:`matplotlib.colors.to_rgba_array`. A few examples
+        of this for the case above are the string ``"k"``, a list of ``n_eeg`` color
+        strings, or an NumPy ndarray of shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 
         .. versionchanged:: 1.6
             Support for passing a ``dict`` was added.
-    %(sensor_scales)s
+    sensor_scales : int | float | array-like | dict | None
+        Scale to use for the sensor glyphs. Can be None (default) to use default
+        scale. A dict should provide the Scale (values) for each channel type
+        (keys), e.g.::
+
+            dict(eeg=eeg_scales)
+
+        Where the value (``eeg_scales`` above) can be broadcast to an array of
+        values with length that matches the number of channels of that type. A few
+        examples of this for the case above are the value ``10e-3``, a list of
+        ``n_eeg`` values, or an NumPy ndarray of shape ``(n_eeg,)``.
 
         .. versionadded:: 1.9
     show_channel_names : bool
@@ -631,7 +746,11 @@ def plot_alignment(
         useful when reusing a single figure for multiple plots.
 
         .. versionadded:: 1.13
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1069,7 +1188,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
     return meg, eeg, fnirs, warn_meg, sensor_alpha
 
 
-@verbose
+@_verbose_control
 def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
     """Transform positions from head/device/mri to a coordinate frame."""
     from ..forward import _create_meg_coils
@@ -1458,7 +1577,7 @@ def _plot_glyphs(
     return actor, cloud
 
 
-@verbose
+@_verbose_control
 def _plot_head_shape_points(
     renderer,
     info,
@@ -2160,7 +2279,22 @@ def _check_volume(stc, src, surface, backend_name):
         return True
 
 
-@verbose
+@verbose_static(
+    "subject_none",
+    "colormap",
+    "time_label",
+    "transparent",
+    "subjects_dir",
+    "views",
+    "clim",
+    "title_stc",
+    "show_traces",
+    "src_volume_options",
+    "view_layout",
+    "add_data_kwargs",
+    "brain_kwargs",
+    "block",
+)
 def plot_source_estimates(
     stc,
     subject=None,
@@ -2201,7 +2335,8 @@ def plot_source_estimates(
     ----------
     stc : SourceEstimate
         The source estimates to plot.
-    %(subject_none)s
+    subject : str | None
+        The FreeSurfer subject name.
         If ``None``, ``stc.subject`` will be used.
     surface : str
         The type of surface (inflated, white etc.).
@@ -2210,13 +2345,25 @@ def plot_source_estimates(
         the case of ``'both'``, both hemispheres are shown in the same window.
         In the case of ``'split'`` hemispheres are displayed side-by-side
         in different viewing panes.
-    %(colormap)s
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
         The default ('auto') uses ``'hot'`` for one-sided data and
         'mne' for two-sided data.
-    %(time_label)s
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+        is more than one time point.
     smoothing_steps : int
         The amount of smoothing.
-    %(transparent)s
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     alpha : float
         Alpha value to apply globally to the overlay.
     time_viewer : bool | str
@@ -2225,13 +2372,19 @@ def plot_source_estimates(
 
         .. versionchanged:: 0.20.0
            "auto" mode added.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     figure : instance of Figure3D | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
         figure by it's id or create a new figure with the given id.
-    %(views)s
+    views : str | list
+        View to use. Using multiple views (list) is not supported for mpl
+        backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+        valid string options.
 
         When plotting a standard SourceEstimate (not volume, mixed, or vector)
         and using the PyVista backend, ``views='flat'`` is also supported to
@@ -2241,7 +2394,22 @@ def plot_source_estimates(
            Support for flatmaps.
     colorbar : bool
         If True, display colorbar on scene.
-    %(clim)s
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bounds for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                  Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
     cortex : str | tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset Brain cortex colorscheme (one of
@@ -2268,16 +2436,72 @@ def plot_source_estimates(
         pyvistaqt.
 
         .. versionadded:: 0.15.0
-    %(title_stc)s
+    title : str | None
+        Title for the figure window. If ``None``, the subject name will be used.
 
         .. versionadded:: 0.17.0
-    %(show_traces)s
-    %(src_volume_options)s
-    %(view_layout)s
-    %(add_data_kwargs)s
-    %(brain_kwargs)s
-    %(block)s
-    %(verbose)s
+    show_traces : bool | str | float
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot its time course.
+        This feature is only available with the PyVista 3d backend, and requires
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True``, the backend is PyVista, and there is more
+        than one time point. If float (between zero and one), it specifies what
+        proportion of the total window should be devoted to traces (True is
+        equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+        .. versionadded:: 0.20.0
+    src : instance of SourceSpaces | None
+        The source space corresponding to the source estimate. Only necessary
+        if the STC is a volume or mixed source estimate.
+    volume_options : float | dict | None
+        Options for volumetric source estimate plotting, with key/value pairs:
+
+        - ``'resolution'`` : float | None
+            Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+            better at the cost of speed. None (default) uses the volume source
+            space resolution, which is often something like 7 or 5 mm,
+            without resampling.
+        - ``'blending'`` : str
+            Can be "mip" (default) for :term:`maximum intensity projection` or
+            "composite" for composite blending using alpha values.
+        - ``'alpha'`` : float | None
+            Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+            estimates and 1.0 for scalar source estimates.
+        - ``'surface_alpha'`` : float | None
+            Alpha for the surface enclosing the volume(s). None (default) will use
+            half the volume alpha. Set to zero to avoid plotting the surface.
+        - ``'silhouette_alpha'`` : float | None
+            Alpha for a silhouette along the outside of the volume. None (default)
+            will use ``0.25 * surface_alpha``.
+        - ``'silhouette_linewidth'`` : float
+            The line width to use for the silhouette. Default is 2.
+        - ``'interpolation'`` : str
+            The interpolation method to use for resampling the volume source space
+            to the specified resolution (and for sampling in the volume rendering).
+            Can be "linear" (default) or "nearest".
+
+            .. versionadded:: 1.13
+
+        A float input (default 1.) or None will be used for the ``'resolution'``
+        entry.
+    view_layout : str
+        Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+        the PyVista backend must be used and hemi cannot be "split".
+    add_data_kwargs : dict | None
+        Additional arguments to brain.add_data (e.g.,
+        ``dict(time_label_size=10)``).
+    brain_kwargs : dict | None
+        Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+        ``dict(silhouette=True)``).
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        May not work on all systems / platforms. Defaults to ``False``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2294,7 +2518,7 @@ def plot_source_estimates(
 
     - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
-    """  # noqa: E501
+    """
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
     from .backends._utils import _qt_block
     from .backends.renderer import _get_3d_backend, use_3d_backend
@@ -2749,7 +2973,7 @@ def _plot_and_correct(*, params, cut_coords):
         _glass_brain_crosshairs(params, *cut_coords)
 
 
-@verbose
+@verbose_static("subject_none", "subjects_dir", "colormap", "clim", "transparent")
 def plot_volume_source_estimates(
     stc,
     src,
@@ -2778,9 +3002,13 @@ def plot_volume_source_estimates(
 
         .. versionchanged:: 0.18
            Support for :class:`~nibabel.spatialimages.SpatialImage`.
-    %(subject_none)s
+    subject : str | None
+        The FreeSurfer subject name.
         If ``None``, ``stc.subject`` will be used.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     mode : ``'stat_map'`` | ``'glass_brain'``
         The plotting mode to use. For ``'glass_brain'``, activations are displayed
         after being transformed to a standard MNI brain. With a diverging colormap
@@ -2797,9 +3025,32 @@ def plot_volume_source_estimates(
         Not used in "glass brain" plotting.
     colorbar : bool
         If True, display a colorbar on the right of the plots.
-    %(colormap)s
-    %(clim)s
-    %(transparent)s
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bounds for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                  Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     show : bool
         Show figures if True. Defaults to True.
     initial_time : float | None
@@ -2816,7 +3067,11 @@ def plot_volume_source_estimates(
         respectively).
 
         .. versionadded:: 0.19
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3056,7 +3311,20 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
     return views
 
 
-@verbose
+@verbose_static(
+    "subject_none",
+    "colormap",
+    "time_label",
+    "transparent",
+    "views",
+    "clim_onesided",
+    "title_stc",
+    "show_traces",
+    "src_volume_options",
+    "view_layout",
+    "add_data_kwargs",
+    "brain_kwargs",
+)
 def plot_vector_source_estimates(
     stc,
     subject=None,
@@ -3102,16 +3370,29 @@ def plot_vector_source_estimates(
     ----------
     stc : VectorSourceEstimate | MixedVectorSourceEstimate
         The vector source estimate to plot.
-    %(subject_none)s
+    subject : str | None
+        The FreeSurfer subject name.
         If ``None``, ``stc.subject`` will be used.
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
-    %(colormap)s
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
         This should be a sequential colormap.
-    %(time_label)s
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+        is more than one time point.
     smoothing_steps : int
         The amount of smoothing.
-    %(transparent)s
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
     overlay_alpha : float
@@ -3136,10 +3417,23 @@ def plot_vector_source_estimates(
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
         figure by it's id or create a new figure with the given id.
-    %(views)s
+    views : str | list
+        View to use. Using multiple views (list) is not supported for mpl
+        backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+        valid string options.
     colorbar : bool
         If True, display colorbar on scene.
-    %(clim_onesided)s
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap.
+
+        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+        ``pos_lims``, as the surface plot must show the magnitude.
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         either the name of a preset Brain cortex colorscheme (one of
@@ -3160,15 +3454,69 @@ def plot_vector_source_estimates(
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    %(title_stc)s
+    title : str | None
+        Title for the figure window. If ``None``, the subject name will be used.
 
         .. versionadded:: 1.9
-    %(show_traces)s
-    %(src_volume_options)s
-    %(view_layout)s
-    %(add_data_kwargs)s
-    %(brain_kwargs)s
-    %(verbose)s
+    show_traces : bool | str | float
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot its time course.
+        This feature is only available with the PyVista 3d backend, and requires
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True``, the backend is PyVista, and there is more
+        than one time point. If float (between zero and one), it specifies what
+        proportion of the total window should be devoted to traces (True is
+        equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+        .. versionadded:: 0.20.0
+    src : instance of SourceSpaces | None
+        The source space corresponding to the source estimate. Only necessary
+        if the STC is a volume or mixed source estimate.
+    volume_options : float | dict | None
+        Options for volumetric source estimate plotting, with key/value pairs:
+
+        - ``'resolution'`` : float | None
+            Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+            better at the cost of speed. None (default) uses the volume source
+            space resolution, which is often something like 7 or 5 mm,
+            without resampling.
+        - ``'blending'`` : str
+            Can be "mip" (default) for :term:`maximum intensity projection` or
+            "composite" for composite blending using alpha values.
+        - ``'alpha'`` : float | None
+            Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+            estimates and 1.0 for scalar source estimates.
+        - ``'surface_alpha'`` : float | None
+            Alpha for the surface enclosing the volume(s). None (default) will use
+            half the volume alpha. Set to zero to avoid plotting the surface.
+        - ``'silhouette_alpha'`` : float | None
+            Alpha for a silhouette along the outside of the volume. None (default)
+            will use ``0.25 * surface_alpha``.
+        - ``'silhouette_linewidth'`` : float
+            The line width to use for the silhouette. Default is 2.
+        - ``'interpolation'`` : str
+            The interpolation method to use for resampling the volume source space
+            to the specified resolution (and for sampling in the volume rendering).
+            Can be "linear" (default) or "nearest".
+
+            .. versionadded:: 1.13
+
+        A float input (default 1.) or None will be used for the ``'resolution'``
+        entry.
+    view_layout : str
+        Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+        the PyVista backend must be used and hemi cannot be "split".
+    add_data_kwargs : dict | None
+        Additional arguments to brain.add_data (e.g.,
+        ``dict(time_label_size=10)``).
+    brain_kwargs : dict | None
+        Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+        ``dict(silhouette=True)``).
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3220,7 +3568,7 @@ def plot_vector_source_estimates(
     )
 
 
-@verbose
+@verbose_static()
 def plot_sparse_source_estimates(
     src,
     stcs,
@@ -3284,7 +3632,11 @@ def plot_sparse_source_estimates(
         whereas the pivot in ``'sphere'`` mode is the center.
     scale_factors : list
         List of floating point scale factors for the markers.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
@@ -3441,7 +3793,7 @@ def plot_sparse_source_estimates(
     return renderer.scene()
 
 
-@verbose
+@verbose_static("subjects_dir", "head_source")
 def plot_dipole_locations(
     dipoles,
     trans=None,
@@ -3481,7 +3833,10 @@ def plot_dipole_locations(
         The FreeSurfer subject name (will be used to set the FreeSurfer
         environment variable ``SUBJECT``).
         Can be ``None`` with mode set to ``'3d'``.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     mode : str
         Can be:
 
@@ -3565,7 +3920,9 @@ def plot_dipole_locations(
         orientation etc.) will be shown. Defaults to ``None``.
 
         .. versionadded:: 0.21.0
-    %(head_source)s
+    head_source : str | list of str
+        Head source(s) to use. See the ``source`` option of
+        :func:`mne.get_head_surf` for more information.
         Only used when mode equals ``'outlines'``.
 
         .. versionadded:: 1.1
@@ -3579,7 +3936,11 @@ def plot_dipole_locations(
         :meth:`matplotlib:matplotlib.axes.Axes.quiver`. If None (default),
         when mode is ``'outlines'`` 0.015 will be used, and when mode is
         ``'orthoview'`` the matplotlib default is used.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3969,7 +4330,7 @@ def _dipole_changed(event, params):
     _plot_dipole(**params)
 
 
-@fill_doc
+@fill_doc_static("clim", "colormap", "transparent")
 def plot_brain_colorbar(
     ax,
     clim,
@@ -3985,9 +4346,32 @@ def plot_brain_colorbar(
     ----------
     ax : instance of Axes
         The Axes to plot into.
-    %(clim)s
-    %(colormap)s
-    %(transparent)s
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bounds for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                  Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     orientation : str
         Orientation of the colorbar, can be "vertical" or "horizontal".
     label : str

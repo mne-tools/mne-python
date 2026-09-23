@@ -9,13 +9,22 @@ import re
 import string
 import weakref
 from collections import Counter, OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from copy import deepcopy
 from functools import partial
 from io import BytesIO
+from os import PathLike
 from textwrap import shorten
+from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Self
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+    from ..bem import ConductorModel
+    from ..channels.montage import DigMontage
 
 from ..defaults import _handle_default
 from ..html_templates import _get_html_template
@@ -23,20 +32,23 @@ from ..utils import (
     _check_fname,
     _check_on_missing,
     _check_option,
+    _check_sphere,
     _dt_to_stamp,
     _on_missing,
     _pl,
     _stamp_to_dt,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     logger,
     object_diff,
     repr_html,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils._bunch import NamedFloat, NamedInt
+from ..utils._typing import CoordFrameStr, LogLevel, RaiseWarnIgnore
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -97,6 +109,7 @@ from .write import (
     write_id,
     write_int,
     write_julian,
+    write_layer_struct,
     write_name_list_sanitized,
     write_string,
 )
@@ -117,6 +130,12 @@ _SCALAR_CH_KEYS = (
 _ALL_CH_KEYS_SET = set(_SCALAR_CH_KEYS + ("loc", "ch_name"))
 # XXX we need to require these except when doing simplify_info
 _MIN_CH_KEYS_SET = set(("kind", "cal", "unit", "loc", "ch_name"))
+
+
+def _get_info_or_self(obj: Any) -> "Info":
+    """Get Info from MNE objects, unless `obj` itself is an Info object."""
+    info = getattr(obj, "info", obj)
+    return info
 
 
 def _get_valid_units():
@@ -274,7 +293,7 @@ def _get_valid_units():
     return tuple(valid_units)
 
 
-@verbose
+@_verbose_control
 def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
     suffixes = tuple(string.ascii_lowercase)
@@ -320,8 +339,8 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
 class MontageMixin:
     """Mixin for Montage getting and setting."""
 
-    @fill_doc
-    def get_montage(self):
+    @fill_doc_static()
+    def get_montage(self) -> "DigMontage | None":
         """Get a DigMontage from instance.
 
         Returns
@@ -332,7 +351,7 @@ class MontageMixin:
         from ..channels.montage import make_dig_montage
         from ..transforms import _frame_to_str
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         if info["dig"] is None:
             return None
         # obtain coord_frame, and landmark coords
@@ -382,24 +401,51 @@ class MontageMixin:
         )
         return montage
 
-    @verbose
+    @verbose_static("montage", "match_case", "match_alias", "on_missing_montage")
     def set_montage(
         self,
-        montage,
-        match_case=True,
-        match_alias=False,
-        on_missing="raise",
-        verbose=None,
-    ):
-        """Set %(montage_types)s channel positions and digitization points.
+        montage: "DigMontage | str | None",
+        match_case: bool = True,
+        match_alias: bool | dict[str, str] = False,
+        on_missing: RaiseWarnIgnore = "raise",
+        verbose: LogLevel = None,
+    ) -> Self:
+        """Set EEG/sEEG/ECoG/DBS/fNIRS channel positions and digitization points.
 
         Parameters
         ----------
-        %(montage)s
-        %(match_case)s
-        %(match_alias)s
-        %(on_missing_montage)s
-        %(verbose)s
+        montage : None | str | DigMontage
+            A montage containing channel positions. If a string or
+            :class:`~mne.channels.DigMontage` is
+            specified, the existing channel information will be updated with the
+            channel positions from the montage. Valid strings are the names of the
+            built-in montages that ship with MNE-Python; you can list those via
+            :func:`mne.channels.get_builtin_montages`.
+            If ``None`` (default), the channel positions will be removed from the
+            :class:`~mne.Info`.
+        match_case : bool
+            If True (default), channel name matching will be case sensitive.
+
+            .. versionadded:: 0.20
+        match_alias : bool | dict
+            Whether to use a lookup table to match unrecognized channel location names
+            to their known aliases. If True, uses the mapping in
+            ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+            will be used instead, and should map from non-standard channel names to
+            names in the specified ``montage``. Default is ``False``.
+
+            .. versionadded:: 0.23
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when channels have missing coordinates.
+
+            .. versionadded:: 0.20.1
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -415,7 +461,7 @@ class MontageMixin:
         Notes
         -----
         .. warning::
-            Only %(montage_types)s channels can have their positions set using
+            Only EEG/sEEG/ECoG/DBS/fNIRS channels can have their positions set using
             a montage. Other channel types (e.g., MEG channels) should have
             their positions defined properly using their data reading
             functions.
@@ -431,12 +477,78 @@ class MontageMixin:
 
         from ..channels.montage import _set_montage
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         _set_montage(info, montage, match_case, match_alias, on_missing)
         return self
 
+    @fill_doc_static("sphere_topomap_auto")
+    def set_head_sphere(
+        self,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+    ) -> Self:
+        """Store the head sphere used to draw topomaps in the measurement info.
 
-channel_type_constants = get_channel_type_constants(include_defaults=True)
+        Parameters
+        ----------
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked | Info
+            The instance, modified in place.
+
+        Notes
+        -----
+        The sphere is stored in ``inst.info["head_sphere"]`` and saved to disk as a
+        single-layer spherically symmetric conductor model. Functions that take a
+        ``sphere`` argument use it when ``sphere=None`` is passed.
+
+        .. versionadded:: 1.14
+        """  # noqa: E501
+        info = _get_info_or_self(self)
+        sphere = _check_sphere(sphere, info)
+        with info._unlock():
+            info["head_sphere"] = sphere
+        return self
+
+
+channel_type_constants: dict[str, dict[str, NamedInt]] = get_channel_type_constants(
+    include_defaults=True
+)
 _human2fiff = {
     k: v.get("kind", FIFF.FIFFV_COIL_NONE) for k, v in channel_type_constants.items()
 }
@@ -484,7 +596,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         picks = _picks_to_idx(info, picks)
         chs = info["chs"]
         pos = np.array([chs[k]["loc"][:3] for k in picks])
@@ -509,7 +621,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         if len(pos) != len(names):
             raise ValueError(
                 "Number of channel positions not equal to the number of names given."
@@ -521,15 +633,21 @@ class SetChannelsMixin(MontageMixin):
             )
             raise ValueError(msg)
         for name, p in zip(names, pos):
-            if name in self.ch_names:
-                idx = self.ch_names.index(name)
+            if name in info.ch_names:
+                idx = info.ch_names.index(name)
                 info["chs"][idx]["loc"][:3] = p
             else:
                 msg = f"{name} was not found in the info. Cannot be updated."
                 raise ValueError(msg)
 
-    @verbose
-    def set_channel_types(self, mapping, *, on_unit_change="warn", verbose=None):
+    @verbose_static()
+    def set_channel_types(
+        self,
+        mapping: dict[str, str],
+        *,
+        on_unit_change: RaiseWarnIgnore = "warn",
+        verbose: LogLevel = None,
+    ) -> Self:
         """Specify the sensor types of channels.
 
         Parameters
@@ -542,7 +660,11 @@ class SetChannelsMixin(MontageMixin):
             automatically to match the new sensor type.
 
             .. versionadded:: 1.4
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -566,7 +688,7 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.9.0
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         ch_names = info["ch_names"]
 
         # first check and assemble clean mappings of index and name
@@ -633,19 +755,44 @@ class SetChannelsMixin(MontageMixin):
 
         return self
 
-    @verbose
+    @verbose_static("mapping_rename_channels_duplicates", "on_missing_ch_names")
     def rename_channels(
-        self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
-    ):
+        self,
+        mapping: dict[str, str] | Callable[[str], str],
+        allow_duplicates: bool = False,
+        *,
+        on_missing: RaiseWarnIgnore = "raise",
+        verbose: LogLevel = None,
+    ) -> Self:
         """Rename channels.
 
         Parameters
         ----------
-        %(mapping_rename_channels_duplicates)s
-        %(on_missing_ch_names)s
+        mapping : dict | callable
+            A dictionary mapping the old channel to a new channel name
+            e.g. ``{'EEG061' : 'EEG161'}``. Can also be a callable function
+            that takes and returns a string.
+
+            .. versionchanged:: 0.10.0
+               Support for a callable function.
+        allow_duplicates : bool
+            If True (default False), allow duplicates, which will automatically
+            be renamed with ``-N`` at the end.
+
+            .. versionadded:: 0.22.0
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
 
             .. versionadded:: 1.11.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -662,7 +809,7 @@ class SetChannelsMixin(MontageMixin):
         from ..channels.channels import rename_channels
         from ..io import BaseRaw
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
 
         ch_names_orig = list(info["ch_names"])
         rename_channels(info, mapping, allow_duplicates, on_missing=on_missing)
@@ -680,27 +827,32 @@ class SetChannelsMixin(MontageMixin):
 
         return self
 
-    @verbose
+    @verbose_static("sphere_topomap_auto")
     def plot_sensors(
         self,
-        kind="topomap",
-        ch_type=None,
-        title=None,
-        show_names=False,
-        ch_groups=None,
-        to_sphere=True,
-        axes=None,
-        block=None,
-        show=True,
-        sphere=None,
+        kind: Literal["topomap", "3d", "select"] = "topomap",
+        ch_type: Literal["mag", "grad", "eeg", "seeg", "dbs", "ecog", "all"]
+        | None = None,
+        title: str | None = None,
+        show_names: bool
+        | np.ndarray[tuple[int], np.dtype[np.str_]]  # 1D array of str
+        | Sequence[str] = False,
+        ch_groups: Literal["position"]
+        | np.ndarray[tuple[int, int], np.dtype[np.integer]]
+        | None = None,
+        to_sphere: bool = True,
+        axes: "Axes | Axes3D | None" = None,
+        block: bool | None = None,
+        show: bool = True,
+        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
         *,
-        verbose=None,
-    ):
+        verbose: LogLevel = None,
+    ) -> "Any":
         """Plot sensor positions.
 
         Parameters
         ----------
-        kind : str
+        kind : 'topomap' | '3d' | 'select'
             Whether to plot the sensors as 3d, topomap or as an interactive
             sensor selection dialog. Available options 'topomap', '3d',
             'select'. If 'select', a set of channels can be selected
@@ -714,8 +866,8 @@ class SetChannelsMixin(MontageMixin):
             None (default), then channels are chosen in the order given above.
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
-            positions (%%s)' %% ch_type``.
-        show_names : bool | array of str
+            positions (%s)' % ch_type``.
+        show_names : bool | array-like of str, shape (n_names,)
             Whether to display all channel names. If an array, only the channel
             names in the array are shown. Defaults to False.
         ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
@@ -750,8 +902,46 @@ class SetChannelsMixin(MontageMixin):
                Matplotlib).
         show : bool
             Show figure if True. Defaults to True.
-        %(sphere_topomap_auto)s
-        %(verbose)s
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -771,11 +961,11 @@ class SetChannelsMixin(MontageMixin):
         :func:`mne.viz.plot_alignment`.
 
         .. versionadded:: 0.12.0
-        """
+        """  # noqa: E501
         from ..viz.utils import plot_sensors
 
         return plot_sensors(
-            self if isinstance(self, Info) else self.info,
+            _get_info_or_self(self),
             kind=kind,
             ch_type=ch_type,
             title=title,
@@ -789,15 +979,42 @@ class SetChannelsMixin(MontageMixin):
             verbose=verbose,
         )
 
-    @verbose
-    def anonymize(self, daysback=None, keep_his=False, verbose=None):
+    @verbose_static(
+        "daysback_anonymize_info", "keep_his_anonymize_info", "anonymize_info_notes"
+    )
+    def anonymize(
+        self,
+        daysback: int | None = None,
+        keep_his: bool
+        | Literal["his_id", "sex", "hand"]
+        | Sequence[Literal["his_id", "sex", "hand"]] = False,
+        verbose: LogLevel = None,
+    ) -> Self:
         """Anonymize measurement information in place.
 
         Parameters
         ----------
-        %(daysback_anonymize_info)s
-        %(keep_his_anonymize_info)s
-        %(verbose)s
+        daysback : int | None
+            Number of days to subtract from all dates.
+            If ``None`` (default), the acquisition date, ``info['meas_date']``,
+            will be set to ``January 1ˢᵗ, 2000``. This parameter is ignored if
+            ``info['meas_date']`` is ``None`` (i.e., no acquisition date has been set).
+        keep_his : bool | {"his_id", "sex", "hand"} | sequence of {"his_id", "sex", "hand"}
+            If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will
+            **not** be overwritten. If ``False``, these fields will be anonymized. If
+            ``"his_id"``, ``"sex"``, or ``"hand"`` (or any combination thereof in a
+            sequence), only those fields will **not** be anonymized. Defaults to
+            ``False``.
+
+            .. warning:: Setting ``keep_his`` to anything other than ``False`` may result in
+                         ``info`` not being fully anonymized. Use with caution.
+            .. versionchanged:: 1.12
+               Added support for sequence of ``str``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -806,16 +1023,43 @@ class SetChannelsMixin(MontageMixin):
 
         Notes
         -----
-        %(anonymize_info_notes)s
+        Removes potentially identifying information if it exists in ``info``.
+        Specifically for each of the following we use:
+
+        - meas_date, file_id, meas_id
+                A default value, or as specified by ``daysback``.
+        - subject_info
+                Default values, except for 'birthday', which is adjusted to maintain the
+                subject age. If ``keep_his`` is not ``False``, then the fields 'his_id',
+                'sex', and 'hand' are not anonymized, depending on the value of
+                ``keep_his``.
+        - experimenter, proj_name, description
+                Default strings.
+        - utc_offset
+                ``None``.
+        - proj_id
+                Zeros.
+        - proc_history
+                Dates use the ``meas_date`` logic, and experimenter a default string.
+        - helium_info, device_info
+                Dates use the ``meas_date`` logic, meta info uses defaults.
+
+        If ``info['meas_date']`` is ``None``, it will remain ``None`` during processing
+        the above fields.
+
+        Operates in place.
 
         .. versionadded:: 0.13.0
-        """
-        info = self if isinstance(self, Info) else self.info
+        """  # noqa: E501
+        info = _get_info_or_self(self)
+        assert isinstance(info, Info)
         anonymize_info(info, daysback=daysback, keep_his=keep_his, verbose=verbose)
         self.set_meas_date(info["meas_date"])  # unify annot update
         return self
 
-    def set_meas_date(self, meas_date):
+    def set_meas_date(
+        self, meas_date: datetime.datetime | float | tuple[int, int] | None
+    ) -> Self:
         """Set the measurement start date.
 
         Parameters
@@ -851,7 +1095,7 @@ class SetChannelsMixin(MontageMixin):
             meas_date, (datetime.datetime, "numeric", tuple, None), "meas_date"
         )
 
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
 
         meas_date = _handle_meas_date(meas_date)
         with info._unlock():
@@ -872,14 +1116,14 @@ class SetChannelsMixin(MontageMixin):
                     value["machid"] = _tmp
 
         if hasattr(self, "annotations"):
-            self.annotations._orig_time = meas_date
+            self.annotations._orig_time = meas_date  # type: ignore (until annotations is typed)
         return self
 
 
 class ContainsMixin:
     """Mixin class for Raw, Evoked, Epochs and Info."""
 
-    def __contains__(self, ch_type):
+    def __contains__(self, ch_type: str, /) -> bool:
         """Check channel type membership.
 
         Parameters
@@ -906,27 +1150,46 @@ class ContainsMixin:
         # dictionary and the 'key' in Info call is present all across MNE codebase, e.g.
         # to check for the presence of a key:
         # >>> 'bads' in info
+        info = _get_info_or_self(self)
         if ch_type == "meg":
-            has_ch_type = _contains_ch_type(self.info, "mag") or _contains_ch_type(
-                self.info, "grad"
+            has_ch_type = _contains_ch_type(info, "mag") or _contains_ch_type(
+                info, "grad"
             )
         else:
-            has_ch_type = _contains_ch_type(self.info, ch_type)
+            has_ch_type = _contains_ch_type(info, ch_type)
         return has_ch_type
 
     @property
-    def compensation_grade(self):
+    def compensation_grade(self) -> int:
         """The current gradient compensation grade."""
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         return get_current_comp(info)
 
-    @fill_doc
-    def get_channel_types(self, picks=None, unique=False, only_data_chs=False):
+    @fill_doc_static("picks_all")
+    def get_channel_types(
+        self,
+        picks: str
+        | np.ndarray[tuple[int], np.dtype[np.integer]]  # 1D array of int
+        | Sequence[str]
+        | Sequence[int]
+        | slice
+        | None = None,
+        unique: bool = False,
+        only_data_chs: bool = False,
+    ) -> list[str]:
         """Get a list of channel type for each channel.
 
         Parameters
         ----------
-        %(picks_all)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
         unique : bool
             Whether to return only unique channel types. Default is ``False``.
         only_data_chs : bool
@@ -937,7 +1200,7 @@ class ContainsMixin:
         channel_types : list
             The channel types.
         """
-        info = self if isinstance(self, Info) else self.info
+        info = _get_info_or_self(self)
         none = "data" if only_data_chs else "all"
         picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
         ch_types = [channel_type(info, pick) for pick in picks]
@@ -955,22 +1218,22 @@ class ContainsMixin:
 
 
 class ValidatedDict(dict):
-    _attributes = {}  # subclasses should set this to validated attributes
+    _attributes: dict[str, Any] = {}  # subclasses should set this to validated attrs
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._unlocked = True
         super().__init__(*args, **kwargs)
         self._unlocked = False
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, bool]:
         """Get state (for pickling)."""
         return {"_unlocked": self._unlocked}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Set state (for pickling)."""
         self._unlocked = state["_unlocked"]
 
-    def __setitem__(self, key, val):
+    def __setitem__(self, key: str, val: Any) -> None:
         """Attribute setter."""
         # During unpickling, the _unlocked attribute has not been set, so
         # let __setstate__ do it later and act unlocked now
@@ -999,24 +1262,29 @@ class ValidatedDict(dict):
             )
         super().__setitem__(key, val)
 
-    def update(self, other=None, **kwargs):
+    def update(
+        self,
+        other: Mapping[str, Any] | Iterable[tuple[str, Any]] = (),
+        /,
+        **kwargs: Any,
+    ) -> None:  # type: ignore ([invalid-method-override] we'd need overloads I think)
         """Update the instance, validating each key like ``__setitem__``.
 
         Parameters
         ----------
-        other : dict | iterable of pair | None
+        other : mapping | iterable of {key-value pairs}
             The entries to set, as a mapping or as ``(key, value)`` pairs.
         **kwargs : dict
             Additional entries to set, as keyword arguments.
         """
         iterable = other.items() if isinstance(other, Mapping) else other
-        if other is not None:
-            for key, val in iterable:
-                self[key] = val
+        for key, val in iterable:
+            assert isinstance(key, str)  # type checking
+            self[key] = val
         for key, val in kwargs.items():
             self[key] = val
 
-    def copy(self):
+    def copy(self) -> Self:
         """Copy the instance.
 
         Returns
@@ -1026,7 +1294,7 @@ class ValidatedDict(dict):
         """
         return deepcopy(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation."""
         mapping = ", ".join(f"{key}: {val}" for key, val in self.items())
         return f"<{_camel_to_snake(self.__class__.__name__)} | {mapping}>"
@@ -1077,7 +1345,7 @@ class SubjectInfo(ValidatedDict):
         ),
     }
 
-    def __init__(self, initial):
+    def __init__(self, initial: dict[str, Any]) -> None:
         _validate_type(initial, dict, "subject_info")
         super().__init__()
         for key, val in initial.items():
@@ -1114,7 +1382,7 @@ class HeliumInfo(ValidatedDict):
         ),
     }
 
-    def __init__(self, initial):
+    def __init__(self, initial: dict[str, Any]) -> None:
         _validate_type(initial, dict, "helium_info")
         super().__init__()
         for key, val in initial.items():
@@ -1165,13 +1433,13 @@ def _check_bads_info_compat(bads, info):
 class MNEBadsList(list):
     """Subclass of bads that checks inplace operations."""
 
-    def __init__(self, *, bads, info):
+    def __init__(self, *, bads: Iterable[str], info: "Info") -> None:
         _check_bads_info_compat(bads, info)
         # avoid an info <-> bads reference cycle
         self._mne_info = weakref.ref(info)
         super().__init__(bads)
 
-    def extend(self, iterable):
+    def extend(self, iterable: Iterable[str]) -> None:
         if not isinstance(iterable, list):
             iterable = list(iterable)
         # info may be absent (during unpickling) or already gone (dead weakref)
@@ -1181,14 +1449,14 @@ class MNEBadsList(list):
             _check_bads_info_compat(iterable, info)
         return super().extend(iterable)
 
-    def append(self, x):
+    def append(self, x: str) -> None:
         return self.extend([x])
 
-    def __iadd__(self, x):
+    def __iadd__(self, x: Iterable[str]) -> Self:
         self.extend(x)
         return self
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type, tuple[list[str]]]:
         # The weakref is not picklable, and the parent Info re-wraps it as an
         # MNEBadsList (via __setitem__) on load.
         return (list, (list(self),))
@@ -1397,6 +1665,12 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         Fine calibration information added at acquisition time by MEGIN systems.
     gantry_angle : int | None
         Tilt angle of the gantry in degrees.
+    head_sphere : ndarray, shape (4,) | None
+        The ``[x, y, z, radius]`` parameters, in head coordinates and meters, of the
+        sphere used to draw the outline of the head in topomap figures. Set it with
+        :meth:`~mne.io.Raw.set_head_sphere`.
+
+        .. versionadded:: 1.14
     helium_info : dict | None
         Information about the device helium. See Notes for details.
 
@@ -1765,6 +2039,8 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "file_id": "file_id cannot be set directly.",
         "fine_calibration": "fine_calibration cannot be set directly.",
         "gantry_angle": "gantry_angle cannot be set directly.",
+        "head_sphere": "head_sphere cannot be set directly. "
+        "Please use method inst.set_head_sphere() instead.",
         "helium_info": partial(
             _check_types, name="helium_info", types=(dict, None), cast=HeliumInfo
         ),
@@ -1807,12 +2083,12 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "xplotter_layout": "xplotter_layout cannot be set directly.",
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         with self._unlock():
             _restore_mne_types(self)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """Set state (for pickling)."""
         super().__setstate__(state)
         self["bads"] = MNEBadsList(bads=self["bads"], info=self)
@@ -1849,7 +2125,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         finally:
             self._no_check = prev
 
-    def normalize_proj(self):
+    def normalize_proj(self) -> None:
         """(Re-)Normalize projection vectors after subselection.
 
         Applying projection after sub-selecting a set of channels that
@@ -1865,7 +2141,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         _normalize_proj(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
         from ..transforms import Transform, _coord_frame_name
@@ -1959,7 +2235,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         st %= non_empty
         return st
 
-    def __deepcopy__(self, memodict):
+    def __deepcopy__(self, memodict: dict[int, Any]) -> "Info":
         """Make a deepcopy."""
         result = Info.__new__(Info)
         result._unlocked = True
@@ -2069,6 +2345,13 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             for idx, ch_name in enumerate(self["ch_names"]):
                 self["chs"][idx]["ch_name"] = ch_name
 
+        head_sphere = self.get("head_sphere")
+        if head_sphere is not None and np.asarray(head_sphere).shape != (4,):
+            raise TypeError(
+                'Bad info: info["head_sphere"] must be an ndarray with 4 elements, got '
+                f"{head_sphere}"
+            )
+
     def _update_redundant(self):
         """Update the redundant entries."""
         with self._unlock():
@@ -2076,7 +2359,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             self["nchan"] = len(self["chs"])
 
     @property
-    def ch_names(self):
+    def ch_names(self) -> list[str]:
         try:
             ch_names = self["ch_names"]
         except KeyError:
@@ -2094,18 +2377,30 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         info_template = _get_html_template("repr", "info.html.jinja")
         return info_template.render(info=self)
 
-    @verbose
-    def save(self, fname, *, overwrite=False, verbose=None):
+    @verbose_static("overwrite")
+    def save(
+        self,
+        fname: str | PathLike,
+        *,
+        overwrite: bool = False,
+        verbose: LogLevel = None,
+    ) -> None:
         """Write measurement info in fif file.
 
         Parameters
         ----------
         fname : path-like
             The name of the file. Should end by ``'-info.fif'``.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.10
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         See Also
         --------
@@ -2113,7 +2408,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         """
         write_info(fname, self, overwrite=overwrite)
 
-    def to_json_dict(self) -> dict:
+    def to_json_dict(self) -> dict[str, Any]:
         """Convert Info to a JSON-serializable dictionary.
 
         This method converts the Info object to a standard Python dictionary
@@ -2145,7 +2440,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
         return _make_serializable(self)
 
     @classmethod
-    def from_json_dict(cls, data_dict) -> "Info":
+    def from_json_dict(cls, data_dict: dict[str, Any]) -> "Info":
         """Reconstruct Info object from a dictionary.
 
         Parameters
@@ -2175,7 +2470,7 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
         info = cls()
         with info._unlock():
-            info.update(restored_dict)
+            info.update(restored_dict)  # type: ignore (restored dict has nasty type)
             _restore_mne_types(info)
 
         return info
@@ -2288,15 +2583,21 @@ def _simplify_info(info, *, keep=()):
     return sub_info
 
 
-@verbose
-def read_fiducials(fname, *, verbose=None):
+@verbose_static()
+def read_fiducials(
+    fname: str | PathLike, *, verbose: LogLevel = None
+) -> tuple[list[dict[str, Any]], NamedInt]:
     """Read fiducials from a fiff file.
 
     Parameters
     ----------
     fname : path-like
         The filename to read.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2313,18 +2614,23 @@ def read_fiducials(fname, *, verbose=None):
     return pts, pts[0]["coord_frame"]
 
 
-@verbose
+@verbose_static("overwrite")
 def write_fiducials(
-    fname, pts, coord_frame="unknown", *, overwrite=False, verbose=None
-):
+    fname: str | PathLike,
+    pts: Iterable[dict[Literal["kind", "ident", "r"], Any]],
+    coord_frame: CoordFrameStr | int = "unknown",
+    *,
+    overwrite: bool = False,
+    verbose: LogLevel = None,
+) -> None:
     """Write fiducials to a fiff file.
 
     Parameters
     ----------
     fname : path-like
         Destination file name.
-    pts : iterator of dict
-        Iterator through digitizer points. Each point is a dictionary with
+    pts : iterable of dict
+        Iterable of digitizer points. Each point is a dictionary with
         the keys 'kind', 'ident' and 'r'.
     coord_frame : str | int
         The coordinate frame of the points. If a string, must be one of
@@ -2333,27 +2639,39 @@ def write_fiducials(
         ``'ctf_meg'``, and ``'unknown'``
         If an integer, must be one of the constants defined as
         ``mne.io.constants.FIFF.FIFFV_COORD_...``.
-    %(overwrite)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     write_dig(fname, pts, coord_frame, overwrite=overwrite)
 
 
-@verbose
-def read_info(fname, verbose=None):
+@verbose_static("info_not_none")
+def read_info(fname: str | PathLike, verbose: LogLevel = None) -> "Info":
     """Read measurement info from a file.
 
     Parameters
     ----------
     fname : path-like
         File name.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     """
     check_fname(fname, "Info", (".fif", ".fif.gz"))
     fname = _check_fname(fname, must_exist=True, overwrite="read")
@@ -2361,24 +2679,6 @@ def read_info(fname, verbose=None):
     with f as fid:
         info = read_meas_info(fid, tree)[0]
     return info
-
-
-def read_bad_channels(fid, node):
-    """Read bad channels.
-
-    Parameters
-    ----------
-    fid : file
-        The file descriptor.
-    node : dict
-        The node of the FIF tree that contains info on the bad channels.
-
-    Returns
-    -------
-    bads : list
-        A list of bad channel's names.
-    """
-    return _read_bad_channels(fid, node)
 
 
 def _read_bad_channels(fid, node, ch_names_mapping):
@@ -2404,8 +2704,13 @@ def _write_bad_channels(fid, bads, ch_names_mapping):
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
-@verbose
-def read_meas_info(fid, tree, clean_bads=False, verbose=None):
+@verbose_static("info_not_none")
+def read_meas_info(
+    fid: IO[bytes],
+    tree: dict[str, Any],
+    clean_bads: bool = False,
+    verbose: LogLevel = None,
+) -> tuple["Info", Any]:
     """Read the measurement info.
 
     Parameters
@@ -2418,11 +2723,17 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         If True, clean info['bads'] before running consistency check.
         Should only be needed for old files where we did not check bads
         before saving.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     meas : dict
         Node in tree that contains the info.
     """
@@ -2843,6 +3154,29 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             hs["hpi_coils"] = hc
     info["hpi_subsystem"] = hs
 
+    #   Spherically symmetric conductor model, used to store the head sphere
+    origin = radius = coord_frame = None
+    for sphere in dir_tree_find(meas_info, FIFF.FIFFB_SPHERE):
+        for k in range(sphere["nent"]):
+            kind = sphere["directory"][k].kind
+            pos = sphere["directory"][k].pos
+            if kind == FIFF.FIFF_SPHERE_ORIGIN:
+                origin = np.array(read_tag(fid, pos).data, float)
+            elif kind == FIFF.FIFF_SPHERE_COORD_FRAME:
+                coord_frame = int(read_tag(fid, pos).data.item())
+            elif kind == FIFF.FIFF_SPHERE_LAYERS:
+                layers = read_tag(fid, pos).data
+                # only the outermost (scalp) layer describes the head outline
+                head = layers[layers["id"] == FIFF.FIFFV_BEM_SURF_ID_HEAD]
+                if len(head) == 1:
+                    radius = float(head["rad"].item())
+    if (
+        origin is not None
+        and radius is not None
+        and coord_frame in (None, FIFF.FIFFV_COORD_HEAD)
+    ):
+        info["head_sphere"] = np.append(origin, radius)
+
     #   Read cross-talk and fine cal
     cross_talk = _read_mf_data(fid, tree, kind="sss_ctc")
     if len(cross_talk):
@@ -3009,15 +3343,22 @@ def _check_dates(info, prepend_error=""):
         )
 
 
-@fill_doc
-def write_meas_info(fid, info, data_type=None, reset_range=True):
+@fill_doc_static("info_not_none")
+def write_meas_info(
+    fid: IO[bytes],
+    info: Info,
+    data_type: Literal[4, 5, 16] | None = None,
+    reset_range: bool = True,
+) -> None:
     """Write measurement info into a file id (from a fif file).
 
     Parameters
     ----------
     fid : file
         Open file descriptor.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
@@ -3159,6 +3500,19 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get("xplotter_layout"):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info["xplotter_layout"])
 
+    # Head sphere, stored as a single-layer spherically symmetric conductor model
+    if info.get("head_sphere") is not None:
+        start_block(fid, FIFF.FIFFB_SPHERE)
+        write_int(fid, FIFF.FIFF_CONDUCTOR_MODEL_KIND, FIFF.FIFFV_COND_MODEL_SPHERE)
+        write_int(fid, FIFF.FIFF_SPHERE_COORD_FRAME, FIFF.FIFFV_COORD_HEAD)
+        write_float(fid, FIFF.FIFF_SPHERE_ORIGIN, info["head_sphere"][:3])
+        write_layer_struct(
+            fid,
+            FIFF.FIFF_SPHERE_LAYERS,
+            [dict(id=FIFF.FIFFV_BEM_SURF_ID_HEAD, rad=info["head_sphere"][3])],
+        )
+        end_block(fid, FIFF.FIFFB_SPHERE)
+
     # Subject information
     if info.get("subject_info") is not None:
         start_block(fid, FIFF.FIFFB_SUBJECT)
@@ -3259,25 +3613,39 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proc_history(fid, info)
 
 
-@verbose
+@verbose_static("info_not_none", "overwrite")
 def write_info(
-    fname, info, *, data_type=None, reset_range=True, overwrite=False, verbose=None
-):
+    fname: str | PathLike,
+    info: Info,
+    *,
+    data_type: Literal[4, 5, 16] | None = None,
+    reset_range: bool = True,
+    overwrite: bool = False,
+    verbose: LogLevel = None,
+) -> None:
     """Write measurement info in fif file.
 
     Parameters
     ----------
     fname : path-like
         The name of the file. Should end by ``-info.fif``.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
         raw data.
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     with start_and_end_file(fname, overwrite=overwrite) as fid:
         start_block(fid, FIFF.FIFFB_MEAS)
@@ -3285,7 +3653,7 @@ def write_info(
         end_block(fid, FIFF.FIFFB_MEAS)
 
 
-@verbose
+@_verbose_control
 def _merge_info_values(infos, key, verbose=None):
     """Merge things together.
 
@@ -3387,7 +3755,7 @@ def _merge_info_values(infos, key, verbose=None):
             raise RuntimeError(msg)
 
 
-@verbose
+@verbose_static()
 def _merge_info(infos, force_update_to_first=False, verbose=None):
     """Merge multiple measurement info dictionaries.
 
@@ -3408,7 +3776,11 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         If True, force the fields for objects in `info` will be updated
         to match those in the first item. Use at your own risk, as this
         may overwrite important metadata.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3514,18 +3886,23 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     return info
 
 
-@verbose
-def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
+@verbose_static("info_not_none")
+def create_info(
+    ch_names: int | Iterable[str],
+    sfreq: float,
+    ch_types: str | Sequence[str] = "misc",
+    verbose: LogLevel = None,
+) -> "Info":
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
     ----------
-    ch_names : list of str | int
+    ch_names : int | iterable of str
         Channel names. If an int, a list of channel names will be created
         from ``range(ch_names)``.
     sfreq : float
         Sample rate of the data.
-    ch_types : list of str | str
+    ch_types : str | sequence of str
         Channel types, default is ``'misc'`` which is a
         :term:`non-data channel <non-data channels>`.
         Currently supported fields are 'bio', 'chpi', 'csd', 'dbs', 'dipole',
@@ -3535,11 +3912,17 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
         'ref_meg', 'resp', 'seeg', 'stim', 'syst', 'temperature' (see also
         :term:`sensor types`).
         If str, then all channels are assumed to be of the same type.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Notes
     -----
@@ -3567,11 +3950,13 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     * AU: misc, stim, eyegaze, pupil
     """
     try:
-        ch_names = operator.index(ch_names)  # int-like
+        ch_names = operator.index(ch_names)  # type: ignore (try-block makes it safe)
     except TypeError:
         pass
     else:
         ch_names = list(np.arange(ch_names).astype(str))
+    if TYPE_CHECKING:
+        assert isinstance(ch_names, Sequence)
     _validate_type(ch_names, (list, tuple), "ch_names", ("list, tuple, or int"))
     sfreq = float(sfreq)
     if sfreq <= 0:
@@ -3579,7 +3964,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     nchan = len(ch_names)
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    ch_types = np.atleast_1d(np.array(ch_types, np.str_))
+    ch_types: np.ndarray = np.atleast_1d(np.array(ch_types, np.str_))
     if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError(
             f"ch_types and ch_names must be the same length ({len(ch_types)} != "
@@ -3621,7 +4006,7 @@ def create_info(ch_names, sfreq, ch_types="misc", verbose=None):
     return info
 
 
-RAW_INFO_FIELDS = (
+RAW_INFO_FIELDS: tuple[str, ...] = (
     "acq_pars",
     "acq_stim",
     "bads",
@@ -3750,8 +4135,20 @@ def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
     return meas_date_stamp
 
 
-@verbose
-def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
+@verbose_static(
+    "info_not_none",
+    "daysback_anonymize_info",
+    "keep_his_anonymize_info",
+    "anonymize_info_notes",
+)
+def anonymize_info(
+    info: Info,
+    daysback: int | None = None,
+    keep_his: bool
+    | Literal["his_id", "sex", "hand"]
+    | Sequence[Literal["his_id", "sex", "hand"]] = False,
+    verbose: LogLevel = None,
+) -> "Info":
     """Anonymize measurement information in place.
 
     .. warning:: If ``info`` is part of an object like
@@ -3763,10 +4160,30 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(daysback_anonymize_info)s
-    %(keep_his_anonymize_info)s
-    %(verbose)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    daysback : int | None
+        Number of days to subtract from all dates.
+        If ``None`` (default), the acquisition date, ``info['meas_date']``,
+        will be set to ``January 1ˢᵗ, 2000``. This parameter is ignored if
+        ``info['meas_date']`` is ``None`` (i.e., no acquisition date has been set).
+    keep_his : bool | {"his_id", "sex", "hand"} | sequence of {"his_id", "sex", "hand"}
+        If ``True``, ``his_id``, ``sex``, and ``hand`` of ``subject_info`` will
+        **not** be overwritten. If ``False``, these fields will be anonymized. If
+        ``"his_id"``, ``"sex"``, or ``"hand"`` (or any combination thereof in a
+        sequence), only those fields will **not** be anonymized. Defaults to
+        ``False``.
+
+        .. warning:: Setting ``keep_his`` to anything other than ``False`` may result in
+                     ``info`` not being fully anonymized. Use with caution.
+        .. versionchanged:: 1.12
+           Added support for sequence of ``str``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3775,7 +4192,31 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
 
     Notes
     -----
-    %(anonymize_info_notes)s
+    Removes potentially identifying information if it exists in ``info``.
+    Specifically for each of the following we use:
+
+    - meas_date, file_id, meas_id
+            A default value, or as specified by ``daysback``.
+    - subject_info
+            Default values, except for 'birthday', which is adjusted to maintain the
+            subject age. If ``keep_his`` is not ``False``, then the fields 'his_id',
+            'sex', and 'hand' are not anonymized, depending on the value of
+            ``keep_his``.
+    - experimenter, proj_name, description
+            Default strings.
+    - utc_offset
+            ``None``.
+    - proj_id
+            Zeros.
+    - proc_history
+            Dates use the ``meas_date`` logic, and experimenter a default string.
+    - helium_info, device_info
+            Dates use the ``meas_date`` logic, meta info uses defaults.
+
+    If ``info['meas_date']`` is ``None``, it will remain ``None`` during processing
+    the above fields.
+
+    Operates in place.
     """
     _validate_type(info, "info", "self")
 
@@ -3928,13 +4369,15 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     return info
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _bad_chans_comp(info, ch_names):
     """Check if channel names are consistent with current compensation status.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     ch_names : list of str
         The channel names to check.

@@ -19,12 +19,12 @@ from ..utils import (
     _validate_type,
     check_random_state,
     logger,
-    verbose,
+    verbose_static,
 )
 
 
 @_legacy_rng("random_state")
-@verbose
+@verbose_static("info_not_none", "use_cps", "rng", "random_state_rng")
 def simulate_evoked(
     fwd,
     stc,
@@ -52,7 +52,10 @@ def simulate_evoked(
         A forward solution.
     stc : SourceEstimate object
         The source time courses.
-    %(info_not_none)s Used to generate the evoked.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Used to generate the evoked.
     cov : Covariance object | None
         The noise covariance. If None, no noise is added.
     nave : int
@@ -61,12 +64,31 @@ def simulate_evoked(
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    %(use_cps)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
 
         .. versionadded:: 0.15
-    %(verbose)s
-    %(rng)s
-    %(random_state_rng)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -110,7 +132,7 @@ def _simulate_noise_evoked(evoked, cov, iir_filter, rng):
 
 
 @_legacy_rng("random_state")
-@verbose
+@verbose_static("rng", "random_state_rng")
 def add_noise(inst, cov, iir_filter=None, verbose=None, *, rng=None, random_state=None):
     """Create noise as a multivariate Gaussian.
 
@@ -124,9 +146,26 @@ def add_noise(inst, cov, iir_filter=None, verbose=None, *, rng=None, random_stat
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    %(verbose)s
-    %(rng)s
-    %(random_state_rng)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------

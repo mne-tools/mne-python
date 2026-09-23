@@ -25,7 +25,6 @@ from pyvista import (
     close_all,
 )
 from pyvista.plotting.plotter import _ALL_PLOTTERS
-from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
@@ -59,9 +58,11 @@ from ...utils import _check_option, _require_version, _validate_type, warn
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
+    LIGHTS,
     _alpha_blend_background,
     _get_colormap_from_array,
     _init_mne_qtapp,
+    _to_pos,
     _vtk_faces,
 )
 
@@ -127,10 +128,10 @@ class PyVistaFigure(Figure3D):
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
             self.store["update_app_icon"] = False
-            self._plotter_class = _SafeBackgroundPlotter
-            if "app_window_class" in signature(BackgroundPlotter).parameters:
-                from ._qt import _MNEMainWindow
+            from ._qt import _MNEMainWindow, _SafeBackgroundPlotter
 
+            self._plotter_class = _SafeBackgroundPlotter
+            if "app_window_class" in signature(_SafeBackgroundPlotter).parameters:
                 self.store["app_window_class"] = _MNEMainWindow
         else:
             from ._notebook import _NotebookPlotter
@@ -316,12 +317,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         return self.figure
 
     def update_lighting(self):
-        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        # below and centered, left and above, right and above
-        az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
         for renderer in self._all_renderers:
             renderer.remove_all_lights()
-            for azimuth, elevation, intensity in az_el_in:
+            for azimuth, elevation, intensity in LIGHTS:
                 light = pyvista.Light(
                     position=_to_pos(azimuth, elevation),
                     color="white",
@@ -1344,15 +1342,6 @@ def _truncate_scalar_bar_title(title, max_chars=20):
     return title[: max_chars - 1] + "…"
 
 
-def _to_pos(azimuth, elevation):
-    theta = azimuth * np.pi / 180.0
-    phi = (90.0 - elevation) * np.pi / 180.0
-    x = np.sin(theta) * np.sin(phi)
-    y = np.cos(phi)
-    z = np.cos(theta) * np.sin(phi)
-    return x, y, z
-
-
 def _3d_to_2d(plotter, xyz):
     # https://vtk.org/Wiki/VTK/Examples/Cxx/Utilities/Coordinate
     coordinate = vtkCoordinate()
@@ -1657,10 +1646,3 @@ def _is_osmesa_from_report(gpu_info_full):
                 )
         is_osmesa = "llvmpipe" in gpu_info
     return is_osmesa
-
-
-class _SafeBackgroundPlotter(BackgroundPlotter):
-    # https://github.com/pyvista/pyvistaqt/pull/258
-    def __del__(self) -> None:  # pragma: no cover
-        """Delete the qt plotter."""
-        self.close()

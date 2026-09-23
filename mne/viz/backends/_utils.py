@@ -550,3 +550,19 @@ def _qt_safe_window(
         return func
 
     return dec
+
+
+# Inspired from Mayavi's version of Raymond Maple 3-lights illumination: below
+# and centered, left and above, right and above, as (azimuth, elevation,
+# intensity) of camera lights
+LIGHTS = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
+
+
+def _to_pos(azimuth, elevation):
+    """Return the unit-sphere position of a camera light."""
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z

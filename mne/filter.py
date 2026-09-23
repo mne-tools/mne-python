@@ -31,7 +31,7 @@ from .utils import (
     _validate_type,
     logger,
     sum_squared,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -667,7 +667,7 @@ _ftype_dict = {
 }
 
 
-@verbose
+@verbose_static()
 def construct_iir_filter(
     iir_params,
     f_pass=None,
@@ -742,7 +742,11 @@ def construct_iir_filter(
         :func:`~scipy.signal.lfilter`.
 
         .. versionadded:: 0.13
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -954,7 +958,21 @@ def _check_method(method, iir_params, extra_types=()):
     return iir_params, method
 
 
-@verbose
+@verbose_static(
+    "l_freq",
+    "h_freq",
+    "picks_nostr",
+    "filter_length",
+    "l_trans_bandwidth",
+    "h_trans_bandwidth",
+    "n_jobs_fir",
+    "method_fir",
+    "iir_params",
+    "phase",
+    "fir_window",
+    "fir_design",
+    "pad_fir",
+)
 def filter_data(
     data,
     sfreq,
@@ -983,28 +1001,121 @@ def filter_data(
         The data to filter.
     sfreq : float
         The sample frequency in Hz.
-    %(l_freq)s
-    %(h_freq)s
-    %(picks_nostr)s
+    l_freq : float | None
+        For FIR filters, the lower pass-band edge; for IIR filters, the lower
+        cutoff frequency. If None the data are only low-passed.
+    h_freq : float | None
+        For FIR filters, the upper pass-band edge; for IIR filters, the upper
+        cutoff frequency. If None the data are only high-passed.
+    picks : list | slice | None
+        Channels to include.
+        Slices and lists of integers will be interpreted as channel indices.
+        None (default) will pick all channels.
+        Note that channels in ``info['bads']`` *will be included* if
+        their indices are explicitly provided.
         Currently this is only supported for 2D (n_channels, n_times) and
         3D (n_epochs, n_channels, n_times) arrays.
-    %(filter_length)s
-    %(l_trans_bandwidth)s
-    %(h_trans_bandwidth)s
-    %(n_jobs_fir)s
-    %(method_fir)s
-    %(iir_params)s
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+        * **'auto' (default)**: The filter length is chosen based
+          on the size of the transition regions (6.6 times the reciprocal
+          of the shortest transition band for fir_window='hamming'
+          and fir_design="firwin2", and half that for "firwin").
+        * **str**: A human-readable time in
+          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+          converted to that number of samples if ``phase="zero"``, or
+          the shortest power-of-two length at least that duration for
+          ``phase="zero-double"``.
+        * **int**: Specified length in samples. For fir_design="firwin",
+          this should not be used.
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+        is installed properly and ``method='fir'``.
+    method : str
+        ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+        forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
+    iir_params : dict | None
+        Dictionary of parameters to use for IIR filtering. If ``iir_params=None``
+        and ``method="iir"``, 4th order Butterworth will be used. For more
+        information, see :func:`mne.filter.construct_iir_filter`.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
-    %(phase)s
-    %(fir_window)s
-    %(fir_design)s
-    %(pad_fir)s
+    phase : str
+        Phase of the filter.
+        When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+        with the following behaviors when ``method="fir"``:
+
+        ``"zero"`` (default)
+            The delay of this filter is compensated for, making it non-causal.
+        ``"minimum"``
+            A minimum-phase filter will be constructed by decomposing the zero-phase
+            filter into a minimum-phase and all-pass systems, and then retaining
+            only the minimum-phase system (of the same length as the original
+            zero-phase filter) via :func:`scipy.signal.minimum_phase`.
+        ``"zero-double"``
+            *This is a legacy option for compatibility with MNE <= 0.13.*
+            The filter is applied twice, once forward, and once backward
+            (also making it non-causal).
+        ``"minimum-half"``
+            *This is a legacy option for compatibility with MNE <= 1.6.* A
+            minimum-phase filter will be reconstructed from the zero-phase filter
+            with half the length of the original filter.
+
+        When ``method='iir'``, ``phase='zero'`` (default) or equivalently
+        ``'zero-double'`` constructs and applies IIR filter twice, once forward, and
+        once backward (making it non-causal) using :func:`~scipy.signal.filtfilt`;
+        ``phase='forward'`` will apply the filter once in the forward (causal)
+        direction using :func:`~scipy.signal.lfilter`.
+
+        .. versionadded:: 0.13
+        .. versionchanged:: 1.7
+
+           The behavior for ``phase="minimum"`` was fixed to use a filter of the
+           requested length and improved suppression.
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default),
+        "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.15
+    fir_design : str
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        .. versionadded:: 0.15
+    pad : str
+        The type of padding to use. Supports
+        all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+        which pads with a reflected version of each vector mirrored on the first
+        and last values of the vector, followed by zeros.
+        Only used for ``method='fir'``.
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1063,7 +1174,18 @@ def filter_data(
     return data
 
 
-@verbose
+@verbose_static(
+    "l_freq",
+    "h_freq",
+    "filter_length",
+    "l_trans_bandwidth",
+    "h_trans_bandwidth",
+    "method_fir",
+    "iir_params",
+    "phase",
+    "fir_window",
+    "fir_design",
+)
 def create_filter(
     data,
     sfreq,
@@ -1097,17 +1219,98 @@ def create_filter(
         relative to the filter order will be performed.
     sfreq : float
         The sample frequency in Hz.
-    %(l_freq)s
-    %(h_freq)s
-    %(filter_length)s
-    %(l_trans_bandwidth)s
-    %(h_trans_bandwidth)s
-    %(method_fir)s
-    %(iir_params)s
-    %(phase)s
-    %(fir_window)s
-    %(fir_design)s
-    %(verbose)s
+    l_freq : float | None
+        For FIR filters, the lower pass-band edge; for IIR filters, the lower
+        cutoff frequency. If None the data are only low-passed.
+    h_freq : float | None
+        For FIR filters, the upper pass-band edge; for IIR filters, the upper
+        cutoff frequency. If None the data are only high-passed.
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+        * **'auto' (default)**: The filter length is chosen based
+          on the size of the transition regions (6.6 times the reciprocal
+          of the shortest transition band for fir_window='hamming'
+          and fir_design="firwin2", and half that for "firwin").
+        * **str**: A human-readable time in
+          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+          converted to that number of samples if ``phase="zero"``, or
+          the shortest power-of-two length at least that duration for
+          ``phase="zero-double"``.
+        * **int**: Specified length in samples. For fir_design="firwin",
+          this should not be used.
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
+    method : str
+        ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+        forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
+    iir_params : dict | None
+        Dictionary of parameters to use for IIR filtering. If ``iir_params=None``
+        and ``method="iir"``, 4th order Butterworth will be used. For more
+        information, see :func:`mne.filter.construct_iir_filter`.
+    phase : str
+        Phase of the filter.
+        When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+        with the following behaviors when ``method="fir"``:
+
+        ``"zero"`` (default)
+            The delay of this filter is compensated for, making it non-causal.
+        ``"minimum"``
+            A minimum-phase filter will be constructed by decomposing the zero-phase
+            filter into a minimum-phase and all-pass systems, and then retaining
+            only the minimum-phase system (of the same length as the original
+            zero-phase filter) via :func:`scipy.signal.minimum_phase`.
+        ``"zero-double"``
+            *This is a legacy option for compatibility with MNE <= 0.13.*
+            The filter is applied twice, once forward, and once backward
+            (also making it non-causal).
+        ``"minimum-half"``
+            *This is a legacy option for compatibility with MNE <= 1.6.* A
+            minimum-phase filter will be reconstructed from the zero-phase filter
+            with half the length of the original filter.
+
+        When ``method='iir'``, ``phase='zero'`` (default) or equivalently
+        ``'zero-double'`` constructs and applies IIR filter twice, once forward, and
+        once backward (making it non-causal) using :func:`~scipy.signal.filtfilt`;
+        ``phase='forward'`` will apply the filter once in the forward (causal)
+        direction using :func:`~scipy.signal.lfilter`.
+
+        .. versionadded:: 0.13
+        .. versionchanged:: 1.7
+
+           The behavior for ``phase="minimum"`` was fixed to use a filter of the
+           requested length and improved suppression.
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default),
+        "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.15
+    fir_design : str
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        .. versionadded:: 0.15
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1446,7 +1649,17 @@ def create_filter(
     return out
 
 
-@verbose
+@verbose_static(
+    "filter_length_notch",
+    "method_fir",
+    "iir_params",
+    "picks_nostr",
+    "n_jobs_fir",
+    "phase",
+    "fir_window",
+    "fir_design",
+    "pad_fir",
+)
 def notch_filter(
     x,
     Fs,
@@ -1484,7 +1697,28 @@ def notch_filter(
         Multiple stop-bands can only be used with method='fir'
         and method='spectrum_fit'. None can only be used with the mode
         'spectrum_fit', where an F test is used to find sinusoidal components.
-    %(filter_length_notch)s
+    filter_length : str | int
+        Length of the FIR filter to use (if applicable):
+
+        ``"auto"`` (default)
+            The filter length is chosen based on the size of the transition regions
+            (6.6 times the reciprocal of the shortest transition band for
+            ``fir_window="hamming"`` and ``fir_design="firwin2"``, and half that for
+            ``fir_design="firwin"``).
+        str
+            A human-readable time in units of "s" or "ms" (e.g., ``"10s"`` or
+            ``"5500ms"``) will be converted to that number of samples if
+            ``phase="zero"``, or the shortest power-of-two length at least that
+            duration for ``phase="zero-double"``.
+        int
+            Specified length in samples. For ``fir_design="firwin"``, this should
+            not be used.
+
+        When ``method=="spectrum_fit"``, this sets the effective window duration
+        over which fits are computed. Longer window lengths will give more stable
+        frequency estimates, but require (potentially much) more processing and are
+        not able to adapt as well to non-stationarities. The default ``"auto"``
+        corresponds to ``"10s"``.
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used. For ``method='spectrum_fit'``, this is
@@ -1492,12 +1726,17 @@ def notch_filter(
     trans_bandwidth : float
         Width of the transition band in Hz.
         Only used for ``method='fir'`` and ``method='iir'``.
-    %(method_fir)s
+    method : str
+        ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+        forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
         'spectrum_fit' will use multi-taper estimation of sinusoidal
         components. If freqs=None and method='spectrum_fit', significant
         sinusoidal components are detected using an F test, and noted by
         logging.
-    %(iir_params)s
+    iir_params : dict | None
+        Dictionary of parameters to use for IIR filtering. If ``iir_params=None``
+        and ``method="iir"``, 4th order Butterworth will be used. For more
+        information, see :func:`mne.filter.construct_iir_filter`.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
@@ -1506,19 +1745,76 @@ def notch_filter(
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
-    %(picks_nostr)s
+    picks : list | slice | None
+        Channels to include.
+        Slices and lists of integers will be interpreted as channel indices.
+        None (default) will pick all channels.
+        Note that channels in ``info['bads']`` *will be included* if
+        their indices are explicitly provided.
         Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
-    %(n_jobs_fir)s
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+        is installed properly and ``method='fir'``.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
-    %(phase)s
-    %(fir_window)s
-    %(fir_design)s
-    %(pad_fir)s
+    phase : str
+        Phase of the filter.
+        When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+        with the following behaviors when ``method="fir"``:
+
+        ``"zero"`` (default)
+            The delay of this filter is compensated for, making it non-causal.
+        ``"minimum"``
+            A minimum-phase filter will be constructed by decomposing the zero-phase
+            filter into a minimum-phase and all-pass systems, and then retaining
+            only the minimum-phase system (of the same length as the original
+            zero-phase filter) via :func:`scipy.signal.minimum_phase`.
+        ``"zero-double"``
+            *This is a legacy option for compatibility with MNE <= 0.13.*
+            The filter is applied twice, once forward, and once backward
+            (also making it non-causal).
+        ``"minimum-half"``
+            *This is a legacy option for compatibility with MNE <= 1.6.* A
+            minimum-phase filter will be reconstructed from the zero-phase filter
+            with half the length of the original filter.
+
+        When ``method='iir'``, ``phase='zero'`` (default) or equivalently
+        ``'zero-double'`` constructs and applies IIR filter twice, once forward, and
+        once backward (making it non-causal) using :func:`~scipy.signal.filtfilt`;
+        ``phase='forward'`` will apply the filter once in the forward (causal)
+        direction using :func:`~scipy.signal.lfilter`.
+
+        .. versionadded:: 0.13
+        .. versionchanged:: 1.7
+
+           The behavior for ``phase="minimum"`` was fixed to use a filter of the
+           requested length and improved suppression.
+    fir_window : str
+        The window to use in FIR design, can be "hamming" (default),
+        "hann" (default in 0.13), or "blackman".
+
+        .. versionadded:: 0.15
+    fir_design : str
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        .. versionadded:: 0.15
+    pad : str
+        The type of padding to use. Supports
+        all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+        which pads with a reflected version of each vector mirrored on the first
+        and last values of the vector, followed by zeros.
+        Only used for ``method='fir'``.
         The default is ``'reflect_limited'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1875,7 +2171,13 @@ def _resamp_ratio_len(up, down, n):
     return ratio, max(int(round(ratio * n)), 1)
 
 
-@verbose
+@verbose_static(
+    "window_resample",
+    "n_jobs_cuda",
+    "pad_resample_auto",
+    "npad_resample",
+    "method_resample",
+)
 def resample(
     x,
     up=1.0,
@@ -1903,17 +2205,46 @@ def resample(
         Factor to downsample by.
     axis : int
         Axis along which to resample (default is the last axis).
-    %(window_resample)s
-    %(n_jobs_cuda)s
+    window : str | tuple
+        When ``method="fft"``, this is the *frequency-domain* window to use in
+        resampling, and should be the same length as the signal; see
+        :func:`scipy.signal.resample` for details. When ``method="polyphase"``, this
+        is the *time-domain* linear-phase window to use after upsampling the signal;
+        see :func:`scipy.signal.resample_poly` for details. The default ``"auto"``
+        will use ``"boxcar"`` for ``method="fft"`` and ``("kaiser", 5.0)`` for
+        ``method="polyphase"``.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+        is installed properly.
         ``n_jobs='cuda'`` is only supported when ``method="fft"``.
-    %(pad_resample_auto)s
+    pad : str
+        The type of padding to use. When ``method="fft"``, supports
+        all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+        which pads with a reflected version of each vector mirrored on the first
+        and last values of the vector, followed by zeros.
+        When ``method="polyphase"``, supports all modes of
+        :func:`scipy.signal.upfirdn`.
+        The default ("auto") means ``'reflect_limited'`` for ``method='fft'`` and
+        ``'reflect'`` for ``method='polyphase'``.
 
         .. versionadded:: 0.15
-    %(npad_resample)s
-    %(method_resample)s
+    npad : int | str
+        Amount to pad the start and end of the data. Can also be ``"auto"`` to use a
+        padding that will result in a power-of-two size (can be much faster).
+
+        Only used when ``method="fft"``.
+    method : str
+        Resampling method to use. Can be ``"fft"`` (default) or ``"polyphase"`` to
+        use FFT-based on polyphase FIR resampling, respectively. These wrap to
+        :func:`scipy.signal.resample` and :func:`scipy.signal.resample_poly`,
+        respectively.
 
         .. versionadded:: 1.7
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2457,7 +2788,7 @@ def _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
 class FilterMixin:
     """Object for Epoch/Evoked filtering."""
 
-    @verbose
+    @verbose_static()
     def savgol_filter(self, h_freq, verbose=None):
         """Filter the data using Savitzky-Golay polynomial method.
 
@@ -2470,7 +2801,11 @@ class FilterMixin:
             instead of FIR/IIR filtering. This parameter is thus used to
             determine the length of the window over which a 5th-order
             polynomial smoothing is used.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2525,7 +2860,22 @@ class FilterMixin:
         )
         return self
 
-    @verbose
+    @verbose_static(
+        "l_freq",
+        "h_freq",
+        "picks_all_data",
+        "filter_length",
+        "l_trans_bandwidth",
+        "h_trans_bandwidth",
+        "n_jobs_fir",
+        "method_fir",
+        "iir_params",
+        "phase",
+        "fir_window",
+        "fir_design",
+        "skip_by_annotation",
+        "pad_fir",
+    )
     def filter(
         self,
         l_freq,
@@ -2549,23 +2899,127 @@ class FilterMixin:
 
         Parameters
         ----------
-        %(l_freq)s
-        %(h_freq)s
-        %(picks_all_data)s
-        %(filter_length)s
-        %(l_trans_bandwidth)s
-        %(h_trans_bandwidth)s
-        %(n_jobs_fir)s
-        %(method_fir)s
-        %(iir_params)s
-        %(phase)s
-        %(fir_window)s
-        %(fir_design)s
-        %(skip_by_annotation)s
+        l_freq : float | None
+            For FIR filters, the lower pass-band edge; for IIR filters, the lower
+            cutoff frequency. If None the data are only low-passed.
+        h_freq : float | None
+            For FIR filters, the upper pass-band edge; for IIR filters, the upper
+            cutoff frequency. If None the data are only high-passed.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        filter_length : str | int
+            Length of the FIR filter to use (if applicable):
+
+            * **'auto' (default)**: The filter length is chosen based
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming'
+              and fir_design="firwin2", and half that for "firwin").
+            * **str**: A human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+            * **int**: Specified length in samples. For fir_design="firwin",
+              this should not be used.
+        l_trans_bandwidth : float | str
+            Width of the transition band at the low cut-off frequency in Hz
+            (high pass or cutoff 1 in bandpass). Can be "auto"
+            (default) to use a multiple of ``l_freq``::
+
+                min(max(l_freq * 0.25, 2), l_freq)
+
+            Only used for ``method='fir'``.
+        h_trans_bandwidth : float | str
+            Width of the transition band at the high cut-off frequency in Hz
+            (low pass or cutoff 2 in bandpass). Can be "auto"
+            (default in 0.14) to use a multiple of ``h_freq``::
+
+                min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+            Only used for ``method='fir'``.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+            is installed properly and ``method='fir'``.
+        method : str
+            ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+            forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
+        iir_params : dict | None
+            Dictionary of parameters to use for IIR filtering. If ``iir_params=None``
+            and ``method="iir"``, 4th order Butterworth will be used. For more
+            information, see :func:`mne.filter.construct_iir_filter`.
+        phase : str
+            Phase of the filter.
+            When ``method='fir'``, symmetric linear-phase FIR filters are constructed
+            with the following behaviors when ``method="fir"``:
+
+            ``"zero"`` (default)
+                The delay of this filter is compensated for, making it non-causal.
+            ``"minimum"``
+                A minimum-phase filter will be constructed by decomposing the zero-phase
+                filter into a minimum-phase and all-pass systems, and then retaining
+                only the minimum-phase system (of the same length as the original
+                zero-phase filter) via :func:`scipy.signal.minimum_phase`.
+            ``"zero-double"``
+                *This is a legacy option for compatibility with MNE <= 0.13.*
+                The filter is applied twice, once forward, and once backward
+                (also making it non-causal).
+            ``"minimum-half"``
+                *This is a legacy option for compatibility with MNE <= 1.6.* A
+                minimum-phase filter will be reconstructed from the zero-phase filter
+                with half the length of the original filter.
+
+            When ``method='iir'``, ``phase='zero'`` (default) or equivalently
+            ``'zero-double'`` constructs and applies IIR filter twice, once forward, and
+            once backward (making it non-causal) using :func:`~scipy.signal.filtfilt`;
+            ``phase='forward'`` will apply the filter once in the forward (causal)
+            direction using :func:`~scipy.signal.lfilter`.
+
+            .. versionadded:: 0.13
+            .. versionchanged:: 1.7
+
+               The behavior for ``phase="minimum"`` was fixed to use a filter of the
+               requested length and improved suppression.
+        fir_window : str
+            The window to use in FIR design, can be "hamming" (default),
+            "hann" (default in 0.13), or "blackman".
+
+            .. versionadded:: 0.15
+        fir_design : str
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
+
+            .. versionadded:: 0.15
+        skip_by_annotation : str | list of str
+            If a string (or list of str), any annotation segment that begins
+            with the given string will not be included in filtering, and
+            segments on either side of the given excluded annotated segment
+            will be filtered separately (i.e., as independent signals).
+            The default (``('edge', 'bad_acq_skip')`` will separately filter
+            any segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`, or separated during acquisition.
+            To disable, provide an empty list. Only used if ``inst`` is raw.
 
             .. versionadded:: 0.16.
-        %(pad_fir)s
-        %(verbose)s
+        pad : str
+            The type of padding to use. Supports
+            all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+            which pads with a reflected version of each vector mirrored on the first
+            and last values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2669,7 +3123,9 @@ class FilterMixin:
             _filt_update_info(self.info, update_info, l_freq, h_freq)
         return self
 
-    @verbose
+    @verbose_static(
+        "npad", "window_resample", "n_jobs_cuda", "pad_resample", "method_resample"
+    )
     def resample(
         self,
         sfreq,
@@ -2692,16 +3148,41 @@ class FilterMixin:
         ----------
         sfreq : float
             New sample rate to use.
-        %(npad)s
-        %(window_resample)s
-        %(n_jobs_cuda)s
-        %(pad_resample)s
+        npad : int | str
+            Amount to pad the start and end of the data. Can also be ``"auto"`` to use a
+            padding that will result in a power-of-two size (can be much faster).
+        window : str | tuple
+            When ``method="fft"``, this is the *frequency-domain* window to use in
+            resampling, and should be the same length as the signal; see
+            :func:`scipy.signal.resample` for details. When ``method="polyphase"``, this
+            is the *time-domain* linear-phase window to use after upsampling the signal;
+            see :func:`scipy.signal.resample_poly` for details. The default ``"auto"``
+            will use ``"boxcar"`` for ``method="fft"`` and ``("kaiser", 5.0)`` for
+            ``method="polyphase"``.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+            is installed properly.
+        pad : str
+            The type of padding to use. When ``method="fft"``, supports
+            all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+            which pads with a reflected version of each vector mirrored on the first
+            and last values of the vector, followed by zeros.
+            When ``method="polyphase"``, supports all modes of
+            :func:`scipy.signal.upfirdn`.
 
             .. versionadded:: 0.15
-        %(method_resample)s
+        method : str
+            Resampling method to use. Can be ``"fft"`` (default) or ``"polyphase"`` to
+            use FFT-based on polyphase FIR resampling, respectively. These wrap to
+            :func:`scipy.signal.resample` and :func:`scipy.signal.resample_poly`,
+            respectively.
 
             .. versionadded:: 1.7
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2754,7 +3235,7 @@ class FilterMixin:
         self._update_first_last()
         return self
 
-    @verbose
+    @verbose_static("picks_all_data_noref", "n_jobs_cuda")
     def apply_hilbert(
         self, picks=None, envelope=False, n_jobs=None, n_fft="auto", *, verbose=None
     ):
@@ -2762,11 +3243,21 @@ class FilterMixin:
 
         Parameters
         ----------
-        %(picks_all_data_noref)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
         envelope : bool
             Compute the envelope signal of each channel/vertex. Default False.
             See Notes.
-        %(n_jobs_cuda)s
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+            is installed properly.
 
             .. versionchanged:: 1.13
                Added support for CUDA.
@@ -2775,7 +3266,11 @@ class FilterMixin:
             will be padded with zeros before computing Hilbert, then cut back
             to original length. If None, n == self.n_times. If 'auto',
             the next highest fast FFT length will be use.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2915,7 +3410,7 @@ def _my_hilbert(x, n_fft=None, envelope=False):
     return out
 
 
-@verbose
+@verbose_static()
 def design_mne_c_filter(
     sfreq,
     l_freq=None,
@@ -2940,7 +3435,11 @@ def design_mne_c_filter(
         Low transition bandwidthin Hz. Can be None (default) to use 3 samples.
     h_trans_bandwidth : float
         High transition bandwidth in Hz.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -122,7 +122,7 @@ class BunchConstNamed(BunchConst):
             f"{type(self).__name__!r} object has no attribute {attr!r}"
         )
 
-    def __setattr__(self, attr, val):  # noqa: D105
+    def __setattr__(self, attr: str, val: "int | float | BunchConstNamed") -> None:  # noqa: D105
         assert isinstance(attr, str)
         if isinstance(val, int):
             val = NamedInt(attr, val)

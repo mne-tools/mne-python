@@ -19,7 +19,13 @@ import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
-from ._logging import _record_warnings, _verbose_safe_false, logger, verbose, warn
+from ._logging import (
+    _record_warnings,
+    _verbose_control,
+    _verbose_safe_false,
+    logger,
+    warn,
+)
 
 
 def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
@@ -288,7 +294,7 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-@verbose
+@_verbose_control
 def _check_fname(
     fname,
     overwrite=False,
@@ -766,7 +772,7 @@ def _check_if_nan(data, on_nan="error", msg=" to be plotted"):
             warn(f"Some of the values {msg} are NaN")
 
 
-@verbose
+@_verbose_control
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
@@ -1091,15 +1097,20 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     from ..bem import ConductorModel, fit_sphere_to_headshape, get_fitting_dig
 
     if sphere is None:
-        sphere = HEAD_SIZE_DEFAULT
-        if info is not None:
-            # Decide if we have enough dig points to do the auto fit
-            try:
-                get_fitting_dig(info, "extra", verbose="error")
-            except (RuntimeError, ValueError):
-                pass
-            else:
-                sphere = "auto"
+        if info is not None and info.get("head_sphere") is not None:
+            # Prefer the sphere stored by inst.set_head_sphere(), always in m
+            sphere, sphere_units = info["head_sphere"], "m"
+        else:
+            # Try the "auto" procedure, fall back to HEAD_SIZE_DEFAULT if it fails
+            sphere = HEAD_SIZE_DEFAULT
+            if info is not None:
+                # Decide if we have enough dig points to do the auto fit
+                try:
+                    get_fitting_dig(info, "extra", verbose="error")
+                except (RuntimeError, ValueError):
+                    pass
+                else:
+                    sphere = "auto"
 
     if isinstance(sphere, str):
         _check_option(

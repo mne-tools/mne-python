@@ -1,0 +1,1 @@
+Add new API for cluster permutation statistics of sensor data: :func:`mne.stats.cluster_test`, see the tutorial :ref:`tut-new-cluster-test-api`, by `Carina Forster`_, `Sophie Herbst`_, :newcontrib:`Maximilien Chaumon`, and `Scott Huberty`_.

@@ -16,13 +16,13 @@ from ..utils import (
     _check_preload,
     _import_h5io_funcs,
     _validate_type,
-    copy_function_doc_to_method_doc,
-    fill_doc,
-    verbose,
+    copy_function_doc_to_method_doc_static,
+    fill_doc_static,
+    verbose_static,
 )
 
 
-@verbose
+@verbose_static("picks_good_data")
 def regress_artifact(
     inst,
     picks=None,
@@ -40,7 +40,15 @@ def regress_artifact(
     ----------
     inst : instance of Epochs | Raw
         The instance to process.
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
     exclude : list | 'bads'
         List of channels to exclude from the regression, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
@@ -58,7 +66,11 @@ def regress_artifact(
         the regression. Default is ``True``.
     copy : bool
         If True (default), copy the instance before modifying it.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -100,7 +112,7 @@ def regress_artifact(
     return model.apply(inst, copy=copy), model.coef_
 
 
-@fill_doc
+@fill_doc_static("picks_good_data")
 class EOGRegression:
     """Remove EOG artifact signals from other channels by regression.
 
@@ -112,7 +124,15 @@ class EOGRegression:
 
     Parameters
     ----------
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
     exclude : list | 'bads'
         List of channels to exclude from the regression, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
@@ -202,7 +222,7 @@ class EOGRegression:
         self.info_ = inst.info.copy()
         return self
 
-    @fill_doc
+    @fill_doc_static("copy_df")
     def apply(self, inst, copy=True):
         """Apply the regression coefficients to data.
 
@@ -210,7 +230,9 @@ class EOGRegression:
         ----------
         inst : Raw | Epochs | Evoked
             The data on which to apply the regression.
-        %(copy_df)s
+        copy : bool
+            If ``True``, data will be copied. Otherwise data may be modified in place.
+            Defaults to ``True``.
 
         Returns
         -------
@@ -262,7 +284,7 @@ class EOGRegression:
             this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
         return inst
 
-    @copy_function_doc_to_method_doc("func:mne.viz.plot_regression_weights")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_regression_weights")
     def plot(
         self,
         ch_type=None,
@@ -288,6 +310,191 @@ class EOGRegression:
         title=None,
         show=True,
     ):
+        """Plot the regression weights of a fitted EOGRegression model.
+
+        Parameters
+        ----------
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the RMS for each pair is plotted. If ``None``
+            the first available channel type from order
+            shown above is used. Defaults to ``None``.
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
+        mask : ndarray of bool, shape (n_channels,) | None
+            Array indicating channel(s) to highlight with a distinct
+            plotting style.
+            Array elements set to ``True`` will be plotted
+            with the parameters given in ``mask_params``. Defaults to ``None``,
+            equivalent to an array of all ``False`` elements.
+        mask_params : dict | None
+            Additional plotting parameters for plotting significant sensors.
+            Default (None) equals::
+
+                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                        linewidth=0, markersize=4)
+        mask_label_params : dict | None
+            Additional plotting parameters for significant sensor labels.
+            Default (None) equals::
+
+                dict(fontsize='medium', fontweight='bold')
+
+            .. versionadded:: 1.13
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
+
+            .. versionchanged:: 0.21
+
+               - The default was changed to ``'local'`` for MEG sensors.
+               - ``'local'`` was changed to use a convex hull mask
+               - ``'head'`` was changed to extrapolate out to the clipping circle.
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+
+            .. versionadded:: 0.20
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ``(min(data), max(data))``.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the number of ``times`` provided (unless ``times`` is
+            ``None``). Default is ``None``.
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
+        title : str | None
+            The title of the generated figure. If ``None`` (default), no title is
+            displayed.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            Figure with a topomap subplot for each channel type.
+
+        Notes
+        -----
+        .. versionadded:: 1.2
+        """  # noqa: E501
         from ..viz import plot_regression_weights
 
         return plot_regression_weights(
@@ -352,7 +559,7 @@ class EOGRegression:
             s += "not fitted>"
         return s
 
-    @fill_doc
+    @fill_doc_static("overwrite")
     def save(self, fname, overwrite=False):
         """Save the regression model to an HDF5 file.
 
@@ -360,7 +567,9 @@ class EOGRegression:
         ----------
         fname : path-like
             The file to write the regression weights to. Should end in ``.h5``.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
         """
         _, write_hdf5 = _import_h5io_funcs()
         _validate_type(fname, "path-like", "fname")

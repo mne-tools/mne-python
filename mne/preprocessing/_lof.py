@@ -8,10 +8,10 @@ import numpy as np
 
 from .._fiff.pick import _picks_to_idx
 from ..io.base import BaseRaw
-from ..utils import _soft_import, _validate_type, logger, verbose
+from ..utils import _soft_import, _validate_type, logger, verbose_static
 
 
-@verbose
+@verbose_static("picks_good_data")
 def find_bad_channels_lof(
     raw,
     n_neighbors=20,
@@ -31,7 +31,15 @@ def find_bad_channels_lof(
     n_neighbors : int
         Number of neighbors defining the local neighborhood (default is 20).
         Smaller values will lead to higher LOF scores.
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
     metric : str
         Metric to use for distance computation. Default is “euclidean”,
         see :func:`sklearn.metrics.pairwise.distance_metrics` for details.
@@ -42,7 +50,11 @@ def find_bad_channels_lof(
     return_scores : bool
         If ``True``, return a dictionary with LOF scores for each
         evaluated channel. Default is ``False``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -67,7 +79,7 @@ def find_bad_channels_lof(
     References
     ----------
     .. footbibliography::
-    """  # noqa: E501
+    """
     _soft_import("sklearn", "using LOF detection", strict=True)
     from sklearn.neighbors import LocalOutlierFactor
 

@@ -1,46 +1,30 @@
 """The setup cell prepended to every JupyterLite notebook.
 
-It installs MNE into the browser kernel and patches what Pyodide does not
-provide: data fetching over HTTP, the readers that expect files already on
-disk, and the 3D renderer. The cell lives in ``_lite_setup_cell.py`` as
-ordinary Python, so ruff lints and formats it; this module only reads that
-file and checks it compiles.
+It hands over to ``mne.viz.backends._jupyterlite.setup_notebook``, which
+patches what Pyodide does not provide; MNE itself and the packages the
+notebooks import are in the Pyodide lock (see ``jupyter_lite_config.py``).
+``sys.platform`` is ``"emscripten"`` only inside Pyodide, so the cell is a
+no-op in a local kernel and a notebook downloaded from inside JupyterLite runs
+unchanged there.
 
 The docs build prepends it only to the notebooks copied into the JupyterLite
-contents. It deliberately does NOT go through ``first_notebook_cell``: that is
-applied when the notebook is generated, so it would also land in the ``.ipynb``
-offered for download, where ``piplite`` does not exist and the notebook would
-fail on its first cell.
-
-The other direction is covered in the cell itself: a notebook downloaded from
-inside JupyterLite does carry the cell, and it says to delete it before running
-locally, for the same reason.
+contents, not through ``first_notebook_cell``, which would also put it in the
+``.ipynb`` offered for download.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import ast
-from pathlib import Path
+LITE_SETUP_CELL = """\
+# 💡 Added by the docs build: adapts MNE to Pyodide. Does nothing outside
+# JupyterLite.
+import sys
 
-# The source file is split at this banner: everything after it is what the
-# notebook runs, and what sits above it (license header, ruff directives, notes
-# for whoever edits it) stays behind.
-_BANNER = "# --- JupyterLite setup cell"
+if sys.platform == "emscripten":
+    from mne.viz.backends._jupyterlite import setup_notebook
 
-
-def _read(name):
-    _source = Path(__file__).parent / name
-    _text = _source.read_text()
-    if _BANNER not in _text:
-        raise RuntimeError(f"{_source.name} is missing the {_BANNER!r} banner")
-    _body = _text[_text.index(_BANNER) :]
-    return _body[_body.index("\n") + 1 :]
-
-
-LITE_SETUP_CELL = _read("_lite_setup_cell.py")
+    setup_notebook()
+"""
 # nothing else runs this before a reader does, so at least make sure it parses
-compile(
-    LITE_SETUP_CELL, "lite_setup_cell", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
-)
+compile(LITE_SETUP_CELL, "lite_setup_cell", "exec")

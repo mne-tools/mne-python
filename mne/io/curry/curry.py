@@ -29,9 +29,10 @@ from ...transforms import (
 from ...utils import (
     _on_missing,
     _soft_import,
+    _verbose_control,
     catch_logging,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..base import BaseRaw
@@ -699,7 +700,7 @@ def _make_trans_dig(
         logger.info(no_msg)
 
 
-@verbose
+@verbose_static("preload", "on_bad_hpi_match")
 def read_raw_curry(
     fname: Path | str,
     preload: bool | str = False,
@@ -715,9 +716,29 @@ def read_raw_curry(
     ----------
     fname : path-like
         Path to a valid curry file.
-    %(preload)s
-    %(on_bad_hpi_match)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    on_bad_hpi_match : str
+        Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a warning, or
+        ``'ignore'`` to ignore when there is poor matching of HPI coordinates (>10mm
+        difference) for device - head transform.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -762,7 +783,7 @@ class RawCurry(BaseRaw):
 
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, preload=False, on_bad_hpi_match="warn", verbose=None):
         fname = _check_curry_filename(fname)
 
@@ -882,7 +903,7 @@ class RawCurry(BaseRaw):
             )
 
 
-@verbose
+@verbose_static()
 def read_impedances_curry(fname, verbose=None):
     """Read impedance measurements from Curry files.
 
@@ -890,7 +911,11 @@ def read_impedances_curry(fname, verbose=None):
     ----------
     fname : path-like
         Path to a valid curry file.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

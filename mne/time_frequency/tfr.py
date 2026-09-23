@@ -44,16 +44,17 @@ from ..utils import (
     _prepare_write_metadata,
     _time_mask,
     _validate_type,
+    _verbose_control,
     check_fname,
-    copy_doc,
-    copy_function_doc_to_method_doc,
-    fill_doc,
+    copy_doc_static,
+    copy_function_doc_to_method_doc_static,
+    fill_doc_static,
     legacy,
     logger,
     object_diff,
     repr_html,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.spectrum import _convert_old_birthday_format, _get_instance_type_string
@@ -61,9 +62,9 @@ from .multitaper import dpss_windows, tfr_array_multitaper
 from .spectrum import EpochsSpectrum
 
 
-@fill_doc
+@fill_doc_static("morlet_reference", "fwhm_morlet_notes")
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
-    """Compute Morlet wavelets for the given frequency range.
+    r"""Compute Morlet wavelets for the given frequency range.
 
     Parameters
     ----------
@@ -97,8 +98,35 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Notes
     -----
-    %(morlet_reference)s
-    %(fwhm_morlet_notes)s
+    The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
+    Convolution of a signal with a Morlet wavelet will impose temporal smoothing
+    that is determined by the duration of the wavelet. In MNE-Python, the duration
+    of the wavelet is determined by the ``sigma`` parameter, which gives the
+    standard deviation of the wavelet's Gaussian envelope (our wavelets extend to
+    ±5 standard deviations to ensure values very close to zero at the endpoints).
+    Some authors (e.g., :footcite:t:`Cohen2019`) recommend specifying and reporting
+    wavelet duration in terms of the full-width half-maximum (FWHM) of the
+    wavelet's Gaussian envelope. The FWHM is related to ``sigma`` by the following
+    identity: :math:`\mathrm{FWHM} = \sigma \times 2 \sqrt{2 \ln{2}}` (or the
+    equivalent in Python code: ``fwhm = sigma * 2 * np.sqrt(2 * np.log(2))``).
+    If ``sigma`` is not provided, it is computed from ``n_cycles`` as
+    :math:`\frac{\mathtt{n\_cycles}}{2 \pi f}` where :math:`f` is the frequency of
+    the wavelet oscillation (given by ``freqs``). Thus when ``sigma=None`` the FWHM
+    will be given by
+
+    .. math::
+
+        \mathrm{FWHM} = \frac{\mathtt{n\_cycles} \times \sqrt{2 \ln{2}}}{\pi \times f}
+
+    (cf. eq. 4 in :footcite:`Cohen2019`). To create wavelets with a chosen FWHM,
+    one can compute::
+
+        n_cycles = desired_fwhm * np.pi * np.array(freqs) / np.sqrt(2 * np.log(2))
+
+    to get an array of values for ``n_cycles`` that yield the desired FWHM at each
+    frequency in ``freqs``.  If you want different FWHM values at each frequency,
+    do the same computation with ``desired_fwhm`` as an array of the same shape as
+    ``freqs``.
 
     References
     ----------
@@ -134,7 +162,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
                 color='k', linestyle='-', label='FWHM', zorder=6)
         ax.legend(loc='upper right')
         ax.set(xlabel='Time (s)', ylabel='Amplitude')
-    """  # noqa: E501
+    """
     Ws = list()
     n_cycles = np.array(n_cycles, float).ravel()
 
@@ -763,7 +791,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim, weights=None):
     return tfrs
 
 
-@fill_doc
+@fill_doc_static("decim_tfr")
 def cwt(X, Ws, use_fft=True, mode="same", decim=1):
     """Compute time-frequency decomposition with continuous wavelet transform.
 
@@ -778,7 +806,17 @@ def cwt(X, Ws, use_fft=True, mode="same", decim=1):
     mode : 'same' | 'valid' | 'full'
         Convention for convolution. 'full' is currently not implemented with
         ``use_fft=False``. Defaults to ``'same'``.
-    %(decim_tfr)s
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
 
     Returns
     -------
@@ -832,7 +870,16 @@ def _tfr_aux(
 
 
 @legacy(alt='.compute_tfr(method="morlet")')
-@verbose
+@verbose_static(
+    "freqs_tfr_array",
+    "n_cycles_tfr",
+    "decim_tfr",
+    "n_jobs",
+    "average_tfr",
+    "morlet_reference",
+    "temporal_window_tfr_intro",
+    "temporal_window_tfr_morlet_notes",
+)
 def tfr_morlet(
     inst,
     freqs,
@@ -847,7 +894,7 @@ def tfr_morlet(
     output="power",
     verbose=None,
 ):
-    """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
+    r"""Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Same computation as `~mne.time_frequency.tfr_array_morlet`, but
     operates on `~mne.Epochs` or `~mne.Evoked` objects instead of
@@ -857,15 +904,37 @@ def tfr_morlet(
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    %(freqs_tfr_array)s
-    %(n_cycles_tfr)s
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : int | array of int, shape (n_freqs,)
+        Number of cycles in the wavelet, either a fixed number or one per
+        frequency. The number of cycles ``n_cycles`` and the frequencies of
+        interest ``freqs`` define the temporal window length. See notes for
+        additional information about the relationship between those arguments
+        and about time and frequency smoothing.
     use_fft : bool
         The fft based convolution or not.
     return_itc : bool
         Return inter-trial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    %(decim_tfr)s
-    %(n_jobs)s
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     picks : array-like of int | None
         The indices of the channels to decompose. If None, all available
         good data channels are decomposed.
@@ -873,13 +942,27 @@ def tfr_morlet(
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    %(average_tfr)s
+    average : bool
+        If ``False`` return an `EpochsTFR` containing separate TFRs for each
+        epoch. If ``True`` return an `AverageTFR` containing the average of all
+        TFRs across epochs.
+
+        .. note::
+            Using ``average=True`` is functionally equivalent to using
+            ``average=False`` followed by ``EpochsTFR.average()``, but is
+            more memory efficient.
+
+        .. versionadded:: 0.13.0
     output : str
         Can be ``"power"`` (default) or ``"complex"``. If ``"complex"``, then
         ``average`` must be ``False``.
 
         .. versionadded:: 0.15.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -899,9 +982,41 @@ def tfr_morlet(
 
     Notes
     -----
-    %(morlet_reference)s
-    %(temporal_window_tfr_intro)s
-    %(temporal_window_tfr_morlet_notes)s
+    The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
+
+    In spectrotemporal analysis (as with traditional fourier methods),
+    the temporal and spectral resolution are interrelated: longer temporal windows
+    allow more precise frequency estimates; shorter temporal windows "smear"
+    frequency estimates while providing more precise timing information.
+
+    Time-frequency representations are computed using a sliding temporal window.
+    Either the temporal window has a fixed length independent of frequency, or the
+    temporal window decreases in length with increased frequency.
+
+    .. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+    *Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+    the time and frequency smoothing remains fixed. (b) For temporal windows that
+    decrease with frequency, the temporal smoothing decreases and the frequency
+    smoothing increases with frequency.* Source: `FieldTrip tutorial: Time-frequency
+    analysis using Hanning window, multitapers and wavelets
+    <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+    In MNE-Python, the length of the Morlet wavelet is affected by the arguments
+    ``freqs`` and ``n_cycles``, which define the frequencies of interest
+    and the number of cycles, respectively. For the time-frequency representation,
+    the length of the wavelet is defined such that both tails of
+    the wavelet extend five standard deviations from the midpoint of its Gaussian
+    envelope and that there is a sample at time zero.
+
+    The length of the wavelet is thus :math:`10\times\mathtt{sfreq}\cdot\sigma-1`,
+    which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
+    \mathtt{sfreq}}{\mathtt{freqs}} - 1`, where
+    :math:`\sigma = \frac{\mathtt{n\_cycles}}{2\pi f}` corresponds to the standard
+    deviation of the wavelet's Gaussian envelope. Note that the length of the
+    wavelet must not exceed the length of your signal.
+
+    For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`.
 
     See :func:`mne.time_frequency.morlet` for more information about the
     Morlet wavelet.
@@ -909,7 +1024,7 @@ def tfr_morlet(
     References
     ----------
     .. footbibliography::
-    """
+    """  # noqa: E501
     tfr_params = dict(
         n_cycles=n_cycles,
         n_jobs=n_jobs,
@@ -922,7 +1037,15 @@ def tfr_morlet(
     )
 
 
-@verbose
+@verbose_static(
+    "freqs_tfr_array",
+    "n_cycles_tfr",
+    "decim_tfr",
+    "n_jobs",
+    "morlet_reference",
+    "temporal_window_tfr_intro",
+    "temporal_window_tfr_morlet_notes",
+)
 def tfr_array_morlet(
     data,
     sfreq,
@@ -936,7 +1059,7 @@ def tfr_array_morlet(
     *,
     verbose=None,
 ):
-    """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
+    r"""Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
     :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
@@ -947,8 +1070,14 @@ def tfr_array_morlet(
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    %(freqs_tfr_array)s
-    %(n_cycles_tfr)s
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : int | array of int, shape (n_freqs,)
+        Number of cycles in the wavelet, either a fixed number or one per
+        frequency. The number of cycles ``n_cycles`` and the frequencies of
+        interest ``freqs`` define the temporal window length. See notes for
+        additional information about the relationship between those arguments
+        and about time and frequency smoothing.
     zero_mean : bool | None
         If True, make sure the wavelets have a mean of zero. default False.
 
@@ -958,7 +1087,17 @@ def tfr_array_morlet(
 
     use_fft : bool
         Use the FFT for convolutions or not. default True.
-    %(decim_tfr)s
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
     output : str
 
         * ``'complex'`` : single trial complex.
@@ -968,10 +1107,20 @@ def tfr_array_morlet(
         * ``'itc'`` : inter-trial coherence.
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Default 1.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -996,16 +1145,48 @@ def tfr_array_morlet(
 
     Notes
     -----
-    %(morlet_reference)s
-    %(temporal_window_tfr_intro)s
-    %(temporal_window_tfr_morlet_notes)s
+    The Morlet wavelets follow the formulation in :footcite:t:`Tallon-BaudryEtAl1997`.
+
+    In spectrotemporal analysis (as with traditional fourier methods),
+    the temporal and spectral resolution are interrelated: longer temporal windows
+    allow more precise frequency estimates; shorter temporal windows "smear"
+    frequency estimates while providing more precise timing information.
+
+    Time-frequency representations are computed using a sliding temporal window.
+    Either the temporal window has a fixed length independent of frequency, or the
+    temporal window decreases in length with increased frequency.
+
+    .. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+    *Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+    the time and frequency smoothing remains fixed. (b) For temporal windows that
+    decrease with frequency, the temporal smoothing decreases and the frequency
+    smoothing increases with frequency.* Source: `FieldTrip tutorial: Time-frequency
+    analysis using Hanning window, multitapers and wavelets
+    <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+    In MNE-Python, the length of the Morlet wavelet is affected by the arguments
+    ``freqs`` and ``n_cycles``, which define the frequencies of interest
+    and the number of cycles, respectively. For the time-frequency representation,
+    the length of the wavelet is defined such that both tails of
+    the wavelet extend five standard deviations from the midpoint of its Gaussian
+    envelope and that there is a sample at time zero.
+
+    The length of the wavelet is thus :math:`10\times\mathtt{sfreq}\cdot\sigma-1`,
+    which is equal to :math:`\frac{5}{\pi} \cdot \frac{\mathtt{n\_cycles} \cdot
+    \mathtt{sfreq}}{\mathtt{freqs}} - 1`, where
+    :math:`\sigma = \frac{\mathtt{n\_cycles}}{2\pi f}` corresponds to the standard
+    deviation of the wavelet's Gaussian envelope. Note that the length of the
+    wavelet must not exceed the length of your signal.
+
+    For more information on the Morlet wavelet, see :func:`mne.time_frequency.morlet`.
 
     .. versionadded:: 0.14.0
 
     References
     ----------
     .. footbibliography::
-    """
+    """  # noqa: E501
     return _compute_tfr(
         epoch_data=data,
         freqs=freqs,
@@ -1023,7 +1204,18 @@ def tfr_array_morlet(
 
 
 @legacy(alt='.compute_tfr(method="multitaper")')
-@verbose
+@verbose_static(
+    "freqs_tfr_array",
+    "n_cycles_tfr",
+    "time_bandwidth_tfr",
+    "decim_tfr",
+    "n_jobs",
+    "picks_good_data",
+    "average_tfr",
+    "temporal_window_tfr_intro",
+    "temporal_window_tfr_multitaper_notes",
+    "time_bandwidth_tfr_notes",
+)
 def tfr_multitaper(
     inst,
     freqs,
@@ -1038,7 +1230,7 @@ def tfr_multitaper(
     *,
     verbose=None,
 ):
-    """Compute Time-Frequency Representation (TFR) using DPSS tapers.
+    r"""Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as :func:`~mne.time_frequency.tfr_array_multitaper`, but
     operates on :class:`~mne.Epochs` or :class:`~mne.Evoked` objects instead of
@@ -1048,19 +1240,68 @@ def tfr_multitaper(
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    %(freqs_tfr_array)s
-    %(n_cycles_tfr)s
-    %(time_bandwidth_tfr)s
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : int | array of int, shape (n_freqs,)
+        Number of cycles in the wavelet, either a fixed number or one per
+        frequency. The number of cycles ``n_cycles`` and the frequencies of
+        interest ``freqs`` define the temporal window length. See notes for
+        additional information about the relationship between those arguments
+        and about time and frequency smoothing.
+    time_bandwidth : float ``≥ 2.0``
+        Product between the temporal window length (in seconds) and the *full*
+        frequency bandwidth (in Hz). This product can be seen as the surface of the
+        window on the time/frequency plane and controls the frequency bandwidth
+        (thus the frequency resolution) and the number of good tapers. See notes
+        for additional information.
     use_fft : bool
         The fft based convolution or not.
     return_itc : bool
         Return inter-trial coherence (ITC) as well as averaged (or
         single-trial) power.
-    %(decim_tfr)s
-    %(n_jobs)s
-    %(picks_good_data)s
-    %(average_tfr)s
-    %(verbose)s
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    average : bool
+        If ``False`` return an `EpochsTFR` containing separate TFRs for each
+        epoch. If ``True`` return an `AverageTFR` containing the average of all
+        TFRs across epochs.
+
+        .. note::
+            Using ``average=True`` is functionally equivalent to using
+            ``average=False`` followed by ``EpochsTFR.average()``, but is
+            more memory efficient.
+
+        .. versionadded:: 0.13.0
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1080,12 +1321,72 @@ def tfr_multitaper(
 
     Notes
     -----
-    %(temporal_window_tfr_intro)s
-    %(temporal_window_tfr_multitaper_notes)s
-    %(time_bandwidth_tfr_notes)s
+    In spectrotemporal analysis (as with traditional fourier methods),
+    the temporal and spectral resolution are interrelated: longer temporal windows
+    allow more precise frequency estimates; shorter temporal windows "smear"
+    frequency estimates while providing more precise timing information.
+
+    Time-frequency representations are computed using a sliding temporal window.
+    Either the temporal window has a fixed length independent of frequency, or the
+    temporal window decreases in length with increased frequency.
+
+    .. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+    *Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+    the time and frequency smoothing remains fixed. (b) For temporal windows that
+    decrease with frequency, the temporal smoothing decreases and the frequency
+    smoothing increases with frequency.* Source: `FieldTrip tutorial: Time-frequency
+    analysis using Hanning window, multitapers and wavelets
+    <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+    In MNE-Python, the multitaper temporal window length is defined by the arguments
+    ``freqs`` and ``n_cycles``, respectively defining the frequencies of interest
+    and the number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
+
+    A fixed number of cycles for all frequencies will yield a temporal window which
+    decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+    ``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
+
+    To use a temporal window with fixed length, the number of cycles has to be
+    defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+    ``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``.
+
+    In MNE-Python's multitaper functions, the frequency bandwidth is
+    additionally affected by the parameter ``time_bandwidth``.
+    The ``n_cycles`` parameter determines the temporal window length based on the
+    frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.
+    The ``time_bandwidth`` parameter defines the "time-bandwidth product", which is
+    the product of the temporal window length (in seconds) and the frequency
+    bandwidth (in Hz). Thus once ``n_cycles`` has been set, frequency bandwidth is
+    determined by :math:`\frac{\mathrm{time~bandwidth}}{\mathrm{time~window}}`, and
+    thus passing a larger ``time_bandwidth`` value will increase the frequency
+    bandwidth (thereby decreasing the frequency *resolution*).
+
+    The increased frequency bandwidth is reached by averaging spectral estimates
+    obtained from multiple tapers. Thus, ``time_bandwidth`` also determines the
+    number of tapers used. MNE-Python uses only "good" tapers (tapers with minimal
+    leakage from far-away frequencies); the number of good tapers is
+    ``floor(time_bandwidth - 1)``. This means there is another trade-off at play,
+    between frequency resolution and the variance reduction that multitaper
+    analysis provides. Striving for finer frequency resolution (by setting
+    ``time_bandwidth`` low) means fewer tapers will be used, which undermines what
+    is unique about multitaper methods — namely their ability to improve accuracy /
+    reduce noise in the power estimates by using several (orthogonal) tapers.
+
+    .. warning::
+
+        In `~mne.time_frequency.tfr_array_multitaper` and
+        `~mne.time_frequency.tfr_multitaper`, ``time_bandwidth`` defines the
+        product of the temporal window length with the *full* frequency bandwidth
+        For example, a full bandwidth of 4 Hz at a frequency of interest of 10 Hz
+        will "smear" the frequency estimate between 8 Hz and 12 Hz.
+
+        This is not the case for `~mne.time_frequency.psd_array_multitaper` where
+        the argument ``bandwidth`` defines the *half* frequency bandwidth. In the
+        example above, the half-frequency bandwidth is 2 Hz.
 
     .. versionadded:: 0.9.0
-    """
+    """  # noqa: E501
     from ..epochs import EpochsArray
     from ..evoked import Evoked
 
@@ -1115,7 +1416,18 @@ def tfr_multitaper(
 # TFR(s) class
 
 
-@fill_doc
+@fill_doc_static(
+    "method_tfr",
+    "freqs_tfr",
+    "tmin_tmax_psd",
+    "picks_good_data_noref",
+    "proj_psd",
+    "decim_tfr",
+    "n_jobs",
+    "reject_by_annotation_tfr",
+    "verbose",
+    "method_kw_tfr",
+)
 class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     """Base class for RawTFR, EpochsTFR, and AverageTFR (for type checking only).
 
@@ -1130,16 +1442,67 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     ----------
     inst : instance of Raw, Epochs, or Evoked
         The data from which to compute the time-frequency representation.
-    %(method_tfr)s
-    %(freqs_tfr)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(decim_tfr)s
-    %(n_jobs)s
-    %(reject_by_annotation_tfr)s
-    %(verbose)s
-    %(method_kw_tfr)s
+    method : ``'morlet'`` | ``'multitaper'`` | None
+        Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
+        ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`.
+        ``None`` (the default) only works when using ``__setstate__`` and will
+        raise an error otherwise.
+    freqs : array-like | None
+        The frequencies at which to compute the power estimates.
+        Must be an array of shape (n_freqs,). ``None`` (the
+        default) only works when using ``__setstate__`` and will raise an
+        error otherwise.
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    reject_by_annotation : bool
+        Whether to omit bad spans of data before spectrotemporal power
+        estimation. If ``True``, spans with annotations whose description
+        begins with ``bad`` will be represented with ``np.nan`` in the
+        time-frequency representation.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **method_kw
+        Additional keyword arguments passed to the spectrotemporal estimation
+        function (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet
+        method
+        or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+        See :func:`~mne.time_frequency.tfr_array_morlet`
+        and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
 
     See Also
     --------
@@ -1293,82 +1656,150 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         tfr.data = np.abs(tfr.data)
         return tfr
 
-    @fill_doc
+    @fill_doc_static("__add__tfr")
     def __add__(self, other):
         """Add two TFR instances.
 
-        %(__add__tfr)s
+        Parameters
+        ----------
+        other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The TFR instance to add. Must have the same type as ``self``, and
+            matching ``.times`` and ``.freqs`` attributes.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            A new TFR instance, of the same type as ``self``.
         """
         self._check_compatibility(other)
         out = self.copy()
         out.data += other.data
         return out
 
-    @fill_doc
+    @fill_doc_static("__iadd__tfr")
     def __iadd__(self, other):
         """Add a TFR instance to another, in-place.
 
-        %(__iadd__tfr)s
+        Parameters
+        ----------
+        other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The TFR instance to add. Must have the same type as ``self``, and
+            matching ``.times`` and ``.freqs`` attributes.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The modified TFR instance.
         """
         self._check_compatibility(other)
         self.data += other.data
         return self
 
-    @fill_doc
+    @fill_doc_static("__sub__tfr")
     def __sub__(self, other):
         """Subtract two TFR instances.
 
-        %(__sub__tfr)s
+        Parameters
+        ----------
+        other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The TFR instance to subtract. Must have the same type as ``self``, and
+            matching ``.times`` and ``.freqs`` attributes.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            A new TFR instance, of the same type as ``self``.
         """
         self._check_compatibility(other)
         out = self.copy()
         out.data -= other.data
         return out
 
-    @fill_doc
+    @fill_doc_static("__isub__tfr")
     def __isub__(self, other):
         """Subtract a TFR instance from another, in-place.
 
-        %(__isub__tfr)s
+        Parameters
+        ----------
+        other : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The TFR instance to subtract. Must have the same type as ``self``, and
+            matching ``.times`` and ``.freqs`` attributes.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The modified TFR instance.
         """
         self._check_compatibility(other)
         self.data -= other.data
         return self
 
-    @fill_doc
+    @fill_doc_static("__mul__tfr")
     def __mul__(self, num):
         """Multiply a TFR instance by a scalar.
 
-        %(__mul__tfr)s
+        Parameters
+        ----------
+        num : int | float
+            The number to multiply by.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            A new TFR instance, of the same type as ``self``.
         """
         out = self.copy()
         out.data *= num
         return out
 
-    @fill_doc
+    @fill_doc_static("__imul__tfr")
     def __imul__(self, num):
         """Multiply a TFR instance by a scalar, in-place.
 
-        %(__imul__tfr)s
+        Parameters
+        ----------
+        num : int | float
+            The number to multiply by.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The modified TFR instance.
         """
         self.data *= num
         return self
 
-    @fill_doc
+    @fill_doc_static("__truediv__tfr")
     def __truediv__(self, num):
         """Divide a TFR instance by a scalar.
 
-        %(__truediv__tfr)s
+        Parameters
+        ----------
+        num : int | float
+            The number to divide by.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            A new TFR instance, of the same type as ``self``.
         """
         out = self.copy()
         out.data /= num
         return out
 
-    @fill_doc
+    @fill_doc_static("__itruediv__tfr")
     def __itruediv__(self, num):
         """Divide a TFR instance by a scalar, in-place.
 
-        %(__itruediv__tfr)s
+        Parameters
+        ----------
+        num : int | float
+            The number to divide by.
+
+        Returns
+        -------
+        tfr : instance of RawTFR | instance of EpochsTFR | instance of AverageTFR
+            The modified TFR instance.
         """
         self.data /= num
         return self
@@ -1562,7 +1993,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             expected_shape.insert(1, self._data.shape[tapers_dim])
         self._shape = tuple(expected_shape)
 
-    @verbose
+    @_verbose_control
     def _onselect(
         self,
         eclick,
@@ -1735,13 +2166,16 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         """The weights used for each taper in the time-frequency estimates."""
         return self._weights
 
-    @fill_doc
+    @fill_doc_static("tmin_tmax_psd", "include_tmax", "inst_tfr")
     def crop(self, tmin=None, tmax=None, fmin=None, fmax=None, include_tmax=True):
         """Crop data to a given time interval in place.
 
         Parameters
         ----------
-        %(tmin_tmax_psd)s
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
         fmin : float | None
             Lowest frequency of selection in Hz.
 
@@ -1750,11 +2184,15 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             Highest frequency of selection in Hz.
 
             .. versionadded:: 0.18.0
-        %(include_tmax)s
+        include_tmax : bool
+            If True (default), include tmax. If False, exclude tmax (similar to how
+            Python indexing typically works).
+
+            .. versionadded:: 0.19
 
         Returns
         -------
-        %(inst_tfr)s
+        inst : instance of RawTFR, EpochsTFR, or AverageTFR
             The modified instance.
         """
         super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
@@ -1774,42 +2212,85 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         self._data = self._data[..., freq_mask, :]
         return self
 
+    @fill_doc_static("inst_tfr")
     def copy(self):
         """Return copy of the TFR instance.
 
         Returns
         -------
-        %(inst_tfr)s
+        inst : instance of RawTFR, EpochsTFR, or AverageTFR
             A copy of the object.
         """
         return deepcopy(self)
 
-    @verbose
+    @verbose_static("baseline_rescale", "baseline_mode", "inst_tfr")
     def apply_baseline(self, baseline, mode="mean", verbose=None):
         """Baseline correct the data.
 
         Parameters
         ----------
-        %(baseline_rescale)s
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(baseline_mode)s
-        %(verbose)s
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(inst_tfr)s
+        inst : instance of RawTFR, EpochsTFR, or AverageTFR
             The modified instance.
 
         References
         ----------
         .. footbibliography::
-        """
+        """  # noqa: E501
         self._baseline = _check_baseline(baseline, times=self.times, sfreq=self.sfreq)
         rescale(self.data, self.times, self.baseline, mode, copy=False, verbose=verbose)
         return self
 
-    @fill_doc
+    @fill_doc_static(
+        "picks_good_data_noref",
+        "exclude_spectrum_get_data",
+        "fmin_fmax_tfr",
+        "tmin_tmax_psd",
+    )
     def get_data(
         self,
         picks=None,
@@ -1826,10 +2307,28 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         Parameters
         ----------
-        %(picks_good_data_noref)s
-        %(exclude_spectrum_get_data)s
-        %(fmin_fmax_tfr)s
-        %(tmin_tmax_psd)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude. If ``'bads'``, channels
+            in ``spectrum.info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
         return_times : bool
             Whether to return the time values for the requested time range.
             Default is ``False``.
@@ -1901,7 +2400,29 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             return out[0]
         return tuple(out)
 
-    @verbose
+    @verbose_static(
+        "picks_good_data",
+        "exclude_spectrum_plot",
+        "tmin_tmax_psd",
+        "fmin_fmax_tfr",
+        "baseline_rescale",
+        "baseline_mode",
+        "dB_tfr_plot",
+        "combine_tfr_plot",
+        "layout_spectrum_plot_topo",
+        "yscale_tfr_plot",
+        "vlim_tfr_plot",
+        "cnorm",
+        "cmap_topomap",
+        "colorbar",
+        "title_tfr_plot",
+        "mask_tfr_plot",
+        "mask_style_tfr_plot",
+        "mask_cmap_tfr_plot",
+        "mask_alpha_tfr_plot",
+        "axes_tfr_plot",
+        "show",
+    )
     def plot(
         self,
         picks=None,
@@ -1934,51 +2455,181 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         Parameters
         ----------
-        %(picks_good_data)s
-        %(exclude_spectrum_plot)s
-        %(tmin_tmax_psd)s
-        %(fmin_fmax_tfr)s
-        %(baseline_rescale)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude from being drawn. If ``'bads'``, channels
+            in ``spectrum.info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(baseline_mode)s
-        %(dB_tfr_plot)s
-        %(combine_tfr_plot)s
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(data).
+        combine : 'mean' | 'rms' | callable | None
+            How to aggregate across channels.
+            If ``None``, plot one figure per selected channel. If a string,
+            ``"mean"`` uses :func:`numpy.mean`, ``"rms"`` computes the root-mean-square.
+            If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+            of shape ``(n_channels, n_freqs, n_times)`` and return an array of shape
+            ``(n_freqs, n_times)``. Defaults to ``None``.
 
             .. versionchanged:: 1.3
                Added support for ``callable``.
-        %(layout_spectrum_plot_topo)s
-        %(yscale_tfr_plot)s
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If ``None`` (default), the layout is
+            inferred from the data (if possible).
+        yscale : 'auto' | 'linear' | 'log'
+            The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log'
+            gives log-spaced y axis and 'auto' detects if frequencies are log-spaced and
+            if so sets the y axis to 'log'. Default is 'auto'.
 
             .. versionadded:: 0.14.0
-        %(vlim_tfr_plot)s
-        %(cnorm)s
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
             .. versionadded:: 0.24
-        %(cmap_topomap)s
-        %(colorbar)s
-        %(title_tfr_plot)s
-        %(mask_tfr_plot)s
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        colorbar : bool
+            Whether to add a colorbar to the plot. Default is ``True``.
+        title : str | 'auto' | None
+            Title for the plot. If ``"auto"``, will use the channel name (if ``combine``
+            is ``None``) or state the number and method of combined channels used to
+            generate the plot. If ``None``, no title is shown. Default is ``None``.
+        mask : ndarray | None
+            An :class:`array <numpy.ndarray>` of :class:`boolean <bool>` values, of the
+            same shape as the data. Data that corresponds to ``False`` entries in the
+            mask are plotted differently, as determined by ``mask_style``,
+            ``mask_alpha``, and ``mask_cmap``. Useful for, e.g., highlighting areas of
+            statistical significance.
 
             .. versionadded:: 0.16.0
-        %(mask_style_tfr_plot)s
+        mask_style : None | 'both' | 'contour' | 'mask'
+            How to distinguish the masked/unmasked regions of the plot. If
+            ``"contour"``, a line is drawn around the areas where the mask is ``True``.
+            If ``"mask"``, areas where the mask is ``False`` will be (partially)
+            transparent, as determined by ``mask_alpha``. If ``"both"``, both a contour
+            and transparency are used. Default is ``None``, which is silently ignored if
+            ``mask`` is ``None`` and is interpreted like ``"both"`` otherwise.
 
             .. versionadded:: 0.17
-        %(mask_cmap_tfr_plot)s
+        mask_cmap : matplotlib colormap | str | None
+            Colormap to use for masked areas of the plot. If a :class:`str`, must be a
+            valid Matplotlib colormap name. If None, ``cmap`` is used for both masked
+            and unmasked areas. Ignored if ``mask`` is ``None``. Default is ``'Greys'``.
 
             .. versionadded:: 0.17
-        %(mask_alpha_tfr_plot)s
+        mask_alpha : float
+            Relative opacity of the masked region versus the unmasked region, given as a
+            :class:`float` between 0 and 1 (i.e., 0 means masked areas are not visible
+            at all). Defaults to ``0.1``.
 
             .. versionadded:: 0.16.0
-        %(axes_tfr_plot)s
-        %(show)s
-        %(verbose)s
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the number of picks. If ``combine`` is not None,
+            ``axes`` must either be an instance of Axes, or a list of length 1.
+            Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
         figs : list of instances of matplotlib.figure.Figure
             A list of figures containing the time-frequency power.
-        """
+        """  # noqa: E501
         # the rectangle selector plots topomaps, which needs all channels uncombined,
         # so we keep a reference to that state here, and (because the topomap plotting
         # function wants an AverageTFR) update it with `comment` and `nave` values in
@@ -2164,7 +2815,27 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         plt_show(show)
         return figs
 
-    @verbose
+    @verbose_static(
+        "timefreqs",
+        "picks_good_data",
+        "exclude_psd",
+        "combine_tfr_plot_joint",
+        "tmin_tmax_psd",
+        "fmin_fmax_tfr",
+        "baseline_rescale",
+        "baseline_mode",
+        "dB_tfr_plot",
+        "yscale_tfr_plot",
+        "vlim_tfr_plot_joint",
+        "cnorm",
+        "cmap_tfr_plot_topo",
+        "colorbar_tfr_plot_joint",
+        "title_none",
+        "show",
+        "topomap_args",
+        "image_args",
+        "notes_timefreqs_tfr_plot_joint",
+    )
     def plot_joint(
         self,
         *,
@@ -2194,31 +2865,133 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         Parameters
         ----------
-        %(timefreqs)s
-        %(picks_good_data)s
-        %(exclude_psd)s
+        timefreqs : None | list of tuple | dict of tuple
+            The time-frequency point(s) for which topomaps will be plotted. See Notes.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude. If ``'bads'``, channels
+            in ``info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
             Default is an empty :class:`tuple` which includes all channels.
-        %(combine_tfr_plot_joint)s
+        combine : 'mean' | 'rms' | callable
+            How to aggregate across channels.
+            If a string,
+            ``"mean"`` uses :func:`numpy.mean`, ``"rms"`` computes the root-mean-square.
+            If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+            of shape ``(n_channels, n_freqs, n_times)`` and return an array of shape
+            ``(n_freqs, n_times)``. Defaults to ``"mean"``.
 
             .. versionchanged:: 1.3
                 Added support for ``callable``.
-        %(tmin_tmax_psd)s
-        %(fmin_fmax_tfr)s
-        %(baseline_rescale)s
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(baseline_mode)s
-        %(dB_tfr_plot)s
-        %(yscale_tfr_plot)s
-        %(vlim_tfr_plot_joint)s
-        %(cnorm)s
-        %(cmap_tfr_plot_topo)s
-        %(colorbar_tfr_plot_joint)s
-        %(title_none)s
-        %(show)s
-        %(topomap_args)s
-        %(image_args)s
-        %(verbose)s
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(data).
+        yscale : 'auto' | 'linear' | 'log'
+            The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log'
+            gives log-spaced y axis and 'auto' detects if frequencies are log-spaced and
+            if so sets the y axis to 'log'. Default is 'auto'.
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. To specify the colormap separately for the
+            topomap annotations, see ``topomap_args``. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+        cmap : str | matplotlib.colors.Colormap
+                The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must
+                be a valid Matplotlib colormap name. Default is
+                ``"RdBu_r"``.
+        colorbar : bool
+            Whether to add a colorbar to the plot (for the topomap annotations). Not
+            compatible with user-defined ``axes``. Default is ``True``.
+        title : str | None
+            The title of the generated figure. If ``None`` (default), no title is
+            displayed.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        topomap_args : dict | None
+            Keyword arguments to pass to :func:`mne.viz.plot_topomap`. ``axes``
+            and ``show`` are ignored. If ``times`` is not in this dict, automatic peak
+            detection is used. Beyond that, if ``None``, no customizable arguments will
+            be passed. Defaults to ``None`` (i.e., an empty :class:`dict`).
+        image_args : dict | None
+            Keyword arguments to pass to :meth:`mne.time_frequency.AverageTFR.plot`.
+            ``axes`` and ``show`` are ignored. Defaults to ``None`` (i.e., and empty
+            :class:`dict`).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -2227,10 +3000,26 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         Notes
         -----
-        %(notes_timefreqs_tfr_plot_joint)s
+        ``timefreqs`` has three different modes: tuples, dicts, and auto. For (list of)
+        tuple(s) mode, each tuple defines a pair (time, frequency) in s and Hz on the
+        TFR plot. For example, to look at 10 Hz activity 1 second into the epoch and 3
+        Hz activity 300 ms into the epoch, ::
+
+            timefreqs=((1, 10), (.3, 3))
+
+        If provided as a dictionary, (time, frequency) tuples are keys and (time_window,
+        frequency_window) tuples are the values — indicating the width of the windows
+        (centered on the time and frequency indicated by the key) to be averaged over.
+        For example, ::
+
+            timefreqs={(1, 10): (0.1, 2)}
+
+        would translate into a window that spans 0.95 to 1.05 seconds and 9 to 11 Hz. If
+        ``None``, a single topomap will be plotted at the absolute peak across the
+        time-frequency representation.
 
         .. versionadded:: 0.16.0
-        """
+        """  # noqa: E501
         from matplotlib import ticker
         from matplotlib.patches import ConnectionPatch
 
@@ -2471,7 +3260,26 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         plt_show(show)
         return fig
 
-    @verbose
+    @verbose_static(
+        "picks_good_data",
+        "baseline_rescale",
+        "baseline_mode",
+        "tmin_tmax_psd",
+        "fmin_fmax_tfr",
+        "vmin_vmax_tfr_plot_topo",
+        "layout_spectrum_plot_topo",
+        "cmap_tfr_plot_topo",
+        "title_none",
+        "dB_tfr_plot",
+        "colorbar",
+        "layout_scale",
+        "show",
+        "border_topo",
+        "fig_facecolor",
+        "fig_background",
+        "font_color",
+        "yscale_tfr_plot",
+    )
     def plot_topo(
         self,
         picks=None,
@@ -2501,33 +3309,119 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         Parameters
         ----------
-        %(picks_good_data)s
-        %(baseline_rescale)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
 
             How baseline is computed is determined by the ``mode`` parameter.
-        %(baseline_mode)s
-        %(tmin_tmax_psd)s
-        %(fmin_fmax_tfr)s
-        %(vmin_vmax_tfr_plot_topo)s
-        %(layout_spectrum_plot_topo)s
-        %(cmap_tfr_plot_topo)s
-        %(title_none)s
-        %(dB_tfr_plot)s
-        %(colorbar)s
-        %(layout_scale)s
-        %(show)s
-        %(border_topo)s
-        %(fig_facecolor)s
-        %(fig_background)s
-        %(font_color)s
-        %(yscale_tfr_plot)s
-        %(verbose)s
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        vmin, vmax : float | None
+            Lower and upper bounds of the colormap, in the same units as the data.
+            If ``vmin`` and ``vmax`` are both ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0).
+            If only one of ``vmin``, ``vmax`` is ``None``, will use
+            ``min(data)`` or ``max(data)``, respectively.
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If ``None`` (default), the layout is
+            inferred from the data (if possible).
+        cmap : str | matplotlib.colors.Colormap
+                The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must
+                be a valid Matplotlib colormap name. Default is
+                ``"RdBu_r"``.
+        title : str | None
+            The title of the generated figure. If ``None`` (default), no title is
+            displayed.
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(data).
+        colorbar : bool
+            Whether to add a colorbar to the plot. Default is ``True``.
+        layout_scale : float
+            Scaling factor for adjusting the relative size of the layout on the canvas.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        border : str
+            Matplotlib border style to be used for each sensor plot.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background. Defaults to
+            black.
+        fig_background : None | array
+            A background image for the figure. This must be a valid input to
+            :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
+        font_color : color
+            The color of tick labels in the colorbar. Defaults to white.
+        yscale : 'auto' | 'linear' | 'log'
+            The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log'
+            gives log-spaced y axis and 'auto' detects if frequencies are log-spaced and
+            if so sets the y axis to 'log'. Default is 'auto'.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa: E501
         # convenience vars
         from ..viz.topo import _imshow_tfr, _imshow_tfr_unified, _plot_topo
         from ..viz.utils import (
@@ -2609,7 +3503,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         plt_show(show)
         return fig
 
-    @copy_function_doc_to_method_doc("func:mne.viz.topomap.plot_tfr_topomap")
+    @copy_function_doc_to_method_doc_static("func:mne.viz.topomap.plot_tfr_topomap")
     def plot_topomap(
         self,
         tmin=None,
@@ -2642,6 +3536,229 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         axes=None,
         show=True,
     ):
+        """Plot topographic maps of specific time-frequency intervals of TFR data.
+
+        Parameters
+        ----------
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the mean for each pair is plotted. If ``None``
+            the first available channel type from order
+            shown above is used. Defaults to ``None``.
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction. If None do
+            not apply it. If baseline is (a, b) the interval is between "a (s)" and
+            "b (s)". If a is None the beginning of the data is used and if b is
+            None then b is set to the end of the interval. If baseline is equal to
+            (None, None) the whole time interval is used.
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+            Array indicating channel-time combinations to highlight with a distinct
+            plotting style (useful for, e.g. marking which channels at which times a
+            statistical test of the data reaches significance).
+            Array elements set to ``True`` will be plotted
+            with the parameters given in ``mask_params``. Defaults to ``None``,
+            equivalent to an array of all ``False`` elements.
+        mask_params : dict | None
+            Additional plotting parameters for plotting significant sensors.
+            Default (None) equals::
+
+                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                        linewidth=0, markersize=4)
+        mask_label_params : dict | None
+            Additional plotting parameters for significant sensor labels.
+            Default (None) equals::
+
+                dict(fontsize='medium', fontweight='bold')
+
+            .. versionadded:: 1.13
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
+
+            .. versionchanged:: 0.21
+
+               - The default was changed to ``'local'`` for MEG sensors.
+               - ``'local'`` was changed to use a convex hull mask
+               - ``'head'`` was changed to extrapolate out to the clipping circle.
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+
+            .. versionadded:: 0.20
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ``(min(data), max(data))``.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. Defaults to ``(None, None)``.
+
+            .. versionadded:: 1.2
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+
+            .. versionadded:: 1.2
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
+        units : str | None
+            The units to use for the colorbar label. Ignored if ``colorbar=False``.
+            If ``None`` the label will be "AU" indicating arbitrary units.
+            Default is ``None``.
+        axes : instance of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
+
+        References
+        ----------
+        .. footbibliography::
+        """  # noqa: E501
         from ..viz.topomap import (
             plot_tfr_topomap,
         )
@@ -2678,7 +3795,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             show=show,
         )
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save time-frequency data to disk (in HDF5 format).
 
@@ -2686,8 +3803,14 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         ----------
         fname : path-like
             Path of file to save to, which should end with ``-tfr.h5`` or ``-tfr.hdf5``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         See Also
         --------
@@ -2701,7 +3824,9 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             out["metadata"] = _prepare_write_metadata(out["metadata"])
         write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
-    @verbose
+    @verbose_static(
+        "picks_all", "index_df_epo", "long_format_df_epo", "time_format_df", "df_return"
+    )
     def to_data_frame(
         self,
         picks=None,
@@ -2723,20 +3848,51 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
 
         Parameters
         ----------
-        %(picks_all)s
-        %(index_df_epo)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
+        index : str | list of str | None
+            Kind of index to use for the DataFrame. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
+            ``pandas.Index`` or
+            :class:`pandas.TimedeltaIndex` will be used
+            (depending on the value of ``time_format``). If a list of two or more
+            string values, a :class:`pandas.MultiIndex` will be created.
             Valid string values are ``'time'``, ``'freq'``, ``'taper'``, ``'epoch'``,
             and ``'condition'`` for ``EpochsTFR`` and ``'time'``, ``'freq'``, and
             ``'taper'`` for ``AverageTFR``. Defaults to ``None``.
-        %(long_format_df_epo)s
-        %(time_format_df)s
+        long_format : bool
+            If True, the DataFrame is returned in long format where each row is one
+            observation of the signal at a unique combination of
+            time point, channel, epoch number, and condition.
+            For convenience, a ``ch_type`` column is added to facilitate
+            subsetting the resulting DataFrame. Defaults to ``False``.
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values.
+            Default is ``None`` unless specified otherwise.
 
             .. versionadded:: 0.23
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(df_return)s
+        df : instance of pandas.DataFrame
+            A dataframe suitable for usage with other statistical/plotting/analysis
+            packages.
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
@@ -2798,7 +3954,28 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         return df
 
 
-@fill_doc
+@fill_doc_static(
+    "method_tfr",
+    "freqs_tfr",
+    "tmin_tmax_psd",
+    "picks_good_data_noref",
+    "proj_psd",
+    "decim_tfr",
+    "comment_averagetfr",
+    "n_jobs",
+    "verbose",
+    "method_kw_tfr",
+    "baseline_tfr_attr",
+    "ch_names_tfr_attr",
+    "comment_averagetfr_attr",
+    "freqs_tfr_attr",
+    "info_not_none",
+    "method_tfr_attr",
+    "nave_tfr_attr",
+    "sfreq_tfr_attr",
+    "shape_tfr_attr",
+    "weights_tfr_attr",
+)
 class AverageTFR(BaseTFR):
     """Data object for spectrotemporal representations of averaged data.
 
@@ -2816,29 +3993,95 @@ class AverageTFR(BaseTFR):
         and is not recommended for typical use cases.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
-    %(method_tfr)s
-    %(freqs_tfr)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(decim_tfr)s
-    %(comment_averagetfr)s
-    %(n_jobs)s
-    %(verbose)s
-    %(method_kw_tfr)s
+    method : ``'morlet'`` | ``'multitaper'`` | None
+        Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
+        ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`.
+        ``None`` (the default) only works when using ``__setstate__`` and will
+        raise an error otherwise.
+    freqs : array-like | None
+        The frequencies at which to compute the power estimates.
+        Must be an array of shape (n_freqs,). ``None`` (the
+        default) only works when using ``__setstate__`` and will raise an
+        error otherwise.
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
+    comment : str | None
+        Comment on the data, e.g., the experimental condition(s) averaged.
+        Default is ``None`` which is replaced with ``inst.comment`` (for
+        :class:`~mne.Evoked` instances) or a comma-separated string representation
+        of the keys in ``inst.event_id`` (for :class:`~mne.Epochs` instances).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **method_kw
+        Additional keyword arguments passed to the spectrotemporal estimation
+        function (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet
+        method
+        or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+        See :func:`~mne.time_frequency.tfr_array_morlet`
+        and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
 
     Attributes
     ----------
-    %(baseline_tfr_attr)s
-    %(ch_names_tfr_attr)s
-    %(comment_averagetfr_attr)s
-    %(freqs_tfr_attr)s
-    %(info_not_none)s
-    %(method_tfr_attr)s
-    %(nave_tfr_attr)s
-    %(sfreq_tfr_attr)s
-    %(shape_tfr_attr)s
-    %(weights_tfr_attr)s
+    baseline : array-like, shape (2,)
+        The start and end times of the baseline period, in seconds.
+    ch_names : list
+        The channel names.
+    comment : str
+        Comment on the data, e.g., the experimental condition(s) averaged.
+    freqs : array
+        Frequencies at which power has been computed.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    method : str
+        The method used to compute the spectra (e.g., ``"morlet"``, ``"multitaper"``
+        or ``"stockwell"``).
+    nave : int
+        The number of epochs that were averaged to yield the result. This may reflect
+        epochs averaged *before* time-frequency analysis (as in
+        ``epochs.average(...).compute_tfr(...)``) or *after* time-frequency analysis (as
+        in ``epochs.compute_tfr(...).average(...)``).
+    sfreq : int | float
+        The sampling frequency (read from ``info``).
+    shape : tuple of int
+        The shape of the data.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights used for each taper in the time-frequency estimates.
 
     See Also
     --------
@@ -2993,34 +4236,77 @@ class AverageTFR(BaseTFR):
         return data
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none",
+    "data_tfr",
+    "times",
+    "freqs_tfr_array",
+    "comment_averagetfr_attr",
+    "method_tfr_array",
+    "weights_tfr_array",
+    "baseline_tfr_attr",
+    "ch_names_tfr_attr",
+    "freqs_tfr_attr",
+    "method_tfr_attr",
+    "nave_tfr_attr",
+    "sfreq_tfr_attr",
+    "shape_tfr_attr",
+    "weights_tfr_attr",
+)
 class AverageTFRArray(AverageTFR):
     """Data object for *precomputed* spectrotemporal representations of averaged data.
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(data_tfr)s
-    %(times)s
-    %(freqs_tfr_array)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    data : ndarray, shape (n_channels, n_freqs, n_times)
+        The data.
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
     nave : int
         The number of averaged TFRs.
-    %(comment_averagetfr_attr)s
-    %(method_tfr_array)s
-    %(weights_tfr_array)s
+    comment : str
+        Comment on the data, e.g., the experimental condition(s) averaged.
+    method : str | None
+        Comment on the method used to compute the data, e.g., ``"hilbert"``.
+        Default is ``None``.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights for each taper. Must be provided if ``data`` has a taper dimension,
+        such as for complex or phase multitaper data.
+
+        .. versionadded:: 1.10.0
 
     Attributes
     ----------
-    %(baseline_tfr_attr)s
-    %(ch_names_tfr_attr)s
-    %(comment_averagetfr_attr)s
-    %(freqs_tfr_attr)s
-    %(info_not_none)s
-    %(method_tfr_attr)s
-    %(nave_tfr_attr)s
-    %(sfreq_tfr_attr)s
-    %(shape_tfr_attr)s
-    %(weights_tfr_attr)s
+    baseline : array-like, shape (2,)
+        The start and end times of the baseline period, in seconds.
+    ch_names : list
+        The channel names.
+    comment : str
+        Comment on the data, e.g., the experimental condition(s) averaged.
+    freqs : array
+        Frequencies at which power has been computed.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    method : str
+        The method used to compute the spectra (e.g., ``"morlet"``, ``"multitaper"``
+        or ``"stockwell"``).
+    nave : int
+        The number of epochs that were averaged to yield the result. This may reflect
+        epochs averaged *before* time-frequency analysis (as in
+        ``epochs.average(...).compute_tfr(...)``) or *after* time-frequency analysis (as
+        in ``epochs.compute_tfr(...).average(...)``).
+    sfreq : int | float
+        The sampling frequency (read from ``info``).
+    shape : tuple of int
+        The shape of the data.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights used for each taper in the time-frequency estimates.
 
     See Also
     --------
@@ -3050,7 +4336,31 @@ class AverageTFRArray(AverageTFR):
         self.__setstate__(state)
 
 
-@fill_doc
+@fill_doc_static(
+    "freqs_tfr_epochs",
+    "method_tfr_epochs",
+    "tmin_tmax_psd",
+    "picks_good_data_noref",
+    "proj_psd",
+    "decim_tfr",
+    "n_jobs",
+    "verbose",
+    "method_kw_tfr",
+    "baseline_tfr_attr",
+    "ch_names_tfr_attr",
+    "comment_tfr_attr",
+    "drop_log",
+    "event_id_attr",
+    "events_attr",
+    "freqs_tfr_attr",
+    "info_not_none",
+    "metadata_attr",
+    "method_tfr_attr",
+    "selection_attr",
+    "sfreq_tfr_attr",
+    "shape_tfr_attr",
+    "weights_tfr_attr",
+)
 class EpochsTFR(BaseTFR, GetEpochsMixin):
     """Data object for spectrotemporal representations of epoched data.
 
@@ -3064,32 +4374,101 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
     ----------
     inst : instance of Epochs
         The data from which to compute the time-frequency representation.
-    %(freqs_tfr_epochs)s
-    %(method_tfr_epochs)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(decim_tfr)s
-    %(n_jobs)s
-    %(verbose)s
-    %(method_kw_tfr)s
+    freqs : array-like | 'auto' |  None
+        The frequencies at which to compute the power estimates.
+        If ``method='stockwell'`` this must be a length 2 iterable specifying lowest
+        and highest frequencies, or ``'auto'`` (to use all available frequencies).
+        For other methods, must be an array of shape (n_freqs,). ``None`` (the
+        default) only works when using ``__setstate__`` and will raise an
+        error otherwise.
+    method : ``'morlet'`` | ``'multitaper'`` | ``'stockwell'`` | None
+        Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
+        ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`,
+        and ``'stockwell'`` uses the S-transform
+        :footcite:p:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`.
+        ``None`` (the default) only works when using ``__setstate__`` and will
+        raise an error otherwise.
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **method_kw
+        Additional keyword arguments passed to the spectrotemporal estimation
+        function (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet
+        method
+        or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+        See :func:`~mne.time_frequency.tfr_array_morlet`
+        and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
 
     Attributes
     ----------
-    %(baseline_tfr_attr)s
-    %(ch_names_tfr_attr)s
-    %(comment_tfr_attr)s
-    %(drop_log)s
-    %(event_id_attr)s
-    %(events_attr)s
-    %(freqs_tfr_attr)s
-    %(info_not_none)s
-    %(metadata_attr)s
-    %(method_tfr_attr)s
-    %(selection_attr)s
-    %(sfreq_tfr_attr)s
-    %(shape_tfr_attr)s
-    %(weights_tfr_attr)s
+    baseline : array-like, shape (2,)
+        The start and end times of the baseline period, in seconds.
+    ch_names : list
+        The channel names.
+    comment : str
+        Comment on the data, e.g., the experimental condition(s).
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
+    event_id : dict
+        Mapping from condition descriptions (strings) to integer event codes.
+    events : ndarray of int, shape (n_events, 3)
+        The events array.
+    freqs : array
+        Frequencies at which power has been computed.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    metadata : instance of pandas.DataFrame | None
+        A :class:`pandas.DataFrame` specifying metadata about each epoch (or ``None``).
+    method : str
+        The method used to compute the spectra (e.g., ``"morlet"``, ``"multitaper"``
+        or ``"stockwell"``).
+    selection : ndarray
+        Array of indices of *selected* epochs (i.e., epochs that were not rejected,
+        dropped, or ignored).
+    sfreq : int | float
+        The sampling frequency (read from ``info``).
+    shape : tuple of int
+        The shape of the data.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights used for each taper in the time-frequency estimates.
 
     See Also
     --------
@@ -3138,19 +4517,24 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             **method_kw,
         )
 
-    @fill_doc
+    @fill_doc_static("item", "getitem_epochstfr_return")
     def __getitem__(self, item):
         """Subselect epochs from an EpochsTFR.
 
         Parameters
         ----------
-        %(item)s
+        item : int | slice | array-like | str
             Access options are the same as for :class:`~mne.Epochs` objects, see the
             docstring Notes section of :meth:`mne.Epochs.__getitem__` for explanation.
 
         Returns
         -------
-        %(getitem_epochstfr_return)s
+        data : ndarray
+            The selected time-frequency data. Shape will be
+            ``(n_epochs, n_channels, n_freqs, n_times)`` for Morlet, Stockwell, and
+            aggregated (``output='power'``) multitaper methods, or
+            ``(n_epochs, n_channels, n_tapers, n_freqs, n_times)`` for unaggregated
+            (``output='complex'``) multitaper method.
         """
         return super().__getitem__(item)
 
@@ -3358,7 +4742,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             self._freqs = freqs
             return self
 
-    @verbose
+    @verbose_static()
     def drop(self, indices, reason="USER", verbose=None):
         """Drop epochs based on indices or boolean mask.
 
@@ -3380,7 +4764,11 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         reason : str
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'USER'.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -3428,8 +4816,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             state["nave"] = 1
             yield AverageTFR(inst=state, method=None, freqs=None, comment=str(event_id))
 
-    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot")
-    @verbose
+    @copy_doc_static("meth:mne.time_frequency.tfr.BaseTFR.plot")
+    @verbose_static()
     def plot(
         self,
         picks=None,
@@ -3458,6 +4846,185 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         show=True,
         verbose=None,
     ):
+        """Plot TFRs as two-dimensional time-frequency images.
+
+        Parameters
+        ----------
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude from being drawn. If ``'bads'``, channels
+            in ``spectrum.info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
+
+            How baseline is computed is determined by the ``mode`` parameter.
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(data).
+        combine : 'mean' | 'rms' | callable | None
+            How to aggregate across channels.
+            If ``None``, plot one figure per selected channel. If a string,
+            ``"mean"`` uses :func:`numpy.mean`, ``"rms"`` computes the root-mean-square.
+            If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+            of shape ``(n_channels, n_freqs, n_times)`` and return an array of shape
+            ``(n_freqs, n_times)``. Defaults to ``None``.
+
+            .. versionchanged:: 1.3
+               Added support for ``callable``.
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If ``None`` (default), the layout is
+            inferred from the data (if possible).
+        yscale : 'auto' | 'linear' | 'log'
+            The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log'
+            gives log-spaced y axis and 'auto' detects if frequencies are log-spaced and
+            if so sets the y axis to 'log'. Default is 'auto'.
+
+            .. versionadded:: 0.14.0
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+
+            .. versionadded:: 0.24
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        colorbar : bool
+            Whether to add a colorbar to the plot. Default is ``True``.
+        title : str | 'auto' | None
+            Title for the plot. If ``"auto"``, will use the channel name (if ``combine``
+            is ``None``) or state the number and method of combined channels used to
+            generate the plot. If ``None``, no title is shown. Default is ``None``.
+        mask : ndarray | None
+            An :class:`array <numpy.ndarray>` of :class:`boolean <bool>` values, of the
+            same shape as the data. Data that corresponds to ``False`` entries in the
+            mask are plotted differently, as determined by ``mask_style``,
+            ``mask_alpha``, and ``mask_cmap``. Useful for, e.g., highlighting areas of
+            statistical significance.
+
+            .. versionadded:: 0.16.0
+        mask_style : None | 'both' | 'contour' | 'mask'
+            How to distinguish the masked/unmasked regions of the plot. If
+            ``"contour"``, a line is drawn around the areas where the mask is ``True``.
+            If ``"mask"``, areas where the mask is ``False`` will be (partially)
+            transparent, as determined by ``mask_alpha``. If ``"both"``, both a contour
+            and transparency are used. Default is ``None``, which is silently ignored if
+            ``mask`` is ``None`` and is interpreted like ``"both"`` otherwise.
+
+            .. versionadded:: 0.17
+        mask_cmap : matplotlib colormap | str | None
+            Colormap to use for masked areas of the plot. If a :class:`str`, must be a
+            valid Matplotlib colormap name. If None, ``cmap`` is used for both masked
+            and unmasked areas. Ignored if ``mask`` is ``None``. Default is ``'Greys'``.
+
+            .. versionadded:: 0.17
+        mask_alpha : float
+            Relative opacity of the masked region versus the unmasked region, given as a
+            :class:`float` between 0 and 1 (i.e., 0 means masked areas are not visible
+            at all). Defaults to ``0.1``.
+
+            .. versionadded:: 0.16.0
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the number of picks. If ``combine`` is not None,
+            ``axes`` must either be an instance of Axes, or a list of length 1.
+            Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        figs : list of instances of matplotlib.figure.Figure
+            A list of figures containing the time-frequency power.
+        """  # noqa: E501
         singleton_epoch = self._check_singleton()
         return singleton_epoch.plot(
             picks=picks,
@@ -3486,8 +5053,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
-    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot_topo")
-    @verbose
+    @copy_doc_static("meth:mne.time_frequency.tfr.BaseTFR.plot_topo")
+    @verbose_static()
     def plot_topo(
         self,
         picks=None,
@@ -3513,6 +5080,123 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         yscale="auto",
         verbose=None,
     ):
+        """Plot a TFR image for each channel in a sensor layout arrangement.
+
+        Parameters
+        ----------
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
+
+            How baseline is computed is determined by the ``mode`` parameter.
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        vmin, vmax : float | None
+            Lower and upper bounds of the colormap, in the same units as the data.
+            If ``vmin`` and ``vmax`` are both ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0).
+            If only one of ``vmin``, ``vmax`` is ``None``, will use
+            ``min(data)`` or ``max(data)``, respectively.
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If ``None`` (default), the layout is
+            inferred from the data (if possible).
+        cmap : str | matplotlib.colors.Colormap
+                The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must
+                be a valid Matplotlib colormap name. Default is
+                ``"RdBu_r"``.
+        title : str | None
+            The title of the generated figure. If ``None`` (default), no title is
+            displayed.
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(data).
+        colorbar : bool
+            Whether to add a colorbar to the plot. Default is ``True``.
+        layout_scale : float
+            Scaling factor for adjusting the relative size of the layout on the canvas.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        border : str
+            Matplotlib border style to be used for each sensor plot.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background. Defaults to
+            black.
+        fig_background : None | array
+            A background image for the figure. This must be a valid input to
+            :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
+        font_color : color
+            The color of tick labels in the colorbar. Defaults to white.
+        yscale : 'auto' | 'linear' | 'log'
+            The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log'
+            gives log-spaced y axis and 'auto' detects if frequencies are log-spaced and
+            if so sets the y axis to 'log'. Default is 'auto'.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
+        """  # noqa: E501
         singleton_epoch = self._check_singleton()
         return singleton_epoch.plot_topo(
             picks=picks,
@@ -3539,8 +5223,8 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
-    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot_joint")
-    @verbose
+    @copy_doc_static("meth:mne.time_frequency.tfr.BaseTFR.plot_joint")
+    @verbose_static()
     def plot_joint(
         self,
         *,
@@ -3566,6 +5250,165 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         image_args=None,
         verbose=None,
     ):
+        """Plot TFRs as a two-dimensional image with topomap highlights.
+
+        Parameters
+        ----------
+        timefreqs : None | list of tuple | dict of tuple
+            The time-frequency point(s) for which topomaps will be plotted. See Notes.
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels. Note
+            that channels in ``info['bads']`` *will be included* if their names or
+            indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude. If ``'bads'``, channels
+            in ``info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
+            Default is an empty :class:`tuple` which includes all channels.
+        combine : 'mean' | 'rms' | callable
+            How to aggregate across channels.
+            If a string,
+            ``"mean"`` uses :func:`numpy.mean`, ``"rms"`` computes the root-mean-square.
+            If :func:`callable`, it must operate on an :class:`array <numpy.ndarray>`
+            of shape ``(n_channels, n_freqs, n_times)`` and return an array of shape
+            ``(n_freqs, n_times)``. Defaults to ``"mean"``.
+
+            .. versionchanged:: 1.3
+                Added support for ``callable``.
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``None``
+            which is equivalent to ``fmin=0, fmax=np.inf`` (spans all frequencies
+            present in the data).
+        baseline : None | tuple of length 2
+            The time interval to consider as "baseline" when applying baseline
+            correction. If ``None``, do not apply baseline correction.
+            If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+            (in seconds), including the endpoints.
+            If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+            is ``None``, it is set to the **end** of the data.
+            If ``(None, None)``, the entire time interval is used.
+
+            .. note::
+                The baseline ``(a, b)`` includes both endpoints, i.e. all timepoints
+                ``t`` such that ``a <= t <= b``.
+
+            How baseline is computed is determined by the ``mode`` parameter.
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(data).
+        yscale : 'auto' | 'linear' | 'log'
+            The scale of the y (frequency) axis. 'linear' gives linear y axis, 'log'
+            gives log-spaced y axis and 'auto' detects if frequencies are log-spaced and
+            if so sets the y axis to 'log'. Default is 'auto'.
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. To specify the colormap separately for the
+            topomap annotations, see ``topomap_args``. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+        cmap : str | matplotlib.colors.Colormap
+                The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must
+                be a valid Matplotlib colormap name. Default is
+                ``"RdBu_r"``.
+        colorbar : bool
+            Whether to add a colorbar to the plot (for the topomap annotations). Not
+            compatible with user-defined ``axes``. Default is ``True``.
+        title : str | None
+            The title of the generated figure. If ``None`` (default), no title is
+            displayed.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        topomap_args : dict | None
+            Keyword arguments to pass to :func:`mne.viz.plot_topomap`. ``axes``
+            and ``show`` are ignored. If ``times`` is not in this dict, automatic peak
+            detection is used. Beyond that, if ``None``, no customizable arguments will
+            be passed. Defaults to ``None`` (i.e., an empty :class:`dict`).
+        image_args : dict | None
+            Keyword arguments to pass to :meth:`mne.time_frequency.AverageTFR.plot`.
+            ``axes`` and ``show`` are ignored. Defaults to ``None`` (i.e., and empty
+            :class:`dict`).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
+
+        Notes
+        -----
+        ``timefreqs`` has three different modes: tuples, dicts, and auto. For (list of)
+        tuple(s) mode, each tuple defines a pair (time, frequency) in s and Hz on the
+        TFR plot. For example, to look at 10 Hz activity 1 second into the epoch and 3
+        Hz activity 300 ms into the epoch, ::
+
+            timefreqs=((1, 10), (.3, 3))
+
+        If provided as a dictionary, (time, frequency) tuples are keys and (time_window,
+        frequency_window) tuples are the values — indicating the width of the windows
+        (centered on the time and frequency indicated by the key) to be averaged over.
+        For example, ::
+
+            timefreqs={(1, 10): (0.1, 2)}
+
+        would translate into a window that spans 0.95 to 1.05 seconds and 9 to 11 Hz. If
+        ``None``, a single topomap will be plotted at the absolute peak across the
+        time-frequency representation.
+
+        .. versionadded:: 0.16.0
+        """  # noqa: E501
         singleton_epoch = self._check_singleton()
         return singleton_epoch.plot_joint(
             timefreqs=timefreqs,
@@ -3591,7 +5434,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             verbose=verbose,
         )
 
-    @copy_doc("meth:mne.time_frequency.tfr.BaseTFR.plot_topomap")
+    @copy_doc_static("meth:mne.time_frequency.tfr.BaseTFR.plot_topomap")
     def plot_topomap(
         self,
         tmin=None,
@@ -3624,6 +5467,229 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         axes=None,
         show=True,
     ):
+        """Plot topographic maps of specific time-frequency intervals of TFR data.
+
+        Parameters
+        ----------
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the mean for each pair is plotted. If ``None``
+            the first available channel type from order
+            shown above is used. Defaults to ``None``.
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction. If None do
+            not apply it. If baseline is (a, b) the interval is between "a (s)" and
+            "b (s)". If a is None the beginning of the data is used and if b is
+            None then b is set to the end of the interval. If baseline is equal to
+            (None, None) the whole time interval is used.
+        mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by:
+
+            ``"mean"``
+              Subtracting the mean of baseline values
+            ``"ratio"``
+              Dividing by the mean of baseline values
+            ``"logratio"``
+              Dividing by the mean of baseline values and taking the log
+            ``"meanlogratio"``
+              Dividing by the mean of baseline values, taking the log and then
+              subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+              .. note:: this baseline mode has not been tested at the source-level!
+            ``"percent"``
+              Subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values
+            ``"zscore"``
+              Subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values
+            ``"zlogratio"``
+              Dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+            Array indicating channel-time combinations to highlight with a distinct
+            plotting style (useful for, e.g. marking which channels at which times a
+            statistical test of the data reaches significance).
+            Array elements set to ``True`` will be plotted
+            with the parameters given in ``mask_params``. Defaults to ``None``,
+            equivalent to an array of all ``False`` elements.
+        mask_params : dict | None
+            Additional plotting parameters for plotting significant sensors.
+            Default (None) equals::
+
+                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                        linewidth=0, markersize=4)
+        mask_label_params : dict | None
+            Additional plotting parameters for significant sensor labels.
+            Default (None) equals::
+
+                dict(fontsize='medium', fontweight='bold')
+
+            .. versionadded:: 1.13
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
+
+            .. versionchanged:: 0.21
+
+               - The default was changed to ``'local'`` for MEG sensors.
+               - ``'local'`` was changed to use a convex hull mask
+               - ``'head'`` was changed to extrapolate out to the clipping circle.
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+
+            .. versionadded:: 0.20
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data.
+            If both entries are ``None``, the bounds are set at
+            ``(min(data), max(data))``.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. Defaults to ``(None, None)``.
+
+            .. versionadded:: 1.2
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+
+            .. versionadded:: 1.2
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
+        units : str | None
+            The units to use for the colorbar label. Ignored if ``colorbar=False``.
+            If ``None`` the label will be "AU" indicating arbitrary units.
+            Default is ``None``.
+        axes : instance of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
+
+        References
+        ----------
+        .. footbibliography::
+        """  # noqa: E501
         singleton_epoch = self._check_singleton()
         return singleton_epoch.plot_topomap(
             tmin=tmin,
@@ -3657,41 +5723,116 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
         )
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none",
+    "data_tfr",
+    "times",
+    "freqs_tfr_array",
+    "comment_tfr_attr",
+    "method_tfr_array",
+    "events_epochstfr",
+    "event_id_epochstfr",
+    "selection",
+    "drop_log",
+    "metadata_epochstfr",
+    "weights_tfr_array",
+    "baseline_tfr_attr",
+    "ch_names_tfr_attr",
+    "event_id_attr",
+    "events_attr",
+    "freqs_tfr_attr",
+    "metadata_attr",
+    "method_tfr_attr",
+    "selection_attr",
+    "sfreq_tfr_attr",
+    "shape_tfr_attr",
+    "weights_tfr_attr",
+)
 class EpochsTFRArray(EpochsTFR):
     """Data object for *precomputed* spectrotemporal representations of epoched data.
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(data_tfr)s
-    %(times)s
-    %(freqs_tfr_array)s
-    %(comment_tfr_attr)s
-    %(method_tfr_array)s
-    %(events_epochstfr)s
-    %(event_id_epochstfr)s
-    %(selection)s
-    %(drop_log)s
-    %(metadata_epochstfr)s
-    %(weights_tfr_array)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    data : ndarray, shape (n_channels, n_freqs, n_times)
+        The data.
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    comment : str
+        Comment on the data, e.g., the experimental condition(s).
+    method : str | None
+        Comment on the method used to compute the data, e.g., ``"hilbert"``.
+        Default is ``None``.
+    events : ndarray of int, shape (n_events, 3) | None
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information. If ``None``, all integer
+        event codes are set to ``1`` (i.e., all epochs are assumed to be of the same
+        type) and their corresponding sample numbers are set as arbitrary, equally
+        spaced sample numbers with a step size of ``len(times)``.
+    event_id : dict | None
+        Mapping from condition descriptions (strings) to integer event codes. If
+        ``None``, all events in ``events`` will be included, and the ``event_id``
+        attribute will be a :class:`dict` mapping a string version of each integer
+        event ID to the corresponding integer.
+    selection : iterable | None
+        Iterable of indices of selected epochs. If ``None``, will be
+        automatically generated, corresponding to all non-zero events.
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
+    metadata : instance of pandas.DataFrame | None
+        A :class:`pandas.DataFrame` specifying metadata about each epoch.
+        If not ``None``, ``len(metadata)`` must equal ``len(events)``. For
+        save/load compatibility, the :class:`~pandas.DataFrame` may only contain
+        :class:`str`, :class:`int`, :class:`float`, and :class:`bool` values.
+        If not ``None``, then pandas-style queries may be used to select
+        subsets of data, see :meth:`mne.Epochs.__getitem__`. When the EpochsTFR object
+        is subsetted, the metadata is subsetted accordingly, and the row indices
+        will be modified to match ``EpochsTFR.selection``.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights for each taper. Must be provided if ``data`` has a taper dimension,
+        such as for complex or phase multitaper data.
+
+        .. versionadded:: 1.10.0
 
     Attributes
     ----------
-    %(baseline_tfr_attr)s
-    %(ch_names_tfr_attr)s
-    %(comment_tfr_attr)s
-    %(drop_log)s
-    %(event_id_attr)s
-    %(events_attr)s
-    %(freqs_tfr_attr)s
-    %(info_not_none)s
-    %(metadata_attr)s
-    %(method_tfr_attr)s
-    %(selection_attr)s
-    %(sfreq_tfr_attr)s
-    %(shape_tfr_attr)s
-    %(weights_tfr_attr)s
+    baseline : array-like, shape (2,)
+        The start and end times of the baseline period, in seconds.
+    ch_names : list
+        The channel names.
+    comment : str
+        Comment on the data, e.g., the experimental condition(s).
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
+    event_id : dict
+        Mapping from condition descriptions (strings) to integer event codes.
+    events : ndarray of int, shape (n_events, 3)
+        The events array.
+    freqs : array
+        Frequencies at which power has been computed.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    metadata : instance of pandas.DataFrame | None
+        A :class:`pandas.DataFrame` specifying metadata about each epoch (or ``None``).
+    method : str
+        The method used to compute the spectra (e.g., ``"morlet"``, ``"multitaper"``
+        or ``"stockwell"``).
+    selection : ndarray
+        Array of indices of *selected* epochs (i.e., epochs that were not rejected,
+        dropped, or ignored).
+    sfreq : int | float
+        The sampling frequency (read from ``info``).
+    shape : tuple of int
+        The shape of the data.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights used for each taper in the time-frequency estimates.
 
     See Also
     --------
@@ -3733,7 +5874,20 @@ class EpochsTFRArray(EpochsTFR):
         self.__setstate__(state)
 
 
-@fill_doc
+@fill_doc_static(
+    "method_tfr",
+    "freqs_tfr",
+    "tmin_tmax_psd",
+    "picks_good_data_noref",
+    "proj_psd",
+    "reject_by_annotation_tfr",
+    "decim_tfr",
+    "n_jobs",
+    "verbose",
+    "method_kw_tfr",
+    "info_not_none",
+    "weights_tfr_attr",
+)
 class RawTFR(BaseTFR):
     """Data object for spectrotemporal representations of continuous data.
 
@@ -3746,16 +5900,67 @@ class RawTFR(BaseTFR):
     ----------
     inst : instance of Raw
         The data from which to compute the time-frequency representation.
-    %(method_tfr)s
-    %(freqs_tfr)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(reject_by_annotation_tfr)s
-    %(decim_tfr)s
-    %(n_jobs)s
-    %(verbose)s
-    %(method_kw_tfr)s
+    method : ``'morlet'`` | ``'multitaper'`` | None
+        Spectrotemporal power estimation method. ``'morlet'`` uses Morlet wavelets,
+        ``'multitaper'`` uses DPSS tapers :footcite:p:`Slepian1978`.
+        ``None`` (the default) only works when using ``__setstate__`` and will
+        raise an error otherwise.
+    freqs : array-like | None
+        The frequencies at which to compute the power estimates.
+        Must be an array of shape (n_freqs,). ``None`` (the
+        default) only works when using ``__setstate__`` and will raise an
+        error otherwise.
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
+    reject_by_annotation : bool
+        Whether to omit bad spans of data before spectrotemporal power
+        estimation. If ``True``, spans with annotations whose description
+        begins with ``bad`` will be represented with ``np.nan`` in the
+        time-frequency representation.
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **method_kw
+        Additional keyword arguments passed to the spectrotemporal estimation
+        function (e.g., ``n_cycles, use_fft, zero_mean`` for Morlet
+        method
+        or ``n_cycles, use_fft, zero_mean, time_bandwidth`` for multitaper method).
+        See :func:`~mne.time_frequency.tfr_array_morlet`
+        and :func:`~mne.time_frequency.tfr_array_multitaper` for additional details.
 
     Attributes
     ----------
@@ -3764,11 +5969,14 @@ class RawTFR(BaseTFR):
     freqs : array
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     method : str
         The method used to compute the spectra (``'morlet'``, ``'multitaper'``
         or ``'stockwell'``).
-    %(weights_tfr_attr)s
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights used for each taper in the time-frequency estimates.
 
     See Also
     --------
@@ -3831,7 +6039,7 @@ class RawTFR(BaseTFR):
         state["dims"] += ("freq", "time")
         super().__setstate__(state)
 
-    @fill_doc
+    @fill_doc_static("getitem_tfr_return")
     def __getitem__(self, item):
         """Get RawTFR data.
 
@@ -3843,7 +6051,12 @@ class RawTFR(BaseTFR):
 
         Returns
         -------
-        %(getitem_tfr_return)s
+        data : ndarray
+            The selected time-frequency data. Shape will be
+            ``(n_channels, n_freqs, n_times)`` for Morlet, Stockwell, and
+            aggregated (``output='power'``) multitaper methods, or
+            ``(n_channels, n_tapers, n_freqs, n_times)`` for unaggregated
+            (``output='complex'``) multitaper method.
 
         Notes
         -----
@@ -3886,29 +6099,64 @@ class RawTFR(BaseTFR):
         return data[np.newaxis]
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none",
+    "data_tfr",
+    "times",
+    "freqs_tfr_array",
+    "method_tfr_array",
+    "weights_tfr_array",
+    "baseline_tfr_attr",
+    "ch_names_tfr_attr",
+    "freqs_tfr_attr",
+    "method_tfr_attr",
+    "sfreq_tfr_attr",
+    "shape_tfr_attr",
+    "weights_tfr_attr",
+)
 class RawTFRArray(RawTFR):
     """Data object for *precomputed* spectrotemporal representations of continuous data.
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(data_tfr)s
-    %(times)s
-    %(freqs_tfr_array)s
-    %(method_tfr_array)s
-    %(weights_tfr_array)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    data : ndarray, shape (n_channels, n_freqs, n_times)
+        The data.
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    method : str | None
+        Comment on the method used to compute the data, e.g., ``"hilbert"``.
+        Default is ``None``.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights for each taper. Must be provided if ``data`` has a taper dimension,
+        such as for complex or phase multitaper data.
+
+        .. versionadded:: 1.10.0
 
     Attributes
     ----------
-    %(baseline_tfr_attr)s
-    %(ch_names_tfr_attr)s
-    %(freqs_tfr_attr)s
-    %(info_not_none)s
-    %(method_tfr_attr)s
-    %(sfreq_tfr_attr)s
-    %(shape_tfr_attr)s
-    %(weights_tfr_attr)s
+    baseline : array-like, shape (2,)
+        The start and end times of the baseline period, in seconds.
+    ch_names : list
+        The channel names.
+    freqs : array
+        Frequencies at which power has been computed.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    method : str
+        The method used to compute the spectra (e.g., ``"morlet"``, ``"multitaper"``
+        or ``"stockwell"``).
+    sfreq : int | float
+        The sampling frequency (read from ``info``).
+    shape : tuple of int
+        The shape of the data.
+    weights : array, shape (n_tapers, n_freqs) | None
+        The weights used for each taper in the time-frequency estimates.
 
     See Also
     --------
@@ -4057,7 +6305,7 @@ def _ensure_slice(decim):
 # i/o
 
 
-@verbose
+@verbose_static("overwrite")
 def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     """Write a TFR dataset to hdf5.
 
@@ -4070,8 +6318,14 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
         a sequential numeric string name will be generated on the fly, based on the
         order in which the TFR objects are passed. This can be used to selectively load
         single TFR objects from the file later.
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -4094,7 +6348,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
 
-@verbose
+@verbose_static()
 def read_tfrs(fname, condition=None, *, verbose=None):
     """Load a TFR object from disk.
 
@@ -4106,7 +6360,11 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     condition : int or str | list of int or str | None
         The condition to load. If ``None``, all conditions will be returned.
         Defaults to ``None``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -4148,7 +6406,7 @@ def read_tfrs(fname, condition=None, *, verbose=None):
     return _read_multiple_tfrs(hdf5_dict, condition=condition, verbose=verbose)
 
 
-@verbose
+@_verbose_control
 def _read_multiple_tfrs(tfr_data, condition=None, *, verbose=None):
     """Read (possibly multiple) TFR datasets from an h5 file written by write_tfrs()."""
     out = list()
@@ -4270,7 +6528,7 @@ def _merge_if_grads(data, info, ch_type, sphere, combine=None):
     return data, pos
 
 
-@verbose
+@_verbose_control
 def _prep_data_for_plot(
     data,
     times,

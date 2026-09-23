@@ -8,8 +8,9 @@ a browser kernel, where VTK cannot load. Selected with
 Supported: meshes, surfaces, spheres, tubes and glyphs, plus per-vertex RGB(A)
 colors, which is how :class:`mne.viz.Brain` paints its surface, so ``stc.plot()``
 gives a static picture (one time point, no time viewer, colorbar or split
-layout). Not supported: scalar colormaps and contours, and figure size
-(pyvista-js writes a 600x400 canvas).
+layout). Not supported: scalar colormaps and contours, subplots (``hemi="split"``,
+several views), volume source estimates, vector glyphs, time labels, screenshots,
+and figure size (pyvista-js writes a 600x400 canvas).
 """
 
 # Authors: The MNE-Python contributors.
@@ -34,7 +35,7 @@ from ...transforms import (
 )
 from ...utils import _check_option, _validate_type
 from ._abstract import Figure3D, _AbstractRenderer
-from ._utils import ALLOWED_QUIVER_MODES, _vtk_faces
+from ._utils import ALLOWED_QUIVER_MODES, LIGHTS, _to_pos, _vtk_faces
 
 # vtk.js places text in normalized window coordinates; PyVista takes these names
 _TITLE_POSITIONS = {
@@ -206,9 +207,10 @@ class _LiteRenderer(_AbstractRenderer):
     ):
         # _PyVistaRenderer's signature, but size, shape, name and show cannot
         # be honored: the canvas is fixed and written only when show() runs
-        _validate_type(fig, (None, _LiteFigure), "fig")
+        # an int is a figure number, which just means a new figure here
+        _validate_type(fig, (None, int, _LiteFigure), "fig")
         self._close_callbacks = {False: [], True: []}  # keyed by ``after``
-        if fig is not None:  # plot_alignment(fig=...) composites into it
+        if isinstance(fig, _LiteFigure):  # plot_alignment(fig=...) composites into it
             self._figure = fig
             return
         self._figure = _LiteFigure()._init(pv.Plotter())
@@ -216,12 +218,12 @@ class _LiteRenderer(_AbstractRenderer):
         while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
             _lite_release_plotter(_lite_live_plotters[0]())
         self.plotter.background_color = _rgb(bgcolor)
-        # one light per axis direction, since a vtk.js light only lights what
-        # faces it, each dim enough that a surface facing two does not blow out
-        for position in np.vstack([np.eye(3), -np.eye(3)]) * 300.0:
+        for azimuth, elevation, intensity in LIGHTS:  # lit like _pyvista.py
             self.plotter.add_light(
                 pv.Light(
-                    position=tuple(position), focal_point=(0.0,) * 3, intensity=0.4
+                    position=_to_pos(azimuth, elevation),
+                    light_type="CameraLight",
+                    intensity=intensity,
                 )
             )
 

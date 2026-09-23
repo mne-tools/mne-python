@@ -5,11 +5,11 @@
 import numpy as np
 
 from ..annotations import Annotations, _adjust_onset_meas_date
-from ..utils import verbose
+from ..utils import verbose_static
 from .artifact_detection import _annotations_from_mask
 
 
-@verbose
+@verbose_static()
 def annotate_nan(raw, *, verbose=None):
     """Detect segments with NaN and return a new Annotations instance.
 
@@ -17,7 +17,11 @@ def annotate_nan(raw, *, verbose=None):
     ----------
     raw : instance of Raw
         Data to find segments with NaN values.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -23,11 +23,12 @@ from ..utils import (
     _pl,
     _safe_input,
     _validate_type,
+    _verbose_control,
     get_config,
     get_subjects_dir,
     logger,
     set_config,
-    verbose,
+    verbose_static,
 )
 from ..utils.docs import _docformat, docdict
 from .config import MNE_DATASETS, _hcp_mmp_license_text
@@ -93,13 +94,17 @@ def _dataset_version(path, name):
     return version
 
 
-@verbose
+@verbose_static()
 def default_path(*, verbose=None):
     """Get the default MNE_DATA path.
 
     Parameters
     ----------
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -250,9 +255,9 @@ def _download_mne_dataset(
     # handle case of multiple sub-datasets with different urls
     if name == "visual_92_categories":
         dataset_params = []
-        for name in ["visual_92_categories_1", "visual_92_categories_2"]:
-            this_dataset = MNE_DATASETS[name]
-            this_dataset["dataset_name"] = name
+        for part in sorted(key for key in MNE_DATASETS if key.startswith(f"{name}_")):
+            this_dataset = MNE_DATASETS[part]
+            this_dataset["dataset_name"] = part
             dataset_params.append(this_dataset)
 
     return cast(
@@ -325,7 +330,7 @@ def has_dataset(name):
     return str(dp).endswith(check)
 
 
-@verbose
+@_verbose_control
 def _download_all_example_data(verbose=True):
     """Download all datasets used in examples and tutorials."""
     # This function is designed primarily to be used by CircleCI, to:
@@ -412,7 +417,7 @@ def _download_all_example_data(verbose=True):
         openneuro.download(dataset=ds, target_dir=target_dir, include=run_name[:-4])
 
 
-@verbose
+@verbose_static()
 def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     """Fetch the modified subdivided aparc parcellation.
 
@@ -425,7 +430,11 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     References
     ----------
@@ -435,7 +444,10 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = subjects_dir / "fsaverage" / "label"
-    urls = dict(lh="https://osf.io/download/p92yb", rh="https://osf.io/download/4kxny")
+    urls = dict(
+        lh="https://github.com/mne-tools/mne-data/releases/download/hcp_aparc_sub-1/lh.aparc_sub.annot",
+        rh="https://github.com/mne-tools/mne-data/releases/download/hcp_aparc_sub-1/rh.aparc_sub.annot",
+    )
     hashes = dict(
         lh="9e4d8d6b90242b7e4b0145353436ef77", rh="dd6464db8e7762d969fc1d8087cd211b"
     )
@@ -453,7 +465,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
             )
 
 
-@verbose
+@verbose_static("accept")
 def fetch_hcp_mmp_parcellation(
     subjects_dir=None, combine=True, *, accept=False, verbose=None
 ):
@@ -472,8 +484,13 @@ def fetch_hcp_mmp_parcellation(
         If True, also produce the combined/reduced set of 23 labels per
         hemisphere as ``HCPMMP1_combined.annot``
         :footcite:`GlasserEtAl2016supp`.
-    %(accept)s
-    %(verbose)s
+    accept : bool
+        If True (default False), accept the license terms of this dataset.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----

@@ -28,11 +28,12 @@ from .utils import (
     _record_warnings,
     _require_version,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
     wrapped_stdout,
 )
 
@@ -185,8 +186,7 @@ class Transform(dict):
         """The "to" frame as a string."""
         return _coord_frame_name(self["to"])
 
-    @fill_doc
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the transform as -trans.fif file.
 
@@ -194,8 +194,14 @@ class Transform(dict):
         ----------
         fname : path-like
             The name of the file, which should end in ``-trans.fif``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         write_trans(fname, self, overwrite=overwrite, verbose=verbose)
 
@@ -572,7 +578,7 @@ def combine_transforms(t_first, t_second, fro, to):
     return Transform(fro, to, np.dot(t_second["trans"], t_first["trans"]))
 
 
-@verbose
+@verbose_static()
 def read_trans(fname, return_all=False, verbose=None):
     """Read a ``-trans.fif`` file.
 
@@ -585,7 +591,11 @@ def read_trans(fname, return_all=False, verbose=None):
         False (default) will only return the first.
 
         .. versionadded:: 0.15
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -612,7 +622,7 @@ def read_trans(fname, return_all=False, verbose=None):
     return trans if return_all else trans[0]
 
 
-@verbose
+@verbose_static("overwrite")
 def write_trans(fname, trans, *, overwrite=False, verbose=None):
     """Write a transformation FIF file.
 
@@ -622,8 +632,14 @@ def write_trans(fname, trans, *, overwrite=False, verbose=None):
         The name of the file, which should end in ``-trans.fif``.
     trans : dict
         Trans file data, as returned by `~mne.read_trans`.
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1022,7 +1038,7 @@ class _TPSWarp:
         self._weights = linalg.lstsq(L, Y)[0]
         return self
 
-    @verbose
+    @_verbose_control
     def transform(self, pts, verbose=None):
         """Apply the warp.
 
@@ -1109,7 +1125,7 @@ class _SphericalSurfaceWarp:
             )
         return rep
 
-    @verbose
+    @verbose_static()
     def fit(
         self,
         source,
@@ -1139,7 +1155,11 @@ class _SphericalSurfaceWarp:
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1209,7 +1229,7 @@ class _SphericalSurfaceWarp:
         logger.info("[done]")
         return self
 
-    @verbose
+    @verbose_static()
     def transform(self, source, verbose=None):
         """Transform arbitrary source points to the destination.
 
@@ -1220,7 +1240,11 @@ class _SphericalSurfaceWarp:
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1515,7 +1539,7 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
-@fill_doc
+@fill_doc_static("subjects_dir")
 def read_ras_mni_t(subject, subjects_dir=None):
     """Read a subject's RAS to MNI transform.
 
@@ -1523,7 +1547,10 @@ def read_ras_mni_t(subject, subjects_dir=None):
     ----------
     subject : str
         The subject.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
 
     Returns
     -------
@@ -1697,7 +1724,7 @@ def _reslice_normalize(img, zooms):
     return img, img_affine
 
 
-@verbose
+@verbose_static("moving", "static", "pipeline", "niter", "reg_affine", "sdr_morph")
 def compute_volume_registration(
     moving,
     static,
@@ -1712,9 +1739,46 @@ def compute_volume_registration(
 
     Parameters
     ----------
-    %(moving)s
-    %(static)s
-    %(pipeline)s
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    pipeline : str | tuple
+        The volume registration steps to perform (a ``str`` for a single step,
+        or ``tuple`` for a set of sequential steps). The following steps can be
+        performed, and do so by matching mutual information between the images
+        (unless otherwise noted):
+
+        ``'translation'``
+            Translation.
+
+        ``'rigid'``
+            Rigid-body, i.e., rotation and translation.
+
+        ``'affine'``
+            A full affine transformation, which includes translation, rotation,
+            scaling, and shear.
+
+        ``'sdr'``
+            Symmetric diffeomorphic registration :footcite:`AvantsEtAl2008`, a
+            non-linear similarity-matching algorithm.
+
+        The following string shortcuts can also be used:
+
+        ``'all'`` (default)
+            All steps will be performed above in the order above, i.e.,
+            ``('translation', 'rigid', 'affine', 'sdr')``.
+
+        ``'rigids'``
+            The rigid steps (first two) will be performed, which registers
+            the volume without distorting its underlying structure, i.e.,
+            ``('translation', 'rigid')``. This is useful for
+            example when registering images from the same subject, such as
+            CT and MR images.
+
+        ``'affines'``
+            The affine steps (first three) will be performed, i.e., omitting
+            the SDR step.
     zooms : float | tuple | dict | None
         The voxel size of volume for each spatial dimension in mm.
         If None (default), MRIs won't be resliced (slow, but most accurate).
@@ -1722,17 +1786,39 @@ def compute_volume_registration(
         or a dict with keys ``['translation', 'rigid', 'affine', 'sdr']``
         (each with values that are float`, tuple, or None) to provide separate
         reslicing/accuracy for the steps.
-    %(niter)s
+    niter : dict | tuple | None
+        For each phase of the volume registration, ``niter`` is the number of
+        iterations per successive stage of optimization. If a tuple is
+        provided, it will be used for all steps (except center of mass, which does
+        not iterate). It should have length 3 to
+        correspond to ``sigmas=[3.0, 1.0, 0.0]`` and ``factors=[4, 2, 1]`` in
+        the pipeline (see :func:`dipy.align.affine_registration
+        <dipy.align._public.affine_registration>` for details).
+        If a dictionary is provided, number of iterations can be set for each
+        step as a key. Steps not in the dictionary will use the default value.
+        The default (None) is equivalent to:
+
+            niter=dict(translation=(100, 100, 10),
+                       rigid=(100, 100, 10),
+                       affine=(100, 100, 10),
+                       sdr=(5, 5, 3))
     starting_affine : ndarray
         The affine to initialize the registration with.
 
         .. versionadded:: 1.2
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(reg_affine)s
-    %(sdr_morph)s
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
 
     Notes
     -----
@@ -1861,7 +1947,7 @@ def _compute_volume_registration(
     )
 
 
-@verbose
+@verbose_static("moving", "static", "reg_affine", "sdr_morph")
 def apply_volume_registration(
     moving,
     static,
@@ -1878,18 +1964,27 @@ def apply_volume_registration(
 
     Parameters
     ----------
-    %(moving)s
-    %(static)s
-    %(reg_affine)s
-    %(sdr_morph)s
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
     interpolation : str
         Interpolation to be used during the interpolation.
         Can be ``"linear"`` (default) or ``"nearest"``.
     cval : float | str
         The constant value to assume exists outside the bounds of the
-        ``moving`` image domain. Can be a string percentage like ``'1%%'``
+        ``moving`` image domain. Can be a string percentage like ``'1%'``
         to use the given percentile of image data as the constant value.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1948,7 +2043,9 @@ def apply_volume_registration(
     return reg_img
 
 
-@verbose
+@verbose_static(
+    "info_not_none", "trans_not_none", "moving", "static", "reg_affine", "sdr_morph"
+)
 def apply_volume_registration_points(
     info, trans, moving, static, reg_affine, sdr_morph=None, verbose=None
 ):
@@ -1959,17 +2056,33 @@ def apply_volume_registration_points(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(trans_not_none)s
-    %(moving)s
-    %(static)s
-    %(reg_affine)s
-    %(sdr_morph)s
-    %(verbose)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     trans2 : instance of Transform
         The head->mri (surface RAS) transform for the static image.
 

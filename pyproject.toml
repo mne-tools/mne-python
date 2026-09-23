@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatch-vcs", "hatchling >= 1.27"]
 
 [dependency-groups]
-dev = ["pip >= 25.1", "pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", { include-group = "doc" }, { include-group = "test_extra" }]
+dev = ["pre-commit", "pyside6 >= 6.11.1", "rcssmin >= 1.1", { include-group = "doc" }, { include-group = "test_extra" }]
 # Dependencies for building the documentation
 doc = [
   # 0.22 moved normalize_options into docutils.parsers.rst.roles
@@ -16,6 +16,9 @@ doc = [
   # the two resolve together. Below either, the browser drops to Pyodide 0.29
   # and its matplotlib 3.8.4, a minor under the 3.9 MNE declares.
   "jupyterlite-pyodide-kernel >= 0.8",
+  # [lock] brings pyodide-lock and uv for jupyter_lite_config.py; pyodide-lock
+  # needs 3.12, which every docs build has
+  "jupyterlite-pyodide-kernel[lock] >= 0.8; python_version >= '3.12'",
   "jupyterlite-sphinx >= 0.23",
   "memory_profiler >= 0.16",
   "mne-bids",
@@ -44,6 +47,21 @@ doc = [
   "sphinxcontrib-youtube",
 ]
 doc-full = ["rpy2", { include-group = "doc" }]
+# Packages installed into the browser Pyodide kernel for JupyterLite notebooks;
+# unpinned, since Pyodide's curated version wins where it has one and the rest
+# resolve to the latest release (see doc/sphinxext/jupyterlite_lock_specs.py)
+jupyterlite = [
+  "joblib",
+  "mffpy",
+  "mne-connectivity",
+  "nibabel",
+  "pandas",
+  "python-picard",
+  "pyvista-js",
+  "pyxdf",
+  "scikit-learn",
+  "seaborn",
+]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
 # the 'old' environment CI test run
 lockfile_extras = [
@@ -176,6 +194,7 @@ full-no-qt = [
   "edfio >= 0.4.10",
   "eeglabio",
   "filelock >= 3.18.0",
+  "formulaic",
   "h5py >= 2.4",
   "imageio >= 2.6.1",
   "imageio-ffmpeg >= 0.4.1",
@@ -498,6 +517,7 @@ python-version = "3.11"  # minimum supported, keep in sync with requires-python
 [tool.ty.src]
 exclude = ["mne/io/**/tests"]
 include = [
+  "mne/_fiff/meas_info.py",
   "mne/annotations.py",
   "mne/epochs.py",
   "mne/evoked.py",
