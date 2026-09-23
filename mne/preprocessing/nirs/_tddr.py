@@ -8,7 +8,7 @@ from scipy.signal import butter, filtfilt
 
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose_static
-from ..nirs import _validate_nirs_info
+from ..nirs import _validate_nirs_info, _warn_channel
 
 
 @verbose_static()
@@ -55,7 +55,8 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     if not len(picks):
         raise RuntimeError("TDDR should be run on optical density or hemoglobin data.")
     for pick in picks:
-        raw._data[pick] = _TDDR(raw._data[pick], raw.info["sfreq"])
+        with _warn_channel(raw.ch_names[pick]):
+            raw._data[pick] = _TDDR(raw._data[pick], raw.info["sfreq"])
 
     return raw
 
