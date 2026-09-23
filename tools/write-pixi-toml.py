@@ -17,7 +17,9 @@ def pip_to_pixi(dependencies_list):
     return out
 
 
-pypi_dependencies = sorted(["mne-qt-browser", "pymef"])
+# HACK: we place mne-* satellite packages in the pip channel so that pixi doesn't write
+# mne-base into the lock file.
+pypi_dependencies = sorted(["mne-qt-browser", "pymef", "mne-bids"])
 
 repo_root = Path(__file__).resolve().parent.parent
 tests_yaml_fpath = repo_root / ".github" / "workflows" / "tests.yml"
@@ -62,6 +64,7 @@ dependencies = pyproject["project"]["dependencies"]
 dependencies.extend(pyproject["dependency-groups"]["dev"])
 dependencies.extend(pyproject["dependency-groups"]["test"])
 dependencies.extend(pyproject["dependency-groups"]["test_extra"])
+dependencies.extend(pyproject["dependency-groups"]["test_extra_ft"])
 dependencies.extend(pyproject["project"]["optional-dependencies"]["hdf5"])
 dependencies.extend(pyproject["project"]["optional-dependencies"]["full-no-qt"])
 dependencies.extend(pyproject["project"]["optional-dependencies"]["full-pyside6"])
