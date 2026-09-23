@@ -152,7 +152,7 @@ def test_gamma_map_standard():
     _check_stc(stc, evoked, 85739, "lh", fwd=forward, ratio=20.0, res=res)
 
 
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @testing.requires_testing_data
 def test_gamma_map_vol_sphere():
     """Gamma MAP with a sphere forward and volumic source space."""
@@ -200,7 +200,7 @@ def test_gamma_map_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(
-        50e-9 * np.random.RandomState(42).randn(1, 4),
+        np.random.default_rng(42).normal(scale=50e-9, size=(1, 4)),
         vertices=[stc.vertices[0][:1]],
         tmin=stc.tmin,
         tstep=stc.tstep,

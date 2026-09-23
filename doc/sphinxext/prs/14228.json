@@ -1,0 +1,60 @@
+{
+  "merge_commit_sha": "c4f5ba1e9286954238fa26911a75c1185b7dbe2d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/gui/_dipolefit.py": {
+      "a": 532,
+      "d": 125
+    },
+    "mne/gui/_gui.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/gui/tests/test_dipolefit.py": {
+      "a": 166,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 51,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 18,
+      "d": 5
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 57,
+      "d": 5
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 48,
+      "d": 4
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/inverse/21_interactive_dipole_fit.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

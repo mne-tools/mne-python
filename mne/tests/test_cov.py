@@ -182,7 +182,7 @@ def test_cov_order():
     prepare_noise_cov(cov, info, ch_names, verbose="error")
     # big reordering
     cov_reorder = cov.copy()
-    order = np.random.RandomState(0).permutation(np.arange(len(cov.ch_names)))
+    order = np.random.default_rng(0).permutation(np.arange(len(cov.ch_names)))
     cov_reorder["names"] = [cov["names"][ii] for ii in order]
     cov_reorder["data"] = cov["data"][order][:, order]
     # Make sure we did this properly
@@ -538,6 +538,30 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     pytest.raises(TypeError, compute_covariance, epochs, projs=["foo"])
 
 
+def test_cov_estimation_evoked():
+    """Test covariance estimation from an evoked response."""
+    evoked = read_evokeds(
+        ave_fname, condition=0, baseline=(None, 0), proj=False, verbose=False
+    )
+    evoked.pick(evoked.ch_names[:12])
+    evoked.del_proj()
+
+    tmin, tmax = -0.1, 0.2
+    cov = compute_covariance(
+        inst=evoked, tmin=tmin, tmax=tmax, projs=[], rank="full", verbose=False
+    )
+    time_mask = (tmin <= evoked.times) & (evoked.times <= tmax)
+    data = evoked.data[:, time_mask]
+    expected = data @ data.T / (data.shape[1] - 1)
+
+    assert_allclose(cov.data, expected)
+    assert cov.ch_names == evoked.ch_names
+    assert cov.nfree == data.shape[1] - 1
+
+    with pytest.raises(ValueError, match="keep_sample_mean=False.*Evoked"):
+        compute_covariance(evoked, keep_sample_mean=False, verbose=False)
+
+
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices."""
     cov = read_cov(cov_fname)
@@ -615,14 +639,14 @@ def test_auto_low_rank():
     sigma = 0.1
 
     def get_data(n_samples, n_features, rank, sigma):
-        rng = np.random.RandomState(42)
-        W = rng.randn(n_features, n_features)
-        X = rng.randn(n_samples, rank)
+        rng = np.random.default_rng(42)
+        W = rng.standard_normal((n_features, n_features))
+        X = rng.standard_normal((n_samples, rank))
         U, _, _ = _safe_svd(W.copy())
         X = np.dot(X, U[:, :rank].T)
 
-        sigmas = sigma * rng.rand(n_features) + sigma / 2.0
-        X += rng.randn(n_samples, n_features) * sigmas
+        sigmas = sigma * rng.random(n_features) + sigma / 2.0
+        X += rng.normal(scale=sigmas, size=(n_samples, n_features))
         return X
 
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank, sigma=sigma)

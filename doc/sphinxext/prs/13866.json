@@ -1,0 +1,48 @@
+{
+  "merge_commit_sha": "89ece45c4f580a25fc5ef92c791cd09d63e01a34",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com",
+      "l": "PragnyaKhandelwal"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13866.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/datasets/kernel_phantom.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 19,
+      "d": 4
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 0,
+      "d": 12
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 99,
+      "d": 1
+    },
+    "mne/viz/topomap.py": {
+      "a": 296,
+      "d": 125
+    }
+  }
+}

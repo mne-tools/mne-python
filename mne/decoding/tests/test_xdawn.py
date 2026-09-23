@@ -7,9 +7,9 @@ import pytest
 from numpy.testing import assert_array_almost_equal
 
 pytest.importorskip("sklearn")
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import XdawnTransformer, read_xdawn_transformer
+from mne.decoding.tests._sklearn import parametrize_with_checks
 
 
 @pytest.mark.filterwarnings("ignore:.*Only one sample available.*")
@@ -22,10 +22,10 @@ def test_sklearn_compliance(estimator, check):
 def test_xdawn_save_load(tmp_path):
     """Test that XdawnTransformer can be saved to disk and loaded correctly."""
     h5io = pytest.importorskip("h5io")
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     n_epochs, n_channels, n_times = 40, 10, 50
-    X = rng.randn(n_epochs, n_channels, n_times)
-    y = rng.randint(0, 2, n_epochs)
+    X = rng.standard_normal((n_epochs, n_channels, n_times))
+    y = rng.integers(0, 2, n_epochs)
 
     xdawn = XdawnTransformer(n_components=2)
     xdawn.fit(X, y)

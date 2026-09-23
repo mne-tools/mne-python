@@ -11,9 +11,9 @@ from ..utils import (
     _check_option,
     _ensure_int,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     logger,
-    verbose,
+    verbose_static,
 )
 from .constants import FIFF
 
@@ -242,13 +242,15 @@ _second_rules = {
 }
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def channel_type(info, idx):
     """Get channel type.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     idx : int
         Index of channel.
 
@@ -277,7 +279,7 @@ def channel_type(info, idx):
     return first_kind
 
 
-@verbose
+@verbose_static("ordered")
 def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     """Pick channels by names.
 
@@ -296,8 +298,18 @@ def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     exclude : list of str
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
-    %(ordered)s
-    %(verbose)s
+    ordered : bool
+        If True (default), ensure that the order of the channels in
+        the modified instance matches the order of ``ch_names``.
+
+        .. versionadded:: 0.20.0
+        .. versionchanged:: 1.7
+            The default changed from False in 1.6 to True in 1.7.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -319,13 +331,17 @@ def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
         include = list(ch_names)
     if not isinstance(exclude, list):
         exclude = list(exclude)
+    # ch_names is unique (checked above), so a lookup table is safe here; the
+    # list scans this replaces made the loop quadratic in the channel count
+    name_to_idx = {name: ii for ii, name in enumerate(ch_names)}
+    exclude_set = set(exclude)
     sel, missing = list(), list()
     for name in include:
-        if name in ch_names:
-            if name not in exclude:
-                sel.append(ch_names.index(name))
-        else:
+        idx = name_to_idx.get(name)
+        if idx is None:
             missing.append(name)
+        elif name not in exclude_set:
+            sel.append(idx)
     if len(missing) and ordered:
         raise ValueError(
             f"Missing channels from ch_names required by include:\n{missing}"
@@ -457,13 +473,17 @@ def _check_meg_type(meg, allow_auto=False):
 
 
 def _check_info_exclude(info, exclude):
+    # NB: we deliberately do not call info._check_consistency() here. This helper
+    # only computes channel indices (it produces no new Info), and it is called
+    # very frequently via _picks_to_idx/pick_types. The consistency of an Info is
+    # validated where it matters -- at construction/I/O and whenever pick_info
+    # produces a new Info from it.
     _validate_type(info, "info")
-    info._check_consistency()
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == "bads":
         exclude = info.get("bads", [])
-    elif not isinstance(exclude, list | tuple):
+    elif not isinstance(exclude, (list, tuple)):
         raise ValueError(
             'exclude must either be "bads" or a list of strings.'
             " If only one channel is to be excluded, use "
@@ -472,7 +492,7 @@ def _check_info_exclude(info, exclude):
     return exclude
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "pick_types_params")
 def pick_types(
     info,
     meg=False,
@@ -508,8 +528,76 @@ def pick_types(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(pick_types_params)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    meg : bool | str
+        If True include MEG channels. If string it can be 'mag', 'grad',
+        'planar1' or 'planar2' to select only magnetometers, all
+        gradiometers, or a specific type of gradiometer.
+    eeg : bool
+        If True include EEG channels.
+    stim : bool
+        If True include stimulus channels.
+    eog : bool
+        If True include EOG channels.
+    ecg : bool
+        If True include ECG channels.
+    emg : bool
+        If True include EMG channels.
+    ref_meg : bool | str
+        If True include CTF / 4D reference channels. If 'auto', reference
+        channels are included if compensations are present and ``meg`` is
+        not False. Can also be the string options for the ``meg``
+        parameter.
+    misc : bool
+        If True include miscellaneous analog channels.
+    resp : bool
+        If ``True`` include respiratory channels.
+    chpi : bool
+        If True include continuous HPI coil channels.
+    exci : bool
+        Flux excitation channel used to be a stimulus channel.
+    ias : bool
+        Internal Active Shielding data (maybe on Triux only).
+    syst : bool
+        System status channel information (on Triux systems only).
+    seeg : bool
+        Stereotactic EEG channels.
+    dipole : bool
+        Dipole time course channels.
+    gof : bool
+        Dipole goodness of fit channels.
+    bio : bool
+        Bio channels.
+    ecog : bool
+        Electrocorticography channels.
+    fnirs : bool | str
+        Functional near-infrared spectroscopy channels. If True include all
+        fNIRS channels. If False (default) include none. If string it can
+        be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+        include channels measuring deoxyhemoglobin).
+    csd : bool
+        EEG-CSD channels.
+    dbs : bool
+        Deep brain stimulation channels.
+    temperature : bool
+        Temperature channels.
+    gsr : bool
+        Galvanic skin response channels.
+    eyetrack : bool | str
+        Eyetracking channels. If True include all eyetracking channels. If False
+        (default) include none. If string it can be 'eyegaze' (to include
+        eye position channels) or 'pupil' (to include pupil-size
+        channels).
+    include : list of str
+        List of additional channels to include. If empty do not include
+        any.
+    exclude : list of str | str
+        List of channels to exclude. If 'bads' (default), exclude channels
+        in ``info['bads']``.
+    selection : list of str
+        Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
 
     Returns
     -------
@@ -638,19 +726,25 @@ def pick_types(
     return sel
 
 
-@verbose
+@verbose_static("info_not_none")
 def pick_info(info, sel=(), copy=True, verbose=None):
     """Restrict an info structure to a selection of channels.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     sel : list of int | None
         Indices of channels to include. If None, all channels
         are included.
     copy : bool
         If copy is False, info is modified inplace.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -660,6 +754,10 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     # avoid circular imports
     from .meas_info import _bad_chans_comp
 
+    # Validate the *input* (a user may have corrupted `info` despite our
+    # safeguards). This is a no-op inside an `info._skip_checks()` block, which
+    # internal callers use when they know `info` is already consistent. We do not
+    # re-check the picked result below: picking here is trusted to be correct.
     info._check_consistency()
     info = info.copy() if copy else info
     if sel is None:
@@ -714,7 +812,6 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         if len(projs) != len(info["projs"]):
             with info._unlock():
                 info["projs"] = projs
-    info._check_consistency()
 
     return info
 
@@ -731,7 +828,7 @@ def _has_kit_refs(info, picks):
     return False
 
 
-@verbose
+@verbose_static("ordered")
 def pick_channels_forward(
     orig, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
 ):
@@ -747,12 +844,22 @@ def pick_channels_forward(
     exclude : list of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
-    %(ordered)s
+    ordered : bool
+        If True (default), ensure that the order of the channels in
+        the modified instance matches the order of ``ch_names``.
+
+        .. versionadded:: 0.20.0
+        .. versionchanged:: 1.7
+            The default changed from False in 1.6 to True in 1.7.
     copy : bool
         If True (default), make a copy.
 
         .. versionadded:: 0.19
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -877,14 +984,24 @@ def pick_types_forward(
     return pick_channels_forward(orig, include_ch_names)
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "picks_all")
 def channel_indices_by_type(info, picks=None, *, exclude=()):
     """Get indices of channels by type.
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(picks_all)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all channels. Bad channels
+        are included by default. Note that channels in ``info['bads']`` *will be
+        included* if their names or indices are explicitly provided.
     exclude : list | str
         Set of channels to exclude, only used when picking based on
         types (e.g., exclude="bads" when picks="meg").
@@ -927,7 +1044,7 @@ def channel_indices_by_type(info, picks=None, *, exclude=()):
     return idx_by_type
 
 
-@verbose
+@verbose_static("ordered")
 def pick_channels_cov(
     orig, include=(), exclude="bads", ordered=True, copy=True, *, verbose=None
 ):
@@ -937,17 +1054,27 @@ def pick_channels_cov(
     ----------
     orig : Covariance
         A covariance.
-    include : list of str, (optional)
+    include : list of str
         List of channels to include (if empty, include all available).
-    exclude : list of str, (optional) | 'bads'
+    exclude : list of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
-    %(ordered)s
+    ordered : bool
+        If True (default), ensure that the order of the channels in
+        the modified instance matches the order of ``ch_names``.
+
+        .. versionadded:: 0.20.0
+        .. versionchanged:: 1.7
+            The default changed from False in 1.6 to True in 1.7.
     copy : bool
         If True (the default), return a copy of the covariance matrix with the
         modified channels. If False, channels are modified in-place.
 
         .. versionadded:: 0.20.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -989,13 +1116,15 @@ def _mag_grad_dependent(info):
     )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     ch_type : str
         the channel type to be checked for
 
@@ -1023,13 +1152,15 @@ def _contains_ch_type(info, ch_type):
     return any(ch_type == channel_type(info, ii) for ii in range(info["nchan"]))
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude="bads"):
     """Get data channel indices as separate list of tuples.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     meg_combined : bool | 'auto'
         Whether to return combined picks for grad and mag.
         Can be 'auto' to choose based on Maxwell filtering status.
@@ -1327,6 +1458,21 @@ def _picks_to_idx(
         )
         raise TypeError(msg)
     del extra_repr
+    # Fast path: an integer ndarray with all values already in range needs no
+    # copy or further checks. This matters for callers resolving picks on
+    # every access (e.g., Raw.get_data in deep-learning training loops).
+    if picks.dtype.kind == "i" and len(picks):
+        sorted_picks = np.unique(picks)
+        if (
+            len(sorted_picks) == len(picks)
+            and sorted_picks[0] >= 0
+            and sorted_picks[-1] < n_chan
+        ):
+            # Benchmark (64 ch EDF, picks=None per call): ~65 -> ~25 us saved
+            # per resolve; scales with n_channels.
+            if return_kind:
+                return picks, picked_ch_type_or_generic
+            return picks
     picks = picks.astype(int)
 
     #
@@ -1386,13 +1532,20 @@ def _picks_str_to_idx(
     # second: match all to channel names
     #
 
+    # setdefault keeps the first occurrence, so this matches list.index()
+    # exactly even for duplicate names (which are rejected further down, so
+    # the difference is not reachable today -- it just keeps the swap honest)
+    name_to_idx = {}
+    for ii, name in enumerate(info["ch_names"]):
+        name_to_idx.setdefault(name, ii)
     bad_names = []
     picks_name = list()
     for pick in picks:
-        try:
-            picks_name.append(info["ch_names"].index(pick))
-        except ValueError:
+        idx = name_to_idx.get(pick)
+        if idx is None:
             bad_names.append(pick)
+        else:
+            picks_name.append(idx)
 
     #
     # third: match all to types

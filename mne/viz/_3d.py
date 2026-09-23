@@ -10,15 +10,13 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from functools import partial
+from functools import cache, partial
 from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
-from scipy.stats import rankdata
 
+from .._fiff._digitization import _fiducial_coords
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info, read_fiducials
 from .._fiff.pick import (
@@ -70,14 +68,16 @@ from ..utils import (
     _ensure_int,
     _import_nibabel,
     _pl,
+    _soft_import,
     _to_rgb,
     _validate_type,
-    check_version,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_config,
     get_subjects_dir,
     logger,
     verbose,
+    verbose_static,
     warn,
 )
 from ._dipole import _check_concat_dipoles, _plot_dipole_3d, _plot_dipole_mri_outlines
@@ -86,41 +86,13 @@ from .utils import (
     _check_time_unit,
     _get_cmap,
     _get_color_list,
-    figure_nobar,
     plt_show,
 )
 
 verbose_dec = verbose
-FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
 
 
-# XXX: to unify with digitization
-def _fiducial_coords(points, coord_frame=None):
-    """Generate 3x3 array of fiducial coordinates."""
-    points = points or []  # None -> list
-    if coord_frame is not None:
-        points = [p for p in points if p["coord_frame"] == coord_frame]
-    points_ = {p["ident"]: p for p in points if p["kind"] == FIFF.FIFFV_POINT_CARDINAL}
-    if points_:
-        return np.array([points_[i]["r"] for i in FIDUCIAL_ORDER])
-    else:
-        # XXX eventually this should probably live in montage.py
-        if coord_frame is None or coord_frame == FIFF.FIFFV_COORD_HEAD:
-            # Try converting CTF HPI coils to fiducials
-            out = np.empty((3, 3))
-            out.fill(np.nan)
-            for p in points:
-                if p["kind"] == FIFF.FIFFV_POINT_HPI:
-                    if np.isclose(p["r"][1:], 0, atol=1e-6).all():
-                        out[0 if p["r"][0] < 0 else 2] = p["r"]
-                    elif np.isclose(p["r"][::2], 0, atol=1e-6).all():
-                        out[1] = p["r"]
-            if np.isfinite(out).all():
-                return out
-        return np.array([])
-
-
-@fill_doc
+@fill_doc_static("info")
 def plot_head_positions(
     pos,
     mode="traces",
@@ -156,7 +128,10 @@ def plot_head_positions(
         :func:`mne.preprocessing.maxwell_filter` for details.
 
         .. versionadded:: 0.16
-    %(info)s If provided, will be used to show the destination position when
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        If provided, will be used to show the destination position when
         ``destination is None``, and for showing the MEG sensors.
 
         .. versionadded:: 0.16
@@ -182,6 +157,7 @@ def plot_head_positions(
         The figure.
     """
     import matplotlib.pyplot as plt
+    from scipy.spatial.distance import cdist
 
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
@@ -421,7 +397,7 @@ def _set_aspect_equal(ax):
         pass
 
 
-@verbose
+@verbose_static("n_jobs", "interpolation_brain_time", "interaction_scene")
 def plot_evoked_field(
     evoked,
     surf_maps,
@@ -452,7 +428,13 @@ def plot_evoked_field(
         the average peak latency (across sensor types) is used.
     time_label : str | None
         How to print info about the time instant visualized.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     fig : Figure3D | mne.viz.Brain | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
@@ -485,10 +467,19 @@ def plot_evoked_field(
         map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
 
         .. versionadded:: 1.4
-    %(interpolation_brain_time)s
+    interpolation : str | None
+        Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
+        Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+        ``'quadratic'`` or ``'cubic'``.
 
         .. versionadded:: 1.6
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
@@ -497,7 +488,11 @@ def plot_evoked_field(
         ``True`` if there is more than one time point and ``False`` otherwise.
 
         .. versionadded:: 1.6
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -528,7 +523,22 @@ def plot_evoked_field(
         return ef._renderer.scene()
 
 
-@verbose
+@verbose_static(
+    "info",
+    "trans",
+    "subject",
+    "subjects_dir",
+    "meg",
+    "eeg",
+    "fwd",
+    "ecog",
+    "seeg",
+    "fnirs",
+    "dbs",
+    "interaction_scene",
+    "sensor_colors",
+    "sensor_scales",
+)
 def plot_alignment(
     info=None,
     trans=None,
@@ -554,20 +564,34 @@ def plot_alignment(
     *,
     sensor_scales=None,
     show_channel_names=False,
+    set_view=True,
     verbose=None,
 ):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
     ----------
-    %(info)s If None (default), no sensor information will be shown.
-    %(trans)s "auto" will load trans from the FreeSurfer directory
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        If None (default), no sensor information will be shown.
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
+        "auto" will load trans from the FreeSurfer directory
         specified by ``subject`` and ``subjects_dir`` parameters.
 
         .. versionchanged:: 0.19
             Support for 'fsaverage' argument.
-    %(subject)s Can be omitted if ``src`` is provided.
-    %(subjects_dir)s
+    subject : str
+        The FreeSurfer subject name.
+        Can be omitted if ``src`` is provided.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     surfaces : str | list | dict
         Surfaces to plot. Supported values:
 
@@ -594,13 +618,38 @@ def plot_alignment(
 
         .. versionchanged:: 1.0
            Defaults to ``'auto'``.
-    %(meg)s
-    %(eeg)s
-    %(fwd)s
+    meg : str | list | dict | bool | None
+        Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+        reference sensors respectively, or a combination like ``('helmet',
+        'sensors')`` (same as None, default). True translates to ``('helmet',
+        'sensors', 'ref')``. Can also be a dict to specify alpha values, e.g.
+        ``{"helmet": 0.1, "sensors": 0.8}``.
+
+        .. versionchanged:: 1.6
+           Added support for specifying alpha values as a dict.
+    eeg : bool | str | list | dict
+        String options are:
+
+        - "original" (default; equivalent to ``True``)
+            Shows EEG sensors using their digitized locations (after
+            transformation to the chosen ``coord_frame``)
+        - "projected"
+            The EEG locations projected onto the scalp, as is done in
+            forward modeling
+
+        Can also be a list of these options, or a dict to specify the alpha values
+        to use, e.g. ``dict(original=0.2, projected=0.8)``.
+
+        .. versionchanged:: 1.6
+           Added support for specifying alpha values as a dict.
+    fwd : instance of Forward
+        The forward solution. If present, the orientations of the dipoles
+        present in the forward solution are displayed.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
-    %(ecog)s
+    ecog : bool
+        If True (default), show ECoG sensors.
     src : instance of SourceSpaces | None
         If not None, also plot the source space points.
     mri_fiducials : bool | str | path-like
@@ -618,8 +667,18 @@ def plot_alignment(
         for ``'$SUBJECT*$SOURCE.fif'`` in the same directory. For
         ``'outer_skin'``, the subjects bem and bem/flash folders are searched.
         Defaults to None.
-    %(seeg)s
-    %(fnirs)s
+    seeg : bool
+        If True (default), show sEEG electrodes.
+    fnirs : str | list | dict | bool | None
+        Can be "channels", "pairs", "detectors", and/or "sources" to show the
+        fNIRS channel locations, optode locations, or line between
+        source-detector pairs, or a combination like ``('pairs', 'channels')``.
+        True translates to ``('pairs',)``. A dict can also be used to specify
+        alpha values (but only "channels" and "pairs" will be used), e.g.
+        ``dict(channels=0.2, pairs=0.7)``.
+
+        .. versionchanged:: 1.6
+           Added support for specifying alpha values as a dict.
         .. versionadded:: 0.20
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
@@ -630,22 +689,50 @@ def plot_alignment(
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
-    %(dbs)s
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     fig : Figure3D | None
         PyVista scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
-    %(interaction_scene)s
+    interaction : 'trackball' | 'terrain'
+        How interactions with the scene via an input device (e.g., mouse or
+        trackpad) modify the camera position. If ``'terrain'``, one axis is
+        fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+        movement along all axes is possible, which provides more freedom of
+        movement, but you may incidentally perform unintentional rotations along
+        some axes.
 
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
-    %(sensor_colors)s
+    sensor_colors : array-like of color | dict | None
+        Colors to use for the sensor glyphs. Can be None (default) to use default
+        colors. A dict should provide the colors (values) for each channel type
+        (keys), e.g.::
+
+            dict(eeg=eeg_colors)
+
+        Where the value (``eeg_colors`` above) can be broadcast to an array of
+        colors with length that matches the number of channels of that type, i.e.,
+        is compatible with :func:`matplotlib.colors.to_rgba_array`. A few examples
+        of this for the case above are the string ``"k"``, a list of ``n_eeg`` color
+        strings, or an NumPy ndarray of shape ``(n_eeg, 3)`` or ``(n_eeg, 4)``.
 
         .. versionchanged:: 1.6
             Support for passing a ``dict`` was added.
-    %(sensor_scales)s
+    sensor_scales : int | float | array-like | dict | None
+        Scale to use for the sensor glyphs. Can be None (default) to use default
+        scale. A dict should provide the Scale (values) for each channel type
+        (keys), e.g.::
+
+            dict(eeg=eeg_scales)
+
+        Where the value (``eeg_scales`` above) can be broadcast to an array of
+        values with length that matches the number of channels of that type. A few
+        examples of this for the case above are the value ``10e-3``, a list of
+        ``n_eeg`` values, or an NumPy ndarray of shape ``(n_eeg,)``.
 
         .. versionadded:: 1.9
     show_channel_names : bool
@@ -653,7 +740,17 @@ def plot_alignment(
         Default is False.
 
         .. versionadded:: 1.12
-    %(verbose)s
+    set_view : bool
+        If True (default), set the view of the figure to a default one. Can be set
+        to False to keep the view a figure passed via ``fig`` already has, which is
+        useful when reusing a single figure for multiple plots.
+
+        .. versionadded:: 1.13
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -862,7 +959,7 @@ def plot_alignment(
 
     # initialize figure
     renderer = _get_renderer(
-        fig,
+        fig=fig,
         name=f"Sensor alignment: {subject}",
         bgcolor=(0.5, 0.5, 0.5),
         size=(800, 800),
@@ -956,13 +1053,15 @@ def plot_alignment(
         # transform to current coord frame
         pos = apply_trans(to_cf_t["head"], pos)
 
-        for ch, xyz in zip(chs, pos):
-            renderer.text3d(
-                *xyz,
-                ch["ch_name"],
-                scale=0.005,
-                color=(1.0, 1.0, 1.0),
-            )
+        # offset labels outward from centroid so they clear the sensor glyphs
+        centroid = pos.mean(axis=0)
+        directions = pos - centroid
+        norms = np.linalg.norm(directions, axis=1, keepdims=True)
+        norms = np.where(norms > 0, norms, 1)
+        offsets = pos + 0.01 * directions / norms
+
+        labels = [ch["ch_name"] for ch in chs]
+        renderer.text3d(*offsets.T, labels, font_size=10, color="white", shadow=True)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -1009,10 +1108,16 @@ def plot_alignment(
     if fwd is not None:
         _plot_forward(renderer, fwd, to_cf_t[_frame_to_str[fwd["coord_frame"]]])
 
-    renderer.set_camera(
-        azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
-    )
+    if set_view:
+        renderer.set_camera(
+            azimuth=90, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0)
+        )
     renderer.show()
+    if not set_view:
+        # Nothing moved the camera, so nothing marked the scene as needing a repaint,
+        # and show() does not repaint a window that is already up. Redraw it here so
+        # that what we just plotted is actually drawn.
+        renderer._update()
     return renderer.scene()
 
 
@@ -1083,7 +1188,7 @@ def _handle_sensor_types(meg, eeg, fnirs):
     return meg, eeg, fnirs, warn_meg, sensor_alpha
 
 
-@verbose
+@_verbose_control
 def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
     """Transform positions from head/device/mri to a coordinate frame."""
     from ..forward import _create_meg_coils
@@ -1357,7 +1462,7 @@ def _plot_hpi_coils(
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
@@ -1404,6 +1509,7 @@ def _plot_glyphs(
     scale_by_distance=False,
     project_points=False,
     mark_inside=False,
+    inside_color=None,
     surf=None,
     orient_nn=None,
     cylinder_geom=None,
@@ -1428,7 +1534,7 @@ def _plot_glyphs(
     defaults = DEFAULTS["coreg"]
     n = len(loc)
     if n == 0:
-        return None
+        return None, None
     colors = np.array(np.broadcast_to(to_rgba_array(colors), (n, 4)), float)
     colors[:, 3] *= opacity
     scales = np.broadcast_to(np.asarray(scales, float).reshape(-1), (n,))
@@ -1443,7 +1549,7 @@ def _plot_glyphs(
         if scale_by_distance:
             scales = scales * np.linalg.norm(surf_vectors, axis=1)
         if mark_inside:  # recolor points that fall inside the surface
-            colors[scalars < 0.5, :3] = to_rgba("darkslategray")[:3]
+            colors[scalars < 0.5, :3] = to_rgba(inside_color or "darkslategray")[:3]
         if orient_glyphs:  # point cylinders along the surface normal
             vectors = surf_vectors
     kind, template_kw = "sphere", dict()
@@ -1457,10 +1563,9 @@ def _plot_glyphs(
         )
         x_axis = np.array([1.0, 0.0, 0.0])
         nn = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
-        rots = np.array([_find_vector_rotation(x_axis, this_nn) for this_nn in nn])
-        quats = rot_to_quat(rots)
+        quats = rot_to_quat(_find_vector_rotation(x_axis, nn))
     rr, tris = renderer._glyph_template(kind, **template_kw)
-    actor, _ = renderer.instanced_mesh(
+    actor, cloud = renderer.instanced_mesh(
         rr=rr,
         tris=tris,
         positions=positions,
@@ -1469,10 +1574,10 @@ def _plot_glyphs(
         scales=scales,
         backface_culling=backface_culling,
     )
-    return actor
+    return actor, cloud
 
 
-@verbose
+@_verbose_control
 def _plot_head_shape_points(
     renderer,
     info,
@@ -1485,6 +1590,8 @@ def _plot_head_shape_points(
     mask=None,
     check_inside=None,
     nearest=None,
+    outside_color=None,
+    inside_color=None,
     verbose=False,
 ):
     defaults = DEFAULTS["coreg"]
@@ -1503,17 +1610,18 @@ def _plot_head_shape_points(
     return _plot_glyphs(
         renderer=renderer,
         loc=ext_loc,
-        colors=defaults["extra_color"],
+        colors=outside_color if outside_color is not None else defaults["extra_color"],
         scales=defaults["extra_scale"],
         opacity=opacity,
         orient_glyphs=orient_glyphs,
         scale_by_distance=scale_by_distance,
         mark_inside=mark_inside,
+        inside_color=inside_color,
         surf=surf,
         backface_culling=True,
         check_inside=check_inside,
         nearest=nearest,
-    )
+    )[0]
 
 
 def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3, alpha=1):
@@ -1579,6 +1687,7 @@ def _plot_sensors_3d(
 
     actors = defaultdict(lambda: list())
     locs = defaultdict(lambda: list())
+    ch_names_all = defaultdict(lambda: list())
     unit_scalar = 1 if units == "m" else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1612,14 +1721,19 @@ def _plot_sensors_3d(
             if ch_type == "eeg":
                 if "original" in eeg:
                     locs[ch_type].append(ch_coord)
+                    ch_names_all[ch_type].append(ch_name)
                 if "projected" in eeg:
                     locs["eegp"].append(ch_coord)
+                    ch_names_all["eegp"].append(ch_name)
             else:
                 locs[ch_type].append(ch_coord)
+                ch_names_all[ch_type].append(ch_name)
         if ch_name in sources and "sources" in fnirs:
             locs["source"].append(sources[ch_name])
+            ch_names_all["source"].append(ch_name)
         if ch_name in detectors and "detectors" in fnirs:
             locs["detector"].append(detectors[ch_name])
+            ch_names_all["detector"].append(ch_name)
         # Plot these now
         if ch_name in sources and ch_name in detectors and "pairs" in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1680,7 +1794,7 @@ def _plot_sensors_3d(
             f"scales for {ch_type} must contain only numerical values, "
             f"got {scales} instead."
         )
-
+        ch_names = np.array(ch_names_all[ch_type], dtype="U")
         this_alpha = sensor_alpha[ch_type]
         if isinstance(sens_loc[0], dict):  # meg coil
             if len(colors) == 1:
@@ -1697,7 +1811,7 @@ def _plot_sensors_3d(
                 template = sens_loc[idxs[0]]
                 positions = np.array([sens_loc[i]["position"] for i in idxs])
                 quats = np.array([sens_loc[i]["quat"] for i in idxs])
-                actor, _ = renderer.instanced_mesh(
+                actor, cloud = renderer.instanced_mesh(
                     rr=template["rr"],
                     tris=template["tris"],
                     positions=positions,
@@ -1706,11 +1820,14 @@ def _plot_sensors_3d(
                     backface_culling=False,  # visible from all sides
                 )
                 actors[ch_type].append(actor)
+                cloud.field_data["ch_names"] = ch_names[idxs]
         else:
             # One GPU-instanced actor regardless of how many distinct
             # colors/scales are requested (broadcasting handles 1-vs-N).
             sens_loc = np.array(sens_loc, float)
             mask = ~np.isnan(sens_loc).any(axis=1)
+            if not mask.any():  # e.g., CTF EEG/EOG channels with no digitized positions
+                continue
             loc = sens_loc[mask]
             these_colors = colors[mask] if len(colors) == len(mask) else colors
             these_scales = scales[mask] if len(scales) == len(mask) else scales
@@ -1735,7 +1852,7 @@ def _plot_sensors_3d(
                 )
                 backface_culling = True
                 actor_key = "eeg"
-            actor = _plot_glyphs(
+            actor, cloud = _plot_glyphs(
                 renderer=renderer,
                 loc=loc * unit_scalar,
                 colors=these_colors,
@@ -1752,6 +1869,7 @@ def _plot_sensors_3d(
                 nearest=nearest,
             )
             actors[actor_key].append(actor)
+            cloud.field_data["ch_names"] = ch_names[mask]
 
     actors = dict(actors)  # get rid of defaultdict
 
@@ -1768,13 +1886,55 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    try:
-        from scipy.spatial import QhullError
-    except ImportError:  # scipy < 1.8
-        from scipy.spatial.qhull import QhullError
+    from scipy.spatial import ConvexHull, Delaunay
+
     id_ = coil["type"] & 0xFFFF
-    add_z_coord = True  # almost all geometry is planar
-    extra_z = 0.0
+    # Offset for visibility (using heuristic for sanely named Neuromag coils).
+    # It depends on the channel name, so keep it out of the cached template.
+    if id_ in (
+        FIFF.FIFFV_COIL_NM_122,
+        FIFF.FIFFV_COIL_VV_PLANAR_W,
+        FIFF.FIFFV_COIL_VV_PLANAR_T1,
+        FIFF.FIFFV_COIL_VV_PLANAR_T2,
+    ):
+        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
+    else:
+        extra_z = 0.0
+    # The template geometry depends only on the coil id/size/base, so it is
+    # cached: a real system has only a handful of coil types but often hundreds
+    # of channels sharing them.
+    base = coil["base"] if id_ in (5004, 4005) else 0.0
+    out = _sensor_template(id_, float(coil["size"]), float(base))
+    if out is not None:
+        rrs, tris = out
+    else:
+        # 3D convex hull (will fail for 2D geometry). This depends on the full
+        # (per-channel) integration geometry, so it is not cached.
+        from scipy.spatial import QhullError
+
+        rrs = coil["rmag_orig"].copy()
+        try:
+            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
+        except QhullError:  # 2D geometry likely
+            logger.debug("Falling back to planar geometry")
+            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
+            u[:, 2] = 0
+            rr_rot = rrs @ u
+            tris = Delaunay(rr_rot[:, :2]).simplices
+            tris = np.concatenate((tris, tris[:, ::-1]))
+    assert rrs.ndim == 2 and rrs.shape[1] == 3
+    return rrs, tris, extra_z
+
+
+@cache
+def _sensor_template(id_, size, base):
+    """Get the local sensor template geometry for a coil type.
+
+    Returns the ``(x, y, z)`` vertices and triangles in the coil's local frame,
+    or ``None`` for coil types without an explicit 2D template (handled by the
+    caller via a convex hull). Pure function of the coil id/size/base, so the
+    result is cached and shared across all channels of the same type.
+    """
     # Square figure eight
     if id_ in (
         FIFF.FIFFV_COIL_NM_122,
@@ -1783,7 +1943,7 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_VV_PLANAR_T2,
     ):
         # wound by right hand rule such that +x side is "up" (+z)
-        long_side = coil["size"]  # length of long side (meters)
+        long_side = size  # length of long side (meters)
         offset = 0.0025  # offset of the center portion of planar grad coil
         rrs = np.array(
             [
@@ -1800,8 +1960,6 @@ def _sensor_shape(coil):
         tris = np.concatenate(
             (_make_tris_fan(4), _make_tris_fan(4)[:, ::-1] + 4), axis=0
         )
-        # Offset for visibility (using heuristic for sanely named Neuromag coils)
-        extra_z = 0.001 * (1 + coil["chname"].endswith("2"))
     # Square
     elif id_ in (
         FIFF.FIFFV_COIL_POINT_MAGNETOMETER,
@@ -1811,8 +1969,8 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_KIT_REF_MAG,
     ):
         # square magnetometer (potentially point-type)
-        size = 0.001 if id_ == 2000 else (coil["size"] / 2.0)
-        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * size
+        half = 0.001 if id_ == 2000 else (size / 2.0)
+        rrs = np.array([[-1.0, 1.0], [1.0, 1.0], [1.0, -1.0], [-1.0, -1.0]]) * half
         tris = _make_tris_fan(4)
     # Circle
     elif id_ in (
@@ -1826,7 +1984,7 @@ def _sensor_shape(coil):
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
         circle = np.concatenate(([0.0], circle))
-        circle *= coil["size"] / 2.0  # radius of coil
+        circle *= size / 2.0  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
     # Circle
@@ -1843,12 +2001,12 @@ def _sensor_shape(coil):
         FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ):
         # round coil 1st order (off-diagonal) gradiometer
-        baseline = coil["base"] if id_ in (5004, 4005) else 0.0
+        baseline = base if id_ in (5004, 4005) else 0.0
         n_pts = 16  # number of points for circle
         # This time, go all the way around circle to close it fully
         circle = np.exp(2j * np.pi * np.arange(-1, n_pts) / float(n_pts - 1))
         circle[0] = 0  # center pt for triangulation
-        circle *= coil["size"] / 2.0
+        circle *= size / 2.0
         rrs = np.array(
             [  # first, second coil
                 np.concatenate(
@@ -1861,24 +2019,16 @@ def _sensor_shape(coil):
             [_make_tris_fan(n_pts + 1), _make_tris_fan(n_pts + 1) + n_pts + 1]
         )
     else:
-        # 3D convex hull (will fail for 2D geometry)
-        rrs = coil["rmag_orig"].copy()
-        try:
-            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
-        except QhullError:  # 2D geometry likely
-            logger.debug("Falling back to planar geometry")
-            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
-            u[:, 2] = 0
-            rr_rot = rrs @ u
-            tris = Delaunay(rr_rot[:, :2]).simplices
-            tris = np.concatenate((tris, tris[:, ::-1]))
-        add_z_coord = False
+        return None
 
     # Go from (x,y) -> (x,y,z)
-    if add_z_coord:
-        rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
-    assert rrs.ndim == 2 and rrs.shape[1] == 3
-    return rrs, tris, extra_z
+    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode="constant", constant_values=0.0)
+    # The cached arrays are shared across channels, so make them read-only to
+    # guard against accidental in-place mutation by callers.
+    tris = np.ascontiguousarray(tris)
+    rrs.flags.writeable = False
+    tris.flags.writeable = False
+    return rrs, tris
 
 
 def _process_clim(clim, colormap, transparent, data=0.0, allow_pos_lims=True):
@@ -2057,249 +2207,6 @@ def _handle_time(time_label, time_unit, times):
     return time_label, times
 
 
-def _key_pressed_slider(event, params):
-    """Handle key presses for time_viewer slider."""
-    step = 1
-    if event.key.startswith("ctrl"):
-        step = 5
-        event.key = event.key.split("+")[-1]
-    if event.key not in ["left", "right"]:
-        return
-    time_viewer = event.canvas.figure
-    value = time_viewer.slider.val
-    times = params["stc"].times
-    if params["time_unit"] == "ms":
-        times = times * 1000.0
-    time_idx = np.argmin(np.abs(times - value))
-    if event.key == "left":
-        time_idx = np.max((0, time_idx - step))
-    elif event.key == "right":
-        time_idx = np.min((len(times) - 1, time_idx + step))
-    this_time = times[time_idx]
-    time_viewer.slider.set_val(this_time)
-
-
-def _smooth_plot(this_time, params, *, draw=True):
-    """Smooth source estimate data and plot with mpl."""
-    from ..morph import _hemi_morph
-
-    ax = params["ax"]
-    stc = params["stc"]
-    ax.clear()
-    times = stc.times
-    scaler = 1000.0 if params["time_unit"] == "ms" else 1.0
-    if this_time is None:
-        time_idx = 0
-    else:
-        time_idx = np.argmin(np.abs(times - this_time / scaler))
-
-    if params["hemi_idx"] == 0:
-        data = stc.data[: len(stc.vertices[0]), time_idx : time_idx + 1]
-    else:
-        data = stc.data[len(stc.vertices[0]) :, time_idx : time_idx + 1]
-
-    morph = _hemi_morph(
-        params["tris"],
-        params["inuse"],
-        params["vertices"],
-        params["smoothing_steps"],
-        maps=None,
-        warn=True,
-    )
-    array_plot = morph @ data
-
-    range_ = params["scale_pts"][2] - params["scale_pts"][0]
-    colors = (array_plot - params["scale_pts"][0]) / range_
-
-    faces = params["faces"]
-    greymap = params["greymap"]
-    cmap = params["cmap"]
-    polyc = ax.plot_trisurf(
-        *params["coords"].T, triangles=faces, antialiased=False, vmin=0, vmax=1
-    )
-    color_ave = np.mean(colors[faces], axis=1).flatten()
-    curv_ave = np.mean(params["curv"][faces], axis=1).flatten()
-    colors = cmap(color_ave)
-    # alpha blend
-    colors[:, :3] *= colors[:, [3]]
-    colors[:, :3] += greymap(curv_ave)[:, :3] * (1.0 - colors[:, [3]])
-    colors[:, 3] = 1.0
-    polyc.set_facecolor(colors)
-    if params["time_label"] is not None:
-        ax.set_title(
-            params["time_label"](
-                times[time_idx] * scaler,
-            ),
-            color="w",
-        )
-    _set_aspect_equal(ax)
-    ax.axis("off")
-    ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
-    if draw:
-        ax.figure.canvas.draw()
-
-
-def _plot_mpl_stc(
-    stc,
-    subject=None,
-    surface="inflated",
-    hemi="lh",
-    colormap="auto",
-    time_label="auto",
-    smoothing_steps=10,
-    subjects_dir=None,
-    views="lat",
-    clim="auto",
-    figure=None,
-    initial_time=None,
-    time_unit="s",
-    background="black",
-    spacing="oct6",
-    time_viewer=False,
-    colorbar=True,
-    transparent=True,
-):
-    """Plot source estimate using mpl."""
-    import matplotlib.pyplot as plt
-    import nibabel as nib
-    from matplotlib.widgets import Slider
-    from mpl_toolkits.mplot3d import Axes3D
-
-    from ..morph import _get_subject_sphere_tris
-    from ..source_space._source_space import _check_spacing, _create_surf_spacing
-
-    _check_option("hemi", hemi, ("lh", "rh"), extra="when using matplotlib")
-    lh_kwargs = {
-        "lat": {"elev": 0, "azim": 180},
-        "med": {"elev": 0, "azim": 0},
-        "ros": {"elev": 0, "azim": 90},
-        "cau": {"elev": 0, "azim": -90},
-        "dor": {"elev": 90, "azim": -90},
-        "ven": {"elev": -90, "azim": -90},
-        "fro": {"elev": 0, "azim": 106.739},
-        "par": {"elev": 30, "azim": -120},
-    }
-    rh_kwargs = {
-        "lat": {"elev": 0, "azim": 0},
-        "med": {"elev": 0, "azim": 180},
-        "ros": {"elev": 0, "azim": 90},
-        "cau": {"elev": 0, "azim": -90},
-        "dor": {"elev": 90, "azim": -90},
-        "ven": {"elev": -90, "azim": -90},
-        "fro": {"elev": 16.739, "azim": 60},
-        "par": {"elev": 30, "azim": -60},
-    }
-    time_viewer = False if time_viewer == "auto" else time_viewer
-    kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
-    views = "lat" if views == "auto" else views
-    _check_option("views", views, sorted(lh_kwargs.keys()))
-    mapdata = _process_clim(clim, colormap, transparent, stc.data)
-    _separate_map(mapdata)
-    colormap, scale_pts = _linearize_map(mapdata)
-    del transparent, mapdata
-
-    time_label, times = _handle_time(time_label, time_unit, stc.times)
-    # don't use constrained layout because Axes3D does not play well with it
-    fig = plt.figure(figsize=(6, 6), layout=None) if figure is None else figure
-    try:
-        ax = Axes3D(fig, auto_add_to_figure=False)
-    except Exception:  # old mpl
-        ax = Axes3D(fig)
-    else:
-        fig.add_axes(ax)
-    hemi_idx = 0 if hemi == "lh" else 1
-    surf = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
-    if spacing == "all":
-        coords, faces = nib.freesurfer.read_geometry(surf)
-        inuse = slice(None)
-    else:
-        stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
-        surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir)
-        inuse = surf["vertno"]
-        faces = surf["use_tris"]
-        coords = surf["rr"][inuse]
-        shape = faces.shape
-        faces = rankdata(faces, "dense").reshape(shape) - 1
-        faces = np.round(faces).astype(int)  # should really be int-like anyway
-    del surf
-    vertices = stc.vertices[hemi_idx]
-    n_verts = len(vertices)
-    tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    cmap = _get_cmap(colormap)
-    greymap = _get_cmap("Greys")
-
-    curv = nib.freesurfer.read_morph_data(
-        subjects_dir / subject / "surf" / f"{hemi}.curv"
-    )[inuse]
-    curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
-    params = dict(
-        ax=ax,
-        stc=stc,
-        coords=coords,
-        faces=faces,
-        hemi_idx=hemi_idx,
-        vertices=vertices,
-        tris=tris,
-        smoothing_steps=smoothing_steps,
-        n_verts=n_verts,
-        inuse=inuse,
-        cmap=cmap,
-        curv=curv,
-        scale_pts=scale_pts,
-        greymap=greymap,
-        time_label=time_label,
-        time_unit=time_unit,
-    )
-    _smooth_plot(initial_time, params, draw=False)
-
-    ax.view_init(**kwargs[hemi][views])
-
-    try:
-        ax.set_facecolor(background)
-    except AttributeError:
-        ax.set_axis_bgcolor(background)
-
-    if time_viewer:
-        time_viewer = figure_nobar(figsize=(4.5, 0.25))
-        fig.time_viewer = time_viewer
-        ax_time = plt.axes()
-        if initial_time is None:
-            initial_time = 0
-        slider = Slider(
-            ax=ax_time,
-            label="Time",
-            valmin=times[0],
-            valmax=times[-1],
-            valinit=initial_time,
-        )
-        time_viewer.slider = slider
-        callback_slider = partial(_smooth_plot, params=params)
-        slider.on_changed(callback_slider)
-        callback_key = partial(_key_pressed_slider, params=params)
-        time_viewer.canvas.mpl_connect("key_press_event", callback_key)
-
-    fig.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=1.0)
-
-    # add colorbar
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
-    sm = plt.cm.ScalarMappable(
-        cmap=cmap, norm=plt.Normalize(scale_pts[0], scale_pts[2])
-    )
-    cax = inset_axes(ax, width="80%", height="5%", loc=8, borderpad=3.0)
-    plt.setp(plt.getp(cax, "xticklabels"), color="w")
-    sm.set_array(np.linspace(scale_pts[0], scale_pts[2], 256))
-    if colorbar:
-        cb = plt.colorbar(sm, cax=cax, orientation="horizontal")
-        cb_yticks = plt.getp(cax, "yticklabels")
-        plt.setp(cb_yticks, color="w")
-        cax.tick_params(labelsize=16)
-        cb.ax.set_facecolor("0.5")
-        cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt_show(True)
-    return fig
-
-
 def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
     """Plot multiple SourceEstimate objects with PyVista.
 
@@ -2372,7 +2279,22 @@ def _check_volume(stc, src, surface, backend_name):
         return True
 
 
-@verbose
+@verbose_static(
+    "subject_none",
+    "colormap",
+    "time_label",
+    "transparent",
+    "subjects_dir",
+    "views",
+    "clim",
+    "title_stc",
+    "show_traces",
+    "src_volume_options",
+    "view_layout",
+    "add_data_kwargs",
+    "brain_kwargs",
+    "block",
+)
 def plot_source_estimates(
     stc,
     subject=None,
@@ -2397,7 +2319,6 @@ def plot_source_estimates(
     initial_time=None,
     time_unit="s",
     backend="auto",
-    spacing="oct6",
     title=None,
     show_traces="auto",
     src=None,
@@ -2405,6 +2326,7 @@ def plot_source_estimates(
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
+    block=False,
     verbose=None,
 ):
     """Plot SourceEstimate.
@@ -2413,7 +2335,8 @@ def plot_source_estimates(
     ----------
     stc : SourceEstimate
         The source estimates to plot.
-    %(subject_none)s
+    subject : str | None
+        The FreeSurfer subject name.
         If ``None``, ``stc.subject`` will be used.
     surface : str
         The type of surface (inflated, white etc.).
@@ -2422,87 +2345,163 @@ def plot_source_estimates(
         the case of ``'both'``, both hemispheres are shown in the same window.
         In the case of ``'split'`` hemispheres are displayed side-by-side
         in different viewing panes.
-    %(colormap)s
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
         The default ('auto') uses ``'hot'`` for one-sided data and
         'mne' for two-sided data.
-    %(time_label)s
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+        is more than one time point.
     smoothing_steps : int
         The amount of smoothing.
-    %(transparent)s
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     alpha : float
-        Alpha value to apply globally to the overlay. Has no effect with mpl
-        backend.
+        Alpha value to apply globally to the overlay.
     time_viewer : bool | str
         Display time viewer GUI. Can also be 'auto', which will mean True
         for the PyVista backend and False otherwise.
 
         .. versionchanged:: 0.20.0
            "auto" mode added.
-    %(subjects_dir)s
-    figure : instance of Figure3D | instance of matplotlib.figure.Figure | list | int | None
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    figure : instance of Figure3D | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
-        figure by it's id or create a new figure with the given id. If an
-        instance of matplotlib figure, mpl backend is used for plotting.
-    %(views)s
+        figure by it's id or create a new figure with the given id.
+    views : str | list
+        View to use. Using multiple views (list) is not supported for mpl
+        backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+        valid string options.
 
         When plotting a standard SourceEstimate (not volume, mixed, or vector)
         and using the PyVista backend, ``views='flat'`` is also supported to
         plot cortex as a flatmap.
 
-        Using multiple views (list) is not supported by the matplotlib backend.
-
         .. versionchanged:: 0.21.0
            Support for flatmaps.
     colorbar : bool
         If True, display colorbar on scene.
-    %(clim)s
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bounds for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                  Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
     cortex : str | tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset Brain cortex colorscheme (one of
         ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
         or the name of a colormap, or a tuple with values
         ``(colormap, min, max, reverse)`` to fully specify the curvature
-        colors. Has no effect with the matplotlib backend.
+        colors.
     size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
-        Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
     foreground : matplotlib color | None
-        Color of the foreground of the display window. Has no effect with mpl
-        backend. None will choose white or black based on the background color.
+        Color of the foreground of the display window. None will choose white or
+        black based on the background color.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
     time_unit : ``'s'`` | ``'ms'``
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'matplotlib'``
+    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'notebook'``
         Which backend to use. If ``'auto'`` (default), tries to plot with
-        pyvistaqt, but resorts to matplotlib if no 3d backend is available.
+        pyvistaqt.
 
         .. versionadded:: 0.15.0
-    spacing : str
-        Only affects the matplotlib backend.
-        The spacing to use for the source space. Can be ``'ico#'`` for a
-        recursively subdivided icosahedron, ``'oct#'`` for a recursively
-        subdivided octahedron, or ``'all'`` for all points. In general, you can
-        speed up the plotting by selecting a sparser source space.
-        Defaults  to 'oct6'.
-
-        .. versionadded:: 0.15.0
-    %(title_stc)s
+    title : str | None
+        Title for the figure window. If ``None``, the subject name will be used.
 
         .. versionadded:: 0.17.0
-    %(show_traces)s
-    %(src_volume_options)s
-    %(view_layout)s
-    %(add_data_kwargs)s
-    %(brain_kwargs)s
-    %(verbose)s
+    show_traces : bool | str | float
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot its time course.
+        This feature is only available with the PyVista 3d backend, and requires
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True``, the backend is PyVista, and there is more
+        than one time point. If float (between zero and one), it specifies what
+        proportion of the total window should be devoted to traces (True is
+        equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+        .. versionadded:: 0.20.0
+    src : instance of SourceSpaces | None
+        The source space corresponding to the source estimate. Only necessary
+        if the STC is a volume or mixed source estimate.
+    volume_options : float | dict | None
+        Options for volumetric source estimate plotting, with key/value pairs:
+
+        - ``'resolution'`` : float | None
+            Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+            better at the cost of speed. None (default) uses the volume source
+            space resolution, which is often something like 7 or 5 mm,
+            without resampling.
+        - ``'blending'`` : str
+            Can be "mip" (default) for :term:`maximum intensity projection` or
+            "composite" for composite blending using alpha values.
+        - ``'alpha'`` : float | None
+            Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+            estimates and 1.0 for scalar source estimates.
+        - ``'surface_alpha'`` : float | None
+            Alpha for the surface enclosing the volume(s). None (default) will use
+            half the volume alpha. Set to zero to avoid plotting the surface.
+        - ``'silhouette_alpha'`` : float | None
+            Alpha for a silhouette along the outside of the volume. None (default)
+            will use ``0.25 * surface_alpha``.
+        - ``'silhouette_linewidth'`` : float
+            The line width to use for the silhouette. Default is 2.
+        - ``'interpolation'`` : str
+            The interpolation method to use for resampling the volume source space
+            to the specified resolution (and for sampling in the volume rendering).
+            Can be "linear" (default) or "nearest".
+
+            .. versionadded:: 1.13
+
+        A float input (default 1.) or None will be used for the ``'resolution'``
+        entry.
+    view_layout : str
+        Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+        the PyVista backend must be used and hemi cannot be "split".
+    add_data_kwargs : dict | None
+        Additional arguments to brain.add_data (e.g.,
+        ``dict(time_label_size=10)``).
+    brain_kwargs : dict | None
+        Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+        ``dict(silhouette=True)``).
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        May not work on all systems / platforms. Defaults to ``False``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2519,23 +2518,19 @@ def plot_source_estimates(
 
     - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
-    """  # noqa: E501
+    """
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    from .backends._utils import _qt_block
     from .backends.renderer import _get_3d_backend, use_3d_backend
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, "stc", "source estimate")
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     subject = _check_subject(stc.subject, subject)
-    _check_option("backend", backend, ["auto", "matplotlib", "pyvistaqt", "notebook"])
-    plot_mpl = backend == "matplotlib"
-    if not plot_mpl:
-        if backend == "auto":
-            try:
-                backend = _get_3d_backend()
-            except (ImportError, ModuleNotFoundError):
-                warn("No 3D backend found. Resorting to matplotlib 3d.")
-                plot_mpl = True
+    _validate_type(block, bool, "block")
+    _check_option("backend", backend, ["auto", "pyvistaqt", "notebook"])
+    if backend == "auto":
+        backend = _get_3d_backend()
     kwargs = dict(
         subject=subject,
         surface=surface,
@@ -2554,28 +2549,28 @@ def plot_source_estimates(
         colorbar=colorbar,
         transparent=transparent,
     )
-    if plot_mpl:
-        return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
-    else:
-        with use_3d_backend(backend):
-            return _plot_stc(
-                stc,
-                overlay_alpha=alpha,
-                brain_alpha=alpha,
-                vector_alpha=alpha,
-                cortex=cortex,
-                foreground=foreground,
-                size=size,
-                scale_factor=None,
-                show_traces=show_traces,
-                src=src,
-                volume_options=volume_options,
-                view_layout=view_layout,
-                add_data_kwargs=add_data_kwargs,
-                brain_kwargs=brain_kwargs,
-                title=title,
-                **kwargs,
-            )
+    with use_3d_backend(backend):
+        brain = _plot_stc(
+            stc,
+            overlay_alpha=alpha,
+            brain_alpha=alpha,
+            vector_alpha=alpha,
+            cortex=cortex,
+            foreground=foreground,
+            size=size,
+            scale_factor=None,
+            show_traces=show_traces,
+            src=src,
+            volume_options=volume_options,
+            view_layout=view_layout,
+            add_data_kwargs=add_data_kwargs,
+            brain_kwargs=brain_kwargs,
+            title=title,
+            **kwargs,
+        )
+    if block and brain._renderer._kind == "qt":
+        _qt_block(brain.plotter.app_window)
+    return brain
 
 
 def _plot_stc(
@@ -2671,6 +2666,10 @@ def _plot_stc(
     }
     if brain_kwargs is not None:
         kwargs.update(brain_kwargs)
+    # The window is shown at the end instead (unless the caller opted out entirely
+    # with ``brain_kwargs=dict(show=False)``, e.g. to embed the plot in a larger
+    # GUI whose window it shows itself, like mne.gui.dipolefit).
+    show = kwargs.get("show", True)
     kwargs["show"] = False
     kwargs["view_layout"] = view_layout
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -2733,7 +2732,7 @@ def _plot_stc(
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer, show_traces=show_traces)
-    else:
+    elif show:
         brain.show()
 
     return brain
@@ -2751,7 +2750,10 @@ def _check_st_tv(show_traces, time_viewer, times):
             extra="when a string",
         )
     if time_viewer == "auto":
-        time_viewer = True
+        from .backends.renderer import _get_3d_backend
+
+        # the browser backend writes a static scene, so there is no slider to show
+        time_viewer = _get_3d_backend() != "jupyterlite_notebook"
     if show_traces == "auto":
         show_traces = time_viewer and times is not None and len(times) > 1
     if show_traces and not time_viewer:
@@ -2948,6 +2950,9 @@ def _plot_and_correct(*, params, cut_coords):
         symmetric_cbar=True,
         title="",
     )
+    if mode == "glass_brain":
+        # signed MIP (value with max abs) for diverging colormaps
+        plot_kwargs["plot_abs"] = not params["diverging"]
     params["axes"].clear()
     if params.get("fig_anat") is not None and plot_kwargs["colorbar"]:
         params["fig_anat"]._cbar.ax.clear()
@@ -2968,7 +2973,7 @@ def _plot_and_correct(*, params, cut_coords):
         _glass_brain_crosshairs(params, *cut_coords)
 
 
-@verbose
+@verbose_static("subject_none", "subjects_dir", "colormap", "clim", "transparent")
 def plot_volume_source_estimates(
     stc,
     src,
@@ -2997,12 +3002,22 @@ def plot_volume_source_estimates(
 
         .. versionchanged:: 0.18
            Support for :class:`~nibabel.spatialimages.SpatialImage`.
-    %(subject_none)s
+    subject : str | None
+        The FreeSurfer subject name.
         If ``None``, ``stc.subject`` will be used.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     mode : ``'stat_map'`` | ``'glass_brain'``
-        The plotting mode to use. For ``'glass_brain'``, activation absolute values are
-        displayed after being transformed to a standard MNI brain.
+        The plotting mode to use. For ``'glass_brain'``, activations are displayed
+        after being transformed to a standard MNI brain. With a diverging colormap
+        (e.g., ``clim=dict(pos_lims=...)``), the signed value with the maximum
+        absolute value along each projection is shown; otherwise, absolute values
+        are shown.
+
+        .. versionchanged:: 1.13.1
+           Signed values can be shown in ``'glass_brain'`` mode.
     bg_img : instance of SpatialImage | str
         The background image used in the nilearn plotting function.
         Can also be a string to use the ``bg_img`` file in the subject's
@@ -3010,9 +3025,32 @@ def plot_volume_source_estimates(
         Not used in "glass brain" plotting.
     colorbar : bool
         If True, display a colorbar on the right of the plots.
-    %(colormap)s
-    %(clim)s
-    %(transparent)s
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bounds for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                  Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     show : bool
         Show figures if True. Defaults to True.
     initial_time : float | None
@@ -3029,7 +3067,11 @@ def plot_volume_source_estimates(
         respectively).
 
         .. versionadded:: 0.19
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3071,8 +3113,7 @@ def plot_volume_source_estimates(
     from ..source_estimate import VolSourceEstimate
     from ..source_space._source_space import _ensure_src
 
-    if not check_version("nilearn", "0.4"):
-        raise RuntimeError("This function requires nilearn >= 0.4")
+    _soft_import("nilearn", "plotting volume source estimates")
 
     from nilearn.image import index_img
 
@@ -3180,8 +3221,7 @@ def plot_volume_source_estimates(
     lx = ax_time.axvline(stc.times[time_idx], color="g")
     params.update(fig=fig, ax_time=ax_time, lx=lx, axes=axes)
 
-    allow_pos_lims = mode != "glass_brain"
-    mapdata = _process_clim(clim, colormap, transparent, stc.data, allow_pos_lims)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
     _separate_map(mapdata)
     diverging = "pos_lims" in mapdata["clim"]
     ticks = _get_map_ticks(mapdata)
@@ -3194,7 +3234,7 @@ def plot_volume_source_estimates(
     dup_neg = False
     if stc.data.min() < 0:
         ax_time.axhline(0.0, color="0.5", ls="-", lw=0.5, zorder=2)
-        dup_neg = not diverging  # glass brain with signed data
+        dup_neg = not diverging  # signed data with one-sided colormap
     yticks = list(ticks)
     if dup_neg:
         yticks += [0] + list(-np.array(ticks))
@@ -3271,7 +3311,20 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
     return views
 
 
-@verbose
+@verbose_static(
+    "subject_none",
+    "colormap",
+    "time_label",
+    "transparent",
+    "views",
+    "clim_onesided",
+    "title_stc",
+    "show_traces",
+    "src_volume_options",
+    "view_layout",
+    "add_data_kwargs",
+    "brain_kwargs",
+)
 def plot_vector_source_estimates(
     stc,
     subject=None,
@@ -3317,16 +3370,29 @@ def plot_vector_source_estimates(
     ----------
     stc : VectorSourceEstimate | MixedVectorSourceEstimate
         The vector source estimate to plot.
-    %(subject_none)s
+    subject : str | None
+        The FreeSurfer subject name.
         If ``None``, ``stc.subject`` will be used.
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
-    %(colormap)s
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
         This should be a sequential colormap.
-    %(time_label)s
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``'auto'``, which will use ``time=%0.2f ms`` if there
+        is more than one time point.
     smoothing_steps : int
         The amount of smoothing.
-    %(transparent)s
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
     overlay_alpha : float
@@ -3351,10 +3417,23 @@ def plot_vector_source_estimates(
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
         figure by it's id or create a new figure with the given id.
-    %(views)s
+    views : str | list
+        View to use. Using multiple views (list) is not supported for mpl
+        backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+        valid string options.
     colorbar : bool
         If True, display colorbar on scene.
-    %(clim_onesided)s
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap.
+
+        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+        ``pos_lims``, as the surface plot must show the magnitude.
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         either the name of a preset Brain cortex colorscheme (one of
@@ -3375,15 +3454,69 @@ def plot_vector_source_estimates(
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    %(title_stc)s
+    title : str | None
+        Title for the figure window. If ``None``, the subject name will be used.
 
         .. versionadded:: 1.9
-    %(show_traces)s
-    %(src_volume_options)s
-    %(view_layout)s
-    %(add_data_kwargs)s
-    %(brain_kwargs)s
-    %(verbose)s
+    show_traces : bool | str | float
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot its time course.
+        This feature is only available with the PyVista 3d backend, and requires
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True``, the backend is PyVista, and there is more
+        than one time point. If float (between zero and one), it specifies what
+        proportion of the total window should be devoted to traces (True is
+        equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
+
+        .. versionadded:: 0.20.0
+    src : instance of SourceSpaces | None
+        The source space corresponding to the source estimate. Only necessary
+        if the STC is a volume or mixed source estimate.
+    volume_options : float | dict | None
+        Options for volumetric source estimate plotting, with key/value pairs:
+
+        - ``'resolution'`` : float | None
+            Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+            better at the cost of speed. None (default) uses the volume source
+            space resolution, which is often something like 7 or 5 mm,
+            without resampling.
+        - ``'blending'`` : str
+            Can be "mip" (default) for :term:`maximum intensity projection` or
+            "composite" for composite blending using alpha values.
+        - ``'alpha'`` : float | None
+            Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+            estimates and 1.0 for scalar source estimates.
+        - ``'surface_alpha'`` : float | None
+            Alpha for the surface enclosing the volume(s). None (default) will use
+            half the volume alpha. Set to zero to avoid plotting the surface.
+        - ``'silhouette_alpha'`` : float | None
+            Alpha for a silhouette along the outside of the volume. None (default)
+            will use ``0.25 * surface_alpha``.
+        - ``'silhouette_linewidth'`` : float
+            The line width to use for the silhouette. Default is 2.
+        - ``'interpolation'`` : str
+            The interpolation method to use for resampling the volume source space
+            to the specified resolution (and for sampling in the volume rendering).
+            Can be "linear" (default) or "nearest".
+
+            .. versionadded:: 1.13
+
+        A float input (default 1.) or None will be used for the ``'resolution'``
+        entry.
+    view_layout : str
+        Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+        the PyVista backend must be used and hemi cannot be "split".
+    add_data_kwargs : dict | None
+        Additional arguments to brain.add_data (e.g.,
+        ``dict(time_label_size=10)``).
+    brain_kwargs : dict | None
+        Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+        ``dict(silhouette=True)``).
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3435,7 +3568,7 @@ def plot_vector_source_estimates(
     )
 
 
-@verbose
+@verbose_static()
 def plot_sparse_source_estimates(
     src,
     stcs,
@@ -3499,8 +3632,12 @@ def plot_sparse_source_estimates(
         whereas the pivot in ``'sphere'`` mode is the center.
     scale_factors : list
         List of floating point scale factors for the markers.
-    %(verbose)s
-    **kwargs : kwargs
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **kwargs : dict
         Keyword arguments to pass to renderer.mesh.
 
     Returns
@@ -3656,7 +3793,7 @@ def plot_sparse_source_estimates(
     return renderer.scene()
 
 
-@verbose
+@verbose_static("subjects_dir", "head_source")
 def plot_dipole_locations(
     dipoles,
     trans=None,
@@ -3696,7 +3833,10 @@ def plot_dipole_locations(
         The FreeSurfer subject name (will be used to set the FreeSurfer
         environment variable ``SUBJECT``).
         Can be ``None`` with mode set to ``'3d'``.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     mode : str
         Can be:
 
@@ -3780,7 +3920,9 @@ def plot_dipole_locations(
         orientation etc.) will be shown. Defaults to ``None``.
 
         .. versionadded:: 0.21.0
-    %(head_source)s
+    head_source : str | list of str
+        Head source(s) to use. See the ``source`` option of
+        :func:`mne.get_head_surf` for more information.
         Only used when mode equals ``'outlines'``.
 
         .. versionadded:: 1.1
@@ -3794,7 +3936,11 @@ def plot_dipole_locations(
         :meth:`matplotlib:matplotlib.axes.Axes.quiver`. If None (default),
         when mode is ``'outlines'`` 0.015 will be used, and when mode is
         ``'orthoview'`` the matplotlib default is used.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3902,7 +4048,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         )
 
     # initialize figure
-    renderer = _get_renderer(fig, show=True)
+    renderer = _get_renderer(fig=fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
@@ -4184,7 +4330,7 @@ def _dipole_changed(event, params):
     _plot_dipole(**params)
 
 
-@fill_doc
+@fill_doc_static("clim", "colormap", "transparent")
 def plot_brain_colorbar(
     ax,
     clim,
@@ -4200,9 +4346,32 @@ def plot_brain_colorbar(
     ----------
     ax : instance of Axes
         The Axes to plot into.
-    %(clim)s
-    %(colormap)s
-    %(transparent)s
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bounds for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Lower, middle, and upper bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+        .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+                  Only sequential colormaps should be used with ``lims``, and
+                  only divergent colormaps should be used with ``pos_lims``.
+    colormap : str | matplotlib.colors.Colormap
+        Name of colormap to use or a custom Matplotlib colormap instance. If passing
+        a custom colormap, it must be an instance of
+        :class:`matplotlib.colors.Colormap` (e.g.,
+        :class:`matplotlib.colors.ListedColormap`).
+    transparent : bool | None
+        If True: use a linear transparency between fmin and fmid
+        and make values below fmin fully transparent (symmetrically for
+        divergent colormaps). None will choose automatically based on colormap
+        type.
     orientation : str
         Orientation of the colorbar, can be "vertical" or "horizontal".
     label : str

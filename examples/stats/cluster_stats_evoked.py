@@ -9,6 +9,11 @@ One tests if the evoked response is significantly different
 between conditions. Multiple comparison problem is addressed
 with cluster level permutation test.
 
+.. note::
+   This example uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -70,6 +75,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
     threshold=threshold,
     tail=1,
     n_jobs=None,
+    rng=23,
     out_type="mask",
 )
 

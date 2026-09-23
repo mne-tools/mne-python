@@ -4,13 +4,22 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from typing import Literal
+
 import numpy as np
 
-from ...utils import _check_option, _validate_type, fill_doc, logger, verbose
+from ..._fiff.meas_info import Info
+from ...utils import (
+    _check_option,
+    _validate_type,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+)
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "verbose")
 class RawArray(BaseRaw):
     """Raw object from numpy array.
 
@@ -18,7 +27,10 @@ class RawArray(BaseRaw):
     ----------
     data : array, shape (n_channels, n_times)
         The channels' time series. See notes for proper units of measure.
-    %(info_not_none)s Consider using :func:`mne.create_info` to populate
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
     first_samp : int
         First sample offset used during recording (default 0).
@@ -28,9 +40,16 @@ class RawArray(BaseRaw):
         Determines what gets copied on instantiation. "auto" (default)
         will copy info, and copy "data" only if necessary to get to
         double floating point precision.
+        If ``data`` is a memory-mapped array and is not copied, the caller
+        retains ownership of its backing file and is responsible for removing
+        it after the Raw object is no longer in use.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -50,8 +69,15 @@ class RawArray(BaseRaw):
     * AU: misc
     """
 
-    @verbose
-    def __init__(self, data, info, first_samp=0, copy="auto", verbose=None):
+    @_verbose_control
+    def __init__(
+        self,
+        data: np.ndarray,
+        info: Info,
+        first_samp: int = 0,
+        copy: Literal["data", "info", "both", "auto"] | None = "auto",
+        verbose: bool | str | int | None = None,
+    ):
         _validate_type(info, "info", "info")
         _check_option("copy", copy, ("data", "info", "both", "auto", None))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64

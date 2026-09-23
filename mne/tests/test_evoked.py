@@ -78,13 +78,13 @@ def test_get_data():
 
 def test_decim():
     """Test evoked decimation."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     n_channels, n_times = 10, 20
     dec_1, dec_2 = 2, 3
     decim = dec_1 * dec_2
     sfreq = 10.0
     sfreq_new = sfreq / decim
-    data = rng.randn(n_channels, n_times)
+    data = rng.standard_normal((n_channels, n_times))
     info = create_info(n_channels, sfreq, "eeg")
     with info._unlock():
         info["lowpass"] = sfreq_new / float(decim)
@@ -761,8 +761,8 @@ def test_arithmetic():
 def test_array_epochs(tmp_path):
     """Test creating evoked from array."""
     # creating
-    rng = np.random.RandomState(42)
-    data1 = rng.randn(20, 60)
+    rng = np.random.default_rng(42)
+    data1 = rng.standard_normal((20, 60))
     sfreq = 1e3
     ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
@@ -955,7 +955,8 @@ def test_hilbert():
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
     # create fake evoked data to use for checking apply_function
-    data = np.random.rand(10, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.random((10, 1000))
     info = create_info(10, 1000.0, "eeg")
     evoked = EvokedArray(data, info)
     evoked_data = evoked.data.copy()

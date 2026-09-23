@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "88055572a4150e4846cff08245862a9dc8fac110",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 183,
+      "d": 128
+    },
+    ".gitignore": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/circleci_download.sh": {
+      "a": 40,
+      "d": 133
+    },
+    "tools/circleci_triage.sh": {
+      "a": 106,
+      "d": 0
+    }
+  }
+}

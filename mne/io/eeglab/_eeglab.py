@@ -4,13 +4,6 @@
 
 import numpy as np
 
-try:
-    from scipy.io.matlab import MatlabFunction, MatlabOpaque
-except ImportError:  # scipy < 1.8
-    from scipy.io.matlab.mio5 import MatlabFunction
-    from scipy.io.matlab.mio5_params import MatlabOpaque
-from scipy.io import loadmat
-
 from ...fixes import _whosmat
 from ...utils import _import_pymatreader_funcs, warn
 
@@ -38,6 +31,8 @@ def _todict_from_np_struct(data):  # taken from pymatreader.utils
 
 
 def _handle_scipy_ndarray(data):  # taken from pymatreader.utils
+    from scipy.io.matlab import MatlabFunction
+
     if data.dtype == np.dtype("object") and not isinstance(data, MatlabFunction):
         as_list = []
         for element in data:
@@ -55,13 +50,17 @@ def _handle_scipy_ndarray(data):  # taken from pymatreader.utils
 
 def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
     """Convert all scipy.io.matlab.mio5_params.mat_struct elements."""
+    from scipy.io.matlab import MatlabOpaque
+
     if isinstance(data, dict):
         for key in data:
             data[key] = _check_for_scipy_mat_struct(data[key])
 
     if isinstance(data, MatlabOpaque):
+        # TODO VERSION: scipy < 1.18 has the class name in field 2 (scipy/scipy#23481)
+        idx = 1 if data.dtype.names[0] == "_TypeSystem" else 2
         try:
-            if data[0][2] == b"string":
+            if data[0][idx] in ("string", b"string"):
                 return None
         except IndexError:
             pass
@@ -74,6 +73,8 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
 
 def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
     """Load with scipy and then run the check function."""
+    from scipy.io import loadmat
+
     mat_data = loadmat(
         file_name,
         squeeze_me=True,

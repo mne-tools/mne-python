@@ -263,7 +263,7 @@ def test_epochs_plot_sensors(epochs):
 
 def test_plot_epochs_nodata(browser_backend):
     """Test plotting of epochs when no data channels are present."""
-    data = np.random.RandomState(0).randn(10, 2, 1000)
+    data = np.random.default_rng(0).standard_normal((10, 2, 1000))
     info = create_info(2, 1000.0, "stim")
     epochs = EpochsArray(data, info)
     with pytest.raises(ValueError, match="consider passing picks explicitly"):

@@ -39,7 +39,11 @@ dictionary called the ``docdict``). There are two major downsides:
    hover-tooltips in IDEs are less useful than they would be if the docstrings were
    complete in-place.
 
-A possible route forward:
+The route now being taken (see :ref:`the contributing guide <contributing>`):
+keep the ``docdict`` as the single place shared text is *authored*, but expand it
+into the source code (``@fill_doc_static`` / ``@verbose_static``) and enforce
+consistency with a pre-commit hook that can also apply ``docdict`` changes to every
+docstring. An earlier alternative that was considered:
 
 - Convert all docstrings to be fully spelled out in the source code.
 - Instead of maintaining the ``docdict``, maintain a registry of sets of
@@ -141,19 +145,14 @@ Modernization of realtime processing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 LSL has become the de facto standard for streaming data from EEG/MEG systems.
-We should deprecate `MNE-Realtime`_ in favor of the newly minted `MNE-LSL`_.
+We should deprecate `MNE-Realtime <https://mne.tools/mne-realtime>`__ in favor of the newly minted `MNE-LSL`_.
 We should then fully support MNE-LSL using modern coding best practices such as CI
 integration.
 
-Core components of commonly used real-time processing pipelines should be implemented in
-MNE-LSL, including but not limited to realtime IIR filtering, artifact rejection,
-montage and reference setting, and online averaging. Integration with standard
-MNE-Python plotting routines (evoked joint plots, topomaps, etc.) should be
-supported with continuous updating.
-
 For closed-loop applications such as neurofeedback and BCI, `MNE-RT`_ builds on
-MNE-LSL and MNE-Python to provide real-time feature extraction, adaptive protocols,
-artifact correction, and live visualisation in a single researcher-friendly API.
+MNE-LSL and MNE-Python for sensor- and source-space feature extraction, adaptive
+feedback protocols, real-time artifact correction, and live visualisation that
+integrates with standard MNE-Python plotting routines with continuous updating.
 
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -227,12 +226,12 @@ The meta-issue tracking to-do lists for surface plotting was :gh:`7162`.
 Improved sEEG/ECoG/DBS support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 iEEG-specific pipeline steps such as electrode localization and visualizations
-are now available in `MNE-gui-addons`_.
+are now available in `MNE-gui-addons <https://mne.tools/mne-gui-addons>`__.
 
 Access to open EEG/MEG databases
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Open EEG/MEG databases are now more easily accessible via standardized tools such as
-`openneuro-py`_.
+`openneuro-py <https://pypi.org/project/openneuro-py>`__.
 
 Eye-tracking support
 ^^^^^^^^^^^^^^^^^^^^
@@ -287,7 +286,7 @@ See :func:`mne-gui-addons:mne_gui_addons.view_vol_stc`.
 Distributed computing support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 `MNE-BIDS-Pipeline`_ has been enhanced with support for cloud computing
-via `Dask`_ and :doc:`joblib <joblib:auto_examples/parallel/distributed_backend_simple>`.
+via `Dask <https://dask.org/>`__ and :doc:`joblib <joblib:auto_examples/parallel/distributed_backend_simple>`.
 After configuring Dask to use local or remote distributed computing resources,
 MNE-BIDS-Pipeline can readily make use of remote workers to parallelize
 processing across subjects.
@@ -307,6 +306,8 @@ was completed under CZI `EOSS2`_. Ongoing documentation needs are listed in
 Cluster computing images
 ^^^^^^^^^^^^^^^^^^^^^^^^
 As part of `this goal <https://mne.tools/0.22/overview/roadmap.html#cluster-computing>`__,
-we created docker images suitable for cloud computing via `MNE-Docker`_.
+we created docker images suitable for cloud computing via `MNE-Docker <https://github.com/mne-tools/mne-docker>`__.
 
 .. _I-LABS: http://ilabs.washington.edu/
+
+.. include:: ../links.inc

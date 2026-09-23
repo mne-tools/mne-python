@@ -209,3 +209,7 @@ The committer list for this release is the following (preceded by number of comm
 * 1 pbnsilva
 * 1 sviter
 * 1 zuxfoucault
+
+.. include:: names.inc
+
+.. include:: ../links.inc

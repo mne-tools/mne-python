@@ -12,14 +12,14 @@ from scipy.io import loadmat
 from ..._fiff.meas_info import create_info
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
-from ...utils import _check_pandas_installed, logger, verbose
+from ...utils import _check_pandas_installed, logger, verbose_static
 from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
 # root url for LIMO files
 root_url = "https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/"
 
 
-@verbose
+@verbose_static()
 def data_path(
     subject, path=None, force_update=False, update_path=None, *, verbose=None
 ):
@@ -46,7 +46,11 @@ def data_path(
     update_path : bool | None
         If True, set the MNE_DATASETS_LIMO_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -264,7 +268,7 @@ def data_path(
     return base_path
 
 
-@verbose
+@verbose_static()
 def load_data(subject, path=None, force_update=False, update_path=None, verbose=None):
     """Fetch subjects epochs data for the LIMO data set.
 
@@ -282,13 +286,17 @@ def load_data(subject, path=None, force_update=False, update_path=None, verbose=
     update_path : bool | None
         If True, set the MNE_DATASETS_LIMO_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
     epochs : instance of Epochs
         The epochs.
-    """  # noqa: E501
+    """
     pd = _check_pandas_installed()
     # subject in question
     if isinstance(subject, int) and 1 <= subject <= 18:

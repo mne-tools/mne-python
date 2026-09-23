@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose_static
 from .base import _set_cv
 from .transformer import MNETransformerMixin
 
@@ -60,7 +60,7 @@ class EMS(MNETransformerMixin, BaseEstimator):
     def fit(self, X, y):
         """Fit the spatial filters.
 
-        .. note : EMS is fitted on data normalized by channel type before the
+        .. note:: EMS is fitted on data normalized by channel type before the
                   fitting of the spatial filters.
 
         Parameters
@@ -103,7 +103,7 @@ class EMS(MNETransformerMixin, BaseEstimator):
         return Xt
 
 
-@verbose
+@verbose_static("picks_good_data", "n_jobs")
 def compute_ems(
     epochs, conditions=None, picks=None, n_jobs=None, cv=None, *, verbose=None
 ):
@@ -116,30 +116,49 @@ def compute_ems(
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
-    .. note : The present function applies a leave-one-out cross-validation,
+    .. note:: The present function applies a leave-one-out cross-validation,
               following Schurger et al's paper. However, we recommend using
               a stratified k-fold cross-validation. Indeed, leave-one-out tends
               to overfit and cannot be used to estimate the variance of the
               prediction within a given fold.
 
-    .. note : Because of the leave-one-out, this function needs an equal
+    .. note:: Because of the leave-one-out, this function needs an equal
               number of epochs in each of the two conditions.
 
     Parameters
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list of str | None, default None
+    conditions : list of str | None
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
-    %(picks_good_data)s
-    %(n_jobs)s
-    cv : cross-validation object | str | None, default LeaveOneOut
-        The cross-validation scheme.
-    %(verbose)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    cv : cross-validation object | str | None
+        The cross-validation scheme. If None,
+        :class:`sklearn.model_selection.LeaveOneOut` is used.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

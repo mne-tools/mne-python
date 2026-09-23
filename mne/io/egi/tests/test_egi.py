@@ -5,7 +5,7 @@
 
 import os
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -97,9 +97,13 @@ def test_egi_mff_pause(fname, skip_times, event_times):
     else:
         events = find_events(raw)
         for event_type in event_times.keys():
-            ns_samples = np.floor(np.array(event_times[event_type]) * raw.info["sfreq"])
+            ns_samples = np.floor(
+                np.array(event_times[event_type]) * raw.info["sfreq"] + 0.5
+            ).astype(int)
+            ns_samples = ns_samples[ns_samples < raw.n_times]
             assert_array_equal(
-                events[events[:, 2] == raw.event_id[event_type], 0], ns_samples
+                events[events[:, 2] == raw.event_id[event_type], 0],
+                ns_samples,
             )
 
     # read some data from the middle of the skip, assert it's all zeros
@@ -543,7 +547,7 @@ def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
     raw = read_raw_egi(fname, verbose="warning")
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
-    measdate = dt.astimezone(timezone.utc)
+    measdate = dt.astimezone(UTC)
     hour_local = int(dt.strftime("%H"))
     hour_utc = int(raw.info["meas_date"].strftime("%H"))
     local_utc_diff = hour_local - hour_utc
@@ -598,3 +602,92 @@ def test_egi_mff_bad_xml(tmp_path):
             raw = read_raw_egi(mff_fname)
     # little check that the bad XML doesn't affect the parsing of other xml files
     assert "DIN1" in raw.annotations.description
+
+
+@requires_testing_data
+def test_egi_mff_channel_status(tmp_path):
+    """Test that bad channels from categories.xml channelStatus are read."""
+    mff_fname = copytree_rw(egi_pause_fname, tmp_path / "paused_status.mff")
+    # categories.xml exercising all branches of _read_channel_status_bads:
+    #   - EEG channels 5 and 23 bad (signalBin=1, exclusion=badChannels) — main path
+    #   - channel 9999 out of range — covers the bounds-check false branch
+    #   - goodChannels entry — covers the exclusion != "badChannels" continue path
+    cats_xml = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<categories xmlns="http://www.egi.com/categories_mff">
+    <cat>
+        <name>Recording</name>
+        <segments>
+            <seg status="unedited">
+                <beginTime>0</beginTime>
+                <endTime>1300000</endTime>
+                <evtBegin>0</evtBegin>
+                <evtEnd>0</evtEnd>
+                <channelStatus>
+                    <channels signalBin="1" exclusion="badChannels">5 23 9999</channels>
+                    <channels signalBin="1" exclusion="goodChannels">1 2 3</channels>
+                    <channels signalBin="3" exclusion="badChannels">1</channels>
+                </channelStatus>
+            </seg>
+        </segments>
+    </cat>
+</categories>
+"""
+    (mff_fname / "categories.xml").write_text(cats_xml, encoding="utf-8")
+    raw = read_raw_egi(mff_fname, events_as_annotations=False, verbose=False)
+    assert raw.info["bads"] == [
+        "E23",
+        "E5",
+    ]  # 9999 ignored (out of range); goodChannels ignored
+
+    # Corrupted categories.xml must not raise — returns empty bads gracefully
+    (mff_fname / "categories.xml").write_text("NOT VALID XML", encoding="utf-8")
+    raw2 = read_raw_egi(mff_fname, events_as_annotations=False, verbose=False)
+    assert raw2.info["bads"] == []
+
+    # PNS file: write categories.xml with signalBin=2 to exercise the PNS bads path
+    pns_fname = copytree_rw(egi_mff_pns_fname, tmp_path / "pns_status.mff")
+    cats_pns_xml = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<categories xmlns="http://www.egi.com/categories_mff">
+    <cat>
+        <name>Recording</name>
+        <segments>
+            <seg status="unedited">
+                <beginTime>0</beginTime>
+                <endTime>4000000</endTime>
+                <evtBegin>0</evtBegin>
+                <evtEnd>0</evtEnd>
+                <channelStatus>
+                    <channels signalBin="2" exclusion="badChannels">1 9999</channels>
+                </channelStatus>
+            </seg>
+        </segments>
+    </cat>
+</categories>
+"""
+    (pns_fname / "categories.xml").write_text(cats_pns_xml, encoding="utf-8")
+    raw3 = read_raw_egi(pns_fname, verbose=False)
+    assert len(raw3.info["bads"]) >= 1  # at least PNS channel 1 marked bad
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "fname, expected",
+    [pytest.param(egi_pause_fname, "AM40_3", id="paused")],
+)
+def test_read_event_keys(fname, expected):
+    """Test event metadata extraction from``<keys>`` child elements."""
+    with pytest.warns(RuntimeWarning, match="Acquisition skips detected"):
+        raw = _test_raw_reader(
+            read_raw_egi,
+            input_fname=fname,
+            test_scaling=False,
+            test_rank="less",
+            events_as_annotations=True,
+            event_key="cel#",
+        )
+    assert expected in raw.annotations.description
+    extra = raw.annotations[3]["extras"]
+    assert extra["label"] == "AM40"
+    assert extra["event_key_cel#"] == 3

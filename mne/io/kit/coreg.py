@@ -22,6 +22,7 @@ from ...transforms import (
     Transform,
     als_ras_trans,
     apply_trans,
+    fit_matched_points,
     get_ras_to_neuromag_trans,
 )
 from ...utils import _check_fname, _check_option, warn
@@ -31,7 +32,7 @@ INT32 = "<i4"
 FLOAT64 = "<f8"
 
 
-def read_mrk(fname):
+def read_mrk(fname: Path | str) -> np.ndarray:
     r"""Marker Point Extraction in MEG space directly from sqd.
 
     Parameters
@@ -133,7 +134,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg, *, bad_coils=()):
     hpi_results : list
         The hpi results.
     """
-    from ...coreg import _decimate_points, fit_matched_points
+    from ...coreg import _decimate_points
 
     if isinstance(hsp, str | Path | PathLike):
         hsp = _read_dig_kit(hsp)

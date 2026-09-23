@@ -2,8 +2,12 @@ name: Changelog
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
-    types: [opened, synchronize, labeled, unlabeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -13,10 +17,12 @@ jobs:
     name: Check towncrier entry in doc/changes/dev/
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: scientific-python/action-towncrier-changelog@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BOT_USERNAME: changelog-bot
+      - uses: actions/setup-python@v7.0.0
+      - run: python tools/check_changelog_names.py  # faster than CircleCI

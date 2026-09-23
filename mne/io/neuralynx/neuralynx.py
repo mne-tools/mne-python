@@ -6,19 +6,30 @@ import datetime
 import glob
 import inspect
 import os
+from pathlib import Path
 
 import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
+from ...utils import (
+    _check_fname,
+    _soft_import,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+)
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw_neuralynx(
-    fname, *, preload=False, exclude_fname_patterns=None, verbose=None
+    fname: Path | str,
+    *,
+    preload: bool | str = False,
+    exclude_fname_patterns: list[str] | None = None,
+    verbose: bool | str | int | None = None,
 ) -> "RawNeuralynx":
     """Reader for Neuralynx files.
 
@@ -26,12 +37,29 @@ def read_raw_neuralynx(
     ----------
     fname : path-like
         Path to a folder with Neuralynx .ncs files.
-    %(preload)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
     exclude_fname_patterns : list of str
         List of glob-like string patterns to exclude from channel list.
         Useful when not all channels have the same number of samples
         so you can read separate instances.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -87,11 +115,11 @@ def _exclude_kwarg(exclude_fnames):
     return {key: exclude_fnames}
 
 
-@fill_doc
+@fill_doc_static()
 class RawNeuralynx(BaseRaw):
     """RawNeuralynx class."""
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         fname,
@@ -137,7 +165,7 @@ class RawNeuralynx(BaseRaw):
 
         info = create_info(
             ch_types="seeg",
-            ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),
+            ch_names=nlx_reader.header["signal_channels"]["name"].tolist(),  # ty: ignore  # neo header
             sfreq=nlx_reader.get_signal_sampling_rate(),
         )
 
@@ -192,12 +220,12 @@ class RawNeuralynx(BaseRaw):
         ]
 
         with info._unlock():
-            info["meas_date"] = meas_dates[0].astimezone(datetime.timezone.utc)
+            info["meas_date"] = meas_dates[0].astimezone(datetime.UTC)
             info["highpass"] = np.max(highpass_freqs)
             info["lowpass"] = np.min(lowpass_freqs)
 
         # Neo reads only valid contiguous .ncs samples grouped as segments
-        n_segments = nlx_reader.header["nb_segment"][0]
+        n_segments = nlx_reader.header["nb_segment"][0]  # ty: ignore  # neo header
         block_id = 0  # assumes there's only one block of recording
 
         # get segment start/stop times
@@ -418,7 +446,7 @@ class RawNeuralynx(BaseRaw):
         ).T
 
         all_data *= 1e-6  # Convert uV to V
-        n_channels = len(nlx_reader.header["signal_channels"]["name"])
+        n_channels = len(nlx_reader.header["signal_channels"]["name"])  # ty: ignore  # neo header
         block = np.zeros((n_channels, stop - start), dtype=data.dtype)
         block[idx] = all_data  # shape = (n_channels, n_samples)
 

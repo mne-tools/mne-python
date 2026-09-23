@@ -44,12 +44,12 @@ from ..surface import _CheckInside
 from ..transforms import Transform, _get_trans, transform_surface_to
 from ..utils import (
     _check_preload,
+    _legacy_rng,
     _pl,
     _validate_type,
     _verbose_safe_false,
-    check_random_state,
     logger,
-    verbose,
+    verbose_static,
 )
 from .source import SourceSimulator
 
@@ -150,7 +150,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
     return dev_head_ts, offsets
 
 
-@verbose
+@verbose_static("info_not_none", "head_pos", "interp", "n_jobs", "use_cps")
 def simulate_raw(
     info,
     stc=None,
@@ -174,7 +174,10 @@ def simulate_raw(
 
     Parameters
     ----------
-    %(info_not_none)s Used for simulation.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Used for simulation.
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
@@ -204,14 +207,33 @@ def simulate_raw(
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
-    %(head_pos)s
+    head_pos : None | path-like | dict | tuple | array
+        Path to the position estimates file. Should be in the format of
+        the files produced by MaxFilter. If dict, keys should
+        be the time points and entries should be 4x4 ``dev_head_t``
+        matrices. If None, the original head position (from
+        ``info['dev_head_t']``) will be used. If tuple, should have the
+        same format as data returned by ``head_pos_to_trans_rot_t``.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
         See for example :footcite:`LarsonTaulu2017`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
-    %(interp)s
-    %(n_jobs)s
-    %(use_cps)s
+    interp : str
+        Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type
+        of forward-solution interpolation to use between forward solutions at different
+        head positions.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
         using ``bem``, ``trans``, and ``src``. If not None,
@@ -227,7 +249,11 @@ def simulate_raw(
         This is a sanity parameter to prevent accidental blowups.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -277,7 +303,7 @@ def simulate_raw(
     References
     ----------
     .. footbibliography::
-    """  # noqa: E501
+    """
     _validate_type(info, Info, "info")
 
     if len(pick_types(info, meg=False, stim=True)) == 0:
@@ -387,9 +413,17 @@ def simulate_raw(
     return raw
 
 
-@verbose
+@_legacy_rng("random_state")
+@verbose_static("head_pos", "interp", "n_jobs", "rng", "random_state_rng")
 def add_eog(
-    raw, head_pos=None, interp="cos2", n_jobs=None, random_state=None, verbose=None
+    raw,
+    head_pos=None,
+    interp="cos2",
+    n_jobs=None,
+    verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Add blink noise to raw data.
 
@@ -397,13 +431,48 @@ def add_eog(
     ----------
     raw : instance of Raw
         The raw instance to modify.
-    %(head_pos)s
-    %(interp)s
-    %(n_jobs)s
-    %(random_state)s
+    head_pos : None | path-like | dict | tuple | array
+        Path to the position estimates file. Should be in the format of
+        the files produced by MaxFilter. If dict, keys should
+        be the time points and entries should be 4x4 ``dev_head_t``
+        matrices. If None, the original head position (from
+        ``info['dev_head_t']``) will be used. If tuple, should have the
+        same format as data returned by ``head_pos_to_trans_rot_t``.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
+    interp : str
+        Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type
+        of forward-solution interpolation to use between forward solutions at different
+        head positions.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
         The random generator state used for blink, ECG, and sensor noise
         randomization.
-    %(verbose)s
 
     Returns
     -------
@@ -439,12 +508,20 @@ def add_eog(
     ----------
     .. footbibliography::
     """
-    return _add_exg(raw, "blink", head_pos, interp, n_jobs, random_state)
+    return _add_exg(raw, "blink", head_pos, interp, n_jobs, rng)
 
 
-@verbose
+@_legacy_rng("random_state")
+@verbose_static("head_pos", "interp", "n_jobs", "rng", "random_state_rng")
 def add_ecg(
-    raw, head_pos=None, interp="cos2", n_jobs=None, random_state=None, verbose=None
+    raw,
+    head_pos=None,
+    interp="cos2",
+    n_jobs=None,
+    verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Add ECG noise to raw data.
 
@@ -452,13 +529,48 @@ def add_ecg(
     ----------
     raw : instance of Raw
         The raw instance to modify.
-    %(head_pos)s
-    %(interp)s
-    %(n_jobs)s
-    %(random_state)s
+    head_pos : None | path-like | dict | tuple | array
+        Path to the position estimates file. Should be in the format of
+        the files produced by MaxFilter. If dict, keys should
+        be the time points and entries should be 4x4 ``dev_head_t``
+        matrices. If None, the original head position (from
+        ``info['dev_head_t']``) will be used. If tuple, should have the
+        same format as data returned by ``head_pos_to_trans_rot_t``.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
+    interp : str
+        Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type
+        of forward-solution interpolation to use between forward solutions at different
+        head positions.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
         The random generator state used for blink, ECG, and sensor noise
         randomization.
-    %(verbose)s
 
     Returns
     -------
@@ -492,14 +604,13 @@ def add_ecg(
 
     .. versionadded:: 0.18
     """
-    return _add_exg(raw, "ecg", head_pos, interp, n_jobs, random_state)
+    return _add_exg(raw, "ecg", head_pos, interp, n_jobs, rng)
 
 
-def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
+def _add_exg(raw, kind, head_pos, interp, n_jobs, rng):
     assert isinstance(kind, str) and kind in ("ecg", "blink")
     _validate_type(raw, BaseRaw, "raw")
     _check_preload(raw, f"Adding {kind} noise ")
-    rng = check_random_state(random_state)
     info, times, first_samp = raw.info, raw.times, raw.first_samp
     data = raw._data
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=())
@@ -576,7 +687,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         nn = np.zeros_like(exg_rr)
         nn[:, 0] = 1  # arbitrarily rightward
     del meg_picks, meeg_picks
-    noise = rng.standard_normal(exg_data.shape[1]) * 5e-6
+    noise = rng.normal(scale=5e-6, size=exg_data.shape[1])
     if len(ch) >= 1:
         ch = ch[-1]
         data[ch, :] = exg_data * 1e3 + noise
@@ -600,7 +711,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     assert used.all()
 
 
-@verbose
+@verbose_static("head_pos", "interp", "n_jobs")
 def add_chpi(raw, head_pos=None, interp="cos2", n_jobs=None, verbose=None):
     """Add cHPI activations to raw data.
 
@@ -608,10 +719,31 @@ def add_chpi(raw, head_pos=None, interp="cos2", n_jobs=None, verbose=None):
     ----------
     raw : instance of Raw
         The raw instance to be modified.
-    %(head_pos)s
-    %(interp)s
-    %(n_jobs)s
-    %(verbose)s
+    head_pos : None | path-like | dict | tuple | array
+        Path to the position estimates file. Should be in the format of
+        the files produced by MaxFilter. If dict, keys should
+        be the time points and entries should be 4x4 ``dev_head_t``
+        matrices. If None, the original head position (from
+        ``info['dev_head_t']``) will be used. If tuple, should have the
+        same format as data returned by ``head_pos_to_trans_rot_t``.
+        If array, should be of the form returned by
+        :func:`mne.chpi.read_head_pos`.
+    interp : str
+        Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type
+        of forward-solution interpolation to use between forward solutions at different
+        head positions.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

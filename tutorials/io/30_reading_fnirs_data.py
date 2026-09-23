@@ -173,7 +173,7 @@ import mne
 # load. We simulate 16 channels with 100 samples of data and save this to a
 # file called fnirs.csv.
 
-pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
+pd.DataFrame(np.random.default_rng(97).normal(size=(16, 100))).to_csv("fnirs.csv")
 
 
 # %%

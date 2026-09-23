@@ -4,6 +4,7 @@
 
 import datetime
 import re
+from pathlib import Path
 
 import numpy as np
 
@@ -20,9 +21,9 @@ from ...utils import (
     _check_option,
     _import_h5py,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
@@ -68,9 +69,14 @@ _TD_MOMENT_ORDER_MAP = {
 }
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw_snirf(
-    fname, optode_frame="unknown", *, sfreq=None, preload=False, verbose=None
+    fname: Path | str,
+    optode_frame: str = "unknown",
+    *,
+    sfreq: float | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawSNIRF":
     """Reader for a continuous wave SNIRF data.
 
@@ -95,8 +101,25 @@ def read_raw_snirf(
         will be estimated from the time data in the file.
 
         .. versionadded:: 1.10
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -115,7 +138,7 @@ def _open(fname):
     return open(fname, encoding="latin-1")
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawSNIRF(BaseRaw):
     """Raw object from a continuous wave SNIRF file.
 
@@ -133,15 +156,32 @@ class RawSNIRF(BaseRaw):
         will be estimated from the time data in the file.
 
         .. versionadded:: 1.10
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self, fname, optode_frame="unknown", *, sfreq=None, preload=False, verbose=None
     ):
@@ -535,7 +575,7 @@ class RawSNIRF(BaseRaw):
                     rpa=rpa,
                     hpi=hpi,
                     dig_ch_pos=extra_ps,
-                    coord_frame=_frame_to_str[coord_frame],
+                    coord_frame=_frame_to_str[int(coord_frame)],
                     add_missing_fiducials=add_missing_fiducials,
                 )
             else:
@@ -587,7 +627,7 @@ class RawSNIRF(BaseRaw):
                     meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
             else:
                 meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
-            meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
+            meas_date = meas_date.replace(tzinfo=datetime.UTC)
             with info._unlock():
                 info["meas_date"] = meas_date
 

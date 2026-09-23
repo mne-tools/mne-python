@@ -12,13 +12,14 @@ from ..utils import logger
 
 
 class _Overlay:
-    def __init__(self, scalars, colormap, rng, opacity, name):
+    def __init__(self, scalars, colormap, rng, opacity, name, smooth=False):
         self._scalars = scalars
         self._colormap = colormap
         assert rng is not None
         self._rng = rng
         self._opacity = opacity
         self._name = name
+        self._smooth = smooth
 
     def to_colors(self):
         from matplotlib.colors import Colormap, ListedColormap
@@ -150,17 +151,28 @@ class LayeredMesh:
         self._is_mapped = True
 
     def _compute_over(self, B, A):
+        # Alpha-composite A ("over") on top of B, both RGBA in [0, 1].
+        #
+        # This runs on every time point of an interactive time course, on surfaces
+        # with >1e5 vertices, so it is written to touch the (n_vertices, 4) arrays
+        # as few times as possible and only ever whole: expressing it in terms of
+        # the RGB columns (``C[:, :3] *= ...``) makes every operation strided,
+        # which costs ~4x more than the same work on the full array. The alpha
+        # column is included in the arithmetic and simply overwritten at the end.
         assert A.ndim == B.ndim == 2
         assert A.shape[1] == B.shape[1] == 4
-        A_w = A[:, 3:]  # * 1
-        B_w = B[:, 3:] * (1 - A_w)
-        C = A.copy()
-        C[:, :3] *= A_w
-        C[:, :3] += B[:, :3] * B_w
-        C[:, 3:] += B_w
-        C_alpha_zero = C[:, 3] == 0
-        C[~C_alpha_zero, :3] /= C[~C_alpha_zero, 3:]
-        C[C_alpha_zero, :3] = 0
+        A_w = A[:, 3].copy()  # copy: column slices of a (n, 4) array are strided
+        B_w = B[:, 3].copy()
+        B_w *= 1 - A_w
+        C = A * A_w[:, None]
+        C += B * B_w[:, None]
+        alpha = A_w + B_w
+        # Where the composite is fully transparent the color is undefined: divide
+        # by one there instead, and zero those rows out afterwards.
+        opaque = alpha != 0
+        np.divide(C, np.where(opaque, alpha, 1)[:, None], out=C)
+        C *= opaque[:, None]
+        C[:, 3] = alpha
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
@@ -204,6 +216,7 @@ class LayeredMesh:
             rng=rng,
             opacity=opacity,
             name=name,
+            smooth=smooth,
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
@@ -256,12 +269,41 @@ class LayeredMesh:
         self._apply()
 
     def _clean(self):
-        mapper = self._actor.GetMapper()
-        mapper.SetLookupTable(None)
-        self._actor.SetMapper(None)
+        if hasattr(self._actor, "GetMapper"):  # VTK; the browser backend draws dicts
+            mapper = self._actor.GetMapper()
+            mapper.SetLookupTable(None)
+            self._actor.SetMapper(None)
         self._actor = None
         self._polydata = None
         self._renderer = None
+
+    def update_geometry(self, vertices, normals, triangles=None):
+        """Update the mesh's vertex positions and normals in place.
+
+        Parameters
+        ----------
+        vertices : array, shape (n_vertices, 3)
+            New vertex coordinates. Must match the existing vertex count.
+        normals : array, shape (n_vertices, 3)
+            New vertex normals.
+        triangles : array, shape (n_triangles, 3) | None
+            New triangulation. Only needed when the new geometry is not just a
+            displacement of the old one, e.g. a flat patch of the cortex, whose
+            triangles outside the patch are dropped. The vertex count must stay
+            the same either way, so the overlays keep their scalars.
+
+            .. versionadded:: 1.13
+        """
+        self._vertices = vertices
+        self._normals = normals
+        self._polydata.points = vertices
+        self._polydata.point_data["Normals"] = normals
+        self._polydata.GetPointData().SetActiveNormals("Normals")
+        if triangles is not None:
+            self._triangles = triangles
+            self._polydata.faces = np.hstack(
+                [np.full((len(triangles), 1), 3), triangles]
+            ).ravel()
 
     def update_overlay(
         self, name, scalars=None, colormap=None, opacity=None, rng=None, update=True
@@ -294,7 +336,8 @@ class LayeredMesh:
             return
         if scalars is not None:
             scalars = np.asarray(scalars)
-            if self.smooth_mat is not None:
+            smooth = overlay._smooth and self.smooth_mat is not None
+            if smooth:
                 expected = self.smooth_mat.shape[1]
             else:
                 expected = len(overlay._scalars)
@@ -302,7 +345,7 @@ class LayeredMesh:
                 raise ValueError(
                     f"scalars must have shape ({expected},), got {scalars.shape}"
                 )
-            if self.smooth_mat is not None:
+            if smooth:
                 scalars = self.smooth_mat.dot(scalars)
             overlay._scalars = scalars
         if colormap is not None:

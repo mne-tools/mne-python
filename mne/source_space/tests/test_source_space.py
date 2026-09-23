@@ -66,7 +66,7 @@ trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 
 @testing.requires_testing_data
@@ -463,9 +463,9 @@ def test_accumulate_normals():
     n_tris = int(3.2e5)
     # use all positive to make a worst-case for cumulative summation
     # (real "nn" vectors will have both positive and negative values)
-    tris = (rng.rand(n_tris, 1) * (n_pts - 2)).astype(int)
+    tris = (rng.random((n_tris, 1)) * (n_pts - 2)).astype(int)
     tris = np.c_[tris, tris + 1, tris + 2]
-    tri_nn = rng.rand(n_tris, 3)
+    tri_nn = rng.random((n_tris, 3))
     this = dict(tris=tris, np=n_pts, ntri=n_tris, tri_nn=tri_nn)
 
     # cut-and-paste from original code in surface.py:
@@ -759,7 +759,7 @@ def test_read_volume_from_src():
 def test_combine_source_spaces(tmp_path):
     """Test combining source spaces."""
     nib = pytest.importorskip("nibabel")
-    rng = np.random.RandomState(2)
+    rng = np.random.default_rng(2)
     volume_labels = ["Brain-Stem", "Right-Hippocampus"]  # two fairly large
 
     # create a sparse surface source space to ensure all get mapped
@@ -778,7 +778,7 @@ def test_combine_source_spaces(tmp_path):
     )
 
     # setup a discrete source space
-    rr = rng.randint(0, 11, (20, 3)) * 5e-3
+    rr = rng.integers(0, 11, (20, 3)) * 5e-3
     nn = np.zeros(rr.shape)
     nn[:, -1] = 1
     pos = {"rr": rr, "nn": nn}
@@ -908,7 +908,7 @@ def test_morphed_source_space_return():
     """Test returning a morphed source space to the original subject."""
     # let's create some random data on fsaverage
     pytest.importorskip("nibabel")
-    data = rng.randn(20484, 1)
+    data = rng.standard_normal((20484, 1))
     tmin, tstep = 0, 1.0
     src_fs = read_source_spaces(fname_fs)
     stc_fs = SourceEstimate(

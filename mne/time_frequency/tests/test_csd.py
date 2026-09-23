@@ -438,11 +438,12 @@ def _test_fourier_multitaper_parameters(epochs, csd_epochs, csd_array):
     )
 
     # Test checks for data types and sizes
-    diff_types = [np.random.randn(3, 5), "error"]
-    err_data = [np.random.randn(3, 5), np.random.randn(2, 4)]
+    rng = np.random.default_rng(0)
+    diff_types = [rng.standard_normal((3, 5)), "error"]
+    err_data = [rng.standard_normal((3, 5)), rng.standard_normal((2, 4))]
     raises(ValueError, csd_array, err_data, sfreq=1)
     raises(ValueError, csd_array, diff_types, sfreq=1)
-    raises(ValueError, csd_array, np.random.randn(3), sfreq=1)
+    raises(ValueError, csd_array, rng.standard_normal(3), sfreq=1)
 
 
 def test_csd_fourier():

@@ -6,11 +6,16 @@ from math import sqrt
 
 import numpy as np
 
-from ..utils import check_random_state, fill_doc, logger, verbose
+from ..utils import (
+    _check_rng,
+    fill_doc_static,
+    logger,
+    verbose_static,
+)
 
 
-@fill_doc
-def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
+@fill_doc_static("rng")
+def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, rng=0):
     """Find the largest singular value for the matrix kron(C.T, A).
 
     It uses power iterations.
@@ -23,7 +28,18 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
         An array
     max_iter : int
         Maximum number of iterations
-    %(random_state)s
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -35,8 +51,8 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     http://en.wikipedia.org/wiki/Power_iteration
     """
     AS_size = C.shape[0]
-    rng = check_random_state(random_state)
-    B = rng.randn(AS_size, AS_size)
+    rng = _check_rng(rng)
+    B = rng.standard_normal((AS_size, AS_size))
     B /= np.linalg.norm(B, "fro")
     ATA = np.dot(A.T, A)
     CCT = np.dot(C, C.T)
@@ -53,7 +69,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     return L
 
 
-@verbose
+@verbose_static()
 def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
     """Compute scaling to correct amplitude bias.
 
@@ -82,7 +98,11 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
         The tolerance on convergence.
     n_orient : int
         The number of orientations (1 for fixed and 3 otherwise).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -2,8 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from pathlib import Path
+
 import numpy as np
 
+from ..._fiff.meas_info import Info
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 from ...utils import _check_fname, _import_pymatreader_funcs
@@ -17,7 +20,9 @@ from .utils import (
 )
 
 
-def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
+def read_raw_fieldtrip(
+    fname: Path | str, info: Info | None, data_name: str = "data"
+) -> RawArray:
     """Load continuous (raw) data from a FieldTrip preprocessing structure.
 
     This function expects to find single trial raw data (FT_DATATYPE_RAW) in
@@ -34,8 +39,9 @@ def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
     ----------
     fname : path-like
         Path and filename of the ``.mat`` file containing the data.
-    info : dict or None
-        The info dict of the raw data file corresponding to the data to import.
+    info : mne.Info | None
+        The :class:`mne.Info` of the raw data file corresponding to the data to
+        import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     data_name : str
@@ -81,7 +87,10 @@ def read_raw_fieldtrip(fname, info, data_name="data") -> RawArray:
 
 
 def read_epochs_fieldtrip(
-    fname, info, data_name="data", trialinfo_column=0
+    fname: Path | str,
+    info: Info | None,
+    data_name: str = "data",
+    trialinfo_column: int = 0,
 ) -> EpochsArray:
     """Load epoched data from a FieldTrip preprocessing structure.
 
@@ -102,8 +111,9 @@ def read_epochs_fieldtrip(
     ----------
     fname : path-like
         Path and filename of the ``.mat`` file containing the data.
-    info : dict or None
-        The info dict of the raw data file corresponding to the data to import.
+    info : mne.Info | None
+        The :class:`mne.Info` of the raw data file corresponding to the data to
+        import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     data_name : str
@@ -140,7 +150,12 @@ def read_epochs_fieldtrip(
     return epochs
 
 
-def read_evoked_fieldtrip(fname, info, comment=None, data_name="data"):
+def read_evoked_fieldtrip(
+    fname: Path | str,
+    info: Info | None,
+    comment: str | None = None,
+    data_name: str = "data",
+) -> "EvokedArray":
     """Load evoked data from a FieldTrip timelocked structure.
 
     This function expects to find timelocked data in the structure data_name is
@@ -157,8 +172,9 @@ def read_evoked_fieldtrip(fname, info, comment=None, data_name="data"):
     ----------
     fname : path-like
         Path and filename of the ``.mat`` file containing the data.
-    info : dict or None
-        The info dict of the raw data file corresponding to the data to import.
+    info : mne.Info | None
+        The :class:`mne.Info` of the raw data file corresponding to the data to
+        import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     comment : str

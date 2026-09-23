@@ -10,20 +10,53 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _merge_info, create_info
 from ..._fiff.utils import _mult_cal_one
-from ...utils import _check_fname, _check_option, fill_doc, logger, verbose, warn
+from ...utils import (
+    _check_fname,
+    _check_option,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+    warn,
+)
 from ..base import BaseRaw
 from ..nirx.nirx import _read_csv_rows_cols
 
 
-@fill_doc
-def read_raw_hitachi(fname, preload=False, verbose=None) -> "RawHitachi":
+@fill_doc_static("hitachi_fname", "preload", "verbose", "hitachi_notes")
+def read_raw_hitachi(
+    fname: list | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawHitachi":
     """Reader for a Hitachi fNIRS recording.
 
     Parameters
     ----------
-    %(hitachi_fname)s
-    %(preload)s
-    %(verbose)s
+    fname : list | str
+        Path(s) to the Hitachi CSV file(s). This should only be a list for
+        multiple probes that were acquired simultaneously.
+
+        .. versionchanged:: 1.2
+            Added support for list-of-str.
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -37,7 +70,55 @@ def read_raw_hitachi(fname, preload=False, verbose=None) -> "RawHitachi":
 
     Notes
     -----
-    %(hitachi_notes)s
+    Hitachi does not encode their channel positions, so you will need to
+    create a suitable mapping using :func:`mne.channels.make_standard_montage`
+    or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
+
+    >>> mon = mne.channels.make_standard_montage('spherical_1005')
+    >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
+    >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
+    >>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
+    >>> raw.set_montage(mon)  # doctest: +SKIP
+
+    The 3x3 (ETG-100) is laid out as two separate layouts::
+
+        S1--D1--S2    S6--D6--S7
+        |   |   |     |   |   |
+        D2--S3--D3    D7--S8--D8
+        |   |   |     |   |   |
+        S4--D4--S5    S9--D9--S10
+
+    The 3x5 (ETG-7000) is laid out as::
+
+        S1--D1--S2--D2--S3
+        |   |   |   |   |
+        D3--S4--D4--S5--D5
+        |   |   |   |   |
+        S6--D6--S7--D7--S8
+
+    The 4x4 (ETG-7000) is laid out as::
+
+        S1--D1--S2--D2
+        |   |   |   |
+        D3--S3--D4--S4
+        |   |   |   |
+        S5--D5--S6--D6
+        |   |   |   |
+        D7--S7--D8--S8
+
+    The 3x11 (ETG-4000) is laid out as::
+
+        S1--D1--S2--D2--S3--D3--S4--D4--S5--D5--S6
+        |   |   |   |   |   |   |   |   |   |   |
+        D6--S7--D7--S8--D8--S9--D9--S10-D10-S11-D11
+        |   |   |   |   |   |   |   |   |   |   |
+        S12-D12-S13-D13-S14-D14-S16-D16-S17-D17-S18
+
+    For each layout, the channels come from the (left-to-right) neighboring
+    source-detector pairs in the first row, then between the first and second row,
+    then the second row, etc.
+
+    .. versionadded:: 0.24
     """
     return RawHitachi(fname, preload, verbose=verbose)
 
@@ -47,15 +128,37 @@ def _check_bad(cond, msg):
         raise RuntimeError(f"Could not parse file: {msg}")
 
 
-@fill_doc
+@fill_doc_static("hitachi_fname", "preload", "verbose", "hitachi_notes")
 class RawHitachi(BaseRaw):
     """Raw object from a Hitachi fNIRS file.
 
     Parameters
     ----------
-    %(hitachi_fname)s
-    %(preload)s
-    %(verbose)s
+    fname : list | str
+        Path(s) to the Hitachi CSV file(s). This should only be a list for
+        multiple probes that were acquired simultaneously.
+
+        .. versionchanged:: 1.2
+            Added support for list-of-str.
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -63,10 +166,58 @@ class RawHitachi(BaseRaw):
 
     Notes
     -----
-    %(hitachi_notes)s
+    Hitachi does not encode their channel positions, so you will need to
+    create a suitable mapping using :func:`mne.channels.make_standard_montage`
+    or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
+
+    >>> mon = mne.channels.make_standard_montage('spherical_1005')
+    >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
+    >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
+    >>> mon.rename_channels(dict(zip(have, need)))  # doctest: +SKIP
+    >>> raw.set_montage(mon)  # doctest: +SKIP
+
+    The 3x3 (ETG-100) is laid out as two separate layouts::
+
+        S1--D1--S2    S6--D6--S7
+        |   |   |     |   |   |
+        D2--S3--D3    D7--S8--D8
+        |   |   |     |   |   |
+        S4--D4--S5    S9--D9--S10
+
+    The 3x5 (ETG-7000) is laid out as::
+
+        S1--D1--S2--D2--S3
+        |   |   |   |   |
+        D3--S4--D4--S5--D5
+        |   |   |   |   |
+        S6--D6--S7--D7--S8
+
+    The 4x4 (ETG-7000) is laid out as::
+
+        S1--D1--S2--D2
+        |   |   |   |
+        D3--S3--D4--S4
+        |   |   |   |
+        S5--D5--S6--D6
+        |   |   |   |
+        D7--S7--D8--S8
+
+    The 3x11 (ETG-4000) is laid out as::
+
+        S1--D1--S2--D2--S3--D3--S4--D4--S5--D5--S6
+        |   |   |   |   |   |   |   |   |   |   |
+        D6--S7--D7--S8--D8--S9--D9--S10-D10-S11-D11
+        |   |   |   |   |   |   |   |   |   |   |
+        S12-D12-S13-D13-S14-D14-S16-D16-S17-D17-S18
+
+    For each layout, the channels come from the (left-to-right) neighboring
+    source-detector pairs in the first row, then between the first and second row,
+    then the second row, etc.
+
+    .. versionadded:: 0.24
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, preload=False, *, verbose=None):
         if not isinstance(fname, list | tuple):
             fname = [fname]
@@ -142,7 +293,8 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     subject_info = dict()
     ch_wavelengths = dict()
     fnirs_wavelengths = [None, None]
-    meas_date = age = ch_names = sfreq = None
+    meas_date = age = ch_names = None
+    sfreq = -1.0
     with open(fname, "rb") as fid:
         lines = fid.read()
     lines = lines.decode("latin-1").rstrip("\r\n")
@@ -233,7 +385,9 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         elif kind == "Wave Length":
             ch_regex = re.compile(r"^(.*)\(([0-9\.]+)\)$")
             for ent in parts:
-                _, v = ch_regex.match(ent).groups()
+                m = ch_regex.match(ent)
+                assert m is not None
+                _, v = m.groups()
                 ch_wavelengths[ent] = float(v)
         elif kind == "Data":
             break
@@ -268,6 +422,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         "3x11": "ETG-4000",
     }
     _check_option("Hitachi mode", mode, sorted(names))
+    assert mode is not None
     n_row, n_col = (int(x) for x in mode.split("x"))
     logger.info(f"Constructing pairing matrix for {names[mode]} ({mode})")
     pairs = _compute_pairs(n_row, n_col, n=1 + (mode == "3x3"))
@@ -299,10 +454,11 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
         )
     if meas_date is None:
         meas_date = dt.datetime(2000, 1, 1, 0, 0, 0)
-    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+    meas_date = meas_date.replace(tzinfo=dt.UTC)
     if subject_info:
         info_extra["subject_info"] = subject_info
 
+    assert sfreq > 0.0, "failed to determine sampling frequency from file header"
     # Create mne structure
     info = create_info(ch_names, sfreq, ch_types=ch_types)
     with info._unlock():

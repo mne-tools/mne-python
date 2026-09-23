@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "e8e9a6e7cc2d4c7df83256839bae586b38b575f1",
+  "authors": [
+    {
+      "n": "Natneal.B",
+      "e": "nati.new77@gmail.com",
+      "l": "natinew77-creator"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/api/datasets.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14128.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/datasets/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/datasets/config.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/datasets/lite_data/__init__.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/datasets/lite_data/lite_data.py": {
+      "a": 44,
+      "d": 0
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 15,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

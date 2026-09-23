@@ -37,7 +37,9 @@ def _get_signalfname(filepath):
     all_files = {}
     infofiles = list()
     for binfile in binfiles:
-        bin_num_str = re.search(r"\d+", binfile).group()
+        match = re.search(r"\d+", binfile)
+        assert match is not None
+        bin_num_str = match.group()
         infofile = "info" + bin_num_str + ".xml"
         infofiles.append(infofile)
         info_obj = XML.from_file(os.path.join(filepath, infofile))

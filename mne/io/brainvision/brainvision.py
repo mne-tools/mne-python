@@ -8,8 +8,10 @@ import configparser
 import os
 import os.path as op
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
+from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -26,15 +28,15 @@ from ...utils import (
     _check_range,
     _DefaultEventParser,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("brainvision_overrides", "preload", "verbose")
 class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
@@ -59,9 +61,61 @@ class RawBrainVision(BaseRaw):
         ``False``.
 
         .. versionadded:: 1.8
-    %(brainvision_overrides)s
-    %(preload)s
-    %(verbose)s
+    overrides : dict | None
+        Optional overrides for values parsed from the ``.vhdr`` header. Used to
+        read non-spec-compliant files where the header contradicts the actual
+        layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+        ``"data_fname"`` (path-like)
+            Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+            the directory of ``vhdr_fname``.
+        ``"marker_fname"`` (path-like or ``False``)
+            Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+            reading.
+        ``"n_channels"`` (int)
+            Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+            this is the user-facing count.
+        ``"sfreq"`` (float)
+            Overrides the sampling frequency.
+        ``"ch_names"`` (list[str])
+            Replaces names from ``[Channel Infos]``. Length must equal
+            ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+            accepted; the synthetic AHDR name is appended automatically).
+        ``"units_fallback"`` (str, e.g. ``"µV"``)
+            Recovers an incomplete ``[Channel Infos]`` section by filling missing
+            entries with ``resolution=1.0`` and this unit; missing names become
+            ``"Ch<N>"``.
+        ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+            Replaces ``[Common Infos] DataOrientation=``.
+        ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+            Replaces ``[Common Infos] DataFormat=``.
+        ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+            Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+            effective ``DataFormat`` is ``"BINARY"``.
+
+        Each applied override is logged at INFO level. Unknown keys raise
+        ``ValueError``.
+
+        .. versionadded:: 1.13
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -93,7 +147,7 @@ class RawBrainVision(BaseRaw):
 
     _extra_attributes = ("impedances",)
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         vhdr_fname,
@@ -142,6 +196,11 @@ class RawBrainVision(BaseRaw):
 
         orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
+        if not isinstance(fmt, dict):
+            # Read in cache-sized blocks rather than one huge one.
+            raw_extras["max_block_samples"] = max(
+                1, 8 * 1024**2 // dtype_bytes // n_data_ch
+            )
         super().__init__(
             info,
             last_samps=[n_samples - 1],
@@ -189,6 +248,7 @@ class RawBrainVision(BaseRaw):
                 mult,
                 dtype=dtype,
                 n_channels=n_data_ch,
+                max_block_samples=self._raw_extras[fi]["max_block_samples"],
             )
         else:
             offsets = self._raw_extras[fi]["offsets"]
@@ -286,11 +346,12 @@ def _read_mrk(fname):
         # LookupError exception; Python recognize ANSI decoding as cp1252
         if codepage == "ANSI":
             codepage = "cp1252"
-        txt = txt.decode(codepage)
+        decoded = txt.decode(codepage)
     except UnicodeDecodeError:
         # if UTF-8 (new standard) or explicit codepage setting fails, fallback to
         # Latin-1, which is Windows default and implicit standard in older recordings
-        txt = txt.decode("latin-1")
+        decoded = txt.decode("latin-1")
+    txt = decoded
 
     # extract Marker Infos block
     onset, duration, type_, description = [], [], [], []
@@ -514,7 +575,7 @@ def _str_to_meas_date(date_str):
         else:
             raise
 
-    meas_date = meas_date.replace(tzinfo=timezone.utc)
+    meas_date = meas_date.replace(tzinfo=UTC)
     return meas_date
 
 
@@ -565,12 +626,13 @@ def _aux_hdr_info(hdr_fname, sfreq_override=None):
             # LookupError exception; Python recognize ANSI decoding as cp1252
             if codepage == "ANSI":
                 codepage = "cp1252"
-            settings = settings.decode(codepage)
+            decoded = settings.decode(codepage)
         except UnicodeDecodeError:
             # if UTF-8 (new standard) or explicit codepage setting fails, fallback to
             # Latin-1, which is Windows default and implicit standard in older
             # recordings
-            settings = settings.decode("latin-1")
+            decoded = settings.decode("latin-1")
+        settings = decoded
 
     if settings.find("[Comment]") != -1:
         params, settings = settings.split("[Comment]")
@@ -604,7 +666,7 @@ def _aux_hdr_info(hdr_fname, sfreq_override=None):
     return settings, cfg, cinfostr, info, cfg_sfreq
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     """Extract all the information from the header file.
 
@@ -627,7 +689,9 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     data_fname : str
         Path to the binary data file.
     fmt : str
@@ -744,6 +808,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             with open(data_fname, "rb") as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
+                assert isinstance(fmt, str)
                 n_samples = n_bytes // _fmt_byte_dict[fmt] // nchan
 
     ch_names = [""] * nchan
@@ -936,6 +1001,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             if ch in synthesized_chs:
                 continue
             # double check alignment with channel by using the hw settings
+            assert idx_amp is not None
             if idx == idx_amp:
                 line_amp = settings[idx + i]
             else:
@@ -1135,16 +1201,16 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage, orig_units)
 
 
-@fill_doc
+@fill_doc_static("brainvision_overrides", "preload", "verbose")
 def read_raw_brainvision(
-    vhdr_fname,
-    eog=("HEOGL", "HEOGR", "VEOGb"),
-    misc="auto",
-    scale=1.0,
-    ignore_marker_types=False,
-    overrides=None,
-    preload=False,
-    verbose=None,
+    vhdr_fname: Path | str,
+    eog: list | tuple = ("HEOGL", "HEOGR", "VEOGb"),
+    misc: list | tuple | Literal["auto"] = "auto",
+    scale: float = 1.0,
+    ignore_marker_types: bool = False,
+    overrides: dict | None = None,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> RawBrainVision:
     """Reader for Brain Vision EEG file.
 
@@ -1169,9 +1235,61 @@ def read_raw_brainvision(
         ``False``.
 
         .. versionadded:: 1.8
-    %(brainvision_overrides)s
-    %(preload)s
-    %(verbose)s
+    overrides : dict | None
+        Optional overrides for values parsed from the ``.vhdr`` header. Used to
+        read non-spec-compliant files where the header contradicts the actual
+        layout. ``None`` (default) keeps stock behavior. Recognized keys:
+
+        ``"data_fname"`` (path-like)
+            Replaces ``[Common Infos] DataFile=``. Relative paths resolve against
+            the directory of ``vhdr_fname``.
+        ``"marker_fname"`` (path-like or ``False``)
+            Replaces ``[Common Infos] MarkerFile=``. ``False`` skips annotation
+            reading.
+        ``"n_channels"`` (int)
+            Replaces ``[Common Infos] NumberOfChannels``. For ``.ahdr`` files,
+            this is the user-facing count.
+        ``"sfreq"`` (float)
+            Overrides the sampling frequency.
+        ``"ch_names"`` (list[str])
+            Replaces names from ``[Channel Infos]``. Length must equal
+            ``n_channels`` (for ``.ahdr`` files, ``n_channels - 1`` is also
+            accepted; the synthetic AHDR name is appended automatically).
+        ``"units_fallback"`` (str, e.g. ``"µV"``)
+            Recovers an incomplete ``[Channel Infos]`` section by filling missing
+            entries with ``resolution=1.0`` and this unit; missing names become
+            ``"Ch<N>"``.
+        ``"data_orientation"`` (``"MULTIPLEXED"`` | ``"VECTORIZED"``)
+            Replaces ``[Common Infos] DataOrientation=``.
+        ``"data_format"`` (``"BINARY"`` | ``"ASCII"``)
+            Replaces ``[Common Infos] DataFormat=``.
+        ``"binary_format"`` (``"INT_16"`` | ``"INT_32"`` | ``"IEEE_FLOAT_32"``)
+            Replaces ``[Binary Infos] BinaryFormat=``. Only consulted when the
+            effective ``DataFormat`` is ``"BINARY"``.
+
+        Each applied override is logged at INFO level. Unknown keys raise
+        ``ValueError``.
+
+        .. versionadded:: 1.13
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1227,7 +1345,7 @@ _AHDR_CHANNEL_NAME = "AHDR_CHANNEL"
 class _BVEventParser(_DefaultEventParser):
     """Parse standard brainvision events, accounting for non-standard ones."""
 
-    def __call__(self, description):
+    def __call__(self, description):  # ty: ignore[invalid-method-override]  # intentional
         """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
         offsets = _BV_EVENT_IO_OFFSETS
 

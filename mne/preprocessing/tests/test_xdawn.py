@@ -12,6 +12,7 @@ from scipy import stats
 from mne import (
     Epochs,
     EpochsArray,
+    compute_rank,
     compute_raw_covariance,
     create_info,
     pick_types,
@@ -54,7 +55,7 @@ def test_xdawn():
 
 def test_xdawn_picks():
     """Test picking with Xdawn."""
-    data = np.random.RandomState(0).randn(10, 2, 10)
+    data = np.random.default_rng(0).standard_normal((10, 2, 10))
     info = create_info(2, 1000.0, ("eeg", "misc"))
     epochs = EpochsArray(data, info)
     xd = Xdawn(correct_overlap=False)
@@ -167,7 +168,7 @@ def test_xdawn_apply_transform():
     pytest.raises(ValueError, xd.transform, 42)
 
     # Check numerical results with shuffled epochs
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     idx = np.arange(len(epochs))
     rng.shuffle(idx)
     xd.fit(epochs[idx])
@@ -230,10 +231,33 @@ def test_xdawn_regularization():
     xd.fit(epochs)
     xd = Xdawn(correct_overlap=False, reg="diagonal_fixed")
     xd.fit(epochs)
-    # XXX in principle this should maybe raise an error due to deficiency?
-    # xd = Xdawn(correct_overlap=False, reg=None)
-    # with pytest.raises(ValueError, match='Could not compute eigenvalues'):
-    #     xd.fit(epochs)
+    # Without regularization the GED is ill-conditioned, and depending on the LAPACK
+    # implementation it can fail outright. Using rank to restrict it to the principal
+    # subspace of the data makes it well posed on any implementation.
+    n_channels = len(epochs.ch_names)
+    rank = compute_rank(epochs, rank="info")["meg"]
+    assert rank == n_channels - len(epochs.info["projs"]) < n_channels
+    for use_rank in ("info", dict(meg=rank)):
+        xd = Xdawn(correct_overlap=False, reg=None, rank=use_rank)
+        xd.fit(epochs)
+        for eid in epochs.event_id:
+            # filters and patterns are restricted, but live in sensor space
+            assert xd.filters_[eid].shape == (rank, n_channels)
+            assert xd.patterns_[eid].shape == (rank, n_channels)
+            assert_allclose(
+                xd.filters_[eid] @ xd.patterns_[eid].T, np.eye(rank), atol=1e-8
+            )
+        # keeping all components round-trips the (rank-deficient) data
+        epochs_r = xd.apply(epochs, include=list(range(rank)))["cond2"]
+        assert_allclose(
+            epochs_r.get_data(copy=False),
+            epochs.get_data(copy=False),
+            atol=1e-8 * np.abs(epochs.get_data(copy=False)).max(),
+        )
+    # asking for more components than the rank allows
+    xd = Xdawn(n_components=rank + 1, correct_overlap=False, reg=None, rank="info")
+    with pytest.warns(RuntimeWarning, match="Rank restriction left"):
+        xd.fit(epochs)
 
 
 def test_XdawnTransformer():
@@ -312,12 +336,13 @@ def test_XdawnTransformer():
 
 
 def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
-    rng = np.random.RandomState(42)
+    # seed chosen so decoding performance clears the threshold asserted below
+    rng = np.random.default_rng(1)
     tmin, tmax = 0.0, 1.0
     sfreq = 100.0
     informative_ch_idx = 0
 
-    y = rng.randint(0, 2, n_epochs)
+    y = rng.integers(0, 2, n_epochs)
     n_times = int((tmax - tmin) * sfreq)
     epoch_times = np.linspace(tmin, tmax, n_times)
 
@@ -326,11 +351,11 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
         0.7e-6 * (epoch_times - tmax) * np.sin(2 * np.pi * (epoch_times - 0.1))
     )
 
-    epoch_data = rng.randn(n_epochs, n_channels, n_times) * 5e-7
+    epoch_data = rng.normal(scale=5e-7, size=(n_epochs, n_channels, n_times))
     epoch_data[y == 0, informative_ch_idx, :] += nontarget_template
     epoch_data[y == 1, informative_ch_idx, :] += target_template
 
-    mixing_mat = _safe_svd(rng.randn(n_channels, n_channels))[0]
+    mixing_mat = _safe_svd(rng.standard_normal((n_channels, n_channels)))[0]
     mixed_epoch_data = np.dot(mixing_mat.T, epoch_data).transpose((1, 0, 2))
 
     events = np.zeros((n_epochs, 3), dtype=int)
@@ -371,13 +396,13 @@ def test_xdawn_decoding_performance():
         Xdawn(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(solver="liblinear"),
+        LogisticRegression(solver="liblinear", random_state=0),
     )
     xdawn_trans_pipe = make_pipeline(
         XdawnTransformer(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(solver="liblinear"),
+        LogisticRegression(solver="liblinear", random_state=0),
     )
 
     cv = KFold(n_splits=3, shuffle=False)

@@ -134,3 +134,5 @@ of commits):
 *   1  Luke Bloy
 *   1  Emanuele Olivetti
 *   1  Yousra BEKHTI
+
+.. include:: names.inc

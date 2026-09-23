@@ -4,13 +4,17 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import gc
 import math
 import os
 import re
-from contextlib import redirect_stdout
+import shutil
+import tempfile
+from contextlib import chdir, redirect_stdout
 from io import StringIO
 from os import path as op
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -34,9 +38,9 @@ from mne.io.base import _get_scaling
 from mne.transforms import Transform
 from mne.utils import (
     _import_h5io_funcs,
+    _pytest_tmp_path,
     _raw_annot,
     _stamp_to_dt,
-    _TempDir,
     catch_logging,
     check_version,
     object_diff,
@@ -46,6 +50,16 @@ from mne.utils import (
 raw_fname = op.join(
     op.dirname(__file__), "..", "..", "io", "tests", "data", "test_raw.fif"
 )
+
+
+@pytest.fixture
+def fail_if_times_materialized(monkeypatch):
+    """Fail the test if the full Raw.times vector is ever constructed."""
+
+    def _fail(*args, **kwargs):
+        pytest.fail("The full Raw.times vector was materialized")
+
+    monkeypatch.setattr("mne.io.base._arange_div", _fail)
 
 
 def assert_named_constants(info):
@@ -99,6 +113,20 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
+def test_preload_does_not_materialize_times(fail_if_times_materialized):
+    """Test preloading does not construct the full time vector."""
+    raw = read_raw_fif(raw_fname, preload=True, verbose="error")
+    assert raw.preload
+
+
+def test_set_annotations_does_not_materialize_times(fail_if_times_materialized):
+    """Test annotation bounds use the scalar recording endpoint."""
+    raw = read_raw_fif(raw_fname, preload=False, verbose="error")
+    annotations = Annotations([0.0], [0.1], ["test"])
+    raw.set_annotations(annotations)
+    assert len(raw.annotations) == 1
+
+
 def _test_raw_reader(
     reader,
     test_preloading=True,
@@ -121,7 +149,7 @@ def _test_raw_reader(
         Test _init_kwargs support.
     boundary_decimal : int
         Number of decimals up to which the boundary should match.
-    **kwargs :
+    **kwargs : dict
         Arguments for the reader. Note: Do not use preload as kwarg.
         Use ``test_preloading`` instead.
 
@@ -130,8 +158,10 @@ def _test_raw_reader(
     raw : instance of Raw
         A preloaded Raw object.
     """
-    tempdir = _TempDir()
-    rng = np.random.RandomState(0)
+    # write under the running test's tmp_path (i.e. --basetemp) rather than
+    # $TMPDIR; mkdtemp keeps repeat calls within one test from colliding
+    tempdir = tempfile.mkdtemp(dir=_pytest_tmp_path())
+    rng = np.random.default_rng(0)
     montage = None
     if "montage" in kwargs:
         montage = kwargs["montage"]
@@ -169,8 +199,27 @@ def _test_raw_reader(
                 assert_allclose(data1, data2, err_msg="Data mismatch with preload")
                 assert_allclose(times1, times2)
 
-        # test projection vs cals and data units
-        other_raw = reader(preload=False, **kwargs)
+        # preload="auto" decodes once into a reusable cache entry (gh-14216)
+        if None not in raw.filenames:  # e.g. RawArray has no source file
+            with mock.patch.dict(os.environ, {"MNE_CACHE_DIR": tempdir}):
+                entries = set()
+                for _ in range(2):  # miss, then hit
+                    auto = reader(preload="auto", **kwargs)
+                    assert_allclose(auto[picks, :][0], raw[picks, :][0])
+                    # readers that hand BaseRaw an in-memory array (e.g. EEGLAB
+                    # with embedded data) never reach the cache
+                    if isinstance(auto._data, np.memmap):
+                        assert auto._data.mode == "c"
+                        entries.add(str(auto._data.filename))
+                    del auto
+                    gc.collect()
+                assert len(entries) in (0, 1)
+
+        # test projection vs cals and data units. The non-preloaded raw above
+        # was only indexed, never modified, so reuse it rather than parsing the
+        # file a third time (this helper runs ~100x across the suite).
+        other_raw = other_raws[1]
+        del other_raws
         other_raw.del_proj()
         eeg = meg = fnirs = seeg = eyetrack = False
         if "eeg" in raw:
@@ -466,6 +515,7 @@ def _test_raw_reader(
             "pdf_fname",  # BTi
             "directory",  # CTF
             "filename",  # nedf
+            "binfile",  # FIL
         ):
             try:
                 fname = kwargs[key]
@@ -480,12 +530,8 @@ def _test_raw_reader(
             dirname = op.dirname(this_fname)
             these_kwargs[key] = op.basename(this_fname)
             these_kwargs["preload"] = False
-            orig_dir = os.getcwd()
-            try:
-                os.chdir(dirname)
+            with chdir(dirname):
                 raw_chdir = reader(**these_kwargs)
-            finally:
-                os.chdir(orig_dir)
             raw_chdir.load_data()
 
     # make sure that cropping works (with first_samp shift)
@@ -532,6 +578,10 @@ def _test_raw_reader(
         if len(card_pts_head) == 3:  # they should all be in head coords then
             assert len(eeg_dig_head) == len(eeg_dig)
 
+    # Free the ~60 MB of on-disk artifacts eagerly (they accumulate across the
+    # ~94 call sites otherwise); deliberately not in a finally so a failing
+    # test keeps its files for debugging, cleaned up by tmp_path rotation.
+    shutil.rmtree(tempdir, ignore_errors=True)
     return raw
 
 
@@ -659,6 +709,39 @@ def test_crop_by_annotations(meas_date, first_samp):
     assert len(raws[1].annotations) == 1
     assert raws[1].times[-1] == pytest.approx(annot[1:2].duration[0], rel=5e-3)
     assert raws[1].annotations.description[0] == annot.description[1]
+
+
+@pytest.mark.parametrize("meas_date", [None, 0])
+@pytest.mark.parametrize("first_samp", [0, 50])
+def test_get_annotation_spans(meas_date, first_samp):
+    """Test converting annotation spans to the Raw time reference."""
+    sfreq = 10.0
+    data = np.arange(120.0)[np.newaxis]
+    raw = mne.io.RawArray(
+        data,
+        mne.create_info(["EEG 001"], sfreq, "eeg"),
+        first_samp=first_samp,
+        verbose="error",
+    )
+    raw.set_meas_date(meas_date)
+    raw.set_annotations(mne.Annotations([3.0, 3.0], [1.0, 0.5], ["test", "test 2"]))
+
+    tmin, tmax = raw.get_annotation_spans()
+    assert_allclose(tmin, [3.0, 3.0])
+    assert_allclose(tmax, [3.5, 4.0])
+    got, times = raw.get_data(tmin=tmin[1], tmax=tmax[1], return_times=True)
+    assert_array_equal(got, data[:, 30:40])
+    assert_allclose(times, np.arange(30, 40) / sfreq)
+
+    cropped = raw.copy().crop(2.0, 5.0)
+    tmin, tmax = cropped.get_annotation_spans()
+    assert_allclose(tmin, [1.0, 1.0])
+    assert_allclose(tmax, [1.5, 2.0])
+    assert_array_equal(cropped.get_data(tmin=tmin[1], tmax=tmax[1]), data[:, 30:40])
+
+    raw.set_annotations(None)
+    tmin, tmax = raw.get_annotation_spans()
+    assert tmin.shape == tmax.shape == (0,)
 
 
 @pytest.mark.parametrize(
@@ -843,16 +926,62 @@ def _read_raw_arange(preload=False, verbose=None):
     return _RawArange(preload, verbose)
 
 
-def test_load_data_memmap(tmp_path):
-    """Test loading raw data into a memmap via load_data."""
-    raw = _read_raw_arange(preload=False)
-    memmap_fname = tmp_path / "raw-load-data-memmap.dat"
-    raw.load_data(memmap=memmap_fname)
+@pytest.mark.parametrize("method", ("constructor", "load_data"))
+def test_preload_memmap_ownership(method, tmp_path):
+    """Test that a caller owns an explicit preload memmap path."""
+    memmap_fname = tmp_path / f"raw-{method}-memmap.dat"
+    memmap_fname.write_bytes(b"stale" * 20_000)
+    if method == "constructor":
+        raw = _read_raw_arange(preload=memmap_fname)
+    else:
+        raw = _read_raw_arange(preload=False)
+        raw.load_data(memmap=memmap_fname)
 
     assert raw.preload
     assert isinstance(raw._data, np.memmap)
     assert Path(raw._data.filename) == memmap_fname
-    assert_array_equal(raw._data[:, 0], np.arange(1, 9))
+    assert memmap_fname.stat().st_size == raw._data.nbytes
+    assert_array_equal(raw.get_data()[:, 0], np.arange(1, 9))
+    raw.close()
+    assert_array_equal(raw.get_data()[:, 0], np.arange(1, 9))
+    del raw
+    gc.collect()
+
+    assert memmap_fname.is_file()
+    data = np.memmap(memmap_fname, dtype=np.float64, mode="r", shape=(8, 1000))
+    assert_array_equal(data[:, 0], np.arange(1, 9))
+    del data
+    replacement = tmp_path / "replacement.dat"
+    replacement.write_bytes(b"replacement")
+    replacement.replace(memmap_fname)
+    assert memmap_fname.read_bytes() == b"replacement"
+
+
+def test_append_memmap_ownership(tmp_path):
+    """Test ownership of a caller-named concatenation memmap."""
+    memmap_fname = tmp_path / "raw-append-memmap.dat"
+    raw = _read_raw_arange()
+    other = _read_raw_arange()
+    raw.append(other, preload=memmap_fname)
+    assert isinstance(raw._data, np.memmap)
+    expected = np.repeat(np.arange(1, 9)[:, np.newaxis], 2, axis=1)
+    assert_array_equal(raw.get_data()[:, [0, -1]], expected)
+    copied = raw.copy()
+    assert_array_equal(copied.get_data(), raw.get_data())
+    del copied, other, raw
+    gc.collect()
+    assert memmap_fname.is_file()
+
+
+def test_raw_array_memmap_ownership(tmp_path):
+    """Test ownership of a memmap supplied directly to RawArray."""
+    memmap_fname = tmp_path / "raw-array-memmap.dat"
+    source = np.memmap(memmap_fname, dtype=np.float64, mode="w+", shape=(2, 10))
+    source[:] = np.arange(20).reshape(2, 10)
+    raw = RawArray(source, create_info(2, 10.0), copy=None)
+    del source, raw
+    gc.collect()
+    assert memmap_fname.is_file()
 
 
 def test_test_raw_reader():
@@ -1068,7 +1197,8 @@ def test_resamp_noop():
 
 def test_concatenate_raw_dev_head_t():
     """Test concatenating raws with dev-head-t including nans."""
-    data = np.random.randn(3, 10)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((3, 10))
     info = create_info(3, 1000.0, ["mag", "grad", "grad"])
     raw = RawArray(data, info)
     raw.info["dev_head_t"] = Transform("meg", "head", np.eye(4))

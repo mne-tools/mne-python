@@ -4,7 +4,8 @@
 
 import sys
 from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta
 from itertools import repeat
 from pathlib import Path
 
@@ -86,6 +87,7 @@ def test_basics():
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat("test", 10)
+    extras = [dict(foo=i) for i in range(10)]
     dt = raw.info["meas_date"]
     assert isinstance(dt, datetime)
     stamp = _dt_to_stamp(dt)
@@ -96,7 +98,7 @@ def test_basics():
             assert annot.orig_time is None
         else:
             assert isinstance(annot.orig_time, datetime)
-            assert annot.orig_time.tzinfo is timezone.utc
+            assert annot.orig_time.tzinfo is UTC
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
@@ -110,7 +112,7 @@ def test_basics():
     offset = offset[0] + offset[1] * 1e-6
     offset = orig_time - offset
     assert_allclose(offset, raw._first_time)
-    annot = Annotations(onset, duration, description, orig_time)
+    annot = Annotations(onset, duration, description, orig_time, extras=extras)
     assert annot.orig_time is not None
     assert " segments" in repr(annot)
     raw2.set_annotations(annot)
@@ -122,6 +124,7 @@ def test_basics():
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat("test", 10))
+    assert raw.annotations.extras == extras
 
 
 def test_annot_sanitizing(tmp_path):
@@ -139,7 +142,8 @@ def test_annot_sanitizing(tmp_path):
 
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
-    data = np.random.randn(2, 1000) * 10e-12
+    rng = np.random.default_rng(0)
+    data = rng.normal(scale=10e-12, size=(2, 1000))
     sfreq = 100.0
     info = create_info(ch_names=["MEG1", "MEG2"], ch_types=["grad"] * 2, sfreq=sfreq)
     meas_date = _handle_meas_date(np.pi)
@@ -339,7 +343,7 @@ def test_events_from_annotation_orig_time_none():
     """Tests events_from_annotation with orig_time None and first_sampe > 0."""
     # Create fake data
     sfreq, duration_s = 100, 10
-    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    data = np.random.default_rng(42).standard_normal((1, sfreq * duration_s))
     info = mne.create_info(ch_names=["EEG1"], ch_types=["eeg"], sfreq=sfreq)
     raw = mne.io.RawArray(data, info)
 
@@ -366,7 +370,7 @@ def test_events_from_annotation_orig_time_none():
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
-    raw._data[:] = np.random.RandomState(0).randn(*raw._data.shape)
+    raw._data[:] = np.random.default_rng(0).standard_normal(raw._data.shape)
     onset = np.array([0.47058824, 2.49773765, 6.67873287, 9.15837097])
     duration = np.array([0.89592767, 1.13574672, 1.09954739, 0.48868752])
     annotations = mne.Annotations(onset, duration, "BAD")
@@ -990,7 +994,7 @@ def _assert_annotations_equal(a, b, tol=0, comp_extras_as_str=False):
             assert exa == exb, f"extras[{i}][{col}]"
 
 
-_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, UTC)
 
 
 @pytest.fixture(scope="function", params=("ch_names", "fmt", "with_extras"))
@@ -1247,7 +1251,7 @@ def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
     if out is not None:
         assert out >= 0  # otherwise it'll break on Windows
-        out = datetime.fromtimestamp(out, timezone.utc)
+        out = datetime.fromtimestamp(out, UTC)
     assert _handle_meas_date(meas_date) == out
 
 
@@ -1265,7 +1269,7 @@ def test_read_annotation_txt_header(tmp_path):
     with open(fname, "w") as f:
         f.write(content)
     orig_time, _, n_rows_header = _read_annotations_txt_parse_header(fname)
-    want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+    want = datetime.fromtimestamp(1038942071.7201, UTC)
     assert orig_time == want
     assert n_rows_header == 5
 
@@ -1293,7 +1297,7 @@ def test_read_annotation_txt_empty(tmp_path):
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
-    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, str)  # str, not np.str_
     EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
     EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
 
@@ -1393,7 +1397,8 @@ def test_date_none(tmp_path):
     # Regression test for gh-5908
     n_chans = 139
     n_samps = 20
-    data = np.random.random_sample((n_chans, n_samps))
+    rng = np.random.default_rng(0)
+    data = rng.random((n_chans, n_samps))
     ch_names = [f"E{x}" for x in range(n_chans)]
     ch_types = ["eeg"] * n_chans
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
@@ -1730,6 +1735,49 @@ def test_annotation_rename():
     assert_array_equal(a.description, ["B", "A", "C"])
 
 
+def _assert_no_truncation(annot):
+    """Check that in-place description assignment keeps the whole string."""
+    assert annot.description.dtype == np.dtypes.StringDType()
+    long_description = "a_very_much_longer_description"
+    annot.description[-1] = long_description
+    assert annot.description[-1] == long_description
+
+
+@pytest.mark.parametrize("fmt", ("fif", "csv", "txt"))
+def test_description_assignment_not_truncated(tmp_path, fmt):
+    """Test that assigning into description does not truncate strings."""
+    if fmt != "fif":
+        pytest.importorskip("pandas")
+    annot = Annotations([1.0, 2.0], [1.0, 1.0], ["short", "b"], extras=[dict(a=1)] * 2)
+    _assert_no_truncation(annot.copy())
+    # the copy must be independent (and not crash: numpy/numpy#28609)
+    annot_copy = deepcopy(annot)
+    annot_copy.description[0] = "changed"
+    assert annot.description[0] == "short"
+    annot.append(3.0, 1.0, "c", extras=[dict(a=1)])
+    annot.rename({"b": "b_renamed"})
+    other = annot.copy()
+    other.onset += 10.0
+    cropped, deleted = annot.copy(), annot.copy()
+    cropped.crop(0.0, 100.0)
+    deleted.delete(0)
+    for modified in (annot.copy(), annot + other, cropped, deleted):
+        _assert_no_truncation(modified)
+    # round-trip through disk (Annotations.save and raw.save)
+    annot_fname = tmp_path / f"test-annot.{fmt}"
+    annot.save(annot_fname)
+    round_tripped = [read_annotations(annot_fname)]
+    if fmt == "fif":
+        raw = RawArray(np.zeros((1, 2000)), create_info(1, 100.0, "eeg"))
+        raw.set_annotations(annot)
+        raw_fname = tmp_path / "test_raw.fif"
+        raw.save(raw_fname)
+        round_tripped.append(read_raw_fif(raw_fname).annotations)
+    for got in round_tripped:
+        assert_array_equal(got.description, annot.description)
+        _assert_no_truncation(got)
+
+
 def test_annotation_duration_setting():
     """Test annotation duration setting works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
@@ -1843,9 +1891,9 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
     meas_date_1 = meas_date_2 = None
     assert meas_date in (None, "first", "second", "both")
     if meas_date in ("first", "both"):
-        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     if meas_date in ("second", "both"):
-        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC)
     del meas_date
 
     def _create_raw(eeg, sfreq, onset, description, meas_date, first_samp, setting):
@@ -1954,7 +2002,7 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     sfreq = 1000.0
     info = mne.create_info(1, sfreq, "eeg")
     raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(1, 3000), info, first_samp=first_samp
+        np.random.default_rng(0).standard_normal((1, 3000)), info, first_samp=first_samp
     )
     raw.set_meas_date(meas_date)
     onset = np.array([0, 1, 2], float)

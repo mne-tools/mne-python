@@ -16,7 +16,6 @@ from pathlib import Path
 from time import time
 
 import numpy as np
-from scipy import sparse
 
 from .._fiff.constants import FIFF
 from .._fiff.matrix import (
@@ -48,7 +47,6 @@ from .._fiff.write import (
 )
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..fixes import _reshape_view
 from ..html_templates import _get_html_template
 from ..io import BaseRaw, RawArray
 from ..label import Label
@@ -73,14 +71,15 @@ from ..utils import (
     _on_missing,
     _stamp_to_dt,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     has_mne_c,
     logger,
     repr_html,
     run_subprocess,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -162,18 +161,33 @@ class Forward(dict):
     """
 
     def copy(self):
-        """Copy the Forward instance."""
+        """Copy the Forward instance.
+
+        Returns
+        -------
+        fwd : instance of Forward
+            The copied forward solution.
+        """
         return Forward(deepcopy(self))
 
-    @verbose
+    @verbose_static("fname_fwd", "overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the forward solution.
 
         Parameters
         ----------
-        %(fname_fwd)s
-        %(overwrite)s
-        %(verbose)s
+        fname : path-like
+            File name to save the forward solution to. It should end with
+            ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
+            HDF5.
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         write_forward_solution(fname, self, overwrite=overwrite)
 
@@ -294,6 +308,8 @@ def _block_diag(A, n):
     bd : scipy.sparse.csc_array
         The block diagonal matrix
     """
+    from scipy import sparse
+
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError("sparse reversal not implemented yet")
     ma, na = A.shape
@@ -372,7 +388,7 @@ def _read_one(fid, node):
     return one
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _read_forward_meas_info(tree, fid):
     """Read light measurement info from forward operator.
 
@@ -385,7 +401,9 @@ def _read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     """
     # This function assumes fid is being used as a context manager
     info = Info()
@@ -475,7 +493,7 @@ _FWD_ORDER = dict(
 )
 
 
-@verbose
+@_verbose_control
 def _merge_fwds(fwds, *, verbose=None):
     """Merge loaded forward dicts into one dict."""
     fwd = None
@@ -515,7 +533,7 @@ def _merge_fwds(fwds, *, verbose=None):
     return fwd
 
 
-@verbose
+@verbose_static("ordered")
 def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbose=None):
     """Read a forward solution a.k.a. lead field.
 
@@ -524,13 +542,23 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
     fname : path-like
         The file name, which should end with ``-fwd.fif``, ``-fwd.fif.gz``,
         ``_fwd.fif``, ``_fwd.fif.gz``, ``-fwd.h5``, or ``_fwd.h5``.
-    include : list, optional
+    include : list
         List of names of channels to include. If empty all channels
         are included.
-    exclude : list, optional
+    exclude : list
         List of names of channels to exclude. If empty include all channels.
-    %(ordered)s
-    %(verbose)s
+    ordered : bool
+        If True (default), ensure that the order of the channels in
+        the modified instance matches the order of ``ch_names``.
+
+        .. versionadded:: 0.20.0
+        .. versionchanged:: 1.7
+            The default changed from False in 1.6 to True in 1.7.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -714,7 +742,7 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
     return Forward(fwd)
 
 
-@verbose
+@verbose_static("use_cps")
 def convert_forward_solution(
     fwd, surf_ori=False, force_fixed=False, copy=True, use_cps=True, *, verbose=None
 ):
@@ -724,21 +752,29 @@ def convert_forward_solution(
     ----------
     fwd : Forward
         The forward solution to modify.
-    surf_ori : bool, optional (default False)
+    surf_ori : bool
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
-    force_fixed : bool, optional (default False)
+    force_fixed : bool
         If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
-    %(use_cps)s
-    %(verbose)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
+
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -854,17 +890,26 @@ def convert_forward_solution(
     return fwd
 
 
-@verbose
+@verbose_static("fname_fwd", "overwrite")
 def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     """Write forward solution to a file.
 
     Parameters
     ----------
-    %(fname_fwd)s
+    fname : path-like
+        File name to save the forward solution to. It should end with
+        ``-fwd.fif`` or ``-fwd.fif.gz`` to save to FIF, or ``-fwd.h5`` to save to
+        HDF5.
     fwd : Forward
         Forward solution.
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1086,7 +1131,7 @@ def is_fixed_orient(forward, orig=False):
     return fixed_ori
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def write_forward_meas_info(fid, info):
     """Write measurement info stored in forward solution.
 
@@ -1094,7 +1139,9 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     """
     info._check_consistency()
     #
@@ -1205,7 +1252,7 @@ def _triage_loose(src, loose, fixed="auto"):
     return loose
 
 
-@verbose
+@verbose_static("loose")
 def compute_orient_prior(forward, loose="auto", verbose=None):
     """Compute orientation prior.
 
@@ -1213,8 +1260,24 @@ def compute_orient_prior(forward, loose="auto", verbose=None):
     ----------
     forward : instance of Forward
         Forward operator.
-    %(loose)s
-    %(verbose)s
+    loose : float | 'auto' | dict
+        Value that weights the source variances of the dipole components
+        that are parallel (tangential) to the cortical surface. Can be:
+
+        - float between 0 and 1 (inclusive)
+            If 0, then the solution is computed with fixed orientation.
+            If 1, it corresponds to free orientations.
+        - ``'auto'`` (default)
+            Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+            1.0 for other source spaces (volume or mixed).
+        - dict
+            Mapping from the key for a given source space type (surface, volume,
+            discrete) to the loose value. Useful mostly for mixed source spaces.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1292,7 +1355,7 @@ def _restrict_gain_matrix(G, info):
     return G[sel]
 
 
-@verbose
+@verbose_static("info_not_none", "rank_none")
 def compute_depth_prior(
     forward,
     info,
@@ -1310,7 +1373,9 @@ def compute_depth_prior(
     ----------
     forward : instance of Forward
         The forward solution.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
@@ -1335,10 +1400,57 @@ def compute_depth_prior(
         ``limit_depth_chs='whiten'``.
 
         .. versionadded:: 0.18
-    %(rank_none)s
+    rank : None | 'info' | 'full' | dict
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. When a noise covariance
+        is used for whitening, this should reflect the rank of that covariance,
+        otherwise amplification of noise components can occur in whitening (e.g.,
+        often during source localization).
+
+        :data:`python:None`
+            The rank will be estimated from the data after proper scaling of
+            different channel types.
+        ``'info'``
+            The rank is inferred from ``info``. If data have been processed
+            with Maxwell filtering, the Maxwell filtering header is used.
+            Otherwise, the channel counts themselves are used.
+            In both cases, the number of projectors is subtracted from
+            the (effective) number of channels in the data.
+            For example, if Maxwell filtering reduces the rank to 68, with
+            two projectors the returned value will be 66.
+        ``'full'``
+            The rank is assumed to be full, i.e. equal to the
+            number of good channels. If a `~mne.Covariance` is passed, this can
+            make sense if it has been (possibly improperly) regularized without
+            taking into account the true data rank.
+        :class:`dict`
+            Calculate the rank only for a subset of channel types, and explicitly
+            specify the rank for the remaining channel types. This can be
+            extremely useful if you already **know** the rank of (part of) your
+            data, for instance in case you have calculated it earlier.
+
+            This parameter must be a dictionary whose **keys** correspond to
+            channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+            ``'eeg'``), and whose **values** are integers representing the
+            respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+            a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+            respectively.
+
+            The ranks for all channel types present in the data, but
+            **not** specified in the dictionary will be estimated empirically.
+            That is, if you passed a dataset containing magnetometer, gradiometer,
+            and EEG data together with the dictionary from the previous example,
+            only the gradiometer rank would be determined, while the specified
+            magnetometer and EEG ranks would be taken for granted.
+
+        The default is ``None``.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1429,13 +1541,13 @@ def compute_depth_prior(
         #     Gk = G[:, 3 * k:3 * (k + 1)]
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
-        G = _reshape_view(G, (G.shape[0], -1, 3))
+        G = G.reshape((G.shape[0], -1, 3), copy=False)
         d = np.linalg.norm(
             np.einsum("svj,svk->vjk", G, G),  # vector dot prods
             ord=2,  # ord=2 spectral (largest s.v.)
             axis=(1, 2),
         )
-        G = _reshape_view(G, (G.shape[0], -1))
+        G = G.reshape((G.shape[0], -1), copy=False)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
@@ -1545,7 +1657,7 @@ def _fill_measurement_info(info, fwd, sfreq, data):
     return info, data
 
 
-@verbose
+@_verbose_control
 def _apply_forward(
     fwd, stc, start=None, stop=None, on_missing="raise", use_cps=True, verbose=None
 ):
@@ -1586,7 +1698,7 @@ def _apply_forward(
     return data, times
 
 
-@verbose
+@verbose_static("info_not_none", "use_cps", "on_missing_fwd")
 def apply_forward(
     fwd,
     stc,
@@ -1614,19 +1726,30 @@ def apply_forward(
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    %(info_not_none)s
-    start : int, optional
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    start : int | None
         Index of first time sample (index not time is seconds).
-    stop : int, optional
+    stop : int | None
         Index of first time sample not to include (index not time is seconds).
-    %(use_cps)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
 
         .. versionadded:: 0.15
-    %(on_missing_fwd)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when ``stc`` has vertices that are not in ``fwd``.
         Default is "raise".
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1665,7 +1788,7 @@ def apply_forward(
     return evoked
 
 
-@verbose
+@verbose_static("info_not_none", "on_missing_fwd", "use_cps")
 def apply_forward_raw(
     fwd,
     stc,
@@ -1693,19 +1816,30 @@ def apply_forward_raw(
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    %(info_not_none)s
-    start : int, optional
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    start : int | None
         Index of first time sample (index not time is seconds).
-    stop : int, optional
+    stop : int | None
         Index of first time sample not to include (index not time is seconds).
-    %(on_missing_fwd)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when ``stc`` has vertices that are not in ``fwd``.
         Default is "raise".
 
         .. versionadded:: 0.18
-    %(use_cps)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
 
         .. versionadded:: 0.21
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1738,7 +1872,7 @@ def apply_forward_raw(
     return raw
 
 
-@fill_doc
+@fill_doc_static("on_missing_fwd")
 def restrict_forward_to_stc(fwd, stc, on_missing="ignore"):
     """Restrict forward operator to active sources in a source estimate.
 
@@ -1748,7 +1882,10 @@ def restrict_forward_to_stc(fwd, stc, on_missing="ignore"):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
-    %(on_missing_fwd)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when ``stc`` has vertices that are not in ``fwd``.
         Default is "ignore".
 
         .. versionadded:: 0.18
@@ -2090,7 +2227,7 @@ def _do_forward_solution(
     return fwd
 
 
-@verbose
+@verbose_static()
 def average_forward_solutions(fwds, weights=None, verbose=None):
     """Average forward solutions.
 
@@ -2103,7 +2240,11 @@ def average_forward_solutions(fwds, weights=None, verbose=None):
         Weights to apply to each forward solution in averaging. If None,
         forward solutions will be equally weighted. Weights must be
         non-negative, and will be adjusted to sum to one.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

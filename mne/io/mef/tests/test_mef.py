@@ -28,6 +28,7 @@ mef_file_path = (
 def test_mef_reading():
     """Test reading MEF3 file."""
     raw = read_raw_mef(mef_file_path, preload=False)
+    session = raw._raw_extras[0]["session"]
 
     assert raw.info["sfreq"] > 0
     assert len(raw.ch_names) > 0
@@ -36,6 +37,7 @@ def test_mef_reading():
     # Test lazy loading
     data, times = raw[:, :100]
     assert data.shape[1] == 100
+    assert raw._raw_extras[0]["session"] is session
 
     # Test full load
     raw.load_data()

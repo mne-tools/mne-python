@@ -8,10 +8,12 @@ import os.path as op
 import re
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
+from pathlib import Path
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg
 
+from ._freesurfer import get_volume_labels_from_aseg
 from .fixes import _safe_svd
 from .morph_map import read_morph_map
 from .parallel import parallel_func
@@ -19,6 +21,7 @@ from .source_estimate import (
     SourceEstimate,
     VolSourceEstimate,
     _center_of_mass,
+    _volume_labels,
     extract_label_time_course,
     spatial_src_adjacency,
 )
@@ -41,12 +44,13 @@ from .utils import (
     _check_option,
     _check_subject,
     _import_nibabel,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -171,7 +175,7 @@ def _n_colors(n, bytes_=False, cmap="hsv"):
     return colors
 
 
-@fill_doc
+@fill_doc_static("subject_label", "verbose")
 class Label:
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
@@ -198,10 +202,16 @@ class Label:
         Kept as information but not used by the object itself.
     filename : str
         Kept as information but not used by the object itself.
-    %(subject_label)s
+    subject : str | None
+        Subject which this label belongs to. Should only be specified if it is not
+        specified in the label.
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -226,7 +236,7 @@ class Label:
         Vertex indices (0 based)
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         vertices=(),
@@ -324,7 +334,19 @@ class Label:
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add Labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The union of the two labels (a :class:`~mne.BiHemiLabel` if the
+            hemispheres differ).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             return other + self
@@ -394,7 +416,18 @@ class Label:
         return label
 
     def __sub__(self, other):
-        """Subtract Labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label
+            The vertices of this label that are not in ``other``.
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, BiHemiLabel):
             if self.hemi == "lh":
@@ -565,7 +598,7 @@ class Label:
         )
         return label
 
-    @verbose
+    @verbose_static("subject_label", "subjects_dir", "n_jobs")
     def smooth(
         self,
         subject=None,
@@ -582,7 +615,9 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used. For a
@@ -599,9 +634,22 @@ class Label:
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        %(subjects_dir)s
-        %(n_jobs)s
-        %(verbose)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -619,7 +667,7 @@ class Label:
             subject, subject, smooth, grade, subjects_dir, n_jobs, verbose=verbose
         )
 
-    @verbose
+    @verbose_static("subjects_dir", "n_jobs")
     def morph(
         self,
         subject_from=None,
@@ -656,9 +704,22 @@ class Label:
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        %(subjects_dir)s
-        %(n_jobs)s
-        %(verbose)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -718,7 +779,7 @@ class Label:
         self.subject = subject_to
         return self
 
-    @fill_doc
+    @fill_doc_static("subject_label", "subjects_dir")
     def split(self, parts=2, subject=None, subjects_dir=None, freesurfer=False):
         """Split the Label into two or more parts.
 
@@ -730,8 +791,13 @@ class Label:
             or 'contiguous' to split the label into connected components.
             If a number or 'contiguous' is specified, names of the new labels
             will be the input label's name with div1, div2 etc. appended.
-        %(subject_label)s
-        %(subjects_dir)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         freesurfer : bool
             By default (``False``) ``split_label`` uses an algorithm that is
             slightly optimized for performance and numerical precision. Set
@@ -821,7 +887,7 @@ class Label:
 
         return label_tris
 
-    @fill_doc
+    @fill_doc_static("subject_label", "subjects_dir")
     def center_of_mass(
         self, subject=None, restrict_vertices=False, subjects_dir=None, surf="sphere"
     ):
@@ -832,7 +898,9 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
             it could be any vertex from surf. If an array of int, the
@@ -840,7 +908,10 @@ class Label:
             SourceSpaces (as of 0.13), the returned vertex will be from
             the given source space. For most accuruate estimates, do not
             restrict vertices.
-        %(subjects_dir)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
         surf : str
             The surface to use for Euclidean distance center of mass
             finding. The default here is "sphere", which finds the center
@@ -888,7 +959,7 @@ class Label:
         )
         return vertex
 
-    @verbose
+    @verbose_static("subject_label", "subjects_dir", "surface")
     def distances_to_outside(
         self, subject=None, subjects_dir=None, surface="white", *, verbose=None
     ):
@@ -896,10 +967,21 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
-        %(subjects_dir)s
-        %(surface)s
-        %(verbose)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        surface : str
+            The surface along which to do the computations, defaults to ``'white'``
+            (the gray-white matter boundary).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -916,6 +998,8 @@ class Label:
 
         .. versionadded:: 0.24
         """
+        from scipy import sparse
+
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -930,7 +1014,7 @@ class Label:
         outside = outside[self.vertices]
         return dist, outside
 
-    @verbose
+    @verbose_static("subject_label", "subjects_dir", "surface")
     def compute_area(
         self, subject=None, subjects_dir=None, surface="white", *, verbose=None
     ):
@@ -938,10 +1022,21 @@ class Label:
 
         Parameters
         ----------
-        %(subject_label)s
-        %(subjects_dir)s
-        %(surface)s
-        %(verbose)s
+        subject : str | None
+            Subject which this label belongs to. Should only be specified if it is not
+            specified in the label.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        surface : str
+            The surface along which to do the computations, defaults to ``'white'``
+            (the gray-white matter boundary).
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1044,7 +1139,18 @@ class BiHemiLabel:
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        """Add labels."""
+        """Add labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to add.
+
+        Returns
+        -------
+        label : instance of BiHemiLabel
+            The union of the two labels.
+        """
         if isinstance(other, Label):
             if other.hemi == "lh":
                 lh = self.lh + other
@@ -1063,7 +1169,19 @@ class BiHemiLabel:
         return BiHemiLabel(lh, rh, name, color)
 
     def __sub__(self, other):
-        """Subtract labels."""
+        """Subtract labels.
+
+        Parameters
+        ----------
+        other : instance of Label | instance of BiHemiLabel
+            The label to subtract.
+
+        Returns
+        -------
+        label : instance of Label | instance of BiHemiLabel
+            The vertices of this label that are not in ``other`` (a
+            :class:`~mne.Label` if only one hemisphere remains).
+        """
         _validate_type(other, (Label, BiHemiLabel), "other")
         if isinstance(other, Label):
             if other.hemi == "lh":
@@ -1085,7 +1203,7 @@ class BiHemiLabel:
             return BiHemiLabel(lh, rh, name, self.color)
 
 
-@verbose
+@verbose_static("subject_label")
 def read_label(filename, subject=None, color=None, *, verbose=None):
     """Read FreeSurfer Label file.
 
@@ -1093,7 +1211,9 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     ----------
     filename : str
         Path to label file.
-    %(subject_label)s
+    subject : str | None
+        Subject which this label belongs to. Should only be specified if it is not
+        specified in the label.
         It is good practice to set this attribute to avoid combining
         incompatible labels and SourceEstimates (e.g., ones from other
         subjects). Note that due to file specification limitations, the
@@ -1102,7 +1222,11 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
         Note that due to file specification limitations, the color isn't saved
         to or loaded from files written to disk.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1121,6 +1245,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError("subject must be a string")
+    filename = _check_fname(filename, "read", must_exist=True, name="Label file")
 
     # find hemi
     basename = op.basename(filename)
@@ -1176,7 +1301,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     return label
 
 
-@verbose
+@verbose_static()
 def write_label(filename, label, verbose=None):
     """Write a FreeSurfer label.
 
@@ -1186,7 +1311,11 @@ def write_label(filename, label, verbose=None):
         Path to label file to produce.
     label : Label
         The label object to save.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1320,7 +1449,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     return labels
 
 
-@fill_doc
+@fill_doc_static("subject_label", "subjects_dir")
 def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=False):
     """Split a Label into two or more parts.
 
@@ -1333,8 +1462,13 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
         posterior to anterior), or the number of new labels to create (default
         is 2). If a number is specified, names of the new labels will be the
         input label's name with div1, div2 etc. appended.
-    %(subject_label)s
-    %(subjects_dir)s
+    subject : str | None
+        Subject which this label belongs to. Should only be specified if it is not
+        specified in the label.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     freesurfer : bool
         By default (``False``) ``split_label`` uses an algorithm that is
         slightly optimized for performance and numerical precision. Set
@@ -1496,7 +1630,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-@verbose
+@verbose_static("subjects_dir")
 def stc_to_label(
     stc, src=None, smooth=True, connected=False, subjects_dir=None, verbose=None
 ):
@@ -1518,8 +1652,15 @@ def stc_to_label(
         If True a list of connected labels will be returned in each
         hemisphere. The labels are ordered in decreasing order depending
         of the maximum value in the stc.
-    %(subjects_dir)s
-    %(verbose)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1659,36 +1800,13 @@ def _verts_within_dist(graph, sources, max_dist):
     dist : array
         Distances from source vertex.
     """
-    dist_map = {}
-    verts_added_last = []
-    for source in sources:
-        dist_map[source] = 0
-        verts_added_last.append(source)
+    from scipy.sparse.csgraph import dijkstra
 
-    # add neighbors until no more neighbors within max_dist can be found
-    while len(verts_added_last) > 0:
-        verts_added = []
-        for i in verts_added_last:
-            v_dist = dist_map[i]
-            row = graph[[i], :]
-            neighbor_vert = row.indices
-            neighbor_dist = row.data
-            for j, d in zip(neighbor_vert, neighbor_dist):
-                n_dist = v_dist + d
-                if j in dist_map:
-                    if n_dist < dist_map[j]:
-                        dist_map[j] = n_dist
-                else:
-                    if n_dist <= max_dist:
-                        dist_map[j] = n_dist
-                        # we found a new vertex within max_dist
-                        verts_added.append(j)
-        verts_added_last = verts_added
-
-    verts = np.sort(np.array(list(dist_map.keys()), int))
-    dist = np.array([dist_map[v] for v in verts], int)
-
-    return verts, dist
+    # ``min_only`` gives the distance to the closest of ``sources`` for every vertex,
+    # and ``limit`` leaves the ones beyond max_dist at infinity
+    dist = dijkstra(graph, indices=sources, min_only=True, limit=max_dist)
+    verts = np.flatnonzero(np.isfinite(dist))
+    return verts, dist[verts].astype(int)
 
 
 def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
@@ -1716,7 +1834,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "n_jobs", "surface")
 def grow_labels(
     subject,
     seeds,
@@ -1738,7 +1856,8 @@ def grow_labels(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     seeds : int | list
         Seed, or list of seeds. Each seed can be either a vertex number or
         a list of vertex numbers.
@@ -1746,8 +1865,17 @@ def grow_labels(
         Extents (radius in mm) of the labels.
     hemis : array | int
         Hemispheres to use for the labels (0: left, 1: right).
-    %(subjects_dir)s
-    %(n_jobs)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Likely only useful if tens or hundreds of labels are being expanded
         simultaneously. Does not apply with ``overlap=False``.
     overlap : bool
@@ -1757,7 +1885,9 @@ def grow_labels(
     names : None | list of str
         Assign names to the new labels (list needs to have the same length as
         seeds).
-    %(surface)s
+    surface : str
+        The surface along which to do the computations, defaults to ``'white'``
+        (the gray-white matter boundary).
     colors : array, shape (n, 4) or (, 4) | None
         How to assign colors to each label. If None then unique colors will be
         chosen automatically (default), otherwise colors will be broadcast
@@ -1880,6 +2010,8 @@ def _grow_nonoverlapping_labels(
     subject, seeds_, extents_, hemis, vertices_, graphs, names_
 ):
     """Grow labels while ensuring that they don't overlap."""
+    from scipy.sparse.csgraph import dijkstra
+
     labels = []
     for hemi in set(hemis):
         hemi_index = hemis == hemi
@@ -1890,56 +2022,34 @@ def _grow_nonoverlapping_labels(
         n_vertices = len(vertices_[hemi])
         n_labels = len(seeds)
 
-        # prepare parcellation
-        parc = np.empty(n_vertices, dtype="int32")
-        parc[:] = -1
-
-        # initialize active sources
-        sources = {}  # vert -> (label, dist_from_seed)
-        edge = []  # queue of vertices to process
+        # which label each seed vertex belongs to
+        seed_label = np.full(n_vertices, -1, int)
         for label, seed in enumerate(seeds):
-            if np.any(parc[seed] >= 0):
+            if np.any(seed_label[seed] >= 0):
                 raise ValueError("Overlapping seeds")
-            parc[seed] = label
-            for s in np.atleast_1d(seed):
-                sources[s] = (label, 0.0)
-                edge.append(s)
+            seed_label[seed] = label
 
-        # grow from sources
-        while edge:
-            vert_from = edge.pop(0)
-            label, old_dist = sources[vert_from]
-
-            # add neighbors within allowable distance
-            row = graph[[vert_from], :]
-            for vert_to, dist in zip(row.indices, row.data):
-                # Prevent adding a point that has already been used
-                # (prevents infinite loop)
-                if (vert_to == seeds[label]).any():
-                    continue
-                new_dist = old_dist + dist
-
-                # abort if outside of extent
-                if new_dist > extents[label]:
-                    continue
-
-                vert_to_label = parc[vert_to]
-                if vert_to_label >= 0:
-                    _, vert_to_dist = sources[vert_to]
-                    # abort if the vertex is occupied by a closer seed
-                    if new_dist > vert_to_dist:
-                        continue
-                    elif vert_to in edge:
-                        edge.remove(vert_to)
-
-                # assign label value
-                parc[vert_to] = label
-                sources[vert_to] = (label, new_dist)
-                edge.append(vert_to)
+        # A multi-source Dijkstra with min_only gives, for every vertex, its distance
+        # to the closest seed vertex and which seed vertex that was, i.e. exactly the
+        # non-overlapping assignment we want: each label grows outward until it runs
+        # into a vertex that some other label reaches sooner.
+        dist, _, sources = dijkstra(
+            graph,
+            indices=np.flatnonzero(seed_label >= 0),
+            min_only=True,
+            return_predecessors=True,
+        )
+        parc = np.full(n_vertices, -1, int)
+        reached = np.isfinite(dist)
+        parc[reached] = seed_label[sources[reached]]
+        # then drop vertices that are further away than their own label's extent
+        parc[reached] = np.where(
+            dist[reached] <= extents[parc[reached]], parc[reached], -1
+        )
 
         # convert parc to labels
         for i in range(n_labels):
-            vertices = np.nonzero(parc == i)[0]
+            vertices = np.flatnonzero(parc == i)
             name = str(names[i])
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
             labels.append(label_)
@@ -1947,9 +2057,17 @@ def _grow_nonoverlapping_labels(
     return labels
 
 
-@fill_doc
+@_legacy_rng("random_state")
+@fill_doc_static("subject", "subjects_dir", "surface", "rng", "random_state_rng")
 def random_parcellation(
-    subject, n_parcel, hemi, subjects_dir=None, surface="white", random_state=None
+    subject,
+    n_parcel,
+    hemi,
+    subjects_dir=None,
+    surface="white",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Generate random cortex parcellation by growing labels.
 
@@ -1959,16 +2077,36 @@ def random_parcellation(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     n_parcel : int
         Total number of cortical parcels.
     hemi : str
         Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``). In the case
         of ``'both'``, both hemispheres are processed with ``(n_parcel // 2)``
         parcels per hemisphere.
-    %(subjects_dir)s
-    %(surface)s
-    %(random_state)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    surface : str
+        The surface along which to do the computations, defaults to ``'white'``
+        (the gray-white matter boundary).
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -1988,7 +2126,7 @@ def random_parcellation(
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, random_state)
+    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist, rng)
 
     # add a unique color to each label
     colors = _n_colors(len(labels))
@@ -1998,12 +2136,9 @@ def random_parcellation(
     return labels
 
 
-def _cortex_parcellation(
-    subject, n_parcel, hemis, vertices_, graphs, random_state=None
-):
+def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs, rng):
     """Random cortex parcellation."""
     labels = []
-    rng = check_random_state(random_state)
     for hemi in set(hemis):
         parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
         graph = graphs[hemi]  # distance graph
@@ -2061,16 +2196,21 @@ def _cortex_parcellation(
                 rest -= 1
 
         # merging small labels
-        # label adjacency matrix
+        # label adjacency matrix: every vertex belongs to exactly one label at this
+        # point, so mapping both ends of each graph edge through parc marks all pairs
+        # of adjacent labels at once. Functionally equivalent to, but much faster than:
+        #
+        #     for i in range(n_labels):
+        #         vertices = np.nonzero(parc == i)[0]
+        #         label_sizes[i] = len(vertices)
+        #         neighbor_labels = np.unique(parc[graph[vertices, :].indices])
+        #         label_conn[i, neighbor_labels] = 1
+        #
         n_labels = label_idx + 1
-        label_sizes = np.empty(n_labels, dtype=int)
+        label_sizes = np.bincount(parc, minlength=n_labels)
         label_conn = np.zeros([n_labels, n_labels], dtype="bool")
-        for i in range(n_labels):
-            vertices = np.nonzero(parc == i)[0]
-            label_sizes[i] = len(vertices)
-            neighbor_vertices = graph[vertices, :].indices
-            neighbor_labels = np.unique(np.array(parc[neighbor_vertices]))
-            label_conn[i, neighbor_labels] = 1
+        edges = graph.tocoo()
+        label_conn[parc[edges.row], parc[edges.col]] = True
         np.fill_diagonal(label_conn, 0)
 
         # merging
@@ -2165,7 +2305,7 @@ def _load_vert_pos(subject, subjects_dir, surf_name, hemi, n_expected, extra="")
     return vert_pos
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def read_labels_from_annot(
     subject,
     parc="aparc",
@@ -2184,7 +2324,8 @@ def read_labels_from_annot(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     parc : str
         The parcellation to use, e.g., ``'aparc'`` or ``'aparc.a2009s'``.
     hemi : str
@@ -2199,12 +2340,19 @@ def read_labels_from_annot(
         Regular expression or substring to select particular labels from the
         parcellation. E.g. ``'superior'`` will return all labels in which this
         substring is contained.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     sort : bool
         If true, labels will be sorted by name before being returned.
 
         .. versionadded:: 0.21.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2317,7 +2465,7 @@ def _check_labels_subject(labels, subject, name):
     return subject
 
 
-@verbose
+@verbose_static("subjects_dir")
 def morph_labels(
     labels,
     subject_to,
@@ -2341,10 +2489,17 @@ def morph_labels(
     subject_from : str | None
         The subject to morph labels from. Can be None if the labels
         have the ``.subject`` property defined.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     surf_name : str
         Surface used to obtain vertex locations, e.g., ``'white'``, ``'pial'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2394,7 +2549,7 @@ def morph_labels(
     return out_labels
 
 
-@verbose
+@verbose_static("labels_eltc", "subject", "src_eltc")
 def labels_to_stc(
     labels, values, tmin=0, tstep=1, subject=None, src=None, verbose=None
 ):
@@ -2405,21 +2560,40 @@ def labels_to_stc(
 
     Parameters
     ----------
-    %(labels_eltc)s
+    labels : Label | BiHemiLabel | list | tuple | str
+        If using a surface or mixed source space, this should be the
+        :class:`~mne.Label`'s for which to extract the time course.
+        If working with whole-brain volume source estimates, this must be one of:
+
+        - a string path to a FreeSurfer atlas for the subject (e.g., their
+          'aparc.a2009s+aseg.mgz') to extract time courses for all volumes in the
+          atlas
+        - a two-element list or tuple, the first element being a path to an atlas,
+          and the second being a list or dict of ``volume_labels`` to extract
+          (see :func:`mne.setup_volume_source_space` for details).
+
+        .. versionchanged:: 0.21.0
+           Support for volume source estimates.
     values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float
         The tmin to use for the STC.
     tstep : float
         The tstep to use for the STC.
-    %(subject)s
-    %(src_eltc)s
+    subject : str
+        The FreeSurfer subject name.
+    src : instance of SourceSpaces
+        The source spaces for the source time courses.
         Can be omitted if using a surface source space, in which case
         the label vertices will determine the output STC vertices.
         Required if using a volumetric source space.
 
         .. versionadded:: 0.22
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2478,28 +2652,53 @@ def _check_values_labels(values, n_labels):
         )
 
 
+def _label_membership(label_indices, n_vertices):
+    """Get a sparse (n_labels, n_vertices) matrix of which vertices are in each label.
+
+    ``label_indices[li]`` holds the indices, into some length-``n_vertices`` array of
+    vertices, of the vertices belonging to label ``li``. Multiplying by this matrix (or
+    its transpose) is how the label-wise operations in this module avoid looping over
+    labels; see ``_labels_to_stc_surf`` and ``_label_adjacency`` for examples.
+    """
+    from scipy import sparse
+
+    n_labels = len(label_indices)
+    rows = np.repeat(np.arange(n_labels), [len(ind) for ind in label_indices])
+    cols = np.concatenate([np.empty(0, int)] + list(label_indices))
+    return sparse.csr_array(
+        (np.ones(len(cols)), (rows, cols)), shape=(n_labels, n_vertices)
+    )
+
+
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
-    vertices = dict(lh=[], rh=[])
-    data = dict(lh=[], rh=[])
-    for li, label in enumerate(labels):
-        data[label.hemi].append(
-            np.repeat(values[li][np.newaxis], len(label.vertices), axis=0)
+    vertices = list()
+    data = list()
+    for hemi in ("lh", "rh"):
+        idx = np.array(
+            [li for li, label in enumerate(labels) if label.hemi == hemi], int
         )
-        vertices[label.hemi].append(label.vertices)
-    hemis = ("lh", "rh")
-    for hemi in hemis:
-        vertices[hemi] = np.concatenate(vertices[hemi], axis=0)
-        data[hemi] = np.concatenate(data[hemi], axis=0).astype(float)
-        cols = np.arange(len(vertices[hemi]))
-        vertices[hemi], rows = np.unique(vertices[hemi], return_inverse=True)
-        mat = sparse.coo_array((np.ones(len(rows)), (rows, cols))).tocsr()
-        mat *= 1.0 / mat.sum(axis=-1)
-        data[hemi] = mat @ data[hemi]
-    vertices = [vertices[hemi] for hemi in hemis]
-    data = np.concatenate([data[hemi] for hemi in hemis], axis=0)
-    return data, vertices, subject
+        label_vertices = [labels[li].vertices for li in idx]
+        these_vertices = np.unique(np.concatenate([np.empty(0, int)] + label_vertices))
+        membership = _label_membership(
+            [np.searchsorted(these_vertices, verts) for verts in label_vertices],
+            len(these_vertices),
+        )
+        # ``membership.T @ values[idx]`` sums, for each vertex, the values of every
+        # label containing it, and ``n_used`` is how many labels that was, so the two
+        # together give the mean. Functionally equivalent to, but much faster than:
+        #
+        #     for vi, vertex in enumerate(these_vertices):
+        #         in_label = [
+        #             ii for ii, verts in enumerate(label_vertices) if vertex in verts
+        #         ]
+        #         this_data[vi] = values[idx[in_label]].mean(axis=0)
+        #
+        n_used = membership.sum(axis=0)  # number of labels containing each vertex
+        vertices.append(these_vertices)
+        data.append((membership.T @ values[idx]) / n_used[:, np.newaxis])
+    return np.concatenate(data), vertices, subject
 
 
 _DEFAULT_TABLE_NAME = "MNE-Python Colortable"
@@ -2546,7 +2745,7 @@ def _write_annot_str(fid, s):
     fid.write(s)
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def write_labels_to_annot(
     labels,
     subject=None,
@@ -2566,12 +2765,16 @@ def write_labels_to_annot(
     ----------
     labels : list with instances of mne.Label
         The labels to create a parcellation from.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     parc : str | None
         The parcellation name to use.
     overwrite : bool
         Overwrite files if they already exist.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     annot_fname : str | None
         Filename of the ``.annot file``. If not None, only this file is written
         and the arguments ``parc`` and ``subject`` are ignored.
@@ -2589,7 +2792,11 @@ def write_labels_to_annot(
         The table name to use for the colortable.
 
         .. versionadded:: 0.21.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -2805,7 +3012,8 @@ def write_labels_to_annot(
         _write_annot(fname, annot, ctab, hemi_names, table_name)
 
 
-@fill_doc
+@_legacy_rng("random_state")
+@fill_doc_static("subject", "subjects_dir", "rng", "random_state_rng")
 def select_sources(
     subject,
     label,
@@ -2814,14 +3022,17 @@ def select_sources(
     grow_outside=True,
     subjects_dir=None,
     name=None,
-    random_state=None,
     surf="white",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Select sources from a label.
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     label : instance of Label | str
         Define where the seed will be chosen. If str, can be 'lh' or 'rh',
         which correspond to left or right hemisphere, respectively.
@@ -2836,12 +3047,29 @@ def select_sources(
     grow_outside : bool
         Let the region grow outside the original label where location was
         defined.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     name : None | str
         Assign name to the new label.
-    %(random_state)s
     surf : str
         The surface used to simulated the label, defaults to the white surface.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -2879,7 +3107,6 @@ def select_sources(
                 subject, restrict_vertices=True, subjects_dir=subjects_dir, surf=surf
             )
         else:
-            rng = check_random_state(random_state)
             seed = rng.choice(label.vertices)
     else:
         seed = label.vertices[location]
@@ -2903,3 +3130,146 @@ def select_sources(
         )
 
     return new_label
+
+
+def _label_adjacency(label_src_ind, src_adjacency):
+    """Turn per-label source space indices plus source adjacency into label adjacency.
+
+    Two labels are adjacent if any vertex of one is adjacent to any vertex of the
+    other. ``label_src_ind[li]`` holds the indices into the source space of the
+    vertices belonging to label ``li``.
+    """
+    from scipy import sparse
+
+    n_labels = len(label_src_ind)
+    membership = _label_membership(label_src_ind, src_adjacency.shape[0])
+    # ``counts[i, j]`` is the number of adjacent (vertex in label i, vertex in label j)
+    # vertex pairs, which is nonzero exactly when the two labels are adjacent.
+    # Functionally equivalent to, but much faster than:
+    #
+    #     src_adjacency = src_adjacency.tocsr()
+    #     counts = np.zeros((n_labels, n_labels))
+    #     for i in range(n_labels):
+    #         for j in range(n_labels):
+    #             counts[i, j] = src_adjacency[label_src_ind[i]][
+    #                 :, label_src_ind[j]
+    #             ].sum()
+    #
+    # which needs O(n_labels ** 2) sparse slices, each costing O(nnz(src_adjacency)).
+    counts = membership @ src_adjacency.tocsr() @ membership.T
+    row, col = counts.nonzero()  # ignores any explicitly stored zeros
+    return sparse.coo_matrix(
+        (np.ones(len(row)), (row, col)), shape=(n_labels, n_labels)
+    )
+
+
+def label_adjacency(labels, src):
+    """Compute adjacency between labels.
+
+    Two labels are considered adjacent if one of their vertices are adjacent in the
+    source space.
+
+    Parameters
+    ----------
+    labels : list of mne.Label
+        The labels between which to compute adjacency.
+    src : mne.SourceSpaces
+        The source space on which the labels are defined.
+
+    Returns
+    -------
+    label_adjacency : scipy.sparse.coo_matrix
+        A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
+        otherwise.
+
+    See Also
+    --------
+    volume_label_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+    src_adjacency = spatial_src_adjacency(src)
+    label_src_ind = list()
+    for label in labels:
+        src_hemi = src[0] if label.hemi == "lh" else src[1]
+        label_verts = label.get_vertices_used(src_hemi["vertno"])
+        src_ind = np.searchsorted(src_hemi["vertno"], label_verts)
+        if label.hemi == "rh":
+            src_ind += src[0]["nuse"]
+        label_src_ind.append(src_ind)
+    # Labels in different hemispheres are never adjacent because the source space
+    # adjacency has no inter-hemispheric edges, so no explicit hemisphere check is
+    # needed here.
+    return _label_adjacency(label_src_ind, src_adjacency)
+
+
+@fill_doc_static("subject", "subjects_dir", "aseg", "labels_aseg")
+def volume_label_adjacency(src, subject, subjects_dir, *, aseg="auto", labels=None):
+    """Compute adjacency between volume labels.
+
+    Two labels are considered adjacent if one of their voxels are adjacent in the
+    (volumetric) source space.
+
+    Parameters
+    ----------
+    src : mne.SourceSpaces
+        The volumetric source space on which the labels are defined.
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    aseg : str
+        The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+        if available and ``wmparc`` if not. This may be any anatomical
+        segmentation file in the mri subdirectory of the FreeSurfer subject
+        directory.
+
+        .. versionchanged:: 1.8
+           Added support for the new default ``'auto'``.
+    labels : list of str | None
+        Labeled regions of interest to plot. See
+        :func:`mne.get_montage_volume_labels` for one way to determine regions of
+        interest. Regions can also be chosen from the :term:`FreeSurfer LUT`. If
+        ``None``, all labels that are defined in the segmentation file are used.
+
+    Returns
+    -------
+    label_adjacency : scipy.sparse.coo_matrix
+        A sparse adjacency matrix containing a 1 for labels that are adjacent and 0
+        otherwise.
+    labels : list of str
+        The names of the labels which contain at least one source point.
+
+    See Also
+    --------
+    label_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.13
+    """
+    subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
+    if aseg == "auto":  # use aparc+aseg if auto
+        aseg = _check_fname(
+            subjects_dir / subject / "mri" / "aparc+aseg.mgz",
+            overwrite="read",
+            must_exist=False,
+        )
+        if not aseg:  # if doesn't exist use wmparc
+            aseg = subjects_dir / subject / "mri" / "wmparc.mgz"
+    else:
+        aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
+
+    if labels is None:
+        labels = get_volume_labels_from_aseg(aseg)
+
+    vol_labels = _volume_labels(src, (aseg, labels), mri_resolution=False)
+    src_adjacency = spatial_src_adjacency(src)
+    label_src_ind = [
+        np.searchsorted(src[0]["vertno"], label.vertices) for label in vol_labels
+    ]
+    return _label_adjacency(label_src_ind, src_adjacency), labels

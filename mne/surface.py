@@ -15,20 +15,14 @@ from os import path as op
 from pathlib import Path
 
 import numpy as np
-from scipy.ndimage import binary_dilation
-from scipy.sparse import coo_array, csr_array
-from scipy.spatial import ConvexHull, Delaunay
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
-from .fixes import bincount, jit, prange
 from .parallel import parallel_func
 from .transforms import (
     Transform,
     _angle_between_quats,
     _cart_to_sph,
-    _fit_matched_points,
     _get_trans,
     _MatchedDisplacementFieldInterpolator,
     _pol_to_cart,
@@ -46,11 +40,12 @@ from .utils import (
     _soft_import,
     _TempDir,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     run_subprocess,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -61,7 +56,7 @@ _helmet_path = Path(__file__).parent / "data" / "helmets"
 # AUTOMATED SURFACE FINDING
 
 
-@verbose
+@verbose_static("on_defects")
 def get_head_surf(
     subject, source=("bem", "head"), subjects_dir=None, on_defects="raise", verbose=None
 ):
@@ -81,10 +76,21 @@ def get_head_surf(
     subjects_dir : path-like | None
         Path to the ``SUBJECTS_DIR``. If None, the path is obtained by using
         the environment variable ``SUBJECTS_DIR``.
-    %(on_defects)s
+    on_defects : 'raise' | 'warn' | 'ignore'
+        What to do if the surface is found to have topological defects.
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore when one or more defects are found.
+        Note that a lot of computations in MNE-Python assume the surfaces to be
+        topologically correct, topological defects may still make other
+        computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
+        fail irrespective of this parameter.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -172,19 +178,28 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
 # mne.write_bem_surfaces(bem_fname, surfs, overwrite=True)
 
 
-@verbose
+@verbose_static("info_not_none", "helmet_upsampling")
 def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
     """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     trans : dict
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
-    %(helmet_upsampling)s
-    %(verbose)s
+    upsampling : int
+        The upsampling factor to use for the helmet mesh. The default (1) does no
+        upsampling. Larger integers lead to more densely sampled helmet surfaces, and
+        the number of vertices increases as a factor of ``4**(upsampling-1)``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -196,6 +211,8 @@ def get_meg_helmet_surf(info, trans=None, *, upsampling=1, verbose=None):
     A built-in helmet is loaded if possible. If not, a helmet surface
     will be approximated based on the sensor locations.
     """
+    from scipy.spatial import ConvexHull, Delaunay
+
     from .bem import _fit_sphere, read_bem_surfaces
     from .channels.channels import _get_meg_system
 
@@ -293,6 +310,8 @@ def _scale_helmet_to_sensors(system, surf, info):
     interp = _MatchedDisplacementFieldInterpolator(fro, to, extrema=extrema)
     new_rr = interp(surf["rr"])
     try:
+        from ._transforms_numba import _fit_matched_points
+
         quat, sc = _fit_matched_points(surf["rr"], new_rr)
     except np.linalg.LinAlgError as exc:
         logger.info(
@@ -360,49 +379,13 @@ def fast_cross_3d(x, y):
     assert x.shape[-1] == 3
     assert y.shape[-1] == 3
     if max(x.size, y.size) >= 500:
+        from ._surface_numba import _jit_cross
+
         out = np.empty(np.broadcast(x, y).shape)
         _jit_cross(out, x, y)
         return out
     else:
         return np.cross(x, y)
-
-
-@jit()
-def _jit_cross(out, x, y):
-    out[..., 0] = x[..., 1] * y[..., 2]
-    out[..., 0] -= x[..., 2] * y[..., 1]
-    out[..., 1] = x[..., 2] * y[..., 0]
-    out[..., 1] -= x[..., 0] * y[..., 2]
-    out[..., 2] = x[..., 0] * y[..., 1]
-    out[..., 2] -= x[..., 1] * y[..., 0]
-
-
-@jit()
-def _fast_cross_nd_sum(a, b, c):
-    """Fast cross and sum."""
-    return (
-        (a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0]
-        + (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1]
-        + (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2]
-    )
-
-
-@jit()
-def _accumulate_normals(tris, tri_nn, npts):
-    """Efficiently accumulate triangle normals."""
-    # this code replaces the following, but is faster (vectorized):
-    #
-    # this['nn'] = np.zeros((this['np'], 3))
-    # for p in xrange(this['ntri']):
-    #     verts = this['tris'][p]
-    #     this['nn'][verts, :] += this['tri_nn'][p, :]
-    #
-    nn = np.zeros((npts, 3))
-    for vi in range(3):
-        verts = tris[:, vi]
-        for idx in range(3):  # x, y, z
-            nn[:, idx] += bincount(verts, weights=tri_nn[:, idx], minlength=npts)
-    return nn
 
 
 def _triangle_neighbors(tris, npts):
@@ -412,6 +395,8 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
+    from scipy.sparse import coo_array
+
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
@@ -423,30 +408,12 @@ def _triangle_neighbors(tris, npts):
     return neighbor_tri
 
 
-@jit()
-def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):  # pragma: no cover
-    """Get coordinates of a vertex projected to a triangle."""
-    r1 = r1[best]
-    tri_nn = nn[best]
-    r12 = r12[best]
-    r13 = r13[best]
-    a = a[best]
-    b = b[best]
-    c = c[best]
-    rr = r - r1
-    z = np.sum(rr * tri_nn)
-    v1 = np.sum(rr * r12)
-    v2 = np.sum(rr * r13)
-    det = a * b - c * c
-    x = (b * v1 - c * v2) / det
-    y = (a * v2 - c * v1) / det
-    return x, y, z
-
-
 def _project_onto_surface(
     rrs, surf, project_rrs=False, return_nn=False, method="accurate"
 ):
     """Project points onto (scalp) surface."""
+    from ._surface_numba import _accumulate_normals, _find_nearest_tri_pts
+
     if method == "accurate":
         surf_geom = _get_tri_supp_geom(surf)
         pt_tris = np.empty((0,), int)
@@ -484,7 +451,7 @@ def _normal_orth(nn):
     return u.swapaxes(-1, -2)
 
 
-@verbose
+@verbose_static()
 def complete_surface_info(
     surf, do_neighbor_vert=False, copy=True, do_neighbor_tri=True, *, verbose=None
 ):
@@ -500,7 +467,11 @@ def complete_surface_info(
         If True (default), make a copy. If False, operate in-place.
     do_neighbor_tri : bool
         If True (default), compute triangle neighbors.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -528,6 +499,8 @@ def complete_surface_info(
         logger.info(f"    Warning: zero size triangles: {zidx}")
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
+    from ._surface_numba import _accumulate_normals
+
     logger.info("    Triangle neighbors and vertex normals...")
     surf["nn"] = _accumulate_normals(
         surf["tris"].astype(int), surf["tri_nn"], surf["np"]
@@ -605,6 +578,8 @@ class _CDist:
         self._xhs = xhs
 
     def query(self, rr):
+        from scipy.spatial.distance import cdist
+
         nearest = list()
         dists = list()
         for r in rr:
@@ -691,7 +666,7 @@ class _DistanceQuery:
         self.data = xhs
 
 
-@verbose
+@_verbose_control
 def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     """Check whether points are outside a surface.
 
@@ -707,6 +682,8 @@ def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     outside : ndarray
         1D logical array of size N for which points are outside the surface.
     """
+    from ._surface_numba import _get_solids
+
     rr = np.atleast_2d(rr)
     assert rr.shape[1] == 3
     parallel, p_fun, n_jobs = parallel_func(_get_solids, n_jobs)
@@ -742,7 +719,7 @@ def _polydata_to_surface(pd, normals=True):
 class _CheckInside:
     """Efficiently check if points are inside a surface."""
 
-    @verbose
+    @_verbose_control
     def __init__(self, surf, *, mode="old", verbose=None):
         assert mode in ("pyvista", "old")
         self.mode = mode
@@ -758,6 +735,8 @@ class _CheckInside:
         )
 
     def _init_old(self):
+        from scipy.spatial import Delaunay
+
         self.inner_r = None
         self.center = self.surf["rr"].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
@@ -777,7 +756,7 @@ class _CheckInside:
         else:
             self.pdata = _surface_to_polydata(self.surf).clean()
 
-    @verbose
+    @_verbose_control
     def __call__(self, rr, *, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(
@@ -934,6 +913,7 @@ def read_curvature(filepath, binary=True):
     curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
+    filepath = _check_fname(filepath, "read", must_exist=True, name="Curvature file")
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
         if magic == 16777215:
@@ -949,7 +929,7 @@ def read_curvature(filepath, binary=True):
         return curv
 
 
-@verbose
+@verbose_static()
 def read_surface(
     fname, read_metadata=False, return_dict=False, file_format="auto", verbose=None
 ):
@@ -986,7 +966,11 @@ def read_surface(
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1388,7 +1372,7 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
-@verbose
+@verbose_static("overwrite")
 def write_surface(
     fname,
     coords,
@@ -1438,8 +1422,14 @@ def write_surface(
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1555,7 +1545,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     return rr[idx], ico_surf["tris"]
 
 
-@verbose
+@verbose_static()
 def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbose=None):
     """Decimate surface data.
 
@@ -1573,7 +1563,11 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
         octahedral mesh.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1617,18 +1611,6 @@ def decimate_surface(points, triangles, n_triangles, method="quadric", *, verbos
 # Geometry
 
 
-@jit()
-def _get_tri_dist(p, q, p0, q0, a, b, c, dist):  # pragma: no cover
-    """Get the distance to a triangle edge."""
-    p1 = p - p0
-    q1 = q - q0
-    out = p1 * p1 * a
-    out += q1 * q1 * b
-    out += p1 * q1 * c
-    out += dist * dist
-    return np.sqrt(out)
-
-
 def _get_tri_supp_geom(surf):
     """Create supplementary geometry information using tris and rrs."""
     r1 = surf["rr"][surf["tris"][:, 0], :]
@@ -1647,139 +1629,6 @@ def _get_tri_supp_geom(surf):
     return dict(r1=r1, r12=r12, r13=r13, r1213=r1213, a=a, b=b, c=c, mat=mat, nn=nn)
 
 
-@jit(parallel=True)
-def _find_nearest_tri_pts(
-    rrs,
-    pt_triss,
-    pt_lens,
-    a,
-    b,
-    c,
-    nn,
-    r1,
-    r12,
-    r13,
-    r1213,
-    mat,
-    run_all=True,
-    reproject=False,
-):  # pragma: no cover
-    """Find nearest point mapping to a set of triangles.
-
-    If run_all is False, if the point lies within a triangle, it stops.
-    If run_all is True, edges of other triangles are checked in case
-    those (somehow) are closer.
-    """
-    # The following dense code is equivalent to the following:
-    #   rr = r1[pt_tris] - to_pts[ii]
-    #   v1s = np.sum(rr * r12[pt_tris], axis=1)
-    #   v2s = np.sum(rr * r13[pt_tris], axis=1)
-    #   aas = a[pt_tris]
-    #   bbs = b[pt_tris]
-    #   ccs = c[pt_tris]
-    #   dets = aas * bbs - ccs * ccs
-    #   pp = (bbs * v1s - ccs * v2s) / dets
-    #   qq = (aas * v2s - ccs * v1s) / dets
-    #   pqs = np.array(pp, qq)
-
-    weights = np.empty((len(rrs), 3))
-    tri_idx = np.empty(len(rrs), np.int64)
-    for ri in prange(len(rrs)):
-        rr = np.reshape(rrs[ri], (1, 3))
-        start, stop = pt_lens[ri : ri + 2]
-        if start == stop == 0:  # use all
-            drs = rr - r1
-            tri_nn = nn
-            mats = mat
-            r1213s = r1213
-            reindex = False
-        else:
-            pt_tris = pt_triss[start:stop]
-            drs = rr - r1[pt_tris]
-            tri_nn = nn[pt_tris]
-            mats = mat[pt_tris]
-            r1213s = r1213[pt_tris]
-            reindex = True
-        use = np.ones(len(drs), np.int64)
-        pqs = np.empty((len(drs), 2))
-        dists = np.empty(len(drs))
-        dist = np.inf
-        # make life easier for numba var typing
-        p, q, pt = np.float64(0.0), np.float64(1.0), np.int64(0)
-        found = False
-        for ii in range(len(drs)):
-            pqs[ii] = np.dot(mats[ii], np.dot(r1213s[ii], drs[ii]))
-            dists[ii] = np.dot(drs[ii], tri_nn[ii])
-            pp, qq = pqs[ii]
-            if pp >= 0 and qq >= 0 and pp <= 1 and qq <= 1 and pp + qq < 1:
-                found = True
-                use[ii] = False
-                if np.abs(dists[ii]) < np.abs(dist):
-                    p, q, pt, dist = pp, qq, ii, dists[ii]
-        # re-reference back to original numbers
-        if found and reindex:
-            pt = pt_tris[pt]
-
-        if not found or run_all:
-            # don't include ones that we might have found before
-            # these are the ones that we want to check the sides of
-            s = np.where(use)[0]
-            # Tough: must investigate the sides
-            if reindex:
-                use_pt_tris = pt_tris[s].astype(np.int64)
-            else:
-                use_pt_tris = s.astype(np.int64)
-            pp, qq, ptt, distt = _nearest_tri_edge(
-                use_pt_tris, pqs[s], dists[s], a, b, c
-            )
-            if np.abs(distt) < np.abs(dist):
-                p, q, pt, dist = pp, qq, ptt, distt
-        w = (1 - p - q, p, q)
-        if reproject:
-            # Calculate a linear interpolation between the vertex values to
-            # get coords of pt projected onto closest triangle
-            coords = _triangle_coords(rr[0], pt, r1, nn, r12, r13, a, b, c)
-            w = (1.0 - coords[0] - coords[1], coords[0], coords[1])
-        weights[ri] = w
-        tri_idx[ri] = pt
-    return weights, tri_idx
-
-
-@jit()
-def _nearest_tri_edge(pt_tris, pqs, dist, a, b, c):  # pragma: no cover
-    """Get nearest location from a point to the edge of a set of triangles."""
-    # We might do something intelligent here. However, for now
-    # it is ok to do it in the hard way
-    aa = a[pt_tris]
-    bb = b[pt_tris]
-    cc = c[pt_tris]
-    pp = pqs[:, 0]
-    qq = pqs[:, 1]
-    # Find the nearest point from a triangle:
-    #   Side 1 -> 2
-    p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa, 0.0), 1.0)
-    q0 = np.zeros_like(p0)
-    #   Side 2 -> 3
-    t1 = 0.5 * ((2.0 * aa - cc) * (1.0 - pp) + (2.0 * bb - cc) * qq) / (aa + bb - cc)
-    t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
-    p1 = 1.0 - t1
-    q1 = t1
-    #   Side 1 -> 3
-    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc) / bb, 0.0), 1.0)
-    p2 = np.zeros_like(q2)
-
-    # figure out which one had the lowest distance
-    dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
-    dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
-    dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
-    pp = np.concatenate((p0, p1, p2))
-    qq = np.concatenate((q0, q1, q2))
-    dists = np.concatenate((dist0, dist1, dist2))
-    ii = np.argmin(np.abs(dists))
-    p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
-    return p, q, pt, dist
-
-
 def mesh_edges(tris):
     """Return sparse matrix with edges as an adjacency matrix.
 
@@ -1790,7 +1639,7 @@ def mesh_edges(tris):
 
     Returns
     -------
-    edges : scipy.sparse.spmatrix
+    edges : scipy.sparse.sparray
         The adjacency matrix.
     """
     tris = _hashable_ndarray(tris)
@@ -1799,6 +1648,8 @@ def mesh_edges(tris):
 
 @lru_cache(maxsize=10)
 def _mesh_edges(tris=None):
+    from scipy.sparse import coo_array
+
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError("Cannot compute adjacency on a selection of triangles.")
 
@@ -1832,6 +1683,8 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_array
         Sparse matrix with distances between adjacent vertices.
     """
+    from scipy.sparse import csr_array
+
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
@@ -1840,7 +1693,7 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-@verbose
+@verbose_static()
 def read_tri(fname_in, swap=False, verbose=None):
     """Read triangle definitions from an ascii file.
 
@@ -1851,7 +1704,11 @@ def read_tri(fname_in, swap=False, verbose=None):
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1906,9 +1763,10 @@ def read_tri(fname_in, swap=False, verbose=None):
     return (rr, tris)
 
 
-@jit()
-def _get_solids(tri_rrs, fros):
-    """Compute _sum_solids_div total angle in chunks."""
+def _get_solids_numpy(tri_rrs, fros):
+    """Compute _sum_solids_div total angle in chunks (NumPy fallback)."""
+    from ._surface_numba import _jit_cross
+
     # NOTE: This incorporates the division by 4PI that used to be separate
     tot_angle = np.zeros(len(fros))
     for ti in range(len(tri_rrs)):
@@ -1944,7 +1802,7 @@ def _complete_sphere_surf(sphere, idx, level, complete=True):
     return surf
 
 
-@verbose
+@verbose_static("info_not_none", "dig_kinds", "exclude_frontal", "on_defects")
 def dig_mri_distances(
     info,
     trans,
@@ -1963,7 +1821,10 @@ def dig_mri_distances(
 
     Parameters
     ----------
-    %(info_not_none)s Must contain the head shape points in ``info['dig']``.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Must contain the head shape points in ``info['dig']``.
     trans : str | instance of Transform
         The head<->MRI transform. If str is passed it is the
         path to file on disk.
@@ -1972,13 +1833,31 @@ def dig_mri_distances(
     subjects_dir : str | None
         Directory containing subjects data. If None use
         the FreeSurfer SUBJECTS_DIR environment variable.
-    %(dig_kinds)s
-    %(exclude_frontal)s
+    dig_kinds : list of str | str
+        Kind of digitization points to use in the fitting. These can be any
+        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+        be 'auto' (default), which will use only the 'extra' points if
+        enough (more than 4) are available, and if not, uses 'extra' and
+        'eeg' points.
+    exclude_frontal : bool
+        If True, exclude points that have both negative Z values
+        (below the nasion) and positive Y values (in front of the LPA/RPA).
         Default is False.
-    %(on_defects)s
+    on_defects : 'raise' | 'warn' | 'ignore'
+        What to do if the surface is found to have topological defects.
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore when one or more defects are found.
+        Note that a lot of computations in MNE-Python assume the surfaces to be
+        topologically correct, topological defects may still make other
+        computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
+        fail irrespective of this parameter.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2024,6 +1903,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
+    from scipy.ndimage import binary_dilation
     from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
     from vtkmodules.vtkCommonDataModel import vtkDataSetAttributes, vtkImageData
     from vtkmodules.vtkFiltersCore import vtkThreshold
@@ -2114,7 +1994,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
     return out
 
 
-@verbose
+@_verbose_control
 def _vtk_smooth(pd, smooth, *, verbose=None):
     _validate_type(smooth, "numeric", smooth)
     smooth = float(smooth)
@@ -2151,7 +2031,7 @@ def _vtk_smooth(pd, smooth, *, verbose=None):
 _VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
-@fill_doc
+@fill_doc_static("montage", "subject", "subjects_dir", "aseg")
 def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", dist=2):
     """Get regions of interest near channels from a FreeSurfer parcellation.
 
@@ -2160,10 +2040,29 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None, aseg="auto", 
 
     Parameters
     ----------
-    %(montage)s
-    %(subject)s
-    %(subjects_dir)s
-    %(aseg)s
+    montage : None | str | DigMontage
+        A montage containing channel positions. If a string or
+        :class:`~mne.channels.DigMontage` is
+        specified, the existing channel information will be updated with the
+        channel positions from the montage. Valid strings are the names of the
+        built-in montages that ship with MNE-Python; you can list those via
+        :func:`mne.channels.get_builtin_montages`.
+        If ``None`` (default), the channel positions will be removed from the
+        :class:`~mne.Info`.
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    aseg : str
+        The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+        if available and ``wmparc`` if not. This may be any anatomical
+        segmentation file in the mri subdirectory of the FreeSurfer subject
+        directory.
+
+        .. versionchanged:: 1.8
+           Added support for the new default ``'auto'``.
     dist : float
         The distance in mm to use for identifying regions of interest.
 
@@ -2337,3 +2236,22 @@ def _voxel_neighbors(
                 break
         neighbors = next_neighbors  # start again checking all new neighbors
     return voxels
+
+
+def __getattr__(name):
+    # Re-exported for backward compatibility: these live in their own module so that
+    # importing mne.surface does not import numba
+    if name not in (
+        "_accumulate_normals",
+        "_fast_cross_nd_sum",
+        "_find_nearest_tri_pts",
+        "_get_solids",
+        "_get_tri_dist",
+        "_jit_cross",
+        "_nearest_tri_edge",
+        "_triangle_coords",
+    ):
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import importlib
+
+    return getattr(importlib.import_module("._surface_numba", __package__), name)

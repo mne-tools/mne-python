@@ -5,13 +5,15 @@
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
-from ...utils import _check_fname, _soft_import, verbose, warn
+from ...utils import _check_fname, _soft_import, verbose_static, warn
 from ..base import BaseRaw
 
 
@@ -53,7 +55,9 @@ def _parse_nedf_header(header):
     n_samples : int
         The number of data samples.
     """
-    defusedxml = _soft_import("defusedxml", "reading NEDF data")
+    _soft_import("defusedxml", "reading NEDF data")
+    import defusedxml.ElementTree  # ty: ignore[unresolved-import]
+
     info = {}
     # nedf files have three accelerometer channels sampled at 100Hz followed
     # by five EEG samples + TTL trigger sampled at 500Hz
@@ -115,11 +119,11 @@ def _parse_nedf_header(header):
     dt.append(("data", np.dtype(datadt), (5,)))
 
     date = headerxml.findtext("StepDetails/StartDate_firstEEGTimestamp", 0)
-    info["meas_date"] = datetime.fromtimestamp(int(date) / 1000, timezone.utc)
+    info["meas_date"] = datetime.fromtimestamp(int(date) / 1000, UTC)
 
     n_samples = int(_getsubnodetext(eegset, "NumberOfRecordsOfEEG"))
     n_full, n_last = divmod(n_samples, 5)
-    dt_last = deepcopy(dt)
+    dt_last: list[Any] = deepcopy(dt)
     assert dt_last[-1][-1] == (5,)
     dt_last[-1] = list(dt_last[-1])
     dt_last[-1][-1] = (n_last,)
@@ -203,8 +207,12 @@ def _convert_eeg(chunks, n_eeg, n_tot):
     return eeg
 
 
-@verbose
-def read_raw_nedf(filename, preload=False, verbose=None) -> RawNedf:
+@verbose_static("preload")
+def read_raw_nedf(
+    filename: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> RawNedf:
     """Read NeuroElectrics .nedf files.
 
     NEDF file versions starting from 1.3 are supported.
@@ -213,8 +221,25 @@ def read_raw_nedf(filename, preload=False, verbose=None) -> RawNedf:
     ----------
     filename : path-like
         Path to the ``.nedf`` file.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

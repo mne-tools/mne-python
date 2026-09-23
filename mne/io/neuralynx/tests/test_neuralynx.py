@@ -4,7 +4,7 @@
 
 import os
 from ast import literal_eval
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -139,7 +139,7 @@ def test_neuralynx():
     assert raw.info["lowpass"] == expected_lp_freq, "lowpass freq not set correctly"
     assert raw.info["sfreq"] == expected_sfreq, "sampling freq not set correctly"
 
-    meas_date_utc = expected_meas_date.astimezone(timezone.utc)
+    meas_date_utc = expected_meas_date.astimezone(UTC)
     assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
 
     # test that channel selection worked

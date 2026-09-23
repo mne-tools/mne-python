@@ -7,18 +7,18 @@
 import glob
 import os
 from copy import deepcopy
+from functools import reduce
 from pathlib import Path
 
 import numpy as np
 from scipy import linalg
-from scipy.spatial.distance import cdist
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
-from .fixes import _get_img_fdata, jit, sph_harm_y
+from .fixes import _get_img_fdata, sph_harm_y
 from .utils import (
     _check_fname,
     _check_option,
@@ -28,11 +28,12 @@ from .utils import (
     _record_warnings,
     _require_version,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
     wrapped_stdout,
 )
 
@@ -55,7 +56,7 @@ _str_to_frame = dict(
     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
     unknown=FIFF.FIFFV_COORD_UNKNOWN,
 )
-_frame_to_str = {val: key for key, val in _str_to_frame.items()}
+_frame_to_str: dict[int, str] = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {
     FIFF.FIFFV_COORD_UNKNOWN: "unknown",
@@ -135,8 +136,8 @@ class Transform(dict):
     def __eq__(self, other, rtol=0.0, atol=0.0):
         """Check for equality.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         other : instance of Transform
             The other transform.
         rtol : float
@@ -159,8 +160,8 @@ class Transform(dict):
     def __ne__(self, other, rtol=0.0, atol=0.0):
         """Check for inequality.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         other : instance of Transform
             The other transform.
         rtol : float
@@ -185,8 +186,7 @@ class Transform(dict):
         """The "to" frame as a string."""
         return _coord_frame_name(self["to"])
 
-    @fill_doc
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the transform as -trans.fif file.
 
@@ -194,13 +194,25 @@ class Transform(dict):
         ----------
         fname : path-like
             The name of the file, which should end in ``-trans.fif``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         write_trans(fname, self, overwrite=overwrite, verbose=verbose)
 
     def copy(self):
-        """Make a copy of the transform."""
+        """Make a copy of the transform.
+
+        Returns
+        -------
+        trans : instance of Transform
+            The copied transform.
+        """
         return deepcopy(self)
 
 
@@ -492,9 +504,7 @@ def _get_trans(trans, fro="mri", to="head", allow_none=True, *, extra=""):
     if _path_like(trans):
         if trans == "fsaverage":
             trans = Path(__file__).parent / "data" / "fsaverage" / "fsaverage-trans.fif"
-        trans = Path(trans)
-        if not trans.is_file():
-            raise OSError(f'trans file "{trans}" not found')
+        trans = _check_fname(trans, "read", must_exist=True, name="trans file")
         if trans.suffix in [".fif", ".gz"]:
             fro_to_t = read_trans(trans)
         else:
@@ -568,7 +578,7 @@ def combine_transforms(t_first, t_second, fro, to):
     return Transform(fro, to, np.dot(t_second["trans"], t_first["trans"]))
 
 
-@verbose
+@verbose_static()
 def read_trans(fname, return_all=False, verbose=None):
     """Read a ``-trans.fif`` file.
 
@@ -581,7 +591,11 @@ def read_trans(fname, return_all=False, verbose=None):
         False (default) will only return the first.
 
         .. versionadded:: 0.15
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -608,7 +622,7 @@ def read_trans(fname, return_all=False, verbose=None):
     return trans if return_all else trans[0]
 
 
-@verbose
+@verbose_static("overwrite")
 def write_trans(fname, trans, *, overwrite=False, verbose=None):
     """Write a transformation FIF file.
 
@@ -618,8 +632,14 @@ def write_trans(fname, trans, *, overwrite=False, verbose=None):
         The name of the file, which should end in ``-trans.fif``.
     trans : dict
         Trans file data, as returned by `~mne.read_trans`.
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1000,6 +1020,8 @@ class _TPSWarp:
     """
 
     def fit(self, source, destination, reg=1e-3):
+        from scipy.spatial.distance import cdist
+
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
         # Forward warping, different from image warping, use |dist|**2
@@ -1016,7 +1038,7 @@ class _TPSWarp:
         self._weights = linalg.lstsq(L, Y)[0]
         return self
 
-    @verbose
+    @_verbose_control
     def transform(self, pts, verbose=None):
         """Apply the warp.
 
@@ -1030,6 +1052,8 @@ class _TPSWarp:
         dest : shape (n_transform, 3)
             The transformed points.
         """
+        from scipy.spatial.distance import cdist
+
         logger.info(f"Transforming {len(pts)} points")
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
@@ -1101,7 +1125,7 @@ class _SphericalSurfaceWarp:
             )
         return rep
 
-    @verbose
+    @verbose_static()
     def fit(
         self,
         source,
@@ -1131,7 +1155,11 @@ class _SphericalSurfaceWarp:
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1201,7 +1229,7 @@ class _SphericalSurfaceWarp:
         logger.info("[done]")
         return self
 
-    @verbose
+    @verbose_static()
     def transform(self, source, verbose=None):
         """Transform arbitrary source points to the destination.
 
@@ -1212,7 +1240,11 @@ class _SphericalSurfaceWarp:
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1252,7 +1284,6 @@ def _topo_to_sph(topo):
 # Quaternions
 
 
-@jit()
 def quat_to_rot(quat):
     """Convert a set of quaternions to rotations.
 
@@ -1270,65 +1301,9 @@ def quat_to_rot(quat):
     --------
     rot_to_quat
     """
-    # z = a + bi + cj + dk
-    b, c, d = quat[..., 0], quat[..., 1], quat[..., 2]
-    bb, cc, dd = b * b, c * c, d * d
-    # use max() here to be safe in case roundoff errs put us over
-    aa = np.maximum(1.0 - bb - cc - dd, 0.0)
-    a = np.sqrt(aa)
-    ab_2 = 2 * a * b
-    ac_2 = 2 * a * c
-    ad_2 = 2 * a * d
-    bc_2 = 2 * b * c
-    bd_2 = 2 * b * d
-    cd_2 = 2 * c * d
-    rotation = np.empty(quat.shape[:-1] + (3, 3))
-    rotation[..., 0, 0] = aa + bb - cc - dd
-    rotation[..., 0, 1] = bc_2 - ad_2
-    rotation[..., 0, 2] = bd_2 + ac_2
-    rotation[..., 1, 0] = bc_2 + ad_2
-    rotation[..., 1, 1] = aa + cc - bb - dd
-    rotation[..., 1, 2] = cd_2 - ab_2
-    rotation[..., 2, 0] = bd_2 - ac_2
-    rotation[..., 2, 1] = cd_2 + ab_2
-    rotation[..., 2, 2] = aa + dd - bb - cc
-    return rotation
+    from ._transforms_numba import _quat_to_rot
 
-
-@jit()
-def _one_rot_to_quat(rot, *, tol=1e-3):
-    """Convert a rotation matrix to quaternions."""
-    # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
-    #                 conversions/matrixToQuaternion/
-    det = np.linalg.det(np.reshape(rot, (3, 3)))
-    if np.abs(det - 1.0) > tol:
-        raise ValueError("Matrix is not a pure rotation, got determinant != 1")
-    t = 1.0 + rot[0] + rot[4] + rot[8]
-    if t > np.finfo(rot.dtype).eps:
-        s = np.sqrt(t) * 2.0
-        # qw = 0.25 * s
-        qx = (rot[7] - rot[5]) / s
-        qy = (rot[2] - rot[6]) / s
-        qz = (rot[3] - rot[1]) / s
-    elif rot[0] > rot[4] and rot[0] > rot[8]:
-        s = np.sqrt(1.0 + rot[0] - rot[4] - rot[8]) * 2.0
-        # qw = (rot[7] - rot[5]) / s
-        qx = 0.25 * s
-        qy = (rot[1] + rot[3]) / s
-        qz = (rot[2] + rot[6]) / s
-    elif rot[4] > rot[8]:
-        s = np.sqrt(1.0 - rot[0] + rot[4] - rot[8]) * 2
-        # qw = (rot[2] - rot[6]) / s
-        qx = (rot[1] + rot[3]) / s
-        qy = 0.25 * s
-        qz = (rot[5] + rot[7]) / s
-    else:
-        s = np.sqrt(1.0 - rot[0] - rot[4] + rot[8]) * 2.0
-        # qw = (rot[3] - rot[1]) / s
-        qx = (rot[2] + rot[6]) / s
-        qy = (rot[5] + rot[7]) / s
-        qz = 0.25 * s
-    return np.array((qx, qy, qz))
+    return _quat_to_rot(quat)
 
 
 def rot_to_quat(rot, *, tol=1e-3):
@@ -1352,6 +1327,8 @@ def rot_to_quat(rot, *, tol=1e-3):
     --------
     quat_to_rot
     """
+    from ._transforms_numba import _one_rot_to_quat
+
     rot = rot.reshape(rot.shape[:-2] + (9,))
     return np.apply_along_axis(_one_rot_to_quat, -1, rot, tol=tol)
 
@@ -1458,89 +1435,69 @@ def _quat_mult(one, two):
 
 
 def _skew_symmetric_cross(a):
-    """Compute the skew-symmetric cross product of a vector."""
-    return np.array([[0.0, -a[2], a[1]], [a[2], 0.0, -a[0]], [-a[1], a[0], 0.0]])
+    """Compute the skew-symmetric cross product matrix of (..., 3) vector(s)."""
+    a = np.asarray(a, float)
+    ax = np.zeros(a.shape + (3,))
+    ax[..., 0, 1], ax[..., 0, 2] = -a[..., 2], a[..., 1]
+    ax[..., 1, 0], ax[..., 1, 2] = a[..., 2], -a[..., 0]
+    ax[..., 2, 0], ax[..., 2, 1] = -a[..., 1], a[..., 0]
+    return ax
 
 
 def _find_vector_rotation(a, b):
-    """Find the rotation matrix that maps unit vector a to b."""
+    """Find the rotation matrix that maps unit vector a to unit vector(s) b.
+
+    Parameters
+    ----------
+    a : array, shape (3,)
+        The unit vector to rotate.
+    b : array, shape (3,) | shape (..., 3)
+        The unit vector(s) to rotate ``a`` onto.
+
+    Returns
+    -------
+    R : array, shape (3, 3) | shape (..., 3, 3)
+        The rotation(s) about ``a x b`` by the angle between them, so that
+        ``R @ a`` is ``b``. Antiparallel vectors, where that axis vanishes,
+        get a half turn about an arbitrary axis perpendicular to ``a``.
+
+    Notes
+    -----
+    Mapping one vector onto another leaves a free parameter: the roll about
+    ``b``. Any rotation about ``b`` composed with the result maps ``a`` onto
+    ``b`` just as well, and this function settles it by taking the minimal
+    rotation, about ``a x b``. So it is right for things that look the same
+    however they are rolled about their axis, like arrows, tubes and the EEG
+    electrode cylinders, and wrong for a flat MEG coil, whose orientation
+    needs the full rotation from ``_loc_to_coil_trans``.
+    """
     # Rodrigues' rotation formula:
     #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
     #   http://math.stackexchange.com/a/476311
+    a = np.asarray(a, float)
+    b = np.asarray(b, float)
+    assert a.shape == (3,), a.shape
     assert np.isclose(np.linalg.norm(a), 1.0), np.linalg.norm(a)
-    assert np.isclose(np.linalg.norm(b), 1.0), np.linalg.norm(b)
-    R = np.eye(3)
-    v = np.cross(a, b)
-    if np.allclose(v, 0.0):  # identical
-        return R
-    s = np.dot(v, v)  # sine of the angle between them
-    c = np.dot(a, b)  # cosine of the angle between them
+    assert b.shape[-1:] == (3,), b.shape
+    assert np.allclose(np.linalg.norm(b, axis=-1), 1.0), np.linalg.norm(b, axis=-1)
+    v = np.cross(a, b)  # rotation axis, with the sine of the angle as its length
+    s = (v * v).sum(-1)  # sine squared
+    c = b @ a  # cosine
     vx = _skew_symmetric_cross(v)
-    R += vx + np.dot(vx, vx) * (1 - c) / s
-    # Now we have: np.allclose(R @ a, b)
+    # (1 - c) / s is 1 / (1 + c), but written this way it stays accurate as b
+    # approaches -a, where 1 + c cancels and s does not. Only an s that has
+    # vanished outright needs special handling below.
+    degenerate = s < np.finfo(float).tiny
+    factor = (1.0 - c) / np.where(degenerate, 1.0, s)
+    R = np.eye(3) + vx + vx @ vx * factor[..., np.newaxis, np.newaxis]
+    if degenerate.any():
+        # parallel is the identity (vx is zero); antiparallel is a half turn
+        # about a unit vector k perpendicular to a, for which the coordinate
+        # axis least aligned with a serves, since it is never parallel to it
+        k = np.cross(a, np.eye(3)[np.argmin(np.abs(a))])
+        k /= np.linalg.norm(k)
+        R[degenerate & (c < 0)] = 2 * np.outer(k, k) - np.eye(3)
     return R
-
-
-@jit()
-def _fit_matched_points(p, x, weights=None, scale=False):
-    """Fit matched points using an analytical formula."""
-    # Follow notation of P.J. Besl and N.D. McKay, A Method for
-    # Registration of 3-D Shapes, IEEE Trans. Patt. Anal. Machine Intell., 14,
-    # 239 - 255, 1992.
-    #
-    # The original method is actually by Horn, Closed-form solution of absolute
-    # orientation using unit quaternions, J Opt. Soc. Amer. A vol 4 no 4
-    # pp 629-642, Apr. 1987. This paper describes how weights can be
-    # easily incorporated, and a uniform scale factor can be computed.
-    #
-    # Caution: This can be dangerous if there are 3 points, or 4 points in
-    #          a symmetric layout, as the geometry can be explained
-    #          equivalently under 180 degree rotations.
-    #
-    # Eventually this can be extended to also handle a uniform scale factor,
-    # as well.
-    assert p.shape == x.shape
-    assert p.ndim == 2
-    assert p.shape[1] == 3
-    # (weighted) centroids
-    weights_ = np.full((p.shape[0], 1), 1.0 / max(p.shape[0], 1))
-    if weights is not None:
-        weights_[:] = np.reshape(weights / weights.sum(), (weights.size, 1))
-    mu_p = np.dot(weights_.T, p)[0]
-    mu_x = np.dot(weights_.T, x)[0]
-    dots = np.dot(p.T, weights_ * x)
-    Sigma_px = dots - np.outer(mu_p, mu_x)  # eq 24
-    # x and p should no longer be used
-    A_ij = Sigma_px - Sigma_px.T
-    Delta = np.array([A_ij[1, 2], A_ij[2, 0], A_ij[0, 1]])
-    tr_Sigma_px = np.trace(Sigma_px)
-    # "N" in Horn:
-    Q = np.empty((4, 4))
-    Q[0, 0] = tr_Sigma_px
-    Q[0, 1:] = Delta
-    Q[1:, 0] = Delta
-    Q[1:, 1:] = Sigma_px + Sigma_px.T - tr_Sigma_px * np.eye(3)
-    _, v = np.linalg.eigh(Q)  # sorted ascending
-    quat = np.empty(6)
-    quat[:3] = v[1:, -1]
-    if v[0, -1] != 0:
-        quat[:3] *= np.sign(v[0, -1])
-    rot = quat_to_rot(quat[:3])
-    # scale factor is easy once we know the rotation
-    if scale:  # p is "right" (from), x is "left" (to) in Horn 1987
-        dev_x = x - mu_x
-        dev_p = p - mu_p
-        dev_x *= dev_x
-        dev_p *= dev_p
-        if weights is not None:
-            dev_x *= weights_
-            dev_p *= weights_
-        s = np.sqrt(np.sum(dev_x) / np.sum(dev_p))
-    else:
-        s = 1.0
-    # translation is easy once rotation and scale are known
-    quat[3:] = mu_x - s * np.dot(rot, mu_p)
-    return quat, s
 
 
 def _average_quats(quats, weights=None):
@@ -1582,7 +1539,7 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
-@fill_doc
+@fill_doc_static("subjects_dir")
 def read_ras_mni_t(subject, subjects_dir=None):
     """Read a subject's RAS to MNI transform.
 
@@ -1590,7 +1547,10 @@ def read_ras_mni_t(subject, subjects_dir=None):
     ----------
     subject : str
         The subject.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
 
     Returns
     -------
@@ -1764,7 +1724,7 @@ def _reslice_normalize(img, zooms):
     return img, img_affine
 
 
-@verbose
+@verbose_static("moving", "static", "pipeline", "niter", "reg_affine", "sdr_morph")
 def compute_volume_registration(
     moving,
     static,
@@ -1779,9 +1739,46 @@ def compute_volume_registration(
 
     Parameters
     ----------
-    %(moving)s
-    %(static)s
-    %(pipeline)s
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    pipeline : str | tuple
+        The volume registration steps to perform (a ``str`` for a single step,
+        or ``tuple`` for a set of sequential steps). The following steps can be
+        performed, and do so by matching mutual information between the images
+        (unless otherwise noted):
+
+        ``'translation'``
+            Translation.
+
+        ``'rigid'``
+            Rigid-body, i.e., rotation and translation.
+
+        ``'affine'``
+            A full affine transformation, which includes translation, rotation,
+            scaling, and shear.
+
+        ``'sdr'``
+            Symmetric diffeomorphic registration :footcite:`AvantsEtAl2008`, a
+            non-linear similarity-matching algorithm.
+
+        The following string shortcuts can also be used:
+
+        ``'all'`` (default)
+            All steps will be performed above in the order above, i.e.,
+            ``('translation', 'rigid', 'affine', 'sdr')``.
+
+        ``'rigids'``
+            The rigid steps (first two) will be performed, which registers
+            the volume without distorting its underlying structure, i.e.,
+            ``('translation', 'rigid')``. This is useful for
+            example when registering images from the same subject, such as
+            CT and MR images.
+
+        ``'affines'``
+            The affine steps (first three) will be performed, i.e., omitting
+            the SDR step.
     zooms : float | tuple | dict | None
         The voxel size of volume for each spatial dimension in mm.
         If None (default), MRIs won't be resliced (slow, but most accurate).
@@ -1789,17 +1786,39 @@ def compute_volume_registration(
         or a dict with keys ``['translation', 'rigid', 'affine', 'sdr']``
         (each with values that are float`, tuple, or None) to provide separate
         reslicing/accuracy for the steps.
-    %(niter)s
+    niter : dict | tuple | None
+        For each phase of the volume registration, ``niter`` is the number of
+        iterations per successive stage of optimization. If a tuple is
+        provided, it will be used for all steps (except center of mass, which does
+        not iterate). It should have length 3 to
+        correspond to ``sigmas=[3.0, 1.0, 0.0]`` and ``factors=[4, 2, 1]`` in
+        the pipeline (see :func:`dipy.align.affine_registration
+        <dipy.align._public.affine_registration>` for details).
+        If a dictionary is provided, number of iterations can be set for each
+        step as a key. Steps not in the dictionary will use the default value.
+        The default (None) is equivalent to:
+
+            niter=dict(translation=(100, 100, 10),
+                       rigid=(100, 100, 10),
+                       affine=(100, 100, 10),
+                       sdr=(5, 5, 3))
     starting_affine : ndarray
         The affine to initialize the registration with.
 
         .. versionadded:: 1.2
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(reg_affine)s
-    %(sdr_morph)s
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
 
     Notes
     -----
@@ -1928,7 +1947,7 @@ def _compute_volume_registration(
     )
 
 
-@verbose
+@verbose_static("moving", "static", "reg_affine", "sdr_morph")
 def apply_volume_registration(
     moving,
     static,
@@ -1945,18 +1964,27 @@ def apply_volume_registration(
 
     Parameters
     ----------
-    %(moving)s
-    %(static)s
-    %(reg_affine)s
-    %(sdr_morph)s
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
     interpolation : str
         Interpolation to be used during the interpolation.
         Can be ``"linear"`` (default) or ``"nearest"``.
     cval : float | str
         The constant value to assume exists outside the bounds of the
-        ``moving`` image domain. Can be a string percentage like ``'1%%'``
+        ``moving`` image domain. Can be a string percentage like ``'1%'``
         to use the given percentile of image data as the constant value.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2015,7 +2043,9 @@ def apply_volume_registration(
     return reg_img
 
 
-@verbose
+@verbose_static(
+    "info_not_none", "trans_not_none", "moving", "static", "reg_affine", "sdr_morph"
+)
 def apply_volume_registration_points(
     info, trans, moving, static, reg_affine, sdr_morph=None, verbose=None
 ):
@@ -2026,17 +2056,33 @@ def apply_volume_registration_points(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(trans_not_none)s
-    %(moving)s
-    %(static)s
-    %(reg_affine)s
-    %(sdr_morph)s
-    %(verbose)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     trans2 : instance of Transform
         The head->mri (surface RAS) transform for the static image.
 
@@ -2142,6 +2188,8 @@ class _MatchedDisplacementFieldInterpolator:
         # _fit_matched_points requires
         assert fro.shape[1] == 3
 
+        from ._transforms_numba import _fit_matched_points
+
         # Prealign using affine + uniform scaling
         self._quat, self._scale = _fit_matched_points(fro, to, scale=True)
         trans = _quat_to_affine(self._quat)
@@ -2173,3 +2221,229 @@ class _MatchedDisplacementFieldInterpolator:
         self._last_deltas = np.linalg.norm(x - out, axis=1)
         out = out[0] if singleton else out
         return out
+
+
+def _trans_from_params(param_info, params):
+    """Convert transformation parameters into a transformation matrix."""
+    do_rotate, do_translate, do_scale = param_info
+    i = 0
+    trans = []
+
+    if do_rotate:
+        x, y, z = params[:3]
+        trans.append(rotation(x, y, z))
+        i += 3
+
+    if do_translate:
+        x, y, z = params[i : i + 3]
+        trans.insert(0, translation(x, y, z))
+        i += 3
+
+    if do_scale == 1:
+        s = params[i]
+        trans.append(scaling(s, s, s))
+    elif do_scale == 3:
+        x, y, z = params[i : i + 3]
+        trans.append(scaling(x, y, z))
+
+    trans = reduce(np.dot, trans)
+    return trans
+
+
+_ALLOW_ANALITICAL = True
+
+
+def fit_matched_points(
+    src_pts,
+    tgt_pts,
+    rotate=True,
+    translate=True,
+    scale=False,
+    tol=None,
+    x0=None,
+    out="trans",
+    weights=None,
+):
+    """Find a transform between matched sets of points.
+
+    This minimizes the squared distance between two matching sets of points.
+
+    Uses :func:`scipy.optimize.leastsq` to find a transformation involving
+    a combination of rotation, translation, and scaling (in that order).
+
+    Parameters
+    ----------
+    src_pts : array, shape = (n, 3)
+        Points to which the transform should be applied.
+    tgt_pts : array, shape = (n, 3)
+        Points to which src_pts should be fitted. Each point in tgt_pts should
+        correspond to the point in src_pts with the same index.
+    rotate : bool
+        Allow rotation of the ``src_pts``.
+    translate : bool
+        Allow translation of the ``src_pts``.
+    scale : bool
+        Number of scaling parameters. With False, points are not scaled. With
+        True, points are scaled by the same factor along all axes.
+    tol : scalar | None
+        The error tolerance. If the distance between any of the matched points
+        exceeds this value in the solution, a RuntimeError is raised. With
+        None, no error check is performed.
+    x0 : None | tuple
+        Initial values for the fit parameters.
+    out : 'params' | 'trans'
+        In what format to return the estimate: 'params' returns a tuple with
+        the fit parameters; 'trans' returns a transformation matrix of shape
+        (4, 4).
+
+    Returns
+    -------
+    trans : array, shape (4, 4)
+        Transformation that, if applied to src_pts, minimizes the squared
+        distance to tgt_pts. Only returned if out=='trans'.
+    params : array, shape (n_params, )
+        A single tuple containing the rotation, translation, and scaling
+        parameters in that order (as applicable).
+    """
+    src_pts = np.atleast_2d(src_pts)
+    tgt_pts = np.atleast_2d(tgt_pts)
+    if src_pts.shape != tgt_pts.shape:
+        raise ValueError(
+            "src_pts and tgt_pts must have same shape "
+            f"(got {src_pts.shape}, {tgt_pts.shape})"
+        )
+    if weights is not None:
+        weights = np.asarray(weights, src_pts.dtype)
+        if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
+            raise ValueError(
+                f"weights (shape={weights.shape}) must be None or have shape "
+                f"({src_pts.shape[0]},)"
+            )
+        weights = weights[:, np.newaxis]
+
+    param_info = (bool(rotate), bool(translate), int(scale))
+    del rotate, translate, scale
+
+    # very common use case, rigid transformation (maybe with one scale factor,
+    # with or without weighted errors)
+    if param_info in ((True, True, 0), (True, True, 1)) and _ALLOW_ANALITICAL:
+        src_pts = np.asarray(src_pts, float)
+        tgt_pts = np.asarray(tgt_pts, float)
+        if weights is not None:
+            weights = np.asarray(weights, float)
+        from ._transforms_numba import _fit_matched_points
+
+        x, s = _fit_matched_points(src_pts, tgt_pts, weights, bool(param_info[2]))
+        x[:3] = _quat_to_euler(x[:3])
+        x = np.concatenate((x, [s])) if param_info[2] else x
+    else:
+        x = _generic_fit(src_pts, tgt_pts, param_info, weights, x0)
+
+    # re-create the final transformation matrix
+    if (tol is not None) or (out == "trans"):
+        trans = _trans_from_params(param_info, x)
+
+    # assess the error of the solution
+    if tol is not None:
+        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
+        est_pts = np.dot(src_pts, trans.T)[:, :3]
+        err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
+        if np.any(err > tol):
+            raise RuntimeError(f"Error exceeds tolerance. Error = {err!r}")
+
+    if out == "params":
+        return x
+    elif out == "trans":
+        return trans
+    else:
+        raise ValueError(
+            f"Invalid out parameter: {out!r}. Needs to be 'params' or 'trans'."
+        )
+
+
+def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
+    from scipy.optimize import leastsq
+
+    if param_info[1]:  # translate
+        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
+
+    if param_info == (True, False, 0):
+
+        def error(x):
+            rx, ry, rz = x
+            trans = rotation3d(rx, ry, rz)
+            est = np.dot(src_pts, trans.T)
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
+
+        if x0 is None:
+            x0 = (0, 0, 0)
+    elif param_info == (True, True, 0):
+
+        def error(x):
+            rx, ry, rz, tx, ty, tz = x
+            trans = np.dot(translation(tx, ty, tz), rotation(rx, ry, rz))
+            est = np.dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
+
+        if x0 is None:
+            x0 = (0, 0, 0, 0, 0, 0)
+    elif param_info == (True, True, 1):
+
+        def error(x):
+            rx, ry, rz, tx, ty, tz, s = x
+            trans = reduce(
+                np.dot,
+                (translation(tx, ty, tz), rotation(rx, ry, rz), scaling(s, s, s)),
+            )
+            est = np.dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
+
+        if x0 is None:
+            x0 = (0, 0, 0, 0, 0, 0, 1)
+    elif param_info == (True, True, 3):
+
+        def error(x):
+            rx, ry, rz, tx, ty, tz, sx, sy, sz = x
+            trans = reduce(
+                np.dot,
+                (translation(tx, ty, tz), rotation(rx, ry, rz), scaling(sx, sy, sz)),
+            )
+            est = np.dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
+
+        if x0 is None:
+            x0 = (0, 0, 0, 0, 0, 0, 1, 1, 1)
+    else:
+        raise NotImplementedError(
+            "The specified parameter combination is not implemented: "
+            "rotate={!r}, translate={!r}, scale={!r}".format(*param_info)
+        )
+
+    x, _, _, _, _ = leastsq(error, x0, full_output=True)
+    return x
+
+
+def __getattr__(name):
+    # Re-exported for backward compatibility: these live in their own module so that
+    # importing mne.transforms does not import numba
+    if name not in ("_fit_matched_points", "_one_rot_to_quat", "_quat_to_rot"):
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from ._transforms_numba import _fit_matched_points, _one_rot_to_quat, _quat_to_rot
+
+    return {
+        "_fit_matched_points": _fit_matched_points,
+        "_one_rot_to_quat": _one_rot_to_quat,
+        "_quat_to_rot": _quat_to_rot,
+    }[name]
