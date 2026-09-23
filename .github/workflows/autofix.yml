@@ -101,6 +101,6 @@ jobs:
           # ffmpeg is pinned to work around a conda solver issue (gh-14023)
           additional-dependencies: pip,mamba,conda,nomkl,noqt5,ffmpeg==8.1.2
           pip-dependencies: jamica,pymef
-          requirements-overrides: PySide6==6.11.1,vtk==9.6.2
+          requirements-overrides: PySide6==6.11.1,vtk==9.6.2,neo->python-neo
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
