@@ -38,3 +38,5 @@ of commits):
 * 12  Martin Luessi
 *  2  Yaroslav Halchenko
 *  1  Manfred Kitzbichler
+
+.. include:: names.inc

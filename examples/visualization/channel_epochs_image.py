@@ -74,7 +74,7 @@ def order_func(times, data):
     this_data /= np.sqrt(np.sum(this_data**2, axis=1))[:, np.newaxis]
     return np.argsort(
         spectral_embedding(
-            rbf_kernel(this_data, gamma=1.0), n_components=1, random_state=0
+            rbf_kernel(this_data, gamma=1.0), n_components=1, random_state=233
         ).ravel()
     )
 

@@ -1,0 +1,204 @@
+{
+  "merge_commit_sha": "b1914e98a17f95276cd0494202c71c6ab5975f3b",
+  "authors": [
+    {
+      "n": "Daria Agafonova",
+      "e": "33396527+viranovskaya@users.noreply.github.com",
+      "l": "viranovskaya"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14100.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/cov.py": {
+      "a": 39,
+      "d": 39
+    },
+    "mne/decoding/_fixes.py": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/decoding/base.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/decoding/csp.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/decoding/ems.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/decoding/search_light.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/decoding/ssd.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/decoding/time_frequency.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/decoding/transformer.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/decoding/xdawn.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/evoked.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/export/_egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/forward.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/eyelink/_utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/fil/fil.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/minimum_norm/time_frequency.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_infomax.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/xdawn.py": {
+      "a": 9,
+      "d": 9
+    },
+    "mne/rank.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/permutations.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 61,
+      "d": 7
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/tests/test_ar.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 22,
+      "d": 22
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/utils/docs.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/utils/misc.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/circle.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/ica.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

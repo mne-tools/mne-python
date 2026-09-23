@@ -605,6 +605,73 @@ def test_egi_mff_bad_xml(tmp_path):
 
 
 @requires_testing_data
+def test_egi_mff_channel_status(tmp_path):
+    """Test that bad channels from categories.xml channelStatus are read."""
+    mff_fname = copytree_rw(egi_pause_fname, tmp_path / "paused_status.mff")
+    # categories.xml exercising all branches of _read_channel_status_bads:
+    #   - EEG channels 5 and 23 bad (signalBin=1, exclusion=badChannels) — main path
+    #   - channel 9999 out of range — covers the bounds-check false branch
+    #   - goodChannels entry — covers the exclusion != "badChannels" continue path
+    cats_xml = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<categories xmlns="http://www.egi.com/categories_mff">
+    <cat>
+        <name>Recording</name>
+        <segments>
+            <seg status="unedited">
+                <beginTime>0</beginTime>
+                <endTime>1300000</endTime>
+                <evtBegin>0</evtBegin>
+                <evtEnd>0</evtEnd>
+                <channelStatus>
+                    <channels signalBin="1" exclusion="badChannels">5 23 9999</channels>
+                    <channels signalBin="1" exclusion="goodChannels">1 2 3</channels>
+                    <channels signalBin="3" exclusion="badChannels">1</channels>
+                </channelStatus>
+            </seg>
+        </segments>
+    </cat>
+</categories>
+"""
+    (mff_fname / "categories.xml").write_text(cats_xml, encoding="utf-8")
+    raw = read_raw_egi(mff_fname, events_as_annotations=False, verbose=False)
+    assert raw.info["bads"] == [
+        "E23",
+        "E5",
+    ]  # 9999 ignored (out of range); goodChannels ignored
+
+    # Corrupted categories.xml must not raise — returns empty bads gracefully
+    (mff_fname / "categories.xml").write_text("NOT VALID XML", encoding="utf-8")
+    raw2 = read_raw_egi(mff_fname, events_as_annotations=False, verbose=False)
+    assert raw2.info["bads"] == []
+
+    # PNS file: write categories.xml with signalBin=2 to exercise the PNS bads path
+    pns_fname = copytree_rw(egi_mff_pns_fname, tmp_path / "pns_status.mff")
+    cats_pns_xml = """\
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<categories xmlns="http://www.egi.com/categories_mff">
+    <cat>
+        <name>Recording</name>
+        <segments>
+            <seg status="unedited">
+                <beginTime>0</beginTime>
+                <endTime>4000000</endTime>
+                <evtBegin>0</evtBegin>
+                <evtEnd>0</evtEnd>
+                <channelStatus>
+                    <channels signalBin="2" exclusion="badChannels">1 9999</channels>
+                </channelStatus>
+            </seg>
+        </segments>
+    </cat>
+</categories>
+"""
+    (pns_fname / "categories.xml").write_text(cats_pns_xml, encoding="utf-8")
+    raw3 = read_raw_egi(pns_fname, verbose=False)
+    assert len(raw3.info["bads"]) >= 1  # at least PNS channel 1 marked bad
+
+
+@requires_testing_data
 @pytest.mark.parametrize(
     "fname, expected",
     [pytest.param(egi_pause_fname, "AM40_3", id="paused")],

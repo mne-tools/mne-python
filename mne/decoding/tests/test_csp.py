@@ -19,11 +19,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.svm import SVC
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, compute_proj_raw, io, pick_types, read_events
 from mne.decoding import CSP, LinearModel, Scaler, SPoC, get_coef, read_csp, read_spoc
 from mne.decoding.csp import _ajd_pham
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.utils import catch_logging, check_version
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -365,7 +365,7 @@ def test_regularized_csp(ch_type, rank, reg):
     clf = make_pipeline(
         sc,
         csp,
-        LinearModel(LogisticRegression(solver="liblinear")),
+        LinearModel(LogisticRegression(solver="liblinear", random_state=0)),
     )
     score = cross_val_score(clf, epochs_data_orig, y, cv=cv, scoring="roc_auc").mean()
     assert 0.75 <= score <= 1.0
@@ -387,7 +387,7 @@ def test_regularized_csp(ch_type, rank, reg):
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
     csp = CSP(reg=1, norm_trace=False)
-    svc = SVC()
+    svc = SVC(random_state=0)
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
     assert pipe.get_params()["CSP__reg"] == 0.2

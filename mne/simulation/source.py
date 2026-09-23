@@ -13,22 +13,25 @@ from ..utils import (
     _check_option,
     _ensure_events,
     _ensure_int,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
-    fill_doc,
+    fill_doc_static,
     warn,
 )
 
 
-@fill_doc
+@_legacy_rng("random_state")
+@fill_doc_static("subjects_dir", "rng", "random_state_rng")
 def select_source_in_label(
     src,
     label,
-    random_state=None,
     location="random",
     subject=None,
     subjects_dir=None,
     surf="sphere",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Select source positions using a label.
 
@@ -38,7 +41,6 @@ def select_source_in_label(
         The source space.
     label : Label
         The label.
-    %(random_state)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass` (restricting to vertices
@@ -51,7 +53,10 @@ def select_source_in_label(
         Only used with ``location='center'``.
 
         .. versionadded:: 0.13
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
 
         .. versionadded:: 0.13
     surf : str
@@ -61,6 +66,21 @@ def select_source_in_label(
         with cortical folding.
 
         .. versionadded:: 0.13
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -69,11 +89,22 @@ def select_source_in_label(
     rh_vertno : list
         Selected source coefficients on the right hemisphere.
     """
+    return _select_source_in_label(
+        src,
+        label,
+        location=location,
+        subject=subject,
+        subjects_dir=subjects_dir,
+        surf=surf,
+        rng=rng,
+    )
+
+
+def _select_source_in_label(src, label, *, location, subject, subjects_dir, surf, rng):
+    """Select a source in a label using an already normalized RNG."""
     lh_vertno = list()
     rh_vertno = list()
     _check_option("location", location, ["random", "center"])
-
-    rng = check_random_state(random_state)
     if label.hemi == "lh":
         vertno = lh_vertno
         hemi_idx = 0
@@ -91,18 +122,21 @@ def select_source_in_label(
     return lh_vertno, rh_vertno
 
 
-@fill_doc
+@_legacy_rng("random_state")
+@fill_doc_static("subjects_dir", "rng", "random_state_rng")
 def simulate_sparse_stc(
     src,
     n_dipoles,
     times,
     data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
     labels=None,
-    random_state=None,
     location="random",
     subject=None,
     subjects_dir=None,
     surf="sphere",
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Generate sparse (n_dipoles) sources time courses from data_fun.
 
@@ -126,7 +160,6 @@ def simulate_sparse_stc(
         the same length containing the time courses.
     labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    %(random_state)s
     location : str
         The label location to choose. Can be ``'random'`` (default) or
         ``'center'`` to use :func:`mne.Label.center_of_mass`. Note that for
@@ -138,7 +171,10 @@ def simulate_sparse_stc(
         Only used with ``location='center'``.
 
         .. versionadded:: 0.13
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
 
         .. versionadded:: 0.13
     surf : str
@@ -148,6 +184,21 @@ def simulate_sparse_stc(
         with cortical folding.
 
         .. versionadded:: 0.13
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -164,7 +215,6 @@ def simulate_sparse_stc(
     -----
     .. versionadded:: 0.10.0
     """
-    rng = check_random_state(random_state)
     src = _ensure_src(src, verbose=False)
     subject_src = src._subject
     if subject is None:
@@ -205,8 +255,14 @@ def simulate_sparse_stc(
         lh_data = [np.empty((0, data.shape[1]))]
         rh_data = [np.empty((0, data.shape[1]))]
         for i, label in enumerate(labels):
-            lh_vertno, rh_vertno = select_source_in_label(
-                src, label, rng, location, subject, subjects_dir, surf
+            lh_vertno, rh_vertno = _select_source_in_label(
+                src,
+                label,
+                location=location,
+                subject=subject,
+                subjects_dir=subjects_dir,
+                surf=surf,
+                rng=rng,
             )
             vertno[0] += lh_vertno
             vertno[1] += rh_vertno
@@ -576,7 +632,15 @@ class SourceSimulator:
         return stc
 
     def __iter__(self):
-        """Iterate over 1 second STCs."""
+        """Iterate over 1 second STCs.
+
+        Yields
+        ------
+        stc : instance of SourceEstimate
+            The source estimate for the next chunk of data.
+        stim : ndarray, shape (n_samples,)
+            The stim channel for the same chunk.
+        """
         # Arbitrary chunk size, can be modified later to something else.
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.

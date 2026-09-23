@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "71850f67d18ffddee05414cf2fdd3e688b44dd08",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 5,
+      "d": 2
+    },
+    "azure-pipelines.yml": {
+      "a": 25,
+      "d": 3
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_test.sh": {
+      "a": 1,
+      "d": 2
+    }
+  }
+}

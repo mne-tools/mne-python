@@ -13,6 +13,12 @@ and how to visualise the results.
 
 The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs.
 short words. TFCE is described in :footcite:`SmithNichols2009`.
+
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 
 # Authors: The MNE-Python contributors.
@@ -98,7 +104,7 @@ tfce = dict(start=0.4, step=0.4)  # ideally start and step would be smaller
 
 # Calculate statistical thresholds
 t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_test(
-    X, tfce, adjacency=adjacency, n_permutations=100, seed=0
+    X, tfce, adjacency=adjacency, n_permutations=100, rng=113
 )  # a more standard number would be 1000+
 significant_points = cluster_pv.reshape(t_obs.shape).T < 0.05
 print(str(significant_points.sum()) + " points selected by TFCE ...")

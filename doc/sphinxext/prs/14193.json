@@ -1,0 +1,220 @@
+{
+  "merge_commit_sha": "0b8c9e47587049688881a98a0c155cfe1c5608b5",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/14193.dependency.rst": {
+      "a": 5,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/_digitization.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/_fiff/tag.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/beamformer/tests/test_dics.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_external.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/chpi.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/decoding/receptive_field.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 7,
+      "d": 8
+    },
+    "mne/decoding/transformer.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/filter.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 41
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/forward/forward.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/inverse_sparse/_gamma_map.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/mxne_inverse.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/io/bti/bti.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/ctf/ctf.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/io/kit/kit.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 0,
+      "d": 6
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/time_frequency/psd.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 7,
+      "d": 17
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 3
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

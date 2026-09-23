@@ -16,3 +16,5 @@ of commits):
 *  41  Emily Ruzich
 *   2  Martin Luessi
 *   9  Matti Hämäläinen
+
+.. include:: names.inc

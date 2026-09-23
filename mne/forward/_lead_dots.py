@@ -10,9 +10,8 @@ from functools import partial
 import numpy as np
 from numpy.polynomial import legendre
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
-from ..utils import fill_doc
+from ..utils import fill_doc_static
 
 ##############################################################################
 # LEGENDRE (DERIVATIVE) POLYNOMIALS
@@ -231,7 +230,7 @@ def _fast_sphere_dot_r0(
         sums = _comp_sums_meg(
             beta.flatten(), ct.flatten(), leg_fun, n_fact, volume_integral
         )
-        sums = _reshape_view(sums, ((4,) + beta.shape))
+        sums = sums.reshape((4,) + beta.shape, copy=False)
 
         # Accumulate the result, a little bit streamlined version
         # cosmags1 = cosmags1[:, np.newaxis, :]
@@ -262,7 +261,7 @@ def _fast_sphere_dot_r0(
             result *= r
     else:  # 'eeg'
         result = _comp_sum_eeg(beta.flatten(), ct.flatten(), leg_fun, n_fact)
-        result = _reshape_view(result, beta.shape)
+        result = result.reshape(beta.shape, copy=False)
         # Give it a finishing touch!
         result *= _eeg_const
         result /= lr1lr2
@@ -277,7 +276,7 @@ def _fast_sphere_dot_r0(
     return out
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _do_self_dots(intrad, volume, coils, r0, ch_type, leg_fun, n_fact, n_jobs):
     """Perform the lead field dot product integrations.
 
@@ -298,7 +297,13 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, leg_fun, n_fact, n_jobs):
         Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
     Returns
     -------
@@ -419,7 +424,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type, leg_fun, n_fact)
     return products
 
 
-@fill_doc
+@fill_doc_static("n_jobs")
 def _do_surface_dots(
     intrad, volume, coils, surf, sel, r0, ch_type, leg_fun, n_fact, n_jobs
 ):
@@ -446,7 +451,13 @@ def _do_surface_dots(
         Evaluates the Legendre (derivative) series.
     n_fact : array
         Coefficients in the integration sum.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
     Returns
     -------

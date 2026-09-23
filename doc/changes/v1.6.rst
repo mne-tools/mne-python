@@ -130,3 +130,5 @@ Authors
 * Santeri Ruuskanen
 * Scott Huberty
 * Stefan Appelhoff
+
+.. include:: names.inc

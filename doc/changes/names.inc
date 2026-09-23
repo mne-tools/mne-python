@@ -8,6 +8,7 @@
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
 .. _Alan Leggitt: https://github.com/leggitta
+.. _Alejandro Santos Mayo: https://github.com/ASantosMayo
 .. _Alejandro Weinstein: http://ocam.cl
 .. _Alessandro Tonin: https://www.linkedin.com/in/alessandro-tonin-7892b046
 .. _Alex Ciok: https://github.com/alexCiok
@@ -19,6 +20,7 @@
 .. _Alexandra Corneyllie: https://github.com/Lx37
 .. _Alexandre Barachant: https://alexandre.barachant.org
 .. _Aman Srivastava: https://github.com/aman-coder03
+.. _Amirali Moradniaei: https://github.com/AtomicGlance
 .. _Ana Radanovic: https://github.com/anaradanovic
 .. _Andrea Brovelli: https://brovelli.github.io/
 .. _Andreas Højlund: https://github.com/ahoejlund
@@ -35,6 +37,7 @@
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Anton Karpov: https://github.com/karpovantonme
 .. _Anton Nikolas Waniek: https://github.com/antonwnk
+.. _Antonio Elias Sánchez Soto: https://github.com/sonoAESS
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
@@ -49,6 +52,7 @@
 .. _Baris Talar: https://github.com/baris-talar
 .. _Basile Pinsard: https://github.com/bpinsard
 .. _Beige Jerry Jin: https://github.com/BeiGeJin
+.. _Beliz Sertcan Gökmen: https://github.com/BelizSertcan
 .. _Ben Beasley: https://github.com/musicinmybrain
 .. _Ben Tang: https://github.com/bentang18
 .. _Benedikt Ehinger: https://www.benediktehinger.de
@@ -99,6 +103,7 @@
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
 .. _Deep Kaur: https://github.com/Dpereaptkhamur-13
+.. _Deepesh Sonar: https://github.com/Deepnar
 .. _Denis Engemann: https://denis-engemann.de
 .. _Desislava Petkova: https://github.com/dipetkov
 .. _Dev Parikh: https://github.com/devparikh0506
@@ -173,6 +178,7 @@
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Ilian Azz: https://github.com/ilianAZZ
 .. _Ilias Machairas: https://github.com/JungleHippo
+.. _Isaac Kinley: https://kinleyid.github.io/
 .. _Ivan Skelin: https://github.com/ivan-skelin
 .. _Ivan Zubarev: https://github.com/zubara
 .. _Ivana Kojcic: https://github.com/ikojcic
@@ -253,6 +259,7 @@
 .. _Lorenzo Alfine: https://github.com/lorrandal
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 .. _Louis Thibault: https://github.com/lthibault
+.. _Luca Kaemmer: https://github.com/Lucakaemmer
 .. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 .. _Lukas Gemein: https://github.com/gemeinl
 .. _Lukas Hecker: https://github.com/LukeTheHecker
@@ -267,6 +274,7 @@
 .. _Manorama Kadwani: https://github.com/synapse-stream
 .. _Manu Sutela: https://github.com/MJAS1
 .. _Marcin Koculak: https://github.com/mkoculak
+.. _Marcus Campbell: https://github.com/marcus-campbell
 .. _Marian Dovgialo: https://github.com/mdovgialo
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 .. _Mark Alexander Henney: https://github.com/henneysq
@@ -295,6 +303,7 @@
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Maureen Shader: https://github.com/mshader
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+.. _Maximilien Chaumon: https://github.com/dnacombo
 .. _Melih Yayli: https://github.com/yaylim
 .. _Michael Krause: https://github.com/octomike
 .. _Michael Straube: https://github.com/mistraube
@@ -361,6 +370,7 @@
 .. _Ram Pari: https://github.com/ramkpari
 .. _Ramiro Gatti: https://github.com/ragatti
 .. _ramonapariciog: https://github.com/ramonapariciog
+.. _Raphaël Bordas: https://github.com/raphbrd
 .. _Rasmus Aagaard: https://github.com/rasgaard
 .. _Rasmus Zetter: https://github.com/rzetter
 .. _Reza Nasri: https://github.com/rznas
@@ -421,6 +431,7 @@
 .. _Simon Kornblith: https://simonster.com
 .. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Simon-Shlomo Poil: https://github.com/simon-shlomo
+.. _Sina Esmaeili: https://github.com/snesmaeili
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Sourav Singh: https://github.com/souravsingh
@@ -455,6 +466,7 @@
 .. _Thomas Jochmann: https://github.com/tjochmann
 .. _Thomas Moreau: https://github.com/tomMoral
 .. _Thomas Radman: https://github.com/tradman
+.. _Tim Anderson: https://github.com/timothyanderson096-ocdealcheck
 .. _Tim Gates: https://github.com/timgates42
 .. _Timon Merk: https://github.com/timonmerk
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
@@ -474,6 +486,7 @@
 .. _Victor Férat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
 .. _Vincent Gao: https://github.com/gaoflow
+.. _Virginie van Wassenhove: https://brainthemind.com/virginie-van-wassenhove
 .. _Wei Xu: https://github.com/psyxw
 .. _Will Turner: https://bootstrapbill.github.io
 .. _Wouter Kroot: https://github.com/WouterKroot

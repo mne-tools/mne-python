@@ -366,3 +366,5 @@ People who contributed to this release in alphabetical order
 * Victoria Peterson
 * Yu-Han Luo
 * Zhi Zhang+
+
+.. include:: names.inc

@@ -394,3 +394,5 @@ People who contributed to this release in alphabetical order
 * Timothy Gates+
 * Valerii Chirkov
 * Xiaokai Xia+
+
+.. include:: names.inc

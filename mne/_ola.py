@@ -3,9 +3,14 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.signal import get_window
 
-from .utils import _ensure_int, _validate_type, logger, verbose
+from .utils import (
+    _ensure_int,
+    _validate_type,
+    _verbose_control,
+    check_version,
+    logger,
+)
 
 ###############################################################################
 # Class for interpolation between adjacent points
@@ -259,8 +264,6 @@ class _COLA:
         The overlap between windows.
     window : str
         The window to use. Default is "hann".
-    tol : float
-        The tolerance for COLA checking.
     offset : int
         The index of the first sample that will be fed. Use it to process a segment
         that does not start at the beginning of the signal that ``process`` is based
@@ -286,7 +289,7 @@ class _COLA:
     window are asymmetric.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         process,
@@ -296,12 +299,13 @@ class _COLA:
         n_overlap,
         sfreq,
         window="hann",
-        tol=1e-10,
         *,
         name="COLA",
         offset=0,
         verbose=None,
     ):
+        from scipy.signal import get_window
+
         self._offset = _ensure_int(offset, "offset")
         n_samples = _ensure_int(n_samples, "n_samples")
         n_overlap = _ensure_int(n_overlap, "n_overlap")
@@ -334,8 +338,8 @@ class _COLA:
         self._window = get_window(
             window, self._n_samples, fftbins=bool((self._n_samples - 1) % 2)
         )
-        self._window /= _check_cola(
-            self._window, self._n_samples, self._step, window_name, tol=tol
+        self._window = _ensure_cola(
+            self._window, self._n_samples, self._step, window_name
         )
         self.starts = np.arange(0, n_total - self._n_samples + 1, self._step)
         self.stops = self.starts + self._n_samples
@@ -359,7 +363,7 @@ class _COLA:
         """Compute from current processing window start and buffer len."""
         return self.starts[self._idx] + self._in_buffers[0].shape[-1]
 
-    @verbose
+    @_verbose_control
     def feed(self, *datas, verbose=None, **kwargs):
         """Pass in a chunk of data."""
         # Append to our input buffer
@@ -461,8 +465,8 @@ class _COLA:
                 ob[..., -delta:] = 0.0
 
 
-def _check_cola(win, nperseg, step, window_name, tol=1e-10):
-    """Check whether the Constant OverLap Add (COLA) constraint is met."""
+def _ensure_cola(win, nperseg, step, window_name, tol=1e-10):
+    """Normalize a window to meet the Constant OverLap Add (COLA) constraint."""
     # adapted from SciPy
     binsums = np.sum(
         [win[ii * step : (ii + 1) * step] for ii in range(nperseg // step)], axis=0
@@ -470,14 +474,26 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     if nperseg % step != 0:
         binsums[: nperseg % step] += win[-(nperseg % step) :]
     const = np.median(binsums)
+    win = win / const
     deviation = np.max(np.abs(binsums - const))
     if deviation > tol:
-        raise ValueError(
+        msg = (
             f"segment length {nperseg} with step {step} for {window_name} "
             "window type does not provide a constant output "
             f"({100 * deviation / const:g}% deviation)"
         )
-    return const
+        # TODO VERSION: remove when SciPy 1.16 is the minimum
+        if not check_version("scipy", "1.16"):
+            raise ValueError(
+                f"{msg}, upgrade to SciPy 1.16+ to adjust the window automatically "
+                "or choose a different window length"
+            )
+        from scipy.signal import closest_STFT_dual_window
+
+        logger.info(f"    Adjusting to the closest COLA window because {msg}")
+        # windows whose STFT dual is rectangular are exactly the COLA ones
+        win, _ = closest_STFT_dual_window(np.ones(nperseg), step, win, scaled=False)
+    return win
 
 
 class _Storer:

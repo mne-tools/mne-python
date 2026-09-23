@@ -6,8 +6,8 @@ Version 1.7.1 (2024-06-14)
 Bugfixes
 --------
 
-- Fix bug where :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_array_multitaper`, and :func:`mne.time_frequency.csd_array_fourier` would return cross-spectral densities with the ``fmin`` and ``fmax`` frequencies missing, by `Thomas Binns`_ (`#12633 <https://github.com/mne-tools/mne-python/pull/12633>`__)
-- Fix incorrect RuntimeWarning (different channel filter settings) in EDF/BDF import, by `Clemens Brunner`_. (`#12661 <https://github.com/mne-tools/mne-python/pull/12661>`__)
+- Fix bug where :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_array_multitaper`, and :func:`mne.time_frequency.csd_array_fourier` would return cross-spectral densities with the ``fmin`` and ``fmax`` frequencies missing, by `Thomas Binns`_ (:gh:`12633`)
+- Fix incorrect RuntimeWarning (different channel filter settings) in EDF/BDF import, by `Clemens Brunner`_. (:gh:`12661`)
 
 Authors
 -------
@@ -195,3 +195,7 @@ Authors
 * Velu Prabhakar Kumaravel+
 * Will Turner+
 * btkcodedev+
+
+.. include:: names.inc
+
+.. include:: ../links.inc

@@ -405,6 +405,9 @@ def _handle_default(k, v=None):
 
 
 HEAD_SIZE_DEFAULT = 0.095  # in [m]
+# default clipping for Raw.plot; it lives here rather than in mne.viz.raw so
+# that mne.io.base can use it as a default argument without importing mne.viz
+_RAW_CLIP_DEF: Final = 3
 _BORDER_DEFAULT: Final = "mean"
 _INTERPOLATION_DEFAULT: Final = "cubic"
 _EXTRAPOLATE_DEFAULT: Final = "auto"

@@ -2,4 +2,6 @@
 
 .. _current:
 
-.. towncrier-draft-entries:: Version |release| (development)
+.. towncrier-draft-entries:: |release| (development)
+
+.. include:: names.inc

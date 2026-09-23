@@ -9,15 +9,21 @@ from functools import partial
 from inspect import signature
 
 import numpy as np
-from scipy import ndimage
 
 from .._fiff.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, channel_type, pick_types
 from ..defaults import _handle_default
-from ..utils import Bunch, _check_option, _clean_names, _is_numeric, fill_doc
+from ..utils import (
+    Bunch,
+    _check_option,
+    _clean_names,
+    _is_numeric,
+    fill_doc_static,
+)
 from .ui_events import ChannelsSelect, TimeChange, link, publish, subscribe
 from .utils import (
     DraggableColorbar,
     SelectFromCollection,
+    _BlitManager,
     _check_cov,
     _check_delayed_ssp,
     _draw_proj_checkbox,
@@ -30,7 +36,7 @@ from .utils import (
 )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def iter_topography(
     info,
     layout=None,
@@ -53,7 +59,9 @@ def iter_topography(
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     layout : instance of mne.channels.Layout | None
         The layout to use. If None, layout will be guessed.
     on_pick : callable | None
@@ -805,6 +813,7 @@ def _erfimage_imshow(
 ):
     """Plot erfimage on sensor topography."""
     import matplotlib.pyplot as plt
+    from scipy import ndimage
 
     this_data = data[:, ch_idx, :]
     if vlim_array is not None:
@@ -861,6 +870,8 @@ def _erfimage_imshow_unified(
     vlim_array=None,
 ):
     """Plot erfimage topography using a single axis."""
+    from scipy import ndimage
+
     _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines
@@ -1170,7 +1181,7 @@ def _plot_evoked_topo(
 
     setattr(fig, "_current_time", None)
 
-    def _on_time_change(event, fig, tmin, tmax):
+    def _on_time_change(event, fig, blit, tmin, tmax):
         """Respond to a time change UI event."""
         fig._current_time = event.time
 
@@ -1186,11 +1197,14 @@ def _plot_evoked_topo(
                     color=font_color,
                     linewidth=0.5,
                 )
+                blit.add(subax.time_cursor)
             else:
                 subax.time_cursor.set_xdata([time, time])
             # Hide the vertical line when the time is out of bounds.
             subax.time_cursor.set_visible(tmin <= event.time <= tmax)
-        fig.canvas.draw()
+        # the cursors are the only thing that moves, so blit them onto a cached
+        # background instead of redrawing every channel's traces
+        blit.update()
 
     subscribe(
         fig,
@@ -1198,6 +1212,7 @@ def _plot_evoked_topo(
         partial(
             _on_time_change,
             fig=fig,
+            blit=_BlitManager(fig),
             tmin=np.min([t[0] for t in times]),
             tmax=np.max([t[-1] for t in times]),
         ),

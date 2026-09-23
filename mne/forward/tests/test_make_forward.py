@@ -767,7 +767,7 @@ def test_make_forward_dipole(tmp_path):
     times, pos, amplitude, ori, gof = [], [], [], [], []
     nave = 400  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
-        evo_test = simulate_evoked(fwd, s, info, cov, nave=nave, random_state=rng)
+        evo_test = simulate_evoked(fwd, s, info, cov, nave=nave, rng=rng)
         # evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
         dfit, resid = fit_dipole(evo_test, cov, sphere, None)
         times += dfit.times.tolist()

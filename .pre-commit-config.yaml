@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.2
+    rev: v0.16.8
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,7 +24,7 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.69
+    rev: v0.0.82
     hooks:
       - id: ty
         additional_dependencies:
@@ -79,11 +79,11 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/sphinxext/related_software.txt|^ignore_words.txt
+        files: ^ignore_words.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.4
+    rev: v0.25.0
     hooks:
       - id: toml-sort-fix
         files: pyproject.toml
@@ -95,10 +95,21 @@ repos:
         language: python
         entry: ./tools/hooks/sort_contributor_names.py
         files: '^(doc/changes/names.inc|.mailmap)$'
+      - id: check-static-docs
+        name: Check statically filled docstrings against docdict
+        language: python
+        entry: ./tools/hooks/check_static_docs.py
+        args: [--fix]
+        # the hook edits files beyond those passed (docs.py, other users of an
+        # edited entry), so parallel batched invocations would race
+        require_serial: true
+        additional_dependencies: [numpy, scipy, matplotlib, decorator, lazy_loader, packaging, jinja2, pooch, tqdm]
+        files: '^mne/.*\.py$'
+        exclude: '^mne/(.*/)?tests/'
 
   # zizmor
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.29.0
+    rev: v1.30.1
     hooks:
       - id: zizmor
         args: [--fix]

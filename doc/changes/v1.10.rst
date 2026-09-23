@@ -128,3 +128,5 @@ Authors
 * Wei Xu+
 * Yixiao Shen+
 * user27182+
+
+.. include:: names.inc

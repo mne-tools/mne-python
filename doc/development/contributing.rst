@@ -8,7 +8,7 @@ Contributing guide
 .. important::
    **AI Usage Policy:** Before submitting any code or documentation, please make sure to review our AI usage policy outlined in the repository `CONTRIBUTING.md file <https://github.com/mne-tools/mne-python/blob/main/CONTRIBUTING.md>`_.
 
-   
+
 Thanks for taking the time to contribute! MNE-Python is an open-source project
 sustained mostly by volunteer effort. We welcome contributions from anyone as
 long as they abide by our `Code of Conduct`_.
@@ -457,8 +457,8 @@ commits to your fork anyway and open a pull request (as described above), then
 in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
-To learn more about git, check out the `GitHub help`_ website, the `GitHub
-skills`_ tutorial series, and the `pro git book`_.
+To learn more about git, check out the `GitHub help <https://help.github.com>`__ website, the `GitHub skills <https://skills.github.com/>`__
+tutorial series, and the `pro git book <https://git-scm.com/book/>`__.
 
 
 .. _github-ssh:
@@ -711,7 +711,7 @@ entry):
 .. code-block:: rst
 
     Your commit message
-    
+
     Co-authored-by: Original Author Name <original-author-email@example.com>
 
 Continuous integration (CI) and local testing before opening a PR
@@ -722,7 +722,7 @@ whenever you open or update a pull request.
 MNE-Python uses `continuous integration`_ (CI) to ensure code quality,
 test across multiple platforms, and automatically validate pull requests.
 However, CI runs are slower than testing locally and some of them cost money to run.
-Therefore, *do not rely on the CIs to catch bugs and style errors for you*; 
+Therefore, *do not rely on the CIs to catch bugs and style errors for you*;
 :ref:`run the tests locally <run-tests>`
 instead before opening a new PR and before each time you push additional
 changes to an already-open PR.
@@ -748,7 +748,7 @@ Once you have at least one PR merged into the MNE-Python repository, future
 contributions will not require manual approval.
 
 `CircleCI`_ will not build the documentation unless the GitHub account of the PR's most recent commit
-is associated with a CircleCI account. Creating one is easy and free, 
+is associated with a CircleCI account. Creating one is easy and free,
 choose "login with GitHub" on `CircleCI`_ to get started.
 If you do not do this, it will show up as a failing CI job.
 
@@ -816,7 +816,7 @@ We (mostly) follow NumPy style for docstrings
 
 In most cases you can look at existing MNE-Python docstrings to figure out how
 yours should be formatted. If you can't find a relevant example, consult the
-`Numpy docstring style guidelines`_ for examples of more complicated formatting
+`Numpy docstring style guidelines <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`__ for examples of more complicated formatting
 such as embedding example code, citing references, or including rendered
 mathematics.  Note that we diverge from the NumPy docstring standard in a few
 ways:
@@ -844,6 +844,90 @@ relatively complex. To run some basic tests on documentation, you can use::
 
     $ pytest mne/tests/test_docstring_parameters.py
     $ make ruff
+
+
+Shared parameter descriptions (the ``docdict``)
+-----------------------------------------------
+
+Many parameters (``picks``, ``n_jobs``, ``verbose``, ``baseline``, ...) and some
+longer passages (e.g., the notes on plotting backends) recur across the API.
+Their text is written once, in the ``docdict`` dictionary in
+:file:`mne/utils/docs.py`, and reused everywhere. Before writing a parameter
+description by hand, ``git grep`` the parameter name in :file:`mne/utils/docs.py`
+--- it is probably already there.
+
+There are two ways a docstring can use ``docdict`` entries:
+
+**Static (preferred for new code):** the docstring contains the *complete*
+text, and the function is decorated with ``@fill_doc_static(...)`` (or
+``@verbose_static(...)`` if it takes a ``verbose`` argument) listing the
+``docdict`` keys it contains::
+
+    @verbose_static("picks_all", "n_jobs")
+    def my_function(inst, picks=None, n_jobs=None, verbose=None):
+        """Do something.
+
+        Parameters
+        ----------
+        inst : instance of Raw
+            The data.
+        picks : str | array-like | slice | None
+            Channels to include. ...          <-- full text of docdict["picks_all"]
+        n_jobs : int | None
+            The number of jobs to run in parallel. ...
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. ...
+        """
+
+Nothing is substituted at import time, so the text you see in the source is
+exactly what ``help()``, Sphinx, and your IDE's hover tooltips show. Methods
+whose docstring is copied from a function (e.g., :meth:`mne.io.Raw.plot` from
+:func:`mne.viz.plot_raw`) work the same way with
+``@copy_function_doc_to_method_doc_static("func:mne.viz.plot_raw")`` (or
+``@copy_doc_static("meth:...")``) above the fully written-out docstring.
+
+A pre-commit hook (``tools/hooks/check_static_docs.py``) keeps every copy in
+sync with its source. It runs with ``--fix``, so it *rewrites* files and fails
+the commit when it had to; review the changes, ``git add`` them, and commit
+again. You can also run it by hand::
+
+    $ python tools/hooks/check_static_docs.py --fix mne/some_module.py
+
+In practice this means:
+
+- **Adding a shared parameter to a function:** write ``%(key)s`` on its own
+  line in the parameter list; the hook expands it and adds the key to the
+  decorator.
+- **Changing shared text:** edit it *either* in :file:`mne/utils/docs.py` *or*
+  in any one docstring that uses it --- the hook detects which side changed
+  (by comparing ``docdict`` with ``git HEAD``) and propagates the edit to
+  ``docdict`` and every other docstring. Propagating *from* a docstring is
+  opt-in: by default the hook only describes what it would do, and applies it
+  when the ``MNE_PROPAGATE_DOC_CHANGES`` configuration value is true (as an
+  environment variable for a one-off, or permanently via
+  ``mne.set_config("MNE_PROPAGATE_DOC_CHANGES", "true")``). Entries that are
+  built from templates
+  in :file:`mne/utils/docs.py` rather than written as plain strings can only be
+  edited there; the hook tells you when that is the case.
+- **Site-specific additions** (a ``.. versionadded::`` note, an extra
+  sentence) may follow the shared text within the same parameter block or
+  paragraph; the hook only manages the shared part. When adding such text,
+  start it with a blank line --- lines added directly after the shared text are
+  taken to be shared, and propagated everywhere.
+- **Text that is nearly but not quite shared:** add a new ``docdict`` entry
+  (e.g., ``picks_good_data`` next to ``picks_all``) rather than editing one
+  copy.
+
+**Dynamic (legacy):** the docstring contains ``%(key)s`` placeholders and the
+function is decorated with ``@fill_doc`` (or ``@verbose``), which substitutes
+them at import time. This keeps the source short, but static analysis tools
+only ever see the placeholders (see :gh:`8218`). MNE-Python itself no longer
+uses these, so please do not add new ones: private functions that take
+``verbose`` without documenting it (or that have no docstring at all) use
+``@_verbose_control``, which only sets the log level during the call.
+``@fill_doc``, ``@verbose``, ``@copy_doc`` and
+``@copy_function_doc_to_method_doc`` remain available (and unchanged) for
+downstream packages.
 
 
 Cross-reference everywhere
@@ -987,7 +1071,7 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Our documentation (including docstrings in code files) is in
-reStructuredText_ format and is built using Sphinx_ and `Sphinx-Gallery`_.
+reStructuredText_ format and is built using `Sphinx <https://www.sphinx-doc.org/>`__ and `Sphinx-Gallery`_.
 The easiest way to ensure that your contributions to the documentation are
 properly formatted is to follow the style guidelines on this page, imitate
 existing documentation examples, refer to the Sphinx and Sphinx-Gallery
@@ -1135,9 +1219,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. MNE
 
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
-.. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
-.. _our user forum: https://mne.discourse.group
+.. _our user forum: `MNE Forum`_
 .. _sg_execution_times page: https://mne.tools/dev/sg_execution_times.html
 .. _sg_api_usage page: https://mne.tools/dev/sg_api_usage.html
 
@@ -1192,10 +1275,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. misc
 
-.. _miniconda: https://conda.io/en/latest/miniconda.html
-.. _Spyder: https://www.spyder-ide.org/
 .. _continuous integration: https://about.gitlab.com/topics/ci-cd/
-.. _matplotlib: https://matplotlib.org/
 .. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _CircleCI: https://circleci.com/gh/mne-tools/mne-python

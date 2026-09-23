@@ -114,3 +114,7 @@ Authors
 * Stefan Appelhoff
 * Valerii Chirkov
 * luzpaz+
+
+.. include:: names.inc
+
+.. include:: ../links.inc

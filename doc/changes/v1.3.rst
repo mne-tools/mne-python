@@ -87,3 +87,5 @@ Authors
 * Timon Merk
 * Tom Ma+
 * Toomas Erik Anijärv+
+
+.. include:: names.inc

@@ -57,47 +57,6 @@ def _compare_version(version_a, operator, version_b):
 
 
 ###############################################################################
-# NumPy 2.5 removes .shape assignment, but .reshape(copy=False) requires 2.1+
-
-# TODO VERSION remove on NumPy 2.1+
-
-
-def _reshape_view(arr, shape):
-    """Reshape an array as a view, raising if a copy would be required.
-
-    This function provides compatibility across NumPy versions for reshaping
-    arrays as views. On NumPy >= 2.1, it uses ``reshape(copy=False)`` which
-    explicitly fails if a view cannot be created. On older versions, it uses
-    direct shape assignment which has the same behavior but is being removed
-    as of NumPy 2.5+.
-
-    Parameters
-    ----------
-    arr : ndarray
-        The array to reshape.
-    shape : tuple of int
-        The new shape.
-
-    Returns
-    -------
-    ndarray
-        A reshaped view of the array.
-
-    Raises
-    ------
-    AttributeError
-        If a view cannot be created on NumPy < 2.1.
-    ValueError
-        If a view cannot be created on NumPy >= 2.1.
-    """
-    if _compare_version(np.__version__, ">=", "2.1"):
-        return arr.reshape(shape, copy=False)
-    else:
-        arr.shape = shape
-        return arr
-
-
-###############################################################################
 # Misc
 
 
@@ -220,7 +179,7 @@ class _EstimatorMixin:
 
         Parameters
         ----------
-        deep : bool, default=True
+        deep : bool
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
 
@@ -566,7 +525,7 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     ----------
     arr : array-like
         To be cumulatively summed as flat
-    axis : int, optional
+    axis : int | None
         Axis along which the cumulative sum is computed.
         The default (None) is to compute the cumsum over the flattened array.
     rtol : float
@@ -624,47 +583,6 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 
     cbar.set_ticks(new_tick_locs)
     cbar.update_ticks()
-
-
-###############################################################################
-# Numba (optional requirement)
-
-# Here we choose different defaults to speed things up by default
-try:
-    import numba
-
-    prange = numba.prange
-
-    def jit(nopython=True, nogil=True, fastmath=True, cache=True, **kwargs):  # noqa
-        return numba.jit(
-            nopython=nopython, nogil=nogil, fastmath=fastmath, cache=cache, **kwargs
-        )
-
-except Exception:  # could be ImportError, SystemError, etc.
-    has_numba = False
-else:
-    has_numba = os.getenv("MNE_USE_NUMBA", "true").lower() == "true"
-
-
-if not has_numba:
-
-    def jit(**kwargs):  # noqa
-        def _jit(func):
-            return func
-
-        return _jit
-
-    prange = range
-    bincount = np.bincount
-
-else:
-
-    @jit()
-    def bincount(x, weights, minlength):  # noqa: D103
-        out = np.zeros(minlength)
-        for idx, w in zip(x, weights):
-            out[idx] += w
-        return out
 
 
 ###############################################################################

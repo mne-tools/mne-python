@@ -12,7 +12,6 @@ from contextlib import contextmanager
 from gzip import GzipFile
 
 import numpy as np
-from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_fname, _file_like, _validate_type, logger
 from ..utils.numerics import _date_to_julian
@@ -411,6 +410,23 @@ def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 
 
+def write_layer_struct(fid, kind, layers):
+    """Write an array of layer structures of a layered sphere model."""
+    from .tag import _LAYER_DTYPE
+
+    layers = np.array(
+        [(layer["id"], layer["rad"]) for layer in layers], dtype=_LAYER_DTYPE
+    )
+    _write(
+        fid,
+        layers,
+        kind,
+        _LAYER_DTYPE.itemsize,
+        FIFF.FIFFT_LAYER_STRUCT,
+        _LAYER_DTYPE,
+    )
+
+
 def write_float_sparse_rcs(fid, kind, mat):
     """Write a single-precision sparse compressed row matrix tag."""
     return write_float_sparse(fid, kind, mat, fmt="csr")
@@ -418,6 +434,8 @@ def write_float_sparse_rcs(fid, kind, mat):
 
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
+    from scipy.sparse import csc_array, csr_array
+
     if fmt == "auto":
         fmt = "csr" if isinstance(mat, csr_array) else "csc"
     need = csr_array if fmt == "csr" else csc_array

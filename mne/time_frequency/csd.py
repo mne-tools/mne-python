@@ -21,16 +21,15 @@ from ..utils import (
     _check_fname,
     _import_h5io_funcs,
     _validate_type,
-    copy_function_doc_to_method_doc,
+    copy_function_doc_to_method_doc_static,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
-from ..viz.misc import plot_csd
 from .tfr import EpochsTFR, _cwt_array, _get_nfft, morlet
 
 
-@verbose
+@verbose_static("ordered")
 def pick_channels_csd(
     csd, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
 ):
@@ -44,13 +43,23 @@ def pick_channels_csd(
         List of channels to include (if empty, include all available).
     exclude : list of str
         Channels to exclude (if empty, do not exclude any).
-    %(ordered)s
+    ordered : bool
+        If True (default), ensure that the order of the channels in
+        the modified instance matches the order of ``ch_names``.
+
+        .. versionadded:: 0.20.0
+        .. versionchanged:: 1.7
+            The default changed from False in 1.6 to True in 1.7.
     copy : bool
         If True (the default), return a copy of the CSD matrix with the
         modified channels. If False, channels are modified in-place.
 
         .. versionadded:: 0.20.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -419,7 +428,7 @@ class CrossSpectralDensity:
         else:
             return data
 
-    @copy_function_doc_to_method_doc(plot_csd)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.misc.plot_csd")
     def plot(
         self,
         info=None,
@@ -429,6 +438,41 @@ class CrossSpectralDensity:
         n_cols=None,
         show=True,
     ):
+        """Plot CSD matrices.
+
+        A sub-plot is created for each frequency. If an info object is passed to
+        the function, different channel types are plotted in different figures.
+
+        Parameters
+        ----------
+        info : mne.Info | None
+            The :class:`mne.Info` object with information about the
+            sensors and methods of measurement.
+            Used to split the figure by channel-type, if provided.
+            By default, the CSD matrix is plotted as a whole.
+        mode : 'csd' | 'coh'
+            Whether to plot the cross-spectral density ('csd', the default), or
+            the coherence ('coh') between the channels.
+        colorbar : bool
+            Whether to show a colorbar. Defaults to ``True``.
+        cmap : str | None
+            The matplotlib colormap to use. Defaults to None, which means the
+            colormap will default to matplotlib's default.
+        n_cols : int | None
+            CSD matrices are plotted in a grid. This parameter controls how
+            many matrix to plot side by side before starting a new row. By
+            default, a number will be chosen to make the grid as square as
+            possible.
+        show : bool
+            Whether to show the figure. Defaults to ``True``.
+
+        Returns
+        -------
+        fig : list of Figure
+            The figures created by this function.
+        """
+        from ..viz.misc import plot_csd
+
         return plot_csd(
             self,
             info=info,
@@ -485,7 +529,7 @@ class CrossSpectralDensity:
             projs=self.projs,
         )
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the CSD to an HDF5 file.
 
@@ -494,10 +538,16 @@ class CrossSpectralDensity:
         fname : path-like
             The name of the file to save the CSD to. The extension ``'.h5'``
             will be appended if the given filename doesn't have it already.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 1.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
             .. versionadded:: 1.0
 
@@ -659,7 +709,7 @@ def read_csd(fname):
     return CrossSpectralDensity(**csd_dict)
 
 
-@verbose
+@verbose_static("picks_good_data_noref", "n_jobs")
 def csd_fourier(
     epochs,
     fmin=0,
@@ -689,15 +739,33 @@ def csd_fourier(
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    %(picks_good_data_noref)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -729,7 +797,7 @@ def csd_fourier(
     )
 
 
-@verbose
+@verbose_static("n_jobs")
 def csd_array_fourier(
     X,
     sfreq,
@@ -776,8 +844,18 @@ def csd_array_fourier(
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means no projectors are stored.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -833,7 +911,7 @@ def csd_array_fourier(
     )
 
 
-@verbose
+@verbose_static("picks_good_data_noref", "n_jobs")
 def csd_multitaper(
     epochs,
     fmin=0,
@@ -866,7 +944,15 @@ def csd_multitaper(
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    %(picks_good_data_noref)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -875,13 +961,23 @@ def csd_multitaper(
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will by copied.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -916,7 +1012,7 @@ def csd_multitaper(
     )
 
 
-@verbose
+@verbose_static("n_jobs", "max_iter_multitaper")
 def csd_array_multitaper(
     X,
     sfreq,
@@ -969,14 +1065,27 @@ def csd_array_multitaper(
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means no projectors are stored.
-    %(n_jobs)s
-    %(max_iter_multitaper)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    max_iter : int
+        Maximum number of iterations to reach convergence when combining the
+        tapered spectra with adaptive weights (see argument ``adaptive``). This
+        argument has not effect if ``adaptive`` is set to ``False``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1045,7 +1154,7 @@ def csd_array_multitaper(
     )
 
 
-@verbose
+@verbose_static("picks_good_data_noref", "n_jobs")
 def csd_morlet(
     epochs,
     frequencies,
@@ -1074,7 +1183,15 @@ def csd_morlet(
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    %(picks_good_data_noref)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
     n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
@@ -1091,8 +1208,18 @@ def csd_morlet(
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1125,7 +1252,7 @@ def csd_morlet(
     )
 
 
-@verbose
+@verbose_static("n_jobs")
 def csd_array_morlet(
     X,
     sfreq,
@@ -1181,8 +1308,18 @@ def csd_array_morlet(
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1298,7 +1435,7 @@ def _prepare_csd_array(X, sfreq, t0, tmin, tmax, fmin=None, fmax=None):
     return X, times, tmin, tmax, fmin, fmax
 
 
-@verbose
+@verbose_static("n_jobs")
 def _execute_csd_function(
     X,
     times,
@@ -1337,8 +1474,18 @@ def _execute_csd_function(
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1525,7 +1672,7 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True, decim=1)
     return csds
 
 
-@verbose
+@verbose_static("picks_good_data_noref")
 def csd_tfr(epochs_tfr, tmin=None, tmax=None, picks=None, projs=None, verbose=None):
     """Compute covariance matrices across frequencies for TFR epochs.
 
@@ -1540,12 +1687,24 @@ def csd_tfr(epochs_tfr, tmin=None, tmax=None, picks=None, projs=None, verbose=No
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    %(picks_good_data_noref)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the EpochsTFR object will be
         copied.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
