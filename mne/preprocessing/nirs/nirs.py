@@ -3,11 +3,13 @@
 # Copyright the MNE-Python contributors.
 
 import re
+import warnings
+from contextlib import contextmanager
 
 import numpy as np
 
 from ..._fiff.pick import _picks_to_idx, pick_types
-from ...utils import _check_option, _validate_type, fill_doc_static
+from ...utils import _check_option, _validate_type, fill_doc_static, warn
 
 # Standardized fNIRS channel name regexs
 _S_D_F_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*)")
@@ -285,6 +287,20 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
                     f"Found {got} but needed {want}. "
                 )
     return picks
+
+
+@contextmanager
+def _warn_channel(ch_name):
+    """Re-emit warnings raised while processing one channel, naming it.
+
+    NumPy emits numerical warnings (e.g. "divide by zero encountered in log")
+    without any channel context.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        yield
+    for w in caught:
+        warn(f"{w.message} in channel {ch_name}", w.category)
 
 
 def _throw_or_return_empty(msg, throw_errors):
