@@ -2372,6 +2372,10 @@ def plot_evoked_joint(
             zorder=1,
             clip_on=False,
         )
+        # The lines intentionally poke outside of `ts_ax`, so keep them out of the
+        # layout bbox reckoning; otherwise constrained layout grows the margin on
+        # every redraw, shrinking the axes to nothing (see #14317).
+        con.set_in_layout(False)
         ts_ax.add_artist(con)
 
     # mark times in time series plot

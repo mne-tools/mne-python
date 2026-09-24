@@ -5,6 +5,7 @@
 .. _Adeline Fecker: https://github.com/adelinefecker
 .. _Adina Wagner: https://github.com/adswa
 .. _Adonay Nunes: https://github.com/AdoNunes
+.. _Akhil Gopu: https://github.com/AkhilG-exe
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
 .. _Alan Leggitt: https://github.com/leggitta
