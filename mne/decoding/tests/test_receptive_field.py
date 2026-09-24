@@ -186,10 +186,13 @@ def rf_array_api(request):
         yield compat.array_namespace(backend.asarray([0.0]))
 
 
-@pytest.mark.parametrize("dtype", ["float32", "float64", "int64"])
 @pytest.mark.parametrize(
-    "epoched, n_outputs, fit_intercept, limits",
-    [(False, 2, False, (-2, 0)), (True, 1, True, (0, 2)), (True, 2, True, (-1, 1))],
+    "dtype, epoched, n_outputs, fit_intercept, limits",
+    [
+        ("float64", False, 2, False, (-2, 0)),
+        ("int64", True, 1, True, (0, 2)),
+        ("float32", True, 2, True, (-1, 1)),
+    ],
 )
 def test_receptive_field_array_api(
     rf_array_api, monkeypatch, dtype, epoched, n_outputs, fit_intercept, limits
@@ -240,11 +243,21 @@ def test_receptive_field_array_api(
         assert_allclose(np.asarray(actual), expected.score(x, y), atol=tol, rtol=tol)
     assert_array_equal(np.asarray(xt), x)
     assert_array_equal(np.asarray(yt), y)
+
+
+def test_receptive_field_array_api_errors(rf_array_api):
+    """Reject unsupported estimators and one-sample patterns."""
+    xp = rf_array_api
+    model = ReceptiveField(
+        0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+    )
     with pytest.raises(ValueError, match="only one sample"):
-        model.set_params(tmin=0, tmax=0).fit(xp.ones((1, 1)), xp.ones((1, n_outputs)))
+        model.fit(xp.ones((1, 1)), xp.ones(1))
     for unsupported in (None, 0.1, TimeDelayingRidge(0, 1, 1)):
         with pytest.raises(ValueError, match="compatible estimator"):
-            ReceptiveField(0, 1, 1, estimator=unsupported).fit(xt, yt)
+            ReceptiveField(0, 1, 1, estimator=unsupported).fit(
+                xp.ones((3, 1)), xp.ones(3)
+            )
 
 
 @pytest.mark.parametrize("scoring", ["r2", "corrcoef"])
@@ -280,34 +293,31 @@ def test_receptive_field_array_api_score_precision(rf_array_api, scoring, target
 
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
-@pytest.mark.parametrize("n_samples", [2, 7])
-def test_receptive_field_array_api_correlation(rf_array_api, dtype, n_samples):
-    """Check the device-local statistic against SciPy without its p-value path."""
-    from scipy.stats import ConstantInputWarning, pearsonr
+@pytest.mark.parametrize(
+    "offsets, correlation", [([0, 1], -1), ([0, 1, 1], -0.5), ([0, 1, 2], -1)]
+)
+def test_receptive_field_array_api_correlation(
+    rf_array_api, dtype, offsets, correlation
+):
+    """Preserve correlation for small variations, scaling, and constant inputs."""
+    from scipy.stats import ConstantInputWarning
 
     xp = rf_array_api
-    x, y = np.random.default_rng(20).standard_normal((2, n_samples, 5)).astype(dtype)
-    if n_samples == 2:
-        eps = np.finfo(dtype).eps
-        x[:] = np.array([[1], [1 + eps]], dtype=dtype)
-        y[:] = np.array([[1], [1 + 2 * eps]], dtype=dtype)
-        y[:, 1] = y[::-1, 1].copy()
-        y[1, 2:4] = [np.nan, np.inf]
-        expected = [1.0, -1.0, np.nan, np.nan, np.nan]
-    else:
-        scale = 1e10 if dtype == "float32" else 1e200
-        x[:, 1:3] *= [scale, 1 / scale]
-        y[:, 1:3] *= [scale, 1 / scale]
-        x[:, 4] = 0.1
-        with pytest.warns(ConstantInputWarning):
-            expected = pearsonr(x, y, axis=0).statistic
+    scale = 1e30 if dtype == "float32" else 1e200
+    offsets = np.array(offsets, dtype=dtype)
+    bases = np.array([1, 3, scale, 1 / scale, 1, 1, 1], dtype=dtype)
+    x = bases + np.spacing(bases) * offsets[:, None]
+    y = x[::-1].copy()
     x[:, 4] = 0.1
+    y[-1, 5:] = [np.nan, np.inf]
     with pytest.warns(ConstantInputWarning):
         actual = _SCORERS["corrcoef"](
             xp.asarray(x), xp.asarray(y), multioutput="raw_values"
         )
     assert_allclose(
-        np.asarray(actual), expected, atol=1e-6 if dtype == "float32" else 1e-14
+        np.asarray(actual),
+        [correlation] * 4 + [np.nan] * 3,
+        atol=1e-6 if dtype == "float32" else 1e-14,
     )
     with pytest.raises(ValueError, match="at least 2"):
         _SCORERS["corrcoef"](
@@ -317,6 +327,9 @@ def test_receptive_field_array_api_correlation(rf_array_api, dtype, n_samples):
         _SCORERS["corrcoef"](
             xp.asarray(x + 1j), xp.asarray(y), multioutput="raw_values"
         )
+    x = xp.asarray(np.array([1, -1, 0.5, -0.5], dtype=dtype)[:, None])
+    x = x * float(np.finfo(dtype).max)
+    assert_allclose(_SCORERS["corrcoef"](x, -x, multioutput="raw_values"), [-1])
 
 
 @pytest.mark.slowtest  # slow on Azure

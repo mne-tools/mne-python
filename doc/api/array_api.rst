@@ -3,44 +3,23 @@
 Array API support (experimental)
 ================================
 
-The `Python Array API standard <https://data-apis.org/array-api/latest/>`_
-provides a common interface to array libraries. Selected MNE-Python operations
-can use this interface through
-`array-api-compat <https://data-apis.org/array-api-compat/>`_, keeping arrays in
-their original backend rather than converting them to NumPy.
-Support is experimental and limited to the operations listed below; it does
-not make all MNE-Python functions or data containers GPU-compatible.
+:class:`mne.decoding.ReceptiveField` can use Array API inputs, such as PyTorch
+tensors, with compatible estimators such as :class:`sklearn.linear_model.Ridge`
+with ``solver="svd"``. Fitting, prediction, inverse patterns, and both scoring
+methods keep arrays in the input backend and on its device. This experimental
+support does not make other MNE-Python operations GPU-compatible.
 
 Installation and configuration
 ------------------------------
 
-Install ``array-api-compat >= 1.12``, ``scikit-learn >= 1.5``, and the array
-backend separately, for example PyTorch. NumPy workflows do not require
-``array-api-compat`` or PyTorch.
+Install ``array-api-compat >= 1.12``, ``scikit-learn >= 1.5``, and your array
+backend separately. NumPy workflows do not require these optional array packages.
 
 Set ``SCIPY_ARRAY_API=1`` in the environment **before** importing SciPy,
 scikit-learn, or MNE-Python. Enable scikit-learn's ``array_api_dispatch`` during
-fitting, prediction, and scoring, as in the example below. Without dispatch,
-scikit-learn uses its usual NumPy conversion path, which cannot accept arrays
-on a GPU. See also the
+fitting, prediction, and scoring. For supported estimators, devices, and
+dependency versions, see the
 `scikit-learn Array API guide <https://scikit-learn.org/stable/modules/array_api.html>`_.
-
-Supported operations
---------------------
-
-:class:`mne.decoding.ReceptiveField` supports ``fit``, ``predict``, and ``score``
-when its estimator supports Array API inputs, for example
-:class:`sklearn.linear_model.Ridge` with ``solver="svd"``.
-This includes continuous and epoched data, positive and negative lags,
-inverse patterns, and both ``"r2"`` and ``"corrcoef"`` scoring.
-The fitted coefficients, patterns, delays, predictions, and score arrays use
-the input backend and device. The estimator's ``array_api_support`` tag follows
-the configured base estimator; its supported solvers and other restrictions
-still apply.
-
-The default :class:`mne.decoding.TimeDelayingRidge`, including the ``None`` and
-numeric ``estimator`` shortcuts, requires NumPy inputs. The separate
-``n_jobs="cuda"`` option for that estimator is not Array API dispatch.
 
 Example
 -------
@@ -68,27 +47,25 @@ PyTorch tensors. It requires no downloaded data:
         predicted = rf.predict(X[70:])
         scores = rf.score(X[70:], y[70:])
 
-Use arrays on the desired device when fitting and predicting. GPU execution
-also requires that the backend, solver, and hardware support the necessary
-operations; CPU tests alone do not establish GPU compatibility or speedups.
-An Array API step in the Ubuntu pip CI job exercises PyTorch CPU and the strict
-reference implementation with the current scikit-learn version. Strict
-multi-output tests require scikit-learn 1.9 or newer because older Ridge
-implementations have restrictions on these inputs.
+To use a GPU, create your input tensors on that device. The backend, solver,
+hardware, and chosen dtype must support the required operations.
 
 Limitations
 -----------
 
 - Use matching backend/device inputs throughout the workflow. Prediction
   rejects inputs on a different backend or device from the fitted model.
+  Multi-output ``array-api-strict`` inputs require scikit-learn 1.9 or newer.
+- The default :class:`mne.decoding.TimeDelayingRidge`, including ``None`` and
+  numeric ``estimator`` shortcuts, requires NumPy. Its ``n_jobs="cuda"``
+  option is separate from Array API support.
 - Arrays must be mutable: delay construction uses indexed assignment.
 - Use float32 or float64 features with ``Ridge(solver="svd")``. Integer tensor
   features are converted to float64. During fitting, tensor targets are cast
   to the feature dtype; scoring retains target precision. The legacy NumPy
   delay buffer promotes float32 features to float64 and is unchanged.
-- ``score`` returns one value per output, as in the NumPy API, not the scalar
-  expected by some generic scikit-learn checks. Correlation is NaN for
-  constant or non-finite columns; complex-valued targets are unsupported.
+- ``score`` returns one value per output, as in the NumPy API. Correlation is
+  NaN for constant or non-finite columns; complex-valued targets are unsupported.
 - The explicit delayed design uses memory proportional to samples, features,
   and delays, plus the solver's workspace. It is not the FFT-based
   ``TimeDelayingRidge`` algorithm; make sure the design fits in device memory.

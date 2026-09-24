@@ -431,6 +431,7 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             X = xp.asarray(X, dtype=xp.float64)
         if y is not None:
             dtype = X.dtype if xp is not np and not predict else None
+            # sklearn's mixed-input checks also pass targets from other backends.
             if hasattr(y, "__dlpack__") and _get_array_namespace(y)[0] not in (np, xp):
                 y = xp.from_dlpack(y)
             y = xp.asarray(y, dtype=dtype, device=device)
@@ -619,24 +620,24 @@ def _corr_score(y_true, y, multioutput=None):
         ]
     )
     values = xp.stack([xp.asarray(v, dtype=dtype) for v in (y_true, y)])
-    constant = xp.any(xp.all(values == values[:, :1, :], axis=1), axis=0)
-    if xp.any(constant):
+    if xp.any(xp.all(values == values[:, :1, :], axis=1)):
         warn(
             "An input array is constant; the correlation coefficient is not defined.",
             ConstantInputWarning,
         )
-    if y.shape[0] == 2:
-        result = xp.prod(xp.sign(values[:, 1, :] - values[:, 0, :]), axis=0)
-        finite = xp.all(xp.isfinite(values), axis=(0, 1))
-        return xp.where(constant | ~finite, xp.nan, result)
-    values = values - xp.mean(values, axis=1, keepdims=True)
-    # Scale before the norm to avoid squaring very large/small values.
+    values = xp.where(xp.isfinite(values), values, xp.nan)
+    # Shift before scaling to preserve small differences. The range midpoint
+    # bounds the differences without overflowing, even near the dtype limits.
+    values = values - (
+        xp.max(values, axis=1, keepdims=True) / 2
+        + xp.min(values, axis=1, keepdims=True) / 2
+    )
     scale = xp.max(xp.abs(values), axis=1, keepdims=True)
-    values = values / xp.where(scale == 0, 1, scale)
+    values = values / xp.where(scale == 0, xp.nan, scale)
+    values = values - xp.mean(values, axis=1, keepdims=True)
     norm = xp.linalg.vector_norm(values, axis=1, keepdims=True)
-    values = values / xp.where(norm == 0, 1, norm)
-    result = xp.clip(xp.sum(values[0, ...] * values[1, ...], axis=0), -1, 1)
-    return xp.where(constant, xp.nan, result)
+    values = values / xp.where(norm == 0, xp.nan, norm)
+    return xp.clip(xp.sum(values[0, ...] * values[1, ...], axis=0), -1, 1)
 
 
 def _r2_score(y_true, y, multioutput=None):
