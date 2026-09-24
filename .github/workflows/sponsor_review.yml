@@ -23,48 +23,7 @@ jobs:
       - name: Prepare issue body
         env:
           ISSUE_BODY: ${{ runner.temp }}/sponsor-review.md
-        run: |
-          uv run --no-project --with pyyaml python - "$ISSUE_BODY" <<'PYTHON'
-          import os
-          import sys
-          from pathlib import Path
-
-          import yaml
-
-          sponsors = yaml.safe_load(Path("doc/_static/sponsors.yml").read_text())
-          current = [name for name in sponsors["current"] if not name.endswith("_dk")]
-          categories = {
-              "Sponsors": sponsors["sponsors"],
-              "Supporting institutions": sponsors["partner_institutions"],
-          }
-          base_url = f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}"
-          source_url = f"{base_url}/blob/{os.environ['GITHUB_SHA']}/doc/_static/sponsors.yml"
-          run_url = f"{base_url}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-
-          with Path(sys.argv[1]).open("w") as file:
-              file.write(
-                  "Please check that the following current sponsors and supporting institutions\n"
-                  "remain accurate. They are rendered on the\n"
-                  "[homepage](https://mne.tools/dev/) and\n"
-                  "[Credits page](https://mne.tools/dev/credits/sponsors.html).\n\n"
-                  "Update the website listings manually if needed; this workflow makes no changes.\n"
-                  "The checklist is generated from\n"
-                  f"[`doc/_static/sponsors.yml`]({source_url}).\n"
-              )
-
-              for heading, entries in categories.items():
-                  file.write(f"\n## {heading}\n\n")
-                  for name in current:
-                      if name not in entries:
-                          continue
-                      entry = entries[name]
-                      title = entry["title"]
-                      if "url" in entry:
-                          title = f"[{title}]({entry['url']})"
-                      file.write(f"- [ ] {title}\n")
-
-              file.write(f"\nCreated by [this GitHub Actions run]({run_url}).\n")
-          PYTHON
+        run: uv run --no-project --with pyyaml python tools/dev/generate_sponsor_review.py "$ISSUE_BODY"
       - name: Create review issue
         env:
           GH_TOKEN: ${{ github.token }}
