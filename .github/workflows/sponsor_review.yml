@@ -1,0 +1,71 @@
+name: Sponsor review
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '17 6 1 2,6,10 *'  # 06:17 UTC on 1 February, June, and October
+  workflow_dispatch:
+
+jobs:
+  create_issue:
+    name: Create review issue
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+      - name: Prepare issue body
+        env:
+          ISSUE_BODY: ${{ runner.temp }}/sponsor-review.md
+        run: |
+          uv run --no-project --with pyyaml python - "$ISSUE_BODY" <<'PYTHON'
+          import os
+          import sys
+          from pathlib import Path
+
+          import yaml
+
+          sponsors = yaml.safe_load(Path("doc/_static/sponsors.yml").read_text())
+          current = [name for name in sponsors["current"] if not name.endswith("_dk")]
+          categories = {
+              "Sponsors": sponsors["sponsors"],
+              "Supporting institutions": sponsors["partner_institutions"],
+          }
+          base_url = f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}"
+          source_url = f"{base_url}/blob/{os.environ['GITHUB_SHA']}/doc/_static/sponsors.yml"
+          run_url = f"{base_url}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+
+          with Path(sys.argv[1]).open("w") as file:
+              file.write(
+                  "Please check that the following current sponsors and supporting institutions\n"
+                  "remain accurate. They are rendered on the\n"
+                  "[homepage](https://mne.tools/dev/) and\n"
+                  "[Credits page](https://mne.tools/dev/credits/sponsors.html).\n\n"
+                  "Update the website listings manually if needed; this workflow makes no changes.\n"
+                  "The checklist is generated from\n"
+                  f"[`doc/_static/sponsors.yml`]({source_url}).\n"
+              )
+
+              for heading, entries in categories.items():
+                  file.write(f"\n## {heading}\n\n")
+                  for name in current:
+                      if name not in entries:
+                          continue
+                      entry = entries[name]
+                      title = entry["title"]
+                      if "url" in entry:
+                          title = f"[{title}]({entry['url']})"
+                      file.write(f"- [ ] {title}\n")
+
+              file.write(f"\nCreated by [this GitHub Actions run]({run_url}).\n")
+          PYTHON
+      - name: Create review issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Review current sponsors and supporting institutions ($(date -u +%Y-%m))"
+          gh issue create --title "$title" --body-file "$RUNNER_TEMP/sponsor-review.md"
