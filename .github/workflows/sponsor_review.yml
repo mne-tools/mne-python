@@ -1,0 +1,32 @@
+name: Sponsor review
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '17 6 1 2,6,10 *'  # 06:17 UTC on 1 February, June, and October
+  workflow_dispatch:
+
+jobs:
+  create_issue:
+    name: Create review issue
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          version: ">=0.9"
+          activate-environment: true
+      - name: Prepare issue body
+        env:
+          ISSUE_BODY: ${{ runner.temp }}/sponsor-review.md
+        run: uv run --no-project --with pyyaml python tools/dev/generate_sponsor_review.py "$ISSUE_BODY"
+      - name: Create review issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Review current sponsors and supporting institutions ($(date -u +%Y-%m))"
+          gh issue create --title "$title" --body-file "$RUNNER_TEMP/sponsor-review.md"
