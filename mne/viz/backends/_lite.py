@@ -73,10 +73,31 @@ requestAnimationFrame(function () { requestAnimationFrame(function () {
     other.style.pointerEvents = other === me ? "auto" : "none";
     other.closest(".jupyter-widgets").style.pointerEvents = "none";  // its widget
   });
+  box.querySelector(".mne-lite-labels").style.pointerEvents = "none";
   box.querySelector(".mne-lite-painted").click();
+  // from now on, apply the point-data updates the kernel sends instead of a
+  // new page (pyvista-js >= 0.17), and report each one the same way
+  var updates = box.querySelector(".mne-lite-update");
+  if (!updates || !window.pvjsApplyUpdate) return;
+  new MutationObserver(function () {
+    var node = updates.querySelector("[data-n]");
+    if (!node || node.dataset.applied || me.style.opacity !== "1") return;
+    node.dataset.applied = "1";
+    var scene = Object.keys(window.__pvjs)[0];
+    JSON.parse(node.textContent).forEach(function (update) {
+      window.pvjsApplyUpdate(scene, update);
+    });
+    box.querySelector(".mne-lite-painted").click();
+  }).observe(updates, {childList: true, subtree: true});
 }); });
 </script>
 """
+# 2D text as a DOM overlay rather than in the page: a time label that changes
+# every step must not cost a new page (bottom-left origin, like vtk.js)
+_LITE_TEXT_HTML = (
+    '<span style="position: absolute; left: {x}%; bottom: {y}%; font: {size}px '
+    'serif; color: rgb({r}, {g}, {b}); white-space: nowrap">{text}</span>'
+)
 # Dims the frames with a spinner from a redraw request until the page paints
 _LITE_BUSY_HTML = """<style>
 @keyframes mne-lite-spin { to { transform: rotate(360deg); } }
@@ -235,11 +256,14 @@ class _LitePolyData(pv.PolyData):
     vtk.js only uses an array as colors directly when it is uint8.
     """
 
+    _lite_version = 0  # bumped by each recoloring, so a redraw can send just that
+
     def __setitem__(self, name, array):
         array = np.asarray(array)
         if array.ndim == 2 and array.shape[1] in (3, 4) and array.dtype != np.uint8:
             array = np.round(np.clip(array, 0, 1) * 255).astype(np.uint8)
         super().__setitem__(name, array)
+        self._lite_version += 1
 
 
 class _LiteFigure(Figure3D):
@@ -280,6 +304,7 @@ class _LiteRenderer(_AbstractRenderer):
         self._size = (size, size) if np.isscalar(size) else tuple(size)
         self._close_callbacks = {False: [], True: []}  # keyed by ``after``
         self._viewer = None  # the widget the scene is drawn into, once shown
+        self._texts = []  # 2D text the GUI renderer draws over the frames
         if isinstance(fig, _LiteFigure):  # plot_alignment(fig=...) composites into it
             self._figure = fig
             return
@@ -750,16 +775,76 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         self._painted = Button(layout=Layout(display="none"))  # the page's ack
         self._painted.add_class("mne-lite-painted")
         self._painted.on_click(self._on_painted)
+        self._updates = HTML(layout=Layout(display="none"))  # point data, to apply
+        self._updates.add_class("mne-lite-update")
+        self._labels = HTML(layout=Layout(grid_area="view"))  # 2D text, on top
+        self._labels.add_class("mne-lite-labels")
         self._viewer = GridBox(
-            [*self._pages, self._busy, self._painted],
+            [*self._pages, self._labels, self._busy, self._painted, self._updates],
             layout=Layout(grid_template_areas='"view"'),
         )
         self._dirty = False  # a change since the last draw
         self._in_flight = None  # the timeout handle while a page is on its way
-        self._n_drawn = 0
-        self._last_page = None
+        self._n_drawn = self._n_updates = 0
+        self._page_key = None  # what the page on screen was drawn from
         self._draw_scene()
         return self._viewer
+
+    def text2d(self, x_window, y_window, text, size=14, color="white", **kwargs):
+        actor = _LiteText(str(text), position=(float(x_window), float(y_window)))
+        actor.prop.font_size = 14 if size is None else int(size)
+        actor.prop.color = _rgb(color)
+        self._texts.append(actor)
+        return actor
+
+    def _draw_labels(self):
+        spans = [
+            _LITE_TEXT_HTML.format(
+                x=100 * actor.position[0],
+                y=100 * actor.position[1],
+                size=actor.prop.font_size,
+                r=int(255 * actor.prop.color[0]),
+                g=int(255 * actor.prop.color[1]),
+                b=int(255 * actor.prop.color[2]),
+                text=html.escape(actor.input),
+            )
+            for actor in self._texts
+        ]
+        self._labels.value = (
+            f'<div style="position: absolute; inset: 0">{"".join(spans)}</div>'
+        )
+
+    def _scene_key(self):
+        """Return what a page depends on besides point data, plus mesh versions."""
+        renderer = self.plotter._renderer
+        key = tuple(
+            (id(info["mesh"]), tuple(info.get("color") or ()), info.get("opacity"))
+            for info in renderer.actors
+        ) + (tuple(renderer._view_vector or ()), tuple(self.plotter.background_color))
+        versions = tuple(
+            getattr(info["mesh"], "_lite_version", 0) for info in renderer.actors
+        )
+        return key, versions
+
+    def _send_updates(self, changed):
+        """Send the recolored meshes' point data to the page shown; True if possible."""
+        renderer = self.plotter._renderer
+        if not hasattr(renderer, "build_update_data"):  # pyvista-js < 0.17
+            return False
+        from pyvista_js.rendering import scene_to_json
+
+        updates = [
+            renderer.build_update_data(
+                idx, point_data=dict(renderer.actors[idx]["mesh"].point_data.items())
+            )
+            for idx in changed
+        ]
+        self._n_updates += 1
+        self._updates.value = (
+            f'<div hidden data-n="{self._n_updates}">'
+            f"{html.escape(scene_to_json(updates))}</div>"
+        )
+        return True
 
     def _loop(self):
         """Return the kernel's event loop, or None outside a kernel."""
@@ -792,12 +877,24 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         # loads and the scene data it embeds stay out of the notebook document
         width, height = self._size
         self._dirty = False
+        self._draw_labels()
+        key, versions = self._scene_key()
+        if self._page_key is not None and self._page_key[0] == key:
+            changed = [i for i, v in enumerate(versions) if v != self._page_key[1][i]]
+            if not changed:  # Brain asks again for the same time
+                if self._in_flight is None:
+                    self._busy.layout.visibility = "hidden"
+                return
+            if self._send_updates(changed):
+                self._page_key = (key, versions)
+                loop = self._loop()
+                if loop is not None:
+                    self._in_flight = loop.call_later(
+                        _LITE_ACK_TIMEOUT, self._on_painted
+                    )
+                return
+        self._page_key = (key, versions)
         page = self.plotter.generate_standalone_html()
-        if page == self._last_page:  # Brain asks again for the same time
-            if self._in_flight is None:
-                self._busy.layout.visibility = "hidden"
-            return
-        self._last_page = page
         self._n_drawn += 1
         page = page.replace("<head>", "<head>" + _LITE_SIZE_CSS, 1)
         swap = _LITE_SWAP_JS.replace("SEQ", str(self._n_drawn))
