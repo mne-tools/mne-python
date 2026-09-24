@@ -320,12 +320,15 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order="F")
             else:
                 X = X - xp.mean(X, axis=0, keepdims=True)
-                cov_ = (X.T @ X) / (n_total_samples - 1)  # equivalent to np.cov(X.T)
+                # np.cov centers again, removing the residual from rounding.
+                X = X - xp.mean(X, axis=0, keepdims=True)
+                cov_ = (X.T @ X) / (n_total_samples - 1)
             del X
 
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = xp.asarray(y, dtype=cov_.dtype)
+                y = y - xp.mean(y, axis=0, keepdims=True)
                 y = y - xp.mean(y, axis=0, keepdims=True)
                 cov_y = (y.T @ y) / (n_total_samples - 1)
                 inv_Y = xp.linalg.pinv(cov_y, rtol=None)
@@ -532,7 +535,7 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
         mean_value = xp.mean(X, axis=0)
         if X.ndim == 3:
             mean_value = xp.mean(mean_value, axis=0)
-        delayed[...] = mean_value[:, None]
+        delayed[...] = mean_value[:, np.newaxis]
     for ii, ix_delay in enumerate(delays):
         if ix_delay < 0:
             rows = slice(None, ix_delay)
@@ -597,11 +600,8 @@ def _corr_score(y_true, y, multioutput=None):
     from scipy.stats import ConstantInputWarning, pearsonr
 
     assert multioutput == "raw_values"
-    for this_y in (y_true, y):
-        if this_y.ndim != 2:
-            raise ValueError(
-                f"inputs must be shape (samples, outputs), got {this_y.shape}"
-            )
+    if y_true.ndim != 2 or y.ndim != 2:
+        raise ValueError("inputs must be shape (samples, outputs)")
     if isinstance(y_true, np.ndarray) and isinstance(y, np.ndarray):
         return np.array(
             [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
@@ -609,35 +609,27 @@ def _corr_score(y_true, y, multioutput=None):
     if y.shape[0] < 2:
         raise ValueError("Correlation requires at least 2 samples.")
     xp, _ = _get_array_namespace(y)
-    if any(xp.isdtype(values.dtype, "complex floating") for values in (y_true, y)):
-        raise ValueError("Complex data not supported")
     # SciPy's pearsonr also computes p-values, requiring a host transfer for
     # PyTorch. Compute only the statistic here to keep GPU arrays on-device.
-    dtype = xp.result_type(
-        *[
-            v.dtype if xp.isdtype(v.dtype, "real floating") else xp.float64
-            for v in (y_true, y)
-        ]
-    )
-    values = xp.stack([xp.asarray(v, dtype=dtype) for v in (y_true, y)])
-    if xp.any(xp.all(values == values[:, :1, :], axis=1)):
-        warn(
-            "An input array is constant; the correlation coefficient is not defined.",
-            ConstantInputWarning,
-        )
-    values = xp.where(xp.isfinite(values), values, xp.nan)
-    # Shift before scaling to preserve small differences. The range midpoint
-    # bounds the differences without overflowing, even near the dtype limits.
-    values = values - (
-        xp.max(values, axis=1, keepdims=True) / 2
-        + xp.min(values, axis=1, keepdims=True) / 2
-    )
-    scale = xp.max(xp.abs(values), axis=1, keepdims=True)
-    values = values / xp.where(scale == 0, xp.nan, scale)
-    values = values - xp.mean(values, axis=1, keepdims=True)
-    norm = xp.linalg.vector_norm(values, axis=1, keepdims=True)
-    values = values / xp.where(norm == 0, xp.nan, norm)
-    return xp.clip(xp.sum(values[0, ...] * values[1, ...], axis=0), -1, 1)
+    normalized = []
+    for values in (y_true, y):
+        if xp.isdtype(values.dtype, "complex floating"):
+            raise ValueError("Complex data not supported")
+        if not xp.isdtype(values.dtype, "real floating"):
+            values = xp.asarray(values, dtype=xp.float64)
+        constant = xp.all(values == values[:1, :], axis=0)
+        if xp.any(constant):
+            warn(
+                "An input array is constant; correlation is undefined.",
+                ConstantInputWarning,
+            )
+        values = xp.where(xp.isfinite(values) & ~constant, values, xp.nan)
+        # Shift before scaling to retain small variations near the dtype limits.
+        values = values - (xp.max(values, axis=0) / 2 + xp.min(values, axis=0) / 2)
+        values = values / xp.max(xp.abs(values), axis=0)
+        values = values - xp.mean(values, axis=0)
+        normalized.append(values / xp.linalg.vector_norm(values, axis=0))
+    return xp.clip(xp.sum(normalized[0] * normalized[1], axis=0), -1, 1)
 
 
 def _r2_score(y_true, y, multioutput=None):

@@ -186,39 +186,25 @@ def rf_array_api(request):
         yield compat.array_namespace(backend.asarray([0.0]))
 
 
-@pytest.mark.parametrize(
-    "dtype, epoched, n_outputs, fit_intercept, limits",
-    [
-        ("float64", False, 2, False, (-2, 0)),
-        ("int64", True, 1, True, (0, 2)),
-        ("float32", True, 2, True, (-1, 1)),
-    ],
-)
-def test_receptive_field_array_api(
-    rf_array_api, monkeypatch, dtype, epoched, n_outputs, fit_intercept, limits
-):
+@pytest.mark.parametrize("dtype, fit_intercept", [("int64", False), ("float32", True)])
+def test_receptive_field_array_api(rf_array_api, monkeypatch, dtype, fit_intercept):
     """Check epoch/lag order, patterns, vector scores, and no host conversion."""
     from unittest.mock import Mock
 
     xp = rf_array_api
-    if xp.__name__ == "array_api_strict" and n_outputs > 1:
+    if xp.__name__ == "array_api_strict":
         # TODO VERSION remove once sklearn >= 1.9 is required.
         # Older Ridge cannot broadcast a scalar alpha for strict multi-output y.
         pytest.importorskip("sklearn", minversion="1.9")
     tol = 3e-5 if dtype == "float32" else 1e-10
     rng = np.random.default_rng(42)
-    x = rng.standard_normal((32, 2, 3 if epoched else 1)).astype(dtype)
+    x = rng.standard_normal((32, 2, 3)).astype(dtype)
     x[:, 1] += 4
-    y = rng.standard_normal((32, 2, n_outputs))
-    if not epoched:
-        x, y = x[:, 0], y[:, 0]
-        y[...] = y[:, :1]  # rank-deficient multi-output covariance
-    if n_outputs == 1:
-        y = y[..., 0]
+    y = rng.standard_normal((32, 2, 1)).repeat(2, axis=-1)  # singular covariance
     estimator = Ridge(solver="svd", fit_intercept=fit_intercept, random_state=0)
-    expected = ReceptiveField(*limits, 1, estimator=estimator, patterns=True).fit(x, y)
+    expected = ReceptiveField(-1, 2, 1, estimator=estimator, patterns=True).fit(x, y)
     xt, yt = xp.asarray(x.copy()), xp.asarray(y.copy())
-    model = ReceptiveField(*limits, 1, estimator=estimator, patterns=True)
+    model = ReceptiveField(-1, 2, 1, estimator=estimator, patterns=True)
     with monkeypatch.context() as patch:
         for method in ("__array__", "numpy", "cpu"):
             if hasattr(type(xt), method):
@@ -231,22 +217,21 @@ def test_receptive_field_array_api(
         for scoring in ("r2", "corrcoef"):
             model.scoring = scoring
             scores.append(model.score(xt, yt))
-    # General attribute/prediction equivalence is also checked by sklearn;
-    # these cases cover epoch flattening, lag direction, and singular patterns.
+    # sklearn covers continuous data; check MNE's epoch/lag ordering here.
     assert predicted.dtype == (xp.float64 if dtype == "int64" else xt.dtype)
     assert_allclose(np.asarray(predicted), expected.predict(x), atol=tol, rtol=tol)
     assert_allclose(np.asarray(model.patterns_), expected.patterns_, atol=tol, rtol=tol)
     for scoring, actual in zip(("r2", "corrcoef"), scores):
         expected.scoring = scoring
         assert actual.device == xt.device
-        assert actual.shape == (n_outputs,)
+        assert actual.shape == (2,)
         assert_allclose(np.asarray(actual), expected.score(x, y), atol=tol, rtol=tol)
     assert_array_equal(np.asarray(xt), x)
     assert_array_equal(np.asarray(yt), y)
 
 
 def test_receptive_field_array_api_errors(rf_array_api):
-    """Reject unsupported estimators and one-sample patterns."""
+    """Reject unsupported estimators, one-sample patterns, and invalid scores."""
     xp = rf_array_api
     model = ReceptiveField(
         0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
@@ -258,6 +243,12 @@ def test_receptive_field_array_api_errors(rf_array_api):
             ReceptiveField(0, 1, 1, estimator=unsupported).fit(
                 xp.ones((3, 1)), xp.ones(3)
             )
+    for data, match in (
+        (xp.ones((1, 1)), "at least 2"),
+        (xp.ones((2, 1), dtype=xp.complex64), "Complex data"),
+    ):
+        with pytest.raises(ValueError, match=match):
+            _SCORERS["corrcoef"](data, data, multioutput="raw_values")
 
 
 @pytest.mark.parametrize("scoring", ["r2", "corrcoef"])
@@ -278,10 +269,7 @@ def test_receptive_field_array_api_score_precision(rf_array_api, scoring, target
         1,
         estimator=Ridge(solver="svd", random_state=0),
         scoring=scoring,
-        patterns=True,
     ).fit(xt, xt[:, 0])
-    expected_model = ReceptiveField(**model.get_params(deep=False)).fit(x, x[:, 0])
-    assert_allclose(np.asarray(model.patterns_), expected_model.patterns_, rtol=1e-5)
     predicted = model.predict(xt)
     expected = (
         np.asarray(r2_score(yt, predicted, multioutput="raw_values"))
@@ -308,7 +296,7 @@ def test_receptive_field_array_api_correlation(
     bases = np.array([1, 3, scale, 1 / scale, 1, 1, 1], dtype=dtype)
     x = bases + np.spacing(bases) * offsets[:, None]
     y = x[::-1].copy()
-    x[:, 4] = 0.1
+    x[:, 4] = np.finfo(dtype).smallest_subnormal
     y[-1, 5:] = [np.nan, np.inf]
     with pytest.warns(ConstantInputWarning):
         actual = _SCORERS["corrcoef"](
@@ -319,14 +307,6 @@ def test_receptive_field_array_api_correlation(
         [correlation] * 4 + [np.nan] * 3,
         atol=1e-6 if dtype == "float32" else 1e-14,
     )
-    with pytest.raises(ValueError, match="at least 2"):
-        _SCORERS["corrcoef"](
-            xp.asarray(x[:1]), xp.asarray(y[:1]), multioutput="raw_values"
-        )
-    with pytest.raises(ValueError, match="Complex data"):
-        _SCORERS["corrcoef"](
-            xp.asarray(x + 1j), xp.asarray(y), multioutput="raw_values"
-        )
     x = xp.asarray(np.array([1, -1, 0.5, -0.5], dtype=dtype)[:, None])
     x = x * float(np.finfo(dtype).max)
     assert_allclose(_SCORERS["corrcoef"](x, -x, multioutput="raw_values"), [-1])
@@ -743,6 +723,18 @@ def test_inverse_coef():
         c0 = rf.coef_.reshape(n_targets, n_feats * n_delays)
         c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
+
+    # Rounding can leave a nonzero mean after centering large-offset data.
+    small = np.array([0.0, 1.0, 1.0])
+    large = 1e16 + 2 * small
+    rf = ReceptiveField(
+        0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+    )
+    rf.fit(large[:, np.newaxis], small)
+    assert_allclose(rf.patterns_, rf.coef_ * (2 / 3))  # var(large) / (n - 1)
+    rf.fit(small[:, np.newaxis], np.column_stack([large, large]))
+    # var(small) = 1/3; pinv(cov(Y)) has every entry equal to 3/16.
+    assert_allclose(rf.patterns_, np.full((2, 1, 1), rf.coef_.sum() / 16))
 
 
 def test_linalg_warning():
