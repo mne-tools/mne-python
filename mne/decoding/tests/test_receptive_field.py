@@ -699,6 +699,15 @@ def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
 
 def test_inverse_coef():
     """Test inverse coefficients computation."""
+    # With an invertible noiseless mapping, patterns undo the forward mapping.
+    X = np.array([[-2.0, 0], [2, 0], [0, -1], [0, 1]])
+    y = X @ [[1, 2], [3, 4]]
+    for estimator in (0.0, Ridge(alpha=0, solver="svd", random_state=0)):
+        rf = ReceptiveField(0, 0, 1, estimator=estimator, patterns=True).fit(X, y)
+        assert_allclose(rf.coef_[..., 0], [[1, 3], [2, 4]], atol=1e-14)
+        assert_allclose(rf.patterns_[..., 0], [[-2, 1], [1.5, -0.5]], atol=1e-14)
+        assert_allclose(rf.predict(X), y, atol=1e-14)
+
     tmin, tmax = 0.0, 10.0
     n_feats, n_targets, n_samples = 3, 2, 1000
     n_delays = int((tmax - tmin) + 1)

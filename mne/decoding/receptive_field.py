@@ -338,9 +338,9 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
 
             # Inverse coef according to Haufe's method
             # patterns has shape (n_feats * n_delays, n_outputs)
-            coef = xp.reshape(self.coef_, (n_feats * n_delays, n_outputs))
+            coef = xp.reshape(self.coef_, (n_outputs, n_feats * n_delays)).T
             patterns = cov_ @ (coef * inv_Y if n_outputs == 1 else coef @ inv_Y)
-            self.patterns_ = xp.reshape(patterns, tuple(shape))
+            self.patterns_ = xp.reshape(patterns.T, tuple(shape))
 
         return self
 
@@ -590,9 +590,8 @@ def _reshape_for_est(X_del):
     """Convert X_del to a sklearn-compatible shape."""
     xp, _ = _get_array_namespace(X_del)
     n_times, n_epochs, n_feats, n_delays = X_del.shape
-    X_del = xp.reshape(X_del, (n_times, n_epochs, -1))  # concatenate feats
-    X_del = _reshape_fortran(X_del, (n_times * n_epochs, -1))
-    return X_del
+    X_del = xp.permute_dims(X_del, (2, 3, 1, 0))  # features, delays, epochs, times
+    return xp.reshape(X_del, (n_feats * n_delays, n_times * n_epochs)).T
 
 
 # Create a correlation scikit-learn-style scorer
