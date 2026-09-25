@@ -13,6 +13,9 @@ _check_eeglabio_installed()
 import eeglabio.epochs  # noqa: E402
 import eeglabio.raw  # noqa: E402
 
+# MATLAB v5 .mat files cannot hold variables of 2 GB or more
+_V5_MAX_BYTES = 2**31
+
 
 def _export_raw(fname, raw):
     # load data first
@@ -38,13 +41,15 @@ def _export_raw(fname, raw):
         ]
     else:
         annotations = None
+    data = raw.get_data(picks=ch_names)
     eeglabio.raw.export_set(
         fname,
-        data=raw.get_data(picks=ch_names),
+        data=data,
         sfreq=raw.info["sfreq"],
         ch_names=ch_names,
         ch_locs=cart_coords,
         annotations=annotations,
+        **_fmt_kwargs(data),
     )
 
 
@@ -80,9 +85,11 @@ def _export_epochs(fname, epochs):
             # eeglabio 0.1.2-0.1.3 use these as 1-based EEGLAB epoch numbers
             kwargs["epoch_indices"] = np.arange(1, len(epochs) + 1)
 
+    data = epochs.get_data(picks=ch_names)
+    kwargs.update(_fmt_kwargs(data))
     eeglabio.epochs.export_set(
         fname,
-        data=epochs.get_data(picks=ch_names),
+        data=data,
         sfreq=epochs.info["sfreq"],
         events=events,
         tmin=epochs.tmin,
@@ -93,6 +100,13 @@ def _export_epochs(fname, epochs):
         annotations=annot,
         **kwargs,
     )
+
+
+def _fmt_kwargs(data):
+    # eeglabio exports single precision by default
+    if data.size * 4 >= _V5_MAX_BYTES and check_version("eeglabio", "0.1.4"):
+        return dict(fmt="v7.3")
+    return dict()
 
 
 def _get_als_coords_from_chs(chs, drop_chs=None):

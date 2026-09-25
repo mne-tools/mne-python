@@ -1596,6 +1596,8 @@ EDF standard).
 docdict["export_eeglab_note"] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+Data of 2 GB or more are written in MATLAB's HDF5-based v7.3 format, which
+requires h5py.
 """
 
 _export_fmt_params_base = """\

@@ -2,10 +2,13 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import warnings
+from functools import partial
+
 import numpy as np
 
 from ...fixes import _whosmat
-from ...utils import _import_pymatreader_funcs, warn
+from ...utils import _import_pymatreader_funcs, check_version, warn
 
 
 def _todict_from_np_struct(data):  # taken from pymatreader.utils
@@ -85,11 +88,21 @@ def _scipy_reader(file_name, variable_names=None, uint16_codec=None):
     return _check_for_scipy_mat_struct(mat_data)
 
 
+def _read_mat_ignore_single(read_mat, fname, variable_names=None, uint16_codec=None):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Complex objects", UserWarning, "pymatreader")
+        return read_mat(fname, variable_names=variable_names, uint16_codec=uint16_codec)
+
+
 def _readmat(fname, uint16_codec=None, *, preload=False):
     try:
         read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
         read_mat = _scipy_reader
+    else:
+        # TODO VERSION: pymatreader < 1.3.2 warns about v7.3 "single" arrays
+        if not check_version("pymatreader", "1.3.2"):
+            read_mat = partial(_read_mat_ignore_single, read_mat)
 
     # First handle the preload=False case
     if not preload:
