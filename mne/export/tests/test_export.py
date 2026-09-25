@@ -15,7 +15,6 @@ from numpy.testing import assert_allclose, assert_array_almost_equal, assert_arr
 from mne import (
     Annotations,
     Epochs,
-    EpochsArray,
     create_info,
     read_epochs_eeglab,
     read_evokeds,
@@ -587,8 +586,9 @@ def test_export_epochs_eeglab(tmp_path, preload):
     eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
     raw.load_data()
-    events = events[:5]  # a handful of epochs is plenty, and the file is written 4x
+    events = events[:6]  # a handful of epochs is plenty, and the file is written 4x
     epochs = Epochs(raw, events, preload=preload)
+    epochs.drop([1, 4])  # keeps one epoch of each type
     temp_fname = tmp_path / "test.set"
     # TODO: eeglabio 0.2 warns about invalid events
     if _compare_version(eeglabio.__version__, "==", "0.0.2-1"):
@@ -617,9 +617,13 @@ def test_export_epochs_eeglab(tmp_path, preload):
     with ctx():
         epochs.export(temp_fname, overwrite=True)
 
-    # test pathlib.Path files
+    # test pathlib.Path files, and time zero at the last sample
+    epochs.crop(tmax=0)
     with ctx():
         epochs.export(Path(temp_fname), overwrite=True)
+    epochs_read = read_epochs_eeglab(temp_fname, verbose="error")
+    event_samples = np.arange(1, len(epochs) + 1) * len(epochs.times) - 1
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
 
     # test warning with unapplied projectors
     epochs = Epochs(raw, events, preload=preload, proj=False)
@@ -627,43 +631,6 @@ def test_export_epochs_eeglab(tmp_path, preload):
         RuntimeWarning, match="Epochs instance has unapplied projectors."
     ):
         epochs.export(Path(temp_fname), overwrite=True)
-
-
-def test_export_epochs_eeglab_after_drop(tmp_path):
-    """Test EEGLAB event mapping after dropping epochs with tmax=0."""
-    pytest.importorskip("eeglabio", minversion="0.1.2")
-    sfreq = 100.0
-    n_epochs, n_times = 5, 11
-    info = create_info(["Cz"], sfreq, "eeg")
-    data = np.zeros((n_epochs, 1, n_times))
-    events = np.column_stack(
-        (
-            np.arange(1, n_epochs + 1) * 100,
-            np.zeros(n_epochs, int),
-            [1, 2, 3, 4, 5],
-        )
-    )
-    event_id = {f"event-{code}": code for code in events[:, 2]}
-    epochs = EpochsArray(
-        data, info, events=events, event_id=event_id, tmin=-0.1, verbose=False
-    )
-    assert epochs.tmax == 0
-    epochs.drop([1, 3])
-    assert_array_equal(epochs.selection, [0, 2, 4])
-
-    fname = tmp_path / "dropped.set"
-    epochs.export(fname)
-    epochs_read = read_epochs_eeglab(fname, verbose="error")
-
-    event_samples = (
-        np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
-    )
-    assert_array_equal(event_samples, epochs_read.events[:, 0])
-    kept_codes = set(epochs.events[:, 2])
-    kept_names = {name for name, code in epochs.event_id.items() if code in kept_codes}
-    assert set(epochs_read.event_id) == kept_names
-    assert_allclose(epochs.times, epochs_read.times)
-    assert_allclose(epochs.get_data(), epochs_read.get_data())
 
 
 @testing.requires_testing_data

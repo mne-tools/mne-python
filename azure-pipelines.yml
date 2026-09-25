@@ -247,12 +247,6 @@ stages:
             displayName: Install dependencies
           - script: uv pip install --only-binary=":all:" --no-binary=mne -e .
             displayName: Install mne
-          # TODO VERSION: remove this draft-only pin once an eeglabio release includes
-          # https://github.com/jackz314/eeglabio/pull/26.
-          - script: >-
-              python -m pip install --no-deps --force-reinstall
-              "eeglabio @ https://github.com/jackz314/eeglabio/archive/710ff1fbf29b9011419f0c5fc951c84813ef44d6.zip"
-            displayName: Install temporary eeglabio epoch-event fix
           - script: mne sys_info -pd
             displayName: Print config
           - script: python -c "import numpy; numpy.show_config()"
