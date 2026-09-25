@@ -652,6 +652,95 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     brain.close()
 
 
+@testing.requires_testing_data
+def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
+    """Test flat surfaces: switching to and from them, and the 2D-only GUI."""
+    # "sample" has no patch files, but fsaverage ships the ones a flat map needs
+    kwargs = dict(hemi="lh", subjects_dir=subjects_dir, size=300)
+    with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
+        Brain("fsaverage", surf="flat", silhouette=True, **kwargs)
+
+    # start from a 3D surface: switching *to* flat is what has to reframe the
+    # camera and retriangulate, so the checks below have to run after a switch
+    brain = Brain("fsaverage", surf="inflated", **kwargs)
+    n_vertices = len(brain.geo["lh"].coords)
+    brain.add_data(
+        np.zeros((n_vertices, 3)),
+        vertices=np.arange(n_vertices),
+        hemi="lh",
+        colormap="hot",
+        fmin=0,
+        fmax=1,
+        time=[0, 1, 2],
+        smoothing_steps=1,
+    )
+    brain.setup_time_viewer(show_traces="label")
+    mesh = brain.layered_meshes["lh"]
+    n_faces_3d = mesh._polydata.n_cells
+    coords_3d = brain.geo["lh"].coords.copy()
+
+    # a flat patch drops the triangles outside it, but keeps every vertex, so
+    # the overlays stay valid
+    brain.set_surf("flat")
+    assert brain._surf == "flat"
+    assert mesh._polydata.n_points == n_vertices
+    assert mesh._polydata.n_cells < n_faces_3d
+    assert_allclose(np.ptp(brain.geo["lh"].coords[:, 2]), 0, atol=1e-6)  # planar
+    assert mesh._vertices is brain.geo["lh"].coords
+    assert brain.views == ["flat"]
+    n_faces_flat = mesh._polydata.n_cells
+
+    # NB the camera reframing that switching to flat does (see
+    # Brain._fit_flat_camera) is deliberately not asserted here: the offscreen
+    # camera never leaves its default state under this fixture, so any check of
+    # it passes whether or not the reframing happened
+
+    # a flat map is 2D, so it gets the rubber-band style rather than a 3D one
+    assert brain.interaction == "rubber_band_2d"
+    with pytest.warns(RuntimeWarning, match='ignored for surf="flat"'):
+        brain.interaction = "trackball"
+    assert brain.interaction == "rubber_band_2d"
+
+    # every views dict holds all the 3D view names, so a flat map could
+    # otherwise be rotated edge-on
+    camera = brain._renderer.get_camera()
+    with pytest.warns(RuntimeWarning, match='view="lateral" is ignored'):
+        brain.show_view("lateral")
+    assert_allclose(brain._renderer.get_camera()[2], camera[2], atol=1e-6)  # azimuth
+    brain.show_view("flat")  # the one valid view still works
+    brain.reset_view()
+
+    # controls that cannot act on a flat patch are greyed out, not dropped,
+    # because the surface can be switched back and forth live
+    assert not brain.widgets["orientation"].is_enabled()
+    assert not brain.widgets["silhouette"].is_enabled()
+    with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
+        brain.set_silhouette_line_width(3.0)
+
+    # picking a parcel must not compute adjacency from the patch-restricted
+    # triangles, which are only a subset of the full surface
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=10000))
+    assert len(brain._picked_patches["lh"]) == 1
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=10000))
+    assert len(brain._picked_patches["lh"]) == 0
+
+    # switching back to 3D restores the triangulation, geometry and controls
+    # (it warns because the annotation picked above does not move with it)
+    with pytest.warns(RuntimeWarning, match="Foci and label"):
+        brain.set_surf("inflated")
+    assert mesh._polydata.n_cells == n_faces_3d
+    assert mesh._polydata.n_cells > n_faces_flat
+    assert_allclose(brain.geo["lh"].coords, coords_3d, atol=0)
+    assert np.ptp(coords_3d[:, 2]) > 1  # was not planar to begin with
+    assert brain.views == ["lateral"]
+    assert brain.interaction == "trackball"
+    assert brain.widgets["orientation"].is_enabled()
+    assert brain.widgets["silhouette"].is_enabled()
+    brain.show_view("medial")  # no longer ignored
+
+    brain.close()
+
+
 def test_add_annotation(renderer_interactive_pyvistaqt, brain_gc, qtbot):
     """Test add_annotation."""
     annots = [

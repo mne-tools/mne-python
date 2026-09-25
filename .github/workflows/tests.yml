@@ -63,7 +63,7 @@ jobs:
             kind: pip
           - os: macos-15-intel  # Intel
             python: '3.13'
-            kind: pip
+            kind: pixi
           - os: ubuntu-latest
             python: '3.12'
             kind: minimal
@@ -106,12 +106,29 @@ jobs:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
         id: setup-python
+      # Python (if pixi)
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          manifest-path: tools/ci/macos-intel/pixi.toml
+          # https://github.com/prefix-dev/setup-pixi/issues/139
+          activate-environment: true
+          frozen: true
+        if: matrix.kind == 'pixi'
       # Workaround macOS path behavior with login shells (which puts system Python first).
       # \$PATH must stay escaped so that it is expanded when each login shell sources
       # ~/.bash_profile: writing the expanded value would freeze PATH as of this step and
       # silently discard anything a later step adds to $GITHUB_PATH.
-      - run: echo "export PATH=\"$(dirname ${{ steps.setup-python.outputs.python-path }}):\$PATH\"" | tee -a ~/.bash_profile  # zizmor: ignore[template-injection]
-        if: startswith(matrix.kind, 'pip') && startswith(matrix.os, 'macos')
+      - run: |  # zizmor: ignore[template-injection]
+          if [[ $MNE_CI_KIND == "pip" ]]; then
+            prepend_path="$(dirname ${{ steps.setup-python.outputs.python-path }})"
+          elif [[ $MNE_CI_KIND == "pixi" ]]; then
+            prepend_path="${{ github.workspace }}/tools/ci/macos-intel/.pixi/envs/default/bin"
+          else
+            echo "Unsupported CI Kind: $MNE_CI_KIND"
+            exit 1
+          fi
+          echo "export PATH=\"$prepend_path:\$PATH\"" | tee -a ~/.bash_profile
+        if: (startswith(matrix.kind, 'pip') || matrix.kind == 'pixi') && startswith(matrix.os, 'macos')
       # Python (if conda)
       - uses: mamba-org/setup-micromamba@v3
         with:
@@ -124,7 +141,7 @@ jobs:
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -135,6 +152,7 @@ jobs:
       - run: bash ./tools/github_actions_verify_python.sh "${{ matrix.python }}"
       - run: bash ./tools/github_actions_dependencies.sh
         timeout-minutes: 10
+        if: matrix.kind != 'pixi'
       - name: Check 'old' CI environment
         uses: mne-tools/mne-tools/actions/check-environment@main
         with:
@@ -177,7 +195,7 @@ jobs:
         # nothing to cache, and an empty directory would just poison the key
         if: env.NUMBA_VERSION != 'none'
       - run: bash ./tools/github_actions_test.sh  # for some reason on macOS we need to run "bash X" in order for a failed test run to show up
-      - uses: codecov/codecov-action@v7.0.0
+      - uses: codecov/codecov-action@v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         # COV_ARGS is empty on jobs where we don't measure coverage (Python < 3.14)

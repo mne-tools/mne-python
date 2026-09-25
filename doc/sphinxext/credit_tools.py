@@ -521,9 +521,11 @@ def generate_credit_rst(
         logger.info(f"{pr.ljust(5)} @ {commits[(name, pr)]:5d} by {name}")
 
     logger.info("\nIgnored commits:")
-    for pr, files in ignores.items():  # should have found one of each
+    # should have found one of each, except PRs whose JSON isn't fetched yet
+    last_pr = max(int(pr) for _, pr in commits)
+    for pr, files in ignores.items():
         logger.info(f"ignored {len(files):3d} files for {pr}")
-        assert len(files) >= 1, (pr, files)
+        assert len(files) >= 1 or int(pr) > last_pr, (pr, files)
 
     mod_stats, link_overrides, mod_file_map = _aggregate_module_stats(stats)
     _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls)
