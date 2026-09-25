@@ -38,6 +38,10 @@ import mne
 from mne.decoding import ReceptiveField
 
 # %%
+# For tensor inputs with a compatible estimator, see :ref:`array_api`.
+# The NumPy workflow below does not require Array API dispatch.
+
+# %%
 # Load the data from the publication
 # ----------------------------------
 #
