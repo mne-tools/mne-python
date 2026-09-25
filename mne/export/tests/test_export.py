@@ -586,8 +586,9 @@ def test_export_epochs_eeglab(tmp_path, preload):
     eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
     raw.load_data()
-    events = events[:5]  # a handful of epochs is plenty, and the file is written 4x
+    events = events[:6]  # a handful of epochs is plenty, and the file is written 4x
     epochs = Epochs(raw, events, preload=preload)
+    epochs.drop([1, 4])  # keeps one epoch of each type
     temp_fname = tmp_path / "test.set"
     # TODO: eeglabio 0.2 warns about invalid events
     if _compare_version(eeglabio.__version__, "==", "0.0.2-1"):
@@ -602,7 +603,10 @@ def test_export_epochs_eeglab(tmp_path, preload):
     cart_coords = np.array([d["loc"][:3] for d in epochs.info["chs"]])  # just xyz
     cart_coords_read = np.array([d["loc"][:3] for d in epochs_read.info["chs"]])
     assert_allclose(cart_coords, cart_coords_read)
-    assert_array_equal(epochs.events[:, 0], epochs_read.events[:, 0])  # latency
+    event_samples = (
+        np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
+    )
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
     assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
     assert_allclose(epochs.times, epochs_read.times)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
@@ -613,9 +617,13 @@ def test_export_epochs_eeglab(tmp_path, preload):
     with ctx():
         epochs.export(temp_fname, overwrite=True)
 
-    # test pathlib.Path files
+    # test pathlib.Path files, and time zero at the last sample
+    epochs.crop(tmax=0)
     with ctx():
         epochs.export(Path(temp_fname), overwrite=True)
+    epochs_read = read_epochs_eeglab(temp_fname, verbose="error")
+    event_samples = np.arange(1, len(epochs) + 1) * len(epochs.times) - 1
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
 
     # test warning with unapplied projectors
     epochs = Epochs(raw, events, preload=preload, proj=False)

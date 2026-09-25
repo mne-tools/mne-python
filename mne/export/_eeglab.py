@@ -7,7 +7,7 @@ from inspect import getfullargspec
 import numpy as np
 
 from ..annotations import _sync_onset
-from ..utils import _check_eeglabio_installed
+from ..utils import _check_eeglabio_installed, check_version
 
 _check_eeglabio_installed()
 import eeglabio.epochs  # noqa: E402
@@ -68,16 +68,23 @@ def _export_epochs(fname, epochs):
     else:
         annot = None
 
-    # https://github.com/jackz314/eeglabio/pull/18
+    events = epochs.events
     kwargs = dict()
-    if "epoch_indices" in getfullargspec(eeglabio.epochs.export_set).kwonlyargs:
-        kwargs["epoch_indices"] = epochs.selection
+    # TODO VERSION: remove once eeglabio > 0.1.3 is required (jackz314/eeglabio#26)
+    if not check_version("eeglabio", "0.1.4"):
+        # older eeglabio uses events[:, 0] as positions in the concatenated data
+        zero = np.clip(epochs.time_as_index(0)[0], 0, len(epochs.times) - 1)
+        events = events.copy()
+        events[:, 0] = np.arange(len(epochs)) * len(epochs.times) + zero
+        if "epoch_indices" in getfullargspec(eeglabio.epochs.export_set).kwonlyargs:
+            # eeglabio 0.1.2-0.1.3 use these as 1-based EEGLAB epoch numbers
+            kwargs["epoch_indices"] = np.arange(1, len(epochs) + 1)
 
     eeglabio.epochs.export_set(
         fname,
         data=epochs.get_data(picks=ch_names),
         sfreq=epochs.info["sfreq"],
-        events=epochs.events,
+        events=events,
         tmin=epochs.tmin,
         tmax=epochs.tmax,
         ch_names=ch_names,
