@@ -1,0 +1,1 @@
+Exporting 2 GB or more of data to EEGLAB with :func:`mne.export.export_raw` or :func:`mne.export.export_epochs` now uses the MATLAB v7.3 (HDF5) format (requires eeglabio >= 0.1.4 and h5py), by `Eric Larson`_.
