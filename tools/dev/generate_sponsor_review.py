@@ -7,7 +7,6 @@
 import os
 import sys
 from pathlib import Path
-from textwrap import dedent
 
 import yaml
 
@@ -25,20 +24,16 @@ def main(output_file):
     run_url = f"{base_url}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
 
     with output_file.open("w") as file:
-        file.write(
-            dedent(
-                f"""\
-                Please check that the following current sponsors and supporting
-                institutions remain accurate. They are rendered on the
-                [homepage](https://mne.tools/dev/) and
-                [Credits page](https://mne.tools/dev/credits/sponsors.html).
-
-                Update the website listings manually if needed; this workflow makes no
-                changes. The checklist is generated from
-                [`doc/_static/sponsors.yml`]({source_url}).
-                """
-            )
+        message = (
+            "Please check that the following current sponsors and supporting "
+            "institutions remain accurate. They are rendered on the "
+            "[homepage](https://mne.tools/dev/) and "
+            "[credits page](https://mne.tools/dev/credits/sponsors.html)."
+            "\n\n"
+            "Update the website listings manually if needed. The checklist is generated"
+            f" from [`doc/_static/sponsors.yml`]({source_url})."
         )
+        print(message, file=file)
 
         for heading, entries in categories.items():
             print(file=file)
