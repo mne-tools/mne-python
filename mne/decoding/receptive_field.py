@@ -14,7 +14,7 @@ from sklearn.base import (
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import r2_score
 
-from ..utils import _validate_type, fill_doc_static, warn
+from ..utils import _validate_type, fill_doc_static
 from ._fixes import _check_n_features_3d, _get_array_namespace, validate_data
 from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
@@ -596,7 +596,7 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import ConstantInputWarning, pearsonr
+    from scipy.stats import pearsonr
 
     assert multioutput == "raw_values"
     if y_true.ndim != 2 or y.ndim != 2:
@@ -616,16 +616,6 @@ def _corr_score(y_true, y, multioutput=None):
             raise ValueError("Complex data not supported")
         if not xp.isdtype(values.dtype, "real floating"):
             values = xp.asarray(values, dtype=xp.float64)
-        constant = xp.all(values == values[:1, :], axis=0)
-        if xp.any(constant):
-            warn(
-                "An input array is constant; correlation is undefined.",
-                ConstantInputWarning,
-            )
-        values = xp.where(xp.isfinite(values) & ~constant, values, xp.nan)
-        # Shift before scaling to retain small variations near the dtype limits.
-        values = values - (xp.max(values, axis=0) / 2 + xp.min(values, axis=0) / 2)
-        values = values / xp.max(xp.abs(values), axis=0)
         values = values - xp.mean(values, axis=0)
         normalized.append(values / xp.linalg.vector_norm(values, axis=0))
     return xp.clip(xp.sum(normalized[0] * normalized[1], axis=0), -1, 1)

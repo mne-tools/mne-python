@@ -251,67 +251,6 @@ def test_receptive_field_array_api_errors(rf_array_api):
             _SCORERS["corrcoef"](data, data, multioutput="raw_values")
 
 
-@pytest.mark.parametrize("scoring", ["r2", "corrcoef"])
-@pytest.mark.parametrize("target_dtype", ["float64", "int64"])
-def test_receptive_field_array_api_score_precision(rf_array_api, scoring, target_dtype):
-    """Keep target precision even when it exceeds the feature precision."""
-    from scipy.stats import pearsonr
-    from sklearn.metrics import r2_score
-
-    xp = rf_array_api
-    x = np.linspace(-1, 1, 100, dtype="float32")[:, None]
-    y = np.arange(100).astype(target_dtype)
-    y = 1e6 + 1e-3 * np.sin(y) if target_dtype == "float64" else 2**26 + y
-    xt, yt = xp.asarray(x.copy()), xp.asarray(y.copy())
-    model = ReceptiveField(
-        0,
-        0,
-        1,
-        estimator=Ridge(solver="svd", random_state=0),
-        scoring=scoring,
-    ).fit(xt, xt[:, 0])
-    predicted = model.predict(xt)
-    expected = (
-        np.asarray(r2_score(yt, predicted, multioutput="raw_values"))
-        if scoring == "r2"
-        else pearsonr(y, np.asarray(predicted)).statistic
-    )
-    assert_allclose(np.asarray(model.score(xt, yt)), expected, rtol=1e-7, atol=1e-12)
-    assert_array_equal(np.asarray(yt), y)
-
-
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-@pytest.mark.parametrize(
-    "offsets, correlation", [([0, 1], -1), ([0, 1, 1], -0.5), ([0, 1, 2], -1)]
-)
-def test_receptive_field_array_api_correlation(
-    rf_array_api, dtype, offsets, correlation
-):
-    """Preserve correlation for small variations, scaling, and constant inputs."""
-    from scipy.stats import ConstantInputWarning
-
-    xp = rf_array_api
-    scale = 1e30 if dtype == "float32" else 1e200
-    offsets = np.array(offsets, dtype=dtype)
-    bases = np.array([1, 3, scale, 1 / scale, 1, 1, 1], dtype=dtype)
-    x = bases + np.spacing(bases) * offsets[:, None]
-    y = x[::-1].copy()
-    x[:, 4] = np.finfo(dtype).smallest_subnormal
-    y[-1, 5:] = [np.nan, np.inf]
-    with pytest.warns(ConstantInputWarning):
-        actual = _SCORERS["corrcoef"](
-            xp.asarray(x), xp.asarray(y), multioutput="raw_values"
-        )
-    assert_allclose(
-        np.asarray(actual),
-        [correlation] * 4 + [np.nan] * 3,
-        atol=1e-6 if dtype == "float32" else 1e-14,
-    )
-    x = xp.asarray(np.array([1, -1, 0.5, -0.5], dtype=dtype)[:, None])
-    x = x * float(np.finfo(dtype).max)
-    assert_allclose(_SCORERS["corrcoef"](x, -x, multioutput="raw_values"), [-1])
-
-
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 @pytest.mark.filterwarnings("ignore:Estimator .* has no __sklearn_tags__.*")

@@ -62,10 +62,10 @@ Limitations
 - Arrays must be mutable: delay construction uses indexed assignment.
 - Use float32 or float64 features with ``Ridge(solver="svd")``. Integer tensor
   features are converted to float64. During fitting, tensor targets are cast
-  to the feature dtype; scoring retains target precision. The legacy NumPy
-  delay buffer promotes float32 features to float64 and is unchanged.
-- ``score`` returns one value per output, as in the NumPy API. Correlation is
-  NaN for constant or non-finite columns; complex-valued targets are unsupported.
+  to the feature dtype. The legacy NumPy delay buffer promotes float32
+  features to float64 and is unchanged.
+- ``score`` returns one value per output, as in the NumPy API. Correlation
+  requires at least two samples; complex-valued tensor targets are unsupported.
 - The explicit delayed design uses memory proportional to samples, features,
   and delays, plus the solver's workspace. It is not the FFT-based
   ``TimeDelayingRidge`` algorithm; make sure the design fits in device memory.
