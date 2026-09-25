@@ -1,0 +1,1 @@
+Add :func:`mne.setup_subcortical_source_space` to build a :class:`~mne.SourceSpaces` from a triangulated surface mesh of a subcortical or cerebellar structure, either from a ``label`` or externally-produced mesh ``surface``, by `Payam Sadeghi-Shabestari`_.
