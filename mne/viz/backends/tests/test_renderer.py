@@ -517,8 +517,11 @@ def test_lite_notebook_kernel(renderer_lite, nbexec):
     renderer.set_3d_view(rend.scene(), azimuth=90, elevation=90)
     scene = rend.plotter._renderer._build_scene_data()
     source = scene["actors"][0]["source"]
-    np.testing.assert_allclose(np.reshape(source["points"], (-1, 3)), rr, atol=1e-6)
+    points = source["points"]
+    if hasattr(points, "tolist"):  # pyvista-js >= 0.17 wraps it in a _Float32Array
+        points = points.tolist()
+    np.testing.assert_allclose(np.reshape(points, (-1, 3)), rr, atol=1e-6)
     assert source["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
     np.testing.assert_allclose(scene["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
     html = rend.plotter.generate_standalone_html()  # what the page will run
-    assert json.dumps(source["points"]).replace(" ", "") in html.replace(" ", "")
+    assert json.dumps(points).replace(" ", "") in html.replace(" ", "")
