@@ -71,6 +71,7 @@ jobs:
           activate-environment: true
           enable-cache: false
           python-version: "3.12"
+      - uses: prefix-dev/setup-pixi@v0.9.4
       - name: Update 'old' CI lockfile
         # uv pip compile requires setting the python version for the environment explicitly in the command :(
         run: |
@@ -86,6 +87,10 @@ jobs:
           project-root: ${{ github.workspace }}
           lockfile-path: tools/pylock.ci-old.toml
           groups: lockfile_extras
+      - name: Update pixi.toml and pixi.lock for macos-intel CI job
+        run: |
+          pixi run python tools/write-pixi-toml.py
+          pixi lock --no-install --manifest-path tools/ci/macos-intel/
       - name: Sync dependencies to README
         uses: mne-tools/mne-tools/actions/sync-dependencies-to-readme@main
         with:
