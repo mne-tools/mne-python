@@ -185,7 +185,7 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
     evoked.pick(evoked.ch_names[::10])  # speed
-    lite = renderer.get_3d_backend() == "jupyterlite_notebook"
+    lite = renderer.get_3d_backend() == "notebook_js"
     for t, n_contours, up in zip(["meg", None], [21, 0], [2, 1]):
         with pytest.warns(RuntimeWarning, match="projection"), catch_logging() as log:
             maps = make_field_map(
@@ -204,13 +204,13 @@ def test_plot_evoked_field(renderer):
             assert "Upsampling" not in log
         else:
             assert "Upsampling" in log
-        if lite:  # field maps need contours, which the browser cannot color
+        if lite and n_contours:  # contours are what the browser cannot color
             with pytest.raises(NotImplementedError, match="browser"):
                 evoked.plot_field(maps, time=0.1, n_contours=n_contours)
             continue
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
     renderer.backend._close_all()
-    if lite:  # and Brain needs the dock widgets the browser does not draw
+    if lite:  # and the rest draws contours, into an existing Brain
         return
 
     # Test plotting inside an existing Brain figure. Check that units are taken into
@@ -580,7 +580,7 @@ def test_plot_alignment_meg(renderer, system):
         )
         # ... except in the browser, which cannot color per instance and so
         # draws one solid mesh per distinct color
-        if renderer.get_3d_backend() == "jupyterlite_notebook":
+        if renderer.get_3d_backend() == "notebook_js":
             _assert_n_actors(fig2, renderer, n_meg + 2)
         else:
             _assert_n_actors(fig2, renderer, n_shapes + 2)
@@ -994,7 +994,7 @@ def test_plot_alignment_mixed_src(renderer, evoked, mixed_fwd_cov_evoked):
         show_channel_names=True,
     )
     assert isinstance(fig, Figure3D)
-    if renderer.get_3d_backend() != "jupyterlite_notebook":  # no 3D text in vtk.js
+    if renderer.get_3d_backend() != "notebook_js":  # no 3D text in vtk.js
         from vtkmodules.vtkRenderingCore import vtkActor2D
 
         # one batched label actor covering every plotted (non-bad MEG/EEG) channel

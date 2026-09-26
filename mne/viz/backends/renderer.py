@@ -19,6 +19,7 @@ from ...utils import (
     get_config,
     logger,
     verbose_static,
+    warn,
 )
 from .._3d import _get_3d_option
 from ..utils import safe_event
@@ -30,8 +31,8 @@ MNE_3D_BACKEND_TESTING = False
 
 _backend_name_map = dict(
     pyvistaqt="._qt",
-    notebook="._notebook",
-    jupyterlite_notebook="._lite",
+    notebook="._trame",
+    notebook_js="._lite",
 )
 backend = None
 
@@ -57,6 +58,13 @@ def _get_renderer(*args, **kwargs):
 def _check_3d_backend_name(backend_name):
     _validate_type(backend_name, str, "backend_name")
     backend_name = "pyvistaqt" if backend_name == "pyvista" else backend_name
+    if backend_name == "jupyterlite_notebook":
+        warn(
+            'The "jupyterlite_notebook" 3D backend was renamed "notebook_js" in '
+            "1.14 and the old name will be removed in 1.16.",
+            FutureWarning,
+        )
+        backend_name = "notebook_js"
     _check_option("backend_name", backend_name, VALID_3D_BACKENDS)
     return backend_name
 
@@ -73,10 +81,12 @@ def set_3d_backend(backend_name, verbose=None):
     backend_name : str
         The 3d backend to select. See Notes for the capabilities of each
         backend (``'pyvistaqt'``, ``'notebook'`` and
-        ``'jupyterlite_notebook'``).
+        ``'notebook_js'``).
 
         .. versionchanged:: 0.24
            The ``'pyvista'`` backend was renamed ``'pyvistaqt'``.
+        .. versionchanged:: 1.14
+           The ``'jupyterlite_notebook'`` backend was renamed ``'notebook_js'``.
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -93,13 +103,16 @@ def set_3d_backend(backend_name, verbose=None):
     To use PyVista, set ``backend_name`` to ``pyvistaqt`` but the value
     ``pyvista`` is still supported for backward compatibility.
 
-    The ``jupyterlite_notebook`` backend is not in the table below because it is
+    The ``notebook_js`` backend is not in the table below because it is
     not a desktop choice: it draws with vtk.js rather than VTK, which has no
     WebAssembly build, and it is what the documentation's browser notebooks run
     on. It covers the static 3D figures, so :func:`plot_alignment` (without
     channel-name labels) and :func:`plot_sparse_source_estimates` work, and
-    :class:`mne.viz.Brain` draws a single time point with no time viewer,
-    colorbar or split-hemisphere layout, while :func:`plot_evoked_field` and
+    :class:`mne.viz.Brain` draws a single time point with no colorbar,
+    split-hemisphere layout or (by default) time viewer, although
+    ``time_viewer=True`` does build the same ipywidgets GUI as the ``notebook``
+    backend, minus the keyboard shortcuts, picking and hover that need mouse and
+    key events from VTK. :func:`plot_evoked_field` and
     :func:`snapshot_brain_montage` do not work. On a desktop the other two are
     better in every way, so it is never selected automatically.
 
@@ -226,7 +239,7 @@ def use_3d_backend(backend_name):  # numpydoc ignore=YD01
 
     Parameters
     ----------
-    backend_name : {'pyvistaqt', 'notebook', 'jupyterlite_notebook'}
+    backend_name : {'pyvistaqt', 'notebook', 'notebook_js'}
         The 3d backend to use in the context.
     """
     old_backend = set_3d_backend(backend_name)
@@ -570,7 +583,8 @@ class _TimeInteraction:
                 TimeChange(time=self._current_time_func() + direction * amount),
             )
 
-        if self.plotter.iren is not None:
+        # a plotter drawing for a browser has no interactor to bind keys on
+        if getattr(self.plotter, "iren", None) is not None:
             self.plotter.add_key_event("n", partial(shift_time, direction=1))
             self.plotter.add_key_event("b", partial(shift_time, direction=-1))
 

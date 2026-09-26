@@ -358,7 +358,7 @@ class DipoleFitUI:
             # window has actually appeared on screen (see `_qt_safe_window`).
             self._renderer.figure.splash = self._splash
             self._renderer.show()
-        if block and self._renderer._kind != "notebook":
+        if block and not self._renderer._kind.startswith("notebook"):
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @property

@@ -51,6 +51,9 @@ doc-full = ["rpy2", { include-group = "doc" }]
 # unpinned, since Pyodide's curated version wins where it has one and the rest
 # resolve to the latest release (see doc/sphinxext/jupyterlite_lock_specs.py)
 jupyterlite = [
+  "ipyevents",
+  "ipympl",
+  "ipywidgets",
   "joblib",
   "mffpy",
   "mne-connectivity",
@@ -96,7 +99,7 @@ test_extra = [
   # marker is pyvista-js's own requires-python (>= 3.12, < 3.15) rather than
   # anything about JupyterLite: without it this group cannot resolve at all on
   # the 3.11 MNE still supports. Every CI job that installs it is on 3.12+.
-  "pyvista-js >= 0.16; python_version >= '3.12'",
+  "pyvista-js >= 0.17; python_version >= '3.12'",
   "statsmodels",
   { include-group = "test_extra_ft" },
 ]
