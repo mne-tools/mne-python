@@ -21,6 +21,7 @@ screenshots, and mouse and key events.
 import asyncio
 import html
 import inspect
+import json
 import weakref
 from contextlib import nullcontext
 
@@ -28,6 +29,7 @@ import numpy as np
 import pyvista_js as pv
 from ipywidgets import HTML, Button, GridBox, Layout
 from matplotlib.colors import to_rgb
+from pyvista_js.rendering import scene_to_json
 
 from ...surface import _tessellate_sphere
 from ...transforms import (
@@ -76,16 +78,14 @@ requestAnimationFrame(function () { requestAnimationFrame(function () {
   box.querySelector(".mne-lite-labels").style.pointerEvents = "none";
   box.querySelector(".mne-lite-painted").click();
   // from now on, apply the point-data updates the kernel sends instead of a
-  // new page (pyvista-js >= 0.17), and report each one the same way
+  // new page, and report each one the same way
   var updates = box.querySelector(".mne-lite-update");
-  if (!updates || !window.pvjsApplyUpdate) return;
   new MutationObserver(function () {
     var node = updates.querySelector("[data-n]");
     if (!node || node.dataset.applied || me.style.opacity !== "1") return;
     node.dataset.applied = "1";
-    var scene = Object.keys(window.__pvjs)[0];
     JSON.parse(node.textContent).forEach(function (update) {
-      window.pvjsApplyUpdate(scene, update);
+      window.pvjsApplyUpdate(CONTAINER, update);
     });
     box.querySelector(".mne-lite-painted").click();
   }).observe(updates, {childList: true, subtree: true});
@@ -167,7 +167,7 @@ def _lite_view_angles(plotter, rigid=None):
     ``rigid`` is the frame the angles are expressed in (Brain's canonical
     rotation), as in ``_pyvista._get_user_camera_direction``.
     """
-    view_vector = plotter._renderer._view_vector  # pyvista-js 0.15
+    view_vector = plotter.lite_view_vector
     if view_vector is None:  # nothing set yet, so vtk.js chooses
         return None
     position = np.asarray(view_vector, float)
@@ -266,6 +266,26 @@ class _LitePolyData(pv.PolyData):
         self._lite_version += 1
 
 
+class _LitePlotter(pv.Plotter):
+    """A plotter filling in what the pyvista-js API lacks."""
+
+    lite_view_vector = None  # pyvista-js has no getter for it
+
+    def view_vector(self, vector, viewup=None):
+        super().view_vector(vector, viewup=viewup)
+        self.lite_view_vector = tuple(float(v) for v in vector)
+
+    def remove_actor(self, actor):
+        if hasattr(pv.Plotter, "remove_actor"):
+            return super().remove_actor(actor)
+        # TODO VERSION: Remove once a pyvista-js release has Plotter.remove_actor
+        # (by identity: actors are dicts, which compare equal by value)
+        n_actors = len(self.actors)
+        self.actors[:] = [a for a in self.actors if a["actor"] is not actor]
+        self._renderer.actors[:] = [a for a in self._renderer.actors if a is not actor]
+        return len(self.actors) < n_actors
+
+
 class _LiteFigure(Figure3D):
     """pyvista-js-based 3D figure; ``.plotter`` is the pyvista-js plotter."""
 
@@ -308,7 +328,7 @@ class _LiteRenderer(_AbstractRenderer):
         if isinstance(fig, _LiteFigure):  # plot_alignment(fig=...) composites into it
             self._figure = fig
             return
-        self._figure = _LiteFigure()._init(pv.Plotter())
+        self._figure = _LiteFigure()._init(_LitePlotter())
         _lite_live_plotters.append(weakref.ref(self.plotter))
         while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
             _lite_release_plotter(_lite_live_plotters[0]())
@@ -644,15 +664,9 @@ class _LiteRenderer(_AbstractRenderer):
         return _lite_add_text(self.plotter, text, (x_window, y_window), size, color)
 
     def remove_mesh(self, mesh_data):
-        # the renderer keeps the actor dict and the plotter a dict pointing at
-        # it, so drop both; instanced_mesh hands back one actor per color
         actor, _ = mesh_data
-        actors = actor if isinstance(actor, list) else [actor]
-        plotter = self.plotter
-        plotter.actors[:] = [a for a in plotter.actors if a["actor"] not in actors]
-        plotter._renderer.actors[:] = [
-            a for a in plotter._renderer.actors if a not in actors
-        ]
+        for actor in actor if isinstance(actor, list) else [actor]:  # per color
+            self.plotter.remove_actor(actor)
 
     # -- nothing to do in a browser -----------------------------------------
     def set_interaction(self, interaction):
@@ -816,26 +830,22 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
 
     def _scene_key(self):
         """Return what a page depends on besides point data, plus mesh versions."""
-        renderer = self.plotter._renderer
+        plotter = self.plotter
         key = tuple(
             (id(info["mesh"]), tuple(info.get("color") or ()), info.get("opacity"))
-            for info in renderer.actors
-        ) + (tuple(renderer._view_vector or ()), tuple(self.plotter.background_color))
+            for info in plotter.actors
+        ) + (plotter.lite_view_vector, tuple(plotter.background_color))
         versions = tuple(
-            getattr(info["mesh"], "_lite_version", 0) for info in renderer.actors
+            getattr(info["mesh"], "_lite_version", 0) for info in plotter.actors
         )
         return key, versions
 
     def _send_updates(self, changed):
-        """Send the recolored meshes' point data to the page shown; True if possible."""
-        renderer = self.plotter._renderer
-        if not hasattr(renderer, "build_update_data"):  # pyvista-js < 0.17
-            return False
-        from pyvista_js.rendering import scene_to_json
-
+        """Send the recolored meshes' point data to the page shown."""
+        actors = self.plotter.actors
         updates = [
-            renderer.build_update_data(
-                idx, point_data=dict(renderer.actors[idx]["mesh"].point_data.items())
+            self.plotter.update_actor(
+                idx, point_data=dict(actors[idx]["mesh"].point_data.items()), send=False
             )
             for idx in changed
         ]
@@ -844,7 +854,6 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             f'<div hidden data-n="{self._n_updates}">'
             f"{html.escape(scene_to_json(updates))}</div>"
         )
-        return True
 
     def _loop(self):
         """Return the kernel's event loop, or None outside a kernel."""
@@ -885,25 +894,21 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
                 if self._in_flight is None:
                     self._busy.layout.visibility = "hidden"
                 return
-            if self._send_updates(changed):
-                self._page_key = (key, versions)
-                loop = self._loop()
-                if loop is not None:
-                    self._in_flight = loop.call_later(
-                        _LITE_ACK_TIMEOUT, self._on_painted
-                    )
-                return
+            self._send_updates(changed)
+        else:
+            page = self.plotter.generate_standalone_html()
+            self._n_drawn += 1
+            page = page.replace("<head>", "<head>" + _LITE_SIZE_CSS, 1)
+            swap = _LITE_SWAP_JS.replace("SEQ", str(self._n_drawn)).replace(
+                "CONTAINER", json.dumps(self.plotter.container_id)
+            )
+            page = html.escape(page.replace("</body>", swap + "</body>"), quote=True)
+            # into the frame that is hidden (or not yet drawn), until it has painted
+            self._pages[self._n_drawn % 2].value = (
+                f'<iframe srcdoc="{page}" width="{width}" height="{height}" '
+                'style="border: none; opacity: 0; pointer-events: none"></iframe>'
+            )
         self._page_key = (key, versions)
-        page = self.plotter.generate_standalone_html()
-        self._n_drawn += 1
-        page = page.replace("<head>", "<head>" + _LITE_SIZE_CSS, 1)
-        swap = _LITE_SWAP_JS.replace("SEQ", str(self._n_drawn))
-        page = html.escape(page.replace("</body>", swap + "</body>"), quote=True)
-        # into the frame that is hidden (or not yet drawn), until it has painted
-        self._pages[self._n_drawn % 2].value = (
-            f'<iframe srcdoc="{page}" width="{width}" height="{height}" '
-            'style="border: none; opacity: 0; pointer-events: none"></iframe>'
-        )
         loop = self._loop()  # no kernel, no browser to hear back from
         if loop is not None:
             self._in_flight = loop.call_later(_LITE_ACK_TIMEOUT, self._on_painted)
@@ -912,10 +917,8 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         return self._size
 
     def _update(self):
-        # pyvista-js serializes the whole scene into the page once, with no way
-        # to update it afterward, so a change means drawing it again: now, or
-        # once the page on its way has painted (_on_painted), so that the frame
-        # on screen is never the one drawn into
+        # draw the change now, or once the page or update on its way has painted
+        # (_on_painted), so that the frame on screen is never the one drawn into
         if self._viewer is None or self._dirty:  # a draw is already coming
             return
         self._dirty = True

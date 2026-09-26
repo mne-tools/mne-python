@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import asyncio
+import json
 import os
 import platform
 import subprocess
@@ -373,7 +374,9 @@ _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 def _scene(rend):
     """Return the scene as vtk.js will receive it."""
-    return rend.plotter._renderer._build_scene_data()
+    html = rend.plotter.generate_standalone_html()
+    start = html.index('id="scene-data">') + len('id="scene-data">')
+    return json.loads(html[start : html.index("</script>", start)])
 
 
 def test_lite_camera(renderer_lite):
@@ -551,8 +554,7 @@ def test_lite_brain(renderer_lite, monkeypatch):
     # curvature plus activation, as uint8 RGBA vtk.js uses directly
     assert colors.dtype == np.uint8 and colors.shape == (len(brain.geo["lh"].coords), 4)
     assert len(np.unique(colors, axis=0)) > 2
-    scene = brain._renderer.plotter._renderer._build_scene_data()
-    assert scene["actors"][0]["scalars"]["direct"] is True
+    assert _scene(brain._renderer)["actors"][0]["scalars"]["direct"] is True
     # Brain's canonical rotation reaches the camera through `rigid`
     assert brain._renderer.get_camera(rigid=brain._rigid)[2:4] == pytest.approx(
         (180.0, 90.0)
@@ -577,6 +579,9 @@ def test_lite_brain(renderer_lite, monkeypatch):
     assert not np.array_equal(colors, rend.plotter.actors[0]["mesh"].point_data["Data"])
     asyncio.run(_updates_coalesce(rend, draws))
     monkeypatch.undo()  # the real _draw_scene, to check it skips an unchanged scene
+    n_drawn = rend._n_drawn
+    rend._draw_scene()  # only colors changed, so they go to the page shown
+    assert rend._n_drawn == n_drawn and 'data-n="1"' in rend._updates.value
     _same_page_not_resent(rend)
     brain.close()
 
