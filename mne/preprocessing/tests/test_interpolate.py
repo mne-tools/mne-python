@@ -83,18 +83,59 @@ def test_interpolate_bridged_electrodes():
         idx0 = inst.ch_names.index("EEG 001")
         idx1 = inst.ch_names.index("EEG 002")
         ch_names_orig = inst.ch_names.copy()
+        inst.info["bads"] = ["EEG 003"]
         bads_orig = inst.info["bads"].copy()
+        # reference interpolation using the same source channels, i.e.
+        # excluding the pre-existing bad like the bridged version does
         inst2 = inst.copy()
-        inst2.info["bads"] = ["EEG 001", "EEG 002"]
+        inst2.info["bads"] = ["EEG 001", "EEG 002", "EEG 003"]
         inst2.interpolate_bads()
         data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002"])
+        # a pre-existing bad that is not bridged must not contribute: poisoning
+        # its data must leave the bridged interpolation result unchanged ...
+        inst_clean = interpolate_bridged_electrodes(inst.copy(), [(idx0, idx1)])
+        data_clean = inst_clean.get_data(picks=["EEG 001", "EEG 002"])
+        inst_pois = inst.copy()
+        inst_pois.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 003"])
+        data_bad_poisoned = inst_pois.get_data(picks="EEG 003").copy()
+        inst_pois = interpolate_bridged_electrodes(inst_pois, [(idx0, idx1)])
+        assert np.array_equal(
+            inst_pois.get_data(picks=["EEG 001", "EEG 002"]), data_clean
+        )
+        # ... and the pre-existing bad itself must be left untouched
+        assert np.array_equal(inst_pois.get_data(picks="EEG 003"), data_bad_poisoned)
+        assert inst_pois.info["bads"] == bads_orig
         inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
         data_interp = inst.get_data(picks=["EEG 001", "EEG 002"])
         assert not any(["virtual" in ch for ch in inst.ch_names])
         assert inst.ch_names == ch_names_orig
         assert inst.info["bads"] == bads_orig
+        assert np.array_equal(data_interp, data_clean)
+        inst.info["bads"] = []
         # check closer to regular interpolation than original data
-        assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
+        assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 6.5e-5
+
+    # a channel that is both pre-existing bad and bridged must still be
+    # repaired as a bridged target rather than being excluded (checked on
+    # copies so the shared instances stay pristine for the checks below)
+    for inst in (raw, epochs, evoked):
+        idx0 = inst.ch_names.index("EEG 001")
+        idx1 = inst.ch_names.index("EEG 002")
+        inst_pois = inst.copy()
+        inst_pois.info["bads"] = ["EEG 001", "EEG 003"]
+        bads_orig = inst_pois.info["bads"].copy()
+        data_bad_before = inst_pois.get_data(picks="EEG 003").copy()
+        inst_pois.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 001"])
+        data_bridged_poisoned = inst_pois.get_data(picks="EEG 001").copy()
+        inst_pois = interpolate_bridged_electrodes(inst_pois, [(idx0, idx1)])
+        assert not any(["virtual" in ch for ch in inst_pois.ch_names])
+        assert inst_pois.info["bads"] == bads_orig
+        # the bridged bad was repaired ...
+        assert not np.array_equal(
+            inst_pois.get_data(picks="EEG 001"), data_bridged_poisoned
+        )
+        # ... while the non-bridged bad was left untouched
+        assert np.array_equal(inst_pois.get_data(picks="EEG 003"), data_bad_before)
 
     for inst in (raw, epochs, evoked):
         idx0 = inst.ch_names.index("EEG 001")
