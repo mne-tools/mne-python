@@ -22,8 +22,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v7.0.0
-      - run: pip install --upgrade towncrier pygithub gitpython numpy vulture
-      - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
+      - run: pip install --upgrade gitpython numpy vulture
+      - name: Rename towncrier files
+        uses: mne-tools/mne-tools/actions/rename-towncrier@main
+        with:
+          project-root: ${{ github.workspace }}
       - run: python ./tools/dev/ensure_headers.py
       - run: vulture
       # Run this last, since it can fail the job if moved up
