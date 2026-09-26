@@ -84,6 +84,10 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     that to aid in interpolation rather than completely discarding the
     data from the two channels.
 
+    Channels in ``inst.info["bads"]`` that are not part of the bridged
+    set are excluded from the interpolation: they are neither used to
+    compute the interpolated values nor interpolated themselves.
+
     Parameters
     ----------
     inst : instance of Epochs, Evoked, or Raw
@@ -189,7 +193,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
 
     # use the virtual channels to interpolate
     inst.info["bads"] = list(bads)
-    inst.interpolate_bads()
+    # Exclude pre-existing bad channels that are not part of the bridged set
+    # so they can neither contribute to the interpolation nor be interpolated
+    # themselves. Channels that are both bridged and marked bad remain
+    # interpolation targets, as before.
+    exclude_bads = [ch for ch in bads_orig if ch not in bads]
+    inst.interpolate_bads(exclude=exclude_bads)
 
     # drop virtual channels
     inst.drop_channels(list(virtual_chs.keys()))
