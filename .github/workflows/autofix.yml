@@ -47,7 +47,7 @@ jobs:
         run: |
           set -eo pipefail
           # Also match the generated files themselves, so hand-edits get reverted
-          PATTERN='^(pyproject\.toml|README\.rst|environment\.yml|tools/pylock\.ci-old\.toml|\.github/workflows/autofix\.yml)$'
+          PATTERN='^(pyproject\.toml|README\.rst|environment\.yml|tools/pylock\.ci-old\.toml|tools/ci/macos-intel/pixi\.toml|tools/ci/macos-intel/pixi\.lock|\.github/workflows/autofix\.yml)$'
           # Collect first: `grep -q` exits early, and the resulting SIGPIPE would
           # trip `pipefail` precisely when a file does match
           FILES=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
