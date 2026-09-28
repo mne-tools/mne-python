@@ -57,7 +57,7 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -78,7 +78,7 @@ jobs:
           fi
         id: status
       - name: Setup Pixi
-        uses: prefix-dev/setup-pixi@v0.9.4
+        uses: prefix-dev/setup-pixi@v0.10.2
         if: steps.status.outputs.dirty == 'true'
       - name: Update pixi.toml and pixi.lock for macos-intel CI job
         run: |
