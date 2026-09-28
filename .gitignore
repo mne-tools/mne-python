@@ -21,6 +21,7 @@ junit-results.xml
 *.png
 *.dat
 # make sure we ship data files
+!mne/**/tests/data/*.*
 !mne/data/**/*.dat
 !mne/data/**/*.fif
 !mne/data/**/*.fif.gz
