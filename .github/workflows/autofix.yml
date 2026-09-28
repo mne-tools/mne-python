@@ -74,6 +74,7 @@ jobs:
       - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           manifest-path: tools/ci/macos-intel/pixi.toml
+          run-install: false
       - name: Update 'old' CI lockfile
         # uv pip compile requires setting the python version for the environment explicitly in the command :(
         run: |
