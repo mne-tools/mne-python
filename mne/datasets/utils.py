@@ -255,9 +255,9 @@ def _download_mne_dataset(
     # handle case of multiple sub-datasets with different urls
     if name == "visual_92_categories":
         dataset_params = []
-        for name in ["visual_92_categories_1", "visual_92_categories_2"]:
-            this_dataset = MNE_DATASETS[name]
-            this_dataset["dataset_name"] = name
+        for part in sorted(key for key in MNE_DATASETS if key.startswith(f"{name}_")):
+            this_dataset = MNE_DATASETS[part]
+            this_dataset["dataset_name"] = part
             dataset_params.append(this_dataset)
 
     return cast(
@@ -444,7 +444,10 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = subjects_dir / "fsaverage" / "label"
-    urls = dict(lh="https://osf.io/download/p92yb", rh="https://osf.io/download/4kxny")
+    urls = dict(
+        lh="https://github.com/mne-tools/mne-data/releases/download/hcp_aparc_sub-1/lh.aparc_sub.annot",
+        rh="https://github.com/mne-tools/mne-data/releases/download/hcp_aparc_sub-1/rh.aparc_sub.annot",
+    )
     hashes = dict(
         lh="9e4d8d6b90242b7e4b0145353436ef77", rh="dd6464db8e7762d969fc1d8087cd211b"
     )

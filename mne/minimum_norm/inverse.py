@@ -1846,6 +1846,7 @@ def _prepare_forward(
     combine_xyz,
     allow_fixed_depth,
     limit,
+    source_cov=None,
 ):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
@@ -1983,6 +1984,18 @@ def _prepare_forward(
 
     logger.info("Creating the source covariance matrix")
     source_std = np.ones(gain.shape[1], dtype=gain.dtype)
+    if source_cov is not None:
+        source_cov = np.asarray(source_cov, dtype=np.float64)
+        n_sources = forward["nsource"]
+        if source_cov.shape != (n_sources,):
+            raise ValueError(
+                f"source_cov must have shape ({n_sources},), got {source_cov.shape}"
+            )
+        if not (np.isfinite(source_cov).all() and (source_cov > 0).all()):
+            raise ValueError("source_cov must contain finite, positive variances")
+        logger.info("    Using user-specified source variances")
+        # one variance per source location, applied to all orientations
+        source_std *= np.repeat(source_cov, gain.shape[1] // n_sources)
     if depth_prior is not None:
         source_std *= depth_prior
     if orient_prior is not None:
@@ -2021,6 +2034,7 @@ def make_inverse_operator(
     fixed="auto",
     rank=None,
     use_cps=True,
+    source_cov=None,
     verbose=None,
 ):
     """Assemble inverse operator.
@@ -2113,6 +2127,14 @@ def make_inverse_operator(
     use_cps : bool
         Whether to use cortical patch statistics to define normal orientations for
         surfaces (default True).
+    source_cov : array-like, shape (n_sources,) | None
+        Prior variance of each source location, i.e., the diagonal of a custom
+        source covariance matrix. It is applied to all orientations of a source
+        and multiplied by the depth and orientation priors determined by
+        ``depth``, ``loose``, and ``fixed``. If None (default), all sources get
+        the same prior variance.
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -2188,6 +2210,7 @@ def make_inverse_operator(
         rank,
         pca="white",
         use_cps=use_cps,
+        source_cov=source_cov,
         **depth,
     )
     # no need to copy any attributes of forward here because there is

@@ -120,7 +120,11 @@ class Brain:
         In the case of 'split' hemispheres are displayed side-by-side
         in different viewing panes.
     surf : str
-        FreeSurfer surface mesh name (ie 'white', 'inflated', etc.).
+        FreeSurfer surface mesh name (ie 'white', 'inflated', etc.). Can also be
+        ``'flat'`` to show a flat patch of the cortex, which requires the
+        ``?h.cortex.patch.flat`` and ``?h.sphere`` files to be present in the
+        subject's ``surf`` directory. A flat surface is always shown with
+        ``views='flat'`` and is not rotatable.
     title : str
         Title for the window.
     cortex : str, list, dict
@@ -422,6 +426,8 @@ class Brain:
             self.silhouette = True
         else:
             self.silhouette = silhouette
+        if self.silhouette and surf == "flat":
+            raise ValueError('silhouette is not supported for surf="flat"')
         self._silhouette_actors = []
         self._scalar_bar = None
         self._scalar_bar_ticks = None
@@ -514,6 +520,7 @@ class Brain:
 
         if surf == "flat":
             self._renderer.set_interaction("rubber_band_2d")
+            self._fit_flat_camera()
 
         self._renderer._update()
 
@@ -886,13 +893,35 @@ class Brain:
             layout=layout,
         )
 
+    def _has_flatmaps(self):
+        """Whether this subject has the patch files a flat surface needs."""
+        return all(
+            op.isfile(
+                op.join(
+                    self._subjects_dir, self._subject, "surf", f"{h}.cortex.patch.flat"
+                )
+            )
+            for h in self._hemis
+            if h != "vol"
+        )
+
+    def _update_flat_widgets(self):
+        """Grey out the dock controls that cannot act on a flat patch."""
+        enabled = self._surf != "flat"
+        for key in ("orientation", "silhouette"):
+            if key in self.widgets:
+                self.widgets[key].set_enabled(enabled)
+
     def _configure_dock_surface_widget(self, name):
         layout = self._renderer._dock_add_group_box(name, collapse=True)
-        if self._surf in ("pial", "white", "inflated"):
+        surfs = ["pial", "white", "inflated"]
+        if self._has_flatmaps():
+            surfs.append("flat")
+        if self._surf in surfs:
             self.widgets["surf"] = self._renderer._dock_add_combo_box(
                 name="Surf",
                 value=self._surf,
-                rng=("pial", "white", "inflated"),
+                rng=surfs,
                 callback=self.set_surf,
                 layout=layout,
             )
@@ -918,6 +947,9 @@ class Brain:
             callback=self.set_silhouette_line_width,
             layout=layout,
         )
+        # controls that cannot act on a flat patch are greyed out rather than
+        # dropped, since the surface can be switched back and forth live
+        self._update_flat_widgets()
 
     def _configure_dock_colormap_widget(self, name):
         self._active_data_key = next(iter(self._all_data))
@@ -1469,14 +1501,23 @@ class Brain:
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
         self.plotter.add_key_event("v", self._toggle_hover_info)
+        self._configure_arrow_keys()
+
+    def _configure_arrow_keys(self):
+        """(Re)bind the arrow keys, which cannot rotate a flat patch."""
+        if getattr(self.plotter, "iren", None) is None:
+            return
         for key, which, amt in (
             ("Left", "azimuth", 10),
             ("Right", "azimuth", -10),
             ("Up", "elevation", 10),
             ("Down", "elevation", -10),
         ):
+            # always clear, so PyVista's own bindings cannot rotate a flat map
             self.plotter.clear_events_for_key(key)
-            self.plotter.add_key_event(key, partial(self._rotate_camera, which, amt))
+            if self._surf != "flat":
+                func = partial(self._rotate_camera, which, amt)
+                self.plotter.add_key_event(key, func)
 
     def _configure_status_bar(self):
         self._renderer._status_bar_initialize()
@@ -1679,6 +1720,7 @@ class Brain:
         self.color_cycle.restore(label._color)
         self.mpl_canvas.update_plot()
         self.layered_meshes[hemi].remove_overlay(label.name)
+        self._renderer._update()  # mirrors add_label; see _add_vertex_glyph
 
     def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
         _ensure_int(vertex_id)
@@ -1747,6 +1789,8 @@ class Brain:
 
         _ensure_int(vertex_id)
         self._picked_points[(hemi, vertex_id)] = spheres
+        if update:
+            self._renderer._update()
         return sphere
 
     def _remove_vertex_glyph(self, *, hemi, vertex_id, render=True):
@@ -1956,16 +2000,30 @@ class Brain:
             ("n", "Shift the time forward by the playback speed"),
             ("b", "Shift the time backward by the playback speed"),
             ("Space", "Start/Pause playback"),
-            ("Up", "Decrease camera elevation angle"),
-            ("Down", "Increase camera elevation angle"),
-            ("Left", "Decrease camera azimuth angle"),
-            ("Right", "Increase camera azimuth angle"),
         ]
-        mouse_pairs = [
-            ("Left-click-and-drag", "Rotate the view"),
-            ("Middle-click-and-drag", "Pan the view"),
-            ("Right-click-and-drag / scroll", "Zoom the view"),
-        ]
+        if self._surf == "flat":
+            # a flat map is 2D: the arrow keys are not bound and the camera
+            # uses the rubber-band style rather than rotation
+            mouse_pairs = [
+                ("Middle-click-and-drag", "Pan the view"),
+                ("Right-click-and-drag / scroll", "Zoom the view"),
+            ]
+        else:
+            pairs += [
+                ("Up", "Decrease camera elevation angle"),
+                ("Down", "Increase camera elevation angle"),
+                ("Left", "Decrease camera azimuth angle"),
+                ("Right", "Increase camera azimuth angle"),
+            ]
+            mouse_pairs = [
+                ("Left-click-and-drag", "Rotate the view"),
+                ("Middle-click-and-drag", "Pan the view"),
+                ("Right-click-and-drag / scroll", "Zoom the view"),
+            ]
+        if self.help_canvas is not None:  # rebuilt when the bindings change
+            close = getattr(self.help_canvas, "close", None)
+            if close is not None:
+                close()
         self.help_canvas = self._renderer._window_get_help_canvas(pairs, mouse_pairs)
 
     def help(self):
@@ -1995,7 +2053,18 @@ class Brain:
     def interaction(self, interaction):
         """Set the interaction style."""
         _validate_type(interaction, str, "interaction")
-        _check_option("interaction", interaction, ("trackball", "terrain"))
+        if self._surf == "flat":
+            # a flat map is 2D: the rubber-band style is the only one that makes
+            # sense, and a 3D style would leave it rotatable with no way back
+            if interaction != self._interaction:
+                warn(
+                    f'interaction="{interaction}" is ignored for surf="flat", '
+                    "which is always shown in 2D"
+                )
+            interaction = "rubber_band_2d"
+        else:
+            _check_option("interaction", interaction, ("trackball", "terrain"))
+        self._interaction = interaction
         for _ in self._iter_views("vol"):  # will traverse all
             self._renderer.set_interaction(interaction)
 
@@ -2808,7 +2877,9 @@ class Brain:
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
         if borders:
-            keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
+            # orig_faces, not faces: a flat patch drops the triangles outside
+            # it, and adjacency cannot be computed from a subset of them
+            keep_idx = _mesh_borders(self.geo[hemi].orig_faces, scalars)
             show = np.zeros(scalars.size, dtype=np.int64)
             if isinstance(borders, int):
                 for _ in range(borders):
@@ -3998,6 +4069,11 @@ class Brain:
             focalpoint=focalpoint,
         )
         if view is not None:  # view_params take precedence
+            if self._surf == "flat" and view != "flat":
+                # every views dict holds all the 3D view names, so without this
+                # a flat map would happily be rotated edge-on
+                warn(f'view="{view}" is ignored for surf="flat"')
+                return
             view_params = {
                 param: val for param, val in view_params.items() if val is not None
             }  # no overwriting with None
@@ -4034,7 +4110,15 @@ class Brain:
         for h in self._hemis:
             for _, _, v in self._iter_views(h):
                 self._set_camera(**views_dicts[h][v])
+        self._fit_flat_camera()
         self._renderer._update()
+
+    def _fit_flat_camera(self):
+        """Frame a flat patch, which the camera distance cannot do."""
+        if self._surf != "flat":
+            return
+        for renderer in self._renderer._all_renderers:
+            renderer.reset_camera()
 
     def save_image(self, filename=None, mode="rgb"):
         """Save view from all panels to disk.
@@ -4165,11 +4249,18 @@ class Brain:
         Parameters
         ----------
         surf : str
-            One of ``'pial'``, ``'white'``, ``'inflated'``. To use a flat
-            surface, close this figure and construct a new one with
-            ``Brain(..., surf="flat", views="flat")``.
+            One of ``'pial'``, ``'white'``, ``'inflated'``, or ``'flat'``.
+            ``'flat'`` needs the ``?h.cortex.patch.flat`` and ``?h.sphere``
+            files in the subject's ``surf`` directory, and switches the view to
+            a non-rotatable 2D one for as long as it is shown.
         """
-        _check_option("surf", surf, ("pial", "white", "inflated"))
+        surfs = ("pial", "white", "inflated", "flat")
+        _check_option("surf", surf, surfs)
+        if surf == "flat" and not self._has_flatmaps():
+            raise FileNotFoundError(
+                f"Subject {self._subject} has no flatmap surface file "
+                f"({{hemi}}.cortex.patch.flat) in {self._subjects_dir}"
+            )
         if surf == self._surf:
             return
         if any(self._labels[h] for h in self._hemis) or any(
@@ -4179,6 +4270,7 @@ class Brain:
                 "Foci and label/annotation outlines do not move when the "
                 "surface representation changes and may now be misaligned."
             )
+        flat_change = "flat" in (surf, self._surf)
         offset = _resolve_offset(self._offset_request, surf, self._hemi)
         for h in self._hemis:
             geo = _Surface(
@@ -4193,9 +4285,14 @@ class Brain:
             geo.load_geometry()
             geo.load_curvature()
             self.geo[h] = geo
-            self.layered_meshes[h].update_geometry(geo.coords, geo.nn)
+            self.layered_meshes[h].update_geometry(
+                geo.coords, geo.nn, geo.faces if flat_change else None
+            )
 
-            for (pt_hemi, vertex_id), spheres in self._picked_points.items():
+            # picked points only exist once the time viewer has been set up
+            for (pt_hemi, vertex_id), spheres in getattr(
+                self, "_picked_points", {}
+            ).items():
                 if pt_hemi != h:
                     continue
                 center = np.array(geo.coords[vertex_id])
@@ -4213,12 +4310,33 @@ class Brain:
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
         self._surf = surf
+        if flat_change:  # switch the camera, interaction and controls to 2D/3D
+            if surf == "flat":
+                self._pre_flat = (list(self._views), self._interaction)
+                self._views = ["flat"] * len(self._views)
+                if self.silhouette:  # would look for a nonexistent {hemi}.flat
+                    for actor in self._silhouette_actors:
+                        self.plotter.remove_actor(actor)
+                    self._silhouette_actors = []
+                    self.silhouette = False
+                interaction = "rubber_band_2d"
+            else:
+                self._views, interaction = getattr(self, "_pre_flat", None) or (
+                    ["lateral"] * len(self._views),
+                    "trackball",
+                )
+            self._interaction = interaction
+            for _ in self._iter_views("vol"):  # will traverse all
+                self._renderer.set_interaction(interaction)
+            self._configure_arrow_keys()
+            if self.time_viewer:
+                self._update_flat_widgets()
+                self._configure_help()
         if self.silhouette:
             for actor in self._silhouette_actors:
                 self.plotter.remove_actor(actor)
             self._add_silhouette()
         self.reset_view()
-        self._renderer._update()
 
     def _add_silhouette(self):
         self._silhouette_actors = []
@@ -4258,6 +4376,8 @@ class Brain:
             The silhouette line width. A value of ``0`` hides the
             silhouette entirely.
         """
+        if self._surf == "flat":
+            raise ValueError('silhouette is not supported for surf="flat"')
         line_width = float(line_width)
         self._silhouette["line_width"] = line_width
         if line_width <= 0:

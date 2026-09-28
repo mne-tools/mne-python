@@ -2,7 +2,10 @@ name: autofix.ci
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
-    types: [opened, synchronize, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -19,10 +22,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v7.0.0
-      - run: pip install --upgrade towncrier pygithub gitpython numpy vulture
-      - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
+      - run: pip install --upgrade gitpython numpy vulture
       - run: python ./tools/dev/ensure_headers.py
       - run: vulture
+      - name: Rename towncrier files
+        uses: mne-tools/mne-tools/actions/rename-towncrier@main
+        with:
+          project-root: ${{ github.workspace }}
       # Run this last, since it can fail the job if moved up
       - uses: j178/prek-action@v3.0.0
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
@@ -62,7 +68,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -98,6 +104,6 @@ jobs:
           # ffmpeg is pinned to work around a conda solver issue (gh-14023)
           additional-dependencies: pip,mamba,conda,nomkl,noqt5,ffmpeg==8.1.2
           pip-dependencies: jamica,pymef
-          requirements-overrides: PySide6==6.11.1,vtk==9.6.2
+          requirements-overrides: PySide6==6.11.1,vtk==9.6.2,neo->python-neo
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()

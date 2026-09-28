@@ -291,7 +291,7 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
         # Find closest remaining channels for same frequency
         closest_dist_idx = np.argmin(dists_to_bad) + (bad_dist_idx % 2)
         closest_raw_idx = picks_nirs[closest_dist_idx]
-        inst._data[bad_raw_idx] = inst._data[closest_raw_idx]
+        inst._data[..., bad_raw_idx, :] = inst._data[..., closest_raw_idx, :]
 
     # TODO: this seems like a bug because it does not respect reset_bads
     inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]

@@ -129,6 +129,7 @@ def test_interpolate_bridged_electrodes():
     data[:5, :] = np.ones((5, 1024))
     raw = io.RawArray(data, info)
     raw.set_montage("spherical_1005")
+    raw.info["bads"] = [ch_names[10]]  # a bad channel outside the bridged group
     bridged_idx = list(itertools.combinations(range(5), 2))
     with pytest.raises(
         RuntimeError,
@@ -136,6 +137,8 @@ def test_interpolate_bridged_electrodes():
         "together and form a large area of bridged electrodes.",
     ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
+    # bads must be preserved when the error is raised
+    assert raw.info["bads"] == [ch_names[10]]
     # increase the limit to prevent raising
     interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)
     # invalid argument

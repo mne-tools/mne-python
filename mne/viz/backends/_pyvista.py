@@ -25,7 +25,6 @@ from pyvista import (
     close_all,
 )
 from pyvista.plotting.plotter import _ALL_PLOTTERS
-from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
@@ -129,10 +128,10 @@ class PyVistaFigure(Figure3D):
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
             self.store["update_app_icon"] = False
-            self._plotter_class = _SafeBackgroundPlotter
-            if "app_window_class" in signature(BackgroundPlotter).parameters:
-                from ._qt import _MNEMainWindow
+            from ._qt import _MNEMainWindow, _SafeBackgroundPlotter
 
+            self._plotter_class = _SafeBackgroundPlotter
+            if "app_window_class" in signature(_SafeBackgroundPlotter).parameters:
                 self.store["app_window_class"] = _MNEMainWindow
         else:
             from ._notebook import _NotebookPlotter
@@ -1647,10 +1646,3 @@ def _is_osmesa_from_report(gpu_info_full):
                 )
         is_osmesa = "llvmpipe" in gpu_info
     return is_osmesa
-
-
-class _SafeBackgroundPlotter(BackgroundPlotter):
-    # https://github.com/pyvista/pyvistaqt/pull/258
-    def __del__(self) -> None:  # pragma: no cover
-        """Delete the qt plotter."""
-        self.close()

@@ -1721,7 +1721,8 @@ def notch_filter(
         corresponds to ``"10s"``.
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
-        If None, freqs / 200 is used.
+        If None, freqs / 200 is used. For ``method='spectrum_fit'``, this is
+        the width of the band in which the line frequency is searched for.
     trans_bandwidth : float
         Width of the transition band in Hz.
         Only used for ``method='fir'`` and ``method='iir'``.
@@ -1843,10 +1844,12 @@ def notch_filter(
 
     References
     ----------
-    Multi-taper removal is inspired by code from the Chronux toolbox, see
-    www.chronux.org and the book "Observed Brain Dynamics" by Partha Mitra
-    & Hemant Bokil, Oxford University Press, New York, 2008. Please
-    cite this in publications if method 'spectrum_fit' is used.
+    Multi-taper removal uses the harmonic F test of :footcite:t:`Thomson1982`
+    and is inspired by the Chronux toolbox (www.chronux.org) and
+    :footcite:t:`MitraBokil2008`. Please cite these in publications if
+    ``method='spectrum_fit'`` is used.
+
+    .. footbibliography::
     """
     x = _check_filterable(x, "notch filtered", "notch_filter")
     iir_params, method = _check_method(method, iir_params, ["spectrum_fit"])
@@ -1921,6 +1924,10 @@ def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     window_fun, _, _ = _compute_mt_params(
         n_times, sfreq, mt_bandwidth, False, False, verbose=False
     )
+    # use K = 2NW - 1 tapers, as the last one is poorly concentrated
+    # (Bokil et al. 2010, https://doi.org/10.1016/j.jneumeth.2010.06.020)
+    if len(window_fun) > 1:
+        window_fun = window_fun[:-1]
 
     # F-stat of 1-p point
     threshold = fstat.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
@@ -2012,84 +2019,123 @@ def _mt_spectrum_remove_win(
     return x_out, rm_freqs
 
 
+def _mt_f_stat(x_p, H0, n_tapers):
+    """Compute Thomson's harmonic F statistic and complex amplitude estimate.
+
+    Parameters
+    ----------
+    x_p : array, shape (n_tapers, n_freqs)
+        Tapered spectra.
+    H0 : array, shape (n_tapers // 2 + n_tapers % 2,)
+        Sums of the symmetric (even-order) tapers across time.
+    n_tapers : int
+        Total number of tapers (the antisymmetric ones contribute only
+        to the residual).
+
+    Returns
+    -------
+    f_stat : array, shape (n_freqs,)
+        The F statistic with 2 and 2 * n_tapers - 2 degrees of freedom.
+    A : array, shape (n_freqs,)
+        The complex line amplitude estimate.
+    """
+    # Thomson 1982 eqs. 13.5 and 13.10, https://doi.org/10.1109/PROC.1982.12433
+    tapers_sym = slice(0, n_tapers, 2)
+    tapers_asym = slice(1, n_tapers, 2)
+    H0_sq = sum_squared(H0)
+    A = np.sum(x_p[tapers_sym] * H0[:, np.newaxis], axis=0) / H0_sq
+    num = (n_tapers - 1) * (A * A.conj()).real * H0_sq
+    den = np.sum(np.abs(x_p[tapers_sym] - A * H0[:, np.newaxis]) ** 2, axis=0)
+    den += np.sum(np.abs(x_p[tapers_asym]) ** 2, axis=0)
+    den[den == 0] = np.inf
+    return num / den, A
+
+
+@lru_cache(maxsize=100)
+def _get_czt(n_times, n_zoom, step_norm):
+    """Get a (cached) chirp-z transform to zoom in on a frequency band."""
+    from scipy.signal import CZT
+
+    return CZT(n_times, n_zoom, w=np.exp(-2j * np.pi * step_norm))
+
+
 def _mt_spectrum_remove(
     x, sfreq, line_freqs, notch_widths, window_fun, threshold, get_thresh
 ):
     """Use MT-spectrum to remove line frequencies.
 
-    Based on Chronux. If line_freqs is specified, all freqs within notch_width
-    of each line_freq is set to zero.
+    Uses Thomson's harmonic F test, see Thomson 1982 and Percival & Walden
+    1993 section 10.11. If line_freqs is specified, the peak of the F
+    statistic within notch_width of each line_freq is used.
     """
+    from scipy.fft import next_fast_len
+
     from .time_frequency.multitaper import _mt_spectra
 
     assert x.ndim == 1
     if x.shape[-1] != window_fun.shape[-1]:
         window_fun, threshold = get_thresh(x.shape[-1])
-    # drop the even tapers
     n_tapers = len(window_fun)
-    tapers_odd = np.arange(0, n_tapers, 2)
-    tapers_even = np.arange(1, n_tapers, 2)
-    tapers_use = window_fun[tapers_odd]
-
-    # sum tapers for (used) odd prolates across time (n_tapers, 1)
-    H0 = np.sum(tapers_use, axis=1)
-
-    # sum of squares across tapers (1, )
-    H0_sq = sum_squared(H0)
-
+    # sum symmetric (even-order) tapers across time; antisymmetric ones sum to 0
+    H0 = np.sum(window_fun[::2], axis=1)
     # make "time" vector
     rads = 2 * np.pi * (np.arange(x.size) / float(sfreq))
+    x_mean = x.mean()
+    x = x - x_mean
 
-    # compute mt_spectrum (returning n_ch, n_tapers, n_freq)
-    x_p, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
-
-    # sum of the product of x_p and H0 across tapers (1, n_freqs)
-    x_p_H0 = np.sum(x_p[:, tapers_odd, :] * H0[np.newaxis, :, np.newaxis], axis=1)
-
-    # resulting calculated amplitudes for all freqs
-    A = x_p_H0 / H0_sq
+    # Compute the mt_spectrum on a 4x zero-padded grid (n_tapers, n_freq): the
+    # F statistic is very narrow in frequency, so lines that fall between the
+    # unpadded frequency bins are otherwise missed or fitted at the wrong freq
+    n_fft = next_fast_len(4 * x.size)
+    x_p, freqs = _mt_spectra(x[np.newaxis], window_fun, sfreq, n_fft=n_fft)
+    x_p = x_p[0]
+    f_stat, _ = _mt_f_stat(x_p, H0, n_tapers)
+    # DC and Nyquist are scaled differently by _mt_spectra, and DC was removed
+    f_stat[[0, -1]] = 0
 
     if line_freqs is None:
-        # figure out which freqs to remove using F stat
-
-        # estimated coefficient
-        x_hat = A * H0[:, np.newaxis]
-
-        # numerator for F-statistic
-        num = (n_tapers - 1) * (A * A.conj()).real * H0_sq
-        # denominator for F-statistic
-        den = np.sum(np.abs(x_p[:, tapers_odd, :] - x_hat) ** 2, 1) + np.sum(
-            np.abs(x_p[:, tapers_even, :]) ** 2, 1
-        )
-        den[den == 0] = np.inf
-        f_stat = num / den
-
-        # find frequencies to remove
-        indices = np.where(f_stat > threshold)[1]
-        rm_freqs = freqs[indices]
-    else:
-        # specify frequencies
-        indices_1 = np.unique([np.argmin(np.abs(freqs - lf)) for lf in line_freqs])
-        indices_2 = [
-            np.logical_and(freqs > lf - nw / 2.0, freqs < lf + nw / 2.0)
-            for lf, nw in zip(line_freqs, notch_widths)
+        # figure out which freqs to remove using F stat, keeping only the
+        # peak of each group of hits closer than the resolution 2W (inspired by
+        # nitime.utils.detect_lines, BSD-3)
+        detected = np.where(f_stat > threshold)[0]
+        n_bins_bw = 4 * (n_tapers + 1)  # 2W in padded bins, as n_tapers = 2NW - 1
+        breaks = np.where(np.diff(detected) >= n_bins_bw)[0] + 1
+        indices = [
+            grp[np.argmax(f_stat[grp])]
+            for grp in np.split(detected, breaks)
+            if len(grp)
         ]
-        indices_2 = np.where(np.any(np.array(indices_2), axis=0))[0]
-        indices = np.unique(np.r_[indices_1, indices_2])
-        rm_freqs = freqs[indices]
-
-    if len(indices) == 0:
-        datafit = 0.0
     else:
-        c = 2 * A[0, indices]
-        # fitted sinusoids are summed, and subtracted from data
-        datafit = np.sum(
-            np.abs(c)[:, np.newaxis]
-            * np.cos(freqs[indices, np.newaxis] * rads + np.angle(c)[:, np.newaxis]),
-            axis=0,
-        )
+        # specify frequencies: use the F peak within notch_width of each
+        indices = list()
+        for lf, nw in zip(line_freqs, notch_widths):
+            sel = np.where(np.abs(freqs - lf) <= nw / 2.0)[0]
+            if len(sel) == 0:
+                sel = [np.argmin(np.abs(freqs - lf))]
+            indices.append(sel[np.argmax(f_stat[sel])])
 
-    return x - datafit, rm_freqs
+    # fitted sinusoids are subtracted from data, refining each frequency by
+    # maximizing the F statistic on a fine grid around the grid peak, following
+    # Thomson (1982), who estimates the line frequency as the location of the
+    # maximum of F. Evaluating F locally with a chirp-z transform is much cheaper
+    # than zero-padding the full FFT enough to resolve the (very narrow) F peak.
+    # 201 points across +/- 1 padded bin gives a step of 1/100 of a bin, which
+    # is fine enough to reach the noise floor when subtracting the sinusoid.
+    n_zoom = 201
+    df = freqs[1] - freqs[0]
+    step = 2 * df / (n_zoom - 1)
+    czt = _get_czt(x.size, n_zoom, step / sfreq)
+    rm_freqs = list()
+    for idx in indices:
+        f_zoom = freqs[idx] - df + step * np.arange(n_zoom)
+        x_z = czt(window_fun * x * np.exp(-1j * f_zoom[0] * rads))
+        f_stat_z, A_z = _mt_f_stat(x_z, H0, n_tapers)
+        best = np.argmax(f_stat_z)
+        c = 2 * A_z[best]
+        x -= np.abs(c) * np.cos(f_zoom[best] * rads + np.angle(c))
+        rm_freqs.append(f_zoom[best])
+
+    return x + x_mean, rm_freqs
 
 
 def _check_filterable(x, kind="filtered", alternative="filter"):

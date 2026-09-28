@@ -1051,8 +1051,7 @@ contours : int | array-like
     matplotlib tick locator (may sometimes be inaccurate, use array for
     accuracy). If array-like, the array values are used as the contour levels.
     The values should be in µV for EEG, fT for magnetometers and fT/m for
-    gradiometers. If ``colorbar=True``, the colorbar will have ticks
-    corresponding to the contour levels. Default is ``6``.
+    gradiometers. Default is ``6``.
 """
 
 docdict["coord_frame_maxwell"] = """
@@ -1597,6 +1596,8 @@ EDF standard).
 docdict["export_eeglab_note"] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+Data of 2 GB or more are written in MATLAB's HDF5-based v7.3 format, which
+requires h5py.
 """
 
 _export_fmt_params_base = """\
