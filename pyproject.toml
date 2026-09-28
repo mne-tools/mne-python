@@ -18,17 +18,17 @@ doc = [
   "jupyterlite-pyodide-kernel >= 0.8",
   # [lock] brings pyodide-lock and uv for jupyter_lite_config.py; pyodide-lock
   # needs 3.12, which every docs build has
-  "jupyterlite-pyodide-kernel[lock] >= 0.8; python_version >= '3.12'",
+  "jupyterlite-pyodide-kernel >= 0.8[lock]; python_version >= '3.12'",
   "jupyterlite-sphinx >= 0.23",
   "memory_profiler >= 0.16",
   "mne-bids",
   "mne-connectivity",
   "mne-gui-addons",
-  "neo",
+  "neo",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "numpydoc >= 0.5",
   "openneuro-py >= 2020.1",  # released 2023-06-30, will become 0.12 on 2028-07-01
   "psutil",
-  "pydata-sphinx-theme >= 0.15.2",
+  "pydata-sphinx-theme >= 0.15.2",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "pygments >= 2.13",
   "pymef",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "pyvistaqt >= 0.11",  # released 2023-06-30, will become 0.12 on 2028-07-01
@@ -54,12 +54,12 @@ jupyterlite = [
   "joblib",
   "mffpy",
   "mne-connectivity",
-  "nibabel",
-  "pandas",
+  "nibabel >= 5.2",  # released 2023-12-11, will become 5.3 on 2026-10-08
+  "pandas >= 2.2",  # released 2024-01-20, will become 2.3 on 2027-06-05
   "python-picard",
   "pyvista-js",
   "pyxdf",
-  "scikit-learn",
+  "scikit-learn >= 1.5",  # released 2024-05-21, will become 1.6 on 2026-12-09
   "seaborn",
 ]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
