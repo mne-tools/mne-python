@@ -190,7 +190,7 @@ def _make_sparse_stc(
 def _split_gof(M, X, gain):
     # parse out the variance explained using an orthogonal basis
     # assuming x is estimated using elements of gain, with residual res
-    # along the first axis
+    # along the first axis; sums over dipoles to _log_exp_var(M, gain @ X, axis=0)
     assert M.ndim == X.ndim == gain.ndim == 2, (M.ndim, X.ndim, gain.ndim)
     assert gain.shape == (M.shape[0], X.shape[0])
     assert M.shape[1] == X.shape[1]

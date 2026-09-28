@@ -1080,11 +1080,19 @@ def apply_inverse(
     return out
 
 
-def _log_exp_var(data, est, prefix="    "):
+@_verbose_control
+def _log_exp_var(data, est, prefix="    ", axis=None, verbose=None):
+    # Callers pass whitened data, as in MNE-C's fit_dipoles.c: fits are noise-weighted
+    # least squares, so the goodness of fit is calculated in that space, which is
+    # standard for generalized least squares (n.b. whitening also puts MEG/EEG on a
+    # common scale, see MNE-C manual 2.7.3, section 7.15.2). See also statsmodels GLS:
+    # https://github.com/statsmodels/statsmodels/blob/40e6a84d26ac74623c6b94b718f0987ef0351c53/statsmodels/regression/linear_model.py#L1719-L1784
     res = data - est
-    var_exp = 1 - ((res * res.conj()).sum().real / (data * data.conj()).sum().real)
-    var_exp *= 100
-    logger.info(f"{prefix}Explained {var_exp:5.1f}% variance")
+    norm = (data * data.conj()).sum(axis).real
+    res_norm = (res * res.conj()).sum(axis).real
+    ratio = np.divide(res_norm, norm, out=np.ones_like(norm), where=norm > 0)
+    var_exp = 100 * (1 - ratio)
+    logger.info("%sExplained %5.1f%% variance", prefix, var_exp)
     return var_exp
 
 
