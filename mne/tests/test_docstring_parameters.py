@@ -551,6 +551,10 @@ def _annotation_to_str(ann, *, expand_literals=False):
         if args:
             return f"{name}[{', '.join(_annotation_to_str(a) for a in args)}]"
         return name
+    if isinstance(ann, typing.TypeVar):
+        if ann.__name__ == "RawEpoEvkT":
+            # technically `BaseRaw | BaseEpochs | Evoked` but docstring doesn't say that
+            return "Raw | Epochs | Evoked"
     if isinstance(ann, str):  # unevaluated forward reference, e.g. "EpochsFIF"
         return ann
     if ann is type(None):

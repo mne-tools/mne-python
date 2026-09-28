@@ -1276,9 +1276,9 @@ def make_projector(
     ----------
     projs : list
         List of projection vectors.
-    ch_names : list of str
+    ch_names : sequence of str
         List of channels to include in the projection matrix.
-    bads : list of str
+    bads : sequence of str
         Some bad channels to exclude. If bad channels were marked
         in the raw file when projs were calculated using mne-python,
         they should not need to be included here as they will

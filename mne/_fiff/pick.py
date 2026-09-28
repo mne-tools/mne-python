@@ -305,15 +305,15 @@ def pick_channels(
 
     Parameters
     ----------
-    ch_names : list of str
+    ch_names : sequence of str
         List of channels.
-    include : list of str
+    include : sequence of str
         List of channels to include (if empty include all available).
 
         .. note:: This is to be treated as a set. The order of this list
            is not used or maintained in ``sel``.
 
-    exclude : list of str
+    exclude : sequence of str
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
     ordered : bool
@@ -376,7 +376,7 @@ def pick_channels_regexp(ch_names: Sequence[str], regexp: str) -> list[int]:
 
     Parameters
     ----------
-    ch_names : list of str
+    ch_names : sequence of str
         List of channels.
 
     regexp : str
@@ -385,7 +385,7 @@ def pick_channels_regexp(ch_names: Sequence[str], regexp: str) -> list[int]:
 
     Returns
     -------
-    sel : array of int
+    sel : list of int
         Indices of good channels.
 
     See Also
@@ -608,13 +608,13 @@ def pick_types(
         (default) include none. If string it can be 'eyegaze' (to include
         eye position channels) or 'pupil' (to include pupil-size
         channels).
-    include : list of str
+    include : sequence of str
         List of additional channels to include. If empty do not include
         any.
-    exclude : list of str | str
+    exclude : sequence of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in ``info['bads']``.
-    selection : list of str
+    selection : sequence of str
         Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
 
     Returns
@@ -758,9 +758,8 @@ def pick_info(
     info : mne.Info
         The :class:`mne.Info` object with information about the
         sensors and methods of measurement.
-    sel : list of int | None
-        Indices of channels to include. If None, all channels
-        are included.
+    sel : array-like of int | None
+        Indices of channels to include. If None, all channels are included.
     copy : bool
         If copy is False, info is modified inplace.
     verbose : bool | str | int | None
@@ -771,7 +770,7 @@ def pick_info(
 
     Returns
     -------
-    res : dict
+    res : Info
         Info structure restricted to a selection of channels.
     """
     # avoid circular imports
@@ -865,12 +864,12 @@ def pick_channels_forward(
 
     Parameters
     ----------
-    orig : dict
+    orig : Forward
         A forward solution.
-    include : list of str
+    include : sequence of str
         List of channels to include (if empty, include all available).
         Defaults to [].
-    exclude : list of str | 'bads'
+    exclude : sequence of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
     ordered : bool
@@ -892,7 +891,7 @@ def pick_channels_forward(
 
     Returns
     -------
-    res : dict
+    res : Forward
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
@@ -967,7 +966,7 @@ def pick_types_forward(
 
     Parameters
     ----------
-    orig : dict
+    orig : Forward
         A forward solution.
     meg : bool | str
         If True include MEG channels. If string it can be 'mag', 'grad',
@@ -983,15 +982,15 @@ def pick_types_forward(
         If True include electrocorticography channels.
     dbs : bool
         If True include deep brain stimulation channels.
-    include : list of str
+    include : sequence of str
         List of additional channels to include. If empty do not include any.
-    exclude : list of str | str
+    exclude : sequence of str | 'bads'
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in orig['info']['bads'].
 
     Returns
     -------
-    res : dict
+    res : Forward
         Forward solution restricted to selected channel types.
     """
     info = orig["info"]
@@ -1041,7 +1040,7 @@ def channel_indices_by_type(
         :term:`data channels`. None (default) will pick all channels. Bad channels
         are included by default. Note that channels in ``info['bads']`` *will be
         included* if their names or indices are explicitly provided.
-    exclude : list | str
+    exclude : sequence | 'bads'
         Set of channels to exclude, only used when picking based on
         types (e.g., exclude="bads" when picks="meg").
 
@@ -1099,9 +1098,9 @@ def pick_channels_cov(
     ----------
     orig : Covariance
         A covariance.
-    include : list of str
+    include : sequence of str
         List of channels to include (if empty, include all available).
-    exclude : list of str | 'bads'
+    exclude : sequence of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
     ordered : bool
         If True (default), ensure that the order of the channels in
@@ -1123,7 +1122,7 @@ def pick_channels_cov(
 
     Returns
     -------
-    res : dict
+    res : Covariance
         Covariance solution restricted to selected channels.
     """
     if copy:

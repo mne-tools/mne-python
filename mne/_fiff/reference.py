@@ -247,8 +247,8 @@ def add_reference_channels(
 
     Returns
     -------
-    inst : same type as the input data
-        Data with added EEG reference channels.
+    inst : Raw | Epochs | Evoked
+        Same instance type as the input data, with added EEG reference channels.
 
     Notes
     -----
@@ -440,7 +440,7 @@ def set_eeg_reference(
         ``projection=False``, the average reference is directly applied to
         the data. If ``ref_channels`` is not ``'average'``, ``projection``
         must be set to ``False`` (the default in this case).
-    ch_type : list of str | str
+    ch_type : "auto" | "eeg" | "ecog" | "seeg" | "dbs" | sequence of str
         The name of the channel type to apply the reference to.
         Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
         ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
@@ -746,8 +746,8 @@ def set_bipolar_reference(
 
     Returns
     -------
-    inst : same type as the input data
-        Data with the specified channels re-referenced.
+    inst : Raw | Epochs | Evoked
+        Same instance type as the input data, with the specified channels re-referenced.
 
     See Also
     --------
