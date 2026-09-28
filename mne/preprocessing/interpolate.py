@@ -84,9 +84,9 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     that to aid in interpolation rather than completely discarding the
     data from the two channels.
 
-    Channels in ``inst.info["bads"]`` that are not part of the bridged
-    set are excluded from the interpolation: they are neither used to
-    compute the interpolated values nor interpolated themselves.
+    .. versionchanged:: 1.14
+       Pre-existing bad channels that are not part of the bridged set are
+       now excluded from the interpolation.
 
     Parameters
     ----------
