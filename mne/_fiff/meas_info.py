@@ -15,7 +15,7 @@ from functools import partial
 from io import BytesIO
 from os import PathLike
 from textwrap import shorten
-from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import IO, TYPE_CHECKING, Any, Literal, Self
 
 import numpy as np
 
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from mpl_toolkits.mplot3d.axes3d import Axes3D
 
-    from ..bem import ConductorModel
     from ..channels.montage import DigMontage
 
 from ..defaults import _handle_default
@@ -48,7 +47,7 @@ from ..utils import (
     warn,
 )
 from ..utils._bunch import NamedFloat, NamedInt
-from ..utils._typing import CoordFrameStr, LogLevel, RaiseWarnIgnore
+from ..utils._typing import CoordFrameStr, LogLevel, RaiseWarnIgnore, SphereT
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -484,7 +483,7 @@ class MontageMixin:
     @fill_doc_static("sphere_topomap_auto")
     def set_head_sphere(
         self,
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
     ) -> Self:
         """Store the head sphere used to draw topomaps in the measurement info.
 
@@ -842,7 +841,7 @@ class SetChannelsMixin(MontageMixin):
         axes: "Axes | Axes3D | None" = None,
         block: bool | None = None,
         show: bool = True,
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         *,
         verbose: LogLevel = None,
     ) -> "Any":

@@ -4,9 +4,13 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from typing import IO, TYPE_CHECKING, Literal, Self, TypeVar
+from collections.abc import Sequence
+from typing import IO, TYPE_CHECKING, Annotated, Literal, Self, TypeAlias, TypeVar
+
+import numpy as np
 
 if TYPE_CHECKING:
+    from ..bem import ConductorModel
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..io import BaseRaw
@@ -49,6 +53,17 @@ RaiseWarnIgnore = Literal["raise", "warn", "ignore"]
 # for type-hinting funcs that take in an instance and return (a copy of) the same type
 RawEpoEvkT = TypeVar("RawEpoEvkT", "BaseRaw", "BaseEpochs", "Evoked")
 
+# all the possible ways of specifying the head sphere
+SphereT: TypeAlias = (
+    float  # radius
+    | Annotated[Sequence[float], 4]  # x, y, z, radius
+    | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]]  # x, y, z, radius
+    | "ConductorModel"
+    | Literal["auto", "cardinal", "eeg", "extra", "hpi", "eeglab"]
+    | list[Literal["cardinal", "eeg", "extra", "hpi"]]
+    | None
+)
+
 __all__ = [
     "Color",
     "CoordFrameStr",
@@ -59,4 +74,5 @@ __all__ = [
     "RaiseWarnIgnore",
     "RawEpoEvkT",
     "Self",
+    "SphereT",
 ]

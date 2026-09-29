@@ -24,7 +24,7 @@ from ..utils import (
     verbose_static,
     warn,
 )
-from ..utils._typing import EEGSensor, LogLevel, MEGSensor
+from ..utils._typing import EEGSensor, LogLevel, MEGSensor, SphereT
 from .constants import FIFF
 from .pick import _ELECTRODE_CH_TYPES, _electrode_types, pick_info, pick_types
 from .tag import _rename_list, find_tag
@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from matplotlib.colors import Colormap, Normalize
     from matplotlib.figure import Figure
 
-    from ..bem import ConductorModel
     from ..forward import Forward
     from .meas_info import Info
 
@@ -145,7 +144,7 @@ class Projection(dict):
         show_names: bool | Callable = False,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -657,7 +656,7 @@ class ProjMixin:
         show_names: bool | Callable = False,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
