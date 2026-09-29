@@ -189,6 +189,14 @@ class DigPoint(UserDict):
             )
         super().__setitem__(key, item)
 
+    def __getstate__(self):
+        """Prepare object for serialization."""
+        return dict(self)
+
+    def __setstate__(self, state):
+        """Unpack from serialized format."""
+        return self.__init__(state)
+
 
 def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
     """Read digitizer data from a FIFF file."""
