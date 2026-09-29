@@ -1061,6 +1061,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         sphere=None,
         exclude=(),
         axes=None,
+        selectable=True,
         show=True,
     ):
         """Plot power or amplitude spectra.
@@ -1174,6 +1175,13 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
             a :class:`list` of axes), the number of axes provided must
             match the length of ``bands``. Default is ``None``.
+        selectable : bool
+            Whether to enable the interactive features used when ``average=False``
+            (the channel name shown on hover, and the topomap drawn on click-dragging).
+            Disabling them is useful when plotting many spectra into the ``axes`` of
+            one figure.
+
+            .. versionadded:: 1.14
         show : bool
             Show the figure if ``True``. When shown, blocking follows
             :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
@@ -1253,6 +1261,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             line_alpha=alpha,
             sphere=sphere,
             xlabels_list=xlabels_list,
+            selectable=selectable,
         )
         plt_show(show, fig)
         return fig
