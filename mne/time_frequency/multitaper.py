@@ -218,6 +218,7 @@ def _psd_from_mt(x_mt, weights):
     return psd
 
 
+# Unused in MNE-Python but imported by mne-connectivity
 def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     """Compute CSD from tapered spectra.
 
