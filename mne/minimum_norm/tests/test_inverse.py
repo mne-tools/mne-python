@@ -1121,7 +1121,7 @@ def test_io_inverse_operator(tmp_path):
     _compare_io(inverse_operator, out_file_ext=".gz", tmp_path=tmp_path)
 
     # test warnings on bad filenames
-    inv_badname = tmp_path / "test-bad-name.fif.gz"
+    inv_badname = tmp_path / "test-bad-name.fif"
     with pytest.warns(RuntimeWarning, match="-inv.fif"):
         write_inverse_operator(inv_badname, inverse_operator)
     with pytest.warns(RuntimeWarning, match="-inv.fif"):

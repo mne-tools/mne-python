@@ -90,7 +90,9 @@ def estimate_rank(
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
-    s = linalg.svdvals(data)
+    # equivalent to svdvals(data) but much faster for large sample counts
+    r = linalg.qr(data.T if data.shape[1] > data.shape[0] else data, mode="r")[0]
+    s = linalg.svdvals(r[: min(data.shape)])
     rank = _estimate_rank_from_s(s, tol, tol_kind)
     if return_singular is True:
         return rank, s
@@ -224,7 +226,7 @@ def _estimate_rank_meeg_signals(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, ref_meg=True)
     assert data.ndim == 2, data.shape
     n_channels, n_samples = data.shape
     if n_samples < n_channels:
