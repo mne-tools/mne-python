@@ -1092,7 +1092,8 @@ def _log_exp_var(data, est, prefix="    ", axis=None, verbose=None):
     res_norm = (res * res.conj()).sum(axis).real
     ratio = np.divide(res_norm, norm, out=np.ones_like(norm), where=norm > 0)
     var_exp = 100 * (1 - ratio)
-    logger.info("%sExplained %5.1f%% variance", prefix, var_exp)
+    if var_exp.ndim == 0:
+        logger.info("%sExplained %5.1f%% variance", prefix, var_exp)
     return var_exp
 
 
