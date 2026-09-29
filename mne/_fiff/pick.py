@@ -770,7 +770,7 @@ def pick_info(
 
     Returns
     -------
-    res : Info
+    res : instance of Info
         Info structure restricted to a selection of channels.
     """
     # avoid circular imports
@@ -891,7 +891,7 @@ def pick_channels_forward(
 
     Returns
     -------
-    res : Forward
+    res : instance of Forward
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
@@ -990,7 +990,7 @@ def pick_types_forward(
 
     Returns
     -------
-    res : Forward
+    res : instance of Forward
         Forward solution restricted to selected channel types.
     """
     info = orig["info"]
@@ -1122,7 +1122,7 @@ def pick_channels_cov(
 
     Returns
     -------
-    res : Covariance
+    res : instance of Covariance
         Covariance solution restricted to selected channels.
     """
     if copy:
