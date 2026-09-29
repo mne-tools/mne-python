@@ -12,7 +12,6 @@ from .._fiff.pick import _picks_to_idx, pick_channels
 from ..parallel import parallel_func
 from ..time_frequency.multitaper import (
     _compute_mt_params,
-    _csd_from_mt,
     _mt_spectra,
     _psd_from_mt_adaptive,
 )
@@ -1555,12 +1554,7 @@ def _csd_fourier(X, sfreq, n_times, freq_mask, n_fft):
     # Hack so we can sum over axis=-2
     weights = np.array([1.0])[np.newaxis, :, np.newaxis]
 
-    x_mt = x_mt[:, :, freq_mask]
-
-    # Calculate CSD for upper-triangle channel pairs directly.
-    # This avoids computing/storing the full channel x channel matrix.
-    ii, jj = np.triu_indices(x_mt.shape[0])
-    csds = _csd_from_mt(x_mt[ii], x_mt[jj], weights, weights)
+    csds = _csd_triu_from_mt(x_mt[:, :, freq_mask], weights)
 
     # Scaling by number of samples and compensating for loss of power
     # due to windowing (see section 11.5.2 in Bendat & Piersol).
@@ -1571,6 +1565,18 @@ def _csd_fourier(X, sfreq, n_times, freq_mask, n_fft):
     csds /= sfreq
 
     return csds
+
+
+def _csd_triu_from_mt(x_mt, weights):
+    """Compute the upper-triangle CSD (like _csd_from_mt) of all channel pairs."""
+    # the per-pair normalization in _csd_from_mt factors into per-channel scaling
+    weights_sq = (weights * weights.conj()).real
+    # sqrt(2) per channel gives the one-sided spectrum's factor of 2 in each product
+    x_mt = weights * x_mt * np.sqrt(2 / weights_sq.sum(axis=-2, keepdims=True))
+    x_mt = x_mt.transpose(2, 0, 1)  # (n_freqs, n_channels, n_tapers)
+    csds = x_mt @ x_mt.conj().swapaxes(-1, -2)
+    ii, jj = np.triu_indices(x_mt.shape[1])
+    return csds[:, ii, jj].T
 
 
 def _csd_multitaper(
@@ -1588,19 +1594,7 @@ def _csd_multitaper(
         # Do not use adaptive weights
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
-    x_mt = x_mt[:, :, freq_mask]
-
-    # Calculate CSD for upper-triangle channel pairs directly.
-    # This avoids computing/storing the full channel x channel matrix.
-    ii, jj = np.triu_indices(x_mt.shape[0])
-    x_mt_i = x_mt[ii]
-    x_mt_j = x_mt[jj]
-    if adaptive:
-        weights_i = weights[ii]
-        weights_j = weights[jj]
-    else:
-        weights_i = weights_j = weights
-    csds = _csd_from_mt(x_mt_i, x_mt_j, weights_i, weights_j)
+    csds = _csd_triu_from_mt(x_mt[:, :, freq_mask], weights)
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
