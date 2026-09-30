@@ -1691,13 +1691,15 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
     coil_types = np.array([ch["coil_type"] for ch in meg_info["chs"]])
     mag_or_fine[(coil_types & 0xFFFF) == FIFF.FIFFV_COIL_KIT_GRAD] = False
-    # The same thing goes for CTF gradiometers...
-    ctf_grads = [
+    # The same thing goes for CTF and Artemis123 gradiometers...
+    axial_grads = [
         FIFF.FIFFV_COIL_CTF_GRAD,
         FIFF.FIFFV_COIL_CTF_REF_GRAD,
         FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
+        FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
+        FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ]
-    mag_or_fine[np.isin(coil_types, ctf_grads)] = False
+    mag_or_fine[np.isin(coil_types, axial_grads)] = False
     msg = (
         f"    Processing {len(grad_picks)} gradiometers "
         f"and {len(mag_picks)} magnetometers"
