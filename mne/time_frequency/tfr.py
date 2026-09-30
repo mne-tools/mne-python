@@ -3822,14 +3822,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         out = self.__getstate__()
         if "metadata" in out:
             out["metadata"] = _prepare_write_metadata(out["metadata"])
-        write_hdf5(
-            fname,
-            out,
-            overwrite=overwrite,
-            title="mnepython",
-            slash="replace",
-            use_state=True,
-        )
+        write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
     @verbose_static(
         "picks_all", "index_df_epo", "long_format_df_epo", "time_format_df", "df_return"
@@ -6352,14 +6345,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
         if "metadata" in state:
             state["metadata"] = _prepare_write_metadata(state["metadata"])
         out.append((comment, state))
-    write_hdf5(
-        fname,
-        out,
-        overwrite=overwrite,
-        title="mnepython",
-        slash="replace",
-        use_state=True,
-    )
+    write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
 
 @verbose_static()

@@ -10,7 +10,6 @@ import operator
 import os
 import shutil
 import sys
-from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO, StringIO
@@ -736,7 +735,7 @@ def object_size(x, memo=None):
             size += x.nbytes
     elif isinstance(x, np.generic):
         size = x.nbytes
-    elif isinstance(x, Mapping):  # DigPoint is UserDict, not dict, hence Mapping
+    elif isinstance(x, dict):
         size = sys.getsizeof(x)
         for key, value in x.items():
             size += object_size(key, memo)

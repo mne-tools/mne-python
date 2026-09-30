@@ -2511,7 +2511,7 @@ def _make_serializable(obj):
         }
     elif isinstance(obj, (list, tuple)):
         return [_make_serializable(item) for item in obj]
-    elif isinstance(obj, Mapping):  # DigPoint is UserDict, not dict, hence Mapping
+    elif isinstance(obj, dict):
         return {key: _make_serializable(val) for key, val in obj.items()}
     else:
         # Try to convert to string as fallback

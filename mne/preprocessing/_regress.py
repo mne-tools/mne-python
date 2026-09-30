@@ -574,7 +574,7 @@ class EOGRegression:
         _, write_hdf5 = _import_h5io_funcs()
         _validate_type(fname, "path-like", "fname")
         fname = _check_fname(fname, overwrite=overwrite, name="fname")
-        write_hdf5(fname, self.__dict__, overwrite=overwrite, use_state=True)
+        write_hdf5(fname, self.__dict__, overwrite=overwrite)
 
 
 def read_eog_regression(fname):

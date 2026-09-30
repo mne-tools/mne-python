@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import heapq
-from collections import Counter, UserDict
+from collections import Counter
 from collections.abc import Iterable
 from os import PathLike
 from typing import Any
@@ -107,7 +107,7 @@ def _count_points_by_type(dig):
     )
 
 
-class DigPoint(UserDict):
+class DigPoint(dict):
     """Container for a digitization point.
 
     This is a simple subclass of the standard dict type designed to provide
@@ -188,14 +188,6 @@ class DigPoint(UserDict):
                 f"got {type(item).__name__}"
             )
         super().__setitem__(key, item)
-
-    def __getstate__(self):
-        """Prepare object for serialization."""
-        return dict(self)
-
-    def __setstate__(self, state):
-        """Unpack from serialized format."""
-        return self.__init__(state)
 
 
 def _read_dig_fif(fid, meas_info, *, return_ch_names=False):

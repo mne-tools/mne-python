@@ -1759,14 +1759,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         check_fname(fname, "spectrum", (".h5", ".hdf5"))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
         out = self.__getstate__()
-        write_hdf5(
-            fname,
-            out,
-            overwrite=overwrite,
-            title="mnepython",
-            slash="replace",
-            use_state=True,
-        )
+        write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
     @verbose_static("picks_all", "copy_df", "long_format_df_spe", "df_return")
     def to_data_frame(
