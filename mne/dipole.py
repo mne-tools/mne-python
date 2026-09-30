@@ -2004,9 +2004,7 @@ def fit_dipole(
             )
 
     # C code computes guesses w/sphere model for speed, don't bother here
-    fwd_data = _prep_field_computation(
-        sensors=sensors, bem=bem, n_jobs=n_jobs, verbose=safe_false
-    )
+    fwd_data = _prep_field_computation(sensors=sensors, bem=bem, verbose=safe_false)
     fwd_data["inner_skull"] = inner_skull
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
         sensors=sensors,

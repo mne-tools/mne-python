@@ -392,12 +392,14 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
         for i, W in enumerate(Ws):
             fft_Ws[i] = fft(W, fsize)
+        buf = np.empty_like(fft_Ws)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
         if use_fft:
-            rets = ifft(fft(x, fsize) * fft_Ws)
+            np.multiply(fft_Ws, fft(x, fsize), out=buf)
+            rets = ifft(buf, overwrite_x=True)
 
         # Loop across wavelets
         for ii, W in enumerate(Ws):
@@ -599,10 +601,12 @@ def _compute_tfr(
     parallel, my_cwt, n_jobs = parallel_func(_time_frequency_loop, n_jobs)
 
     # Parallelization is applied across channels.
-    tfrs = parallel(
+    tfrs = (
         my_cwt(channel, Ws, output, use_fft, "same", decim, weights)
         for channel in epoch_data.transpose(1, 0, 2)
     )
+    if parallel is not list:  # when serial, iterate lazily to not hold all results
+        tfrs = parallel(tfrs)
 
     # FIXME: to avoid overheads we should use np.array_split()
     for channel_idx, tfr in enumerate(tfrs):

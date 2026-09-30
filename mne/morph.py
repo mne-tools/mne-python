@@ -1563,8 +1563,10 @@ def _apply_morph_data(morph, stc_from):
     mesg = "Ori × Time" if stc_from.data.ndim == 3 else "Time"
     data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
     n_times = data_from.shape[1]  # oris treated as times
-    data = np.empty((to_vol_stop, n_times), stc_from.data.dtype)
-    to_used = np.zeros(data.shape[0], bool)
+    dtype = stc_from.data.dtype
+    # surface-only output is filled by the morph product directly, avoiding a copy
+    data = np.empty((to_vol_stop, n_times), dtype) if do_vol else None
+    to_used = np.zeros(to_vol_stop, bool)
     from_used = np.zeros(data_from.shape[0], bool)
     if do_vol:
         stc_from_vertices = stc_from.vertices[vol_src_offset:]
@@ -1605,7 +1607,11 @@ def _apply_morph_data(morph, stc_from):
         to_sl = slice(0, to_surf_stop)
         assert not to_used[to_sl].any()
         to_used[to_sl] = True
-        data[to_sl] = morph.morph_mat @ data_from[from_sl]
+        surf_data = morph.morph_mat @ data_from[from_sl]
+        if do_vol:
+            data[to_sl] = surf_data
+        else:
+            data = surf_data.astype(dtype, copy=False)
     assert to_used.all()
     assert from_used.all()
     data = data.reshape((data.shape[0],) + stc_from.data.shape[1:], copy=False)

@@ -2463,10 +2463,11 @@ class ICA(ContainsMixin):
             raw.info, meg=False, include=self.ch_names, exclude=[], ref_meg=False
         )
 
-        data = raw[picks, start:stop][0]
-        data = self._pick_sources(data, include, exclude, n_pca_components)
-
-        raw[picks, start:stop] = data
+        A, b = self._pick_sources(include, exclude, n_pca_components)
+        step = 10000  # samples per chunk, keeps temporaries small
+        for chunk_start in range(start, stop, step):
+            sl = slice(chunk_start, min(chunk_start + step, stop))
+            _apply_affine(raw._data[:, sl], picks, A, b)
         return raw
 
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
@@ -2485,11 +2486,9 @@ class ICA(ContainsMixin):
                 "provide Epochs compatible with 'ica.ch_names'."
             )
 
-        data = np.hstack(epochs.get_data(picks))
-        data = self._pick_sources(data, include, exclude, n_pca_components)
-
-        # restore epochs, channels, tsl order
-        epochs._data[:, picks] = np.array(np.split(data, len(epochs.events), 1))
+        A, b = self._pick_sources(include, exclude, n_pca_components)
+        for epoch_data in epochs._data:
+            _apply_affine(epoch_data, picks, A, b)
         epochs.preload = True
 
         return epochs
@@ -2508,22 +2507,18 @@ class ICA(ContainsMixin):
                 "provide an Evoked object that's compatible with ica.ch_names."
             )
 
-        data = evoked.data[picks]
-        data = self._pick_sources(data, include, exclude, n_pca_components)
-
-        # restore evoked
-        evoked.data[picks] = data
-
+        A, b = self._pick_sources(include, exclude, n_pca_components)
+        _apply_affine(evoked.data, picks, A, b)
         return evoked
 
-    def _pick_sources(self, data, include, exclude, n_pca_components):
-        """Aux function."""
+    def _pick_sources(self, include, exclude, n_pca_components):
+        """Get A, b such that the cleaned data are ``A @ data + b[:, None]``."""
         if n_pca_components is None:
             n_pca_components = self.n_pca_components
-        data = self._pre_whiten(data)
+        n_ch = self.pca_components_.shape[1]
+        A = self._pre_whiten(np.eye(n_ch))
         exclude = self._check_exclude(exclude)
         _n_pca_comp = self._check_n_pca_components(n_pca_components)
-        n_ch, _ = data.shape
 
         max_pca_components = self.pca_components_.shape[0]
         if not self.n_components_ <= _n_pca_comp <= max_pca_components:
@@ -2538,10 +2533,6 @@ class ICA(ContainsMixin):
             f"    Transforming to ICA space ({self.n_components_} "
             f"component{_pl(self.n_components_)})"
         )
-
-        # Apply first PCA
-        if self.pca_mean_ is not None:
-            data -= self.pca_mean_[:, None]
 
         sel_keep = np.arange(self.n_components_)
         if include not in (None, []):
@@ -2579,19 +2570,20 @@ class ICA(ContainsMixin):
             (sel_keep, np.arange(self.n_components_, _n_pca_comp))
         )
         proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
-        data = np.dot(proj_mat, data)
         assert proj_mat.shape == (n_ch,) * 2
 
-        if self.pca_mean_ is not None:
-            data += self.pca_mean_[:, None]
-
-        # restore scaling
+        # unwhiten(proj_mat @ (whiten(x) - mean) + mean)
+        mean = np.zeros(n_ch) if self.pca_mean_ is None else self.pca_mean_
+        A = proj_mat @ A
+        b = mean - proj_mat @ mean
         if self.noise_cov is None:  # revert standardization
-            data *= self.pre_whitener_
+            A *= self.pre_whitener_
+            b *= self.pre_whitener_[:, 0]
         else:
-            data = np.linalg.pinv(self.pre_whitener_, rcond=1e-14) @ data
-
-        return data
+            unwhitener = np.linalg.pinv(self.pre_whitener_, rcond=1e-14)
+            A = unwhitener @ A
+            b = unwhitener @ b
+        return A, b
 
     @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
@@ -3445,6 +3437,12 @@ def _exp_var_ncomp(var, n):
     # We allow 1., which would give us N+1
     n = min((cvar <= n).sum() + 1, len(cvar))
     return n, cvar[n - 1]
+
+
+def _apply_affine(data, picks, A, b):
+    x = A @ data[picks]
+    x += b[:, None]
+    data[picks] = x
 
 
 def _check_start_stop(raw, start, stop):
