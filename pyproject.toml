@@ -54,12 +54,12 @@ jupyterlite = [
   "joblib",
   "mffpy",
   "mne-connectivity",
-  "nibabel",
-  "pandas",
+  "nibabel >= 5.2",
+  "pandas >= 2.2",
   "python-picard",
   "pyvista-js",
   "pyxdf",
-  "scikit-learn",
+  "scikit-learn >= 1.5",
   "seaborn",
 ]
 # Dependencies in a separate group for uv lockfile generation, currently only used for
