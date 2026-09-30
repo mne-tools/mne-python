@@ -1653,6 +1653,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
+        The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
+        seconds as image metadata. Each data array also stores its zero-based
+        sample index and time value in seconds.
+
         .. versionadded:: 1.7
         """
         nib = _import_nibabel()
@@ -1690,17 +1694,34 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             # Make the Time Series data arrays
             ts = []
             data = getattr(self, f"{hemi}_data") * scale
-            ts = [
-                nib.gifti.gifti.GiftiDataArray(
-                    data=data[:, idx].astype(np.float32),
-                    intent="NIFTI_INTENT_POINTSET",
-                    datatype="NIFTI_TYPE_FLOAT32",
+            image_meta = nib.gifti.GiftiMetaData(
+                {
+                    "TimeStart": repr(float(self.tmin)),
+                    "TimeStep": repr(float(self.tstep)),
+                    "TimeUnits": "s",
+                    "TimeSamples": str(len(self.times)),
+                }
+            )
+            for idx, time in enumerate(self.times):
+                array_meta = nib.gifti.GiftiMetaData(
+                    {
+                        "TimeIndex": str(idx),
+                        "TimeValue": repr(float(time)),
+                        "TimeUnits": "s",
+                        "Name": f"{time:g} s",
+                    }
                 )
-                for idx in range(data.shape[1])
-            ]
+                ts.append(
+                    nib.gifti.GiftiDataArray(
+                        data=data[:, idx].astype(np.float32),
+                        intent="NIFTI_INTENT_POINTSET",
+                        datatype="NIFTI_TYPE_FLOAT32",
+                        meta=array_meta,
+                    )
+                )
 
             # save the time series
-            ts_gi = nib.gifti.gifti.GiftiImage(darrays=ts)
+            ts_gi = nib.gifti.GiftiImage(darrays=ts, meta=image_meta)
             nib.save(ts_gi, f"{fname}-{hemi}.time.gii")
 
     def expand(self, vertices):
