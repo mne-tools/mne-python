@@ -1,1 +1,1 @@
-Speed up :func:`mne.preprocessing.maxwell_filter` with head movement compensation by about 3x by avoiding repeated SVDs during regularization and redundant coordinate conversions when computing the SSS basis, by `Eric Larson`_.
+Speed up :func:`mne.preprocessing.maxwell_filter` with head movement compensation by avoiding repeated computations when computing the SSS basis, by `Eric Larson`_.
