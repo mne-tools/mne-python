@@ -1,1 +1,0 @@
-Make the vertical (channel) and horizontal (time) scrollbar handles in the ``'matplotlib'`` browser backend draggable, by `Clemens Brunner`_.

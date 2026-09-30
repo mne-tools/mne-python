@@ -130,7 +130,7 @@ mne.viz.plot_alignment(
 # definition and spacing parameter.
 #
 # .. warning::
-#     ``'oct4'`` is used here just for speed, for real analyses the recommended
+#     ``'oct4'`` is used here just for speed; for real analyses the recommended
 #     spacing is ``'oct6'``.
 
 src = mne.setup_source_space(
@@ -147,7 +147,7 @@ mne.viz.plot_bem(src=src, **plot_bem_kwargs)
 
 # %%
 # To compute a volume based source space defined with a grid of candidate
-# dipoles inside a sphere of radius 90mm centered at (0.0, 0.0, 40.0) mm
+# dipoles inside a sphere of radius 90 mm centered at (0.0, 0.0, 40.0) mm
 # you can use the following code.
 # Obviously here, the sphere is not perfect. It is not restricted to the
 # brain and it can miss some parts of the cortex.

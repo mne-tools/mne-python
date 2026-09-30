@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 
-from ..utils import logger, verbose
+from ..utils import _verbose_control, logger
 from .constants import FIFF
 from .tag import read_tag
 
@@ -39,7 +39,7 @@ def dir_tree_find(tree, kind):
     return nodes
 
 
-@verbose
+@_verbose_control
 def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     """Create the directory tree structure."""
     if directory[start].kind == FIFF.FIFF_BLOCK_START:

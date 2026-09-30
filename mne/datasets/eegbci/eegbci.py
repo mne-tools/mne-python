@@ -9,13 +9,13 @@ from importlib.resources import files
 from os import path as op
 from pathlib import Path
 
-from ...utils import _url_to_local_path, logger, verbose
+from ...utils import _url_to_local_path, logger, verbose_static
 from ..utils import _do_path_update, _downloader_params, _get_path, _log_time_size
 
 EEGMI_URL = "https://physionet.org/files/eegmmidb/1.0.0/"
 
 
-@verbose
+@verbose_static()
 def data_path(url, path=None, force_update=False, update_path=None, *, verbose=None):
     """Get path to local copy of EEGMMI dataset URL.
 
@@ -40,7 +40,11 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
     update_path : bool | None
         If ``True``, set ``MNE_DATASETS_EEGBCI_PATH`` in the configuration to the given
         path. If ``None``, the user is prompted.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -92,7 +96,7 @@ def data_path(url, path=None, force_update=False, update_path=None, *, verbose=N
     return destinations
 
 
-@verbose
+@verbose_static()
 def load_data(
     subjects,
     runs,
@@ -129,7 +133,11 @@ def load_data(
         path. If ``None``, the user is prompted.
     base_url : str
         The URL root for the data.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -11,13 +11,19 @@ from ...annotations import Annotations, _adjust_onset_meas_date
 from ...epochs import BaseEpochs
 from ...evoked import Evoked
 from ...io import BaseRaw
-from ...utils import _check_option, _validate_type, logger, verbose, warn
+from ...utils import (
+    _check_option,
+    _validate_type,
+    logger,
+    verbose_static,
+    warn,
+)
 from ..artifact_detection import _annotations_from_mask
 from .calibration import Calibration
 from .utils import _check_calibration
 
 
-@verbose
+@verbose_static()
 def find_blinks(
     inst,
     *,
@@ -54,7 +60,11 @@ def find_blinks(
         detected from. Passing ``'all'`` associates the annotations with all channels in
         ``inst``. Alternatively, a list of channel names can be passed (e.g., EEG
         channels, for subsequent ocular artifact cleaning).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -265,7 +275,7 @@ def _convert_deg_to_rad(array):
     return array * np.pi / 180.0
 
 
-@verbose
+@verbose_static()
 def convert_units(inst, calibration, to="radians", *, verbose=None):
     """Convert Eyegaze data from pixels to radians of visual angle or vice versa.
 
@@ -289,7 +299,11 @@ def convert_units(inst, calibration, to="radians", *, verbose=None):
         (in pixels).
     to : str
         Must be either ``"radians"`` or ``"pixels"``, indicating the desired unit.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

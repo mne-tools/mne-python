@@ -1,0 +1,68 @@
+{
+  "merge_commit_sha": "dcd3ae856b76ce13c739fcf3fea7eeee349c6291",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14255.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/utils.py": {
+      "a": 5,
+      "d": 7
+    },
+    "mne/io/artemis123/artemis123.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 6,
+      "d": 4
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 15,
+      "d": 8
+    },
+    "mne/io/curry/curry.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 3,
+      "d": 6
+    },
+    "mne/io/eximia/eximia.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/fil/fil.py": {
+      "a": 4,
+      "d": 8
+    },
+    "mne/io/kit/kit.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/io/kit/tests/test_kit.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 6,
+      "d": 5
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 5,
+      "d": 6
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 5,
+      "d": 6
+    }
+  }
+}

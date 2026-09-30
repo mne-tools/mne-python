@@ -6,7 +6,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from ..utils import _pl, logger, verbose
+from ..utils import _pl, logger, verbose_static
 from .constants import FIFF
 from .matrix import _read_named_matrix, write_named_matrix
 from .tag import read_tag
@@ -53,7 +53,7 @@ def _calibrate_comp(
     comp["data"]["data"] = row_cals[:, None] * comp["data"]["data"] * col_cals[None, :]
 
 
-@verbose
+@verbose_static()
 def read_ctf_comp(fid, node, chs, verbose=None):
     """Read the CTF software compensation data from the given node.
 
@@ -66,7 +66,11 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     chs : list
         The list of channels from info['chs'] to match with
         compensators that are read.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

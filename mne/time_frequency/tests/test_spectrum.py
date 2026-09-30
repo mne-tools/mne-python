@@ -333,6 +333,10 @@ def test_spectrum_getitem_epochs(epochs_spectrum):
     want = epochs_spectrum.get_data()
     got = epochs_spectrum["1"].get_data()
     assert_array_equal(want, got)
+    # gh-14260: a slice selection owns its data rather than aliasing the parent
+    sliced = epochs_spectrum[:1]
+    assert sliced._data.flags["OWNDATA"]
+    assert not np.shares_memory(sliced._data, epochs_spectrum._data)
 
 
 @pytest.mark.parametrize("method", ("mean", partial(np.std, axis=0)))
@@ -718,8 +722,6 @@ def test_plot_spectrum(method, output, average, request):
         n_bad = sum(same_color(line.get_color(), bad_color) for line in lines)
         assert n_bad == 1
     spectrum.plot_topo()
-    with pytest.warns(FutureWarning, match="'block' parameter is deprecated"):
-        spectrum.plot_topo(block=True)
     spectrum.plot_topomap()
 
 

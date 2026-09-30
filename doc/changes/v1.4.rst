@@ -82,7 +82,7 @@ Authors
 * Alexandre Gramfort
 * Arne Pelzer+
 * Britta Westner
-* Carlos de la Torre
+* Carlos de la Torre-Ortiz
 * Clemens Brunner
 * Daniel Hasegan
 * Daniel McCloy
@@ -108,7 +108,7 @@ Authors
 * Mainak Jas
 * Mark Alexander Henney
 * Mathieu Scheltienne
-* Mauricio Cespedes
+* Mauricio Cespedes Tenorio
 * Michiru Kaneda
 * Mikołaj Magnuski
 * Moritz Gerster
@@ -131,3 +131,5 @@ Authors
 * Tom Stone+
 * Toomas Erik Anijärv
 * Zvi Baratz+
+
+.. include:: names.inc

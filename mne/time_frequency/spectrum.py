@@ -30,12 +30,13 @@ from ..utils import (
     _check_sphere,
     _time_mask,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     legacy,
     logger,
     object_diff,
     repr_html,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.check import (
@@ -51,16 +52,6 @@ from ..utils.spectrum import (
     _get_instance_type_string,
     _split_psd_kwargs,
 )
-from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
-from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
-from ..viz.utils import (
-    _format_units_psd,
-    _get_plot_ch_type,
-    _make_combine_callable,
-    _plot_psd,
-    _prepare_sensor_names,
-    plt_show,
-)
 from .multitaper import _psd_from_mt, psd_array_multitaper
 from .psd import _check_nfft, psd_array_welch
 
@@ -69,7 +60,29 @@ class SpectrumMixin:
     """Mixin providing spectral plotting methods to sensor-space containers."""
 
     @legacy(alt=".compute_psd().plot()")
-    @verbose
+    @verbose_static(
+        "fmin_fmax_psd",
+        "tmin_tmax_psd",
+        "picks_good_data_noref",
+        "proj_psd",
+        "reject_by_annotation_psd",
+        "method_plot_psd_auto",
+        "average_plot_psd",
+        "dB_plot_psd",
+        "estimate_plot_psd",
+        "xscale_plot_psd",
+        "area_mode_plot_psd",
+        "area_alpha_plot_psd",
+        "color_plot_psd",
+        "line_alpha_plot_psd",
+        "spatial_colors_psd",
+        "sphere_topomap_auto",
+        "ax_plot_psd",
+        "show",
+        "n_jobs",
+        "method_kw_psd",
+        "notes_plot_psd_meth",
+    )
     def plot_psd(
         self,
         fmin=0,
@@ -98,26 +111,113 @@ class SpectrumMixin:
         verbose=None,
         **method_kw,
     ):
-        """%(plot_psd_doc)s.
+        """Plot power or amplitude spectra.
+
+        Separate plots are drawn for each channel type. When the data have been
+        processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
+        indicate the boundaries of the filter. The line noise frequency is also
+        indicated with a dashed line (⋮). If ``average=False``, the plot will
+        be interactive, and click-dragging on the spectrum will generate a
+        scalp topography plot for the chosen frequency range in a new figure.
 
         Parameters
         ----------
-        %(fmin_fmax_psd)s
-        %(tmin_tmax_psd)s
-        %(picks_good_data_noref)s
-        %(proj_psd)s
-        %(reject_by_annotation_psd)s
-        %(method_plot_psd_auto)s
-        %(average_plot_psd)s
-        %(dB_plot_psd)s
-        %(estimate_plot_psd)s
-        %(xscale_plot_psd)s
-        %(area_mode_plot_psd)s
-        %(area_alpha_plot_psd)s
-        %(color_plot_psd)s
-        %(line_alpha_plot_psd)s
-        %(spatial_colors_psd)s
-        %(sphere_topomap_auto)s
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
+        proj : bool
+            Whether to apply SSP projection vectors before spectral estimation.
+            Default is ``False``.
+        reject_by_annotation : bool
+            Whether to omit bad spans of data before spectral estimation. If
+            ``True``, spans with annotations whose description begins with
+            ``bad`` will be omitted.
+        method : ``'welch'`` | ``'multitaper'`` | ``'auto'``
+            Spectral estimation method. ``'welch'`` uses Welch's
+            method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+            tapers :footcite:p:`Slepian1978`. ``'auto'`` (default) uses Welch's
+            method for continuous data and multitaper for
+            :class:`~mne.Epochs` or :class:`~mne.Evoked` data.
+        average : bool
+            If False, the PSDs of all channels is displayed. No averaging
+            is done and parameters area_mode and area_alpha are ignored. When
+            False, it is possible to paint an area (hold left mouse button and
+            drag) to plot a topomap.
+        dB : bool
+            Plot power spectral density (PSD) in units (dB/Hz) if ``dB=True`` and
+            ``estimate='power'``. Plot PSD in units (amplitude**2/Hz) if ``dB=False``
+            and ``estimate='power'``. Plot amplitude spectral density (ASD) in units
+            (amplitude/sqrt(Hz)) if ``dB=False`` and ``estimate='amplitude'``. Plot ASD
+            in units (dB/sqrt(Hz)) if ``dB=True`` and ``estimate='amplitude'``.
+        estimate : str, {'power', 'amplitude'}
+            Can be "power" for power spectral density (PSD; default), "amplitude" for
+            amplitude spectrum density (ASD).
+        xscale : 'linear' | 'log'
+            Scale of the frequency axis. Default is ``'linear'``.
+        area_mode : str | None
+            Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+            will be plotted. If 'range', the min and max (across channels) will be
+            plotted. Bad channels will be excluded from these calculations.
+            If None, no area will be plotted. If average=False, no area is plotted.
+        area_alpha : float
+            Alpha for the area.
+        color : str | tuple
+            A matplotlib-compatible color to use. Has no effect when
+            spatial_colors=True.
+        line_alpha : float | None
+            Alpha for the PSD line. Can be None (default) to use 1.0 when
+            ``average=True`` and 0.1 when ``average=False``.
+        spatial_colors : bool
+            Whether to color spectrum lines by channel location. Ignored if
+            ``average=True``.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
 
             .. versionadded:: 0.22.0
         exclude : list of str | 'bads'
@@ -126,11 +226,43 @@ class SpectrumMixin:
             (including channels marked "bad", if any).
 
             .. versionadded:: 0.24.0
-        %(ax_plot_psd)s
-        %(show)s
-        %(n_jobs)s
-        %(verbose)s
-        %(method_kw_psd)s
+        ax : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the number of channel types present in
+            the object. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **method_kw
+            Additional keyword arguments passed to the spectral estimation
+            function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+            for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+            for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+            and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+            that for Welch method if ``n_fft`` is unspecified its default will be
+            the smaller of ``2048`` or the number of available time samples (taking into
+            account ``tmin`` and ``tmax``), not ``256`` as in
+            :func:`~mne.time_frequency.psd_array_welch`.
 
         Returns
         -------
@@ -139,13 +271,29 @@ class SpectrumMixin:
 
         Notes
         -----
-        %(notes_plot_psd_meth)s
-        """
+        This method exists to support legacy code; for new code the preferred
+        idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+        of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+        """  # noqa: E501
         init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
         return self.compute_psd(**init_kw).plot(**plot_kw)
 
     @legacy(alt=".compute_psd().plot_topo()")
-    @verbose
+    @verbose_static(
+        "tmin_tmax_psd",
+        "fmin_fmax_psd_topo",
+        "proj_psd",
+        "method_plot_psd_auto",
+        "dB_spectrum_plot_topo",
+        "layout_spectrum_plot_topo",
+        "color_spectrum_plot_topo",
+        "fig_facecolor",
+        "axis_facecolor",
+        "axes_spectrum_plot_topo",
+        "show",
+        "n_jobs",
+        "method_kw_psd",
+    )
     def plot_psd_topo(
         self,
         tmin=None,
@@ -161,7 +309,6 @@ class SpectrumMixin:
         fig_facecolor="k",
         axis_facecolor="k",
         axes=None,
-        block=None,
         show=True,
         n_jobs=None,
         verbose=None,
@@ -171,23 +318,77 @@ class SpectrumMixin:
 
         Parameters
         ----------
-        %(tmin_tmax_psd)s
-        %(fmin_fmax_psd_topo)s
-        %(proj_psd)s
-        %(method_plot_psd_auto)s
-        %(dB_spectrum_plot_topo)s
-        %(layout_spectrum_plot_topo)s
-        %(color_spectrum_plot_topo)s
-        %(fig_facecolor)s
-        %(axis_facecolor)s
-        %(axes_spectrum_plot_topo)s
-        block : bool
-            This parameter is deprecated and will be removed in MNE 1.15; blocking now
-            follows Matplotlib's behavior (see ``show``).
-        %(show)s
-        %(n_jobs)s
-        %(verbose)s
-        %(method_kw_psd)s Defaults to ``dict(n_fft=2048)``.
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``fmin=0, fmax=100``.
+        proj : bool
+            Whether to apply SSP projection vectors before spectral estimation.
+            Default is ``False``.
+        method : ``'welch'`` | ``'multitaper'`` | ``'auto'``
+            Spectral estimation method. ``'welch'`` uses Welch's
+            method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+            tapers :footcite:p:`Slepian1978`. ``'auto'`` (default) uses Welch's
+            method for continuous data and multitaper for
+            :class:`~mne.Epochs` or :class:`~mne.Evoked` data.
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(spectral_power/Hz).
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If ``None`` (default), the layout is
+            inferred from the data (if possible).
+        color : str | tuple
+            A matplotlib-compatible color to use for the curves. Defaults to
+            white.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background. Defaults to
+            black.
+        axis_facecolor : str | tuple
+            A matplotlib-compatible color to use for the axis background.
+            Defaults to black.
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            be length 1 (for efficiency, subplots for each channel are simulated
+            within a single :class:`~matplotlib.axes.Axes`
+            object). Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **method_kw
+            Additional keyword arguments passed to the spectral estimation
+            function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+            for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+            for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+            and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+            that for Welch method if ``n_fft`` is unspecified its default will be
+            the smaller of ``2048`` or the number of available time samples (taking into
+            account ``tmin`` and ``tmax``), not ``256`` as in
+            :func:`~mne.time_frequency.psd_array_welch`.
+            Defaults to ``dict(n_fft=2048)``.
 
         Returns
         -------
@@ -198,7 +399,39 @@ class SpectrumMixin:
         return self.compute_psd(**init_kw).plot_topo(**plot_kw)
 
     @legacy(alt=".compute_psd().plot_topomap()")
-    @verbose
+    @verbose_static(
+        "bands_psd_topo",
+        "tmin_tmax_psd",
+        "ch_type_topomap_psd",
+        "proj_psd",
+        "method_plot_psd_auto",
+        "normalize_psd_topo",
+        "agg_fun_psd_topo",
+        "dB_plot_topomap",
+        "sensors_topomap",
+        "show_names_topomap",
+        "mask_evoked_topomap",
+        "mask_params_topomap",
+        "mask_label_params_topomap",
+        "contours_topomap",
+        "outlines_topomap",
+        "sphere_topomap_auto",
+        "image_interp_topomap",
+        "extrapolate_topomap",
+        "border_topomap",
+        "res_topomap",
+        "size_topomap",
+        "cmap_topomap",
+        "vlim_plot_topomap_psd",
+        "cnorm",
+        "colorbar_topomap",
+        "cbar_fmt_topomap_psd",
+        "units_topomap",
+        "axes_spectrum_plot_topomap",
+        "show",
+        "n_jobs",
+        "method_kw_psd",
+    )
     def plot_psd_topomap(
         self,
         bands=None,
@@ -240,48 +473,253 @@ class SpectrumMixin:
 
         Parameters
         ----------
-        %(bands_psd_topo)s
-        %(tmin_tmax_psd)s
-        %(ch_type_topomap_psd)s
-        %(proj_psd)s
-        %(method_plot_psd_auto)s
-        %(normalize_psd_topo)s
-        %(agg_fun_psd_topo)s
-        %(dB_plot_topomap)s
-        %(sensors_topomap)s
-        %(show_names_topomap)s
-        %(mask_evoked_topomap)s
-        %(mask_params_topomap)s
-        %(mask_label_params_topomap)s
+        bands : None | dict | list of tuple
+            The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+            be used as subplot titles and values should be either a single frequency
+            (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+            and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+            frequency is provided, the plot will show the frequency bin that is closest
+            to the requested value. If ``None`` (the default), expands to::
+
+                bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                         'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                         'Gamma (30-45 Hz)': (30, 45)}
+
+            .. note::
+               For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+               also accepted, where the last element of the tuple is the subplot title
+               and the other entries are frequency values (a single value or band
+               edges). New code should use :class:`dict` or ``None``.
+
+            .. versionchanged:: 1.2
+               Allow passing a dict and discourage passing tuples.
+        tmin, tmax : float | None
+            First and last times to include, in seconds. ``None`` uses the first or
+            last time present in the data. Default is ``tmin=None, tmax=None`` (all
+            times).
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the mean for each pair is plotted. If ``None``
+            the first available channel type from order
+            shown above is used. Defaults to ``None``.
+        proj : bool
+            Whether to apply SSP projection vectors before spectral estimation.
+            Default is ``False``.
+        method : ``'welch'`` | ``'multitaper'`` | ``'auto'``
+            Spectral estimation method. ``'welch'`` uses Welch's
+            method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+            tapers :footcite:p:`Slepian1978`. ``'auto'`` (default) uses Welch's
+            method for continuous data and multitaper for
+            :class:`~mne.Epochs` or :class:`~mne.Evoked` data.
+        normalize : bool
+            If True, each band will be divided by the total power. Defaults to
+            False.
+        agg_fun : callable
+            The function used to aggregate over frequencies. Defaults to
+            :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(spectral_power/Hz), following the application of
+            ``agg_fun``. Ignored if ``normalize=True``.
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+            Array indicating channel-time combinations to highlight with a distinct
+            plotting style (useful for, e.g. marking which channels at which times a
+            statistical test of the data reaches significance).
+            Array elements set to ``True`` will be plotted
+            with the parameters given in ``mask_params``. Defaults to ``None``,
+            equivalent to an array of all ``False`` elements.
+        mask_params : dict | None
+            Additional plotting parameters for plotting significant sensors.
+            Default (None) equals::
+
+                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                        linewidth=0, markersize=4)
+        mask_label_params : dict | None
+            Additional plotting parameters for significant sensor labels.
+            Default (None) equals::
+
+                dict(fontsize='medium', fontweight='bold')
 
             .. versionadded:: 1.13
-        %(contours_topomap)s
-        %(outlines_topomap)s
-        %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
-        %(border_topomap)s
-        %(res_topomap)s
-        %(size_topomap)s
-        %(cmap_topomap)s
-        %(vlim_plot_topomap_psd)s
-        %(cnorm)s
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2 | "joint"
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data. Elements of the :class:`tuple` may also be
+            callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+            return a scalar.
+
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+            limits jointly across all topomaps of the same channel type (instead of
+            separately for each topomap), using the min/max of the data for that
+            channel type. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
 
             .. versionadded:: 1.2
-        %(colorbar_topomap)s
-        %(cbar_fmt_topomap_psd)s
-        %(units_topomap)s
-        %(axes_spectrum_plot_topomap)s
-        %(show)s
-        %(n_jobs)s
-        %(verbose)s
-        %(method_kw_psd)s
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
+            If ``'auto'``, is equivalent to '%0.3f' if ``dB=False`` and '%0.1f' if
+            ``dB=True``. Defaults to ``'auto'``.
+        units : str | None
+            The units to use for the colorbar label. Ignored if ``colorbar=False``.
+            If ``None`` the label will be "AU" indicating arbitrary units.
+            Default is ``None``.
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the length of ``bands``. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
+        n_jobs : int | None
+            The number of jobs to run in parallel. If ``-1``, it is set
+            to the number of CPU cores. Requires the :mod:`joblib` package.
+            ``None`` (default) is a marker for 'unset' that will be interpreted
+            as ``n_jobs=1`` (sequential execution) unless the call is performed under
+            a :class:`joblib:joblib.parallel_config` context manager that sets another
+            value for ``n_jobs``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+        **method_kw
+            Additional keyword arguments passed to the spectral estimation
+            function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+            for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+            for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+            and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+            that for Welch method if ``n_fft`` is unspecified its default will be
+            the smaller of ``2048`` or the number of available time samples (taking into
+            account ``tmin`` and ``tmax``), not ``256`` as in
+            :func:`~mne.time_frequency.psd_array_welch`.
 
         Returns
         -------
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
-        """
+        """  # noqa: E501
         init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
         return self.compute_psd(**init_kw).plot_topomap(**plot_kw)
 
@@ -539,7 +977,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         return deepcopy(self)
 
-    @fill_doc
+    @fill_doc_static(
+        "picks_good_data_noref", "exclude_spectrum_get_data", "fmin_fmax_psd"
+    )
     def get_data(
         self, picks=None, exclude="bads", fmin=0, fmax=np.inf, return_freqs=False
     ):
@@ -547,9 +987,22 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         Parameters
         ----------
-        %(picks_good_data_noref)s
-        %(exclude_spectrum_get_data)s
-        %(fmin_fmax_psd)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick good data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
+        exclude : list of str | 'bads'
+            Channel names to exclude. If ``'bads'``, channels
+            in ``spectrum.info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
+        fmin, fmax : float
+            The lower- and upper-bound on frequencies of interest. Default is
+            ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
         return_freqs : bool
             Whether to return the frequency bin values for the requested
             frequency range. Default is ``False``.
@@ -581,7 +1034,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             return (data, freqs)
         return data
 
-    @fill_doc
+    @fill_doc_static(
+        "picks_all_data_noref",
+        "dB_spectrum_plot",
+        "xscale_plot_psd",
+        "color_plot_psd",
+        "spatial_colors_psd",
+        "sphere_topomap_auto",
+        "exclude_spectrum_plot",
+        "axes_spectrum_plot_topomap",
+        "show",
+    )
     def plot(
         self,
         *,
@@ -600,11 +1063,26 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         axes=None,
         show=True,
     ):
-        """%(plot_psd_doc)s.
+        """Plot power or amplitude spectra.
+
+        Separate plots are drawn for each channel type. When the data have been
+        processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
+        indicate the boundaries of the filter. The line noise frequency is also
+        indicated with a dashed line (⋮). If ``average=False``, the plot will
+        be interactive, and click-dragging on the spectrum will generate a
+        scalp topography plot for the chosen frequency range in a new figure.
 
         Parameters
         ----------
-        %(picks_all_data_noref)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all data channels
+            (excluding reference MEG channels). Note that channels in ``info['bads']``
+            *will be included* if their names or indices are explicitly provided.
 
             .. versionchanged:: 1.5
                 In version 1.5, the default behavior changed so that all
@@ -615,14 +1093,18 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             plotting of scalp topography is disabled, and parameters ``ci`` and
             ``ci_alpha`` control the style of the confidence band around the mean.
             Default is ``False``.
-        %(dB_spectrum_plot)s
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(spectral_power/Hz), or 20 × log₁₀(spectral amplitude/√Hz) if
+            ``amplitude=True``.
         amplitude : bool
             Whether to plot an amplitude spectrum (``True``) or power spectrum
             (``False``).
 
             .. versionchanged:: 1.8
                 In version 1.8, the default changed to ``amplitude=False``.
-        %(xscale_plot_psd)s
+        xscale : 'linear' | 'log'
+            Scale of the frequency axis. Default is ``'linear'``.
         ci : float | 'sd' | 'range' | None
             Type of confidence band drawn around the mean when ``average=True``. If
             ``'sd'`` the band spans ±1 standard deviation across channels. If
@@ -633,29 +1115,86 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         ci_alpha : float
             Opacity of the confidence band. Must satisfy ``0 <= ci_alpha <= 1``. Default
             is 0.3.
-        %(color_plot_psd)s
+        color : str | tuple
+            A matplotlib-compatible color to use. Has no effect when
+            spatial_colors=True.
         alpha : float | None
             Opacity of the spectrum line(s). If :class:`float`, must satisfy
             ``0 <= alpha <= 1``. If ``None``, opacity will be ``1`` when
             ``average=True`` and ``0.1`` when ``average=False``. Default is ``None``.
-        %(spatial_colors_psd)s
-        %(sphere_topomap_auto)s
-        %(exclude_spectrum_plot)s
+        spatial_colors : bool
+            Whether to color spectrum lines by channel location. Ignored if
+            ``average=True``.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        exclude : list of str | 'bads'
+            Channel names to exclude from being drawn. If ``'bads'``, channels
+            in ``spectrum.info['bads']`` are excluded; pass an empty list to
+            include all channels (including "bad" channels, if any).
 
             .. versionchanged:: 1.5
                 In version 1.5, the default behavior changed from ``exclude='bads'`` to
                 ``exclude=()``.
-        %(axes_spectrum_plot_topomap)s
-        %(show)s
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the length of ``bands``. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             Figure with spectra plotted in separate subplots for each channel type.
-        """
+        """  # noqa: E501
         # Must nest this _mpl_figure import because of the BACKEND global
         # stuff
         from ..viz._mpl_figure import _line_figure, _split_picks_by_type
+        from ..viz.utils import (
+            _plot_psd,
+            plt_show,
+        )
 
         # arg checking
         ci = _check_ci(ci)
@@ -718,7 +1257,15 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         plt_show(show, fig)
         return fig
 
-    @fill_doc
+    @fill_doc_static(
+        "dB_spectrum_plot_topo",
+        "layout_spectrum_plot_topo",
+        "color_spectrum_plot_topo",
+        "fig_facecolor",
+        "axis_facecolor",
+        "axes_spectrum_plot_topo",
+        "show",
+    )
     def plot_topo(
         self,
         *,
@@ -728,29 +1275,55 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig_facecolor="k",
         axis_facecolor="k",
         axes=None,
-        block=None,
         show=True,
     ):
         """Plot power spectral density, separately for each channel.
 
         Parameters
         ----------
-        %(dB_spectrum_plot_topo)s
-        %(layout_spectrum_plot_topo)s
-        %(color_spectrum_plot_topo)s
-        %(fig_facecolor)s
-        %(axis_facecolor)s
-        %(axes_spectrum_plot_topo)s
-        block : bool | None
-            This parameter is deprecated and will be removed in MNE 1.15; blocking now
-            follows Matplotlib's behavior (see ``show``).
-        %(show)s
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(spectral_power/Hz).
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If ``None`` (default), the layout is
+            inferred from the data (if possible).
+        color : str | tuple
+            A matplotlib-compatible color to use for the curves. Defaults to
+            white.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background. Defaults to
+            black.
+        axis_facecolor : str | tuple
+            A matplotlib-compatible color to use for the axis background.
+            Defaults to black.
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            be length 1 (for efficiency, subplots for each channel are simulated
+            within a single :class:`~matplotlib.axes.Axes`
+            object). Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
+        from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
+        from ..viz.utils import (
+            plt_show,
+        )
+
         if layout is None:
             layout = find_layout(self.info)
 
@@ -781,19 +1354,37 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             y_label=y_label,
             axes=axes,
         )
-        if block is None:
-            plt_show(show)
-        else:
-            warn(
-                "The 'block' parameter is deprecated and will be removed in MNE 1.15; "
-                "blocking now follows Matplotlib's behavior. Pass show=False and call "
-                "matplotlib.pyplot.show() to control it.",
-                FutureWarning,
-            )
-            plt_show(show, block=block)
+        plt_show(show)
         return fig
 
-    @fill_doc
+    @fill_doc_static(
+        "bands_psd_topo",
+        "ch_type_topomap_psd",
+        "normalize_psd_topo",
+        "agg_fun_psd_topo",
+        "dB_plot_topomap",
+        "sensors_topomap",
+        "show_names_topomap",
+        "mask_evoked_topomap",
+        "mask_params_topomap",
+        "mask_label_params_topomap",
+        "contours_topomap",
+        "outlines_topomap",
+        "sphere_topomap_auto",
+        "image_interp_topomap",
+        "extrapolate_topomap",
+        "border_topomap",
+        "res_topomap",
+        "size_topomap",
+        "cmap_topomap",
+        "vlim_plot_topomap_psd",
+        "cnorm",
+        "colorbar_topomap",
+        "cbar_fmt_topomap_psd",
+        "units_topomap",
+        "axes_spectrum_plot_topomap",
+        "show",
+    )
     def plot_topomap(
         self,
         bands=None,
@@ -828,40 +1419,226 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         Parameters
         ----------
-        %(bands_psd_topo)s
-        %(ch_type_topomap_psd)s
-        %(normalize_psd_topo)s
-        %(agg_fun_psd_topo)s
-        %(dB_plot_topomap)s
-        %(sensors_topomap)s
-        %(show_names_topomap)s
-        %(mask_evoked_topomap)s
-        %(mask_params_topomap)s
-        %(mask_label_params_topomap)s
+        bands : None | dict | list of tuple
+            The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+            be used as subplot titles and values should be either a single frequency
+            (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+            and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+            frequency is provided, the plot will show the frequency bin that is closest
+            to the requested value. If ``None`` (the default), expands to::
+
+                bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                         'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                         'Gamma (30-45 Hz)': (30, 45)}
+
+            .. note::
+               For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+               also accepted, where the last element of the tuple is the subplot title
+               and the other entries are frequency values (a single value or band
+               edges). New code should use :class:`dict` or ``None``.
+
+            .. versionchanged:: 1.2
+               Allow passing a dict and discourage passing tuples.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+            The channel type to plot. For ``'grad'``, the gradiometers are
+            collected in pairs and the mean for each pair is plotted. If ``None``
+            the first available channel type from order
+            shown above is used. Defaults to ``None``.
+        normalize : bool
+            If True, each band will be divided by the total power. Defaults to
+            False.
+        agg_fun : callable
+            The function used to aggregate over frequencies. Defaults to
+            :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+        dB : bool
+            Whether to plot on a decibel scale. If ``True``, plots
+            10 × log₁₀(spectral_power/Hz), following the application of
+            ``agg_fun``. Ignored if ``normalize=True``.
+        sensors : bool | str
+            Whether to add markers for sensor locations. If :class:`str`, should be a
+            valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+            Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+            default), black circles will be used.
+        show_names : bool | callable
+            If ``True``, show channel names next to each sensor marker. If callable,
+            channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+            non-masked sensor names will be shown.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+            Array indicating channel-time combinations to highlight with a distinct
+            plotting style (useful for, e.g. marking which channels at which times a
+            statistical test of the data reaches significance).
+            Array elements set to ``True`` will be plotted
+            with the parameters given in ``mask_params``. Defaults to ``None``,
+            equivalent to an array of all ``False`` elements.
+        mask_params : dict | None
+            Additional plotting parameters for plotting significant sensors.
+            Default (None) equals::
+
+                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                        linewidth=0, markersize=4)
+        mask_label_params : dict | None
+            Additional plotting parameters for significant sensor labels.
+            Default (None) equals::
+
+                dict(fontsize='medium', fontweight='bold')
 
             .. versionadded:: 1.13
-        %(contours_topomap)s
-        %(outlines_topomap)s
-        %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
-        %(border_topomap)s
-        %(res_topomap)s
-        %(size_topomap)s
-        %(cmap_topomap)s
-        %(vlim_plot_topomap_psd)s
-        %(cnorm)s
-        %(colorbar_topomap)s
-        %(cbar_fmt_topomap_psd)s
-        %(units_topomap)s
-        %(axes_spectrum_plot_topomap)s
-        %(show)s
+        contours : int | array-like
+            The number of contour lines to draw. If ``0``, no contours will be drawn.
+            If a positive integer, that number of contour levels are chosen using the
+            matplotlib tick locator (may sometimes be inaccurate, use array for
+            accuracy). If array-like, the array values are used as the contour levels.
+            The values should be in µV for EEG, fT for magnetometers and fT/m for
+            gradiometers. Default is ``6``.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If dict, each key refers to a tuple of x and y positions, the values
+            in 'mask_pos' will serve as image mask.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        image_interp : str
+            The image interpolation to be used. Options are ``'cubic'`` (default)
+            to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+            ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+            ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
+        extrapolate : str
+            Options:
+
+            - ``'box'``
+                Extrapolate to four points placed to form a square encompassing all
+                data points, where each side of the square is three times the range
+                of the data in the respective dimension.
+            - ``'local'`` (default for MEG sensors)
+                Extrapolate only to nearby points (approximately to points closer than
+                median inter-electrode distance). This will also set the
+                mask to be polygonal based on the convex hull of the sensors.
+            - ``'head'`` (default for non-MEG sensors)
+                Extrapolate out to the edges of the clipping circle. This will be on
+                the head circle when the sensors are contained within the head circle,
+                but it can extend beyond the head when sensors are plotted outside
+                the head circle.
+        border : float | 'mean'
+            Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+            then each extrapolated point has the average value of its neighbours.
+        res : int
+            The resolution of the topomap image (number of pixels along each side).
+        size : float
+            Side length of each subplot in inches.
+        cmap : str | matplotlib.colors.Colormap | tuple | 'interactive' | None
+            Colormap to use. If :class:`tuple`, the first value indicates the colormap
+            to use and the second value is a boolean defining interactivity. In
+            interactive mode the colors are adjustable by clicking and dragging the
+            colorbar with left and right mouse button. Left mouse button moves the
+            scale up and down and right mouse button adjusts the range. Hitting
+            space bar resets the range. Up and down arrows can be used to change
+            the colormap. If ``None``, ``'Reds'`` is used for data that is either
+            all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+            ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+
+            .. warning::  Interactive mode works smoothly only for a small amount
+                of topomaps. Interactive mode is disabled by default for more than
+                2 topomaps.
+        vlim : tuple of length 2 | "joint"
+            Lower and upper bounds of the colormap, typically a numeric value in the
+            same units as the data. Elements of the :class:`tuple` may also be
+            callable functions which take in a :class:`NumPy array <numpy.ndarray>` and
+            return a scalar.
+
+            If both entries are ``None``, the bounds are set at
+            ± the maximum absolute value
+            of the data (yielding a colormap with midpoint at 0), or
+            ``(0, max(abs(data)))`` if the (possibly baselined) data are all-positive.
+            Providing ``None`` for just one entry will set the corresponding boundary
+            at the min/max of the data. If ``vlim="joint"``, will compute the colormap
+            limits jointly across all topomaps of the same channel type (instead of
+            separately for each topomap), using the min/max of the data for that
+            channel type. Defaults to ``(None, None)``.
+        cnorm : matplotlib.colors.Normalize | None
+            How to normalize the colormap. If ``None``, standard linear normalization
+            is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+            See :ref:`Matplotlib docs <matplotlib:colormapnorms>`
+            for more details on colormap normalization, and
+            :ref:`the ERDs example<cnorm-example>` for an example of its use.
+        colorbar : bool
+            Plot a colorbar in the rightmost column of the figure.
+        cbar_fmt : str
+            Formatting string for colorbar tick labels. See :ref:`formatspec` for
+            details.
+            If ``'auto'``, is equivalent to '%0.3f' if ``dB=False`` and '%0.1f' if
+            ``dB=True``. Defaults to ``'auto'``.
+        units : str | None
+            The units to use for the colorbar label. Ignored if ``colorbar=False``.
+            If ``None`` the label will be "AU" indicating arbitrary units.
+            Default is ``None``.
+        axes : instance of Axes | list of Axes | None
+            The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+            will be created with the correct number of axes. If
+            :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+            a :class:`list` of axes), the number of axes provided must
+            match the length of ``bands``. Default is ``None``.
+        show : bool
+            Show the figure if ``True``. When shown, blocking follows
+            :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+            unless Matplotlib's interactive mode is on (enabled with
+            :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+            in which case it returns immediately. Interactive mode is off by default, so
+            a plain script or REPL blocks. Pass ``show=False`` to build several figures
+            and display them together with a single :func:`matplotlib.pyplot.show` call.
 
         Returns
         -------
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
-        """
+        """  # noqa: E501
+        from ..viz.topomap import (
+            _make_head_outlines,
+            _prepare_topomap_plot,
+            plot_psds_topomap,
+        )
+        from ..viz.utils import (
+            _get_plot_ch_type,
+            _prepare_sensor_names,
+        )
+
         ch_type = _get_plot_ch_type(self, ch_type)
         if units is None:
             units = _handle_default("units", None)
@@ -957,7 +1734,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         return data
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save spectrum data to disk (in HDF5 format).
 
@@ -965,8 +1742,14 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         ----------
         fname : path-like
             Path of file to save to.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         See Also
         --------
@@ -978,7 +1761,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         out = self.__getstate__()
         write_hdf5(fname, out, overwrite=overwrite, title="mnepython", slash="replace")
 
-    @verbose
+    @verbose_static("picks_all", "copy_df", "long_format_df_spe", "df_return")
     def to_data_frame(
         self, picks=None, index=None, copy=True, long_format=False, *, verbose=None
     ):
@@ -990,20 +1773,41 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         Parameters
         ----------
-        %(picks_all)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
         index : str | list of str | None
             Kind of index to use for the DataFrame. If ``None``, a sequential
             integer index (:class:`pandas.RangeIndex`) will be used. If a
             :class:`str`, a :class:`pandas.Index` will be used (see Notes). If
             a list of two or more string values, a :class:`pandas.MultiIndex`
             will be used. Defaults to ``None``.
-        %(copy_df)s
-        %(long_format_df_spe)s
-        %(verbose)s
+        copy : bool
+            If ``True``, data will be copied. Otherwise data may be modified in place.
+            Defaults to ``True``.
+        long_format : bool
+            If True, the DataFrame is returned in long format where each row is one
+            observation of the signal at a unique combination of
+            frequency and channel.
+            For convenience, a ``ch_type`` column is added to facilitate
+            subsetting the resulting DataFrame. Defaults to ``False``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
-        %(df_return)s
+        df : instance of pandas.DataFrame
+            A dataframe suitable for usage with other statistical/plotting/analysis
+            packages.
 
         Notes
         -----
@@ -1080,6 +1884,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Mapping from channel type to a string representation of the units
             for that channel type.
         """
+        from ..viz.utils import (
+            _format_units_psd,
+        )
+
         units = _handle_default("si_units", None)
         return {
             ch_type: _format_units_psd(units[ch_type], power=True, latex=latex)
@@ -1087,7 +1895,20 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         }
 
 
-@fill_doc
+@fill_doc_static(
+    "method_psd_auto",
+    "fmin_fmax_psd",
+    "tmin_tmax_psd",
+    "picks_good_data_noref",
+    "exclude_psd",
+    "proj_psd",
+    "remove_dc",
+    "reject_by_annotation_psd",
+    "n_jobs",
+    "verbose",
+    "method_kw_psd",
+    "info_not_none",
+)
 class Spectrum(BaseSpectrum):
     """Data object for spectral representations of continuous data.
 
@@ -1101,19 +1922,64 @@ class Spectrum(BaseSpectrum):
     ----------
     inst : instance of Raw or Evoked
         The data from which to compute the frequency spectrum.
-    %(method_psd_auto)s
+    method : ``'welch'`` | ``'multitaper'`` | ``'auto'``
+        Spectral estimation method. ``'welch'`` uses Welch's
+        method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+        tapers :footcite:p:`Slepian1978`.
         ``'auto'`` (default) uses Welch's method for continuous data
         and multitaper for :class:`~mne.Evoked` data.
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(exclude_psd)s
-    %(proj_psd)s
-    %(remove_dc)s
-    %(reject_by_annotation_psd)s
-    %(n_jobs)s
-    %(verbose)s
-    %(method_kw_psd)s
+    fmin, fmax : float
+        The lower- and upper-bound on frequencies of interest. Default is
+        ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    exclude : list of str | 'bads'
+        Channel names to exclude. If ``'bads'``, channels
+        in ``info['bads']`` are excluded; pass an empty list to
+        include all channels (including "bad" channels, if any).
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
+    remove_dc : bool
+        If ``True``, the mean is subtracted from each segment before computing
+        its spectrum.
+    reject_by_annotation : bool
+        Whether to omit bad spans of data before spectral estimation. If
+        ``True``, spans with annotations whose description begins with
+        ``bad`` will be omitted.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **method_kw
+        Additional keyword arguments passed to the spectral estimation
+        function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+        for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+        for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+        and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+        that for Welch method if ``n_fft`` is unspecified its default will be
+        the smaller of ``2048`` or the number of available time samples (taking into
+        account ``tmin`` and ``tmax``), not ``256`` as in
+        :func:`~mne.time_frequency.psd_array_welch`.
 
     Attributes
     ----------
@@ -1122,7 +1988,9 @@ class Spectrum(BaseSpectrum):
     freqs : array
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     method : ``'welch'`` | ``'multitaper'``
         The method used to compute the spectrum.
     nave : int | None
@@ -1212,6 +2080,7 @@ class Spectrum(BaseSpectrum):
         # save memory
         del self.inst
 
+    @fill_doc_static("getitem_spectrum_return")
     def __getitem__(self, item):
         """Get Spectrum data.
 
@@ -1223,7 +2092,12 @@ class Spectrum(BaseSpectrum):
 
         Returns
         -------
-        %(getitem_spectrum_return)s
+        data : ndarray
+            The selected spectral data. Shape will be
+            ``(n_channels, n_freqs)`` for normal power spectra,
+            ``(n_channels, n_freqs, n_segments)`` for unaggregated
+            Welch estimates, or ``(n_channels, n_tapers, n_freqs)``
+            for unaggregated multitaper estimates.
 
         Notes
         -----
@@ -1306,7 +2180,7 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
         )
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "freqs_tfr_array", "verbose", "notes_spectrum_array")
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
 
@@ -1314,8 +2188,11 @@ class SpectrumArray(Spectrum):
     ----------
     data : ndarray, shape (n_channels, [n_tapers], n_freqs, [n_segments])
         The spectra for each channel.
-    %(info_not_none)s
-    %(freqs_tfr_array)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
     dim_names : tuple of str
         The name of the dimensions in the data, in the order they occur. Must contain
         ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include
@@ -1328,7 +2205,11 @@ class SpectrumArray(Spectrum):
         Weights for the ``'taper'`` dimension, if present (see ``dim_names``).
 
         .. versionadded:: 1.8
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1339,12 +2220,20 @@ class SpectrumArray(Spectrum):
 
     Notes
     -----
-    %(notes_spectrum_array)s
+    If the data passed in is real-valued, it is assumed to represent spectral *power*
+    (not amplitude, phase, etc), and downstream methods (such as
+    :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
+    real-valued data that is not power, axis labels will be incorrect.
+
+    If the data passed in is complex-valued, it is assumed to represent Fourier
+    coefficients. Downstream plotting methods will treat the data as such, attempting to
+    convert this to power before visualisation. If you pass in complex-valued data that
+    is not Fourier coefficients, axis labels will be incorrect.
 
         .. versionadded:: 1.6
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         data,
@@ -1379,7 +2268,19 @@ class SpectrumArray(Spectrum):
         )
 
 
-@fill_doc
+@fill_doc_static(
+    "method_psd",
+    "fmin_fmax_psd",
+    "tmin_tmax_psd",
+    "picks_good_data_noref",
+    "exclude_psd",
+    "proj_psd",
+    "remove_dc",
+    "n_jobs",
+    "verbose",
+    "method_kw_psd",
+    "info_not_none",
+)
 class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     """Data object for spectral representations of epoched data.
 
@@ -1391,16 +2292,58 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     ----------
     inst : instance of Epochs
         The data from which to compute the frequency spectrum.
-    %(method_psd)s
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(exclude_psd)s
-    %(proj_psd)s
-    %(remove_dc)s
-    %(n_jobs)s
-    %(verbose)s
-    %(method_kw_psd)s
+    method : ``'welch'`` | ``'multitaper'``
+        Spectral estimation method. ``'welch'`` uses Welch's
+        method :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+        tapers :footcite:p:`Slepian1978`.
+    fmin, fmax : float
+        The lower- and upper-bound on frequencies of interest. Default is
+        ``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).
+    tmin, tmax : float | None
+        First and last times to include, in seconds. ``None`` uses the first or
+        last time present in the data. Default is ``tmin=None, tmax=None`` (all
+        times).
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
+    exclude : list of str | 'bads'
+        Channel names to exclude. If ``'bads'``, channels
+        in ``info['bads']`` are excluded; pass an empty list to
+        include all channels (including "bad" channels, if any).
+    proj : bool
+        Whether to apply SSP projection vectors before spectral estimation.
+        Default is ``False``.
+    remove_dc : bool
+        If ``True``, the mean is subtracted from each segment before computing
+        its spectrum.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    **method_kw
+        Additional keyword arguments passed to the spectral estimation
+        function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+        for Welch method, or ``bandwidth, adaptive, low_bias, normalization``
+        for multitaper method). See :func:`~mne.time_frequency.psd_array_welch`
+        and :func:`~mne.time_frequency.psd_array_multitaper` for details. Note
+        that for Welch method if ``n_fft`` is unspecified its default will be
+        the smaller of ``2048`` or the number of available time samples (taking into
+        account ``tmin`` and ``tmax``), not ``256`` as in
+        :func:`~mne.time_frequency.psd_array_welch`.
 
     Attributes
     ----------
@@ -1409,7 +2352,9 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     freqs : array
         Frequencies at which the amplitude, power, or fourier coefficients
         have been computed.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     method : ``'welch'`` | ``'multitaper'``
         The method used to compute the spectrum.
     weights : array | None
@@ -1487,6 +2432,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         # save memory
         del self.inst
 
+    @fill_doc_static("getitem_epochspectrum_return")
     def __getitem__(self, item):
         """Subselect epochs from an EpochsSpectrum.
 
@@ -1499,7 +2445,12 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
 
         Returns
         -------
-        %(getitem_epochspectrum_return)s
+        data : ndarray
+            The selected spectral data. Shape will be
+            ``(n_epochs, n_channels, n_freqs)`` for normal power spectra,
+            ``(n_epochs, n_channels, n_freqs, n_segments)`` for unaggregated
+            Welch estimates, or ``(n_epochs, n_channels, n_tapers, n_freqs)``
+            for unaggregated multitaper estimates.
         """
         return super().__getitem__(item)
 
@@ -1540,6 +2491,10 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
+        from ..viz.utils import (
+            _make_combine_callable,
+        )
+
         _validate_type(method, ("str", "callable"), "method")
         method = _make_combine_callable(
             method, axis=0, valid=("mean", "median"), keepdims=False
@@ -1584,7 +2539,14 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         return Spectrum(state, **defaults)
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none",
+    "freqs_tfr_array",
+    "events_epochs",
+    "event_id",
+    "verbose",
+    "notes_spectrum_array",
+)
 class EpochsSpectrumArray(EpochsSpectrum):
     """Data object for precomputed epoched spectral data (in NumPy array format).
 
@@ -1592,10 +2554,24 @@ class EpochsSpectrumArray(EpochsSpectrum):
     ----------
     data : ndarray, shape (n_epochs, n_channels, [n_tapers], n_freqs, [n_segments])
         The spectra for each channel in each epoch.
-    %(info_not_none)s
-    %(freqs_tfr_array)s
-    %(events_epochs)s
-    %(event_id)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information. Events that don't match
+        the events of interest as specified by ``event_id`` will be marked as
+        ``IGNORED`` in the drop log.
+    event_id : int | list of int | dict | str | list of str | None
+        The id of the :term:`events` to consider. If dict, the keys can later be used to
+        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
+        dict will be created with the id as string. If a list of int, all :term:`events`
+        with the IDs specified in the list are used. If a str or list of str, ``events``
+        must be ``None`` to use annotations and then the IDs must be the name(s) of the
+        annotations to use. If None, all :term:`events` will be used and a dict is
+        created with string integer names corresponding to the event id integers.
     dim_names : tuple of str
         The name of the dimensions in the data, in the order they occur. Must contain
         ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include
@@ -1608,7 +2584,11 @@ class EpochsSpectrumArray(EpochsSpectrum):
         Weights for the ``'taper'`` dimension, if present (see ``dim_names``).
 
         .. versionadded:: 1.8
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1618,12 +2598,20 @@ class EpochsSpectrumArray(EpochsSpectrum):
 
     Notes
     -----
-    %(notes_spectrum_array)s
+    If the data passed in is real-valued, it is assumed to represent spectral *power*
+    (not amplitude, phase, etc), and downstream methods (such as
+    :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
+    real-valued data that is not power, axis labels will be incorrect.
+
+    If the data passed in is complex-valued, it is assumed to represent Fourier
+    coefficients. Downstream plotting methods will treat the data as such, attempting to
+    convert this to power before visualisation. If you pass in complex-valued data that
+    is not Fourier coefficients, axis labels will be incorrect.
 
         .. versionadded:: 1.6
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         data,

@@ -7,9 +7,15 @@ from io import SEEK_SET, BytesIO
 from pathlib import Path
 
 import numpy as np
-from scipy.sparse import issparse
 
-from ..utils import _check_fname, _file_like, _validate_type, logger, verbose, warn
+from ..utils import (
+    _check_fname,
+    _file_like,
+    _validate_type,
+    logger,
+    verbose_static,
+    warn,
+)
 from .constants import FIFF
 from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
@@ -104,7 +110,7 @@ def _get_next_fname(fid, fname, tree):
     return next_fname
 
 
-@verbose
+@verbose_static()
 def fiff_open(fname, preload=False, verbose=None):
     """Open a FIF file.
 
@@ -116,7 +122,11 @@ def fiff_open(fname, preload=False, verbose=None):
         If True, all data from the file is read into a memory buffer. This
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -201,7 +211,7 @@ def _fiff_open(fname, fid, preload):
     return fid, tree, directory
 
 
-@verbose
+@verbose_static()
 def show_fiff(
     fname,
     indent="    ",
@@ -236,7 +246,11 @@ def show_fiff(
         is shown.
     show_bytes : bool
         If True (default False), print the byte offsets of each tag.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -295,6 +309,8 @@ def _show_tree(
     show_bytes=False,
 ):
     """Show FIFF tree."""
+    from scipy.sparse import issparse
+
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

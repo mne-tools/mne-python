@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "fb9c17874049af8fe0a7ef71177a97e73348651b",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14254.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/mef/mef.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/io/mef/tests/test_mef.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

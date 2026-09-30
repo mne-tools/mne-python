@@ -192,3 +192,5 @@ The committer list for this release is the following (preceded by number of comm
 * 2  Alan Leggitt
 * 1  Jean-Rémi King
 * 1  Matti Hämäläinen
+
+.. include:: names.inc

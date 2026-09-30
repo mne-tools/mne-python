@@ -6,11 +6,9 @@ import warnings
 from functools import partial
 
 import numpy as np
-from scipy.signal import spectrogram
 
-from ..fixes import _reshape_view
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, logger, verbose, warn
+from ..utils import _check_option, _ensure_int, logger, verbose_static, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
@@ -94,7 +92,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-@verbose
+@verbose_static("n_jobs", "average_psd", "window_psd", "remove_dc")
 def psd_array_welch(
     x,
     sfreq,
@@ -134,14 +132,27 @@ def psd_array_welch(
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
-    %(n_jobs)s
-    %(average_psd)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    average : str | None
+        How to average the segments. If ``mean`` (default), calculate the
+        arithmetic mean. If ``median``, calculate the median, corrected for
+        its bias relative to the mean. If ``None``, returns the unaggregated
+        segments.
 
         .. versionadded:: 0.19.0
-    %(window_psd)s
+    window : str | float | tuple
+        Windowing function to use. See :func:`scipy.signal.get_window`.
 
         .. versionadded:: 0.22.0
-    %(remove_dc)s
+    remove_dc : bool
+        If ``True``, the mean is subtracted from each segment before computing
+        its spectrum.
 
     output : str
         The format of the returned ``psds`` array, ``'complex'`` or
@@ -152,7 +163,11 @@ def psd_array_welch(
           window.
 
         .. versionadded:: 1.4.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -174,6 +189,8 @@ def psd_array_welch(
     ----------
     .. footbibliography::
     """
+    from scipy.signal import spectrogram
+
     _check_option("average", average, (None, False, "mean", "median"))
     _check_option("output", output, ("power", "complex"))
     detrend = "constant" if remove_dc else False
@@ -313,5 +330,5 @@ def psd_array_welch(
     if bad_ch.any():
         psds[bad_ch] = np.nan
 
-    psds = _reshape_view(psds, shape)
+    psds = psds.reshape(shape, copy=False)
     return psds, freqs

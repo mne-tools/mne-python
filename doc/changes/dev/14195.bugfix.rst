@@ -1,0 +1,1 @@
+Make docstrings resolve properly in IDEs by fully writing them out in the Python code, by `Eric Larson`_.

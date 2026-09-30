@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
+
 import matplotlib.pyplot as plt
 import pytest
 
@@ -91,6 +93,23 @@ def test_subscribe(event_channels):
     # close event.
     fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
+
+
+def test_subscriber_order(event_channels):
+    """Test that subscribers are called in the order in which they subscribed."""
+    callback_calls = list()
+
+    def callback(event, index):
+        callback_calls.append(index)
+
+    fig = plt.figure()
+    callbacks = [partial(callback, index=index) for index in range(10)]
+    for cb in callbacks:
+        ui_events.subscribe(fig, "time_change", cb)
+    # Re-subscribing an existing callback keeps its original position.
+    ui_events.subscribe(fig, "time_change", callbacks[0])
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    assert callback_calls == list(range(10))
 
 
 def test_unsubscribe(event_channels):

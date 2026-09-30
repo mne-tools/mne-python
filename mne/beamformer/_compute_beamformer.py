@@ -23,7 +23,7 @@ from ..utils import (
     _sym_mat_pow,
     check_fname,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -339,7 +339,9 @@ def _compute_beamformer(
         # sort eigenvectors by eigenvalues for picking:
         order = np.argsort(np.abs(eig_vals), axis=-1)
         # eig_vals = np.take_along_axis(eig_vals, order, axis=-1)
-        max_power_ori = eig_vecs[np.arange(len(eig_vecs)), :, order[:, -1]]
+        # eigenvalues are real (product of PSD matrices) but NumPy >= 2.5 always
+        # returns complex eigenvectors, so take the real part
+        max_power_ori = eig_vecs[np.arange(len(eig_vecs)), :, order[:, -1]].real
         assert max_power_ori.shape == (n_sources, n_orient)
 
         # set the (otherwise arbitrary) sign to match the normal
@@ -517,7 +519,7 @@ class Beamformer(dict):
         out += ">"
         return out
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, overwrite=False, verbose=None):
         """Save the beamformer filter.
 
@@ -526,8 +528,14 @@ class Beamformer(dict):
         fname : path-like
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         _, write_hdf5 = _import_h5io_funcs()
 

@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "1f8ce92ab1ad6409f7b4a7c6ac9fec85017d4be9",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/directive_formatting.py": {
+      "a": 7,
+      "d": 4
+    }
+  }
+}

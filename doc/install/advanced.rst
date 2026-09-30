@@ -51,8 +51,7 @@ interactivity within the scene is limited in non-blocking plot calls.
   :class: note
 
   If you are using MNE-Python on Windows through IPython or Jupyter, you might
-  also have to use the IPython magic command ``%gui qt`` (see `here
-  <https://github.com/ipython/ipython/issues/10384>`_). For example:
+  also have to use the IPython magic command ``%gui qt`` (see `here <ipython blocking issue_>`__). For example:
 
   .. code-block:: ipython
 
@@ -150,9 +149,9 @@ It should make the icon appear correctly in the dock:
 GPU acceleration with CUDA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-MNE-Python can utilize `NVIDIA CUDA GPU processing`_ to speed up some
+MNE-Python can utilize `NVIDIA CUDA GPU processing <https://developer.nvidia.com/cuda-zone>`__ to speed up some
 operations (e.g. FIR filtering) by roughly an order of magnitude. To use CUDA,
-first  ensure that you are running the `NVIDIA proprietary drivers`_ on your
+first  ensure that you are running the `NVIDIA proprietary drivers <https://www.geforce.com/drivers>`__ on your
 operating system, and then do:
 
 .. code-block:: console
@@ -298,6 +297,5 @@ permanent for your logins, you can set it for example in ``~/.profile``.
 
 .. LINKS
 
-.. _`pyvista`: https://docs.pyvista.org/
-.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
-.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
+
+.. include:: ../links.inc

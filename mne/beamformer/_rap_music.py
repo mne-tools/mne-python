@@ -8,15 +8,20 @@ import numpy as np
 from scipy import linalg
 
 from .._fiff.pick import pick_channels_forward, pick_info
-from ..fixes import _reshape_view, _safe_svd
+from ..fixes import _safe_svd
 from ..forward import convert_forward_solution, is_fixed_orient
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
-from ..utils import _check_info_inv, fill_doc, logger, verbose
+from ..utils import (
+    _check_info_inv,
+    fill_doc_static,
+    logger,
+    verbose_static,
+)
 from ._compute_beamformer import _prepare_beamformer_input
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _apply_rap_music(
     data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False
 ):
@@ -26,7 +31,9 @@ def _apply_rap_music(
     ----------
     data : array, shape (n_channels, n_times)
         Evoked data.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     times : array
         Times.
     forward : instance of Forward
@@ -69,9 +76,9 @@ def _apply_rap_music(
     phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
-    G = _reshape_view(G, (G.shape[0], -1, n_orient))
+    G = G.reshape((G.shape[0], -1, n_orient), copy=False)
     gain = forward["sol"]["data"].copy()
-    gain = _reshape_view(gain, G.shape)
+    gain = gain.reshape(G.shape, copy=False)
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
     gain_dip = np.empty((n_channels, n_dipoles))
@@ -123,7 +130,7 @@ def _apply_rap_music(
     sol = linalg.lstsq(A, M)[0]
     if n_orient == 3:
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
-        X = _reshape_view(X, (-1, len(times)))
+        X = X.reshape((-1, len(times)), copy=False)
     else:
         X = sol
 
@@ -204,7 +211,7 @@ def _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, use_trap)
         return dipoles
 
 
-@verbose
+@verbose_static()
 def rap_music(
     evoked,
     forward,
@@ -234,7 +241,11 @@ def rap_music(
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -260,7 +271,7 @@ def rap_music(
     return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, False)
 
 
-@verbose
+@verbose_static()
 def trap_music(
     evoked,
     forward,
@@ -290,7 +301,11 @@ def trap_music(
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

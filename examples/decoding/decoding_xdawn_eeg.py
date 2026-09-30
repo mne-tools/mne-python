@@ -80,7 +80,9 @@ clf = make_pipeline(
     XdawnTransformer(n_components=n_filter),
     Vectorizer(),
     MinMaxScaler(),
-    OneVsRestClassifier(LogisticRegression(solver="liblinear", **kwargs)),
+    OneVsRestClassifier(
+        LogisticRegression(solver="liblinear", random_state=157, **kwargs)
+    ),
 )
 
 # Get the data and labels
@@ -89,7 +91,7 @@ X = epochs.get_data(copy=False)
 y = epochs.events[:, -1]
 
 # Cross validator
-cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=163)
 
 # Do cross-validation
 preds = np.empty(len(y))

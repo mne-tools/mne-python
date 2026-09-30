@@ -11,8 +11,8 @@ Examples
     $ mne setup_source_space --subject sample
 
 
- .. note : Only one of --ico, --oct or --spacing options can be set at the same
-           time. Default to oct6.
+.. note:: Only one of ``--ico``, ``--oct`` or ``--spacing`` options can be set at the
+          same time. Default to ``oct6``.
 
 """
 

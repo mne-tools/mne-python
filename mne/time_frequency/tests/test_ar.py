@@ -11,6 +11,7 @@ from scipy.signal import lfilter
 
 from mne import io
 from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
+from mne.utils import check_version
 
 raw_fname = Path(__file__).parents[2] / "io" / "tests" / "data" / "test_raw.fif"
 
@@ -21,9 +22,13 @@ def test_yule_walker():
     pytest.importorskip("statsmodels", "0.8")
     from statsmodels.regression.linear_model import yule_walker as sm_yw
 
+    yw_kwargs = dict()
+    if check_version("statsmodels", "0.15"):
+        yw_kwargs.update(result_object=False)
+
     rng = np.random.default_rng(0)
     d = rng.standard_normal(100)
-    sm_rho, sm_sigma = sm_yw(d, order=2)
+    sm_rho, sm_sigma = sm_yw(d, order=2, **yw_kwargs)
     rho, sigma = _yule_walker(d[np.newaxis], order=2)
     assert_array_almost_equal(sm_sigma, sigma)
     assert_array_almost_equal(sm_rho, rho)

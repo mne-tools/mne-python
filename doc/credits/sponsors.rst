@@ -46,7 +46,7 @@ Past sponsors
   AWS Research Grants
 - |czi| Chan Zuckerberg Initiative:
   `EOSS2`_,
-  `EOSS4`_
+  `EOSS4 <https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/>`__
 
 
 .. _supporting-institutions:
@@ -92,3 +92,5 @@ Past supporting institutions
     :target: {{ item.url }}
     :class: instlogo{% if item.klass is defined %} {{ item.klass }}{% endif %}
 {% endfor %}
+
+.. include:: ../links.inc

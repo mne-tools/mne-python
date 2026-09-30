@@ -26,7 +26,7 @@ from ..utils import (
     get_config,
     logger,
     set_config,
-    verbose,
+    verbose_static,
 )
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
@@ -762,7 +762,7 @@ def _check_browser_backend_name(backend_name):
     return backend_name
 
 
-@verbose
+@verbose_static()
 def set_browser_backend(backend_name, verbose=None):
     """Set the 2D browser backend for MNE.
 
@@ -776,7 +776,11 @@ def set_browser_backend(backend_name, verbose=None):
         of each backend (``'qt'``, ``'matplotlib'``). The ``'qt'`` browser
         requires `mne-qt-browser
         <https://github.com/mne-tools/mne-qt-browser>`__.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

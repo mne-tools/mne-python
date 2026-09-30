@@ -32,6 +32,7 @@ from mne import (
 )
 from mne._fiff._digitization import (
     _count_points_by_type,
+    _fiducial_coords,
     _format_dig_points,
     _get_dig_eeg,
     _get_fid_coords,
@@ -77,7 +78,6 @@ from mne.preprocessing import compute_current_source_density
 from mne.transforms import _ensure_trans, _get_trans, apply_trans, invert_transform
 from mne.utils import _record_warnings, assert_dig_allclose
 from mne.utils._testing import assert_object_equal
-from mne.viz._3d import _fiducial_coords
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = data_path / "montage" / "eeganes07.fif"

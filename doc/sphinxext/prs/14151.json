@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "8fa0c103bc8b5bc80b940261a1528182c10024aa",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14151.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 11,
+      "d": 10
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 44,
+      "d": 28
+    }
+  }
+}

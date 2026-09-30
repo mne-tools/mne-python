@@ -1,0 +1,40 @@
+{
+  "merge_commit_sha": "3b6725ab5acba4c6d121e2d4a0c870b266b7c8a1",
+  "authors": [
+    {
+      "n": "Beliz Gokmen",
+      "e": "48097107+BelizSertcan@users.noreply.github.com",
+      "l": "BelizSertcan"
+    },
+    {
+      "n": "Jacob Woessner",
+      "e": "Woessner.jacob@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/statistics.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/changes/dev/14221.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/erp.py": {
+      "a": 378,
+      "d": 1
+    },
+    "mne/stats/tests/test_erp.py": {
+      "a": 72,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

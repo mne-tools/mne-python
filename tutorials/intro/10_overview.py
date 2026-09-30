@@ -98,7 +98,7 @@ raw.plot(duration=5, n_channels=30)
 # :ref:`tut-artifact-ica` for a detailed walk-through of that process).
 
 # set up and fit the ICA
-ica = mne.preprocessing.ICA(n_components=20, random_state=97, max_iter=800)
+ica = mne.preprocessing.ICA(n_components=20, rng=97, max_iter=800)
 ica.fit(raw)
 ica.exclude = [1, 2]  # details on how we picked these are omitted here
 ica.plot_properties(raw, picks=ica.exclude)

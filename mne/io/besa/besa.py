@@ -9,11 +9,10 @@ import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ...evoked import Evoked, EvokedArray
-from ...utils import fill_doc, logger, verbose
+from ...utils import _verbose_control, logger, verbose_static
 
 
-@fill_doc
-@verbose
+@verbose_static()
 def read_evoked_besa(
     fname: Path | str, verbose: bool | str | int | None = None
 ) -> Evoked:
@@ -26,7 +25,11 @@ def read_evoked_besa(
     ----------
     fname : path-like
         Path to the ``.avr`` or ``.mul`` file.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -42,7 +45,7 @@ def read_evoked_besa(
         raise ValueError("Filename must end in either .avr or .mul")
 
 
-@verbose
+@_verbose_control
 def _read_evoked_besa_avr(fname, verbose):
     """Create EvokedArray from a BESA .avr file."""
     with open(fname) as f:
@@ -139,7 +142,7 @@ def _read_evoked_besa_avr(fname, verbose):
     )
 
 
-@verbose
+@_verbose_control
 def _read_evoked_besa_mul(fname, verbose):
     """Create EvokedArray from a BESA .mul file."""
     with open(fname) as f:

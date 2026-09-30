@@ -3,11 +3,11 @@
 IDE integration (VSCode, Spyder, etc.)
 ======================================
 
-Most users find it convenient to write and run their code in an `Integrated
-Development Environment`_ (IDE). Some popular choices for scientific
+Most users find it convenient to write and run their code in an `Integrated Development Environment
+<https://en.wikipedia.org/wiki/Integrated_development_environment>`__ (IDE). Some popular choices for scientific
 Python development are:
 
-- `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
+- `Visual Studio Code <https://code.visualstudio.com/>`__ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
   addition to Python, includes an integrated terminal console, and has a rich
   extension ecosystem. Installing
@@ -26,7 +26,7 @@ Python development are:
   Spyder and `navigating to <https://docs.spyder-ide.org/current/faq.html#using-existing-environment>`__
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
 
-- `PyCharm`_ is an IDE specifically for Python development that provides an
+- `PyCharm <https://www.jetbrains.com/pycharm/>`__ is an IDE specifically for Python development that provides an
   all-in-one solution (no extension packages needed). PyCharm comes in a
   free and open-source Community edition as well as a paid Professional edition.
 
@@ -53,3 +53,5 @@ This should print something like
 For Spyder, if the console cannot start because ``spyder-kernels`` is missing,
 install the required version in the conda environment. For example, with the
 environment you want to use activated, run ``conda install spyder-kernels``.
+
+.. include:: ../links.inc

@@ -5,10 +5,8 @@
 # Copyright the MNE-Python contributors.
 
 import warnings
-from functools import partial
 
 import numpy as np
-from scipy.stats import gaussian_kde
 
 from .._fiff.meas_info import create_info
 from .._fiff.pick import _picks_to_idx, pick_types
@@ -16,13 +14,14 @@ from .._fiff.proj import _has_eeg_average_ref_proj
 from ..defaults import DEFAULTS, _handle_default
 from ..utils import (
     _validate_type,
-    fill_doc,
-    verbose,
+    fill_doc_static,
+    verbose_static,
 )
 from .epochs import plot_epochs_image
-from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .evoked import _plot_lines
 from .topomap import _plot_ica_topomap
 from .utils import (
+    _check_time_unit,
     _compute_scalings,
     _convert_psds,
     _get_cmap,
@@ -33,7 +32,18 @@ from .utils import (
 )
 
 
-@fill_doc
+@fill_doc_static(
+    "picks_ica",
+    "show_scrollbars",
+    "time_format",
+    "precompute",
+    "use_opengl",
+    "theme_pg",
+    "overview_mode",
+    "splash",
+    "browser",
+    "notes_2d_backend",
+)
 def plot_ica_sources(
     ica,
     inst,
@@ -70,7 +80,12 @@ def plot_ica_sources(
         The ICA solution.
     inst : instance of Raw, Epochs or Evoked
         The object to plot the sources from.
-    %(picks_ica)s
+    picks : int | list of int | slice | None
+        Indices of the independent components (ICs) to visualize. If an integer,
+        represents the index of the IC to pick. Multiple ICs can be selected using a
+        list of int or a slice. The indices are 0-indexed, so ``picks=1`` will pick
+        the second IC: ``ICA001``. ``None`` will pick all independent components in
+        the order fitted.
     start, stop : float | int | None
        If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
        last time point (in seconds) of the data to plot. If ``inst`` is a
@@ -93,10 +108,40 @@ def plot_ica_sources(
         plotter. For evoked, this parameter has no effect. Defaults to False.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
-    %(show_scrollbars)s
-    %(time_format)s
-    %(precompute)s
-    %(use_opengl)s
+    show_scrollbars : bool
+        Whether to show scrollbars when the plot is initialized. Can be toggled
+        after initialization by pressing :kbd:`z` ("zen mode") while the plot
+        window is focused. Default is ``True``.
+
+        .. versionadded:: 0.19.0
+    time_format : 'float' | 'clock'
+        Style of time labels on the horizontal axis. If ``'float'``, labels will be
+        number of seconds from the start of the recording. If ``'clock'``,
+        labels will show "clock time" (hours/minutes/seconds) inferred from
+        ``raw.info['meas_date']``. Default is ``'float'``.
+
+        .. versionadded:: 0.24
+    precompute : bool | str
+        Whether to load all data (not just the visible portion) into RAM and
+        apply preprocessing (e.g., projectors) to the full data array in a separate
+        processor thread, instead of window-by-window during scrolling. The default
+        None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
+        ``'auto'``. ``'auto'`` compares available RAM space to the expected size of
+        the precomputed data, and precomputes only if enough RAM is available.
+        This is only used with the Qt backend.
+
+        .. versionadded:: 0.24
+        .. versionchanged:: 1.0
+           Support for the ``MNE_BROWSER_PRECOMPUTE`` config variable.
+    use_opengl : bool | None
+        Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+        May increase performance, but effect is dependent on system CPU and
+        graphics hardware. Only works if using the Qt backend. Default is
+        None, which will use False unless the user configuration variable
+        ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+        see :func:`mne.set_config`.
+
+        .. versionadded:: 0.24
     annotation_regex : str
         A regex pattern applied to each annotation's label.
         Matching labels remain visible, non-matching labels are hidden.
@@ -108,19 +153,37 @@ def plot_ica_sources(
         nothing is passed. Defaults to ``None``.
 
         .. versionadded:: 1.9
-    %(theme_pg)s
+    theme : str | path-like
+        Can be "auto", "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+        `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+        respectively, are required.
+        If None (default), the config option MNE_BROWSER_THEME will be used,
+        defaulting to "auto" if it's not found.
+
+        For the ``"matplotlib"`` backend, only ``"light"``, ``"dark"``, and
+        ``"auto"`` are supported. For the ``"qt"`` backend, a path-like to a
+        custom stylesheet is also accepted.
 
         .. versionadded:: 1.0
-    %(overview_mode)s
+    overview_mode : str | None
+        Can be "channels", "empty", or "hidden" to set the overview bar mode
+        for the ``'qt'`` backend. If None (default), the config option
+        ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+        if it's not found.
 
         .. versionadded:: 1.1
-    %(splash)s
+    splash : bool
+        If True (default), a splash screen is shown during the application
+        startup. Only applicable to the ``qt`` backend.
 
         .. versionadded:: 1.6
 
     Returns
     -------
-    %(browser)s
+    fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
+        Browser instance.
 
     Notes
     -----
@@ -128,7 +191,22 @@ def plot_ica_sources(
     exclusion by clicking on the line. The selected components are added to
     ``ica.exclude`` on close.
 
-    %(notes_2d_backend)s
+    MNE-Python provides two different backends for browsing plots (i.e.,
+    :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
+    and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
+    based on :mod:`matplotlib`, and the other is based on
+    :doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the
+    context manager :func:`mne.viz.use_browser_backend`, you can set it for the
+    duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
+    can set the default for your computer via
+    :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib')<mne.set_config>`
+    (or ``'qt'``).
+
+    .. note:: For the PyQtGraph backend to run in IPython with ``block=False``
+              you must run the magic command ``%gui qt5`` first.
+    .. note:: To report issues with the PyQtGraph backend, please use the
+              `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+              of ``mne-qt-browser``.
 
     .. versionadded:: 0.10.0
     """
@@ -225,6 +303,7 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -398,7 +477,7 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std, *, estimate):
     return psd_ylabel, psds_mean, spectrum_std
 
 
-@verbose
+@verbose_static("reject_by_annotation_raw", "estimate_plot_psd")
 def plot_ica_properties(
     ica,
     inst,
@@ -483,13 +562,24 @@ def plot_ica_properties(
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
-    %(reject_by_annotation_raw)s
+    reject_by_annotation : bool
+        Whether to omit bad segments from the data before fitting. If ``True``
+        (default), annotated segments whose description begins with ``'bad'`` are
+        omitted. If ``False``, no rejection based on annotations is performed.
+
+        Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 
         .. versionadded:: 0.21.0
-    %(estimate_plot_psd)s
+    estimate : str, {'power', 'amplitude'}
+        Can be "power" for power spectral density (PSD; default), "amplitude" for
+        amplitude spectrum density (ASD).
 
         .. versionadded:: 1.8.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -596,7 +686,7 @@ def _fast_plot_ica_properties(
             inst, ica, reject_by_annotation, reject
         )
     del reject, inst
-    epochs_src_picked = epochs_src.pick(picks)
+    epochs_src_picked = epochs_src.copy().pick(picks)
     del epochs_src
     good_indices = np.setdiff1d(np.arange(len(epochs_src_picked)), bad_indices)
 
@@ -676,9 +766,9 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
-    reject_by_annotation : bool, optional
+    reject_by_annotation : bool
         [description], by default True
-    reject : str, optional
+    reject : str
         [description], by default 'auto'
 
     Returns
@@ -783,7 +873,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
         The ICA labels attribute.
     """
     import matplotlib.pyplot as plt
-    from matplotlib import patheffects
 
     if title is None:
         title = "Reconstructed latent sources, time-locked"
@@ -791,13 +880,20 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
     fig, axes = plt.subplots(1, layout="constrained")
     ax = axes
     axes = [axes]
-    times = evoked.times * 1e3
+    # ms changed to s for consistency with other plotting functions
+    time_unit, times = _check_time_unit("s", evoked.times)
 
     # plot unclassified sources and label excluded ones
-    lines = list()
-    texts = list()
     picks = np.sort(picks)
-    idxs = [picks]
+
+    # plot parameters
+    data = evoked.data
+    info = evoked.info
+    units = _handle_default("units", None)
+    scalings = _handle_default("scalings", None)
+    titles = _handle_default("titles", None)
+    types = np.array(evoked.info.get_channel_types(picks), str)
+    ch_types_used = ["misc"]
 
     if labels is not None:
         labels_used = [k for k in labels if "/" not in k]
@@ -853,29 +949,47 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
                 style = cat_styles[label_name]
                 label_props[label_idx] = (color, style)
 
-    for pick_idx, (exc_label, pick) in enumerate(zip(exclude_labels, picks)):
-        color, style = label_props[pick_idx]
-        # ensure traces of excluded components are plotted on top
-        zorder = 2 if exc_label is None else 10
-        lines.extend(
-            ax.plot(
-                times,
-                evoked.data[pick].T,
-                picker=True,
-                zorder=zorder,
-                color=color,
-                linestyle=style,
-                label=exc_label,
-            )
-        )
-        lines[-1].set_pickradius(3.0)
+    # zorder independent of data passed
+    def zorder(_):
+        return [2 if exc_label is None else 10 for exc_label in exclude_labels]
 
-    ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (ms)", ylabel="(NA)")
+    lines = _plot_lines(
+        data=data,
+        info=info,
+        picks=picks,
+        fig=fig,
+        axes=axes,
+        spatial_colors=False,
+        unit=False,
+        units=units,
+        scalings=scalings,
+        hline=None,
+        gfp=False,
+        types=types,
+        zorder=zorder,
+        xlim="tight",
+        ylim=None,
+        times=times,
+        bad_ch_idx=[],
+        titles=titles,
+        ch_types_used=ch_types_used,
+        selectable=True,
+        psd=False,
+        line_alpha=1.0,
+        nave=evoked.nave,
+        time_unit=time_unit,
+        sphere=None,
+        highlight=None,
+        linewidth=1.5,
+        label_props=label_props,
+    )
+
+    ax.set(title=title, xlim=times[[0, -1]], xlabel="Time (s)", ylabel="(NA)")
     leg_lines_labels = list(
         zip(
             *[
                 (line, label)
-                for line, label in zip(lines, exclude_labels)
+                for line, label in zip(lines[0], exclude_labels)
                 if label is not None
             ]
         )
@@ -884,37 +998,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
         leg_lines, leg_labels = leg_lines_labels
         ax.legend(leg_lines, leg_labels, loc="best")
 
-    texts.append(
-        ax.text(
-            0,
-            0,
-            "",
-            zorder=3,
-            verticalalignment="baseline",
-            horizontalalignment="left",
-            fontweight="bold",
-            alpha=0,
-        )
-    )
-    # this is done to give the structure of a list of lists of a group of lines
-    # in each subplot
-    lines = [lines]
-    ch_names = evoked.ch_names
-
-    path_effects = [patheffects.withStroke(linewidth=2, foreground="w", alpha=0.75)]
-    params = dict(
-        axes=axes,
-        texts=texts,
-        lines=lines,
-        idxs=idxs,
-        ch_names=ch_names,
-        need_draw=False,
-        path_effects=path_effects,
-    )
-    fig.canvas.mpl_connect("pick_event", partial(_butterfly_onpick, params=params))
-    fig.canvas.mpl_connect(
-        "button_press_event", partial(_butterfly_on_button_press, params=params)
-    )
     plt_show(show)
     return fig
 
@@ -1047,7 +1130,9 @@ def plot_ica_scores(
     return fig
 
 
-@verbose
+@verbose_static(
+    "picks_base", "title_none", "show", "n_pca_components_apply", "on_baseline_ica"
+)
 def plot_ica_overlay(
     ica,
     inst,
@@ -1075,23 +1160,53 @@ def plot_ica_overlay(
         before and after cleaning. A second panel with the RMS for MEG sensors and the
         :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
         signals before and after cleaning will be superimposed.
-    exclude : array-like of int | None (default)
+    exclude : array-like of int | None
         The components marked for exclusion. If ``None`` (default), the components
         listed in ``ICA.exclude`` will be used.
-    %(picks_base)s all channels that were included during fitting.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick
+        all channels that were included during fitting.
     start, stop : float | None
        The first and last time point (in seconds) of the data to plot. If
        ``inst`` is a `~mne.io.Raw` object, ``start=None`` and ``stop=None``
        will be translated into ``start=0.`` and ``stop=3.``, respectively. For
        `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
        signal.
-    %(title_none)s
-    %(show)s
-    %(n_pca_components_apply)s
+    title : str | None
+        The title of the generated figure. If ``None`` (default), no title is
+        displayed.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
+    n_pca_components : int | float | None
+        The number of PCA components to be kept, either absolute (int)
+        or fraction of the explained variance (float). If None (default),
+        the ``ica.n_pca_components`` from initialization will be used in 0.22;
+        in 0.23 all components will be used.
 
         .. versionadded:: 0.22
-    %(on_baseline_ica)s
-    %(verbose)s
+    on_baseline : str
+        How to handle baseline-corrected epochs or evoked data.
+        Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+        warning, ``'ignore'`` to ignore, or "reapply" to reapply the baseline
+        after applying ICA.
+
+        .. versionadded:: 1.2
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

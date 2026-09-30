@@ -146,6 +146,9 @@ def test_snirf_gowerlabs():
 
     assert raw._data.shape == (216, 274)
     assert raw.info["dig"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
+    # File stores landmark in mm, which should be converted to m
+    nasion = raw.get_montage().get_positions()["nasion"]
+    assert_allclose(nasion, [0.0888, 0.2144, 0.0218], atol=1e-4)
     assert len(raw.ch_names) == 216
     assert_allclose(raw.info["sfreq"], 10.0)
     # we don't force them to be sorted according to a naive split

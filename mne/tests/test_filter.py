@@ -12,11 +12,12 @@ from numpy.testing import (
     assert_array_equal,
     assert_array_less,
 )
-from scipy.signal import butter, freqz, sosfreqz
+from scipy.signal import butter, freqz, hilbert, sosfreqz
 from scipy.signal import resample as sp_resample
 
 from mne import Epochs, create_info
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
+from mne.cuda import _fft_hilbert
 from mne.filter import (
     _length_factors,
     _overlap_add_filter,
@@ -176,6 +177,7 @@ def test_1d_filter(n_signal, n_filter, filter_type):
 def test_iir_stability():
     """Test IIR filter stability check."""
     sig = np.random.default_rng(0).random(1000)
+    sig_orig = sig.copy()  # IIR filtering must not modify the input (gh-14110)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
     pytest.raises(
@@ -292,6 +294,8 @@ def test_iir_stability():
     # Note that this will fail for higher orders (e.g., 6) showing the
     # hopefully decreased numerical error of SOS
     assert_allclose(x_sos[100:-100], x_ba[100:-100])
+    # none of the (copy=True) calls above should have modified the input
+    assert_array_equal(sig, sig_orig)
 
 
 def test_iir_phase():
@@ -325,17 +329,20 @@ line_freqs = tuple(range(60, 241, 60))
 
 
 @pytest.mark.parametrize(
-    "method, filter_length, line_freq, tol",
+    "method, filter_length, line_freq, tol, offset",
     [
-        ("spectrum_fit", "auto", None, 2),  # 'auto' same as None on 0.21
-        ("spectrum_fit", None, None, 2),
-        ("spectrum_fit", "10s", None, 2),
-        ("spectrum_fit", "auto", line_freqs, 1),
-        ("fft", "auto", line_freqs, 1),
-        ("fft", 8192, line_freqs, 1),
+        ("spectrum_fit", "auto", None, 2, 0),  # 'auto' same as None on 0.21
+        ("spectrum_fit", None, None, 2, 0),
+        ("spectrum_fit", "10s", None, 2, 0),
+        ("spectrum_fit", "auto", line_freqs, 1, 0),
+        ("spectrum_fit", "auto", None, 2, 0.04),  # lines between FFT bins
+        ("spectrum_fit", "auto", None, 2, 0.37),
+        ("spectrum_fit", "auto", line_freqs, 1, 0.04),
+        ("fft", "auto", line_freqs, 1, 0),
+        ("fft", 8192, line_freqs, 1, 0),
     ],
 )
-def test_notch_filters(method, filter_length, line_freq, tol):
+def test_notch_filters(method, filter_length, line_freq, tol, offset):
     """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
     rng = np.random.default_rng(0)
@@ -346,8 +353,10 @@ def test_notch_filters(method, filter_length, line_freq, tol):
     # make a "signal"
     a = rng.standard_normal(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a**2))
+    noise = a.copy()
     # make line noise
-    a += np.sum([np.sin(2 * np.pi * f * t) for f in line_freqs], axis=0)
+    true_freqs = np.array(line_freqs) + offset
+    a += np.sum([np.sin(2 * np.pi * f * t) for f in true_freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
     for kind in ("fir", "iir"):
@@ -358,16 +367,27 @@ def test_notch_filters(method, filter_length, line_freq, tol):
             a, sfreq, line_freq, filter_length, method=method, verbose=True
         )
     if line_freq is None:
-        out = [
-            line.strip().split(":")[0]
-            for line in log_file.getvalue().split("\n")
-            if line.startswith(" ")
-        ]
-        assert len(out) == 4, "Detected frequencies not logged properly"
-        out = np.array(out, float)
-        assert_array_almost_equal(out, line_freqs)
+        # each line should be detected in all windows (a rare spurious
+        # detection in a single window is allowed)
+        n_windows = 1 if filter_length is None else 3
+        out = dict()
+        for line in log_file.getvalue().split("\n"):
+            if line.startswith(" "):
+                freq, count = line.split(":")
+                out[float(freq)] = int(count.split()[0])
+        assert all(out.get(freq) == n_windows for freq in line_freqs), out
+        assert all(freq in line_freqs or count <= 1 for freq, count in out.items()), out
     new_power = np.sqrt(sum_squared(b) / b.size)
     assert_almost_equal(new_power, orig_power, tol)
+    # the line noise should be gone (residual amplitude relative to 1)
+    resid = [
+        2 * np.abs(np.mean((b - noise) * np.exp(-2j * np.pi * f * t)))
+        for f in true_freqs
+    ]
+    assert_array_less(resid, 0.1)
+    # and other frequencies should be mostly untouched (FIR removes a band)
+    err = np.sqrt(np.mean((b - noise) ** 2))
+    assert err < (0.1 if method == "spectrum_fit" else 0.2), err
 
 
 @resample_method_parametrize
@@ -841,6 +861,39 @@ def test_cuda_fir():
     assert sum(["Using CUDA for FFT FIR filtering" in o for o in out]) == tot
     if not _cuda_capable:
         pytest.skip("CUDA not enabled")
+
+
+@pytest.mark.parametrize("n_times, n_fft", ((99, 99), (100, 128)))
+@pytest.mark.parametrize("envelope", (False, True))
+def test_cuda_hilbert(n_times, n_fft, envelope):
+    """Test CUDA-based Hilbert transforms and CPU fallback."""
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((3, n_times))
+    raw = RawArray(data, create_info(3, 100.0, "eeg"))
+    expected = raw.copy().apply_hilbert(envelope=envelope, n_jobs=1, n_fft=n_fft)
+    with catch_logging() as log_file:
+        got = raw.copy().apply_hilbert(
+            envelope=envelope, n_jobs="cuda", n_fft=n_fft, verbose="info"
+        )
+    assert_allclose(got.get_data(), expected.get_data(), rtol=1e-7, atol=1e-12)
+
+    from mne.cuda import _cuda_capable
+
+    used_cuda = "Using CUDA for Hilbert transform" in log_file.getvalue()
+    assert used_cuda == _cuda_capable
+
+
+@pytest.mark.parametrize("n_times, n_fft", ((99, 99), (100, 128)))
+@pytest.mark.parametrize("envelope", (False, True))
+def test_fft_hilbert(n_times, n_fft, envelope):
+    """Test the FFT implementation used by the CUDA path."""
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((2, 3, n_times))
+    got = _fft_hilbert(data, n_fft, envelope, np)
+    expected = hilbert(data, N=n_fft, axis=-1)[..., :n_times]
+    if envelope:
+        expected = np.abs(expected)
+    assert_allclose(got, expected, rtol=1e-12, atol=1e-12)
 
 
 def test_cuda_resampling():

@@ -1,1 +1,0 @@
-Add table with all available config options to :ref:`tut-configure-mne`, by `Clemens Brunner`_.

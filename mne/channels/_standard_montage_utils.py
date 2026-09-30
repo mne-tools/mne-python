@@ -423,7 +423,9 @@ def _read_brainvision(fname, head_size):
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    _soft_import("defusedxml", "reading BrainVision montages")
+    import defusedxml.ElementTree
+
     root = defusedxml.ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]

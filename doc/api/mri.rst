@@ -9,7 +9,7 @@ Step by step instructions for using :func:`gui.coregistration`:
  - `Coregistration for subjects with structural MRI
    <https://www.slideshare.net/mne-python/mnepython-coregistration>`_
  - `Scaling a template MRI for subjects for which no MRI is available
-   <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_
+   <MRI scaling slides_>`__
 
 See also:
 
@@ -39,3 +39,5 @@ See also:
    transforms.compute_volume_registration
    vertex_to_mni
    coreg.Coregistration
+
+.. include:: ../links.inc

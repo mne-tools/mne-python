@@ -12,13 +12,13 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 pytest.importorskip("sklearn")
 
 from sklearn.pipeline import Pipeline
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, create_info, io, pick_types, read_events
 from mne._fiff.pick import _picks_to_idx
 from mne.decoding import CSP
 from mne.decoding._mod_ged import _get_spectral_ratio
 from mne.decoding.ssd import SSD, read_ssd
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.filter import filter_data
 from mne.time_frequency import psd_array_welch
 

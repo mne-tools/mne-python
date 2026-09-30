@@ -3,35 +3,23 @@
 Version 0.21 (2020-09-21)
 -------------------------
 
-.. |Rahul Nadkarni| replace:: **Rahul Nadkarni**
-.. |Lau Møller Andersen| replace:: **Lau Møller Andersen**
-.. |Kyle Mathewson| replace:: **Kyle Mathewson**
-.. |Jan Sedivy| replace:: **Jan Sedivy**
-.. |Johann Benerradi| replace:: **Johann Benerradi**
-.. |Martin Schulz| replace:: **Martin Schulz**
-.. |Jeroen Van Der Donckt| replace:: **Jeroen Van Der Donckt**
-.. |Simeon Wong| replace:: **Simeon Wong**
-.. |Svea Marie Meyer| replace:: **Svea Marie Meyer**
-.. |Lx37| replace:: **Lx37**
-.. |Liberty Hamilton| replace:: **Liberty Hamilton**
-.. |Steven Bierer| replace:: **Steven Bierer**
 
 Enhancements
 ~~~~~~~~~~~~
 
-- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries **by new contributor** |Rahul Nadkarni|_
+- Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by :newcontrib:`Rahul Nadkarni`
 
-- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression **by new contributor** |Kyle Mathewson|_ and `Eric Larson`_
+- Add function :func:`mne.preprocessing.regress_artifact` to remove artifacts using linear regression by :newcontrib:`Kyle Mathewson` and `Eric Larson`_
 
-- Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes **by new contributor** |Kyle Mathewson|_
+- Add ``sources`` and ``detectors`` options for fNIRS use of :meth:`mne.viz.plot_alignment` allowing plotting of optode locations in addition to channel midpoint ``channels`` and ``path`` between fNIRS optodes by :newcontrib:`Kyle Mathewson`
 
-- BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` **by new contributor** |Jan Sedivy|_ and `Stefan Appelhoff`_
+- BrainVision data format files are now parsed for EEG impedance values in :func:`mne.io.read_raw_brainvision` and provided as a ``.impedances`` attribute of ``raw`` by :newcontrib:`Jan Sedivy` and `Stefan Appelhoff`_
 
-- Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) **by new contributor** |Johann Benerradi|_
+- Add function :func:`mne.channels.combine_channels` to combine channels from Raw, Epochs, or Evoked according to ROIs (combinations including mean, median, or standard deviation; can also use a callable) by :newcontrib:`Johann Benerradi`
 
-- Improved documentation building instructions and execution on Windows **by new contributor** |Martin Schulz|_, `Evgenii Kalenkovich`_, and `Eric Larson`_
+- Improved documentation building instructions and execution on Windows by :newcontrib:`Martin Schulz`, `Evgenii Kalenkovich`_, and `Eric Larson`_
 
-- Speed up reading of annotations in EDF+ files **by new contributor** |Jeroen Van Der Donckt|_
+- Speed up reading of annotations in EDF+ files by :newcontrib:`Jeroen Van Der Donckt`
 
 - Add head to mri and mri to voxel space transform details to :ref:`tut-source-alignment` tutorial, by `Alex Rockhill`_
 
@@ -210,19 +198,19 @@ Enhancements
 Bugs
 ~~~~
 
-- Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` **by new contributor** |Lau Møller Andersen|_
+- Fix bug for writing and reading complex evoked data modifying :func:`mne.write_evokeds` and :func:`mne.read_evokeds` by :newcontrib:`Lau Møller Andersen`
 
-- Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` **by new contributor** |Lau Møller Andersen|_
+- Fix bug by adding error message when trying to save complex stc data in a non.-h5 format :meth:`mne.VolSourceEstimate.save` by :newcontrib:`Lau Møller Andersen`
 
-- Fix bug with logging in :meth:`mne.io.Raw.set_eeg_reference` and related functions **by new contributor** |Simeon Wong|_
+- Fix bug with logging in :meth:`mne.io.Raw.set_eeg_reference` and related functions by :newcontrib:`Simeon Wong`
 
-- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error **by new contributor** |Svea Marie Meyer|_
+- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by :newcontrib:`Svea Marie Meyer`
 
-- Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters **by new contributor** |Lx37|_
+- Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters by :newcontrib:`Alexandra Corneyllie`
 
-- Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' **by new contributor** |Liberty Hamilton|_
+- Fix bug in :func:`mne.set_eeg_reference` and related functions to set ``info['custom_ref_applied']`` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by :newcontrib:`Liberty Hamilton`
 
-- Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length **by new contributor** |Steven Bierer|_
+- Fix bug with :func:`mne.chpi.compute_chpi_amplitudes` and :func:`mne.chpi.filter_chpi` to optimize time window length by :newcontrib:`Steven Bierer`
 
 - Fix bug with :func:`mne.preprocessing.ICA.find_bads_eog` when more than one EOG components are present by `Christian O'Reilly`_
 
@@ -484,3 +472,5 @@ People who contributed to this release in alphabetical order
 * Yu-Han Luo
 * chapochn
 * mshader
+
+.. include:: names.inc

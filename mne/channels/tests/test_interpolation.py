@@ -10,7 +10,14 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne.channels.channels
-from mne import Epochs, create_info, pick_channels, pick_types, read_events
+from mne import (
+    Epochs,
+    create_info,
+    make_fixed_length_epochs,
+    pick_channels,
+    pick_types,
+    read_events,
+)
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.channels import make_dig_montage, make_standard_montage
@@ -333,8 +340,8 @@ def test_interpolation_nirs():
     assert raw_haemo.info["bads"] == []
 
 
-def test_interpolation_nirs_reordered_picks():
-    """Test NIRS interpolation uses the closest donor in raw channel space."""
+def _nirs_raw():
+    """Build a small fNIRS raw with pairs at known distances along x."""
     ch_names = [
         "S1_D1 760",
         "S1_D1 850",
@@ -358,17 +365,36 @@ def test_interpolation_nirs_reordered_picks():
         ch["loc"][9] = 760.0 if idx % 2 == 0 else 850.0
     data = np.arange(len(ch_names), dtype=float).reshape(-1, 1)
     data = np.repeat(data, 5, axis=1)
-    raw = RawArray(data, info, verbose=False)
-    raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
+    return RawArray(data, info, verbose=False)
 
+
+def _assert_nirs_donor(inst):
+    """Check bad S2_D2 was copied from the nearest good pair, S1_D1."""
+    picks_bad = pick_channels(inst.ch_names, ["S2_D2 760", "S2_D2 850"], exclude=[])
+    picks_want = pick_channels(inst.ch_names, ["S1_D1 760", "S1_D1 850"], exclude=[])
+    assert_allclose(inst.get_data(picks=picks_bad), inst.get_data(picks=picks_want))
+
+
+def test_interpolation_nirs_reordered_picks():
+    """Test NIRS interpolation uses the closest donor in raw channel space."""
+    raw = _nirs_raw()
+    raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
     raw.interpolate_bads(
         method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
     )
+    _assert_nirs_donor(raw)
 
-    # Bad S2_D2 should copy from the nearest good pair, S1_D1.
-    picks_bad = pick_channels(raw.ch_names, ["S2_D2 760", "S2_D2 850"], exclude=[])
-    picks_want = pick_channels(raw.ch_names, ["S1_D1 760", "S1_D1 850"], exclude=[])
-    assert_allclose(raw.get_data(picks=picks_bad), raw.get_data(picks=picks_want))
+
+def test_interpolation_nirs_epochs():
+    """Test NIRS interpolation works on 3-D (epochs) data."""
+    epochs = make_fixed_length_epochs(
+        _nirs_raw(), duration=2.0, preload=True, verbose=False
+    )
+    epochs.info["bads"] = ["S2_D2 760", "S2_D2 850"]
+    epochs.interpolate_bads(
+        method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
+    )
+    _assert_nirs_donor(epochs)
 
 
 @testing.requires_testing_data
@@ -583,6 +609,18 @@ def test_interpolate_to_eeg(montage_name, method, data_type):
     inst.info["bads"] = bads
     inst_interp = inst.copy().interpolate_to(montage, method=method)
     assert inst_interp.info["bads"] == bads
+
+
+def test_interpolate_to_eeg_same_positions():
+    """Test that spline interpolate_to onto src pos is a no-op (gh-14153)."""
+    raw = read_raw_fif(raw_fname).pick("eeg").crop(0, 1).load_data()
+    montage = make_dig_montage(
+        ch_pos=dict(zip(raw.ch_names, raw.info._get_channel_positions())),
+        coord_frame="head",
+    )
+    raw_interp = raw.copy().interpolate_to(montage, method="spline")
+    assert raw_interp.ch_names == raw.ch_names
+    assert_allclose(raw_interp.get_data(), raw.get_data(), rtol=1e-5, atol=1e-12)
 
 
 @pytest.mark.slowtest  # ~5s locally

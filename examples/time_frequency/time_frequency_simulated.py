@@ -43,7 +43,7 @@ info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
 n_times = 1024  # Just over 1 second epochs
 n_epochs = 40
-seed = 42
+seed = 181
 rng = np.random.default_rng(seed)
 data = rng.standard_normal((len(ch_names), n_times * n_epochs + 200))  # buffer
 

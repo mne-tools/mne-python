@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from ..._fiff.meas_info import create_info
-from ...utils import verbose
+from ...utils import _verbose_control
 from ..base import BaseRaw
 
 
@@ -217,7 +217,7 @@ class RawBCI2k(BaseRaw):
         Control verbosity.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, input_fname, preload=False, verbose=None):
         # For now we always preload; non-preload would require chunked reading.
         if not preload:

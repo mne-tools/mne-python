@@ -9,7 +9,7 @@ from scipy.fft import fft, fftfreq, ifft
 
 from .._fiff.pick import _pick_data_channels, pick_info
 from ..parallel import parallel_func
-from ..utils import _validate_type, legacy, logger, verbose
+from ..utils import _validate_type, legacy, logger, verbose_static
 from .tfr import AverageTFRArray, _ensure_slice, _get_data
 
 
@@ -115,7 +115,7 @@ def _compute_freqs_st(fmin, fmax, n_fft, sfreq):
     return start_f, stop_f, freqs
 
 
-@verbose
+@verbose_static("decim_tfr", "n_jobs")
 def tfr_array_stockwell(
     data,
     sfreq,
@@ -155,11 +155,31 @@ def tfr_array_stockwell(
         The width of the Gaussian window. If < 1, increased temporal
         resolution, if > 1, increased frequency resolution. Defaults to 1.
         (classical S-Transform).
-    %(decim_tfr)s
+    decim : int | slice
+        Decimation factor, applied *after* time-frequency decomposition.
+
+        - if :class:`int`, returns ``tfr[..., ::decim]`` (keep only every Nth
+          sample along the time axis).
+        - if :class:`slice`, returns ``tfr[..., decim]`` (keep only the specified
+          slice along the time axis).
+
+        .. note::
+            Decimation is done after convolutions and may create aliasing
+            artifacts.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -213,7 +233,7 @@ def tfr_array_stockwell(
 
 
 @legacy(alt='.compute_tfr(method="stockwell", freqs="auto")')
-@verbose
+@verbose_static()
 def tfr_stockwell(
     inst,
     fmin=None,
@@ -255,7 +275,11 @@ def tfr_stockwell(
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         The number of jobs to run in parallel (over channels).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

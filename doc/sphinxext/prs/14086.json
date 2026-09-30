@@ -1,0 +1,40 @@
+{
+  "merge_commit_sha": "2388f9bc114dd6f748c716733cae66b10f3a3949",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com",
+      "l": "PragnyaKhandelwal"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14086.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/egi/egi.py": {
+      "a": 24,
+      "d": 3
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/io/egi/events.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 22,
+      "d": 0
+    }
+  }
+}

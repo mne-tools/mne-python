@@ -1,1 +1,0 @@
-Added cross-references to common modification methods in :class:`mne.Info` docstring by :newcontrib:`Athish M`.

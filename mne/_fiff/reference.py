@@ -10,10 +10,10 @@ from ..utils import (
     _check_preload,
     _on_missing,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     logger,
     pinv,
-    verbose,
+    verbose_static,
     warn,
 )
 from .constants import FIFF
@@ -209,7 +209,7 @@ def _apply_dict_reference(inst, ref_dict):
     return inst, None
 
 
-@fill_doc
+@fill_doc_static("ref_channels")
 def add_reference_channels(inst, ref_channels, copy=True):
     """Add reference channels to data that consists of all zeros.
 
@@ -221,7 +221,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    %(ref_channels)s
+    ref_channels : str | list of str
+        Name of the electrode(s) which served as the reference in the
+        recording. If a name is provided, a corresponding channel is added
+        and its data is set to 0. This is useful for later re-referencing.
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
@@ -357,7 +360,14 @@ def _check_can_reref(inst):
         )
 
 
-@verbose
+@verbose_static(
+    "ref_channels_set_eeg_reference",
+    "projection_set_eeg_reference",
+    "ch_type_set_eeg_reference",
+    "forward_set_eeg_reference",
+    "joint_set_eeg_reference",
+    "set_eeg_reference_see_also_notes",
+)
 def set_eeg_reference(
     inst,
     ref_channels="average",
@@ -384,15 +394,67 @@ def set_eeg_reference(
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    %(ref_channels_set_eeg_reference)s
+    ref_channels : list of str | str | dict
+        Can be:
+
+        - The name(s) of the channel(s) used to construct the reference for
+          every channel of ``ch_type``.
+        - ``'average'`` to apply an average reference (default)
+        - ``'REST'`` to use the Reference Electrode Standardization Technique
+          infinity reference :footcite:`Yao2001`.
+        - A dictionary mapping names of data channels to (lists of) names of
+          reference channels. For example, {'A1': 'A3'} would replace the
+          data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+          the average of multiple channels as reference, supply a list of channel
+          names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+          channel A1 with ``A1 - mean(A2, A3)``.
+        - An empty list, in which case MNE will not attempt any re-referencing of
+          the data
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
-    %(projection_set_eeg_reference)s
-    %(ch_type_set_eeg_reference)s
-    %(forward_set_eeg_reference)s
-    %(joint_set_eeg_reference)s
-    %(verbose)s
+    projection : bool
+        If ``ref_channels='average'`` this argument specifies if the
+        average reference should be computed as a projection (True) or not
+        (False; default). If ``projection=True``, the average reference is
+        added as a projection and is not applied to the data (it can be
+        applied afterwards with the ``apply_proj`` method). If
+        ``projection=False``, the average reference is directly applied to
+        the data. If ``ref_channels`` is not ``'average'``, ``projection``
+        must be set to ``False`` (the default in this case).
+    ch_type : list of str | str
+        The name of the channel type to apply the reference to.
+        Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
+        ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
+        that is found (in that order) will be selected.
+
+        .. versionadded:: 0.19
+        .. versionchanged:: 1.2
+           ``list-of-str`` is now supported with ``projection=True``.
+        .. versionchanged:: 1.13
+           ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+           now applies a per-channel-type reference by default (set ``joint=True``
+           for the previous union-of-types behavior).
+    forward : instance of Forward | None
+        Forward solution to use. Only used with ``ref_channels='REST'``.
+
+        .. versionadded:: 0.21
+    joint : bool
+        How to handle list-of-str ``ch_type``. If False (default), the reference is
+        computed per channel type (one projector per type when ``projection=True``;
+        one average reference subtracted per type when ``projection=False`` and
+        ``ref_channels="average"``). If True, a single reference is computed across
+        all listed channel types.
+
+        .. versionadded:: 1.2
+        .. versionchanged:: 1.13
+           Now also applies when ``projection=False``. Previously, the
+           ``projection=False`` path silently behaved as if ``joint=True``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -406,7 +468,70 @@ def set_eeg_reference(
         :class:`dict`, or if a per-channel-type average reference was applied
         (``ref_channels="average"`` with a multi-type ``ch_type`` and
         ``joint=False``).
-    %(set_eeg_reference_see_also_notes)s
+
+    See Also
+    --------
+    mne.set_bipolar_reference : Convenience function for creating bipolar
+                            references.
+
+    Notes
+    -----
+    Some common referencing schemes and the corresponding value for the
+    ``ref_channels`` parameter:
+
+    - Average reference:
+        A new virtual reference electrode is created by averaging the current
+        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+        automatically excluded if they are properly set in ``info['bads']``.
+
+    .. note::
+        When performing average referencing in sensor-space analyses, the original
+        reference electrode should be present as a zero-filled channel. If it is
+        not, this must first be added using :func:`~mne.add_reference_channels`,
+        before calling :func:`~mne.set_eeg_reference`. This is necessary to avoid
+        biasing the reference :footcite:`KimEtAl2023`.
+
+    - A single electrode:
+        Set ``ref_channels`` to a list containing the name of the channel that
+        will act as the new reference, for example ``ref_channels=['Cz']``.
+
+    - The mean of multiple electrodes:
+        A new virtual reference electrode is created by computing the average
+        of the current EEG signal recorded from two or more selected channels.
+        Set ``ref_channels`` to a list of channel names, indicating which
+        channels to use. For example, to apply an average mastoid reference,
+        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
+
+    - REST
+        The given EEG electrodes are referenced to a point at infinity using the
+        lead fields in ``forward``, which helps standardize the signals.
+
+    - Different references for different channels
+        Set ``ref_channels`` to a dictionary mapping source channel names (str)
+        to the reference channel names (str or list of str). Unlike the other
+        approaches where the same reference is applied globally, you can set
+        different references for different channels with this method. For example,
+        to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+        'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+        issued when a mapping involves bad channels or channels of different types.
+
+    1. If a reference is requested that is not the average reference, this
+       function removes any pre-existing average reference projections.
+
+    2. During source localization, the EEG signal should have an average
+       reference.
+
+    3. In order to apply a reference, the data must be preloaded. This is not
+       necessary if ``ref_channels='average'`` and ``projection=True``.
+
+    4. For an average or REST reference, bad EEG channels are automatically
+       excluded if they are properly set in ``info['bads']``.
+
+    .. versionadded:: 0.9.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     from ..forward import Forward
 
@@ -543,7 +668,7 @@ def _get_ch_type(inst, ch_type):
     return ch_type
 
 
-@verbose
+@verbose_static()
 def set_bipolar_reference(
     inst,
     anode,
@@ -595,7 +720,11 @@ def set_bipolar_reference(
         warns if on_bad="warns", raises ValueError if on_bad="raise", and does
         nothing if on_bad="ignore". For "warn" and "ignore", the new bipolar
         channel will be marked as bad. Defaults to on_bad="warns".
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

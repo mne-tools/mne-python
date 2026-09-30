@@ -9,7 +9,7 @@ MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 # Internal variables.
 ALLSPHINXOPTS   = -d _build/doctrees $(SPHINXOPTS) .
 
-.PHONY: help clean html html-noplot html-pattern linkcheck linkcheck-grep doctest
+.PHONY: help clean html html-noplot html-pattern jupyterlite_wheel linkcheck linkcheck-grep doctest
 
 # make with no arguments will build the first target by default, i.e., build standalone HTML files
 first_target: html-noplot
@@ -28,15 +28,18 @@ help:
 	@echo "  view             to view the built HTML"
 
 clean:
-	-rm -rf _build sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
+	-rm -rf _build _contents pypi sg_execution_times.rst auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
-html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
+jupyterlite_wheel:
+	@python sphinxext/build_lite_wheel.py
+
+html: jupyterlite_wheel
+	MNE_DOC_BUILD_JUPYTERLITE=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
-html-memory:
-	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html
+html-memory: jupyterlite_wheel
+	MNE_DOC_BUILD_JUPYTERLITE=1 $(MPROF) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
@@ -65,7 +68,7 @@ html_dev-noplot: html-noplot
 html_dev-front: html-front
 
 linkcheck:
-	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -q -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/dev" -d _build/doctrees . _build/linkcheck
+	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -q -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst,_includes,changes/dev,jupyterlite_contents,lite_extra,pypi" -d _build/doctrees . _build/linkcheck
 
 doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest

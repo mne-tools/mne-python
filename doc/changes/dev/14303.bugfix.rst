@@ -1,0 +1,1 @@
+Fix bug where right-clicking a second component in :meth:`mne.preprocessing.ICA.plot_sources` raised an ``IndexError``, by `Johannes Herforth`_.

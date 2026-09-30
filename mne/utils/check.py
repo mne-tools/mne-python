@@ -10,6 +10,7 @@ import os
 import re
 from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
+from functools import wraps
 from importlib import import_module
 from inspect import signature
 from pathlib import Path
@@ -18,7 +19,13 @@ import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
-from ._logging import _record_warnings, _verbose_safe_false, logger, verbose, warn
+from ._logging import (
+    _record_warnings,
+    _verbose_control,
+    _verbose_safe_false,
+    logger,
+    warn,
+)
 
 
 def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
@@ -230,6 +237,43 @@ def check_random_state(seed):
     )
 
 
+def _check_rng(rng):
+    """Return a NumPy Generator, or a legacy RandomState unchanged.
+
+    Legacy RandomState instances are accepted for interoperability with
+    third-party code such as scikit-learn that does not accept Generator
+    instances.
+    """
+    if isinstance(rng, np.random.mtrand.RandomState):
+        return rng
+    return np.random.default_rng(rng)
+
+
+def _legacy_rng(legacy_name):
+    """Handle presence-sensitive legacy RNG parameters at the call boundary.
+
+    The decorated function must accept a keyword-only ``rng`` parameter. When
+    it is called, ``kwargs["rng"]`` is replaced by the normalized value before
+    the function runs, so the body only ever sees an already-normalized RNG.
+    """
+
+    def decorator(function):
+        @wraps(function)
+        def _legacy_rng_wrapper(*args, **kwargs):
+            if legacy_name not in kwargs:
+                kwargs["rng"] = _check_rng(kwargs.get("rng"))
+                return function(*args, **kwargs)
+            if "rng" in kwargs:
+                raise TypeError(f"Specify only one of rng or {legacy_name}")
+            logger.info(f"Use rng= instead of {legacy_name}= in new code")
+            kwargs["rng"] = check_random_state(kwargs[legacy_name])
+            return function(*args, **kwargs)
+
+        return _legacy_rng_wrapper
+
+    return decorator
+
+
 def _check_event_id(event_id, events):
     """Check event_id and convert to default format."""
     # check out event_id dict
@@ -250,7 +294,7 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-@verbose
+@_verbose_control
 def _check_fname(
     fname,
     overwrite=False,
@@ -728,7 +772,7 @@ def _check_if_nan(data, on_nan="error", msg=" to be plotted"):
             warn(f"Some of the values {msg} are NaN")
 
 
-@verbose
+@_verbose_control
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
@@ -1053,15 +1097,20 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     from ..bem import ConductorModel, fit_sphere_to_headshape, get_fitting_dig
 
     if sphere is None:
-        sphere = HEAD_SIZE_DEFAULT
-        if info is not None:
-            # Decide if we have enough dig points to do the auto fit
-            try:
-                get_fitting_dig(info, "extra", verbose="error")
-            except (RuntimeError, ValueError):
-                pass
-            else:
-                sphere = "auto"
+        if info is not None and info.get("head_sphere") is not None:
+            # Prefer the sphere stored by inst.set_head_sphere(), always in m
+            sphere, sphere_units = info["head_sphere"], "m"
+        else:
+            # Try the "auto" procedure, fall back to HEAD_SIZE_DEFAULT if it fails
+            sphere = HEAD_SIZE_DEFAULT
+            if info is not None:
+                # Decide if we have enough dig points to do the auto fit
+                try:
+                    get_fitting_dig(info, "extra", verbose="error")
+                except (RuntimeError, ValueError):
+                    pass
+                else:
+                    sphere = "auto"
 
     if isinstance(sphere, str):
         _check_option(

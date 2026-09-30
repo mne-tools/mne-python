@@ -10,9 +10,7 @@ from functools import partial
 from typing import Any
 
 import numpy as np
-from scipy.sparse import csc_array, csr_array
 
-from ..fixes import _reshape_view
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_date
 from .constants import (
@@ -149,6 +147,8 @@ def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
+    from scipy.sparse import csc_array, csr_array
+
     if shape is not None or rlims is not None:
         raise ValueError("Row reading not implemented for matrices yet")
 
@@ -178,7 +178,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data = _reshape_view(data, dims)
+        data = data.reshape(dims, copy=False)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
@@ -293,6 +293,15 @@ def _read_dig_point_struct(fid, tag, shape, rlims, *, string=False):
     return out
 
 
+# fiffLayerRec: the layer descriptor of a layered sphere model
+_LAYER_DTYPE = np.dtype([("id", ">i4"), ("rad", ">f4")])
+
+
+def _read_layer_struct(fid, tag, shape, rlims):
+    """Read an array of layer structs (fiffLayerRec)."""
+    return _frombuffer_rows(fid, tag.size, dtype=_LAYER_DTYPE, shape=shape, rlims=rlims)
+
+
 def _read_coord_trans_struct(fid, tag, shape, rlims):
     """Read coord trans struct tag."""
     from ..transforms import Transform
@@ -388,6 +397,7 @@ _call_dict = {
     FIFF.FIFFT_DIG_POINT_STRUCT: _read_dig_point_struct,
     FIFF.FIFFT_DIG_STRING_STRUCT: partial(_read_dig_point_struct, string=True),
     FIFF.FIFFT_COORD_TRANS_STRUCT: _read_coord_trans_struct,
+    FIFF.FIFFT_LAYER_STRUCT: _read_layer_struct,
     FIFF.FIFFT_CH_INFO_STRUCT: _read_ch_info_struct,
     FIFF.FIFFT_OLD_PACK: _read_old_pack,
     FIFF.FIFFT_DIR_ENTRY_STRUCT: _read_dir_entry_struct,
@@ -402,6 +412,7 @@ _call_dict_names = {
     FIFF.FIFFT_DIG_POINT_STRUCT: "dps",
     FIFF.FIFFT_DIG_STRING_STRUCT: "dss",
     FIFF.FIFFT_COORD_TRANS_STRUCT: "cts",
+    FIFF.FIFFT_LAYER_STRUCT: "lay",
     FIFF.FIFFT_CH_INFO_STRUCT: "cis",
     FIFF.FIFFT_OLD_PACK: "op_",
     FIFF.FIFFT_DIR_ENTRY_STRUCT: "dir",

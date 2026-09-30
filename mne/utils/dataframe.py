@@ -9,11 +9,11 @@ from inspect import signature
 import numpy as np
 
 from ..defaults import _handle_default
-from ._logging import logger, verbose
+from ._logging import _verbose_control, logger
 from .check import check_version
 
 
-@verbose
+@_verbose_control
 def _set_pandas_dtype(df, columns, dtype, verbose=None):
     """Try to set the right columns to dtype."""
     for column in columns:
@@ -75,7 +75,7 @@ def _inplace(df, method, **kwargs):
         return df
 
 
-@verbose
+@_verbose_control
 def _build_data_frame(
     inst,
     data,

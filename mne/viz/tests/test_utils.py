@@ -24,6 +24,7 @@ from mne.viz.utils import (
     _fake_keypress,
     _fake_scroll,
     _get_color_list,
+    _is_dark,
     _make_event_color_dict,
     _setup_vmin_vmax,
     _validate_if_list_of_axes,
@@ -75,6 +76,25 @@ def test_get_color_list():
         colors_no_red = _get_color_list(remove=("#ff0000",))
         assert "#ff0000" not in colors_no_red
         assert len(colors_no_red) == 1
+
+
+def test_is_dark():
+    """Test that background darkness is judged perceptually."""
+    wants = {
+        "k": True,
+        "w": False,
+        "#1e1e1e": True,  # dark theme background
+        "#d0d0d0": False,  # dark theme foreground
+        (0.5, 0.5, 0.5): False,  # midtone gray reads as light in Oklab
+        (0.0, 0.0, 0.0, 1.0): True,  # RGBA is okay, too
+        # saturated colors need perceptual lightness to get right
+        "b": True,
+        "yellow": False,
+    }
+    for color, want in wants.items():
+        assert _is_dark(color) is want, color
+    with pytest.raises(ValueError, match="Invalid RGB argument.*for bgcolor"):
+        _is_dark("not_a_color", name="bgcolor")
 
 
 def test_mne_analyze_colormap():

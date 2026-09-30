@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from ..utils import fill_doc
+from ..utils import fill_doc_static
 from .constants import FIFF
 
 
@@ -64,7 +64,7 @@ def _make_compensator(info, grade):
     raise ValueError(f"Desired compensation matrix (grade = {grade:d}) not found")
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def make_compensator(info, from_, to, exclude_comp_chs=False):
     """Return compensation matrix eg. for CTF system.
 
@@ -73,7 +73,9 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     from_ : int
         Compensation in the input data.
     to : int

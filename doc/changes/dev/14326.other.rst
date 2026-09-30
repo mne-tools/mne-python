@@ -1,0 +1,1 @@
+Name the offending channels in warnings from :func:`mne.preprocessing.nirs.optical_density` and :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair`, by `Kalle Mäkelä`_.

@@ -26,8 +26,7 @@ I can't get PyVista/3D plotting to work under Windows
 -----------------------------------------------------
 
 If PyVista plotting in Jupyter Notebooks doesn't work well, using the IPython
-magic ``%gui qt`` should `help
-<https://github.com/ipython/ipython/issues/10384>`_.
+magic ``%gui qt`` should `help <ipython blocking issue_>`__.
 
 .. code-block:: ipython
 
@@ -133,8 +132,8 @@ data that you want to save but can't figure out how, post to the `MNE Forum`_
 or to the `GitHub issues page`_.
 
 If you want to write your own data to disk (e.g., subject behavioral scores),
-we strongly recommend using h5io_, which is based on the `HDF5 format
-<https://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and h5py_, to save
+we strongly recommend using `h5io <https://github.com/h5io/h5io>`__, which is based on the `HDF5 format
+<https://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and `h5py <http://www.h5py.org>`__, to save
 data in a fast, future-compatible, standard format.
 
 
@@ -442,8 +441,9 @@ References
 
 .. _`the most current version`: https://github.com/mne-tools/mne-python/releases/latest
 .. _`minimal working example`: https://en.wikipedia.org/wiki/Minimal_Working_Example
-.. _mri_watershed: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_watershed
 .. _mri_normalize: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize
 .. _freeview: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide/FreeviewIntroduction
 .. _`FreeSurfer listserv`: https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/
 .. _autorecon1: https://surfer.nmr.mgh.harvard.edu/fswiki/ReconAllDevTable
+
+.. include:: ../links.inc

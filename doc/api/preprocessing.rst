@@ -119,6 +119,8 @@ Projections:
    read_fine_calibration
    write_fine_calibration
    apply_pca_obs
+   remove_fmri_gradient_artifact
+   GradientRemover
 
 :py:mod:`mne.preprocessing.nirs`:
 

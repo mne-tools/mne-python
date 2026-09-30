@@ -19,6 +19,12 @@ image. We conclude with accounting for multiple comparisons by
 performing a permutation clustering test using the ANOVA as
 clustering function. The results final will be compared to multiple
 comparisons using False Discovery Rate correction.
+
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -239,7 +245,7 @@ F_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     n_permutations=n_permutations,
     buffer_size=None,
     out_type="mask",
-    seed=0,
+    rng=101,
 )
 
 # %%

@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "2bab0f18ebcb62cc038a36dbafd1a2aae25a1bc5",
+  "authors": [
+    {
+      "n": "Aman Srivastava",
+      "e": "160766756+aman-coder03@users.noreply.github.com",
+      "l": "aman-coder03"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13773.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/eeg_on_scalp.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/viz/_3d.py": {
+      "a": 9,
+      "d": 7
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 14,
+      "d": 12
+    },
+    "mne/viz/backends/_lite.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 14,
+      "d": 0
+    }
+  }
+}
