@@ -866,10 +866,11 @@ class BaseEpochs(
             raise ValueError(f'"proj" must be one of {valid_proj}, not {proj}')
         if proj == "delayed":
             self._do_delayed_proj = True
+            activate = False
             logger.info("Entering delayed SSP mode.")
         else:
             self._do_delayed_proj = False
-        activate = False if self._do_delayed_proj else proj
+            activate = proj
         self._projector, self.info = setup_proj(self.info, False, activate=activate)
         if preload_at_end:
             assert self._data is None
