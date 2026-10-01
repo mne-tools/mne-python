@@ -199,7 +199,9 @@ stages:
           AZURE_CI_WINDOWS: 'true'
           # Mesa's llvmpipe rasterizer threads can deadlock at process exit on
           # Windows (pyvista/setup-headless-display-action#55); the action sets
-          # this itself on GHA, but here we only run its install script
+          # this itself on GHA, but here we only run its install script. Mesa
+          # otherwise picks its D3D12 driver here, so force llvmpipe as well.
+          GALLIUM_DRIVER: 'llvmpipe'
           LP_NUM_THREADS: '0'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
