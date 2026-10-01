@@ -107,6 +107,7 @@
 .. _Denis Engemann: https://denis-engemann.de
 .. _Desislava Petkova: https://github.com/dipetkov
 .. _Dev Parikh: https://github.com/devparikh0506
+.. _Devesh Bervar: https://github.com/deveshbervar
 .. _Dimitri Papadopoulos Orfanos: https://github.com/DimitriPapadopoulos
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 .. _Diptyajit Das: https://github.com/dasdiptyajit
