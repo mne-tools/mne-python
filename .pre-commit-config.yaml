@@ -27,6 +27,8 @@ repos:
     rev: v0.0.84
     hooks:
       - id: ty
+        # avoid free-threaded interpreters, which lack wheels for e.g. pymef
+        language_version: "3.14"
         additional_dependencies:
           - antio  # for mne/io/ant
           - curryreader  # for mne/io/curry
