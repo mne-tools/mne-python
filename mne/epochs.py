@@ -866,10 +866,11 @@ class BaseEpochs(
             raise ValueError(f'"proj" must be one of {valid_proj}, not {proj}')
         if proj == "delayed":
             self._do_delayed_proj = True
+            activate = False
             logger.info("Entering delayed SSP mode.")
         else:
             self._do_delayed_proj = False
-        activate = False if self._do_delayed_proj else proj
+            activate = proj
         self._projector, self.info = setup_proj(self.info, False, activate=activate)
         if preload_at_end:
             assert self._data is None
@@ -3466,6 +3467,8 @@ class BaseEpochs(
 
         For EEGLAB exports, channel locations are expanded to full EEGLAB format.
         For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+        Data of 2 GB or more are written in MATLAB's HDF5-based v7.3 format, which
+        requires h5py.
         """
         from .export import export_epochs
 

@@ -1920,15 +1920,15 @@ def _sss_basis(exp, all_coils):
 
     # do the heavy lifting
     max_order = max(int_order, ext_order)
-    L = _tabular_legendre(rmags, max_order)
+    L = _tabular_legendre(rmags, max_order + 1)  # +1 for the P/sin(theta) recurrence
     phi = np.arctan2(rmags[:, 1], rmags[:, 0])
     r_n = np.sqrt(np.sum(rmags * rmags, axis=1))
     r_xy = np.sqrt(rmags[:, 0] * rmags[:, 0] + rmags[:, 1] * rmags[:, 1])
     cos_pol = rmags[:, 2] / r_n  # cos(theta); theta 0...pi
     sin_pol = np.sqrt(1.0 - cos_pol * cos_pol)  # sin(theta)
+    # On the z-axis phi is undefined, but the field is the same for any choice,
+    # so use phi=0 (the terms below are all finite there)
     z_only = r_xy <= 1e-16
-    sin_pol_nz = sin_pol.copy()
-    sin_pol_nz[z_only] = 1.0  # will be overwritten later
     r_xy[z_only] = 1.0
     cos_az = rmags[:, 0] / r_xy  # cos(phi)
     cos_az[z_only] = 1.0
@@ -1995,24 +1995,26 @@ def _sss_basis(exp, all_coils):
             # S_in @ pinv(S_tot); it only matters where column norms do, i.e.
             # when regularizing (see _regularize_in).
             factor = mult * np.sqrt(2)
+            # dP/dtheta and P/sin(theta) via recurrences, the latter so that the
+            # azimuthal term is finite on the z-axis (nonzero there for order=1)
+            dP = (
+                L[degree][order + 1]
+                - (degree + order) * (degree - order + 1) * L[degree][order - 1]
+            )
+            P_sin = -(
+                L[degree + 1][order + 1]
+                + (degree - order + 1) * (degree - order + 2) * L[degree + 1][order - 1]
+            ) / (2 * order)
 
             # Real
             idx = _deg_ord_idx(degree, order)
             r_fact = factor * L[degree][order] * cos_order
-            az_fact = factor * order * sin_order * L[degree][order]
-            pol_fact = (
-                -factor
-                * (
-                    L[degree][order + 1]
-                    - (degree + order) * (degree - order + 1) * L[degree][order - 1]
-                )
-                * cos_order
-            )
+            az_fact = factor * order * sin_order * P_sin
+            pol_fact = -factor * dP * cos_order
             # alpha
             if degree <= int_order:
                 b_r = (degree + 1) * r_fact / r_nn2
-                b_az = az_fact / (sin_pol_nz * r_nn2)
-                b_az[z_only] = 0.0
+                b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
                 S_in[:, idx] = _integrate_points(
                     cos_az,
@@ -2029,8 +2031,7 @@ def _sss_basis(exp, all_coils):
             # beta
             if degree <= ext_order:
                 b_r = -degree * r_fact * r_nn1
-                b_az = az_fact * r_nn1 / sin_pol_nz
-                b_az[z_only] = 0.0
+                b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
                 S_out[:, idx] = _integrate_points(
                     cos_az,
@@ -2048,20 +2049,12 @@ def _sss_basis(exp, all_coils):
             # Imaginary
             idx = _deg_ord_idx(degree, -order)
             r_fact = factor * L[degree][order] * sin_order
-            az_fact = factor * order * cos_order * L[degree][order]
-            pol_fact = (
-                factor
-                * (
-                    L[degree][order + 1]
-                    - (degree + order) * (degree - order + 1) * L[degree][order - 1]
-                )
-                * sin_order
-            )
+            az_fact = factor * order * cos_order * P_sin
+            pol_fact = factor * dP * sin_order
             # alpha
             if degree <= int_order:
                 b_r = -(degree + 1) * r_fact / r_nn2
-                b_az = az_fact / (sin_pol_nz * r_nn2)
-                b_az[z_only] = 0.0
+                b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
                 S_in[:, idx] = _integrate_points(
                     cos_az,
@@ -2078,8 +2071,7 @@ def _sss_basis(exp, all_coils):
             # beta
             if degree <= ext_order:
                 b_r = degree * r_fact * r_nn1
-                b_az = az_fact * r_nn1 / sin_pol_nz
-                b_az[z_only] = 0.0
+                b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
                 S_out[:, idx] = _integrate_points(
                     cos_az,

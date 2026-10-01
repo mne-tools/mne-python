@@ -1,0 +1,60 @@
+{
+  "merge_commit_sha": "5e9350b2472630362215d31d7fddb9e233a69742",
+  "authors": [
+    {
+      "n": "Devesh ",
+      "e": "dvsshbrvr@gmail.com",
+      "l": "deveshbervar"
+    },
+    {
+      "n": "Clemens Brunner",
+      "e": "clemens.brunner@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/proj.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/decoding/csp.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/decoding/spatial_filter.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/evoked.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 9,
+      "d": 18
+    }
+  }
+}

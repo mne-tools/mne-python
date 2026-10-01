@@ -16,6 +16,7 @@ from .nirs import (
     _fnirs_optode_names,
     _optode_position,
     _reorder_nirx,
+    _warn_channel,
 )
 from ._optical_density import optical_density
 from ._beer_lambert_law import beer_lambert_law

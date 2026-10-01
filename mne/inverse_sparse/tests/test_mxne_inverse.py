@@ -24,6 +24,7 @@ from mne.inverse_sparse.mxne_inverse import (
 from mne.inverse_sparse.mxne_optim import norm_l2inf
 from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.minimum_norm.inverse import _log_exp_var
 from mne.minimum_norm.tests.test_inverse import assert_stc_res, assert_var_exp_log
 from mne.simulation import simulate_evoked, simulate_sparse_stc
 from mne.source_estimate import VolSourceEstimate
@@ -443,10 +444,9 @@ def test_split_gof_basic(mod):
         M_est = gain @ X
     else:
         assert mod is None
-    res = M - M_est
-    gof = 100 * (1.0 - (res * res).sum() / (M * M).sum())
+    gof = _log_exp_var(M, M_est, axis=0)
     gof_split = _split_gof(M, X, gain)
-    assert_allclose(gof_split.sum(), gof)
+    assert_allclose(gof_split.sum(0), gof)
     want = gof_split[[0, 0]]
     if mod == "augment":
         want = np.concatenate((want, [[0]]))

@@ -397,12 +397,12 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
         if use_fft:
-            fft_x = fft(x, fsize)
+            rets = ifft(fft(x, fsize) * fft_Ws)
 
         # Loop across wavelets
         for ii, W in enumerate(Ws):
             if use_fft:
-                ret = ifft(fft_x * fft_Ws[ii])[: n_times + W.size - 1]
+                ret = rets[ii, : n_times + W.size - 1]
             else:
                 # Work around multarray.correlate->OpenBLAS bug on ppc64le
                 # ret = np.correlate(x, W, mode=mode)
@@ -3618,8 +3618,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             matplotlib tick locator (may sometimes be inaccurate, use array for
             accuracy). If array-like, the array values are used as the contour levels.
             The values should be in µV for EEG, fT for magnetometers and fT/m for
-            gradiometers. If ``colorbar=True``, the colorbar will have ticks
-            corresponding to the contour levels. Default is ``6``.
+            gradiometers. Default is ``6``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', the default head scheme will be
             drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -5550,8 +5549,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             matplotlib tick locator (may sometimes be inaccurate, use array for
             accuracy). If array-like, the array values are used as the contour levels.
             The values should be in µV for EEG, fT for magnetometers and fT/m for
-            gradiometers. If ``colorbar=True``, the colorbar will have ticks
-            corresponding to the contour levels. Default is ``6``.
+            gradiometers. Default is ``6``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', the default head scheme will be
             drawn. If dict, each key refers to a tuple of x and y positions, the values

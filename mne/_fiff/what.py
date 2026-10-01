@@ -4,11 +4,13 @@
 
 from collections import OrderedDict
 from inspect import signature
+from os import PathLike
 
 from ..utils import _check_fname, logger
+from ..utils._typing import LogLevel
 
 
-def what(fname):
+def what(fname: str | PathLike) -> str:
     """Try to determine the type of the FIF file.
 
     Parameters
@@ -18,7 +20,7 @@ def what(fname):
 
     Returns
     -------
-    what : str | None
+    what : str
         The type of the file. Will be 'unknown' if it could not be determined.
 
     Notes
@@ -58,7 +60,7 @@ def what(fname):
     for what, func in checks.items():
         args = signature(func).parameters
         assert "verbose" in args, func
-        kwargs = dict(verbose="error")
+        kwargs: dict[str, LogLevel] = dict(verbose="ERROR")
         if "preload" in args:
             kwargs["preload"] = False
         try:

@@ -38,6 +38,9 @@ def test_temporal_derivative_distribution_repair(fname, tmp_path):
     assert np.max(np.diff(raw_od._data[0])) < shift_amp
     assert_allclose(raw_od._data[1], 0.0)  # unchanged
     assert_allclose(raw_od._data[2], 1.0)  # unchanged
+    raw_od._data[3, 50] = np.inf
+    with pytest.warns(RuntimeWarning, match=f"in channel {raw_od.ch_names[3]}"):
+        tddr(raw_od)
 
     # With Hb
     # Add a baseline shift artifact about half way through data

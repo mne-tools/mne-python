@@ -23,6 +23,7 @@ from ..evoked import Evoked
 from ..forward import make_field_map
 from ..forward._make_forward import _ForwardModeler
 from ..minimum_norm import apply_inverse, make_inverse_operator
+from ..minimum_norm.inverse import _log_exp_var
 from ..source_estimate import (
     SourceEstimate,
     _BaseSurfaceSourceEstimate,
@@ -1211,13 +1212,7 @@ class DipoleFitUI:
         )
         data = self._evoked.data[[self._evoked.ch_names.index(c) for c in ch_names]]
         gain = fwd["sol"]["data"][[fwd["sol"]["row_names"].index(c) for c in ch_names]]
-        residual = W @ (data - gain @ q)
-        data = W @ data
-        gof = np.zeros(data.shape[1])
-        denom = np.sum(data**2, axis=0)
-        good = denom > 0  # a field of exactly zero has no fit quality to speak of
-        gof[good] = 100 * (1 - np.sum(residual[:, good] ** 2, axis=0) / denom[good])
-        return gof
+        return _log_exp_var(W @ data, W @ gain @ q, axis=0)
 
     @verbose_static()
     def save(self, fname, verbose=None):

@@ -66,6 +66,7 @@ uv pip install $STD_ARGS \
 	"pyvistaqt @ https://github.com/pyvista/pyvistaqt/archive/refs/heads/main.zip" \
 	"nilearn @ https://github.com/nilearn/nilearn/archive/refs/heads/main.zip" \
 	"edfio @ https://github.com/the-siesta-group/edfio/archive/refs/heads/main.zip" \
+	"eeglabio @ https://github.com/jackz314/eeglabio/archive/refs/heads/main.zip" \
 	"python-picard @ https://github.com/pierreablin/picard/archive/refs/heads/master.zip" \
 	"pymatreader @ https://gitlab.com/obob/pymatreader/-/archive/master/pymatreader-master.zip" \
 	"pyqtgraph @ https://github.com/pyqtgraph/pyqtgraph/archive/refs/heads/master.zip" \
@@ -77,7 +78,7 @@ uv pip install $STD_ARGS \
 	"h5io @ https://github.com/h5io/h5io/archive/refs/heads/main.zip" \
 	"snirf @ https://github.com/BUNPC/pysnirf2/archive/refs/heads/main.zip" \
 	"trame<4" trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
-	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv eeglabio defusedxml antio curryreader \
+	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv defusedxml antio curryreader \
 	jamica filelock
 echo "::endgroup::"
 

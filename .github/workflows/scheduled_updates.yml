@@ -57,7 +57,7 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: ">=0.9"
           activate-environment: true
@@ -66,7 +66,10 @@ jobs:
         run: uv pip install -e . packaging requests tomlkit prek
       - name: Update tracked dependencies
         if: matrix.id == 'spec_zero'
-        run: python ./tools/dev/spec_zero_update_versions.py
+        uses: mne-tools/mne-tools/actions/spec-zero-update-versions@main
+        with:
+          project-root: ${{ github.workspace }}
+          changelog-path: 'doc/changes/dev/dependency.rst'
       - name: Update pre-commit hook versions
         if: matrix.id == 'prek_update'
         run: prek update

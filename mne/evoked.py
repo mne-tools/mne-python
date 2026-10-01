@@ -2,11 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from copy import deepcopy
 from inspect import getfullargspec
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -68,7 +68,7 @@ from .utils import (
     verbose_static,
     warn,
 )
-from .utils._typing import Color, Self
+from .utils._typing import Color, Self, SphereT
 
 if TYPE_CHECKING:
     # Heavy/optional deps kept out of the runtime import path (see
@@ -79,7 +79,6 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     from pandas import DataFrame
 
-    from .bem import ConductorModel
     from .cov import Covariance
     from .time_frequency.tfr import AverageTFR
     from .viz import Brain, EvokedField, Figure3D
@@ -688,7 +687,7 @@ class Evoked(
         selectable: bool = True,
         noise_cov: "Covariance | str | None" = None,
         time_unit: str = "s",
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         *,
         highlight: np.ndarray | None = None,
         verbose: bool | str | int | None = None,
@@ -936,7 +935,7 @@ class Evoked(
         time_unit: str = "s",
         show_names: bool | Literal["auto", "all"] | None = None,
         group_by: dict | None = None,
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
     ) -> "Figure":
         """Plot evoked data as images.
 
@@ -1272,7 +1271,7 @@ class Evoked(
         mask_label_params: dict | None = None,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -1368,8 +1367,7 @@ class Evoked(
             matplotlib tick locator (may sometimes be inaccurate, use array for
             accuracy). If array-like, the array values are used as the contour levels.
             The values should be in µV for EEG, fT for magnetometers and fT/m for
-            gradiometers. If ``colorbar=True``, the colorbar will have ticks
-            corresponding to the contour levels. Default is ``6``.
+            gradiometers. Default is ``6``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', the default head scheme will be
             drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -1731,7 +1729,7 @@ class Evoked(
         show: bool = True,
         rank: Literal["info", "full"] | dict | None = None,
         time_unit: str = "s",
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         axes: list | None = None,
         *,
         spatial_colors: bool | Literal["auto"] = "auto",
@@ -2023,7 +2021,7 @@ class Evoked(
         mask_label_params: dict | None = None,
         contours: int | np.ndarray = 6,
         outlines: Literal["head"] | dict | None = "head",
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         image_interp: str = _INTERPOLATION_DEFAULT,
         extrapolate: str = _EXTRAPOLATE_DEFAULT,
         border: float | Literal["mean"] = _BORDER_DEFAULT,
@@ -2120,8 +2118,7 @@ class Evoked(
             matplotlib tick locator (may sometimes be inaccurate, use array for
             accuracy). If array-like, the array values are used as the contour levels.
             The values should be in µV for EEG, fT for magnetometers and fT/m for
-            gradiometers. If ``colorbar=True``, the colorbar will have ticks
-            corresponding to the contour levels. Default is ``6``.
+            gradiometers. Default is ``6``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', the default head scheme will be
             drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -2842,7 +2839,7 @@ class Evoked(
         color: str | tuple = "black",
         line_alpha: float | None = None,
         spatial_colors: bool = True,
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         exclude: list[str] | Literal["bads"] = "bads",
         ax: "Axes | list[Axes] | None" = None,
         show: bool = True,

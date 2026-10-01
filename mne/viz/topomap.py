@@ -582,8 +582,7 @@ def plot_projs_topomap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -1361,8 +1360,7 @@ def plot_topomap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -2103,8 +2101,7 @@ def plot_ica_components(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -2643,8 +2640,7 @@ def plot_tfr_topomap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -3058,8 +3054,7 @@ def plot_evoked_topomap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -4046,8 +4041,7 @@ def plot_epochs_psd_topomap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -4364,8 +4358,7 @@ def plot_psds_topomap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
@@ -5278,8 +5271,7 @@ def plot_arrowmap(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     image_interp : str
         The image interpolation to be used. Options are ``'cubic'`` (default)
         to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
@@ -5856,8 +5848,7 @@ def plot_regression_weights(
         matplotlib tick locator (may sometimes be inaccurate, use array for
         accuracy). If array-like, the array values are used as the contour levels.
         The values should be in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If ``colorbar=True``, the colorbar will have ticks
-        corresponding to the contour levels. Default is ``6``.
+        gradiometers. Default is ``6``.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If dict, each key refers to a tuple of x and y positions, the values
