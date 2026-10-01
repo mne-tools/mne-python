@@ -31,6 +31,7 @@ MNE_3D_BACKEND_TESTING = False
 _backend_name_map = dict(
     pyvistaqt="._qt",
     notebook="._notebook",
+    offscreen="._offscreen",
     jupyterlite_notebook="._lite",
 )
 backend = None
@@ -72,7 +73,7 @@ def set_3d_backend(backend_name, verbose=None):
     ----------
     backend_name : str
         The 3d backend to select. See Notes for the capabilities of each
-        backend (``'pyvistaqt'``, ``'notebook'`` and
+        backend (``'pyvistaqt'``, ``'notebook'``, ``'offscreen'`` and
         ``'jupyterlite_notebook'``).
 
         .. versionchanged:: 0.24
@@ -103,50 +104,64 @@ def set_3d_backend(backend_name, verbose=None):
     :func:`snapshot_brain_montage` do not work. On a desktop the other two are
     better in every way, so it is never selected automatically.
 
+    The ``offscreen`` backend draws with a plain :class:`pyvista.Plotter` in
+    off-screen mode, with no window and no Qt or notebook widgets. Everything
+    that draws works, including :class:`mne.viz.Brain`, and the result is read
+    back with :meth:`mne.viz.Brain.screenshot` or
+    :meth:`mne.viz.Brain.save_movie`; the time viewer and the other interactive
+    controls are not available. Use it for reports and documentation builds, on
+    headless servers, or in notebooks that embed static images. There is no
+    window to close, so a figure stays in memory until it is closed with
+    :meth:`mne.viz.Brain.close`, :func:`close_3d_figure` or
+    :func:`close_all_3d_figures`.
+
+    .. versionadded:: 1.14
+       The ``offscreen`` backend.
+
     This table shows the capabilities of each backend ("✓" for full support,
     and "-" for partial support):
 
     .. table::
        :widths: auto
 
-       +--------------------------------------+-----------+----------+
-       | **3D function:**                     | pyvistaqt | notebook |
-       +======================================+===========+==========+
-       | :func:`plot_vector_source_estimates` | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | :func:`plot_source_estimates`        | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | :func:`plot_alignment`               | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | :func:`plot_sparse_source_estimates` | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | :func:`plot_evoked_field`            | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | :func:`snapshot_brain_montage`       | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | :func:`link_brains`                  | ✓         |          |
-       +--------------------------------------+-----------+----------+
-       +--------------------------------------+-----------+----------+
-       | **Feature:**                                                |
-       +--------------------------------------+-----------+----------+
-       | Large data                           | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Opacity/transparency                 | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Support geometric glyph              | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Smooth shading                       | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Subplotting                          | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Inline plot in Jupyter Notebook      |           | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Inline plot in JupyterLab            |           | ✓        |
-       +--------------------------------------+-----------+----------+
-       | Inline plot in Google Colab          |           |          |
-       +--------------------------------------+-----------+----------+
-       | Toolbar                              | ✓         | ✓        |
-       +--------------------------------------+-----------+----------+
+       +--------------------------------------+-----------+----------+-----------+
+       | **3D function:**                     | pyvistaqt | notebook | offscreen |
+       +======================================+===========+==========+===========+
+       | :func:`plot_vector_source_estimates` | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | :func:`plot_source_estimates`        | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | :func:`plot_alignment`               | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | :func:`plot_sparse_source_estimates` | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | :func:`plot_evoked_field`            | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | :func:`snapshot_brain_montage`       | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | :func:`link_brains`                  | ✓         |          |           |
+       +--------------------------------------+-----------+----------+-----------+
+       +--------------------------------------+-----------+----------+-----------+
+       | **Feature:**                                                            |
+       +--------------------------------------+-----------+----------+-----------+
+       | Large data                           | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | Opacity/transparency                 | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | Support geometric glyph              | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | Smooth shading                       | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | Subplotting                          | ✓         | ✓        | ✓         |
+       +--------------------------------------+-----------+----------+-----------+
+       | Inline plot in Jupyter Notebook      |           | ✓        |           |
+       +--------------------------------------+-----------+----------+-----------+
+       | Inline plot in JupyterLab            |           | ✓        |           |
+       +--------------------------------------+-----------+----------+-----------+
+       | Inline plot in Google Colab          |           |          |           |
+       +--------------------------------------+-----------+----------+-----------+
+       | Toolbar                              | ✓         | ✓        |           |
+       +--------------------------------------+-----------+----------+-----------+
     """
     global MNE_3D_BACKEND
     old_backend_name = MNE_3D_BACKEND
@@ -206,6 +221,8 @@ def _get_3d_backend():
                             + "if using a notebook backend",
                             "'pip install ipywidgets'",
                             "'conda install -c conda-forge ipywidgets'",
+                            "\n or, to draw without a window (needs only pyvista), use",
+                            "'mne.viz.set_3d_backend(\"offscreen\")'",
                         )
                     )
                 )
@@ -226,7 +243,7 @@ def use_3d_backend(backend_name):  # numpydoc ignore=YD01
 
     Parameters
     ----------
-    backend_name : {'pyvistaqt', 'notebook', 'jupyterlite_notebook'}
+    backend_name : {'pyvistaqt', 'notebook', 'offscreen', 'jupyterlite_notebook'}
         The 3d backend to use in the context.
     """
     old_backend = set_3d_backend(backend_name)

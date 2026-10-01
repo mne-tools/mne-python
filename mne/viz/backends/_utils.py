@@ -6,11 +6,13 @@
 import collections.abc
 import contextlib
 import functools
+import inspect
 import os
 import platform
 import signal
 import socket
 import sys
+import weakref
 from contextlib import contextmanager
 from ctypes import c_char_p, c_void_p, cdll
 from pathlib import Path
@@ -29,6 +31,7 @@ VALID_BROWSE_BACKENDS = (
 VALID_3D_BACKENDS = (
     "pyvistaqt",  # default 3d backend
     "notebook",
+    "offscreen",
     "jupyterlite_notebook",
 )
 # The backends _get_3d_backend() falls back to when none has been set. The
@@ -36,6 +39,44 @@ VALID_3D_BACKENDS = (
 # displays inside a browser kernel, so picking it on a desktop that happens to
 # have pyvista-js installed would quietly produce figures nothing can show.
 _AUTO_3D_BACKENDS = ("pyvistaqt", "notebook")
+
+
+def _check_time_viewer_backend(name):
+    """Raise if the 3D backend ``name`` has no window for the time viewer."""
+    if name == "offscreen":
+        raise RuntimeError(
+            "The time viewer is not available with the offscreen 3D backend; use "
+            'mne.viz.set_3d_backend("pyvistaqt") or ("notebook") instead'
+        )
+
+
+class _CloseCallbackMixin:
+    """Close callbacks for a renderer whose figure has no window to emit a close event.
+
+    ``self._close_callbacks`` is ``{after: [callback, ...]}``; whatever closes the
+    figure passes it to ``_run_close_callbacks`` before and after closing.
+    """
+
+    def _window_close_connect(self, func, *, after=True):
+        # weak for bound methods (Brain._clean): a strong reference would keep a
+        # Brain that is dropped without close() alive, in a reference cycle or for
+        # as long as the figure stays open
+        if inspect.ismethod(func):
+            func = weakref.WeakMethod(func)
+        self._close_callbacks[after].append(func)
+
+    def _window_close_disconnect(self, after=True):
+        self._close_callbacks[after].clear()
+
+
+def _run_close_callbacks(callbacks, after):
+    for func in list(callbacks[after]):  # Brain._clean disconnects
+        if isinstance(func, weakref.WeakMethod):
+            func = func()
+        if func is not None:
+            func()
+
+
 ALLOWED_QUIVER_MODES = ("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")
 _ICONS_PATH = Path(__file__).parents[2] / "icons"
 

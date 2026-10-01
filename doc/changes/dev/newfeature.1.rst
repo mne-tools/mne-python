@@ -1,0 +1,1 @@
+Add the ``offscreen`` 3D backend, selected with ``mne.viz.set_3d_backend("offscreen")``, to produce :class:`mne.viz.Brain` screenshots and movies without a window, e.g., on headless servers and in documentation builds, by `Christian Brodbeck`_.

@@ -165,6 +165,7 @@ class EvokedField:
         foreground=None,
         verbose=None,
     ):
+        from .backends._utils import _check_time_viewer_backend
         from .backends.renderer import _get_3d_backend, _get_renderer
 
         # Setup figure parameters
@@ -232,6 +233,15 @@ class EvokedField:
         )
         self._show_density = show_density
 
+        # Do we want the time viewer? Checked before a figure exists that an
+        # error would leave open.
+        if time_viewer == "auto":
+            # the offscreen backend has no window to put the slider in
+            time_viewer = len(evoked.times) > 1 and _get_3d_backend() != "offscreen"
+        elif time_viewer:
+            _check_time_viewer_backend(_get_3d_backend())
+        self.time_viewer = time_viewer
+
         from ._brain import Brain
 
         # When plotting into an existing figure (Brain or Figure3D), the caller owns
@@ -256,11 +266,6 @@ class EvokedField:
             self._prepare_surf_map(surf_map, color, self._alpha[surf_map["kind"]])
             for surf_map, color in zip(surf_maps, self._colors)
         ]
-
-        # Do we want the time viewer?
-        if time_viewer == "auto":
-            time_viewer = len(evoked.times) > 1
-        self.time_viewer = time_viewer
 
         # Configure UI events
         @_auto_weakref

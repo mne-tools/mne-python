@@ -104,6 +104,7 @@ class PyVistaFigure(Figure3D):
         off_screen=False,
         notebook=False,
         splash=False,
+        plotter_class=None,
     ):
         self._plotter = plotter
         self.display = None
@@ -122,7 +123,13 @@ class PyVistaFigure(Figure3D):
         self.store["polygon_smoothing"] = True
         self.store["point_smoothing"] = True
 
-        if not self.notebook:
+        # a plain pyvista.Plotter draws off screen: no Qt and no notebook widgets
+        self._qt = plotter_class is None and not self.notebook
+        if plotter_class is not None:
+            self.store["off_screen"] = True
+            self.store["title"] = title
+            self._plotter_class = plotter_class
+        elif self._qt:
             self.store["show"] = show
             self.store["title"] = title
             self.store["auto_update"] = False
@@ -143,7 +150,7 @@ class PyVistaFigure(Figure3D):
 
     def _build(self):
         if self.plotter is None:
-            if not self.notebook:
+            if self._qt:
                 out = _init_mne_qtapp(enable_icon=True, splash=self.splash)
                 # replace it with the Qt object
                 if self.splash:
@@ -199,6 +206,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         Name of the window.
     """
 
+    # a backend that draws with a plain pyvista.Plotter sets this; None means
+    # the plotter class follows ``notebook`` (BackgroundPlotter or notebook)
+    _plotter_class = None
+
     def __init__(
         self,
         fig=None,
@@ -231,6 +242,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             notebook=notebook,
             smooth_shading=smooth_shading,
             splash=splash,
+            plotter_class=self._plotter_class,
         )
         self.font_family = "arial"
         self.tube_n_sides = 20

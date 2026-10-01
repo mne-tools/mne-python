@@ -18,6 +18,7 @@ from ...utils import (
     _validate_type,
     fill_doc_static,
 )
+from ..backends._utils import _check_time_viewer_backend
 from ..ui_events import (
     PlaybackSpeed,
     VertexSelect,
@@ -67,6 +68,7 @@ class _TimeViewerMixin:
         an entry from that menu switches which overlay's ``fmin`` / ``fmid``
         / ``fmax`` sliders and smoothing control are active.
         """
+        _check_time_viewer_backend(self._renderer._kind)
         if self.time_viewer:
             return
         if not self._all_data:
