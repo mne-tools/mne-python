@@ -1,0 +1,132 @@
+{
+  "merge_commit_sha": "f51b088eff420f2932d698f3ea1733579c38bd90",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/_digitization.py": {
+      "a": 35,
+      "d": 8
+    },
+    "mne/_fiff/compensator.py": {
+      "a": 11,
+      "d": 4
+    },
+    "mne/_fiff/constants.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/_fiff/ctf_comp.py": {
+      "a": 9,
+      "d": 2
+    },
+    "mne/_fiff/matrix.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 8,
+      "d": 11
+    },
+    "mne/_fiff/open.py": {
+      "a": 16,
+      "d": 11
+    },
+    "mne/_fiff/pick.py": {
+      "a": 119,
+      "d": 75
+    },
+    "mne/_fiff/proc_history.py": {
+      "a": 36,
+      "d": 12
+    },
+    "mne/_fiff/proj.py": {
+      "a": 135,
+      "d": 75
+    },
+    "mne/_fiff/reference.py": {
+      "a": 50,
+      "d": 31
+    },
+    "mne/_fiff/tag.py": {
+      "a": 12,
+      "d": 6
+    },
+    "mne/_fiff/tree.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/_fiff/utils.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/_fiff/what.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/_fiff/write.py": {
+      "a": 85,
+      "d": 36
+    },
+    "mne/channels/channels.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/epochs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 9,
+      "d": 10
+    },
+    "mne/io/bti/bti.py": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/io/fiff/raw.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/utils/_bunch.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/utils/_typing.py": {
+      "a": 31,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/utils/misc.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 13,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/hooks/check_static_docs.py": {
+      "a": 18,
+      "d": 2
+    }
+  }
+}

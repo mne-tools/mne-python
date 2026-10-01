@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "955944d7914e09c4d812b53396a95675846d497b",
+  "authors": [
+    {
+      "n": "Johannes Herforth",
+      "e": "johannes@herforth.net",
+      "l": "DerAndereJohannes"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14303.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

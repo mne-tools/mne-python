@@ -19,6 +19,7 @@ from queue import Empty, Queue
 from string import Formatter
 from textwrap import dedent
 from threading import Thread
+from typing import IO, TypeGuard
 
 import numpy as np
 from decorator import FunctionMaker
@@ -350,7 +351,7 @@ def sizeof_fmt(num):
         return "1 byte"
 
 
-def _file_like(obj):
+def _file_like(obj: object) -> TypeGuard[IO]:
     # An alternative would be::
     #
     #   isinstance(obj, (TextIOBase, BufferedIOBase, RawIOBase, IOBase))

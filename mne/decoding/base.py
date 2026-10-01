@@ -766,7 +766,7 @@ def get_coef(
         coef = getattr(est, attr)
 
     if coef.ndim == 1:
-        coef = coef[np.newaxis]
+        coef = coef[np.newaxis, ...]
         squeeze_first_dim = True
 
     # inverse pattern e.g. to get back physical units
@@ -788,7 +788,7 @@ def get_coef(
 
     if squeeze_first_dim:
         logger.debug("  Squeezing first dimension of coefficients.")
-        coef = coef[0]
+        coef = coef[0, ...]
 
     # inverse_transform with Vectorizer returns shape (n_channels, n_components).
     # we should transpose to be consistent with how spatial filters

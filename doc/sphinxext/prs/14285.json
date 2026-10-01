@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "fcdab879fcb4a01ada008f7894aa1d19d8be20d5",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14285.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 160,
+      "d": 26
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 49,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
