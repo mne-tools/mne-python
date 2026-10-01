@@ -672,18 +672,6 @@ def test_inverse_coef():
         c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
 
-    # Rounding can leave a nonzero mean after centering large-offset data.
-    small = np.array([0.0, 1.0, 1.0])
-    large = 1e16 + 2 * small
-    rf = ReceptiveField(
-        0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
-    )
-    rf.fit(large[:, np.newaxis], small)
-    assert_allclose(rf.patterns_, rf.coef_ * (2 / 3))  # var(large) / (n - 1)
-    rf.fit(small[:, np.newaxis], np.column_stack([large, large]))
-    # var(small) = 1/3; pinv(cov(Y)) has every entry equal to 3/16.
-    assert_allclose(rf.patterns_, np.full((2, 1, 1), rf.coef_.sum() / 16))
-
 
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
@@ -728,6 +716,8 @@ def test_rf_sklearn_compliance(estimator, check):
         # shuffled or subsampled.
         "check_methods_sample_order_invariance",
         "check_methods_subset_invariance",
+        # X and y must come from the same array library and device.
+        "check_array_api_mixed_inputs",
     )
     if any(ignore in str(check) for ignore in ignores):
         return

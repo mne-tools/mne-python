@@ -320,15 +320,12 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order="F")
             else:
                 X = X - xp.mean(X, axis=0, keepdims=True)
-                # np.cov centers again, removing the residual from rounding.
-                X = X - xp.mean(X, axis=0, keepdims=True)
-                cov_ = (X.T @ X) / (n_total_samples - 1)
+                cov_ = (X.T @ X) / (n_total_samples - 1)  # equivalent to np.cov
             del X
 
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = xp.asarray(y, dtype=cov_.dtype)
-                y = y - xp.mean(y, axis=0, keepdims=True)
                 y = y - xp.mean(y, axis=0, keepdims=True)
                 cov_y = (y.T @ y) / (n_total_samples - 1)
                 inv_Y = xp.linalg.pinv(cov_y, rtol=None)
@@ -434,9 +431,6 @@ class ReceptiveField(MetaEstimatorMixin, BaseEstimator):
             X = xp.asarray(X, dtype=xp.float64)
         if y is not None:
             dtype = X.dtype if xp is not np and not predict else None
-            # sklearn's mixed-input checks also pass targets from other backends.
-            if hasattr(y, "__dlpack__") and _get_array_namespace(y)[0] not in (np, xp):
-                y = xp.from_dlpack(y)
             y = xp.asarray(y, dtype=dtype, device=device)
         X_dim = X.ndim
         y_dim = y.ndim if y is not None else 0
@@ -596,20 +590,14 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import pearsonr
-
     assert multioutput == "raw_values"
     if y_true.ndim != 2 or y.ndim != 2:
         raise ValueError("inputs must be shape (samples, outputs)")
-    if isinstance(y_true, np.ndarray) and isinstance(y, np.ndarray):
-        return np.array(
-            [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
-        )
     if y.shape[0] < 2:
         raise ValueError("Correlation requires at least 2 samples.")
     xp, _ = _get_array_namespace(y)
-    # SciPy's pearsonr also computes p-values, requiring a host transfer for
-    # PyTorch. Compute only the statistic here to keep GPU arrays on-device.
+    # scipy.stats.pearsonr also computes p-values, requiring a host transfer for
+    # PyTorch, so compute only the statistic to keep GPU arrays on-device.
     normalized = []
     for values in (y_true, y):
         if xp.isdtype(values.dtype, "complex floating"):
