@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "8198b6dd45c3603798a3181c6e643a1993fabfb0",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14296.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/utils.py": {
+      "a": 6,
+      "d": 1
+    },
+    "mne/export/_edf_bdf.py": {
+      "a": 146,
+      "d": 68
+    },
+    "mne/export/_export.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 40,
+      "d": 0
+    },
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/io/edf/edf.py": {
+      "a": 28,
+      "d": 18
+    },
+    "mne/io/edf/tests/test_edf.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 24,
+      "d": 9
+    }
+  }
+}
