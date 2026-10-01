@@ -254,5 +254,3 @@ def test_infomax_n_iter_reports_actual_iterations():
             f"extended={extended}: n_iter tracked max_iter ({counts[0]} vs {counts[1]})"
         )
         assert counts[0] < 500, f"extended={extended}: n_iter == the budget"
-
-
