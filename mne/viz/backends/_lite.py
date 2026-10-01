@@ -28,6 +28,7 @@ import numpy as np
 import pyvista_js as pv
 from ipywidgets import HTML, Button, GridBox, Layout
 from matplotlib.colors import to_rgb
+from pyvista_js.rendering import scene_to_json
 
 from ...surface import _tessellate_sphere
 from ...transforms import (
@@ -76,14 +77,13 @@ requestAnimationFrame(function () { requestAnimationFrame(function () {
   box.querySelector(".mne-lite-labels").style.pointerEvents = "none";
   box.querySelector(".mne-lite-painted").click();
   // from now on, apply the point-data updates the kernel sends instead of a
-  // new page (pyvista-js >= 0.17), and report each one the same way
+  // new page, and report each one the same way
   var updates = box.querySelector(".mne-lite-update");
-  if (!updates || !window.pvjsApplyUpdate) return;
+  var scene = document.querySelector('[id^="pyvista-container"]').id;
   new MutationObserver(function () {
     var node = updates.querySelector("[data-n]");
     if (!node || node.dataset.applied || me.style.opacity !== "1") return;
     node.dataset.applied = "1";
-    var scene = Object.keys(window.__pvjs)[0];
     JSON.parse(node.textContent).forEach(function (update) {
       window.pvjsApplyUpdate(scene, update);
     });
@@ -158,8 +158,8 @@ def _lite_add_text(plotter, text, position, size, color):
     return actor
 
 
-def _lite_view_angles(plotter, rigid=None):
-    """Return the (azimuth, elevation) in degrees the plotter looks from, or None.
+def _lite_view_angles(figure, rigid=None):
+    """Return the (azimuth, elevation) in degrees the figure looks from, or None.
 
     The view is kept as ``view_vector``, a camera position that vtk.js aims at
     the origin and then frames with ``resetCamera()``, rather than as a camera
@@ -167,7 +167,7 @@ def _lite_view_angles(plotter, rigid=None):
     ``rigid`` is the frame the angles are expressed in (Brain's canonical
     rotation), as in ``_pyvista._get_user_camera_direction``.
     """
-    view_vector = plotter._renderer._view_vector  # pyvista-js 0.15
+    view_vector = figure._view_vector  # pyvista-js takes a view but has no getter
     if view_vector is None:  # nothing set yet, so vtk.js chooses
         return None
     position = np.asarray(view_vector, float)
@@ -177,11 +177,11 @@ def _lite_view_angles(plotter, rigid=None):
     return float(np.rad2deg(phi)) % 360, float(np.rad2deg(theta)) % 180
 
 
-def _lite_set_view(plotter, azimuth=None, elevation=None, rigid=None):
-    """Point the plotter, keeping the angle not given as _pyvista._set_3d_view does."""
+def _lite_set_view(figure, azimuth=None, elevation=None, rigid=None):
+    """Point the figure, keeping the angle not given as _pyvista._set_3d_view does."""
     if azimuth is None and elevation is None:
         return
-    current = _lite_view_angles(plotter, rigid) or (90.0, 90.0)  # plot_alignment
+    current = _lite_view_angles(figure, rigid) or (90.0, 90.0)  # plot_alignment
     phi = np.deg2rad(current[0] if azimuth is None else azimuth)
     theta = np.deg2rad(current[1] if elevation is None else elevation)
     # view up flips near the poles, matching _set_3d_view
@@ -195,12 +195,13 @@ def _lite_set_view(plotter, azimuth=None, elevation=None, rigid=None):
         rigid_inv = np.linalg.inv(rigid)
         position = apply_trans(rigid_inv, position, move=False)
         up = apply_trans(rigid_inv, up, move=False)
-    plotter.view_vector(tuple(position), viewup=tuple(up))
+    figure._view_vector = tuple(position)
+    figure.plotter.view_vector(figure._view_vector, viewup=tuple(up))
 
 
-def _lite_get_view(plotter, rigid=None):
+def _lite_get_view(figure, rigid=None):
     """Return (roll, distance, azimuth, elevation, focalpoint) as _get_3d_view does."""
-    azimuth, elevation = _lite_view_angles(plotter, rigid) or (0.0, 0.0)
+    azimuth, elevation = _lite_view_angles(figure, rigid) or (0.0, 0.0)
     return (0.0, 1.0, azimuth, elevation, np.zeros(3))
 
 
@@ -274,6 +275,7 @@ class _LiteFigure(Figure3D):
 
     def _init(self, plotter):
         self._plotter = plotter
+        self._view_vector = None  # the camera position last set, see _lite_set_view
         return self
 
 
@@ -644,15 +646,9 @@ class _LiteRenderer(_AbstractRenderer):
         return _lite_add_text(self.plotter, text, (x_window, y_window), size, color)
 
     def remove_mesh(self, mesh_data):
-        # the renderer keeps the actor dict and the plotter a dict pointing at
-        # it, so drop both; instanced_mesh hands back one actor per color
-        actor, _ = mesh_data
-        actors = actor if isinstance(actor, list) else [actor]
-        plotter = self.plotter
-        plotter.actors[:] = [a for a in plotter.actors if a["actor"] not in actors]
-        plotter._renderer.actors[:] = [
-            a for a in plotter._renderer.actors if a not in actors
-        ]
+        actor, _ = mesh_data  # instanced_mesh hands back one actor per color
+        for this_actor in actor if isinstance(actor, list) else [actor]:
+            self.plotter.remove_actor(this_actor)
 
     # -- nothing to do in a browser -----------------------------------------
     def set_interaction(self, interaction):
@@ -728,7 +724,7 @@ class _LiteRenderer(_AbstractRenderer):
 
     # -- camera -------------------------------------------------------------
     def get_camera(self, *, rigid=None):
-        return _lite_get_view(self.plotter, rigid)
+        return _lite_get_view(self._figure, rigid)
 
     def set_camera(
         self,
@@ -742,7 +738,7 @@ class _LiteRenderer(_AbstractRenderer):
         update=True,
     ):
         # distance, focalpoint and roll go unused: vtk.js frames the scene
-        _lite_set_view(self.plotter, azimuth, elevation, rigid)
+        _lite_set_view(self._figure, azimuth, elevation, rigid)
 
 
 class _Renderer(_IpyRenderer, _LiteRenderer):
@@ -816,26 +812,20 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
 
     def _scene_key(self):
         """Return what a page depends on besides point data, plus mesh versions."""
-        renderer = self.plotter._renderer
+        actors = self.plotter.actors
         key = tuple(
             (id(info["mesh"]), tuple(info.get("color") or ()), info.get("opacity"))
-            for info in renderer.actors
-        ) + (tuple(renderer._view_vector or ()), tuple(self.plotter.background_color))
-        versions = tuple(
-            getattr(info["mesh"], "_lite_version", 0) for info in renderer.actors
-        )
+            for info in actors
+        ) + (self._figure._view_vector, tuple(self.plotter.background_color))
+        versions = tuple(getattr(info["mesh"], "_lite_version", 0) for info in actors)
         return key, versions
 
     def _send_updates(self, changed):
-        """Send the recolored meshes' point data to the page shown; True if possible."""
-        renderer = self.plotter._renderer
-        if not hasattr(renderer, "build_update_data"):  # pyvista-js < 0.17
-            return False
-        from pyvista_js.rendering import scene_to_json
-
+        """Send the recolored meshes' point data to the page shown."""
+        actors = self.plotter.actors
         updates = [
-            renderer.build_update_data(
-                idx, point_data=dict(renderer.actors[idx]["mesh"].point_data.items())
+            self.plotter.update_actor(
+                idx, point_data=dict(actors[idx]["mesh"].point_data.items()), send=False
             )
             for idx in changed
         ]
@@ -844,7 +834,6 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             f'<div hidden data-n="{self._n_updates}">'
             f"{html.escape(scene_to_json(updates))}</div>"
         )
-        return True
 
     def _loop(self):
         """Return the kernel's event loop, or None outside a kernel."""
@@ -885,14 +874,12 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
                 if self._in_flight is None:
                     self._busy.layout.visibility = "hidden"
                 return
-            if self._send_updates(changed):
-                self._page_key = (key, versions)
-                loop = self._loop()
-                if loop is not None:
-                    self._in_flight = loop.call_later(
-                        _LITE_ACK_TIMEOUT, self._on_painted
-                    )
-                return
+            self._send_updates(changed)
+            self._page_key = (key, versions)
+            loop = self._loop()
+            if loop is not None:
+                self._in_flight = loop.call_later(_LITE_ACK_TIMEOUT, self._on_painted)
+            return
         self._page_key = (key, versions)
         page = self.plotter.generate_standalone_html()
         self._n_drawn += 1
@@ -938,7 +925,7 @@ def _set_3d_view(
     rigid=None,
     update=True,
 ):
-    _lite_set_view(figure.plotter, azimuth, elevation, rigid)
+    _lite_set_view(figure, azimuth, elevation, rigid)
 
 
 def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):

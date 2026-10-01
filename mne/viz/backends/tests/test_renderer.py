@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import asyncio
+import json
 import os
 import platform
 import subprocess
@@ -372,8 +373,10 @@ _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 
 def _scene(rend):
-    """Return the scene as vtk.js will receive it."""
-    return rend.plotter._renderer._build_scene_data()
+    """Return the scene as vtk.js will receive it, read back from the page."""
+    html = rend.plotter.generate_standalone_html()
+    start = html.index('id="scene-data">') + len('id="scene-data">')
+    return json.loads(html[start : html.index("</script>", start)])
 
 
 def test_lite_camera(renderer_lite):
@@ -551,7 +554,7 @@ def test_lite_brain(renderer_lite, monkeypatch):
     # curvature plus activation, as uint8 RGBA vtk.js uses directly
     assert colors.dtype == np.uint8 and colors.shape == (len(brain.geo["lh"].coords), 4)
     assert len(np.unique(colors, axis=0)) > 2
-    scene = brain._renderer.plotter._renderer._build_scene_data()
+    scene = _scene(brain._renderer)
     assert scene["actors"][0]["scalars"]["direct"] is True
     # Brain's canonical rotation reaches the camera through `rigid`
     assert brain._renderer.get_camera(rigid=brain._rigid)[2:4] == pytest.approx(
