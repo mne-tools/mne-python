@@ -227,6 +227,8 @@ numpydoc_xref_aliases = {
     "iterator": ":term:`iterator <python:iterator>`",
     "path-like": ":term:`path-like`",
     "array-like": ":term:`array_like <numpy:array_like>`",
+    "ArrayLike": ":data:`~numpy.typing.ArrayLike`",
+    "DTypeLike": ":data:`~numpy.typing.DTypeLike`",
     "Path": ":class:`python:pathlib.Path`",
     "Sequence": ":class:`python:collections.abc.Sequence`",
     "bool": ":ref:`bool <python:typebool>`",
@@ -1011,6 +1013,7 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
+    ("py:.*", r"numpy\._?typing.*"),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -1756,11 +1759,28 @@ def set_toc_level(app, pagename, templatename, context, doctree):
         context["theme_show_toc_level"] = 2
 
 
+def fix_numpy_typing(app, env, node, contnode):
+    """Link numpy._typing targets to public numpy.typing documentation."""
+    target = node.get("reftarget", "")
+    for name in ("ArrayLike", "DTypeLike", "NDArray"):
+        if target.endswith(name) and (
+            "typing" in target or "numpy" in target or target == name
+        ):
+            node["reftarget"] = f"numpy.typing.{name}"
+            node["reftype"] = "data"
+            from sphinx.ext.intersphinx import (
+                missing_reference as intersphinx_missing_reference,
+            )
+
+            return intersphinx_missing_reference(app, env, node, contnode)
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
 def setup(app):
     """Set up the Sphinx app."""
+    app.connect("missing-reference", fix_numpy_typing, priority=400)
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
     app.connect("autodoc-process-docstring", link_base_class_attrs)

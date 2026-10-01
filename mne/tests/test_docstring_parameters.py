@@ -632,6 +632,8 @@ def _type_atoms(type_str):
             atoms |= _PSEUDO_ALIAS_ATOMS[low]
         elif low in ("path-like", "pathlike", "path_like"):
             atoms |= {"path", "str"}
+        elif low in ("dtype-like", "dtypelike", "dtype_like"):
+            atoms.add("dtype")
         elif low == "list-like":
             atoms |= {"list", "array"}
         elif "array" in low or low == "ndarray":
@@ -773,6 +775,25 @@ def test_type_hints_match_docstrings():
             f"{len(stale)} entr{'y is' if len(stale) == 1 else 'ies are'} no longer "
             "needed in unparseable_docstring_types; remove:\n" + "\n".join(stale)
         )
+
+
+def test_numpy_typing_matches_docstrings():
+    """Test that ArrayLike and DTypeLike type hints match docstrings."""
+    from mne.utils._typing import ArrayLike, DTypeLike
+
+    def func(x: ArrayLike, d: DTypeLike | None = None) -> None:
+        """Do something.
+
+        Parameters
+        ----------
+        x : array-like
+            The input array.
+        d : dtype-like | None
+            The data type.
+        """
+
+    errors, _ = _check_type_hints(func, cls=None)
+    assert not errors, f"Unexpected errors: {errors}"
 
 
 def test_docdict_order():

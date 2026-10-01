@@ -1,0 +1,1 @@
+Fix Sphinx cross-reference resolution for NumPy type annotations such as ``ArrayLike`` and ``DTypeLike``, by `Aditya`_.

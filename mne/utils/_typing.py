@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from typing import IO, TYPE_CHECKING, Annotated, Literal, Self, TypeAlias, TypeVar
 
 import numpy as np
+from numpy.typing import ArrayLike, DTypeLike
 
 if TYPE_CHECKING:
     from ..bem import ConductorModel
@@ -65,8 +66,10 @@ SphereT: TypeAlias = (
 )
 
 __all__ = [
+    "ArrayLike",
     "Color",
     "CoordFrameStr",
+    "DTypeLike",
     "EEGSensor",
     "FileLike",
     "LogLevel",
