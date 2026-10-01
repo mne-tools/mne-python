@@ -129,13 +129,6 @@ def infomax(
         The number of iterations actually performed. Only returned if
         ``return_n_iter=True``.
 
-        .. versionchanged:: 1.13
-           Convergence was previously signalled by assigning ``step = max_iter``
-           to leave the training loop, so the returned count equalled
-           ``max_iter`` whenever the weight-change criterion was met --
-           regardless of how many iterations had actually run. It now reports
-           the true count.
-
     References
     ----------
     .. [1] A. J. Bell, T. J. Sejnowski. An information-maximization approach to
