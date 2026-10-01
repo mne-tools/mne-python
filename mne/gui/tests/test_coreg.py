@@ -437,11 +437,14 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_fullscreen(renderer_interactive_pyvistaqt):
-    """Test fullscreen mode."""
+    """Test fullscreen mode and an explicit theme."""
     from mne.gui import coregistration
 
     # Fullscreen mode
-    coreg = coregistration(subject="sample", subjects_dir=subjects_dir, fullscreen=True)
+    coreg = coregistration(
+        subject="sample", subjects_dir=subjects_dir, fullscreen=True, theme="dark"
+    )
+    assert coreg._renderer._window._mne_theme == "dark"
     coreg._accept_close_event = True
     coreg.close()
 
