@@ -184,6 +184,7 @@ _._display_default_tool_bar
 _._viewer_widget
 _._window_get_size
 _._ensure_minimum_sizes
+_.iframe_style  # set on trame's layout
 
 # Used in ignored files
 _qt_raise_window
