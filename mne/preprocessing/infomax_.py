@@ -126,7 +126,8 @@ def infomax(
     unmixing_matrix : np.ndarray, shape (n_features, n_features)
         The linear unmixing operator.
     n_iter : int
-        The number of iterations. Only returned if ``return_max_iter=True``.
+        The number of iterations actually performed. Only returned if
+        ``return_n_iter=True``.
 
     References
     ----------
@@ -310,11 +311,11 @@ def infomax(
                 if n_small_angle is not None:
                     count_small_angle += 1
                     if count_small_angle > n_small_angle:
-                        max_iter = step
+                        break
 
             # apply stopping rule
             if step > 2 and change < w_change:
-                step = max_iter
+                break
             elif change > blowup:
                 l_rate *= blowup_fac
 
