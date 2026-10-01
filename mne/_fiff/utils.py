@@ -5,6 +5,7 @@
 import os
 import os.path as op
 from pathlib import Path
+from typing import IO
 
 import numpy as np
 
@@ -269,7 +270,7 @@ def _read_segments_file(
             _mult_cal_one(data_view, block, idx, cals, mult)
 
 
-def read_str(fid, count=1):
+def read_str(fid: IO[bytes], count: int = 1) -> str:
     """Read string from a binary file in a python version compatible way."""
     dtype = np.dtype(f">S{count}")
     string = fid.read(dtype.itemsize)

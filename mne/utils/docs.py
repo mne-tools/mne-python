@@ -742,7 +742,7 @@ ch_names : list
     The channel names."""
 
 docdict["ch_type_set_eeg_reference"] = """
-ch_type : list of str | str
+ch_type : "auto" | "eeg" | "ecog" | "seeg" | "dbs" | sequence of str
     The name of the channel type to apply the reference to.
     Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
     ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
@@ -755,7 +755,7 @@ ch_type : list of str | str
        ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
        now applies a per-channel-type reference by default (set ``joint=True``
        for the previous union-of-types behavior).
-"""
+"""  # noqa E501
 
 _ch_type_topomap_base = """\
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None{}
@@ -1051,8 +1051,7 @@ contours : int | array-like
     matplotlib tick locator (may sometimes be inaccurate, use array for
     accuracy). If array-like, the array values are used as the contour levels.
     The values should be in µV for EEG, fT for magnetometers and fT/m for
-    gradiometers. If ``colorbar=True``, the colorbar will have ticks
-    corresponding to the contour levels. Default is ``6``.
+    gradiometers. Default is ``6``.
 """
 
 docdict["coord_frame_maxwell"] = """
@@ -1597,6 +1596,8 @@ EDF standard).
 docdict["export_eeglab_note"] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+Data of 2 GB or more are written in MATLAB's HDF5-based v7.3 format, which
+requires h5py.
 """
 
 _export_fmt_params_base = """\
@@ -3598,13 +3599,13 @@ eyetrack : bool | str
     (default) include none. If string it can be 'eyegaze' (to include
     eye position channels) or 'pupil' (to include pupil-size
     channels).
-include : list of str
+include : sequence of str
     List of additional channels to include. If empty do not include
     any.
-exclude : list of str | str
+exclude : sequence of str | str
     List of channels to exclude. If 'bads' (default), exclude channels
     in ``info['bads']``.
-selection : list of str
+selection : sequence of str
     Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
 """
 

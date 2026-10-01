@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "590dd73e7ff6aad63d3f458d761873f0c4148303",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

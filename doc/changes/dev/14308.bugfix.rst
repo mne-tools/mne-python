@@ -1,0 +1,1 @@
+Fix several problems with flat surfaces in :class:`mne.viz.Brain`: 1. They could rotate incorrectly with the arrow keys or :meth:`mne.viz.Brain.show_view`, 2. lose their 2D interaction mode when ``interaction`` was enabled, 3. orientation/silhouette options either did nothing or caused errors 4. triangle adjacency was calculated incorrectly, by `Payam Sadeghi-Shabestari`_.

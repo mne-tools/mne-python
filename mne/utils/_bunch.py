@@ -5,7 +5,7 @@
 # Copyright the MNE-Python contributors.
 
 from copy import deepcopy
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 ###############################################################################
 # Create a Bunch class that acts like a struct (mybunch.key = val)
@@ -106,14 +106,18 @@ class NamedFloat(_Named, float):
 ###############################################################################
 # A version that tweaks the __repr__ of its values based on keys
 
+# The value type of a BunchConstNamed, so that a bunch known to hold only ints
+# (e.g. FIFF) can be declared as ``BunchConstNamed[NamedInt]``.
+_NamedNumericT = TypeVar("_NamedNumericT", bound=NamedInt | NamedFloat)
 
-class BunchConstNamed(BunchConst):
+
+class BunchConstNamed(BunchConst, Generic[_NamedNumericT]):
     """Class to provide nice __repr__ for our integer constants.
 
     Only supports string keys and int or float values.
     """
 
-    def __getattr__(self, attr: str) -> NamedInt | NamedFloat:
+    def __getattr__(self, attr: str) -> _NamedNumericT:
         # Constants are populated dynamically and stored in the instance dict, so
         # normal attribute access resolves them and this only runs for genuinely
         # missing names. It exists mostly to tell the type checker the type of

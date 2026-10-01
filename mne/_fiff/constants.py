@@ -2,9 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ..utils._bunch import BunchConstNamed, NamedInt
+from ..utils._bunch import BunchConstNamed, NamedFloat, NamedInt
 
-FIFF = BunchConstNamed()
+FIFF: BunchConstNamed[NamedInt] = BunchConstNamed()
 
 #
 # FIFF version number in use
@@ -845,7 +845,7 @@ _coord_frame_named.update({
 #   FWD Types
 #
 
-FWD = BunchConstNamed()
+FWD: BunchConstNamed[NamedInt | NamedFloat] = BunchConstNamed()
 
 FWD.COIL_UNKNOWN = 0
 FWD.COILC_UNKNOWN = 0

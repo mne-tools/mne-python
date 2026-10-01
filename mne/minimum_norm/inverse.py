@@ -1080,11 +1080,20 @@ def apply_inverse(
     return out
 
 
-def _log_exp_var(data, est, prefix="    "):
+@_verbose_control
+def _log_exp_var(data, est, prefix="    ", axis=None, verbose=None):
+    # Callers pass whitened data, as in MNE-C's fit_dipoles.c: fits are noise-weighted
+    # least squares, so the goodness of fit is calculated in that space, which is
+    # standard for generalized least squares (n.b. whitening also puts MEG/EEG on a
+    # common scale, see MNE-C manual 2.7.3, section 7.15.2). See also statsmodels GLS:
+    # https://github.com/statsmodels/statsmodels/blob/40e6a84d26ac74623c6b94b718f0987ef0351c53/statsmodels/regression/linear_model.py#L1719-L1784
     res = data - est
-    var_exp = 1 - ((res * res.conj()).sum().real / (data * data.conj()).sum().real)
-    var_exp *= 100
-    logger.info(f"{prefix}Explained {var_exp:5.1f}% variance")
+    norm = (data * data.conj()).sum(axis).real
+    res_norm = (res * res.conj()).sum(axis).real
+    ratio = np.divide(res_norm, norm, out=np.ones_like(norm), where=norm > 0)
+    var_exp = 100 * (1 - ratio)
+    if var_exp.ndim == 0:
+        logger.info("%sExplained %5.1f%% variance", prefix, var_exp)
     return var_exp
 
 
@@ -1846,6 +1855,7 @@ def _prepare_forward(
     combine_xyz,
     allow_fixed_depth,
     limit,
+    source_cov=None,
 ):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
@@ -1983,6 +1993,18 @@ def _prepare_forward(
 
     logger.info("Creating the source covariance matrix")
     source_std = np.ones(gain.shape[1], dtype=gain.dtype)
+    if source_cov is not None:
+        source_cov = np.asarray(source_cov, dtype=np.float64)
+        n_sources = forward["nsource"]
+        if source_cov.shape != (n_sources,):
+            raise ValueError(
+                f"source_cov must have shape ({n_sources},), got {source_cov.shape}"
+            )
+        if not (np.isfinite(source_cov).all() and (source_cov > 0).all()):
+            raise ValueError("source_cov must contain finite, positive variances")
+        logger.info("    Using user-specified source variances")
+        # one variance per source location, applied to all orientations
+        source_std *= np.repeat(source_cov, gain.shape[1] // n_sources)
     if depth_prior is not None:
         source_std *= depth_prior
     if orient_prior is not None:
@@ -2021,6 +2043,7 @@ def make_inverse_operator(
     fixed="auto",
     rank=None,
     use_cps=True,
+    source_cov=None,
     verbose=None,
 ):
     """Assemble inverse operator.
@@ -2113,6 +2136,14 @@ def make_inverse_operator(
     use_cps : bool
         Whether to use cortical patch statistics to define normal orientations for
         surfaces (default True).
+    source_cov : array-like, shape (n_sources,) | None
+        Prior variance of each source location, i.e., the diagonal of a custom
+        source covariance matrix. It is applied to all orientations of a source
+        and multiplied by the depth and orientation priors determined by
+        ``depth``, ``loose``, and ``fixed``. If None (default), all sources get
+        the same prior variance.
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -2188,6 +2219,7 @@ def make_inverse_operator(
         rank,
         pca="white",
         use_cps=use_cps,
+        source_cov=source_cov,
         **depth,
     )
     # no need to copy any attributes of forward here because there is

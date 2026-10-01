@@ -329,17 +329,20 @@ line_freqs = tuple(range(60, 241, 60))
 
 
 @pytest.mark.parametrize(
-    "method, filter_length, line_freq, tol",
+    "method, filter_length, line_freq, tol, offset",
     [
-        ("spectrum_fit", "auto", None, 2),  # 'auto' same as None on 0.21
-        ("spectrum_fit", None, None, 2),
-        ("spectrum_fit", "10s", None, 2),
-        ("spectrum_fit", "auto", line_freqs, 1),
-        ("fft", "auto", line_freqs, 1),
-        ("fft", 8192, line_freqs, 1),
+        ("spectrum_fit", "auto", None, 2, 0),  # 'auto' same as None on 0.21
+        ("spectrum_fit", None, None, 2, 0),
+        ("spectrum_fit", "10s", None, 2, 0),
+        ("spectrum_fit", "auto", line_freqs, 1, 0),
+        ("spectrum_fit", "auto", None, 2, 0.04),  # lines between FFT bins
+        ("spectrum_fit", "auto", None, 2, 0.37),
+        ("spectrum_fit", "auto", line_freqs, 1, 0.04),
+        ("fft", "auto", line_freqs, 1, 0),
+        ("fft", 8192, line_freqs, 1, 0),
     ],
 )
-def test_notch_filters(method, filter_length, line_freq, tol):
+def test_notch_filters(method, filter_length, line_freq, tol, offset):
     """Test notch filters."""
     # let's use an ugly, prime sfreq for fun
     rng = np.random.default_rng(0)
@@ -350,8 +353,10 @@ def test_notch_filters(method, filter_length, line_freq, tol):
     # make a "signal"
     a = rng.standard_normal(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a**2))
+    noise = a.copy()
     # make line noise
-    a += np.sum([np.sin(2 * np.pi * f * t) for f in line_freqs], axis=0)
+    true_freqs = np.array(line_freqs) + offset
+    a += np.sum([np.sin(2 * np.pi * f * t) for f in true_freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
     for kind in ("fir", "iir"):
@@ -362,16 +367,27 @@ def test_notch_filters(method, filter_length, line_freq, tol):
             a, sfreq, line_freq, filter_length, method=method, verbose=True
         )
     if line_freq is None:
-        out = [
-            line.strip().split(":")[0]
-            for line in log_file.getvalue().split("\n")
-            if line.startswith(" ")
-        ]
-        assert len(out) == 4, "Detected frequencies not logged properly"
-        out = np.array(out, float)
-        assert_array_almost_equal(out, line_freqs)
+        # each line should be detected in all windows (a rare spurious
+        # detection in a single window is allowed)
+        n_windows = 1 if filter_length is None else 3
+        out = dict()
+        for line in log_file.getvalue().split("\n"):
+            if line.startswith(" "):
+                freq, count = line.split(":")
+                out[float(freq)] = int(count.split()[0])
+        assert all(out.get(freq) == n_windows for freq in line_freqs), out
+        assert all(freq in line_freqs or count <= 1 for freq, count in out.items()), out
     new_power = np.sqrt(sum_squared(b) / b.size)
     assert_almost_equal(new_power, orig_power, tol)
+    # the line noise should be gone (residual amplitude relative to 1)
+    resid = [
+        2 * np.abs(np.mean((b - noise) * np.exp(-2j * np.pi * f * t)))
+        for f in true_freqs
+    ]
+    assert_array_less(resid, 0.1)
+    # and other frequencies should be mostly untouched (FIR removes a band)
+    err = np.sqrt(np.mean((b - noise) ** 2))
+    assert err < (0.1 if method == "spectrum_fit" else 0.2), err
 
 
 @resample_method_parametrize

@@ -7,7 +7,7 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose_static, warn
-from ..nirs import _validate_nirs_info
+from ..nirs import _validate_nirs_info, _warn_channel
 
 
 @verbose_static()
@@ -37,8 +37,12 @@ def optical_density(raw, *, verbose=None):
     # not occur. If they do it is likely due to hardware or movement issues.
     # Set all negative values to abs(x), this also has the benefit of ensuring
     # that the means are all greater than zero for the division below.
-    if np.any(raw._data[picks] <= 0):
-        warn("Negative intensities encountered. Setting to abs(x)")
+    negative = [pi for pi in picks if np.any(raw._data[pi] <= 0)]
+    if negative:
+        names = ", ".join(raw.info["ch_names"][pi] for pi in negative)
+        warn(
+            f"Negative intensities encountered. Setting to abs(x) in channels: {names}"
+        )
         min_ = np.inf
         for pi in picks:
             np.abs(raw._data[pi], out=raw._data[pi])
@@ -48,10 +52,11 @@ def optical_density(raw, *, verbose=None):
             np.maximum(raw._data[pi], min_, out=raw._data[pi])
 
     for pi in picks:
-        data_mean = np.mean(raw._data[pi])
-        raw._data[pi] /= data_mean
-        np.log(raw._data[pi], out=raw._data[pi])
-        raw._data[pi] *= -1
+        with _warn_channel(raw.ch_names[pi]):
+            data_mean = np.mean(raw._data[pi])
+            raw._data[pi] /= data_mean
+            np.log(raw._data[pi], out=raw._data[pi])
+            raw._data[pi] *= -1
         raw.info["chs"][pi]["coil_type"] = FIFF.FIFFV_COIL_FNIRS_OD
 
     return raw

@@ -219,7 +219,7 @@ def _read_config(fname):
         The config blocks found.
     """
     with _bti_open(fname, "rb") as fid:
-        cfg = dict()
+        cfg: dict[str, Any] = dict()
         cfg["hdr"] = {
             "version": read_int16(fid),
             "site_name": read_str(fid, 32),
@@ -439,12 +439,13 @@ def _read_config(fname):
                 elif any(
                     [kind == BTI.UB_B_WEIGHTS_USED, kind[:4] == BTI.UB_B_WEIGHT_TABLE]
                 ):
-                    dta["hdr"] = dict(
+                    hdr: dict[str, Any] = dict(
                         version=read_int32(fid),
                         n_bytes=read_uint32(fid),
                         n_entries=read_uint32(fid),
                         name=read_str(fid, 32),
                     )
+                    dta["hdr"] = hdr
                     if dta["hdr"]["version"] == 2:
                         dta["hdr"].update(
                             description=read_str(fid, 80),

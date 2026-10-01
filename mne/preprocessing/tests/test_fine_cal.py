@@ -273,7 +273,9 @@ def test_fine_cal_systems(system, tmp_path):
         err_limit = 15
         int_order = 5
         corrs = (0.13, 0.0, 0.12)
-        sfs = [4, 5, 120, 162]
+        # The sequential normal-adjustment fit is path dependent, so the calibrated
+        # shielding varies by platform (~140 on Linux, ~160 on Windows)
+        sfs = [4, 5, 120, 200]
         corr_tol = 0.38
     else:
         assert system == "triux", f"Unknown system {system}"

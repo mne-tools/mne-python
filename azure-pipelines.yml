@@ -8,7 +8,8 @@ trigger:
 pr:
   branches:
     include:
-      - '*'  # must quote since "*" is a YAML reserved character; we want a string
+      - 'main'
+      - 'maint/*'
 
 
 stages:
@@ -196,6 +197,10 @@ stages:
           UV_SYSTEM_PYTHON: 'true'  # UsePythonVersion gives us a bare interpreter, not a venv
           UV_NO_PROGRESS: 'true'
           AZURE_CI_WINDOWS: 'true'
+          # Mesa's llvmpipe rasterizer threads can deadlock at process exit on
+          # Windows (pyvista/setup-headless-display-action#55); the action sets
+          # this itself on GHA, but here we only run its install script
+          LP_NUM_THREADS: '0'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
         timeoutInMinutes: 40

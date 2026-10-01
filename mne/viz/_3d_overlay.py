@@ -277,7 +277,7 @@ class LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_geometry(self, vertices, normals):
+    def update_geometry(self, vertices, normals, triangles=None):
         """Update the mesh's vertex positions and normals in place.
 
         Parameters
@@ -286,12 +286,24 @@ class LayeredMesh:
             New vertex coordinates. Must match the existing vertex count.
         normals : array, shape (n_vertices, 3)
             New vertex normals.
+        triangles : array, shape (n_triangles, 3) | None
+            New triangulation. Only needed when the new geometry is not just a
+            displacement of the old one, e.g. a flat patch of the cortex, whose
+            triangles outside the patch are dropped. The vertex count must stay
+            the same either way, so the overlays keep their scalars.
+
+            .. versionadded:: 1.13
         """
         self._vertices = vertices
         self._normals = normals
         self._polydata.points = vertices
         self._polydata.point_data["Normals"] = normals
         self._polydata.GetPointData().SetActiveNormals("Normals")
+        if triangles is not None:
+            self._triangles = triangles
+            self._polydata.faces = np.hstack(
+                [np.full((len(triangles), 1), 3), triangles]
+            ).ravel()
 
     def update_overlay(
         self, name, scalars=None, colormap=None, opacity=None, rng=None, update=True

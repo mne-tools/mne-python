@@ -25,7 +25,6 @@ from pyvista import (
     close_all,
 )
 from pyvista.plotting.plotter import _ALL_PLOTTERS
-from pyvistaqt import BackgroundPlotter
 from vtkmodules.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkLookupTable
 from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
@@ -56,6 +55,7 @@ from ...fixes import _compare_version
 from ...surface import _vtk_smooth
 from ...transforms import _cart_to_sph, _sph_to_cart, apply_trans
 from ...utils import _check_option, _require_version, _validate_type, warn
+from ..utils import _is_dark
 from ._abstract import Figure3D, _AbstractRenderer
 from ._utils import (
     ALLOWED_QUIVER_MODES,
@@ -129,10 +129,10 @@ class PyVistaFigure(Figure3D):
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
             self.store["update_app_icon"] = False
-            self._plotter_class = _SafeBackgroundPlotter
-            if "app_window_class" in signature(BackgroundPlotter).parameters:
-                from ._qt import _MNEMainWindow
+            from ._qt import _MNEMainWindow, _SafeBackgroundPlotter
 
+            self._plotter_class = _SafeBackgroundPlotter
+            if "app_window_class" in signature(_SafeBackgroundPlotter).parameters:
                 self.store["app_window_class"] = _MNEMainWindow
         else:
             from ._notebook import _NotebookPlotter
@@ -1055,7 +1055,12 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.plotter.add_callback(func, interval)
 
     def _show_axes(self):
-        self.plotter.show_axes()
+        # the default black labels and pure-blue z axis vanish on dark backgrounds
+        dark = _is_dark(self.plotter.background_color.float_rgb, name="background")
+        self.plotter.add_axes(
+            color="white" if dark else "black",
+            z_color="dodgerblue" if dark else "blue",
+        )
 
     def _set_colormap_range(
         self, actor, ctable, scalar_bar, rng=None, background_color=None, fmt=None
@@ -1647,10 +1652,3 @@ def _is_osmesa_from_report(gpu_info_full):
                 )
         is_osmesa = "llvmpipe" in gpu_info
     return is_osmesa
-
-
-class _SafeBackgroundPlotter(BackgroundPlotter):
-    # https://github.com/pyvista/pyvistaqt/pull/258
-    def __del__(self) -> None:  # pragma: no cover
-        """Delete the qt plotter."""
-        self.close()

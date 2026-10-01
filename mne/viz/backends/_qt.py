@@ -18,6 +18,7 @@ import pyvista
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
+from pyvistaqt import BackgroundPlotter
 from pyvistaqt.plotting import FileDialog, MainWindow
 from qtpy.QtCore import (
     QEvent,
@@ -702,6 +703,13 @@ def _qt_set_theme(window, theme=None):
                 widget.setStyleSheet(child_stylesheet)
     finally:
         window._mne_theme_updating = False
+
+
+class _SafeBackgroundPlotter(BackgroundPlotter):
+    # https://github.com/pyvista/pyvistaqt/pull/258
+    def __del__(self) -> None:  # pragma: no cover
+        """Delete the qt plotter."""
+        self.close()
 
 
 class _MNEMainWindow(MainWindow):
@@ -2176,7 +2184,6 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     title.setFont(title_font)
     title.setStyleSheet(
         "QLabel {"
-        " color: palette(placeholder-text);"
         " padding: 7px 10px 6px 10px;"
         " border-bottom: 1px solid palette(midlight);"
         " }"

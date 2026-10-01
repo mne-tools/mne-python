@@ -2,7 +2,10 @@ name: autofix.ci
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
-    types: [opened, synchronize, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -19,10 +22,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v7.0.0
-      - run: pip install --upgrade towncrier pygithub gitpython numpy vulture
-      - run: python ./.github/actions/rename_towncrier/rename_towncrier.py
+      - run: pip install --upgrade gitpython numpy vulture
       - run: python ./tools/dev/ensure_headers.py
       - run: vulture
+      - name: Rename towncrier files
+        uses: mne-tools/mne-tools/actions/rename-towncrier@main
+        with:
+          project-root: ${{ github.workspace }}
       # Run this last, since it can fail the job if moved up
       - uses: j178/prek-action@v3.0.0
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
@@ -44,7 +50,7 @@ jobs:
         run: |
           set -eo pipefail
           # Also match the generated files themselves, so hand-edits get reverted
-          PATTERN='^(pyproject\.toml|README\.rst|environment\.yml|tools/pylock\.ci-old\.toml|\.github/workflows/autofix\.yml)$'
+          PATTERN='^(pyproject\.toml|README\.rst|environment\.yml|tools/pylock\.ci-old\.toml|tools/ci/macos-intel/pixi\.toml|tools/ci/macos-intel/pixi\.lock|\.github/workflows/autofix\.yml)$'
           # Collect first: `grep -q` exits early, and the resulting SIGPIPE would
           # trip `pipefail` precisely when a file does match
           FILES=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
@@ -62,12 +68,16 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: ">=0.9"
           activate-environment: true
           enable-cache: false
           python-version: "3.12"
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          manifest-path: tools/ci/macos-intel/pixi.toml
+          run-install: false
       - name: Update 'old' CI lockfile
         # uv pip compile requires setting the python version for the environment explicitly in the command :(
         run: |
@@ -83,6 +93,10 @@ jobs:
           project-root: ${{ github.workspace }}
           lockfile-path: tools/pylock.ci-old.toml
           groups: lockfile_extras
+      - name: Update pixi.toml and pixi.lock for macos-intel CI job
+        run: |
+          pixi exec -s python=3.13 -s tomlkit -s pyyaml -s packaging python tools/write-pixi-toml.py
+          pixi lock --no-install --manifest-path tools/ci/macos-intel/
       - name: Sync dependencies to README
         uses: mne-tools/mne-tools/actions/sync-dependencies-to-readme@main
         with:
@@ -98,6 +112,6 @@ jobs:
           # ffmpeg is pinned to work around a conda solver issue (gh-14023)
           additional-dependencies: pip,mamba,conda,nomkl,noqt5,ffmpeg==8.1.2
           pip-dependencies: jamica,pymef
-          requirements-overrides: PySide6==6.11.1,vtk==9.6.2
+          requirements-overrides: PySide6==6.11.1,vtk==9.6.2,neo->python-neo
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
