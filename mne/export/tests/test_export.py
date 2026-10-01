@@ -91,7 +91,7 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     assert_allclose(raw.get_data(), raw_read.get_data())
 
 
-def test_export_raw_eeglab(tmp_path):
+def test_export_raw_eeglab(tmp_path, monkeypatch):
     """Test saving a Raw instance to EEGLAB's set format."""
     pytest.importorskip("eeglabio")
     # a couple of seconds is enough, and the file gets exported four times below
@@ -118,6 +118,17 @@ def test_export_raw_eeglab(tmp_path):
 
     # test pathlib.Path files
     raw.export(Path(temp_fname), overwrite=True)
+
+    # test large-data (HDF5) export
+    if check_version("eeglabio", "0.1.4") and check_version("h5py"):
+        from mne.export import _eeglab
+
+        monkeypatch.setattr(_eeglab, "_V5_MAX_BYTES", 0)
+        raw.export(temp_fname, overwrite=True)
+        with open(temp_fname, "rb") as fid:
+            assert fid.read(19) == b"MATLAB 7.3 MAT-file"
+        raw_read = read_raw_eeglab(temp_fname, preload=True, verbose="error")
+        assert_allclose(raw.get_data(), raw_read.get_data())
 
     # test warning with unapplied projectors
     raw = read_raw_fif(fname_raw).crop(0, 2).load_data()

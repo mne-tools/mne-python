@@ -397,12 +397,12 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
         if use_fft:
-            fft_x = fft(x, fsize)
+            rets = ifft(fft(x, fsize) * fft_Ws)
 
         # Loop across wavelets
         for ii, W in enumerate(Ws):
             if use_fft:
-                ret = ifft(fft_x * fft_Ws[ii])[: n_times + W.size - 1]
+                ret = rets[ii, : n_times + W.size - 1]
             else:
                 # Work around multarray.correlate->OpenBLAS bug on ppc64le
                 # ret = np.correlate(x, W, mode=mode)

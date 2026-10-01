@@ -3,7 +3,9 @@
 # Copyright the MNE-Python contributors.
 
 import re
+from collections.abc import Sequence
 from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
@@ -15,10 +17,19 @@ from ..utils import (
     logger,
     verbose_static,
 )
+from ..utils._bunch import NamedInt
+from ..utils._typing import LogLevel, MEGSensor
 from .constants import FIFF
 
+if TYPE_CHECKING:
+    from ..cov import Covariance
+    from ..forward import Forward
+    from .meas_info import Info
 
-def get_channel_type_constants(include_defaults=False):
+
+def get_channel_type_constants(
+    include_defaults: bool = False,
+) -> dict[str, dict[str, NamedInt | list[NamedInt]]]:
     """Return all known channel types, and associated FIFF constants.
 
     Parameters
@@ -43,7 +54,7 @@ def get_channel_type_constants(include_defaults=False):
     (depending on the recording system), so no "coil_type" entry is given
     for "ref_meg" unless ``include_defaults`` is requested.
     """
-    base = dict(
+    base: dict[str, dict[str, NamedInt | list[NamedInt]]] = dict(
         grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
         mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
         ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH),
@@ -243,7 +254,7 @@ _second_rules = {
 
 
 @fill_doc_static("info_not_none")
-def channel_type(info, idx):
+def channel_type(info: "Info", idx: int) -> str:
     """Get channel type.
 
     Parameters
@@ -280,22 +291,29 @@ def channel_type(info, idx):
 
 
 @verbose_static("ordered")
-def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
+def pick_channels(
+    ch_names: Sequence[str],
+    include: Sequence[str],
+    exclude: Sequence[str] = (),
+    ordered: bool = True,
+    *,
+    verbose: LogLevel = None,
+) -> np.ndarray[tuple[int], np.dtype[np.integer]]:
     """Pick channels by names.
 
     Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
 
     Parameters
     ----------
-    ch_names : list of str
+    ch_names : sequence of str
         List of channels.
-    include : list of str
+    include : sequence of str
         List of channels to include (if empty include all available).
 
         .. note:: This is to be treated as a set. The order of this list
            is not used or maintained in ``sel``.
 
-    exclude : list of str
+    exclude : sequence of str
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
     ordered : bool
@@ -351,14 +369,14 @@ def pick_channels(ch_names, include, exclude=(), ordered=True, *, verbose=None):
     return np.array(sel, int)
 
 
-def pick_channels_regexp(ch_names, regexp):
+def pick_channels_regexp(ch_names: Sequence[str], regexp: str) -> list[int]:
     """Pick channels using regular expression.
 
     Returns the indices of the good channels in ch_names.
 
     Parameters
     ----------
-    ch_names : list of str
+    ch_names : sequence of str
         List of channels.
 
     regexp : str
@@ -367,7 +385,7 @@ def pick_channels_regexp(ch_names, regexp):
 
     Returns
     -------
-    sel : array of int
+    sel : list of int
         Indices of good channels.
 
     See Also
@@ -494,36 +512,36 @@ def _check_info_exclude(info, exclude):
 
 @fill_doc_static("info_not_none", "pick_types_params")
 def pick_types(
-    info,
-    meg=False,
-    eeg=False,
-    stim=False,
-    eog=False,
-    ecg=False,
-    emg=False,
-    ref_meg="auto",
+    info: "Info",
+    meg: bool | MEGSensor = False,
+    eeg: bool = False,
+    stim: bool = False,
+    eog: bool = False,
+    ecg: bool = False,
+    emg: bool = False,
+    ref_meg: bool | MEGSensor | Literal["auto"] = "auto",
     *,
-    misc=False,
-    resp=False,
-    chpi=False,
-    exci=False,
-    ias=False,
-    syst=False,
-    seeg=False,
-    dipole=False,
-    gof=False,
-    bio=False,
-    ecog=False,
-    fnirs=False,
-    csd=False,
-    dbs=False,
-    temperature=False,
-    gsr=False,
-    eyetrack=False,
-    include=(),
-    exclude="bads",
-    selection=None,
-):
+    misc: bool = False,
+    resp: bool = False,
+    chpi: bool = False,
+    exci: bool = False,
+    ias: bool = False,
+    syst: bool = False,
+    seeg: bool = False,
+    dipole: bool = False,
+    gof: bool = False,
+    bio: bool = False,
+    ecog: bool = False,
+    fnirs: bool | Literal["hbo", "hbr"] | Sequence[Literal["hbo", "hbr"]] = False,
+    csd: bool = False,
+    dbs: bool = False,
+    temperature: bool = False,
+    gsr: bool = False,
+    eyetrack: bool | str | list[str] = False,
+    include: Sequence[str] = (),
+    exclude: Sequence[str] | Literal["bads"] = "bads",
+    selection: Sequence[str] | None = None,
+) -> np.ndarray[tuple[int], np.dtype[np.integer]]:
     """Pick channels by type and names.
 
     Parameters
@@ -590,13 +608,13 @@ def pick_types(
         (default) include none. If string it can be 'eyegaze' (to include
         eye position channels) or 'pupil' (to include pupil-size
         channels).
-    include : list of str
+    include : sequence of str
         List of additional channels to include. If empty do not include
         any.
-    exclude : list of str | str
+    exclude : sequence of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in ``info['bads']``.
-    selection : list of str
+    selection : sequence of str
         Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
 
     Returns
@@ -727,7 +745,12 @@ def pick_types(
 
 
 @verbose_static("info_not_none")
-def pick_info(info, sel=(), copy=True, verbose=None):
+def pick_info(
+    info: "Info",
+    sel: Sequence[int] | np.ndarray[tuple[int], np.dtype[np.integer]] | None = (),
+    copy: bool = True,
+    verbose: LogLevel = None,
+) -> "Info":
     """Restrict an info structure to a selection of channels.
 
     Parameters
@@ -735,9 +758,8 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     info : mne.Info
         The :class:`mne.Info` object with information about the
         sensors and methods of measurement.
-    sel : list of int | None
-        Indices of channels to include. If None, all channels
-        are included.
+    sel : array-like of int | None
+        Indices of channels to include. If None, all channels are included.
     copy : bool
         If copy is False, info is modified inplace.
     verbose : bool | str | int | None
@@ -748,7 +770,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
 
     Returns
     -------
-    res : dict
+    res : instance of Info
         Info structure restricted to a selection of channels.
     """
     # avoid circular imports
@@ -830,18 +852,24 @@ def _has_kit_refs(info, picks):
 
 @verbose_static("ordered")
 def pick_channels_forward(
-    orig, include=(), exclude=(), ordered=True, copy=True, *, verbose=None
-):
+    orig: "Forward",
+    include: Sequence[str] = (),
+    exclude: Sequence[str] | Literal["bads"] = (),
+    ordered: bool = True,
+    copy: bool = True,
+    *,
+    verbose: LogLevel = None,
+) -> "Forward":
     """Pick channels from forward operator.
 
     Parameters
     ----------
-    orig : dict
+    orig : Forward
         A forward solution.
-    include : list of str
+    include : sequence of str
         List of channels to include (if empty, include all available).
         Defaults to [].
-    exclude : list of str | 'bads'
+    exclude : sequence of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
     ordered : bool
@@ -863,7 +891,7 @@ def pick_channels_forward(
 
     Returns
     -------
-    res : dict
+    res : instance of Forward
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
@@ -924,21 +952,21 @@ def pick_channels_forward(
 
 
 def pick_types_forward(
-    orig,
-    meg=False,
-    eeg=False,
-    ref_meg=True,
-    seeg=False,
-    ecog=False,
-    dbs=False,
-    include=(),
-    exclude=(),
-):
+    orig: "Forward",
+    meg: bool | MEGSensor = False,
+    eeg: bool = False,
+    ref_meg: bool = True,
+    seeg: bool = False,
+    ecog: bool = False,
+    dbs: bool = False,
+    include: Sequence[str] = (),
+    exclude: Sequence[str] | Literal["bads"] = (),
+) -> "Forward":
     """Pick by channel type and names from a forward operator.
 
     Parameters
     ----------
-    orig : dict
+    orig : Forward
         A forward solution.
     meg : bool | str
         If True include MEG channels. If string it can be 'mag', 'grad',
@@ -954,15 +982,15 @@ def pick_types_forward(
         If True include electrocorticography channels.
     dbs : bool
         If True include deep brain stimulation channels.
-    include : list of str
+    include : sequence of str
         List of additional channels to include. If empty do not include any.
-    exclude : list of str | str
+    exclude : sequence of str | 'bads'
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in orig['info']['bads'].
 
     Returns
     -------
-    res : dict
+    res : instance of Forward
         Forward solution restricted to selected channel types.
     """
     info = orig["info"]
@@ -985,7 +1013,17 @@ def pick_types_forward(
 
 
 @fill_doc_static("info_not_none", "picks_all")
-def channel_indices_by_type(info, picks=None, *, exclude=()):
+def channel_indices_by_type(
+    info: "Info",
+    picks: str
+    | np.ndarray[tuple[int], np.dtype[np.integer]]  # 1D array of int
+    | Sequence[str]
+    | Sequence[int]
+    | slice
+    | None = None,
+    *,
+    exclude: Sequence[str] | Literal["bads"] = (),
+) -> dict[str, list[int]]:
     """Get indices of channels by type.
 
     Parameters
@@ -1002,7 +1040,7 @@ def channel_indices_by_type(info, picks=None, *, exclude=()):
         :term:`data channels`. None (default) will pick all channels. Bad channels
         are included by default. Note that channels in ``info['bads']`` *will be
         included* if their names or indices are explicitly provided.
-    exclude : list | str
+    exclude : sequence | 'bads'
         Set of channels to exclude, only used when picking based on
         types (e.g., exclude="bads" when picks="meg").
 
@@ -1046,17 +1084,23 @@ def channel_indices_by_type(info, picks=None, *, exclude=()):
 
 @verbose_static("ordered")
 def pick_channels_cov(
-    orig, include=(), exclude="bads", ordered=True, copy=True, *, verbose=None
-):
+    orig: "Covariance",
+    include: Sequence[str] = (),
+    exclude: Sequence[str] | Literal["bads"] = "bads",
+    ordered: bool = True,
+    copy: bool = True,
+    *,
+    verbose: LogLevel = None,
+) -> "Covariance":
     """Pick channels from covariance matrix.
 
     Parameters
     ----------
     orig : Covariance
         A covariance.
-    include : list of str
+    include : sequence of str
         List of channels to include (if empty, include all available).
-    exclude : list of str | 'bads'
+    exclude : sequence of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
     ordered : bool
         If True (default), ensure that the order of the channels in
@@ -1078,7 +1122,7 @@ def pick_channels_cov(
 
     Returns
     -------
-    res : dict
+    res : instance of Covariance
         Covariance solution restricted to selected channels.
     """
     if copy:
@@ -1552,7 +1596,7 @@ def _picks_str_to_idx(
     #
     bad_type = None
     picks_type = list()
-    kwargs = dict(meg=False)
+    kwargs: dict[str, Any] = dict(meg=False)
     meg, fnirs, eyetrack = set(), set(), set()
     for pick in picks:
         if pick in _PICK_TYPES_KEYS:

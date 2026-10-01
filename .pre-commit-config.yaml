@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.8
+    rev: v0.16.9
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,9 +24,11 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.82
+    rev: v0.0.84
     hooks:
       - id: ty
+        # uv can pick a free-threaded build for 3.14+, which lacks wheels (e.g. pymef)
+        language_version: "3.13"
         additional_dependencies:
           - antio  # for mne/io/ant
           - curryreader  # for mne/io/curry

@@ -60,3 +60,17 @@ preferred_citation:
       given-names: Lauri
     - family-names: Hämäläinen
       given-names: Matti S.
+spec_zero_update_packages:
+  - dipy
+  - matplotlib
+  - mne-qt-browser
+  - nibabel
+  - nilearn
+  - numba
+  - numpy
+  - pandas
+  - pyvista
+  - pyvistaqt
+  - qdarkstyle
+  - scikit-learn
+  - scipy
