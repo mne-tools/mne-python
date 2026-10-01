@@ -32,6 +32,7 @@ def infomax(
     use_bias=True,
     verbose=None,
     return_n_iter=False,
+    return_converged=False,
     *,
     rng=None,
     random_state=None,
@@ -98,6 +99,12 @@ def infomax(
         This quantity indicates if the bias should be computed.
         Defaults to True.
     %(verbose)s
+    return_converged : bool
+        Whether to additionally return whether the algorithm converged, i.e.
+        whether it stopped because its own tolerance was met rather than
+        because ``max_iter`` was reached.
+
+        .. versionadded:: 1.13
     return_n_iter : bool
         Whether to return the number of iterations performed. Defaults to
         False.
@@ -118,6 +125,11 @@ def infomax(
            ``max_iter`` whenever the weight-change criterion was met --
            regardless of how many iterations had actually run. It now reports
            the true count.
+    converged : bool
+        Whether the algorithm converged. Only returned if
+        ``return_converged=True``.
+
+        .. versionadded:: 1.13
 
     References
     ----------
@@ -191,6 +203,7 @@ def infomax(
 
     # trainings loop
     olddelta, oldchange = 1.0, 0.0
+    converged = False
     while step < max_iter:
         # shuffle data at each step
         permute = _random_permutation(n_samples, rng)
@@ -301,10 +314,12 @@ def infomax(
                 if n_small_angle is not None:
                     count_small_angle += 1
                     if count_small_angle > n_small_angle:
+                        converged = True
                         break
 
             # apply stopping rule
             if step > 2 and change < w_change:
+                converged = True
                 break
             elif change > blowup:
                 l_rate *= blowup_fac
@@ -341,7 +356,9 @@ def infomax(
                 )
 
     # prepare return values
+    out = (weights.T,)
     if return_n_iter:
-        return weights.T, step
-    else:
-        return weights.T
+        out += (step,)
+    if return_converged:
+        out += (converged,)
+    return out[0] if len(out) == 1 else out
