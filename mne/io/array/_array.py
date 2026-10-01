@@ -112,6 +112,8 @@ class RawArray(BaseRaw):
         super().__init__(
             info, data, first_samps=(int(first_samp),), dtype=dtype, verbose=verbose
         )
+        if self._init_kwargs is not None:
+            self._init_kwargs.pop("data", None)
         logger.info(
             "    Range : %d ... %d =  %9.3f ... %9.3f secs",
             self.first_samp,

@@ -85,7 +85,7 @@ def _fit_quality(mean_dist):
     if mean_dist <= 5.0:
         return "Good", "forestgreen"
     elif mean_dist <= 10.0:
-        return "Fair", "orange"
+        return "Fair", "darkgoldenrod"
     else:
         return "Poor", "chocolate"
 
@@ -120,7 +120,13 @@ def _get_subjects(sdir):
 
 
 @fill_doc_static(
-    "subject", "subjects_dir", "fiducials", "fullscreen", "interaction_scene", "verbose"
+    "subject",
+    "subjects_dir",
+    "fiducials",
+    "fullscreen",
+    "interaction_scene",
+    "theme_3d",
+    "verbose",
 )
 class CoregistrationUI(HasTraits):
     """Class for coregistration assisted by graphical interface.
@@ -179,7 +185,8 @@ class CoregistrationUI(HasTraits):
     bgcolor : tuple of float | str
         The background color as a tuple (red, green, blue) of float
         values between ``0`` and ``1`` or a valid color name (i.e. ``'white'``
-        or ``'w'``). Defaults to ``'grey'``.
+        or ``'w'``). Defaults to ``'#19232D'``, a dark blue-grey that keeps
+        the head, digitization points, and legend readable.
     show : bool
         Display the window as soon as it is ready. Defaults to ``True``.
     block : bool
@@ -201,6 +208,16 @@ class CoregistrationUI(HasTraits):
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.0
+    theme : str | path-like
+        Can be "auto", "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+        `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+        respectively, are required.
+        If None (default), the config option MNE_3D_OPTION_THEME will be used,
+        defaulting to "auto" if it's not found.
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -264,8 +281,11 @@ class CoregistrationUI(HasTraits):
         block=False,
         fullscreen=False,
         interaction="terrain",
+        theme=None,
         verbose=None,
     ):
+        from matplotlib.colors import to_rgb
+
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -296,12 +316,15 @@ class CoregistrationUI(HasTraits):
         self._mri_fids_modified = False
         self._mri_scale_modified = False
         self._accept_close_event = True
-        self._fid_colors = tuple(
-            DEFAULTS["coreg"][f"{key}_color"] for key in ("lpa", "nasion", "rpa")
+        # the default pure-blue RPA is barely visible on the dark background
+        self._fid_colors = (
+            DEFAULTS["coreg"]["lpa_color"],
+            DEFAULTS["coreg"]["nasion_color"],
+            to_rgb("mediumslateblue"),
         )
         self._defaults = dict(
             size=_get_default(size, (800, 600)),
-            bgcolor=_get_default(bgcolor, "grey"),
+            bgcolor=_get_default(bgcolor, "#19232D"),
             orient_glyphs=_get_default(orient_glyphs, True),
             scale_by_distance=_get_default(scale_by_distance, True),
             mark_inside=_get_default(mark_inside, True),
@@ -344,6 +367,7 @@ class CoregistrationUI(HasTraits):
         subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
+        _validate_type(theme, (str, None), "theme")
         splash = "Initializing coregistration GUI..." if show else False
         self._renderer = _get_renderer(
             size=self._defaults["size"],
@@ -353,6 +377,7 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_close_connect(self._close_callback, after=False)
+        self._renderer._window_set_theme(theme)
         self._renderer.set_interaction(interaction)
 
         # coregistration model setup
@@ -975,17 +1000,14 @@ class CoregistrationUI(HasTraits):
         )
 
     def _configure_legend(self):
-        colors = [
-            np.array(DEFAULTS["coreg"][f"{fid.lower()}_color"]).astype(float)
-            for fid in self._defaults["fiducials"]
-        ]
+        colors = [np.array(color, float) for color in self._fid_colors]
         labels = list(zip(self._defaults["fiducials"], colors))
         if self._mark_inside:
             labels += [
                 ("HSP outside", np.array(_HSP_OUTSIDE_COLOR)),
                 ("HSP inside", np.array(_HSP_INSIDE_COLOR)),
             ]
-        mri_fids_legend_actor = self._renderer.legend(labels=labels)
+        mri_fids_legend_actor = self._renderer.legend(labels=labels, size=0.15)
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @safe_event

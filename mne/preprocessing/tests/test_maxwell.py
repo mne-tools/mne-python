@@ -50,6 +50,7 @@ from mne.preprocessing.maxwell import (
     _sh_complex_to_real,
     _sh_negate,
     _sh_real_to_complex,
+    _sss_basis,
     _sss_basis_basic,
     _trans_lims,
     _trans_sss_basis,
@@ -606,6 +607,15 @@ def test_multipolar_bases():
         )
         flips = np.where(orders < 0, (-1.0) ** orders, 1.0)
         assert_allclose(S_tot, S_tot_fast * flips, atol=1e-16)
+
+    # Point magnetometers exactly on the z-axis (both poles) must match ones just
+    # off it (the order=1 azimuthal term is nonzero there)
+    rmags = np.array([[0, 0, 0.12], [1e-7, 0, 0.12], [0, 0, -0.12], [0, 1e-7, -0.12]])
+    rmags = rmags.repeat(3, axis=0)
+    point_coils = (rmags, np.tile(np.eye(3), (4, 1)), np.arange(12), 12)
+    S = _sss_basis(dict(exp, origin=(0, 0, 0)), point_coils).reshape(4, 3, -1)
+    assert np.isfinite(S).all()
+    assert_allclose(S[[0, 2]], S[[1, 3]], rtol=1e-5, atol=1e-5 * np.abs(S).max())
 
 
 # This is also slow, but we probably want it running on all OSes

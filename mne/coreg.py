@@ -12,6 +12,7 @@ import re
 import shutil
 import stat
 import sys
+from collections.abc import Mapping
 from copy import deepcopy
 from glob import glob, iglob
 
@@ -931,7 +932,7 @@ def scale_mri(
         ]
         for fi, fid in enumerate(mri_fiducials):
             fid_name = f"mri_fiducials[{fi}]"
-            _validate_type(fid, dict, fid_name)
+            _validate_type(fid, Mapping, fid_name)
             for key in ("r", "coord_frame", "ident"):
                 if key not in fid:
                     raise ValueError(f"{fid_name} is missing the '{key}' key")
