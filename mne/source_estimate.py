@@ -2135,10 +2135,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
-.. versionchanged:: 1.14
-The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
-seconds as image metadata. Each data array also stores its zero-based
-sample index and time value in seconds.
+        .. versionchanged:: 1.14
+        The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
+        seconds as image metadata. Each data array also stores its zero-based
+        sample index and time value in seconds.
         seconds as image metadata. Each data array also stores its zero-based
         sample index and time value in seconds.
 
