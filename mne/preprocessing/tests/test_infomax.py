@@ -227,12 +227,9 @@ def test_infomax_n_iter_reports_actual_iterations():
     data and not others.
     """
     rng = np.random.RandomState(0)
-    n_samples = 2000
-    t = np.linspace(0, 8, n_samples)
+    t = np.linspace(0, 8, 2000)
     sources = np.c_[
-        np.sin(2 * t),
-        np.sign(np.sin(3 * t)),
-        signal.sawtooth(2 * np.pi * t),
+        np.sin(2 * t), np.sign(np.sin(3 * t)), signal.sawtooth(2 * np.pi * t)
     ]
     sources += 0.2 * rng.standard_normal(sources.shape)
     sources /= sources.std(axis=0)
