@@ -7,12 +7,12 @@ import math
 import numpy as np
 from scipy.special import expit
 
-from ..utils import _legacy_rng, logger, verbose_static
+from ..utils import _legacy_rng, logger, verbose
 from ..utils.numerics import _random_permutation
 
 
 @_legacy_rng("random_state")
-@verbose_static("rng", "random_state_rng")
+@verbose
 def infomax(
     data,
     weights=None,
@@ -97,36 +97,27 @@ def infomax(
     use_bias : bool
         This quantity indicates if the bias should be computed.
         Defaults to True.
-    verbose : bool | str | int | None
-        Control verbosity of the logging output. If ``None``, use the default
-        verbosity level. See the :ref:`logging documentation <tut-logging>` and
-        :func:`mne.verbose` for details. Should only be passed as a keyword
-        argument.
+    %(verbose)s
     return_n_iter : bool
         Whether to return the number of iterations performed. Defaults to
         False.
-    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
-        The random number generator (RNG). If ``None`` (default), a new
-        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
-        a :class:`numpy.random.Generator` for reproducible results, or a legacy
-        :class:`~numpy.random.RandomState` to control the random-number stream or
-        for interoperability with third-party code such as scikit-learn that does
-        not accept generators. An integer seed uses
-        :func:`numpy.random.default_rng` and therefore produces a different stream
-        than the same integer passed to a legacy ``random_state`` or ``seed``
-        parameter.
-
-        .. versionadded:: 1.13
-    random_state : None | int | instance of ~numpy.random.RandomState
-        Supported for compatibility. New code should use ``rng``. If ``None``,
-        NumPy's global :class:`~numpy.random.RandomState` is used.
+    %(rng)s
+    %(random_state_rng)s
 
     Returns
     -------
     unmixing_matrix : np.ndarray, shape (n_features, n_features)
         The linear unmixing operator.
     n_iter : int
-        The number of iterations. Only returned if ``return_max_iter=True``.
+        The number of iterations actually performed. Only returned if
+        ``return_n_iter=True``.
+
+        .. versionchanged:: 1.13
+           Convergence was previously signalled by assigning ``step = max_iter``
+           to leave the training loop, so the returned count equalled
+           ``max_iter`` whenever the weight-change criterion was met --
+           regardless of how many iterations had actually run. It now reports
+           the true count.
 
     References
     ----------
@@ -310,11 +301,11 @@ def infomax(
                 if n_small_angle is not None:
                     count_small_angle += 1
                     if count_small_angle > n_small_angle:
-                        max_iter = step
+                        break
 
             # apply stopping rule
             if step > 2 and change < w_change:
-                step = max_iter
+                break
             elif change > blowup:
                 l_rate *= blowup_fac
 
