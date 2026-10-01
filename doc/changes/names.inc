@@ -4,6 +4,7 @@
 .. _Adam Li: https://github.com/adam2392
 .. _Adeline Fecker: https://github.com/adelinefecker
 .. _Adina Wagner: https://github.com/adswa
+.. _Aditya: https://github.com/adi-coderr
 .. _Adonay Nunes: https://github.com/AdoNunes
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
