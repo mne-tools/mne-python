@@ -4,6 +4,7 @@
 .. _Adam Li: https://github.com/adam2392
 .. _Adeline Fecker: https://github.com/adelinefecker
 .. _Adina Wagner: https://github.com/adswa
+.. _Aditya: https://github.com/adi-coderr
 .. _Adonay Nunes: https://github.com/AdoNunes
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
@@ -20,6 +21,7 @@
 .. _Alexandra Corneyllie: https://github.com/Lx37
 .. _Alexandre Barachant: https://alexandre.barachant.org
 .. _Aman Srivastava: https://github.com/aman-coder03
+.. _Amirali Moradniaei: https://github.com/AtomicGlance
 .. _Ana Radanovic: https://github.com/anaradanovic
 .. _Andrea Brovelli: https://brovelli.github.io/
 .. _Andreas Højlund: https://github.com/ahoejlund
@@ -36,6 +38,7 @@
 .. _Antoine Gauthier: https://github.com/Okamille
 .. _Anton Karpov: https://github.com/karpovantonme
 .. _Anton Nikolas Waniek: https://github.com/antonwnk
+.. _Antonio Elias Sánchez Soto: https://github.com/sonoAESS
 .. _Antti Rantala: https://github.com/Odingod
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
@@ -102,9 +105,11 @@
 .. _David Julien: https://github.com/Swy7ch
 .. _David Sabbagh: https://github.com/DavidSabbagh
 .. _Deep Kaur: https://github.com/Dpereaptkhamur-13
+.. _Deepesh Sonar: https://github.com/Deepnar
 .. _Denis Engemann: https://denis-engemann.de
 .. _Desislava Petkova: https://github.com/dipetkov
 .. _Dev Parikh: https://github.com/devparikh0506
+.. _Devesh Bervar: https://github.com/deveshbervar
 .. _Dimitri Papadopoulos Orfanos: https://github.com/DimitriPapadopoulos
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 .. _Diptyajit Das: https://github.com/dasdiptyajit
@@ -176,6 +181,7 @@
 .. _Hyonyoung Shin: https://github.com/mcvain
 .. _Ilian Azz: https://github.com/ilianAZZ
 .. _Ilias Machairas: https://github.com/JungleHippo
+.. _Isaac Kinley: https://kinleyid.github.io/
 .. _Ivan Skelin: https://github.com/ivan-skelin
 .. _Ivan Zubarev: https://github.com/zubara
 .. _Ivana Kojcic: https://github.com/ikojcic
@@ -271,6 +277,7 @@
 .. _Manorama Kadwani: https://github.com/synapse-stream
 .. _Manu Sutela: https://github.com/MJAS1
 .. _Marcin Koculak: https://github.com/mkoculak
+.. _Marcus Campbell: https://github.com/marcus-campbell
 .. _Marian Dovgialo: https://github.com/mdovgialo
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 .. _Mark Alexander Henney: https://github.com/henneysq
@@ -299,6 +306,7 @@
 .. _Matti Toivonen: https://github.com/mattitoi
 .. _Maureen Shader: https://github.com/mshader
 .. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+.. _Maximilien Chaumon: https://github.com/dnacombo
 .. _Melih Yayli: https://github.com/yaylim
 .. _Michael Krause: https://github.com/octomike
 .. _Michael Straube: https://github.com/mistraube
