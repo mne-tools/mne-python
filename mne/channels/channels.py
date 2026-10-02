@@ -347,7 +347,7 @@ class ReferenceMixin(MontageMixin):
             ``projection=False``, the average reference is directly applied to
             the data. If ``ref_channels`` is not ``'average'``, ``projection``
             must be set to ``False`` (the default in this case).
-        ch_type : list of str | str
+        ch_type : "auto" | "eeg" | "ecog" | "seeg" | "dbs" | sequence of str
             The name of the channel type to apply the reference to.
             Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
             ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
@@ -563,13 +563,13 @@ class UpdateChannelsMixin:
             (default) include none. If string it can be 'eyegaze' (to include
             eye position channels) or 'pupil' (to include pupil-size
             channels).
-        include : list of str
+        include : sequence of str
             List of additional channels to include. If empty do not include
             any.
-        exclude : list of str | str
+        exclude : sequence of str | str
             List of channels to exclude. If 'bads' (default), exclude channels
             in ``info['bads']``.
-        selection : list of str
+        selection : sequence of str
             Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default

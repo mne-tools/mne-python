@@ -2184,7 +2184,6 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     title.setFont(title_font)
     title.setStyleSheet(
         "QLabel {"
-        " color: palette(placeholder-text);"
         " padding: 7px 10px 6px 10px;"
         " border-bottom: 1px solid palette(midlight);"
         " }"

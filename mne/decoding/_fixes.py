@@ -2,6 +2,22 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from mne.utils import _soft_import
+
+
+def _get_array_namespace(X):
+    """Get an opt-in array-api-compat namespace and the input device."""
+    import numpy as np
+    from sklearn import get_config
+
+    if isinstance(X, np.ndarray) or not get_config()["array_api_dispatch"]:
+        return np, None
+    compat = _soft_import("array_api_compat", "Array API dispatch")
+    if not compat.is_array_api_obj(X):
+        return np, None
+    return compat.array_namespace(X), compat.device(X)
+
+
 try:
     # TODO VERSION remove once we require sklearn 1.6+
     from sklearn.utils.validation import validate_data

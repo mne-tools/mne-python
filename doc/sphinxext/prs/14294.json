@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "0b9e60ccd59ec3da7e96eac0e21d07ed74bb10b7",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": "39504233+meeseeksmachine@users.noreply.github.com",
+      "l": "meeseeksmachine"
+    },
+    {
+      "n": "Lau Møller Andersen",
+      "e": "ualsbombe@protonmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13989.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 30,
+      "d": 0
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}
