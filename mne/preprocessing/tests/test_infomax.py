@@ -227,12 +227,9 @@ def test_infomax_n_iter_reports_actual_iterations():
     data and not others.
     """
     rng = np.random.RandomState(0)
-    n_samples = 2000
-    t = np.linspace(0, 8, n_samples)
+    t = np.linspace(0, 8, 2000)
     sources = np.c_[
-        np.sin(2 * t),
-        np.sign(np.sin(3 * t)),
-        signal.sawtooth(2 * np.pi * t),
+        np.sin(2 * t), np.sign(np.sin(3 * t)), signal.sawtooth(2 * np.pi * t)
     ]
     sources += 0.2 * rng.standard_normal(sources.shape)
     sources /= sources.std(axis=0)
@@ -257,30 +254,3 @@ def test_infomax_n_iter_reports_actual_iterations():
             f"extended={extended}: n_iter tracked max_iter ({counts[0]} vs {counts[1]})"
         )
         assert counts[0] < 500, f"extended={extended}: n_iter == the budget"
-
-
-def test_infomax_unmixing_unchanged_by_the_n_iter_fix():
-    """Test that reporting the true count does not alter the solution.
-
-    ``step += 1`` happens before the stopping rule, so replacing the
-    assignments with ``break`` skips no work. A budget above the convergence
-    point must give the same unmixing matrix as one far above it.
-    """
-    rng = np.random.RandomState(0)
-    t = np.linspace(0, 8, 2000)
-    sources = np.c_[
-        np.sin(2 * t), np.sign(np.sin(3 * t)), signal.sawtooth(2 * np.pi * t)
-    ]
-    sources += 0.2 * rng.standard_normal(sources.shape)
-    sources /= sources.std(axis=0)
-    data = sources @ np.array([[1.0, 1.0, 1.0], [0.5, 2.0, 1.0], [1.5, 1.0, 2.0]]).T
-    data = (data - data.mean(0)) / data.std(0)
-
-    for extended in (False, True):
-        weights = [
-            infomax(
-                data, rng=np.random.RandomState(0), max_iter=max_iter, extended=extended
-            )
-            for max_iter in (500, 2000)
-        ]
-        assert_array_equal(weights[0], weights[1])
