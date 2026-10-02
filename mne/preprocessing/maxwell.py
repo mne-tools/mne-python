@@ -1691,13 +1691,15 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
     coil_types = np.array([ch["coil_type"] for ch in meg_info["chs"]])
     mag_or_fine[(coil_types & 0xFFFF) == FIFF.FIFFV_COIL_KIT_GRAD] = False
-    # The same thing goes for CTF gradiometers...
-    ctf_grads = [
+    # The same thing goes for CTF and Artemis123 gradiometers...
+    axial_grads = [
         FIFF.FIFFV_COIL_CTF_GRAD,
         FIFF.FIFFV_COIL_CTF_REF_GRAD,
         FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
+        FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
+        FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ]
-    mag_or_fine[np.isin(coil_types, ctf_grads)] = False
+    mag_or_fine[np.isin(coil_types, axial_grads)] = False
     msg = (
         f"    Processing {len(grad_picks)} gradiometers "
         f"and {len(mag_picks)} magnetometers"
@@ -1934,6 +1936,20 @@ def _sss_basis(exp, all_coils):
     cos_az[z_only] = 1.0
     sin_az = rmags[:, 1] / r_xy  # sin(phi)
     sin_az[z_only] = 0.0
+    # cosmags in the local (r, az, pol) unit-vector basis, shared by all columns, so
+    # each _integrate_points is equivalent to (but faster than) the simpler:
+    # x = sin_pol * cos_az * b_r + cos_pol * cos_az * b_pol - sin_az * b_az
+    # y = sin_pol * sin_az * b_r + cos_pol * sin_az * b_pol + cos_az * b_az
+    # z = cos_pol * b_r - sin_pol * b_pol
+    # grads = (np.array([x, y, z]).T * cosmags).sum(axis=1)
+    nx, ny, nz = cosmags.T
+    n_rho = cos_az * nx + sin_az * ny
+    projs = (
+        sin_pol * n_rho + cos_pol * nz,
+        cos_az * ny - sin_az * nx,
+        cos_pol * n_rho - sin_pol * nz,
+    )
+    starts = np.flatnonzero(np.diff(bins, prepend=-1))  # bins is sorted
     # Appropriate vector spherical harmonics terms
     r_nn2 = r_n.copy()
     r_nn1 = 1.0 / (r_n * r_n)
@@ -1955,34 +1971,12 @@ def _sss_basis(exp, all_coils):
             if degree <= int_order:
                 b_r = mult * (degree + 1) * L[degree][0] / r_nn2
                 b_pol = -mult * L[degree][1] / r_nn2
-                S_in[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    0.0,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_in[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = -mult * degree * L[degree][0] * r_nn1
                 b_pol = -mult * L[degree][1] * r_nn1
-                S_out[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    0.0,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_out[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, starts)
         for order in range(1, degree + 1):
             ord_phi = order * phi
             sin_order = np.sin(ord_phi)
@@ -2016,35 +2010,13 @@ def _sss_basis(exp, all_coils):
                 b_r = (degree + 1) * r_fact / r_nn2
                 b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
-                S_in[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = -degree * r_fact * r_nn1
                 b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
-                S_out[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_out[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
 
             # Imaginary
             idx = _deg_ord_idx(degree, -order)
@@ -2056,47 +2028,20 @@ def _sss_basis(exp, all_coils):
                 b_r = -(degree + 1) * r_fact / r_nn2
                 b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
-                S_in[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = degree * r_fact * r_nn1
                 b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
-                S_out[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_out[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
     return S_tot
 
 
-def _integrate_points(
-    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol, cosmags, bins, n_coils
-):
+def _integrate_points(b_r, b_az, b_pol, projs, starts):
     """Integrate points in spherical coords."""
-    grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
-    grads = (grads * cosmags).sum(axis=1)
-    from .._numba import bincount
-
-    return bincount(bins, grads, n_coils)
+    grads = b_r * projs[0] + b_az * projs[1] + b_pol * projs[2]
+    return np.add.reduceat(grads, starts)
 
 
 def _tabular_legendre(r, nind):
@@ -2123,15 +2068,6 @@ def _tabular_legendre(r, nind):
                     - (degree + order - 1) * L[degree - 2][order]
                 ) / (degree - order)
     return L
-
-
-def _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol):
-    """Convert spherical coords to cartesian."""
-    out = np.empty((3,) + sin_pol.shape)
-    out[0] = sin_pol * cos_az * b_r + cos_pol * cos_az * b_pol - sin_az * b_az
-    out[1] = sin_pol * sin_az * b_r + cos_pol * sin_az * b_pol + cos_az * b_az
-    out[2] = cos_pol * b_r - sin_pol * b_pol
-    return out
 
 
 def _get_degrees_orders(order):
@@ -2649,6 +2585,8 @@ def _regularize_in(
     S_decomp = S_decomp.copy()
     use_norm = np.sqrt(np.sum(S_decomp * S_decomp, axis=0))
     S_decomp /= use_norm
+    # eigh of the small Gram matrix is much faster than SVD of the tall S_decomp
+    gram = S_decomp.T @ S_decomp
     eigs = np.zeros((n_in, 2))
 
     # plot = False  # for debugging
@@ -2659,16 +2597,19 @@ def _regularize_in(
     noise_lev = 5e-13  # noise level in T/m
     noise_lev *= noise_lev  # effectively what would happen by earlier multiply
     for ii in range(n_in):
-        this_S = S_decomp.take(in_keepers + out_keepers, axis=1)
-        u, s, v = _safe_svd(this_S, full_matrices=False, **check_disable)
-        del this_S
-        eigs[ii] = s[[0, -1]]
-        v = v.T[: len(in_keepers)]
+        keepers = in_keepers + out_keepers
+        s_sq, v = linalg.eigh(gram[np.ix_(keepers, keepers)], **check_disable)
+        # rank-deficient bases (e.g., head far from origin) can give s_sq < 0
+        np.maximum(s_sq, np.finfo(float).eps * s_sq[-1], out=s_sq)
+        eigs[ii] = np.sqrt(s_sq[[-1, 0]])
+        v = v[: len(in_keepers)]
         v /= use_norm[in_keepers][:, np.newaxis]
-        eta_lm_sq = np.dot(v * 1.0 / s, u.T)
-        del u, s, v
-        eta_lm_sq *= eta_lm_sq
-        eta_lm_sq = eta_lm_sq.sum(axis=1)
+        # U is orthonormal, so row norms of pinv = V @ diag(1 / s) @ U.T need no U;
+        # equivalent to (but much slower than) the simpler:
+        # u, s, vh = _safe_svd(S_decomp[:, keepers], full_matrices=False)
+        # v = vh.T[: len(in_keepers)] / use_norm[in_keepers][:, np.newaxis]
+        # eta_lm_sq = (((v / s) @ u.T) ** 2).sum(axis=1)
+        eta_lm_sq = (v * v / s_sq).sum(axis=1)
         eta_lm_sq *= noise_lev
 
         # Together these scale snr by 400 (order != 0) / 200 (order == 0). Only
