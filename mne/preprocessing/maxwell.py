@@ -1949,6 +1949,7 @@ def _sss_basis(exp, all_coils):
         cos_az * ny - sin_az * nx,
         cos_pol * n_rho - sin_pol * nz,
     )
+    starts = np.flatnonzero(np.diff(bins, prepend=-1))  # bins is sorted
     # Appropriate vector spherical harmonics terms
     r_nn2 = r_n.copy()
     r_nn1 = 1.0 / (r_n * r_n)
@@ -1970,12 +1971,12 @@ def _sss_basis(exp, all_coils):
             if degree <= int_order:
                 b_r = mult * (degree + 1) * L[degree][0] / r_nn2
                 b_pol = -mult * L[degree][1] / r_nn2
-                S_in[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, bins, n_coils)
+                S_in[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = -mult * degree * L[degree][0] * r_nn1
                 b_pol = -mult * L[degree][1] * r_nn1
-                S_out[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, bins, n_coils)
+                S_out[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, starts)
         for order in range(1, degree + 1):
             ord_phi = order * phi
             sin_order = np.sin(ord_phi)
@@ -2009,15 +2010,13 @@ def _sss_basis(exp, all_coils):
                 b_r = (degree + 1) * r_fact / r_nn2
                 b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
-                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, bins, n_coils)
+                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = -degree * r_fact * r_nn1
                 b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
-                S_out[:, idx] = _integrate_points(
-                    b_r, b_az, b_pol, projs, bins, n_coils
-                )
+                S_out[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
 
             # Imaginary
             idx = _deg_ord_idx(degree, -order)
@@ -2029,24 +2028,20 @@ def _sss_basis(exp, all_coils):
                 b_r = -(degree + 1) * r_fact / r_nn2
                 b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
-                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, bins, n_coils)
+                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = degree * r_fact * r_nn1
                 b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
-                S_out[:, idx] = _integrate_points(
-                    b_r, b_az, b_pol, projs, bins, n_coils
-                )
+                S_out[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
     return S_tot
 
 
-def _integrate_points(b_r, b_az, b_pol, projs, bins, n_coils):
+def _integrate_points(b_r, b_az, b_pol, projs, starts):
     """Integrate points in spherical coords."""
-    from .._numba import bincount
-
     grads = b_r * projs[0] + b_az * projs[1] + b_pol * projs[2]
-    return bincount(bins, grads, n_coils)
+    return np.add.reduceat(grads, starts)
 
 
 def _tabular_legendre(r, nind):
