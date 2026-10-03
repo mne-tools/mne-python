@@ -264,6 +264,18 @@ def test_plot_evoked():
     _fake_click(fig, ax, (0.6, 0.5), kind="press")
     assert ax._selectline.get_xdata()[0] > 0.0
 
+    # plots sharing a figure should blit on hover rather than redraw it
+    fig, axes = plt.subplots(1, 3)
+    for ax in axes:
+        evoked.plot(picks="mag", axes=ax)
+    for ax in axes:  # first hover adds cursors, so needs a redraw
+        _fake_click(fig, ax, (0.5, 0.5), kind="motion")
+    draws = list()
+    fig.canvas.mpl_connect("draw_event", draws.append)
+    for ax in axes:
+        _fake_click(fig, ax, (0.6, 0.5), kind="motion")
+    assert draws == []
+
     plt.close("all")
 
 
