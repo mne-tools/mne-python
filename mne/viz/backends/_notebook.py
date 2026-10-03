@@ -1,4 +1,4 @@
-"""Notebook implementation of _Renderer and GUI."""
+"""ipywidgets GUI shared by the notebook 3D backends (see _trame.py, _lite.py)."""
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
@@ -6,8 +6,7 @@
 
 import os
 import os.path as op
-import warnings
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 
 from ipyevents import Event
 from IPython.display import clear_output, display
@@ -75,18 +74,6 @@ from ._abstract import (
     _AbstractWidgetList,
     _AbstractWindow,
 )
-from ._pyvista import (
-    Plotter,
-    _check_3d_figure,  # noqa: F401
-    _clear_3d_figure,  # noqa: F401
-    _close_3d_figure,  # noqa: F401
-    _close_all,  # noqa: F401
-    _PyVistaRenderer,
-    _set_3d_title,  # noqa: F401
-    _set_3d_view,  # noqa: F401
-    _take_3d_screenshot,  # noqa: F401
-)
-from ._utils import _notebook_vtk_works
 from .renderer import _TimeInteraction
 
 # dict values are icon names from: https://fontawesome.com/icons
@@ -111,46 +98,6 @@ _ICON_LUT = dict(
 
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
-
-_JUPYTER_BACKEND = "trame"
-
-
-class _NotebookPlotter(Plotter):
-    """PyVista ``Plotter`` for the notebook backend.
-
-    Validate the object returned by show, as PyVista silently falls back static PIL
-    when the trame Jupyter backend cannot be loaded.
-    """
-
-    def show(
-        self, *args, jupyter_backend=_JUPYTER_BACKEND, return_viewer=False, **kwargs
-    ):
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            viewer = super().show(
-                *args,
-                jupyter_backend=jupyter_backend,
-                return_viewer=return_viewer,
-                **kwargs,
-            )
-        if not isinstance(viewer, Widget):
-            reasons = "\n".join(
-                f"- {w.message}"
-                for w in caught
-                if any(key in str(w.message) for key in ("backend", "trame", "static"))
-            )
-            raise RuntimeError(
-                f'The notebook 3D backend is not functional: the "{jupyter_backend}" '
-                "PyVista Jupyter backend returned a "
-                f"{type(viewer).__module__}.{type(viewer).__qualname__} instead of an "
-                "interactive widget. This usually means the installed trame packages "
-                "(trame, trame-vtk, trame-vuetify, trame-pyvista) are missing or "
-                "mutually incompatible."
-                + (f"\n\nPyVista reported:\n{reasons}" if reasons else "")
-            )
-        if return_viewer:
-            return viewer
-
 
 # %%
 # Widgets
@@ -670,8 +617,7 @@ class _BoxLayout:
         return kwargs
 
     def _add_widget(self, widget):
-        # if pyvista plotter, needs to be shown
-        if isinstance(widget, Plotter):
+        if not isinstance(widget, Widget):  # a PyVista plotter, which needs showing
             widget = widget.show(return_viewer=True)
         if hasattr(widget, "layout"):
             widget.layout.width = None  # unlock the fixed layout
@@ -765,25 +711,6 @@ class _AppWindow(_AbstractAppWindow, _Widget, VBox, metaclass=_BaseWidget):
 
     def _close(self):
         clear_output()
-
-
-class _3DRenderer(_PyVistaRenderer):
-    _kind = "notebook"
-
-    def __init__(self, *args, **kwargs):
-        kwargs["notebook"] = True
-        super().__init__(*args, **kwargs)
-        if "show" in kwargs and kwargs["show"]:
-            self.show()
-
-    @contextmanager
-    def _ensure_minimum_sizes(self):
-        yield
-
-    def show(self):
-        viewer = self.plotter.show(return_viewer=True)
-        viewer.layout.width = None  # unlock the fixed layout
-        display(viewer)
 
 
 # ------------------------------------
@@ -1345,9 +1272,12 @@ class _IpyPlayback(_AbstractPlayback):
 
 class _IpyMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        ipympl = _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
-        self.canvas = ipympl.backend_nbagg.Canvas(self.fig)
-        self.manager = ipympl.backend_nbagg.FigureManager(self.canvas, 0)
+        _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        # the submodule, as `import ipympl` alone does not bring it in
+        from ipympl.backend_nbagg import Canvas, FigureManager
+
+        self.canvas = Canvas(self.fig)
+        self.manager = FigureManager(self.canvas, 0)
 
 
 class _IpyMplCanvas(_AbstractMplCanvas, _IpyMplInterface):
@@ -1546,8 +1476,7 @@ class _IpyAction(_AbstractAction):
         pass
 
 
-class _Renderer(
-    _PyVistaRenderer,
+class _IpyRenderer(
     _IpyDock,
     _IpyToolBar,
     _IpyMenuBar,
@@ -1558,24 +1487,21 @@ class _Renderer(
     _IpyKeyPress,
     _TimeInteraction,
 ):
-    _kind = "notebook"
+    """The ipywidgets GUI the notebook backends put around their drawing renderer.
 
-    def __init__(self, *args, **kwargs):
+    A variant mixes this in *before* its drawing ``_AbstractRenderer``, so that
+    ``show`` here wins over the drawing one, and supplies the widget the scene is
+    drawn into through ``_viewer_widget``. Nothing else here collides, so the
+    drawing renderer is reached by inheritance as usual.
+    """
+
+    def _window_initialize(self, *, window=None, central_layout=None, fullscreen=False):
         self._docks = None
         self._menu_bar = None
         self._tool_bar = None
         self._status_bar = None
         self._file_picker = _FilePckr(rows=10)
-        kwargs["notebook"] = True
-        fullscreen = kwargs.pop("fullscreen", False)
-        if not _notebook_vtk_works():
-            raise RuntimeError(
-                "Using the notebook backend on Linux requires a compatible "
-                "VTK setup. Consider using Xfvb or xvfb-run to set up a "
-                "working virtual display, or install VTK with OSMesa enabled."
-            )
-        super().__init__(*args, **kwargs)
-        self._window_initialize(fullscreen=fullscreen)
+        super()._window_initialize(fullscreen=fullscreen)
 
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
@@ -1596,7 +1522,7 @@ class _Renderer(
         else:
             self._display_default_tool_bar()
         # viewer
-        viewer = self.plotter.show(return_viewer=True)
+        viewer = self._viewer_widget()
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])
@@ -1612,6 +1538,3 @@ class _Renderer(
         self._file_picker.hide()
         display(self._file_picker._widget)
         return self.scene()
-
-
-_testing_context = nullcontext

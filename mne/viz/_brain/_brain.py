@@ -618,8 +618,7 @@ class Brain(_TimeViewerMixin):
                     self.widgets["time"].set_value(time_idx)
                 if "current_time" in self.widgets:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-            self.plot_time_line(update=True)
-        self._renderer._update()
+            self.plot_time_line(update=True)  # _update_current_time_idx rendered
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -638,9 +637,7 @@ class Brain(_TimeViewerMixin):
                     entry_key = "entry_" + key
                     if entry_key in self.widgets:
                         self.widgets[entry_key].set_value(val * self._data["fscale"])
-        # Update the render.
-        self._update_colormap_range(**lims)
-        self._renderer._update()
+        self._update_colormap_range(**lims)  # renders
 
     def _clear_callbacks(self):
         # Remove the default key binding
@@ -1283,7 +1280,7 @@ class Brain(_TimeViewerMixin):
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
             # TODO: reaches into VTK through the renderer, which the
-            # jupyterlite_notebook backend cannot offer (its pages are excluded
+            # notebook_js backend cannot offer (its pages are excluded
             # in doc/conf.py); refactor the renderer interface so Brain only
             # uses its abstract methods. Same for the time label and glyph
             # actors below.
