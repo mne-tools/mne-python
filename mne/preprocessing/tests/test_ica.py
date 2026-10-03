@@ -1938,6 +1938,8 @@ def test_ica_converged_attribute(method):
     what it means: FastICA returns ``n_iter_ == max_iter`` when it fails to
     converge, while a converged Infomax fit can return any count.
     """
+    pytest.importorskip("picard")
+
     raw = _converged_test_raw()
 
     ica = ICA(n_components=3, method=method, random_state=97, max_iter=3)
