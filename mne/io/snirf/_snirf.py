@@ -544,7 +544,7 @@ class RawSNIRF(BaseRaw):
 
             if "landmarkPos3D" in dat.get("nirs/probe/"):
                 diglocs = np.array(dat.get("/nirs/probe/landmarkPos3D"))
-                diglocs /= length_scaling
+                diglocs *= length_scaling
                 digname = np.array(dat.get("/nirs/probe/landmarkLabels"))
                 # Handle empty or scalar landmarkLabels (see gh-13627)
                 if digname.ndim == 0 or digname.size == 0:

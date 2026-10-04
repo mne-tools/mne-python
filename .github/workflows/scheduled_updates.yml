@@ -66,7 +66,10 @@ jobs:
         run: uv pip install -e . packaging requests tomlkit prek
       - name: Update tracked dependencies
         if: matrix.id == 'spec_zero'
-        run: python ./tools/dev/spec_zero_update_versions.py
+        uses: mne-tools/mne-tools/actions/spec-zero-update-versions@main
+        with:
+          project-root: ${{ github.workspace }}
+          changelog-path: 'doc/changes/dev/dependency.rst'
       - name: Update pre-commit hook versions
         if: matrix.id == 'prek_update'
         run: prek update
@@ -77,14 +80,6 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - name: Setup Pixi
-        uses: prefix-dev/setup-pixi@v0.10.2
-        if: steps.status.outputs.dirty == 'true'
-      - name: Update pixi.toml and pixi.lock for macos-intel CI job
-        run: |
-          pixi run python tools/write-pixi-toml.py
-          pixi lock --no-install --manifest-path tools/ci/macos-intel/
-        if: steps.status.outputs.dirty == 'true'
       - uses: j178/prek-action@v3.0.0
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR

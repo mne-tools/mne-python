@@ -2,9 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ..utils._bunch import BunchConstNamed, NamedInt
+from ..utils._bunch import BunchConstNamed, NamedFloat, NamedInt
 
-FIFF = BunchConstNamed()
+FIFF: BunchConstNamed[NamedInt] = BunchConstNamed()
 
 #
 # FIFF version number in use
@@ -411,6 +411,7 @@ FIFF.FIFFV_MNE_SURF_UNKNOWN = -1
 FIFF.FIFFV_MNE_SURF_LEFT_HEMI = 101
 FIFF.FIFFV_MNE_SURF_RIGHT_HEMI = 102
 FIFF.FIFFV_MNE_SURF_MEG_HELMET = 201  # Use this irrespective of the system
+FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET = 1000  # + aseg value, e.g. hippocampus
 #
 #   These relate to the Isotrak data (enum(point))
 #
@@ -844,7 +845,7 @@ _coord_frame_named.update({
 #   FWD Types
 #
 
-FWD = BunchConstNamed()
+FWD: BunchConstNamed[NamedInt | NamedFloat] = BunchConstNamed()
 
 FWD.COIL_UNKNOWN = 0
 FWD.COILC_UNKNOWN = 0

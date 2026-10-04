@@ -1,0 +1,1 @@
+Fixed bug where :func:`mne.preprocessing.infomax` with ``extended=True`` and ``return_n_iter=True`` always returned ``max_iter``. It now reports the number of iterations it actually performed, and :class:`mne.preprocessing.ICA` stores this in the ``n_iter_`` attribute. by `Aslan Satary Dizaji`_.

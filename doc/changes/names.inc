@@ -4,6 +4,7 @@
 .. _Adam Li: https://github.com/adam2392
 .. _Adeline Fecker: https://github.com/adelinefecker
 .. _Adina Wagner: https://github.com/adswa
+.. _Aditya: https://github.com/adi-coderr
 .. _Adonay Nunes: https://github.com/AdoNunes
 .. _Akhil Gopu: https://github.com/AkhilG-exe
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
@@ -47,6 +48,7 @@
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
+.. _Aslan Satary Dizaji: https://github.com/aslansd
 .. _Athish M: https://github.com/athishdresu
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
@@ -108,6 +110,7 @@
 .. _Denis Engemann: https://denis-engemann.de
 .. _Desislava Petkova: https://github.com/dipetkov
 .. _Dev Parikh: https://github.com/devparikh0506
+.. _Devesh Bervar: https://github.com/deveshbervar
 .. _Dimitri Papadopoulos Orfanos: https://github.com/DimitriPapadopoulos
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 .. _Diptyajit Das: https://github.com/dasdiptyajit
