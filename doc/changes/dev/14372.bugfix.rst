@@ -1,0 +1,1 @@
+Fix :func:`mne.read_evokeds` failing on files that store channel information in the evoked block (as written by MNE-C), by `Christopher Dinh`_.
