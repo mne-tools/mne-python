@@ -298,7 +298,7 @@ def test_io_evoked(tmp_path):
     # MNE-C style: channel info local to the evoked block, one epoch tag per channel
     fname_local = tmp_path / "test-local-ave.fif"
     evo = ave.copy().pick(ave.ch_names[:3])
-    meas_info = evo.copy().resample(evo.info["sfreq"] / 2).info
+    meas_info = ave.copy().resample(ave.info["sfreq"] / 2).info
     with start_and_end_file(fname_local) as fid:
         start_block(fid, FIFF.FIFFB_MEAS)
         write_meas_info(fid, meas_info)
