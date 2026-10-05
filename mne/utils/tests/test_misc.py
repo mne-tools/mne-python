@@ -177,3 +177,18 @@ def test_clean_names():
     ch_names_clean = _clean_names(ch_names, before_dash=True)
     assert ch_names == ch_names_clean
     assert len(set(ch_names_clean)) == len(ch_names_clean)
+
+
+def test_run_subprocess_non_utf8(tmp_path):
+    """Test run_subprocess handles non-utf8 binary streams gracefully."""
+    fname = tmp_path / "emit_non_utf8.py"
+    with open(fname, "w") as fid:
+        fid.write(
+            "import sys\n"
+            "sys.stdout.buffer.write(bytes([255, 254]) + b' hello\\n')\n"
+            "sys.stdout.flush()\n"
+        )
+    stdout, stderr = run_subprocess([sys.executable, str(fname)], verbose=False)
+    assert "hello" in stdout
+    assert stderr == ""
+

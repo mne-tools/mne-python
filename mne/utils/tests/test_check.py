@@ -89,6 +89,40 @@ def test_legacy_rng_decorator(legacy_name):
         _func(**{legacy_name: 0}, rng=0)
 
 
+def test_check_path_containment(tmp_path):
+    """Test path containment verification for directory traversal defense."""
+    from mne.utils.check import _check_path_containment
+
+    base_dir = tmp_path / "dataset"
+    base_dir.mkdir()
+    child_file = base_dir / "valid_data.fdt"
+    child_file.touch()
+
+    # 1. Valid relative path inside base directory
+    resolved = _check_path_containment("valid_data.fdt", base_dir)
+    assert resolved == child_file.resolve()
+
+    # 2. Valid nested path inside subdirectory
+    sub_dir = base_dir / "subdir"
+    sub_dir.mkdir()
+    nested_file = sub_dir / "nested.fdt"
+    nested_file.touch()
+    resolved_sub = _check_path_containment("subdir/nested.fdt", base_dir)
+    assert resolved_sub == nested_file.resolve()
+
+    # 3. Path traversal attempting to escape base directory
+    with pytest.raises(ValueError, match="resolves outside parent directory"):
+        _check_path_containment("../outside.fdt", base_dir)
+
+    # 4. Deep path traversal
+    with pytest.raises(ValueError, match="resolves outside parent directory"):
+        _check_path_containment("../../../etc/passwd", base_dir)
+
+    # 5. Type validation
+    with pytest.raises(TypeError, match="path-like"):
+        _check_path_containment(123, base_dir)
+
+
 @testing.requires_testing_data
 def test_check(tmp_path):
     """Test checking functions."""

@@ -1116,6 +1116,12 @@ def test_rescale():
     s = np.std(x[:3])
     assert_allclose(tester(mode="zlogratio"), x / s)
 
+    # Test rescale with picks subset
+    data_multi = np.array([[2, 3, 4, 5], [10, 10, 10, 10]], float)
+    res_picks = rescale(data_multi, times, baseline, mode="mean", picks=[0], copy=True)
+    assert_allclose(res_picks[0], [-1, 0, 1, 2])
+    assert_allclose(res_picks[1], [10, 10, 10, 10])  # Non-picked channel unchanged
+
 
 @pytest.mark.parametrize("preload", (True, False))
 def test_epochs_baseline_basic(preload, tmp_path):

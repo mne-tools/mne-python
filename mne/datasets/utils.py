@@ -848,10 +848,21 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                 members = set(f for f in ff.namelist() if not f.endswith("/"))
                 missing = sorted(members.symmetric_difference(set(names)))
                 if len(missing):
+                    newline = "\n"
                     raise RuntimeError(
-                        "Zip file did not have correct names:\n{'\n'.join(missing)}"
+                        f"Zip file did not have correct names:\n{newline.join(missing)}"
                     )
+                dest_resolved = Path(destination).resolve()
                 for name in need:
+                    # Defensively ensure extracted file does not traverse outside
+                    # destination directory
+                    target = (dest_resolved / name).resolve()
+                    if not target.is_relative_to(dest_resolved):
+                        raise RuntimeError(
+                            f"Archive entry {name!r} resolves outside destination "
+                            f"directory '{destination}'. "
+                            "Path traversal is not permitted."
+                        )
                     ff.extract(name, path=destination)
         logger.info(f"Successfully extracted {len(need)} file{_pl(need)}")
 

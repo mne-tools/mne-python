@@ -9,7 +9,7 @@ from typing import Literal
 
 import numpy as np
 
-from mne.utils.check import _check_option
+from mne.utils.check import _check_option, _check_path_containment
 
 from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
@@ -55,7 +55,15 @@ def _check_eeglab_fname(fname, dataname):
     _check_option("EEGLAB file extension", fmt, (".set", ".fdt"))
 
     basedir = op.dirname(fname)
-    data_fname = op.join(basedir, dataname)
+    # Defensively ensure data file reference remains within the dataset directory
+    try:
+        data_fname = str(
+            _check_path_containment(dataname, basedir, name="EEGLAB data file")
+        )
+    except ValueError as err:
+        raise ValueError(
+            f"Invalid EEGLAB data file path in header {fname!r}: {err}"
+        ) from None
     if not op.exists(data_fname):
         fdt_from_set_fname = op.splitext(fname)[0] + ".fdt"
         if op.exists(fdt_from_set_fname):

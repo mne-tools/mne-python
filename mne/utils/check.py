@@ -353,6 +353,49 @@ def _check_fname(
     return fname
 
 
+def _check_path_containment(path, base_dir, name="File") -> Path:
+    """Ensure that path is strictly contained within base_dir.
+
+    This function defensively prevents directory traversal (e.g. via '../' or
+    unexpected absolute paths) when loading auxiliary files referenced by
+    dataset headers or manifest archives.
+
+    Parameters
+    ----------
+    path : str | pathlib.Path
+        The relative or absolute file path to check.
+    base_dir : str | pathlib.Path
+        The parent directory that must contain ``path``.
+    name : str
+        Human-readable descriptor for error messages (default: "File").
+
+    Returns
+    -------
+    target_path : pathlib.Path
+        The resolved absolute path guaranteed to be inside ``base_dir``.
+
+    Raises
+    ------
+    ValueError
+        If the resolved path falls outside of ``base_dir``.
+    """
+    _validate_type(path, "path-like", name)
+    _validate_type(base_dir, "path-like", "base_dir")
+    base = Path(base_dir).resolve()
+    path_obj = Path(path)
+    target = (
+        path_obj.resolve()
+        if path_obj.is_absolute()
+        else (base / path_obj).resolve()
+    )
+    if not target.is_relative_to(base):
+        raise ValueError(
+            f"{name} '{path}' resolves outside parent directory '{base_dir}'. "
+            "Directory traversal is not allowed."
+        )
+    return target
+
+
 def _check_subject(
     first,
     second,
