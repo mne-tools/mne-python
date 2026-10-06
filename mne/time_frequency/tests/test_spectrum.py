@@ -715,7 +715,10 @@ def test_plot_spectrum(method, output, average, request):
     spectrum.plot(average=True, amplitude=False, spatial_colors=False)
     n_grad = sum(ch_type == "grad" for ch_type in spectrum.get_channel_types())
     for amp, sc in ((True, True), (False, False)):
-        fig = spectrum.plot(average=False, amplitude=amp, spatial_colors=sc, exclude=())
+        fig = spectrum.plot(
+            average=False, amplitude=amp, spatial_colors=sc, exclude=(), selectable=sc
+        )
+        assert hasattr(fig.axes[0], "_span_selector") is sc
         lines = fig.axes[0].lines[2:]  # grads, ignore two vlines
         assert len(lines) == n_grad
         bad_color = "0.5" if sc else "r"
