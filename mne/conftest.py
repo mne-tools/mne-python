@@ -103,14 +103,6 @@ def pytest_configure(config: pytest.Config):
     ):
         config.addinivalue_line("markers", marker)
 
-    # Fixtures
-    for fixture in (
-        "matplotlib_config",
-        "qt_config",
-        "protect_config",
-    ):
-        config.addinivalue_line("usefixtures", fixture)
-
     # pytest-qt uses PYTEST_QT_API, but let's make it respect qtpy's QT_API
     # if present
     if os.getenv("PYTEST_QT_API") is None and os.getenv("QT_API") is not None:
@@ -349,7 +341,7 @@ def verbose_debug():
         yield
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -357,7 +349,7 @@ def qt_config():
         os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -1118,7 +1110,7 @@ def options_3d():
         yield
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def protect_config():
     """Protect ~/.mne."""
     temp = _TempDir()
