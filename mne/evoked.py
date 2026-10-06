@@ -3668,13 +3668,14 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
                 )
 
             ch_names_mapping = _read_extended_ch_info(chs, my_evoked, fid)
-            info["chs"] = chs
+            with info._unlock(update_redundant=True):
+                info["chs"] = chs
+                if sfreq > 0:
+                    info["sfreq"] = sfreq
             info["bads"][:] = _rename_list(info["bads"], ch_names_mapping)
             logger.info(
                 f"    Found channel information in evoked data. nchan = {nchan}"
             )
-            if sfreq > 0:
-                info["sfreq"] = sfreq
 
         # Read the data in the aspect block
         nave = 1
