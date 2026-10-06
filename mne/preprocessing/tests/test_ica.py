@@ -1923,14 +1923,38 @@ def test_ica_rejects_nonfinite():
         ica.fit(raw)
 
 
-def _converged_test_raw(seed=0, n_channels=6, n_times=3000):
-    """Well-behaved data on which the ICA backends converge in few iterations."""
+def _ica_data(seed=0):
+    from scipy import signal
+
     rng = np.random.default_rng(seed)
+    n_samples = 4000
+    time = np.linspace(0, 8, n_samples)
+
+    s1 = np.sin(2 * time)  # Sinusoidal
+    s2 = np.sign(np.sin(3 * time))  # Square wave
+    s3 = signal.sawtooth(2 * np.pi * time)  # Sawtooth
+
+    S = np.column_stack([s1, s2, s3])
+    S += 0.2 * rng.standard_normal(S.shape)  # Add noise
+    S /= S.std(axis=0)  # Standardize
+
+    # Mixing matrix
+    A = np.array([[1, 1, 1], [0.5, 2, 1.0], [1.5, 1.0, 2.0]])
+    # Observations
+    X = S @ A.T
+    return X, A, A
+
+
+def _test_raw(seed=0):
+    X, _, _ = _ica_data(seed=seed)
+    n_times, n_channels = X.shape
     info = create_info([f"EEG{i:03d}" for i in range(n_channels)], 250.0, "eeg")
-    return RawArray(rng.normal(scale=2e-5, size=(n_channels, n_times)), info)
+    with info._unlock():
+        info["highpass"] = 1.0
+    return RawArray(X.T, info)
 
 
-@pytest.mark.parametrize("method", ["fastica", "infomax", "picard"])
+@pytest.mark.parametrize("method", ["fastica", "infomax", "picard", "jamica"])
 def test_ica_converged_attribute(method):
     """Test that ICA reports whether the decomposition converged.
 
@@ -1939,17 +1963,16 @@ def test_ica_converged_attribute(method):
     converge, while a converged Infomax fit can return any count.
     """
     pytest.importorskip("picard")
+    pytest.importorskip("jamica")
 
-    raw = _converged_test_raw()
-
+    raw = _test_raw()
     ica = ICA(n_components=3, method=method, random_state=97, max_iter=3)
     with _record_warnings():
         ica.fit(raw)
     assert ica.converged_ is False
 
     ica = ICA(n_components=3, method=method, random_state=97, max_iter=2000)
-    with _record_warnings():
-        ica.fit(raw)
+    ica.fit(raw)
     assert ica.converged_ is True
     assert ica.n_iter_ < 2000
 
@@ -1962,7 +1985,7 @@ def test_ica_converged_survives_save(method, tmp_path):
     that it was truncated has to travel with the file rather than staying in a
     warning emitted at fit time.
     """
-    raw = _converged_test_raw()
+    raw = _test_raw()
 
     for max_iter, expected in ((3, False), (2000, True)):
         ica = ICA(n_components=3, method=method, random_state=97, max_iter=max_iter)
@@ -1979,8 +2002,8 @@ def test_ica_converged_survives_save(method, tmp_path):
 
 def test_ica_converged_reset():
     """Test that ``converged_`` is cleared when the ICA is refitted."""
-    raw = _converged_test_raw()
-    ica = ICA(n_components=3, method="fastica", random_state=97, max_iter=2000)
+    raw = _test_raw()
+    ica = ICA(n_components=3, method="fastica", random_state=97)
     with _record_warnings():
         ica.fit(raw)
     assert hasattr(ica, "converged_")
