@@ -1,0 +1,1 @@
+Use a local random generator when computing BWS scores in :meth:`mne.preprocessing.ICA.score_sources`, avoiding consumption of NumPy's global random state and upcoming SciPy RNG warnings, by `Daria Agafonova`_.

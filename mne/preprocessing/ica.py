@@ -107,7 +107,18 @@ def _make_xy_sfunc(func, ndim_output=False):
     """Aux function."""
 
     def sfunc(x, y, ndim_output=ndim_output):
-        out = [func(a, y.ravel()) for a in x]
+        kwargs = {}
+        if func.__name__ == "bws_test":
+            from scipy.stats import PermutationMethod
+
+            # TODO VERSION SciPy 1.15+: always use rng.
+            rng_key = (
+                "rng"
+                if "rng" in signature(PermutationMethod).parameters
+                else "random_state"
+            )
+            kwargs["method"] = PermutationMethod(**{rng_key: np.random.default_rng()})
+        out = [func(a, y.ravel(), **kwargs) for a in x]
         if len(out) and is_dataclass(out[0]):  # PermutationTestResult
             out = [(o.statistic, o.pvalue) for o in out]
         if ndim_output:
