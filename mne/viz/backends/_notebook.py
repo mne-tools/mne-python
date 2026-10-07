@@ -1279,6 +1279,7 @@ class _IpyMplInterface(_AbstractMplInterface):
         from ipympl.backend_nbagg import Canvas, FigureManager
 
         self.canvas = Canvas(self.fig)
+        self.canvas.header_visible = False  # "Figure 0", as these are not numbered
         self.manager = FigureManager(self.canvas, 0)
 
 
