@@ -581,6 +581,7 @@ def test_lite_brain(renderer_lite, monkeypatch):
     assert isinstance(rend._viewer, GridBox)  # the widget the scene is drawn into
     assert rend._pages[rend._n_drawn % 2].value.startswith("<iframe srcdoc=")
     assert "srcdoc" not in repr(rend._viewer)  # what display() prints, sans kernel
+    assert brain.mpl_canvas._in_layout  # the traces go under the scene, not below all
     assert "translateX(-50%)" in rend._labels.value  # time viewer centers it
     assert "bold" in rend._labels.value
     colors = rend.plotter.actors[0]["mesh"].point_data["Data"].copy()

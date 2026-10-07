@@ -1289,10 +1289,16 @@ class _IpyMplCanvas(_AbstractMplCanvas, _IpyMplInterface):
 
 
 class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
+    _in_layout = False  # whether _IpyRenderer.show() put it under the scene
+
     def __init__(self, brain, width, height, dpi):
         super().__init__(brain, width, height, dpi)
         self._mpl_initialize()
         self._connect()
+
+    def show(self):
+        if not self._in_layout:
+            super().show()
 
 
 class _IpyWindow(_AbstractWindow):
@@ -1525,6 +1531,12 @@ class _IpyRenderer(
             self._display_default_tool_bar()
         # viewer
         viewer = self._viewer_widget()
+        self.figure.display = viewer
+        mplcanvas = getattr(self, "_mplcanvas", None)
+        if mplcanvas is not None and not self._separate_canvas:
+            # the traces go under the scene, in its column, as in _qt.py
+            mplcanvas._in_layout = True
+            viewer = VBox([viewer, mplcanvas.canvas])
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])
@@ -1532,7 +1544,6 @@ class _IpyRenderer(
         if self._docks is not None and "right" in self._docks:
             rendering_row.append(self._docks["right"][0])
         display(HBox(rendering_row))
-        self.figure.display = viewer
         # status bar
         if self._status_bar is not None:
             display(self._status_bar)
