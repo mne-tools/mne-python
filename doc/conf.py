@@ -671,8 +671,8 @@ JUPYTERLITE_EXCLUDE = (
     # plot_field needs the interactive viewer that the browser renderer skips
     "examples/visualization/mne_helmet.py",
     # Tier 4: mne.viz.Brain features the browser renderer lacks (see the TODOs
-    # in mne/viz/_brain/_brain.py). Brain itself draws (static, one time point,
-    # one view), and the fNIRS tutorials and 50_background_freesurfer_mne run
+    # in mne/viz/_brain/_brain.py). Brain itself draws (one view, with the time
+    # viewer), and the fNIRS tutorials and 50_background_freesurfer_mne run
     # in full, but these lean on add_annotation's hover callback,
     # brain.screenshot, legends, silhouettes or the flatmap, so most of their
     # cells fail.

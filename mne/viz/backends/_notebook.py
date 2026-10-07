@@ -897,6 +897,7 @@ class _IpyLayout(_AbstractLayout):
 
     def _layout_add_widget(self, layout, widget, stretch=0, *, row=None, col=None):
         widget.layout.margin = "2px 0px 2px 0px"
+        widget.layout.max_width = "100%"  # e.g. a slider's 300px default
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
         if isinstance(layout, Accordion):
@@ -971,6 +972,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         widget = HTML(value=value, disabled=True)
         widget.layout.width = "100px"
         self._layout_add_widget(layout, widget, row=row, col=col)
+        widget.layout.min_width = "min-content"  # shrink, but not below its text
         return _IpyWidget(widget)
 
     def _dock_add_button(

@@ -108,11 +108,10 @@ def set_3d_backend(backend_name, verbose=None):
     WebAssembly build, and it is what the documentation's browser notebooks run
     on. It covers the static 3D figures, so :func:`plot_alignment` (without
     channel-name labels) and :func:`plot_sparse_source_estimates` work, and
-    :class:`mne.viz.Brain` draws a single time point with no colorbar,
-    split-hemisphere layout or (by default) time viewer, although
-    ``time_viewer=True`` does build the same ipywidgets GUI as the ``notebook``
-    backend, minus the keyboard shortcuts, picking and hover that need mouse and
-    key events from VTK. :func:`plot_evoked_field` and
+    :class:`mne.viz.Brain` has the same ipywidgets time viewer GUI as the
+    ``notebook`` backend, minus the keyboard shortcuts, picking and hover that
+    need mouse and key events from VTK, but no colorbar or split-hemisphere
+    layout. :func:`plot_evoked_field` and
     :func:`snapshot_brain_montage` do not work. On a desktop the other two are
     better in every way, so it is never selected automatically.
 

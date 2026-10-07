@@ -551,9 +551,12 @@ def test_lite_brain(renderer_lite, monkeypatch):
         _data_path / "MEG" / "sample" / "sample_audvis_trunc-meg", "sample"
     )
     kwargs = dict(subject="sample", subjects_dir=_data_path / "subjects", hemi="lh")
-    brain = stc.plot(views="lat", initial_time=0.1, **kwargs)  # time_viewer="auto"
+    brain = stc.plot(views="lat", initial_time=0.1, time_viewer=False, **kwargs)
     assert isinstance(brain, mne.viz.Brain)
     assert brain.time_viewer is False and brain._scalar_bar is None
+    # the time label ends at x=0.95, in PyVista's font and doubled size
+    assert "translateX(-100%)" in brain._renderer._labels.value
+    assert "28px Arial" in brain._renderer._labels.value
     (actor,) = brain._renderer.plotter.actors
     colors = actor["mesh"].point_data["Data"]
     # curvature plus activation, as uint8 RGBA vtk.js uses directly
@@ -571,13 +574,15 @@ def test_lite_brain(renderer_lite, monkeypatch):
         mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})
     assert list(mne.viz.Brain._instances) == [brain]  # the failed one died
 
-    # time_viewer=True builds the ipywidgets GUI shared with the notebook backend
-    brain = stc.plot(views="lat", initial_time=0.1, time_viewer=True, **kwargs)
+    # time_viewer="auto" builds the ipywidgets GUI shared with the notebook backend
+    brain = stc.plot(views="lat", initial_time=0.1, **kwargs)
     rend = brain._renderer
     assert "left" in rend._docks and "time_slider" in rend._widgets
     assert isinstance(rend._viewer, GridBox)  # the widget the scene is drawn into
     assert rend._pages[rend._n_drawn % 2].value.startswith("<iframe srcdoc=")
     assert "srcdoc" not in repr(rend._viewer)  # what display() prints, sans kernel
+    assert "translateX(-50%)" in rend._labels.value  # time viewer centers it
+    assert "bold" in rend._labels.value
     colors = rend.plotter.actors[0]["mesh"].point_data["Data"].copy()
     draws, label = list(), brain.time_actor.input
     monkeypatch.setattr(rend, "_draw_scene", partial(_count_draw, draws, rend))

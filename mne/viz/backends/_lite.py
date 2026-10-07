@@ -95,9 +95,11 @@ requestAnimationFrame(function () { requestAnimationFrame(function () {
 # 2D text as a DOM overlay rather than in the page: a time label that changes
 # every step must not cost a new page (bottom-left origin, like vtk.js)
 _LITE_TEXT_HTML = (
-    '<span style="position: absolute; left: {x}%; bottom: {y}%; font: {size}px '
-    'serif; color: rgb({r}, {g}, {b}); white-space: nowrap">{text}</span>'
+    '<span style="position: absolute; left: {x}%; bottom: {y}%; transform: '
+    "translateX(-{shift}%); font: {weight} {size}px Arial, sans-serif; "
+    'color: rgb({r}, {g}, {b}); white-space: nowrap">{text}</span>'
 )
+_LITE_TEXT_SHIFT = dict(left=0, center=50, right=100)  # % of the text's width
 # Dims the frames with a spinner from a redraw request until the page paints
 _LITE_BUSY_HTML = """<style>
 @keyframes mne-lite-spin { to { transform: rotate(360deg); } }
@@ -130,9 +132,11 @@ class _LiteText(pv.Text):
     """A text actor answering the VTK calls Brain makes on its time label.
 
     Brain reaches into VTK to place, style and update that label (see the TODO in
-    ``_brain.py``); here only the text ever changes, and the scene is drawn again
-    when it does.
+    ``_brain.py``); the GUI's DOM overlay draws what these calls set.
     """
+
+    justification = "left"
+    bold = False
 
     def SetInput(self, text):
         self.input = str(text)
@@ -144,10 +148,10 @@ class _LiteText(pv.Text):
         return self  # the style calls below are no-ops, so they can land here
 
     def SetJustificationToCentered(self):
-        pass  # vtk.js draws at a point, so there is nothing to justify
+        self.justification = "center"
 
     def BoldOn(self):
-        pass  # the page font is the page font
+        self.bold = True
 
 
 def _lite_add_text(plotter, text, position, size, color):
@@ -794,10 +798,21 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         self._draw_scene()
         return self._viewer
 
-    def text2d(self, x_window, y_window, text, size=14, color="white", **kwargs):
+    def text2d(
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
+    ):
+        _check_option("justification", justification, (None, *_LITE_TEXT_SHIFT))
         actor = _LiteText(str(text), position=(float(x_window), float(y_window)))
         actor.prop.font_size = 14 if size is None else int(size)
         actor.prop.color = _rgb(color)
+        actor.justification = justification or "left"
         self._texts.append(actor)
         return actor
 
@@ -806,7 +821,10 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             _LITE_TEXT_HTML.format(
                 x=100 * actor.position[0],
                 y=100 * actor.position[1],
-                size=actor.prop.font_size,
+                shift=_LITE_TEXT_SHIFT[actor.justification],
+                weight="bold" if actor.bold else "normal",
+                # PyVista's add_text, which _pyvista.py uses, doubles viewport text
+                size=2 * actor.prop.font_size,
                 r=int(255 * actor.prop.color[0]),
                 g=int(255 * actor.prop.color[1]),
                 b=int(255 * actor.prop.color[2]),
@@ -814,8 +832,9 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             )
             for actor in self._texts
         ]
-        self._labels.value = (
-            f'<div style="position: absolute; inset: 0">{"".join(spans)}</div>'
+        self._labels.value = (  # clipped like VTK text, so it never scrolls the box
+            '<div style="position: absolute; inset: 0; overflow: hidden">'
+            f"{''.join(spans)}</div>"
         )
 
     def _scene_key(self):
