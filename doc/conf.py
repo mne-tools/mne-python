@@ -494,7 +494,8 @@ if sys.platform.startswith("win"):
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
 # The JupyterLite site, and the data it serves (about 1 GB), only belong in a
-# full build: `make html` turns this on, pattern and noplot builds leave it off.
+# full build: `make html` turns this on, pattern and noplot builds leave it off
+# (unless CircleCI's [circle lite] tag sets it).
 build_jupyterlite = os.getenv("MNE_DOC_BUILD_JUPYTERLITE", "0") == "1"
 if build_jupyterlite:
     from jupyterlite_data import stage_lite_data  # noqa: E402
