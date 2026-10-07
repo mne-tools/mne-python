@@ -764,7 +764,7 @@ def _find_overlaps(df, max_time=0.05):
 
     if not len(df):
         return
-    df.sort_values("time", inplace=True)
+    df = df.sort_values("time")
     df["overlap_start"] = df["time"].diff().lt(max_time)
 
     df["overlap_end"] = df["end_time"].diff().abs().lt(max_time)
