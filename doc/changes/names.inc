@@ -182,6 +182,7 @@
 .. _Ilian Azz: https://github.com/ilianAZZ
 .. _Ilias Machairas: https://github.com/JungleHippo
 .. _Isaac Kinley: https://kinleyid.github.io/
+.. _Ishaan Maheshwari: https://github.com/ishaaaan17
 .. _Ivan Skelin: https://github.com/ivan-skelin
 .. _Ivan Zubarev: https://github.com/zubara
 .. _Ivana Kojcic: https://github.com/ikojcic
