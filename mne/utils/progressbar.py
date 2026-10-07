@@ -8,9 +8,8 @@ import logging
 import os
 import os.path as op
 import tempfile
-import time
 from collections.abc import Iterable
-from threading import Thread
+from threading import Event, Thread
 
 import numpy as np
 
@@ -182,7 +181,7 @@ class ProgressBar:
         # Restore exit behavior for our one from the main thread
         self.update(self._mmap.sum())
         self._tqdm.close()
-        self._thread._mne_run = False
+        self._thread._mne_stop.set()
         self._thread.join()
         self._mmap = None
         if op.isfile(self._mmap_fname):
@@ -201,13 +200,13 @@ class ProgressBar:
 class _UpdateThread(Thread):
     def __init__(self, pb):
         super().__init__(daemon=True)
-        self._mne_run = True
+        self._mne_stop = Event()
         self._mne_pb = pb
 
     def run(self):
-        while self._mne_run:
+        while not self._mne_stop.is_set():
             self._mne_pb.update(self._mne_pb._mmap.sum())
-            time.sleep(1.0 / 30.0)  # 30 Hz refresh is plenty
+            self._mne_stop.wait(1.0 / 30.0)  # 30 Hz refresh is plenty
 
 
 class _PBSubsetUpdater:

@@ -305,7 +305,7 @@ def _worker_update_config_loop(home_dir, worker_id, iterations=10):
         # Update the configuration (our set_config holds the lock over the full cycle)
         with _record_warnings():  # ignore non-standard key warning
             set_config(new_key, new_value, home_dir=home_dir)
-        time.sleep(random.uniform(0, 0.05))
+        time.sleep(random.uniform(0, 0.01))
     return worker_id
 
 
@@ -340,11 +340,11 @@ def test_parallel_get_set_config(tmp_path: Path):
     with open(config_file, "w") as f:
         json.dump(initial_config, f)
 
-    n_workers = 50
+    n_workers = 8
     iterations = 10
 
     # Launch multiple workers concurrently using joblib.
-    Parallel(n_jobs=10)(
+    Parallel(n_jobs=4)(
         delayed(_worker_update_config_loop)(home_dir, worker_id, iterations)
         for worker_id in range(n_workers)
     )

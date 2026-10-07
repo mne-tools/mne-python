@@ -1,0 +1,1 @@
+Fix bug where ``proj="reconstruct"`` in :meth:`mne.Evoked.plot`, :meth:`mne.Evoked.plot_topomap`, and :meth:`mne.Evoked.plot_joint` ignored the ``sphere`` origin, by `Eric Larson`_.

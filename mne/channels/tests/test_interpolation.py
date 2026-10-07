@@ -285,6 +285,10 @@ def test_interpolate_meg_ctf():
 
     raw = read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs
     raw.apply_gradient_compensation(3)
+    # speed up self-dots by keeping only nearby sensors (plus refs)
+    raw.pick(
+        [ch for ch in raw.ch_names if not ch.startswith(("MR", "MZ", "MLO", "MLT"))]
+    )
 
     # Show that we have to exclude ref_meg for interpolating CTF MEG-channels
     # (fixed in #5965):

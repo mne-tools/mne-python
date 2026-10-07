@@ -264,6 +264,18 @@ def test_plot_evoked():
     _fake_click(fig, ax, (0.6, 0.5), kind="press")
     assert ax._selectline.get_xdata()[0] > 0.0
 
+    # plots sharing a figure should blit on hover rather than redraw it
+    fig, axes = plt.subplots(1, 3)
+    for ax in axes:
+        evoked.plot(picks="mag", axes=ax)
+    for ax in axes:  # first hover adds cursors, so needs a redraw
+        _fake_click(fig, ax, (0.5, 0.5), kind="motion")
+    draws = list()
+    fig.canvas.mpl_connect("draw_event", draws.append)
+    for ax in axes:
+        _fake_click(fig, ax, (0.6, 0.5), kind="motion")
+    assert draws == []
+
     plt.close("all")
 
 
@@ -313,6 +325,12 @@ def test_plot_evoked_reconstruct():
     fig = evoked.plot(proj="reconstruct", exclude=[])
     amplitudes_recon = _get_amplitudes(fig)
     assert len(amplitudes_recon) == len(evoked.ch_names)
+    # the origin comes from sphere
+    sphere = (0.0, 0.0, 0.04, 0.09)
+    fig = evoked.plot(proj="reconstruct", exclude=[], sphere=sphere)
+    want = evoked.copy().reconstruct_proj(origin=sphere[:3]).data * 1e6
+    assert_allclose(_get_amplitudes(fig), want)
+    assert not np.allclose(amplitudes_recon, want)
 
     cov = read_cov(cov_fname)
     with pytest.raises(ValueError, match='Cannot use proj="reconstruct"'):

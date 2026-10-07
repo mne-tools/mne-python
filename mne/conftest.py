@@ -820,7 +820,11 @@ def _use_backend(backend_name, interactive):
     # that must never be it
     was = (renderer.MNE_3D_BACKEND, renderer.backend)
     try:
-        with _use_test_3d_backend(backend_name, interactive=interactive):
+        # pyvista-js Plotter.show() opens a browser tab when not in IPython
+        with (
+            mock.patch("webbrowser.open"),
+            _use_test_3d_backend(backend_name, interactive=interactive),
+        ):
             try:
                 yield renderer
             finally:

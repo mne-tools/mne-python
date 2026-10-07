@@ -295,6 +295,8 @@ def test_renderer(renderer, monkeypatch):
     cmd = [
         sys.executable,
         "-uc",
+        # dump tracebacks if we hang, before the timeout below kills us
+        "import faulthandler; faulthandler.dump_traceback_later(50); "
         "import sys, mne; mne.viz.create_3d_figure((800, 600), show=True); "
         "backend = mne.viz.get_3d_backend(); "
         f"assert backend == {repr(backend)}, backend; "
@@ -302,7 +304,10 @@ def test_renderer(renderer, monkeypatch):
         f"assert backend != 'notebook_js' or 'vtk' not in sys.modules",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired as exc:  # show where it hung
+        pytest.fail(f"{exc}\nstdout:\n{exc.stdout}\nstderr:\n{exc.stderr}")
     assert proc.returncode == 0, proc.stderr
 
 

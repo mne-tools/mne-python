@@ -47,6 +47,7 @@
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
+.. _Aslan Satary Dizaji: https://github.com/aslansd
 .. _Athish M: https://github.com/athishdresu
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
@@ -82,8 +83,8 @@
 .. _Christian O'Reilly: https://github.com/christian-oreilly
 .. _Christina Zhao: https://github.com/ChristinaZhao
 .. _Christodoulos Kechris: https://github.com/christodouloskech
+.. _Christoph Dinh: https://github.com/chdinh
 .. _Christoph Huber-Huber: https://github.com/chsquare
-.. _Christopher Dinh: https://github.com/chdinh
 .. _Christopher Mullins: https://github.com/chrismullins
 .. _Chun-Hui Li: https://github.com/iamsc
 .. _Claire Braboszcz: https://github.com/claire-braboszcz
