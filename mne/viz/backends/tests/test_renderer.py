@@ -577,9 +577,10 @@ def test_lite_brain(renderer_lite, monkeypatch):
     assert "left" in rend._docks and "time_slider" in rend._widgets
     assert isinstance(rend._viewer, GridBox)  # the widget the scene is drawn into
     assert rend._pages[rend._n_drawn % 2].value.startswith("<iframe srcdoc=")
+    assert "srcdoc" not in repr(rend._viewer)  # what display() prints, sans kernel
     colors = rend.plotter.actors[0]["mesh"].point_data["Data"].copy()
     draws, label = list(), brain.time_actor.input
-    monkeypatch.setattr(type(rend), "_draw_scene", partial(_count_draw, draws))
+    monkeypatch.setattr(rend, "_draw_scene", partial(_count_draw, draws, rend))
     rend._widgets["time_slider"].set_value(0)  # drag the slider back to the start
     assert brain._current_time == 0 and len(draws) and brain.time_actor.input != label
     assert not np.array_equal(colors, rend.plotter.actors[0]["mesh"].point_data["Data"])

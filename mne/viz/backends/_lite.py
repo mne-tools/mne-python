@@ -267,6 +267,14 @@ class _LitePolyData(pv.PolyData):
         self._lite_version += 1
 
 
+class _LiteData(HTML):
+    """An HTML widget whose repr leaves out its value, a page or its point data."""
+
+    def _repr_keys(self):
+        # megabytes of mesh data, which a display() outside a kernel prints
+        return (key for key in super()._repr_keys() if key != "value")
+
+
 class _LiteFigure(Figure3D):
     """pyvista-js-based 3D figure; ``.plotter`` is the pyvista-js plotter."""
 
@@ -764,14 +772,14 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         # nothing blank is seen. Not Output widgets: the front end echoes what
         # those capture back to the kernel, and the server drops the websocket
         # for a message over 10 MiB, which a Brain surface is several times over
-        self._pages = [HTML(layout=Layout(grid_area="view")) for _ in range(2)]
+        self._pages = [_LiteData(layout=Layout(grid_area="view")) for _ in range(2)]
         self._busy = HTML(  # last, so on top
             _LITE_BUSY_HTML, layout=Layout(grid_area="view", visibility="hidden")
         )
         self._painted = Button(layout=Layout(display="none"))  # the page's ack
         self._painted.add_class("mne-lite-painted")
         self._painted.on_click(self._on_painted)
-        self._updates = HTML(layout=Layout(display="none"))  # point data, to apply
+        self._updates = _LiteData(layout=Layout(display="none"))  # point data, to apply
         self._updates.add_class("mne-lite-update")
         self._labels = HTML(layout=Layout(grid_area="view"))  # 2D text, on top
         self._labels.add_class("mne-lite-labels")
