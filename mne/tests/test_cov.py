@@ -575,6 +575,14 @@ def test_arithmetic_cov():
     assert_array_almost_equal(cov_sum.data, cov.data)
     assert cov_sum.ch_names == cov.ch_names
 
+    # Test error handling when channels or projections do not match
+    cov_diff_proj = cov.copy()
+    cov_diff_proj["projs"] = []
+    with pytest.raises(ValueError, match="same list of SSP projections"):
+        _ = cov + cov_diff_proj
+    with pytest.raises(ValueError, match="same list of channels"):
+        _ = cov + cov.copy().pick_channels(cov.ch_names[:2])
+
 
 def test_regularize_cov():
     """Test cov regularization."""
