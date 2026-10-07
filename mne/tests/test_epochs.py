@@ -339,6 +339,48 @@ def test_get_data_copy():
     assert_allclose(data_orig, epochs._data)
 
 
+def test_get_data_time_slice_order():
+    """Test get_data with time slicing and channel/epoch selection combinations."""
+    raw, events, _ = _get_data()
+    event_id = {"a/1": 1, "a/2": 2, "b/1": 3, "b/2": 4}
+    epochs_preload = Epochs(raw, events, event_id, preload=True)
+    epochs_disk = Epochs(raw, events, event_id, preload=False)
+
+    tmin, tmax = epochs_preload.times[5], epochs_preload.times[15]
+
+    # 1. Combination of picks + tmin/tmax
+    data_preload = epochs_preload.get_data(picks=[0, 2], tmin=tmin, tmax=tmax)
+    data_disk = epochs_disk.get_data(picks=[0, 2], tmin=tmin, tmax=tmax)
+    assert_allclose(data_preload, data_disk)
+
+    # 2. Combination of item + tmin/tmax
+    data_item_pre = epochs_preload.get_data(item=[0, 2], tmin=tmin, tmax=tmax)
+    data_item_disk = epochs_disk.get_data(item=[0, 2], tmin=tmin, tmax=tmax)
+    assert_allclose(data_item_pre, data_item_disk)
+
+    # 3. Combination of item + picks + tmin/tmax + units
+    data_all_pre = epochs_preload.get_data(
+        item=[1, 2], picks=["eeg"], tmin=tmin, tmax=tmax, units={"eeg": "uV"}
+    )
+    data_all_disk = epochs_disk.get_data(
+        item=[1, 2], picks=["eeg"], tmin=tmin, tmax=tmax, units={"eeg": "uV"}
+    )
+    assert_allclose(data_all_pre, data_all_disk)
+
+    # 4. copy=False with tmin/tmax (should share memory with preloaded data)
+    data_view = epochs_preload.get_data(tmin=tmin, tmax=tmax, copy=False)
+    assert np.shares_memory(data_view, epochs_preload._data)
+
+    # 5. copy=True with tmin/tmax (must not share memory)
+    data_copy = epochs_preload.get_data(tmin=tmin, tmax=tmax, copy=True)
+    assert not np.shares_memory(data_copy, epochs_preload._data)
+    assert_allclose(data_view, data_copy)
+
+    # 6. Out of bounds or edge tmin/tmax
+    data_full = epochs_preload.get_data(tmin=None, tmax=None)
+    assert data_full.shape == epochs_preload._data.shape
+
+
 def test_hierarchical():
     """Test hierarchical access."""
     raw, events, picks = _get_data()
