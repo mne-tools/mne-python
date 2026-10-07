@@ -2615,8 +2615,9 @@ class BaseEpochs(
                 "dropped. Consider using epochs.drop_bad()."
             )
         select = self._item_to_select(item)  # indices or slice
-        use_idx = np.arange(len(self.events))[select]
-        n_events = len(use_idx)
+        if not self.preload or not self._bad_dropped:
+            use_idx = np.arange(len(self.events))[select]
+            n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -2783,12 +2784,12 @@ class BaseEpochs(
             data_is_self_data = False  # copy (fancy indexing)
         else:
             picks = slice(None)
-        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
-            data = data[select][:, picks]
-        del picks
         if start != 0 or stop != self.times.size:
             logger.debug("  Slicing time")
             data = data[..., start:stop]  # view (slice)
+        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
+            data = data[select][:, picks]
+        del picks
         if ch_factors is not None:
             if data_is_self_data:
                 logger.debug("  Copying, scale factors applied")

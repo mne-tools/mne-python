@@ -311,6 +311,9 @@ def test_get_data_copy():
     assert np.all(
         data.shape[-1] == epochs._data.shape[-1] - np.nonzero(epochs.times == 0)[0]
     )
+    t_idx = np.nonzero(epochs.times >= 0)[0][0]
+    data_sub = epochs.get_data(picks=[0, 2], item=[1, 2], tmin=0)
+    assert_allclose(data_sub, epochs._data[1:3, [0, 2], t_idx:])
 
     assert epochs.get_data(tmin=0, tmax=0).size == 0
 
@@ -328,6 +331,8 @@ def test_get_data_copy():
     assert np.shares_memory(data, epochs._data)
     assert data is epochs._data
     data_orig = data.copy()
+    data_view = epochs.get_data(tmin=0, copy=False)
+    assert np.shares_memory(data_view, epochs._data)
     # picks, item, and units must be None
     data = epochs.get_data(copy=False, picks=[1])
     assert not np.shares_memory(data, epochs._data)
