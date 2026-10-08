@@ -631,20 +631,19 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
         The scaling parameter.
     """
     scale = np.asarray(scale)
-    if np.isscalar(scale) or scale.shape == ():
+    if scale.size == 1:
         n_params = 1
+        scale_str = str(scale.item())
     else:
         n_params = 3
+        scale_str = " ".join(str(s) for s in scale)
 
     config = configparser.RawConfigParser()
     config.add_section("MRI Scaling")
     config.set("MRI Scaling", "subject_from", subject_from)
     config.set("MRI Scaling", "subject_to", subject_to)
     config.set("MRI Scaling", "n_params", str(n_params))
-    if n_params == 1:
-        config.set("MRI Scaling", "scale", str(scale))
-    else:
-        config.set("MRI Scaling", "scale", " ".join([str(s) for s in scale]))
+    config.set("MRI Scaling", "scale", scale_str)
     config.set("MRI Scaling", "version", "1")
     with open(fname, "w") as fid:
         config.write(fid)
@@ -916,12 +915,16 @@ def scale_mri(
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     _check_scale_subjects(subject_from, subject_to)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
-    scale = np.atleast_1d(scale)
-    if scale.shape == (3,):
-        if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
-            scale = scale[0]  # speed up scaling conditionals using a singleton
-    elif scale.shape != (1,):
-        raise ValueError(f"scale must have shape (3,) or (1,), got {scale.shape}")
+    scale_ = np.asarray(scale, float)
+    if scale_.shape == (3,):
+        if np.allclose(scale_, scale_[0]):
+            scale = scale_[0]  # speed up scaling using a singleton
+        else:
+            scale = scale_
+    elif scale_.shape in ((), (1,)):
+        scale = scale_.item()
+    else:
+        raise ValueError(f"{scale=}: must be a scalar or array of shape (3,)")
     _validate_type(mri_fiducials, (list, tuple, None), "mri_fiducials")
     if mri_fiducials is not None:
         _check_option("len(mri_fiducials)", len(mri_fiducials), (3,))
