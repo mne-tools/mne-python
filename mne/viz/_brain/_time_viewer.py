@@ -139,9 +139,13 @@ class _TimeViewerMixin:
         self._active_data_key = next(iter(self._all_data))
         self._configure_time_label()
         self._configure_scalar_bar()
-        self._configure_shortcuts()
-        self._configure_picking()
-        self._configure_hover()
+        # keyboard shortcuts, picking and hover all need mouse and key events
+        # from the interactor, plus VTK actors (see the TODO in _add_volume_data),
+        # which a page drawn by the notebook_js backend has neither of
+        if self._renderer._kind != "notebook_js":
+            self._configure_shortcuts()
+            self._configure_picking()
+            self._configure_hover()
         self._configure_dock()
         self._configure_tool_bar()
         self._configure_status_bar()
@@ -269,7 +273,9 @@ class _TimeViewerMixin:
     def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name, collapse=True)
         # Renderer widget
-        rends = [str(i) for i in range(len(self._renderer._all_renderers))]
+        # one entry per subplot, which is what VTK's renderers are (asking the
+        # renderer for them would reach past its interface, see _add_volume_data)
+        rends = [str(i) for i in range(int(np.prod(self._subplot_shape)))]
         if len(rends) > 1:
 
             @_auto_weakref
