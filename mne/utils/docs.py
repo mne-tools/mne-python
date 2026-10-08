@@ -2315,6 +2315,16 @@ _info_base = (
     "The :class:`mne.Info` object with information about the\n"
     "    sensors and methods of measurement."
 )
+_info_methods = (
+    f"{_info_base} See :meth:`mne.io.Raw.set_meas_date`, "
+    ":meth:`mne.io.Raw.add_proj`, :meth:`mne.io.Raw.del_proj`, and "
+    ":meth:`mne.io.Raw.set_channel_types`."
+)
+
+docdict["info_methods"] = f"""
+info : mne.Info
+    {_info_methods}
+"""
 
 docdict["info"] = f"""
 info : mne.Info | None

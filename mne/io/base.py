@@ -120,7 +120,7 @@ if TYPE_CHECKING:
     from ..viz._figure import BrowserBase as MNEQtBrowser
 
 
-@fill_doc_static("info_not_none", "verbose")
+@fill_doc_static("info_methods", "verbose")
 class BaseRaw(
     ProjMixin,
     ContainsMixin,
@@ -139,7 +139,7 @@ class BaseRaw(
     ----------
     info : mne.Info
         The :class:`mne.Info` object with information about the
-        sensors and methods of measurement.
+        sensors and methods of measurement. See :meth:`mne.io.Raw.set_meas_date`, :meth:`mne.io.Raw.add_proj`, :meth:`mne.io.Raw.del_proj`, and :meth:`mne.io.Raw.set_channel_types`.
     preload : bool | str | ndarray
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -200,7 +200,7 @@ class BaseRaw(
 
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
-    """
+    """  # noqa: E501
 
     # NOTE: If you add a new attribute to this class and get a Sphinx warning like:
     #     docstring of mne.io.base.BaseRaw:71:

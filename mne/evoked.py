@@ -99,7 +99,7 @@ _aspect_dict = {
 _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 
-@fill_doc_static("verbose", "info_not_none")
+@fill_doc_static("verbose", "info_methods")
 class Evoked(
     ProjMixin,
     ContainsMixin,
@@ -143,7 +143,7 @@ class Evoked(
     ----------
     info : mne.Info
         The :class:`mne.Info` object with information about the
-        sensors and methods of measurement.
+        sensors and methods of measurement. See :meth:`mne.io.Raw.set_meas_date`, :meth:`mne.io.Raw.add_proj`, :meth:`mne.io.Raw.del_proj`, and :meth:`mne.io.Raw.set_channel_types`.
     ch_names : list of str
         List of channels' names.
     nave : int
@@ -173,7 +173,7 @@ class Evoked(
     Notes
     -----
     Evoked objects can only contain the average of a single set of conditions.
-    """
+    """  # noqa: E501
 
     @_verbose_control
     def __init__(

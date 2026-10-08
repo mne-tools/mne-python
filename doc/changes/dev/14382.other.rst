@@ -1,0 +1,1 @@
+Add cross-references to :meth:`mne.io.Raw.set_meas_date`, :meth:`mne.io.Raw.add_proj`, :meth:`mne.io.Raw.del_proj`, and :meth:`mne.io.Raw.set_channel_types` in the ``info`` docstring, by `Aml Elmotiem`_.

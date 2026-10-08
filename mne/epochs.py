@@ -387,7 +387,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection, drop_log
 
 
 @fill_doc_static(
-    "info_not_none",
+    "info_methods",
     "events_epochs",
     "event_id",
     "epochs_tmin_tmax",
@@ -434,7 +434,7 @@ class BaseEpochs(
     ----------
     info : mne.Info
         The :class:`mne.Info` object with information about the
-        sensors and methods of measurement.
+        sensors and methods of measurement. See :meth:`mne.io.Raw.set_meas_date`, :meth:`mne.io.Raw.add_proj`, :meth:`mne.io.Raw.del_proj`, and :meth:`mne.io.Raw.set_channel_types`.
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
@@ -628,7 +628,7 @@ class BaseEpochs(
     The ``BaseEpochs`` class is public to allow for stable type-checking in
     user code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be
     used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
-    """
+    """  # noqa: E501
 
     @_verbose_control
     def __init__(
