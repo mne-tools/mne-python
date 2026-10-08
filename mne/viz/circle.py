@@ -292,6 +292,8 @@ def _plot_connectivity_circle(
 
     # Finally, we draw the connections
     for pos, (i, j) in enumerate(zip(indices[0], indices[1])):
+        if con_val_scaled[pos] == 0:
+            continue
         # Start point
         t0, r0 = node_angles[i], 10
 
