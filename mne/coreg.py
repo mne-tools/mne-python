@@ -916,12 +916,15 @@ def scale_mri(
     _check_scale_subjects(subject_from, subject_to)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale_ = np.asarray(scale, float)
-    if scale_.shape not in ((), (1,), (3,)):
-        raise ValueError(f"{scale=}: must be a scalar or array of shape (3,)")
-    if scale_.shape == (3,) and np.allclose(scale_, scale_[0]):
-        scale = scale_[0]  # speed up scaling using a singleton
+    if scale_.shape == (3,):
+        if np.allclose(scale_, scale_[0]):
+            scale = scale_[0]  # speed up scaling using a singleton
+        else:
+            scale = scale_
+    elif scale_.shape in ((), (1,)):
+        scale = scale_.item()
     else:
-        scale = scale_
+        raise ValueError(f"{scale=}: must be a scalar or array of shape (3,)")
     _validate_type(mri_fiducials, (list, tuple, None), "mri_fiducials")
     if mri_fiducials is not None:
         _check_option("len(mri_fiducials)", len(mri_fiducials), (3,))
