@@ -1,0 +1,1 @@
+Optimize multidimensional indexing in :meth:`mne.Epochs.get_data` to eliminate intermediate 3D array allocations when subsetting both epochs and channels, by :newcontrib:`Ishaan Maheshwari`.
