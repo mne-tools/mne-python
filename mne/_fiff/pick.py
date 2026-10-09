@@ -1408,10 +1408,9 @@ def _electrode_types(info, *, exclude="bads"):
 
 def _pick_data_channels(info, exclude="bads", with_ref_meg=True, with_aux=False):
     """Pick only data channels."""
-    kwargs = _PICK_TYPES_DATA_DICT
+    kwargs: dict[str, bool | str] = dict(_PICK_TYPES_DATA_DICT)
     if with_aux:
-        kwargs = kwargs.copy()
-        kwargs.update(eog=True, ecg=True, emg=True, bio=True)
+        kwargs.update(eog=True, ecg=True, emg=True, bio=True, eyetrack="pupil")
     return pick_types(info, ref_meg=with_ref_meg, exclude=exclude, **kwargs)
 
 
