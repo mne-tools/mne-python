@@ -80,7 +80,7 @@ def _check_covs_algebra(cov1, cov2):
     if cov1.ch_names != cov2.ch_names:
         raise ValueError("Both Covariance do not have the same list of channels.")
     projs1 = [str(c) for c in cov1["projs"]]
-    projs2 = [str(c) for c in cov1["projs"]]
+    projs2 = [str(c) for c in cov2["projs"]]
     if projs1 != projs2:
         raise ValueError(
             "Both Covariance do not have the same list of SSP projections."
