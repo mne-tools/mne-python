@@ -341,7 +341,7 @@ def verbose_debug():
         yield
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -349,7 +349,7 @@ def qt_config():
         os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -1110,7 +1110,7 @@ def options_3d():
         yield
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def protect_config():
     """Protect ~/.mne."""
     temp = _TempDir()
