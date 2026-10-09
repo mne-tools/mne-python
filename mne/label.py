@@ -1373,6 +1373,16 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
     return label, subject, subjects_dir
 
 
+def _split_names(name, n_parts):
+    """Name the parts of a split label <name>_div<i>, keeping a -lh/-rh suffix."""
+    name = "unnamed" if name is None else name
+    if name.endswith(("lh", "rh")):
+        basename, name_ext = name[:-3], name[-3:]
+    else:
+        basename, name_ext = name, ""
+    return tuple(f"{basename}_div{i}{name_ext}" for i in range(1, n_parts + 1))
+
+
 def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     """Split label into contiguous regions (i.e., connected components).
 
@@ -1415,14 +1425,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
 
     # Construct label division names
     n_parts = len(label_divs)
-    if label_to_split.name.endswith(("lh", "rh")):
-        basename = label_to_split.name[:-3]
-        name_ext = label_to_split.name[-3:]
-    else:
-        basename = label_to_split.name
-        name_ext = ""
-    name_pattern = f"{basename}_div%i{name_ext}"
-    names = tuple(name_pattern % i for i in range(1, n_parts + 1))
+    names = _split_names(label_to_split.name, n_parts)
 
     # Colors
     if label_to_split.color is None:
@@ -1492,14 +1495,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
     # find the parts
     if np.isscalar(parts):
         n_parts = int(parts)
-        if label.name.endswith(("lh", "rh")):
-            basename = label.name[:-3]
-            name_ext = label.name[-3:]
-        else:
-            basename = label.name
-            name_ext = ""
-        name_pattern = f"{basename}_div%i{name_ext}"
-        names = tuple(name_pattern % i for i in range(1, n_parts + 1))
+        names = _split_names(label.name, n_parts)
     else:
         names = parts
         n_parts = len(names)
