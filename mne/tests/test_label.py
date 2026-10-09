@@ -844,6 +844,16 @@ def test_split_label():
         [16181, 7022, 5965, 5300, 823] + [1] * 23,
     )
 
+    # Vertex 0 and its neighbors form one part
+    sphere, tris = read_surface(subjects_dir / "fsaverage" / "surf" / "lh.sphere")
+    ring = np.unique(tris[(tris == 0).any(axis=1)])
+    ring_label = Label(
+        ring, sphere[ring], hemi="lh", name="ring-lh", subject="fsaverage"
+    )
+    ring_parts = ring_label.split(parts="contiguous", subjects_dir=subjects_dir)
+    assert len(ring_parts) == 1
+    assert_array_equal(ring_parts[0].vertices, ring)
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data

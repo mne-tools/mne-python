@@ -1406,7 +1406,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     select_edges = edges_all[verts_arr][:, verts_arr].tocoo()
 
     # Compute connected components and store as lists of vertex numbers
-    comp_labels = _get_components(verts_arr, select_edges)
+    comp_labels = _get_components(np.ones(len(verts_arr), bool), select_edges)
 
     # Convert to indices in the original surface space
     label_divs = []

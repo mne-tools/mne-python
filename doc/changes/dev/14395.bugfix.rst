@@ -1,0 +1,1 @@
+Fix :meth:`mne.Label.split` with ``parts="contiguous"`` dropping vertex 0 from the label, by `Christoph Dinh`_.
