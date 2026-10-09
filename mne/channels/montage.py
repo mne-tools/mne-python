@@ -845,6 +845,10 @@ class DigMontage:
         self.dig = fids_mni + self.dig
         return self
 
+    def _remove_dig_points(self, mask):
+        self.dig = [d for d, m in zip(self.dig, mask) if not m]
+        return self
+
     @verbose_static()
     def remove_fiducials(self, verbose=None):
         """Remove the fiducial points from a montage.
@@ -871,10 +875,8 @@ class DigMontage:
         with intracranial data to BIDS format, the coordinate frame
         should not be changed by removing fiducials.
         """
-        for d in self.dig.copy():
-            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
-                self.dig.remove(d)
-        return self
+        mask = [d["kind"] == FIFF.FIFFV_POINT_CARDINAL for d in self.dig]
+        return self._remove_dig_points(mask)
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
