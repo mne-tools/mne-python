@@ -768,3 +768,22 @@ def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
         want = (20 if amplitude else 10) * np.log10(want)
 
     assert want == got, f"expected {want}, got {got}"
+
+
+def test_spectrum_get_data(raw_spectrum, epochs_spectrum):
+    """Test get_data indexing and copy semantics for Spectrum and EpochsSpectrum."""
+    for spect in (raw_spectrum, epochs_spectrum):
+        data = spect.get_data()
+        assert not np.shares_memory(data, spect._data)
+        picks = [0, 2]
+        fmin, fmax = spect.freqs[2], spect.freqs[5]
+        sub_data, sub_freqs = spect.get_data(
+            picks=picks, fmin=fmin, fmax=fmax, return_freqs=True
+        )
+        assert not np.shares_memory(sub_data, spect._data)
+        assert_allclose(sub_freqs, spect.freqs[2:6])
+        freq_idx = slice(2, 6)
+        if spect is raw_spectrum:
+            assert_array_equal(sub_data, spect._data[picks, freq_idx])
+        else:
+            assert_array_equal(sub_data, spect._data[:, picks, freq_idx])

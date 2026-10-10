@@ -1945,3 +1945,29 @@ def test_combine_tfr_error_catch(average_tfr):
         match="Aggregating multitaper tapers across TFR datasets is not supported.",
     ):
         combine_tfr([average_tfr_taper, average_tfr_taper])
+
+
+def test_tfr_get_data(average_tfr, epochs_tfr):
+    """Test get_data indexing and copy semantics for AverageTFR and EpochsTFR."""
+    for inst in (average_tfr, epochs_tfr):
+        data = inst.get_data()
+        assert not np.shares_memory(data, inst._data)
+        picks = [0, 1]
+        fmin, fmax = inst.freqs[1], inst.freqs[2]
+        tmin, tmax = inst.times[2], inst.times[5]
+        sub_data, sub_times, sub_freqs = inst.get_data(
+            picks=picks,
+            fmin=fmin,
+            fmax=fmax,
+            tmin=tmin,
+            tmax=tmax,
+            return_times=True,
+            return_freqs=True,
+        )
+        assert not np.shares_memory(sub_data, inst._data)
+        assert_allclose(sub_freqs, inst.freqs[1:3])
+        assert_allclose(sub_times, inst.times[2:6])
+        if inst is average_tfr:
+            assert_array_equal(sub_data, inst._data[picks, 1:3, 2:6])
+        else:
+            assert_array_equal(sub_data, inst._data[:, picks, 1:3, 2:6])

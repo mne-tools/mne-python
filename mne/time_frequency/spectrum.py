@@ -1020,15 +1020,14 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         )
         fmin_idx = np.searchsorted(self.freqs, fmin)
         fmax_idx = np.searchsorted(self.freqs, fmax, side="right")
-        freq_picks = np.arange(fmin_idx, fmax_idx)
         freq_axis = self._dims.index("freq")
         chan_axis = self._dims.index("channel")
-        # normally there's a risk of np.take reducing array dimension if there
-        # were only one channel or frequency selected, but `_picks_to_idx`
-        # always returns an array of picks, and np.arange always returns an
-        # array of freq bin indices, so we're safe; the result will always be
-        # 2D.
-        data = self._data.take(picks, chan_axis).take(freq_picks, freq_axis)
+        idx = [slice(None)] * self._data.ndim
+        idx[chan_axis] = picks
+        idx[freq_axis] = slice(fmin_idx, fmax_idx)
+        data = self._data[tuple(idx)]
+        if np.shares_memory(data, self._data):
+            data = data.copy()
         if return_freqs:
             freqs = self._freqs[fmin_idx:fmax_idx]
             return (data, freqs)
