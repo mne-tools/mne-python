@@ -146,6 +146,7 @@ class _TimeViewerMixin:
         self._configure_tool_bar()
         self._configure_status_bar()
         self._configure_help()
+        self._configure_ui_events()
         # show everything at the end
         self.toggle_interface()
         self._renderer.show()
@@ -490,13 +491,11 @@ class _TimeViewerMixin:
         rng = [0, fmax * fscale]
         with disable_ui_events(self):
             for key in ("fmin", "fmid", "fmax"):
-                val = self._data[key] * fscale
                 self.widgets[key].set_range(rng)
-                self.widgets[key].set_value(val)
                 self.widgets[f"entry_{key}"].set_range(rng)
-                self.widgets[f"entry_{key}"].set_value(val)
             if "smoothing" in self.widgets:
                 self.widgets["smoothing"].set_value(self._data["smoothing_steps"])
+        self._sync_colormap_widgets()
         # Force the brain and colorbar to reflect the newly active overlay.
         self._update_colormap_range(
             fmin=self._data["fmin"],
@@ -945,6 +944,22 @@ class _TimeViewerMixin:
         self.status_progress = self._renderer._status_bar_add_progress_bar()
         if self.status_progress is not None:
             self.status_progress.hide()
+
+    def _configure_ui_events(self):
+        # The scene publishes these after it has updated itself (see ui_events.py)
+        subscribe(self, "__time_updated", self._on_time_updated)
+        subscribe(self, "__colormap_range_updated", self._sync_colormap_widgets)
+
+    def _on_time_updated(self, event):
+        self.plot_time_line(update=True)
+
+    def _sync_colormap_widgets(self, event=None):
+        """Show the active overlay's colormap limits in the dock widgets."""
+        with disable_ui_events(self):
+            for key in ("fmin", "fmid", "fmax"):
+                val = self._data[key] * self._data["fscale"]
+                self.widgets[key].set_value(val)
+                self.widgets[f"entry_{key}"].set_value(val)
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
