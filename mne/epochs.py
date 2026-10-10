@@ -131,6 +131,10 @@ if TYPE_CHECKING:
     # ``BrowserBase``, so alias it to annotate ``.plot()`` returns without the dep.
     from .viz._figure import BrowserBase as MNEQtBrowser
 
+# BIDS names an epoched recording like a continuous one (e.g., ``*_meg.fif``)
+_FNAME_ENDINGS = ("-epo.fif", "_epo.fif", "_meg.fif", "_eeg.fif", "_ieeg.fif")
+_FNAME_ENDINGS += tuple(f"{e}.gz" for e in _FNAME_ENDINGS)
+
 
 def _pack_reject_params(epochs):
     reject_params = dict()
@@ -3304,9 +3308,7 @@ class BaseEpochs(
         -----
         Bad epochs will be dropped before saving the epochs to disk.
         """
-        check_fname(
-            fname, "epochs", ("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz")
-        )
+        check_fname(fname, "epochs", _FNAME_ENDINGS)
 
         # check for file existence and expand `~` if present
         fname = str(
@@ -6148,7 +6150,7 @@ class EpochsFIF(BaseEpochs):
             check_fname(
                 fname=fname,
                 filetype="epochs",
-                endings=("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz"),
+                endings=_FNAME_ENDINGS,
             )
             fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         elif not preload:
