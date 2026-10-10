@@ -3009,7 +3009,15 @@ class ClusterResult:
             else:
                 title = f"Observed cluster {self.stat_name}"
 
-        # Plot with units="None" to skip automatic scaling of test statistics
+        # Test statistics are not in Volts: disable the V -> uV scaling
+        # and label the axes with t-values instead.
+        ch_types = set(stat_evoked.get_channel_types())
+        scalings = {ch_type: 1.0 for ch_type in ch_types}
+        units = {ch_type: "t-values" for ch_type in ch_types}
+
+        ts_args = {"scalings": scalings, "units": units, **(ts_args or {})}
+        topomap_args = {"scalings": scalings, "units": units, **(topomap_args or {})}
+
         return plot_evoked_joint(
             stat_evoked,
             times=times,
