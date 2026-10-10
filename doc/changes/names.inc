@@ -44,6 +44,7 @@
 .. _Apoorva Verma: https://github.com/apoorva-01
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
 .. _Ariel Rokem: https://github.com/arokem
+.. _Arnav Kumar: https://github.com/Arnav1709
 .. _Arne Pelzer: https://github.com/aplzr
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
