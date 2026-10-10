@@ -357,6 +357,7 @@ class _TimeViewerMixin:
             rng=[0.0, 1.0],
             callback=self.set_cortex_alpha,
             double=True,
+            tick_labels=True,
             layout=layout,
         )
         self.widgets["silhouette"] = self._renderer._dock_add_spin_box(

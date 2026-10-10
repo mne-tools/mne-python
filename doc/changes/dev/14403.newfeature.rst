@@ -1,0 +1,1 @@
+Add optional tick_labels parameter to 3D backend slider widgets to display formatted minimum and maximum range values, by `Aml Elmotiem`_.

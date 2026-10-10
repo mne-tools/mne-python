@@ -1167,6 +1167,7 @@ class _AbstractDock(ABC):
         compact=True,
         double=False,
         tooltip=None,
+        tick_labels=False,
         layout=None,
         row=None,
         col=None,

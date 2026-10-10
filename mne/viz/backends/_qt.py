@@ -1071,6 +1071,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         callback,
         *,
         compact=True,
+        tick_labels=False,
         double=False,
         tooltip=None,
         layout=None,
@@ -1089,7 +1090,13 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.floatValueChanged.connect(callback)
         else:
             widget.valueChanged.connect(callback)
+        if tick_labels:
+            self._dock_add_label(value=f"{rng[0]:.3g}", layout=layout)
         self._layout_add_widget(layout, widget, row=row, col=col)
+
+        if tick_labels:
+            self._dock_add_label(value=f"{rng[1]:.3g}", layout=layout)
+
         return _QtWidget(widget)
 
     def _dock_add_check_box(
