@@ -878,6 +878,43 @@ class DigMontage:
         mask = [d["kind"] == FIFF.FIFFV_POINT_CARDINAL for d in self.dig]
         return self._remove_dig_points(mask)
 
+    @fill_doc_static("on_missing_ch_names")
+    def drop_channels(self, ch_names, on_missing="raise"):
+        """Drop channel(s).
+
+        Parameters
+        ----------
+        ch_names : iterable or str
+            Iterable (e.g. list) of channel name(s) or channel name to remove.
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The modified instance.
+
+        See Also
+        --------
+        rename_channels
+        remove_fiducials
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        from .channels import _check_drop_ch_names
+
+        drop_chs = set(_check_drop_ch_names(ch_names, self.ch_names, on_missing))
+        mask = [name in drop_chs for name in self._get_dig_names()]
+        self._remove_dig_points(mask)
+        self.ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
+        return self
+
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
 

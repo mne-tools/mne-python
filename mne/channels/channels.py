@@ -463,6 +463,31 @@ class ReferenceMixin(MontageMixin):
         )[0]
 
 
+def _check_drop_ch_names(ch_names, current_ch_names, on_missing="raise"):
+    if isinstance(ch_names, str):
+        ch_names = [ch_names]
+
+    try:
+        all_str = all([isinstance(ch, str) for ch in ch_names])
+    except TypeError:
+        raise ValueError(
+            f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
+        )
+
+    if not all_str:
+        raise ValueError(
+            "Each element in 'ch_names' must be str, got "
+            f"{[type(ch) for ch in ch_names]}."
+        )
+
+    missing = [ch for ch in ch_names if ch not in current_ch_names]
+    if len(missing) > 0:
+        msg = "Channel(s) {0} not found, nothing dropped."
+        _on_missing(on_missing, msg.format(", ".join(missing)))
+
+    return [ch for ch in ch_names if ch in current_ch_names]
+
+
 class UpdateChannelsMixin:
     """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
@@ -800,28 +825,8 @@ class UpdateChannelsMixin:
         -----
         .. versionadded:: 0.9.0
         """
-        if isinstance(ch_names, str):
-            ch_names = [ch_names]
-
-        try:
-            all_str = all([isinstance(ch, str) for ch in ch_names])
-        except TypeError:
-            raise ValueError(
-                f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
-            )
-
-        if not all_str:
-            raise ValueError(
-                "Each element in 'ch_names' must be str, got "
-                f"{[type(ch) for ch in ch_names]}."
-            )
-
-        missing = [ch for ch in ch_names if ch not in self.ch_names]
-        if len(missing) > 0:
-            msg = "Channel(s) {0} not found, nothing dropped."
-            _on_missing(on_missing, msg.format(", ".join(missing)))
-
-        bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
+        drop_chs = _check_drop_ch_names(ch_names, self.ch_names, on_missing)
+        bad_idx = [self.ch_names.index(ch) for ch in drop_chs]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         if len(idx) == 0:
             raise ValueError("All channels would be dropped.")
