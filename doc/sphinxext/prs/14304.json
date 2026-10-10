@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "b2e955ea2ec634b93fb56276dce2afc3c5e28927",
+  "authors": [
+    {
+      "n": "Isaac Kinley",
+      "e": "isaac.kinley@gmail.com",
+      "l": "kinleyid"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14304.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/references.bib": {
+      "a": 11,
+      "d": 0
+    },
+    "tutorials/time-freq/20_sensors_time_frequency.py": {
+      "a": 10,
+      "d": 10
+    }
+  }
+}

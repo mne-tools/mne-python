@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "bb034adbcfeda62560d36cd6dfd89301488260b5",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com",
+      "l": "BabaSanfour"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14235.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/proj.py": {
+      "a": 51,
+      "d": 5
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 72,
+      "d": 32
+    },
+    "mne/tests/test_proj.py": {
+      "a": 147,
+      "d": 0
+    }
+  }
+}

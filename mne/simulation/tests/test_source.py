@@ -155,7 +155,7 @@ def test_simulate_sparse_stc(_get_fwd_labels):
             len(mylabels),
             times,
             labels=mylabels,
-            random_state=random_state,
+            rng=random_state,
             location=location,
             subjects_dir=subjects_dir,
         )
@@ -170,7 +170,7 @@ def test_simulate_sparse_stc(_get_fwd_labels):
             len(mylabels),
             times,
             labels=mylabels,
-            random_state=random_state,
+            rng=random_state,
             location=location,
             subjects_dir=subjects_dir,
         )
@@ -218,7 +218,7 @@ def test_simulate_sparse_stc(_get_fwd_labels):
             len(mylabels) + 1,
             times,
             labels=mylabels,
-            random_state=random_state,
+            rng=random_state,
             location=location,
             subjects_dir=subjects_dir,
         )
@@ -291,7 +291,7 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
         len(labels_single_hemi),
         times,
         labels=labels_single_hemi,
-        random_state=0,
+        rng=0,
     )
 
     assert stc_1.data.shape[0] == len(labels_single_hemi)
@@ -303,7 +303,7 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
         len(labels_single_hemi),
         times,
         labels=labels_single_hemi,
-        random_state=0,
+        rng=0,
     )
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)

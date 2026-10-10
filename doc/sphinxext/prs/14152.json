@@ -1,0 +1,40 @@
+{
+  "merge_commit_sha": "7a220ab9e791d2b96a93a9b2bbc58832396ae64f",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/_digitization.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/proc_history.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/proj.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/write.py": {
+      "a": 12,
+      "d": 14
+    },
+    "mne/annotations.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/cov.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

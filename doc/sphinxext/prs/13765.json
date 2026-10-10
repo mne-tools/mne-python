@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "c45d7b08bc56c70c838375e440770578f6f8fd4f",
+  "authors": [
+    {
+      "n": "Hansuja ",
+      "e": "hansujaigdtuwcseai@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13765.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/raw.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/viz/tests/test_raw.py": {
+      "a": 26,
+      "d": 0
+    }
+  }
+}

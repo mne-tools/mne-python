@@ -1,0 +1,4 @@
+artifact-path: 0/html/sg_execution_times.html
+circleci-jobs: build_docs,build_docs_main
+job-title: Check the rendered docs here!
+no-artifact-state: skip

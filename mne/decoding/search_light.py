@@ -16,28 +16,52 @@ from ..utils import (
     _parse_verbose,
     _verbose_safe_false,
     array_split_idx,
-    fill_doc,
+    fill_doc_static,
 )
 from .base import _check_estimator
 from .transformer import MNETransformerMixin
 
 
-@fill_doc
+@fill_doc_static(
+    "base_estimator", "scoring", "n_jobs", "position", "allow_2d", "axis", "verbose"
+)
 class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
     along the last dimension. Each entry in the last dimension is referred
-    to as a task.
+    to as a task. The task axis can be selected with ``axis``.
 
     Parameters
     ----------
-    %(base_estimator)s
-    %(scoring)s
-    %(n_jobs)s
-    %(position)s
-    %(allow_2d)s
-    %(verbose)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    scoring : callable | str | None
+        Score function (or loss function) with signature
+        ``score_func(y, y_pred, **kwargs)``.
+        Note that the "predict" method is automatically identified if scoring is
+        a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+        **not**  automatically set if ``scoring`` is a callable (e.g.
+        ``scoring=sklearn.metrics.roc_auc_score``).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    position : int
+        The position for the progress bar.
+    allow_2d : bool
+        If True, allow 2D data as input (i.e. n_samples, n_features).
+    axis : int
+        Axis of the input data along which independent estimators are fitted.
+        The default ``-1`` uses the final axis.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Attributes
     ----------
@@ -53,6 +77,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         *,
         position=0,
         allow_2d=False,
+        axis=-1,
         verbose=None,
     ):
         self.base_estimator = base_estimator
@@ -61,6 +86,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         self.position = position
         self.allow_2d = allow_2d
         self.verbose = verbose
+        self.axis = axis
 
     @property
     def _estimator_type(self):
@@ -99,7 +125,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -150,7 +176,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
                 X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
-        **fit_params : dict of string -> object
+        **fit_params : dict
             Parameters to pass to the fit method of the estimator.
 
         Returns
@@ -288,8 +314,9 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
 
     def _check_Xy(self, X, y=None, fit=False):
         """Aux. function to check input data."""
-        # Once we require sklearn 1.1+ we should do something like:
-        X = self._check_data(X, y=y, atleast_3d=False, fit=fit)
+        X = self._check_data(
+            X, y=y, atleast_3d=False, fit=False, check_n_features=False
+        )
         is_nd = X.ndim >= 3
         if not is_nd:
             err = None
@@ -300,6 +327,12 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
             if err:
                 raise ValueError(f"X must have at least {err} dimensions.")
             X = X[..., np.newaxis]
+
+        if self.axis in (0, -X.ndim):
+            raise ValueError("axis must not be the sample axis (0).")
+        if self.axis != -1 and self.axis != (X.ndim - 1):
+            X = np.moveaxis(X, self.axis, -1)
+        X = self._check_data(X, atleast_3d=False, fit=fit)
         return X, is_nd
 
     def score(self, X, y):
@@ -359,7 +392,7 @@ class SlidingEstimator(MetaEstimatorMixin, MNETransformerMixin, BaseEstimator):
         return self.estimators_[0].classes_
 
 
-@fill_doc
+@fill_doc_static("base_estimator")
 def _sl_fit(estimator, X, y, pb, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
@@ -367,7 +400,8 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
 
     Parameters
     ----------
-    %(base_estimator)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
     X : array, shape (n_samples, nd_features, n_estimators)
         The target data. The feature dimension can be multidimensional e.g.
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
@@ -478,21 +512,46 @@ def _check_method(estimator, method):
     return method
 
 
-@fill_doc
+@fill_doc_static(
+    "base_estimator", "scoring", "n_jobs", "position", "allow_2d", "axis", "verbose"
+)
 class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
     Fit a search-light along the last dimension and use them to apply a
-    systematic cross-tasks generalization.
+    systematic cross-tasks generalization. The task axis is selected by
+    ``axis``.
 
     Parameters
     ----------
-    %(base_estimator)s
-    %(scoring)s
-    %(n_jobs)s
-    %(position)s
-    %(allow_2d)s
-    %(verbose)s
+    base_estimator : object
+        The base estimator to iteratively fit on a subset of the dataset.
+    scoring : callable | str | None
+        Score function (or loss function) with signature
+        ``score_func(y, y_pred, **kwargs)``.
+        Note that the "predict" method is automatically identified if scoring is
+        a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+        **not**  automatically set if ``scoring`` is a callable (e.g.
+        ``scoring=sklearn.metrics.roc_auc_score``).
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    position : int
+        The position for the progress bar.
+    allow_2d : bool
+        If True, allow 2D data as input (i.e. n_samples, n_features).
+    axis : int
+        Axis of the input data along which independent estimators are fitted.
+        The default ``-1`` uses the final axis.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
 
     def __repr__(self):  # noqa: D105
@@ -680,14 +739,15 @@ def _gl_transform(estimators, X, method, pb):
 
     Returns
     -------
-    Xt : array, shape (n_samples, n_slices)
-        The transformed values generated by each estimator.
-    """
+    Xt : array, shape (n_samples, n_estimators, n_slices[, n_classes])
+        Predictions for each (estimator, slice) pair. The trailing axis is
+        present when ``method`` returns multi-output (e.g. ``predict_proba``).
+    """  # noqa: E501
     n_sample, n_iter = X.shape[0], X.shape[-1]
+    # stack generalized data for faster prediction
+    X_stack = X.transpose(np.r_[0, X.ndim - 1, range(1, X.ndim - 1)])
+    X_stack = X_stack.reshape((n_sample * n_iter,) + X_stack.shape[2:])
     for ii, est in enumerate(estimators):
-        # stack generalized data for faster prediction
-        X_stack = X.transpose(np.r_[0, X.ndim - 1, range(1, X.ndim - 1)])
-        X_stack = X_stack.reshape(np.r_[n_sample * n_iter, X_stack.shape[2:]])
         transform = getattr(est, method)
         _y_pred = transform(X_stack)
         # unstack generalizations
@@ -713,6 +773,102 @@ def _gl_init_pred(y_pred, X, n_train):
     else:
         y_pred = np.zeros((n_sample, n_train, n_iter), y_pred.dtype)
     return y_pred
+
+
+def _resolve_scoring_for_classifier(scoring, estimators):
+    """Promote scoring=None to 'accuracy' for default estimator.
+
+    scoring=None goes through sklearn's ``_PassthroughScorer``, which delegates
+    to ``estimator.score(X, y)``. For a classifier that inherits
+    ``ClassifierMixin.score`` unchanged, that's accuracy — which we can batch.
+    We compare ``type(est).score.__qualname__`` rather than ``.__name__``
+    because the bare name is "score" regardless of the defining class. A bare
+    method has qualname "ClassifierMixin.score"; any override resolves to
+    "<Subclass>.score", which we leave untouched.
+    """
+    if len(estimators) and getattr(scoring, "_score_func", None) is None:
+        qname = getattr(type(estimators[0]).score, "__qualname__", "")
+        if qname == "ClassifierMixin.score":
+            scoring = check_scoring(estimators[0], "accuracy")
+    return scoring
+
+
+def _detect_response_method(scoring):
+    """Return (response_method, can_batch) for ``scoring``.
+
+    If we can batch the estimator (one of predict, predict_proba,
+    decision_function, or a tuple of those) then we return that, and
+    can_batch is True if additionally _score_func is not None.
+    Otherwise we return None (for the response_method) and False
+    """
+    score_func = getattr(scoring, "_score_func", None)
+    rm = getattr(scoring, "_response_method", None)
+    valid = {"predict", "predict_proba", "decision_function"}
+    if rm == "default":
+        response_method = "predict"
+    elif isinstance(rm, str) and rm in valid:
+        response_method = rm
+    elif isinstance(rm, tuple) and all(m in valid for m in rm):
+        response_method = rm
+    else:
+        response_method = None
+    can_batch = score_func is not None and response_method is not None
+    return response_method, can_batch
+
+
+def _make_batched_score(score_func, response_method, method, y, sign, kwargs):
+    """Return a callable ``y_pred``->score per task, None if not recognised.
+
+    The returned callable expects ``y_pred`` of shape
+    ``(n_sample, n_train, n_iter)`` and returns shape ``(n_train, n_iter)``.
+    Falls back to None for any scorer with non-default ``kwargs`` or
+    multi-target ``y``, both of which require a slice-by-slice loop.
+    """
+    if kwargs or y.ndim != 1:
+        return None
+    name = getattr(score_func, "__name__", "")
+
+    if name == "accuracy_score" and response_method == "predict":
+
+        def batched_score(y_pred):
+            return sign * (y_pred == y[:, None, None]).mean(axis=0)
+
+        return batched_score
+
+    if name == "balanced_accuracy_score" and response_method == "predict":
+        classes = np.unique(y)
+
+        def batched_score(y_pred):
+            return sign * np.stack(
+                [(y_pred[y == c] == c).mean(axis=0) for c in classes]
+            ).mean(axis=0)
+
+        return batched_score
+
+    if name == "roc_auc_score" and method in ("predict_proba", "decision_function"):
+        classes = np.unique(y)
+        if len(classes) != 2:  # multi-class needs ovr/ovo; defer
+            return None
+        pos = y == classes[1]
+        n_pos, n_neg = int(pos.sum()), int((~pos).sum())
+        if not (n_pos and n_neg):  # degenerate folds raise downstream in sklearn
+            return None
+
+        def batched_score(y_pred):
+            # Mann-Whitney U identity with average-rank tie correction.
+            # Equivalent to sklearn's roc_auc within floating point precision,
+            # but different computation.
+            from scipy.stats import rankdata
+
+            ranks = rankdata(y_pred, method="average", axis=0)
+            return (
+                sign
+                * (ranks[pos].sum(axis=0) - n_pos * (n_pos + 1) / 2.0)
+                / (n_pos * n_neg)
+            )
+
+        return batched_score
+    return None
 
 
 def _gl_score(estimators, scoring, X, y, pb):
@@ -743,17 +899,63 @@ def _gl_score(estimators, scoring, X, y, pb):
     """
     # FIXME: The level parallelization may be a bit high, and might be memory
     # consuming. Perhaps need to lower it down to the loop across X slices.
-    score_shape = [len(estimators), X.shape[-1]]
-    for jj in range(X.shape[-1]):
-        for ii, est in enumerate(estimators):
-            _score = scoring(est, X[..., jj], y)
-            # Initialize array of predictions on the first score iteration
-            if (ii == 0) and (jj == 0):
-                dtype = type(_score)
-                score = np.zeros(score_shape, dtype)
-            score[ii, jj, ...] = _score
+    n_iter = X.shape[-1]
+    n_train = len(estimators)
+    score_shape = [n_train, n_iter]
 
-            pb.update(jj * len(estimators) + ii + 1)
+    scoring = _resolve_scoring_for_classifier(scoring, estimators)
+    response_method, can_batch = _detect_response_method(scoring)
+
+    # If we can't batch, fall back to a simple nested loop for scoring
+    if not can_batch:
+        for jj in range(n_iter):
+            for ii, est in enumerate(estimators):
+                _score = scoring(est, X[..., jj], y)
+                if (ii == 0) and (jj == 0):
+                    score = np.zeros(score_shape, type(_score))
+                score[ii, jj, ...] = _score
+                pb.update(jj * n_train + ii + 1)
+        return score
+
+    # Resolve a single method name for _gl_transform: pick the first available
+    # if response_method is a tuple (e.g. roc_auc).
+    if isinstance(response_method, str):
+        method = response_method
+    else:
+        for m in response_method:
+            if hasattr(estimators[0], m):
+                method = m
+                break
+
+    # Batch all predictions through _gl_transform. y_pred shape:
+    # (n_sample, n_train, n_iter) or (n_sample, n_train, n_iter, n_classes).
+    y_pred = _gl_transform(estimators, X, method, pb)
+
+    # Binary predict_proba: take the positive-class column to match sklearn
+    # scorer expectations for binary problems.
+    if method == "predict_proba" and y_pred.ndim == 4 and y_pred.shape[-1] == 2:
+        y_pred = y_pred[..., 1]
+
+    # `scoring._kwargs or {}` also guards score_func(..., **kwargs) against
+    # scoring._kwargs being None.
+    score_func = scoring._score_func
+    sign = scoring._sign
+    kwargs = scoring._kwargs or {}
+    batched_score = _make_batched_score(
+        score_func, response_method, method, y, sign, kwargs
+    )
+
+    # Reduce predictions to scores. Vectorised if we recognised the scorer,
+    # otherwise nested loops over (estimator, slice).
+    if batched_score is not None:
+        score = batched_score(y_pred)
+    else:
+        for ii in range(n_train):
+            for jj in range(n_iter):
+                _score = sign * score_func(y, y_pred[:, ii, jj], **kwargs)
+                if (ii == 0) and (jj == 0):
+                    score = np.zeros(score_shape, type(_score))
+                score[ii, jj, ...] = _score
     return score
 
 

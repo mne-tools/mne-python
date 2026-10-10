@@ -70,7 +70,7 @@ Changelog
 
 - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
-- Clarify docstring for :class:`mne.preprocessing.ICA` by `jeythekey`_
+- Clarify docstring for :class:`mne.preprocessing.ICA` by `Johannes Kasper`_
 
 - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.make_flash_bem`.
 
@@ -146,3 +146,5 @@ The committer list for this release is the following (preceded by number of comm
 *   3  Daniel McCloy
 *   3  Daniel Strohmeier
 *   1  Jussi Nurminen
+
+.. include:: names.inc

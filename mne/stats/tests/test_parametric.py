@@ -11,7 +11,7 @@ import scipy.stats
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_less
 
 import mne
-from mne.stats.parametric import _map_effects, f_mway_rm, f_threshold_mway_rm
+from mne.stats.parametric import _map_effects, f_mway_rm, f_oneway, f_threshold_mway_rm
 
 # hardcoded external test results, manually transferred
 test_external = {
@@ -41,8 +41,12 @@ test_external = {
 
 def generate_data(n_subjects, n_conditions):
     """Generate testing data."""
+    # RandomState (not default_rng): the SPSS/R reference values in
+    # test_external were computed from this exact stream
     rng = np.random.RandomState(42)
-    data = rng.randn(n_subjects * n_conditions).reshape(n_subjects, n_conditions)
+    data = rng.standard_normal(n_subjects * n_conditions).reshape(
+        n_subjects, n_conditions
+    )
     return data
 
 
@@ -68,12 +72,12 @@ def test_map_effects():
 
 def test_f_twoway_rm():
     """Test 2-way anova."""
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     iter_params = product([4, 10], [2, 15], [4, 6, 8], ["A", "B", "A:B"], [False, True])
     _effects = {4: [2, 2], 6: [2, 3], 8: [2, 4]}
     for params in iter_params:
         n_subj, n_obs, n_levels, effects, correction = params
-        data = rng.random_sample([n_subj, n_levels, n_obs])
+        data = rng.random([n_subj, n_levels, n_obs])
         fvals, pvals = f_mway_rm(
             data, _effects[n_levels], effects, correction=correction
         )
@@ -91,11 +95,11 @@ def test_f_twoway_rm():
 
     # check time-frequency input
     n_subj, n_freqs, n_times, n_levels = (5, 10, 101, 4)
-    data = rng.random_sample([n_subj, n_levels, n_freqs, n_times])
+    data = rng.random([n_subj, n_levels, n_freqs, n_times])
     fvals, pvals = f_mway_rm(data, _effects[n_levels])
     assert fvals.shape[1:] == pvals.shape[1:] == (n_freqs, n_times)
 
-    data = rng.random_sample([n_subj, n_levels, 1])
+    data = rng.random([n_subj, n_levels, 1])
     pytest.raises(
         ValueError,
         f_mway_rm,
@@ -104,7 +108,7 @@ def test_f_twoway_rm():
         effects="C",
         correction=correction,
     )
-    data = rng.random_sample([n_subj, n_levels, n_obs, 3])
+    data = rng.random([n_subj, n_levels, n_obs, 3])
     # check for dimension handling
     f_mway_rm(data, _effects[n_levels], effects, correction=correction)
 
@@ -147,7 +151,7 @@ def test_f_twoway_rm():
 @pytest.mark.parametrize("seed", [0, 42, 1337])
 def test_ttest_equiv(kind, kwargs, sigma, seed):
     """Test t-test equivalence."""
-    rng = np.random.RandomState(seed)
+    rng = np.random.default_rng(seed)
 
     def theirs(*a, **kw):
         f = getattr(scipy.stats, f"ttest_{kind}")
@@ -159,9 +163,9 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
 
     ours = partial(getattr(mne.stats, f"ttest_{kind}_no_p"), sigma=sigma, **kwargs)
 
-    X = rng.randn(3, 4, 5)
+    X = rng.standard_normal((3, 4, 5))
     if kind == "ind":
-        X = [X, rng.randn(30, 4, 5)]  # should differ based on equal_var
+        X = [X, rng.standard_normal((30, 4, 5))]  # should differ based on equal_var
         got = ours(*X)
         want = theirs(*X)
     else:
@@ -175,3 +179,53 @@ def test_ttest_equiv(kind, kwargs, sigma, seed):
         # something to the divisor (var)
         assert_allclose(got, want, rtol=2e-1, atol=1e-2)
         assert_array_less(np.abs(got), np.abs(want))
+
+
+@pytest.mark.parametrize("sigma", [0.0, 1e-3])
+@pytest.mark.parametrize("method", ["absolute", "relative"])
+@pytest.mark.parametrize("seed", [0, 42, 1337])
+def test_f_oneway_hat(sigma, method, seed):
+    """Test f_oneway hat (low-variance) regularization."""
+    rng = np.random.default_rng(seed)
+    X1 = rng.standard_normal(size=(10, 50))
+    X2 = rng.standard_normal(size=(10, 50))
+
+    f_ours = f_oneway(X1, X2, sigma=0.0, method=method)
+    f_scipy = scipy.stats.f_oneway(X1, X2)[0]
+    assert_allclose(f_ours, f_scipy, rtol=1e-7, atol=1e-6)
+
+    if sigma > 0:
+        f_reg = f_oneway(X1, X2, sigma=sigma, method=method)
+        f_unreg = f_oneway(X1, X2, sigma=0.0)
+        pos = f_unreg > 0
+        assert_array_less(f_reg[pos], f_unreg[pos])
+
+
+def test_f_oneway_hat_small_variance():
+    """Test that f_oneway hat stabilizes F-values for near-zero variance."""
+    rng = np.random.default_rng(0)
+    X1 = rng.normal(0, 1e-6, (10, 100))
+    X2 = rng.normal(1, 1e-6, (10, 100))
+
+    f_unreg = f_oneway(X1, X2, sigma=0.0)
+    f_abs = f_oneway(X1, X2, sigma=1e-3, method="absolute")
+    f_rel = f_oneway(X1, X2, sigma=1e-3, method="relative")
+
+    assert np.median(f_unreg) > 1e6
+    assert np.median(f_abs) < np.median(f_unreg)
+    assert np.median(f_rel) < np.median(f_unreg)
+    assert np.all(np.isfinite(f_abs))
+    assert np.all(np.isfinite(f_rel))
+
+
+def test_f_oneway_hat_input_validation():
+    """Test f_oneway input validation for sigma and method."""
+    rng = np.random.default_rng(0)
+    X1 = rng.standard_normal((5, 10))
+    X2 = rng.standard_normal((5, 10))
+
+    with pytest.raises(ValueError, match="sigma must be >= 0"):
+        f_oneway(X1, X2, sigma=-0.1)
+
+    with pytest.raises(ValueError, match="method"):
+        f_oneway(X1, X2, sigma=1e-3, method="invalid")

@@ -7,6 +7,8 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 from scipy.signal import welch
 
+from mne import Annotations, create_info
+from mne.io import RawArray
 from mne.time_frequency import psd_array_multitaper, psd_array_welch
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.psd import _median_biases
@@ -16,7 +18,7 @@ from mne.utils import catch_logging
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
     n_samples, n_fft, n_overlap = 2048, 1024, 512
-    x = np.random.RandomState(0).randn(1, n_samples)
+    x = np.random.default_rng(0).standard_normal((1, n_samples))
     psds, freqs = psd_array_welch(
         x[:, : n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap
     )
@@ -56,6 +58,53 @@ def test_bad_annot_handling():
     np.testing.assert_array_equal(got[1], want[1])
     # powers should be very very close
     np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
+
+
+def test_psd_welch_short_spans():
+    """Good spans shorter than n_per_seg are kept with a shrunk window (gh-13039)."""
+    sfreq, n_fft, n_overlap = 100.0, 256, 128
+    rng = np.random.default_rng(0)
+    times = np.arange(60 * int(sfreq)) / sfreq
+    x = np.sin(2 * np.pi * 10 * times) + 0.1 * rng.standard_normal((2, times.size))
+    kwargs = dict(sfreq=sfreq, n_fft=n_fft, n_overlap=n_overlap)
+    psds, freqs = psd_array_welch(x, **kwargs)
+    band = (freqs >= 8) & (freqs <= 12)
+    # mark every 100th sample bad, so every good span (99 samples) is < n_per_seg
+    x_frag = x.copy()
+    x_frag[:, 99::100] = np.nan
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        psds_frag, freqs_frag = psd_array_welch(x_frag, **kwargs)
+    assert_array_equal(freqs_frag, freqs)
+    # alpha-band power must match the uninterrupted signal (zero-padding would not)
+    assert_allclose(psds_frag[:, band].sum(-1), psds[:, band].sum(-1), rtol=0.1)
+    # a fixed-length window array cannot be shrunk to fit a short span
+    with pytest.raises(ValueError, match="fixed-length window"):
+        psd_array_welch(x_frag, window=np.hamming(n_fft), **kwargs)
+
+
+def test_compute_psd_welch_short_span_annotations():
+    """Test n_per_seg shorter than n_overlap warning and band power change."""
+    sfreq = 100.0
+    n_times = int(60 * sfreq)
+    rng = np.random.default_rng(42)
+    times = np.arange(n_times) / sfreq
+    data = np.sin(2 * np.pi * 10 * times) + 0.1 * rng.standard_normal((2, n_times))
+    raw = RawArray(data, create_info(2, sfreq, "eeg"))
+    kwargs = dict(method="welch", n_fft=256, n_overlap=128)
+    ref = raw.compute_psd(**kwargs)
+
+    # leave a 1 s good span (100 samples < n_overlap) between two bad segments
+    raw.set_annotations(Annotations([10.0, 21.0], [10.0, 10.0], "bad_segment"))
+    # test warning
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        spec = raw.compute_psd(**kwargs)
+    # alpha-band power should match the uninterrupted recording closely
+    band = (spec.freqs >= 8) & (spec.freqs <= 12)
+    assert_allclose(
+        spec.get_data()[:, band].sum(axis=-1),
+        ref.get_data()[:, band].sum(axis=-1),
+        rtol=0.1,
+    )
 
 
 def _make_psd_data():
@@ -231,7 +280,7 @@ def test_psd_array_welch_n_jobs():
 def test_psd_nan_in_data():
     """psd_array_welch should fail if +Inf lies inside analyzed samples."""
     n_samples, n_fft, n_overlap = 2048, 256, 128
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     x = rng.standard_normal(size=(2, n_samples))
     # Put +Inf inside the series; this falls within Welch windows
     x[0, 800] = np.inf  # Channel 0 has Inf → bad channel
@@ -248,7 +297,7 @@ def test_psd_nan_in_data():
 def test_psd_misaligned_nan_across_channels():
     """If NaNs are present but masks are NOT aligned across channels."""
     n_samples, n_fft, n_overlap = 2048, 256, 128
-    rng = np.random.RandomState(42)
+    rng = np.random.default_rng(42)
     x = rng.standard_normal(size=(2, n_samples))
     # NaN only in ch0; ch1 has no NaN => masks not aligned -> should raise
     x[0, 500] = np.nan

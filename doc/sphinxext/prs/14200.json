@@ -1,0 +1,40 @@
+{
+  "merge_commit_sha": "b788805494611b0fb745adb81d2b9d7d53165c7d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/dev/14196.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/v0.14.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "examples/decoding/decoding_rsa.py": {
+      "a": 11,
+      "d": 7
+    },
+    "mne/datasets/utils.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/circleci_download.sh": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

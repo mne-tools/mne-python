@@ -5,13 +5,21 @@
 """Read MEF3 files."""
 
 import datetime as dt
+from pathlib import Path
 
 import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import _check_fname, _soft_import, fill_doc, logger, verbose
+from ...utils import (
+    _check_fname,
+    _soft_import,
+    _verbose_control,
+    fill_doc_static,
+    logger,
+    verbose_static,
+)
 from ..base import BaseRaw
 from ._utils import (
     _GMT_OFFSET_NO_ENTRY,
@@ -23,7 +31,7 @@ from ._utils import (
 )
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawMEF(BaseRaw):
     """Raw object for MEF3 files.
 
@@ -34,15 +42,32 @@ class RawMEF(BaseRaw):
     password : str | bytes | None
         Password for encrypted MEF sessions. Use an empty string for
         unencrypted data.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, password="", *, preload=False, verbose=None):
         pymef = _soft_import("pymef", "reading MEF3 files", strict=True)
 
@@ -50,9 +75,7 @@ class RawMEF(BaseRaw):
         fname = _check_fname(fname, "read", True, "fname", need_dir=True)
         # The dataset maybe have password
         password = (
-            (password or "").decode()
-            if isinstance(password, bytes)
-            else (password or "")
+            password.decode() if isinstance(password, bytes) else (password or "")
         )
         # Open the dataset
         session = pymef.mef_session.MefSession(str(fname), password)
@@ -133,7 +156,7 @@ class RawMEF(BaseRaw):
         # Indexing the start time
         meas_date = (
             (
-                dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+                dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
                 + dt.timedelta(microseconds=int(start_uutc))
             )
             if start_uutc
@@ -192,6 +215,7 @@ class RawMEF(BaseRaw):
                     "n_channels": len(ch_names),
                     "ch_names": ch_names,
                     "password": password,
+                    "session": session,
                 }
             ],
             orig_units=orig_units,
@@ -234,11 +258,9 @@ class RawMEF(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        from pymef.mef_session import MefSession
-
         extras = self._raw_extras[fi]
         ch_names = extras["ch_names"]
-        session = MefSession(str(self._filenames[fi]), extras.get("password", ""))
+        session = extras["session"]
 
         ch_indices = (
             range(*idx.indices(extras["n_channels"])) if isinstance(idx, slice) else idx
@@ -258,8 +280,14 @@ class RawMEF(BaseRaw):
         _mult_cal_one(data, block_out, idx, cals, mult)
 
 
-@verbose
-def read_raw_mef(fname, *, password="", preload=False, verbose=None) -> RawMEF:
+@verbose_static("preload")
+def read_raw_mef(
+    fname: Path | str,
+    *,
+    password: str | bytes | None = "",
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> RawMEF:
     """Read raw data from MEF3 files.
 
     Parameters
@@ -269,8 +297,25 @@ def read_raw_mef(fname, *, password="", preload=False, verbose=None) -> RawMEF:
     password : str | bytes | None
         Password for encrypted MEF sessions. Use an empty string for
         unencrypted data.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

@@ -6,6 +6,7 @@
 
 from os import listdir
 from os.path import join
+from typing import Any
 
 import numpy as np
 
@@ -30,7 +31,7 @@ def _read_eeg(directory):
     if not found:
         logger.info("    Separate EEG position data file not present.")
         return
-    eeg = dict(
+    eeg: dict[str, Any] = dict(
         labels=list(),
         kinds=list(),
         ids=list(),

@@ -1,0 +1,51 @@
+{
+  "merge_commit_sha": "1ec8f7b4cef2c45e68761b5dfb18eaf9b0ee7e61",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13911.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 57,
+      "d": 16
+    },
+    "mne/_fiff/proc_history.py": {
+      "a": 107,
+      "d": 100
+    },
+    "mne/_fiff/proj.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 37,
+      "d": 3
+    },
+    "mne/_fiff/tests/test_proc_history.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/_fiff/write.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/cov.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

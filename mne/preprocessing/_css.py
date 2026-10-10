@@ -6,7 +6,7 @@ import numpy as np
 
 from .._fiff.pick import _picks_to_idx
 from ..evoked import Evoked
-from ..utils import _ensure_int, _validate_type, verbose
+from ..utils import _ensure_int, _validate_type, verbose_static
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
@@ -30,7 +30,7 @@ def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
     filtered_data -= weights @ proj_vec.T
 
 
-@verbose
+@verbose_static("picks_good_data")
 def cortical_signal_suppression(
     evoked, picks=None, mag_picks=None, grad_picks=None, n_proj=6, *, verbose=None
 ):
@@ -41,7 +41,15 @@ def cortical_signal_suppression(
     evoked : instance of Evoked
         The evoked object to use for CSS. Must contain magnetometer,
         gradiometer, and EEG channels.
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
     mag_picks : array-like of int
         Array of the first set of channel indices that will be used to find
         the common temporal subspace. If None (default), all magnetometers will
@@ -52,7 +60,11 @@ def cortical_signal_suppression(
         be used.
     n_proj : int
         The number of projection vectors.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

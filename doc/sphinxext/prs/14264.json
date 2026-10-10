@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "6c94cecfd9f4ba62bd12b3352565c37308eeb29e",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com",
+      "l": "BabaSanfour"
+    }
+  ],
+  "changes": {
+    ".github/workflows/codeql-analysis.yml": {
+      "a": 0,
+      "d": 5
+    },
+    ".github/workflows/release.yml": {
+      "a": 0,
+      "d": 2
+    },
+    ".github/workflows/tests.yml": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -2,11 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ...utils import verbose
+from ...utils import _verbose_control
 from ..utils import _data_path_doc, _download_mne_dataset, has_dataset
 
 
-@verbose
+@_verbose_control
 def data_path(
     path=None, force_update=False, update_path=True, download=True, *, verbose=None
 ):  # noqa: D103

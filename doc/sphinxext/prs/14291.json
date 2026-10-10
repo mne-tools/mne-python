@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "675e59f6e251aced0036d31f513c7b4914b19a84",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "mne/gui/_dipolefit.py": {
+      "a": 32,
+      "d": 19
+    },
+    "mne/gui/tests/test_dipolefit.py": {
+      "a": 23,
+      "d": 19
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -61,8 +61,8 @@ epochs = mne.Epochs(raw, detrend=1, baseline=None)
 epochs = epochs["Response"][0]  # just process one epoch of data for speed
 
 # %%
-# Let use the Talairach transform computed in the Freesurfer recon-all
-# to apply the Freesurfer surface RAS ('mri') to MNI ('mni_tal') transform.
+# Let use the Talairach transform computed in the FreeSurfer recon-all
+# to apply the FreeSurfer surface RAS ('mri') to MNI ('mni_tal') transform.
 
 montage = epochs.get_montage()
 

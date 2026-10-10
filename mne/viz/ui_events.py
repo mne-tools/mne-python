@@ -14,16 +14,25 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import contextlib
 import re
 import weakref
 from dataclasses import dataclass
+from functools import partial
+from typing import TYPE_CHECKING
 
-from matplotlib.colors import Colormap
+from ..utils import (
+    _validate_type,
+    fill_doc_static,
+    logger,
+    verbose_static,
+    warn,
+)
 
-from ..utils import _validate_type, fill_doc, logger, verbose, warn
+if TYPE_CHECKING:
+    # matplotlib is ~40 ms to import and this module is on the import path of
+    # mne.viz.utils (see mne/tests/test_import_nesting.py)
+    from matplotlib.colors import Colormap
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -43,13 +52,16 @@ _camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
 
 
 # List of events
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class UIEvent:
     """Abstract base class for all events.
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     """
 
     source = None
@@ -60,20 +72,23 @@ class UIEvent:
         return _camel_to_snake.sub("_", self.__class__.__name__).lower()
 
 
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class FigureClosing(UIEvent):
     """Indicates that the user has requested to close a figure.
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     """
 
     pass
 
 
 @dataclass
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class TimeChange(UIEvent):
     """Indicates that the user has selected a time.
 
@@ -84,7 +99,10 @@ class TimeChange(UIEvent):
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     time : float
         The new time in seconds.
     """
@@ -93,7 +111,7 @@ class TimeChange(UIEvent):
 
 
 @dataclass
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class PlaybackSpeed(UIEvent):
     """Indicates that the user has selected a different playback speed for videos.
 
@@ -104,7 +122,10 @@ class PlaybackSpeed(UIEvent):
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     speed : float
         The new speed in seconds per frame.
     """
@@ -113,7 +134,7 @@ class PlaybackSpeed(UIEvent):
 
 
 @dataclass
-@fill_doc
+@fill_doc_static("fmin_fmid_fmax", "alpha", "ui_event_name_source")
 class ColormapRange(UIEvent):
     """Indicates that the user has updated the bounds of the colormap.
 
@@ -124,8 +145,15 @@ class ColormapRange(UIEvent):
         routine publishing this event should mention the possible kinds.
     ch_type : str
        Type of sensor the data originates from.
-    %(fmin_fmid_fmax)s
-    %(alpha)s
+    fmin : float
+        Minimum value in colormap (uses real fmin if None).
+    fmid : float
+        Intermediate value in colormap (fmid between fmin and
+        fmax if None).
+    fmax : float
+        Maximum value in colormap (uses real max if None).
+    alpha : float in [0, 1]
+        Alpha level to control opacity.
     cmap : str
         The colormap to use. Either string or matplotlib.colors.Colormap
         instance.
@@ -139,9 +167,19 @@ class ColormapRange(UIEvent):
         Type of sensor the data originates from.
     unit : str
         The unit of the values.
-    %(ui_event_name_source)s
-    %(fmin_fmid_fmax)s
-    %(alpha)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    fmin : float
+        Minimum value in colormap (uses real fmin if None).
+    fmid : float
+        Intermediate value in colormap (fmid between fmin and
+        fmax if None).
+    fmax : float
+        Maximum value in colormap (uses real max if None).
+    alpha : float in [0, 1]
+        Alpha level to control opacity.
     cmap : str
         The colormap to use. Either string or matplotlib.colors.Colormap
         instance.
@@ -153,11 +191,11 @@ class ColormapRange(UIEvent):
     fmid: float | None = None
     fmax: float | None = None
     alpha: bool | None = None
-    cmap: Colormap | str | None = None
+    cmap: "Colormap | str | None" = None
 
 
 @dataclass
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class VertexSelect(UIEvent):
     """Indicates that the user has selected a vertex.
 
@@ -168,23 +206,33 @@ class VertexSelect(UIEvent):
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     hemi : str
         The hemisphere the vertex was selected on.
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
+    source_id : int | None
+        The index number of the closest source point to the vertex.
+        Only set if the publishing figure contains a source estimate.
     """
 
     hemi: str
     vertex_id: int
+    source_id: int = None
 
 
 @dataclass
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class Contours(UIEvent):
     """Indicates that the user has changed the contour lines.
 
@@ -196,24 +244,34 @@ class Contours(UIEvent):
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     kind : str
         The kind of contours lines being changed. The Notes section of the
         drawing routine publishing this event should mention the possible
         kinds.
     contours : list of float
         The new values at which contour lines need to be drawn.
+    line_width : float | None
+        The line_width with which to draw the contour lines. Can be ``None`` to
+        indicate to keep using the current line_width.
     """
 
     kind: str
     contours: list[str]
+    line_width: float | None = None
 
 
 @dataclass
-@fill_doc
+@fill_doc_static("ui_event_name_source")
 class ChannelsSelect(UIEvent):
     """Indicates that the user has selected one or more channels.
 
@@ -224,12 +282,31 @@ class ChannelsSelect(UIEvent):
 
     Attributes
     ----------
-    %(ui_event_name_source)s
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
     ch_names : list of str
         The names of the channels that were selected.
     """
 
     ch_names: list[str]
+
+
+def _delete_event_channel(event=None, *, weakfig):
+    """Delete the event channel (callback function)."""
+    fig = weakfig()
+    if fig is None:
+        return
+    publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
+    logger.debug(f"unlink(({fig})")
+    unlink(fig)  # Remove channel from the _event_channel_links dict
+    if fig in _event_channels:
+        logger.debug(f"  del _event_channels[{fig}]")
+        del _event_channels[fig]
+    if fig in _disabled_event_channels:
+        logger.debug(f"  _disabled_event_channels.remove({fig})")
+        _disabled_event_channels.remove(fig)
 
 
 def _get_event_channel(fig):
@@ -245,12 +322,12 @@ def _get_event_channel(fig):
 
     Returns
     -------
-    channel : dict[event -> list]
-        The event channel. An event channel is a list mapping string event
-        names to a list of callback representing all subscribers to the
-        channel.
+    channel : dict[event -> dict]
+        The event channel. An event channel is a dict mapping string event
+        names to a dict of callbacks (used as an ordered set) representing all
+        subscribers to the channel, in the order in which they subscribed.
     """
-    import matplotlib
+    import matplotlib.figure
 
     from ._brain import Brain
     from .evoked_field import EvokedField
@@ -265,36 +342,23 @@ def _get_event_channel(fig):
 
         # When the figure is closed, its associated event channel should be
         # deleted. This is a good time to set this up.
-        def delete_event_channel(event=None, *, weakfig=weakfig):
-            """Delete the event channel (callback function)."""
-            fig = weakfig()
-            if fig is None:
-                return
-            publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
-            logger.debug(f"unlink(({fig})")
-            unlink(fig)  # Remove channel from the _event_channel_links dict
-            if fig in _event_channels:
-                logger.debug(f"  del _event_channels[{fig}]")
-                del _event_channels[fig]
-            if fig in _disabled_event_channels:
-                logger.debug(f"  _disabled_event_channels.remove({fig})")
-                _disabled_event_channels.remove(fig)
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
         _validate_type(fig, (matplotlib.figure.Figure, Brain, EvokedField), "fig")
+        this_delete_event_channel = partial(_delete_event_channel, weakfig=weakfig)
         if isinstance(fig, matplotlib.figure.Figure):
-            fig.canvas.mpl_connect("close_event", delete_event_channel)
+            fig.canvas.mpl_connect("close_event", this_delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
-            fig._renderer._window_close_connect(delete_event_channel, after=False)
+            fig._renderer._window_close_connect(this_delete_event_channel, after=False)
 
     # Now the event channel exists for sure.
     return _event_channels[fig]
 
 
-@verbose
+@verbose_static()
 def publish(fig, event, *, verbose=None):
     """Publish an event to all subscribers of the figure's channel.
 
@@ -308,7 +372,11 @@ def publish(fig, event, *, verbose=None):
         The figure that publishes the event.
     event : UIEvent
         Event to publish.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     if fig in _disabled_event_channels:
         return
@@ -329,12 +397,12 @@ def publish(fig, event, *, verbose=None):
     logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
-            channel[event.name] = set()
+            channel[event.name] = dict()
         for callback in channel[event.name]:
             callback(event=event)
 
 
-@verbose
+@verbose_static()
 def subscribe(fig, event_name, callback, *, verbose=None):
     """Subscribe to an event on a figure's event channel.
 
@@ -346,16 +414,26 @@ def subscribe(fig, event_name, callback, *, verbose=None):
         The name of the event to listen for.
     callback : callable
         The function that should be called whenever the event is published.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+
+    Notes
+    -----
+    Subscribers are called in the order in which they subscribed when the event
+    is published.
     """
     channel = _get_event_channel(fig)
     logger.debug(f"Subscribing to channel {channel}")
     if event_name not in channel:
-        channel[event_name] = set()
-    channel[event_name].add(callback)
+        channel[event_name] = dict()
+    # use a dict as an ordered set: subscribers are called in subscription order
+    channel[event_name][callback] = None
 
 
-@verbose
+@verbose_static()
 def unsubscribe(fig, event_names, callback=None, *, verbose=None):
     """Unsubscribe from an event on a figure's event channel.
 
@@ -371,7 +449,11 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
         The callback function that should be unsubscribed, leaving all other
         callback functions that may be subscribed untouched. By default
         (``None``) all callback functions are unsubscribed from the event.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     channel = _get_event_channel(fig)
 
@@ -398,7 +480,7 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
             # Unsubscribe specific callback function.
             subscribers = channel[event_name]
             if callback in subscribers:
-                subscribers.remove(callback)
+                del subscribers[callback]
             else:
                 warn(
                     f'Cannot unsubscribe {callback} from event "{event_name}" '
@@ -408,8 +490,10 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
                 del channel[event_name]  # keep things tidy
 
 
-@verbose
-def link(*figs, include_events=None, exclude_events=None, verbose=None):
+@verbose_static()
+def link(
+    *figs, include_events=None, exclude_events=None, recursive=False, verbose=None
+):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
@@ -428,7 +512,14 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
     exclude_events : list of str | None
         Select which events not to publish across figures. By default (``None``),
         no events are excluded.
-    %(verbose)s
+    recursive : bool
+        If ``True``, also link the existing link-groups that figs already belong
+        to, so all members are mutually linked.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     if include_events is not None:
         include_events = set(include_events)
@@ -441,14 +532,24 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
         if fig not in _event_channel_links:
             _event_channel_links[fig] = weakref.WeakKeyDictionary()
 
-    # Link the event channels
+    if recursive:
+        # Also link to anything that is linked to any of the figures in `figs`.
+        figs_set = weakref.WeakSet()
+        for fig in figs:
+            figs_set.add(fig)
+            for linked_fig in _event_channel_links[fig].keys():
+                figs_set.add(linked_fig)
+        # Deliberately let current include and exclude events dominate over past ones.
+        figs = figs_set
+
+    # Do the actual linking.
     for fig1 in figs:
         for fig2 in figs:
             if fig1 is not fig2:
                 _event_channel_links[fig1][fig2] = (include_events, exclude_events)
 
 
-@verbose
+@verbose_static()
 def unlink(fig, *, verbose=None):
     """Remove all links involving the event channel of the given figure.
 
@@ -457,7 +558,11 @@ def unlink(fig, *, verbose=None):
     fig : matplotlib.figure.Figure | Figure3D
         The figure whose event channel should be unlinked from all other event
         channels.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     linked_figs = _event_channel_links.get(fig)
     if linked_figs is not None:
@@ -470,7 +575,7 @@ def unlink(fig, *, verbose=None):
 
 
 @contextlib.contextmanager
-def disable_ui_events(fig):
+def disable_ui_events(fig):  # numpydoc ignore=YD01
     """Temporarily disable generation of UI events. Use as context manager.
 
     Parameters
@@ -487,14 +592,11 @@ def disable_ui_events(fig):
 
 def _cleanup_agg():
     """Call close_event for Agg canvases to help our doc build."""
-    import matplotlib.backends.backend_agg
     import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
         if isinstance(key, matplotlib.figure.Figure):
-            canvas = key.canvas
-            if isinstance(canvas, matplotlib.backends.backend_agg.FigureCanvasAgg):
-                for cb in key.canvas.callbacks.callbacks["close_event"].values():
-                    cb = cb()  # get the true ref
-                    if cb is not None:
-                        cb()
+            for cb in key.canvas.callbacks.callbacks["close_event"].values():
+                cb = cb()  # get the true ref
+                if isinstance(cb, partial) and cb.func is _delete_event_channel:
+                    cb()

@@ -37,9 +37,7 @@ raw.filter(l_freq=1.0, h_freq=None)
 
 # %%
 # Run ICA
-ica = mne.preprocessing.ICA(
-    n_components=15, method="picard", max_iter="auto", random_state=97
-)
+ica = mne.preprocessing.ICA(n_components=15, method="picard", max_iter="auto", rng=97)
 ica.fit(raw)
 
 # %%
@@ -48,9 +46,7 @@ ica.plot_sources(raw)
 
 # %%
 # By inspection, let's select out the muscle-artifact components based on
-# :footcite:`DharmapraniEtAl2016` manually.
-#
-# The criteria are:
+# :footcite:`DharmapraniEtAl2016` manually. The criteria are:
 #
 # - Positive slope of log-log power spectrum between 7 and 75 Hz
 #   (here just flat because it's not in log-log)
@@ -100,13 +96,13 @@ for sub in (1, 2):
         mne.datasets.eegbci.load_data(subjects=sub, runs=(1,))[0], preload=True
     )
     mne.datasets.eegbci.standardize(raw)  # set channel names
-    montage = mne.channels.make_standard_montage("standard_1005")
+    montage = mne.channels.make_standard_montage("spherical_1005")
     raw.set_montage(montage)
     raw.filter(l_freq=1.0, h_freq=None)
 
     # Run ICA
     ica = mne.preprocessing.ICA(
-        n_components=15, method="picard", max_iter="auto", random_state=97
+        n_components=15, method="picard", max_iter="auto", rng=97
     )
     ica.fit(raw)
     ica.plot_sources(raw)

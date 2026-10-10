@@ -2,13 +2,17 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from typing import IO, Any
 
-from ..utils import logger, verbose
+from ..utils import _verbose_control, logger
+from ..utils._typing import LogLevel
 from .constants import FIFF
-from .tag import read_tag
+from .tag import Tag, read_tag
 
 
-def dir_tree_find(tree, kind):
+def dir_tree_find(
+    tree: dict[str, Any] | list[dict[str, Any]], kind: int
+) -> list[dict[str, Any]]:
     """Find nodes of the given kind from a directory tree structure.
 
     Parameters
@@ -39,8 +43,14 @@ def dir_tree_find(tree, kind):
     return nodes
 
 
-@verbose
-def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
+@_verbose_control
+def make_dir_tree(
+    fid: IO[bytes],
+    directory: list[Tag],
+    start: int = 0,
+    indent: int = 0,
+    verbose: LogLevel = None,
+) -> tuple[dict[str, Any], int]:
     """Create the directory tree structure."""
     if directory[start].kind == FIFF.FIFF_BLOCK_START:
         tag = read_tag(fid, directory[start].pos)
@@ -52,7 +62,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
 
     this = start
 
-    tree = dict()
+    tree: dict[str, Any] = dict()
     tree["block"] = block
     tree["id"] = None
     tree["parent_id"] = None
@@ -78,7 +88,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
             tree["nent"] += 1
             if tree["nent"] == 1:
                 tree["directory"] = list()
-            tree["directory"].append(directory[this])
+            tree["directory"].append(directory[this])  # type: ignore (guaranteed to be list)
 
             #  Add the id information if available
             if block == 0:

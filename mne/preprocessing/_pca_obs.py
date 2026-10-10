@@ -11,10 +11,10 @@ from scipy.interpolate import PchipInterpolator as pchip
 from scipy.signal import detrend
 
 from ..io.fiff.raw import Raw
-from ..utils import _PCA, _validate_type, logger, verbose
+from ..utils import _PCA, _validate_type, logger, verbose_static
 
 
-@verbose
+@verbose_static("picks_all_data_noref", "n_jobs")
 def apply_pca_obs(
     raw: Raw,
     picks: list[str],
@@ -34,16 +34,34 @@ def apply_pca_obs(
     ----------
     raw : instance of Raw
         The raw data to process.
-    %(picks_all_data_noref)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
     qrs_times : ndarray, shape (n_peaks,)
         Array of times in the Raw data of detected R-peaks in ECG channel.
     n_components : int
         Number of PCA components to use to form the OBS (default 4).
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     copy : bool
         If False, modify the Raw instance in-place.
         If True (default), copy the raw instance before processing.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

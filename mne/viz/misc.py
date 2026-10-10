@@ -15,7 +15,6 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import filtfilt, freqz, group_delay, lfilter, sosfilt, sosfiltfilt
 
 from .._fiff.constants import FIFF
 from .._fiff.pick import (
@@ -23,7 +22,6 @@ from .._fiff.pick import (
     _picks_by_type,
     pick_channels,
     pick_info,
-    pick_types,
 )
 from .._fiff.proj import make_projector
 from .._freesurfer import _check_mri, _mri_orientation, _read_mri_info, _reorient_image
@@ -38,10 +36,10 @@ from ..utils import (
     _mask_to_onsets_offsets,
     _on_missing,
     _pl,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from .utils import (
@@ -53,18 +51,12 @@ from .utils import (
 )
 
 
-def _index_info_cov(info, cov, exclude):
-    if exclude == "bads":
-        exclude = info["bads"]
-    info = pick_info(info, pick_channels(info["ch_names"], cov["names"], exclude))
-    del exclude
+def _get_ch_type_metadata(info, ch_names):
+    """Get indices, titles, units, scalings, and types for plottable channel types."""
+    info_ch_names = info["ch_names"]
     picks_list = _picks_by_type(info, meg_combined=False, ref_meg=False, exclude=())
     picks_by_type = dict(picks_list)
 
-    ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
-    ch_idx = [cov.ch_names.index(n) for n in ch_names]
-
-    info_ch_names = info["ch_names"]
     idx_by_type = defaultdict(list)
     for ch_type, sel in picks_by_type.items():
         idx_by_type[ch_type] = [
@@ -72,22 +64,49 @@ def _index_info_cov(info, cov, exclude):
             for c in sel
             if info_ch_names[c] in ch_names
         ]
-    idx_names = [
-        (
-            idx_by_type[key],
-            f"{DEFAULTS['titles'][key]} covariance",
-            DEFAULTS["units"][key],
-            DEFAULTS["scalings"][key],
-            key,
+
+    indices = []
+    titles = []
+    units = []
+    scalings = []
+    ch_types = []
+    for key in _DATA_CH_TYPES_SPLIT:
+        if len(idx_by_type[key]) > 0:
+            indices.append(idx_by_type[key])
+            titles.append(DEFAULTS["titles"][key])
+            units.append(DEFAULTS["units"][key])
+            scalings.append(DEFAULTS["scalings"][key])
+            ch_types.append(key)
+    if len(indices) == 0:
+        raise RuntimeError(
+            "No plottable channel types found. "
+            f"Allowed types are: {_DATA_CH_TYPES_SPLIT}"
         )
-        for key in _DATA_CH_TYPES_SPLIT
-        if len(idx_by_type[key]) > 0
+    return indices, titles, units, scalings, ch_types
+
+
+def _index_info_cov(info, cov, exclude):
+    """Pick cov data and get metadata for present, plottable data channel types."""
+    if exclude == "bads":
+        exclude = info["bads"]
+    info = pick_info(info, pick_channels(info["ch_names"], cov["names"], exclude))
+    del exclude
+
+    ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
+    ch_idx = [cov.ch_names.index(n) for n in ch_names]
+
+    indices, titles, units, scalings, ch_types = _get_ch_type_metadata(info, ch_names)
+    idx_names = [
+        (idx, f"{title} covariance", unit, scaling, key)
+        for idx, title, unit, scaling, key in zip(
+            indices, titles, units, scalings, ch_types
+        )
     ]
     C = cov.data[ch_idx][:, ch_idx]
     return info, C, ch_names, idx_names
 
 
-@verbose
+@verbose_static("info_not_none")
 def plot_cov(
     cov,
     info,
@@ -104,7 +123,9 @@ def plot_cov(
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
@@ -117,7 +138,11 @@ def plot_cov(
         type. We show square roots ie. standard deviations.
     show : bool
         Show figure if True.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -596,7 +621,7 @@ def _plot_mri_contours(
         return figs
 
 
-@fill_doc
+@fill_doc_static("subject", "subjects_dir", "trans")
 def plot_bem(
     subject,
     subjects_dir=None,
@@ -615,8 +640,12 @@ def plot_bem(
 
     Parameters
     ----------
-    %(subject)s
-    %(subjects_dir)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int | None
@@ -635,7 +664,11 @@ def plot_bem(
         .. versionchanged:: 0.20
            All sources are shown on the nearest slice rather than some
            being omitted.
-    %(trans)s
+    trans : path-like | dict | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        If trans is None, an identity matrix is assumed.
 
         .. versionadded:: 1.10
     show : bool
@@ -757,7 +790,7 @@ def _get_bem_plotting_surfaces(bem_path):
     return surfaces
 
 
-@verbose
+@verbose_static("events", "on_missing_events")
 def plot_events(
     events,
     sfreq=None,
@@ -774,7 +807,9 @@ def plot_events(
 
     Parameters
     ----------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     sfreq : float | None
         The sample frequency. If None, data will be displayed in samples (not
         seconds).
@@ -798,8 +833,20 @@ def plot_events(
         Use equal spacing between events in y-axis.
     show : bool
         Show figure if True.
-    %(on_missing_events)s
-    %(verbose)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when event numbers from ``event_id`` are missing from
+        :term:`events`. When numbers from :term:`events` are missing from
+        ``event_id`` they will be ignored and a warning emitted; consider
+        using ``verbose='error'`` in this case.
+
+        .. versionadded:: 0.21
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1143,6 +1190,7 @@ def plot_filter(
     .. versionadded:: 0.14
     """
     import matplotlib.pyplot as plt
+    from scipy.signal import filtfilt, freqz, group_delay, lfilter, sosfilt, sosfiltfilt
 
     sfreq = float(sfreq)
     _check_option("fscale", fscale, ["log", "linear"])
@@ -1440,7 +1488,7 @@ def _handle_event_colors(color_dict, unique_events, event_id):
     return default_colors
 
 
-@fill_doc
+@fill_doc_static("info")
 def plot_csd(
     csd, info=None, mode="csd", colorbar=True, cmap=None, n_cols=None, show=True
 ):
@@ -1453,7 +1501,9 @@ def plot_csd(
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    %(info)s
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
         Used to split the figure by channel-type, if provided.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'
@@ -1483,39 +1533,16 @@ def plot_csd(
         raise ValueError('"mode" should be either "csd" or "coh".')
 
     if info is not None:
-        info_ch_names = info["ch_names"]
-        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude=[])
-        sel_mag = pick_types(info, meg="mag", eeg=False, ref_meg=False, exclude=[])
-        sel_grad = pick_types(info, meg="grad", eeg=False, ref_meg=False, exclude=[])
-        idx_eeg = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_eeg
-            if info_ch_names[c] in csd.ch_names
-        ]
-        idx_mag = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_mag
-            if info_ch_names[c] in csd.ch_names
-        ]
-        idx_grad = [
-            csd.ch_names.index(info_ch_names[c])
-            for c in sel_grad
-            if info_ch_names[c] in csd.ch_names
-        ]
-        indices = [idx_eeg, idx_mag, idx_grad]
-        titles = ["EEG", "Magnetometers", "Gradiometers"]
-
-        if mode == "csd":
-            # The units in which to plot the CSD
-            units = dict(eeg="µV²", grad="fT²/cm²", mag="fT²")
-            scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
+        indices, titles, units, scalings, ch_types = _get_ch_type_metadata(
+            info, csd.ch_names
+        )
     else:
         indices = [np.arange(len(csd.ch_names))]
+        units = [""]
+        scalings = [1]
+        ch_types = [None]
         if mode == "csd":
             titles = ["Cross-spectral density"]
-            # Units and scaling unknown
-            units = dict()
-            scalings = dict()
         elif mode == "coh":
             titles = ["Coherence"]
 
@@ -1526,10 +1553,9 @@ def plot_csd(
     n_rows = int(np.ceil(n_freqs / float(n_cols)))
 
     figs = []
-    for ind, title, ch_type in zip(indices, titles, ["eeg", "mag", "grad"]):
-        if len(ind) == 0:
-            continue
-
+    for ind, title, unit, scaling, ch_type in zip(
+        indices, titles, units, scalings, ch_types
+    ):
         fig, axes = plt.subplots(
             n_rows,
             n_cols,
@@ -1542,7 +1568,7 @@ def plot_csd(
         for i in range(len(csd.frequencies)):
             cm = csd.get_data(index=i)[ind][:, ind]
             if mode == "csd":
-                cm = np.abs(cm) * scalings.get(ch_type, 1)
+                cm = np.abs(cm) * scaling**2
             elif mode == "coh":
                 # Compute coherence from the CSD matrix
                 psd = np.diag(cm).real
@@ -1566,8 +1592,10 @@ def plot_csd(
             cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
             if mode == "csd":
                 label = "CSD"
-                if ch_type in units:
-                    label += f" ({units[ch_type]})"
+                if ch_type is not None:
+                    if "/" in unit:
+                        unit = f"({unit})"
+                    label += f" ({unit}²)"
                 cb.set_label(label)
             elif mode == "coh":
                 cb.set_label("Coherence")

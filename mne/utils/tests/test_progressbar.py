@@ -12,7 +12,7 @@ from mne.parallel import parallel_func
 from mne.utils import ProgressBar, array_split_idx, catch_logging, use_log_level
 
 
-def test_progressbar(monkeypatch):
+def test_progressbar_basic(monkeypatch):
     """Test progressbar class."""
     a = np.arange(10)
     pbar = ProgressBar(a)

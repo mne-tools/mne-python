@@ -1,0 +1,48 @@
+{
+  "merge_commit_sha": "f06fb38e360347f233350ac4275910907431c426",
+  "authors": [
+    {
+      "n": "Raphaël Bordas",
+      "e": "58235427+raphbrd@users.noreply.github.com",
+      "l": "raphbrd"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/statistics.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/dev/14226.newfeature.rst": {
+      "a": 3,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.pyi": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/label.py": {
+      "a": 130,
+      "d": 0
+    },
+    "mne/tests/test_label.py": {
+      "a": 121,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 5
+    }
+  }
+}

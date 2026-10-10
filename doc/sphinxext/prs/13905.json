@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "537d7fe05b14f4a1d60e9e1d517987f72362e490",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/13905.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13905.newfeature.rst": {
+      "a": 7,
+      "d": 0
+    },
+    "examples/visualization/evoked_topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 96,
+      "d": 43
+    },
+    "mne/report/report.py": {
+      "a": 113,
+      "d": 72
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 40,
+      "d": 22
+    },
+    "mne/viz/topomap.py": {
+      "a": 357,
+      "d": 334
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 5,
+      "d": 0
+    }
+  }
+}

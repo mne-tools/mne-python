@@ -136,7 +136,8 @@ def data_fun(times, latency, duration):
     sigma = 0.375 * duration
     sinusoid = np.sin(2 * np.pi * f * (times - latency))
     gf = np.exp(
-        -((times - latency - (sigma / 4.0) * rng.rand(1)) ** 2) / (2 * (sigma**2))
+        -((times - latency - rng.uniform(high=sigma / 4.0, size=1)) ** 2)
+        / (2 * (sigma**2))
     )
     return 1e-9 * sinusoid * gf
 
@@ -162,7 +163,7 @@ def data_fun(times, latency, duration):
 
 times = np.arange(150, dtype=np.float64) / info["sfreq"]
 duration = 0.03
-rng = np.random.RandomState(7)
+rng = np.random.default_rng(7)
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
 
 for region_id, region_name in enumerate(region_names, 1):
@@ -203,9 +204,9 @@ stc_data = source_simulator.get_stc()
 raw_sim = mne.simulation.simulate_raw(info, source_simulator, forward=fwd)
 raw_sim.set_eeg_reference(projection=True)
 
-mne.simulation.add_noise(raw_sim, cov=noise_cov, random_state=0)
-mne.simulation.add_eog(raw_sim, random_state=0)
-mne.simulation.add_ecg(raw_sim, random_state=0)
+mne.simulation.add_noise(raw_sim, cov=noise_cov, rng=211)
+mne.simulation.add_eog(raw_sim, rng=223)
+mne.simulation.add_ecg(raw_sim, rng=227)
 
 # Plot original and simulated raw data.
 raw_sim.plot(title="Simulated raw data")
@@ -215,7 +216,15 @@ raw_sim.plot(title="Simulated raw data")
 # --------------------------------------------
 #
 
-epochs = mne.Epochs(raw_sim, events, event_id, tmin=-0.2, tmax=0.3, baseline=(None, 0))
+epochs = mne.Epochs(
+    raw_sim,
+    events,
+    event_id,
+    tmin=-0.2,
+    tmax=0.3,
+    baseline=(None, 0),
+    on_outside="ignore",
+)
 evoked_aud_left = epochs["auditory/left"].average()
 evoked_vis_right = epochs["visual/right"].average()
 

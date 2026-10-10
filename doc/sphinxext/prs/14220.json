@@ -1,0 +1,44 @@
+{
+  "merge_commit_sha": "aa864bc673f28667b241fd79c10b22f667c6f965",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com",
+      "l": "BabaSanfour"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14220.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/proj.py": {
+      "a": 153,
+      "d": 42
+    },
+    "mne/tests/test_proj.py": {
+      "a": 261,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 4,
+      "d": 42
+    },
+    "mne/viz/topomap.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/preprocessing/45_projectors_background.py": {
+      "a": 10,
+      "d": 5
+    },
+    "tutorials/preprocessing/50_artifact_correction_ssp.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

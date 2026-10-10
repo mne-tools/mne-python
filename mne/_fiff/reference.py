@@ -2,6 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Literal
+
 import numpy as np
 
 from ..defaults import DEFAULTS
@@ -10,16 +13,25 @@ from ..utils import (
     _check_preload,
     _on_missing,
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     logger,
     pinv,
-    verbose,
+    verbose_static,
     warn,
 )
+from ..utils._typing import EEGSensor, LogLevel, RaiseWarnIgnore, RawEpoEvkT
 from .constants import FIFF
 from .meas_info import _check_ch_keys
-from .pick import _ELECTRODE_CH_TYPES, pick_channels, pick_channels_forward, pick_types
+from .pick import (
+    _ELECTRODE_CH_TYPES,
+    pick_channels,
+    pick_channels_forward,
+    pick_types,
+)
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj, setup_proj
+
+if TYPE_CHECKING:
+    from ..forward import Forward
 
 
 def _check_before_reference(inst, ref_from, ref_to, ch_type):
@@ -209,8 +221,12 @@ def _apply_dict_reference(inst, ref_dict):
     return inst, None
 
 
-@fill_doc
-def add_reference_channels(inst, ref_channels, copy=True):
+@fill_doc_static("ref_channels")
+def add_reference_channels(
+    inst: RawEpoEvkT,
+    ref_channels: str | list[str],
+    copy: bool = True,
+) -> RawEpoEvkT:
     """Add reference channels to data that consists of all zeros.
 
     Adds reference channels to data that were not included during recording.
@@ -221,15 +237,18 @@ def add_reference_channels(inst, ref_channels, copy=True):
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    %(ref_channels)s
+    ref_channels : str | list of str
+        Name of the electrode(s) which served as the reference in the
+        recording. If a name is provided, a corresponding channel is added
+        and its data is set to 0. This is useful for later re-referencing.
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
-        Data with added EEG reference channels.
+    inst : Raw | Epochs | Evoked
+        Same instance type as the input data, with added EEG reference channels.
 
     Notes
     -----
@@ -261,11 +280,13 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
     if isinstance(inst, BaseRaw | Evoked):
         data = inst._data
+        assert data is not None  # type checker unaware of _check_preload() above
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst._data = data
     elif isinstance(inst, BaseEpochs):
         data = inst._data
+        assert data is not None  # type checker unaware of _check_preload() above
         x, y, z = data.shape
         refs = np.zeros((x * len(ref_channels), z))
         data = np.vstack((data.reshape((x * y, z), order="F"), refs))
@@ -329,7 +350,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         picks = inst.picks
         inst.picks = np.concatenate([picks, np.max(picks) + range_])
     inst.info._check_consistency()
-    set_eeg_reference(inst, ref_channels=ref_channels, copy=False, verbose=False)
+    set_eeg_reference(inst, ref_channels=ref_channels, copy=False, verbose=False)  # type: ignore (narrowed RawEpoEvkT)
     return inst
 
 
@@ -340,7 +361,7 @@ _ref_dict = {
 }
 
 
-def _check_can_reref(inst):
+def _check_can_reref(inst: RawEpoEvkT):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..io import BaseRaw
@@ -357,18 +378,25 @@ def _check_can_reref(inst):
         )
 
 
-@verbose
+@verbose_static(
+    "ref_channels_set_eeg_reference",
+    "projection_set_eeg_reference",
+    "ch_type_set_eeg_reference",
+    "forward_set_eeg_reference",
+    "joint_set_eeg_reference",
+    "set_eeg_reference_see_also_notes",
+)
 def set_eeg_reference(
-    inst,
-    ref_channels="average",
-    copy=True,
-    projection=False,
-    ch_type="auto",
-    forward=None,
+    inst: RawEpoEvkT,
+    ref_channels: str | list[str] | dict[str, str | list[str]] = "average",
+    copy: bool = True,
+    projection: bool = False,
+    ch_type: Literal["auto"] | EEGSensor | Sequence[EEGSensor] = "auto",
+    forward: "Forward | None" = None,
     *,
-    joint=False,
-    verbose=None,
-):
+    joint: bool = False,
+    verbose: LogLevel = None,
+) -> tuple[RawEpoEvkT, np.ndarray | None]:
     """Specify which reference to use for EEG data.
 
     Use this function to explicitly specify the desired reference for EEG.
@@ -384,27 +412,144 @@ def set_eeg_reference(
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    %(ref_channels_set_eeg_reference)s
+    ref_channels : list of str | str | dict
+        Can be:
+
+        - The name(s) of the channel(s) used to construct the reference for
+          every channel of ``ch_type``.
+        - ``'average'`` to apply an average reference (default)
+        - ``'REST'`` to use the Reference Electrode Standardization Technique
+          infinity reference :footcite:`Yao2001`.
+        - A dictionary mapping names of data channels to (lists of) names of
+          reference channels. For example, {'A1': 'A3'} would replace the
+          data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+          the average of multiple channels as reference, supply a list of channel
+          names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+          channel A1 with ``A1 - mean(A2, A3)``.
+        - An empty list, in which case MNE will not attempt any re-referencing of
+          the data
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
-    %(projection_set_eeg_reference)s
-    %(ch_type_set_eeg_reference)s
-    %(forward_set_eeg_reference)s
-    %(joint_set_eeg_reference)s
-    %(verbose)s
+    projection : bool
+        If ``ref_channels='average'`` this argument specifies if the
+        average reference should be computed as a projection (True) or not
+        (False; default). If ``projection=True``, the average reference is
+        added as a projection and is not applied to the data (it can be
+        applied afterwards with the ``apply_proj`` method). If
+        ``projection=False``, the average reference is directly applied to
+        the data. If ``ref_channels`` is not ``'average'``, ``projection``
+        must be set to ``False`` (the default in this case).
+    ch_type : "auto" | "eeg" | "ecog" | "seeg" | "dbs" | sequence of str
+        The name of the channel type to apply the reference to.
+        Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
+        ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
+        that is found (in that order) will be selected.
+
+        .. versionadded:: 0.19
+        .. versionchanged:: 1.2
+           ``list-of-str`` is now supported with ``projection=True``.
+        .. versionchanged:: 1.13
+           ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+           now applies a per-channel-type reference by default (set ``joint=True``
+           for the previous union-of-types behavior).
+    forward : instance of Forward | None
+        Forward solution to use. Only used with ``ref_channels='REST'``.
+
+        .. versionadded:: 0.21
+    joint : bool
+        How to handle list-of-str ``ch_type``. If False (default), the reference is
+        computed per channel type (one projector per type when ``projection=True``;
+        one average reference subtracted per type when ``projection=False`` and
+        ``ref_channels="average"``). If True, a single reference is computed across
+        all listed channel types.
+
+        .. versionadded:: 1.2
+        .. versionchanged:: 1.13
+           Now also applies when ``projection=False``. Previously, the
+           ``projection=False`` path silently behaved as if ``joint=True``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
+    inst : same type as the input data
         Data with EEG channels re-referenced. If ``ref_channels="average"`` and
         ``projection=True`` a projection will be added instead of directly
         re-referencing the data.
-    ref_data : array
+    ref_data : None | array
         Array of reference data subtracted from EEG channels. This will be
-        ``None`` if ``projection=True``, or if ``ref_channels`` is ``"REST"`` or a
-        :class:`dict`.
-    %(set_eeg_reference_see_also_notes)s
+        ``None`` if ``projection=True``, if ``ref_channels`` is ``"REST"`` or a
+        :class:`dict`, or if a per-channel-type average reference was applied
+        (``ref_channels="average"`` with a multi-type ``ch_type`` and
+        ``joint=False``).
+
+    See Also
+    --------
+    mne.set_bipolar_reference : Convenience function for creating bipolar
+                            references.
+
+    Notes
+    -----
+    Some common referencing schemes and the corresponding value for the
+    ``ref_channels`` parameter:
+
+    - Average reference:
+        A new virtual reference electrode is created by averaging the current
+        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+        automatically excluded if they are properly set in ``info['bads']``.
+
+    .. note::
+        When performing average referencing in sensor-space analyses, the original
+        reference electrode should be present as a zero-filled channel. If it is
+        not, this must first be added using :func:`~mne.add_reference_channels`,
+        before calling :func:`~mne.set_eeg_reference`. This is necessary to avoid
+        biasing the reference :footcite:`KimEtAl2023`.
+
+    - A single electrode:
+        Set ``ref_channels`` to a list containing the name of the channel that
+        will act as the new reference, for example ``ref_channels=['Cz']``.
+
+    - The mean of multiple electrodes:
+        A new virtual reference electrode is created by computing the average
+        of the current EEG signal recorded from two or more selected channels.
+        Set ``ref_channels`` to a list of channel names, indicating which
+        channels to use. For example, to apply an average mastoid reference,
+        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
+
+    - REST
+        The given EEG electrodes are referenced to a point at infinity using the
+        lead fields in ``forward``, which helps standardize the signals.
+
+    - Different references for different channels
+        Set ``ref_channels`` to a dictionary mapping source channel names (str)
+        to the reference channel names (str or list of str). Unlike the other
+        approaches where the same reference is applied globally, you can set
+        different references for different channels with this method. For example,
+        to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+        'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+        issued when a mapping involves bad channels or channels of different types.
+
+    1. If a reference is requested that is not the average reference, this
+       function removes any pre-existing average reference projections.
+
+    2. During source localization, the EEG signal should have an average
+       reference.
+
+    3. In order to apply a reference, the data must be preloaded. This is not
+       necessary if ``ref_channels='average'`` and ``projection=True``.
+
+    4. For an average or REST reference, bad EEG channels are automatically
+       excluded if they are properly set in ``info['bads']``.
+
+    .. versionadded:: 0.9.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     from ..forward import Forward
 
@@ -413,6 +558,10 @@ def set_eeg_reference(
     if isinstance(ref_channels, dict):
         logger.info("Applying a custom dict-based reference.")
         return _apply_dict_reference(inst, ref_channels)
+
+    # We need 'ref_channels' to be a list, even for a single channel name.
+    if isinstance(ref_channels, str) and ref_channels not in ("average", "REST"):
+        ref_channels = [ref_channels]
 
     ch_type = _get_ch_type(inst, ch_type)
 
@@ -465,13 +614,31 @@ def set_eeg_reference(
     del projection  # not used anymore
 
     inst = inst.copy() if copy else inst
-    ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
-    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels == "REST":
         _validate_type(forward, Forward, 'forward when ref_channels="REST"')
     else:
         forward = None  # signal to _apply_reference not to do REST
+
+    # When ch_type is a list of >1 types and ref_channels="average", default to
+    # computing one reference per channel type so each subset is referenced
+    # independently. Mirrors the projection=True path. Pass joint=True to keep
+    # the legacy union-of-types behavior.
+    if ref_channels == "average" and len(ch_type) > 1 and not joint:
+        for this_ch_type in ch_type:
+            ch_dict = {this_ch_type: True}
+            ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
+            logger.info(
+                f"Applying average reference for "
+                f"{DEFAULTS['titles'][this_ch_type]} channels."
+            )
+            inst, _ = _apply_reference(
+                inst, ch_sel, ch_sel, forward, ch_type=[this_ch_type]
+            )
+        return inst, None
+
+    ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
+    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels in ("average", "REST"):
         logger.info(f"Applying {ref_channels} reference.")
@@ -519,18 +686,18 @@ def _get_ch_type(inst, ch_type):
     return ch_type
 
 
-@verbose
+@verbose_static()
 def set_bipolar_reference(
-    inst,
-    anode,
-    cathode,
-    ch_name=None,
-    ch_info=None,
-    drop_refs=True,
-    copy=True,
-    on_bad="warn",
-    verbose=None,
-):
+    inst: RawEpoEvkT,
+    anode: str | list[str],
+    cathode: str | list[str],
+    ch_name: str | list[str] | None = None,
+    ch_info: dict[str, Any] | list[dict[str, Any]] | None = None,
+    drop_refs: bool = True,
+    copy: bool = True,
+    on_bad: RaiseWarnIgnore = "warn",
+    verbose: LogLevel = None,
+) -> RawEpoEvkT:
     """Re-reference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -568,15 +735,19 @@ def set_bipolar_reference(
         (False). Defaults to True.
     on_bad : str
         If a bipolar channel is created from a bad anode or a bad cathode, mne
-        warns if on_bad="warns", raises ValueError if on_bad="raise", and does
+        warns if on_bad="warn", raises ValueError if on_bad="raise", and does
         nothing if on_bad="ignore". For "warn" and "ignore", the new bipolar
-        channel will be marked as bad. Defaults to on_bad="warns".
-    %(verbose)s
+        channel will be marked as bad. Defaults to on_bad="warn".
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    inst : instance of Raw | Epochs | Evoked
-        Data with the specified channels re-referenced.
+    inst : Raw | Epochs | Evoked
+        Same instance type as the input data, with the specified channels re-referenced.
 
     See Also
     --------
@@ -686,6 +857,7 @@ def set_bipolar_reference(
         ref_info.update(pick_info)
 
     # Rereferencing of data.
+    assert inst._data is not None  # type checker unaware of _check_before_reference()
     ref_data = multiplier @ inst._data
 
     if isinstance(inst, BaseRaw):

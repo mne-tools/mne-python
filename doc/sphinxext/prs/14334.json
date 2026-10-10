@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "f6351db048a772f9c28d72c8477d3124913975be",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": "4377312+cbrnr@users.noreply.github.com",
+      "l": "cbrnr"
+    }
+  ],
+  "changes": {
+    ".github/workflows/sponsor_review.yml": {
+      "a": 32,
+      "d": 0
+    },
+    "tools/dev/generate_sponsor_review.py": {
+      "a": 61,
+      "d": 0
+    }
+  }
+}

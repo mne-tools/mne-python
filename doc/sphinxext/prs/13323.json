@@ -1,0 +1,275 @@
+{
+  "merge_commit_sha": "cfa2a2bc656c5980a1c74b8640bc11dcbe75476f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 7,
+      "d": 5
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 16,
+      "d": 13
+    },
+    "doc/_static/flow_diagram.svg": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.20.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.24.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v0.9.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.1.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.10.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.3.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v1.4.rst": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/v1.8.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/documentation/glossary.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/help/faq.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/install/freesurfer.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/mne_cpp.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/flow_diagram.py": {
+      "a": 2,
+      "d": 2
+    },
+    "examples/visualization/brain.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_freesurfer.py": {
+      "a": 12,
+      "d": 12
+    },
+    "mne/bem.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/channels/tests/test_channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_flash_bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_freeview_bem_surfaces.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_surf2bem.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/commands/mne_sys_info.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/conftest.py": {
+      "a": 71,
+      "d": 19
+    },
+    "mne/datasets/_fsaverage/base.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/decoding/tests/test_search_light.py": {
+      "a": 0,
+      "d": 5
+    },
+    "mne/decoding/tests/test_ssd.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 6,
+      "d": 14
+    },
+    "mne/io/fiff/tests/test_raw_fiff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/label.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/preprocessing/ieeg/_volume.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/tests/test_bem.py": {
+      "a": 15,
+      "d": 17
+    },
+    "mne/tests/test_freesurfer.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_surface.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/utils/_testing.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/utils/config.py": {
+      "a": 67,
+      "d": 56
+    },
+    "mne/utils/docs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 15,
+      "d": 5
+    },
+    "mne/utils/tests/test_numerics.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/utils/tests/test_progressbar.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 11,
+      "d": 7
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/check_qt_import.sh": {
+      "a": 4,
+      "d": 0
+    },
+    "tools/get_minimal_commands.sh": {
+      "a": 10,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 13,
+      "d": 6
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 19,
+      "d": 4
+    },
+    "tools/github_actions_verify_python.sh": {
+      "a": 15,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/clinical/20_seeg.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/forward/20_source_alignment.py": {
+      "a": 5,
+      "d": 5
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/forward/50_background_freesurfer_mne.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tutorials/inverse/70_eeg_mri_coords.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

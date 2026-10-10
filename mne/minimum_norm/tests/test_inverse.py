@@ -26,6 +26,7 @@ from mne import (
     compute_rank,
     compute_raw_covariance,
     convert_forward_solution,
+    create_info,
     make_ad_hoc_cov,
     make_forward_solution,
     make_sphere_model,
@@ -35,11 +36,12 @@ from mne import (
     read_cov,
     read_evokeds,
     read_forward_solution,
+    setup_volume_source_space,
 )
+from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
-from mne.fixes import _reshape_view
 from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
 from mne.io import read_info, read_raw_fif
 from mne.label import label_sign_flip, read_label
@@ -355,7 +357,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
     # so we don't need to create those from scratch. Just reorder them,
     # then try to apply the original inverse operator
     new_order = np.arange(len(evoked.info["ch_names"]))
-    randomiser = np.random.RandomState(42)
+    randomiser = np.random.default_rng(42)
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
     with evoked.info._unlock(update_redundant=True, check_after=True):
@@ -877,7 +879,29 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
     assert "EEG channels: 0" in repr(inv_op)
     assert "MEG channels: 305" in repr(inv_op)
     assert "Fixed" in repr(inv_op)
-    del fwd_fixed
+
+    # uniform source_cov should be equivalent to the default (None)
+    kwargs = dict(depth=0.0, fixed=True, use_cps=False)
+    inv_op_ones = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=np.ones(fwd["nsource"]), **kwargs
+    )
+    _compare_inverses_approx(inv_op, inv_op_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale the final source covariance
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[0] = 4.0
+    inv_op_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=source_cov, **kwargs
+    )
+    got = inv_op_scaled["source_cov"]["data"]
+    assert_allclose(got / got[1], source_cov)
+    with pytest.raises(ValueError, match="must have shape"):
+        make_inverse_operator(evoked.info, fwd, noise_cov, source_cov=[1.0], **kwargs)
+    with pytest.raises(ValueError, match="finite, positive"):
+        make_inverse_operator(
+            evoked.info, fwd, noise_cov, source_cov=-source_cov, **kwargs
+        )
+    del fwd_fixed, inv_op_ones, inv_op_scaled, source_cov, kwargs
+
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
     # assert 'EEG channels: 0' in repr(inverse_operator_nodepth)
@@ -929,6 +953,25 @@ def test_make_inverse_operator_free(evoked, noise_cov):
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
         stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
         assert_allclose(stc_surf.data, stc.data, atol=1e-2)
+
+    # uniform source_cov should be equivalent to the default (None)
+    inv_ones = make_inverse_operator(
+        evoked.info,
+        fwd,
+        noise_cov,
+        depth=None,
+        loose=1.0,
+        source_cov=np.ones(fwd["nsource"]),
+    )
+    _compare_inverses_approx(inv, inv_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale all three orientations of a source
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[-1] = 5.0
+    inv_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, depth=None, loose=1.0, source_cov=source_cov
+    )
+    got = inv_scaled["source_cov"]["data"]
+    assert_allclose(got / got[0], np.repeat(source_cov, 3))
 
 
 @pytest.mark.slowtest
@@ -1078,7 +1121,7 @@ def test_io_inverse_operator(tmp_path):
     _compare_io(inverse_operator, out_file_ext=".gz", tmp_path=tmp_path)
 
     # test warnings on bad filenames
-    inv_badname = tmp_path / "test-bad-name.fif.gz"
+    inv_badname = tmp_path / "test-bad-name.fif"
     with pytest.warns(RuntimeWarning, match="-inv.fif"):
         write_inverse_operator(inv_badname, inverse_operator)
     with pytest.warns(RuntimeWarning, match="-inv.fif"):
@@ -1701,7 +1744,7 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
         assert ori.shape == (ori.shape[0], 3)
         ori = ori[max_idx]
     assert ori.shape == (max_idx.size, 3)
-    ori = _reshape_view(ori, (max_idx.size // 3, 3, 3))
+    ori = ori.reshape((max_idx.size // 3, 3, 3), copy=False)
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu
@@ -1726,3 +1769,38 @@ def test_allow_mixed_source_spaces(mixed_fwd_cov_evoked):
     inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.0)
     stc = apply_inverse(evoked, inv_op, lambda2=1.0 / 9.0)  # normal
     assert (stc.data < 0).any()
+
+
+@testing.requires_testing_data
+def test_make_inverse_no_meg(tmp_path):
+    """Test that we can make and I/O forward solution with no MEG channels."""
+    pos = dict(rr=[[0.05, 0, 0]], nn=[[0, 0, 1.0]])
+    src = setup_volume_source_space(pos=pos)
+    bem = make_sphere_model()
+    trans = None
+    montage = make_standard_montage("spherical_1020")
+    info = create_info(["Cz", "Fz"], 1000.0, "eeg").set_montage(montage)
+    data = np.random.default_rng(0).standard_normal((len(info["ch_names"]), 10))
+    evoked = EvokedArray(data, info)
+    evoked.set_eeg_reference(projection=True)
+    del info, data
+    fwd = make_forward_solution(evoked.info, trans, src, bem)
+    assert fwd["info"]["dev_head_t"] is None
+    cov = make_ad_hoc_cov(evoked.info)
+    # Ensure we maintain backward-compatible behavior with when we *did* save
+    # the forward with an identity dev_head_t
+    fname = tmp_path / "test-inv.fif"
+    invs = list()
+    for dev_head_t in (None, mne.Transform("meg", "head")):
+        fwd["info"]["dev_head_t"] = dev_head_t
+        inv = make_inverse_operator(evoked.info, fwd, cov)
+        assert inv["info"]["dev_head_t"] == dev_head_t
+        stc = apply_inverse(evoked, inv, lambda2=1.0 / 9.0)
+        assert stc.data.shape == (1, 10)
+        write_inverse_operator(fname, inv, overwrite=True)
+        inv_read = read_inverse_operator(fname)
+        assert inv_read["info"]["dev_head_t"] == dev_head_t
+        invs.append(inv)
+    assert invs[1]["info"]["dev_head_t"] is not None
+    invs[1]["info"]["dev_head_t"] = None  # for comparison
+    _compare(invs[0], invs[1])

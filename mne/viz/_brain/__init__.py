@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ._brain import Brain, _LayeredMesh
+from ._brain import Brain, LayeredMesh
 from ._scraper import _BrainScraper
 from ._linkviewer import _LinkViewer
 

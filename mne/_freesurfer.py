@@ -1,4 +1,4 @@
-"""Freesurfer handling functions."""
+"""FreeSurfer handling functions."""
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
@@ -16,8 +16,10 @@ from .surface import _read_mri_surface, read_surface
 from .transforms import (
     Transform,
     _ensure_trans,
+    _trans_from_params,
     apply_trans,
     combine_transforms,
+    fit_matched_points,
     invert_transform,
     read_ras_mni_t,
 )
@@ -28,17 +30,17 @@ from .utils import (
     _validate_type,
     get_subjects_dir,
     logger,
-    verbose,
+    verbose_static,
 )
 
 
 def _check_subject_dir(subject, subjects_dir):
-    """Check that the Freesurfer subject directory is as expected."""
+    """Check that the FreeSurfer subject directory is as expected."""
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
     for img_name in ("T1", "brain", "aseg"):
         if not (subjects_dir / subject / "mri" / f"{img_name}.mgz").is_file():
             raise ValueError(
-                "Freesurfer recon-all subject folder "
+                "FreeSurfer recon-all subject folder "
                 "is incorrect or improperly formatted, "
                 f"got {subjects_dir / subject}"
             )
@@ -219,7 +221,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
         If True returns also the labels colors.
     atlas_ids : dict | None
         A lookup table providing a mapping from region names (str) to ID values
-        (int). Can be None to use the standard Freesurfer LUT.
+        (int). Can be None to use the standard FreeSurfer LUT.
 
         .. versionadded:: 0.21.0
 
@@ -271,7 +273,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
 # Head to MRI volume conversion
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def head_to_mri(
     pos,
     subject,
@@ -288,10 +290,14 @@ def head_to_mri(
     ----------
     pos : array, shape (n_pos, 3)
         The coordinates (in m) in head coordinate system.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     kind : str
         The  MRI coordinate frame kind, can be ``'mri'`` (default) for
         FreeSurfer surface RAS or ``'ras'`` (default in 1.2) to use MRI RAS
@@ -304,7 +310,11 @@ def head_to_mri(
         the original/surrogate subject's MRI space.
 
         .. versionadded:: 1.2
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -342,7 +352,7 @@ def head_to_mri(
 # Surface to MNI conversion
 
 
-@verbose
+@verbose_static("subject")
 def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates.
 
@@ -352,10 +362,15 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
         Vertex number(s) to convert.
     hemis : int, or list of int
         Hemisphere(s) the vertices belong to.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     subjects_dir : str, or None
         Path to ``SUBJECTS_DIR`` if it is not set in the environment.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -393,7 +408,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
 # Volume to MNI conversion
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def head_to_mni(pos, subject, mri_head_t, subjects_dir=None, verbose=None):
     """Convert pos from head coordinate system to MNI ones.
 
@@ -401,11 +416,19 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None, verbose=None):
     ----------
     pos : array, shape (n_pos, 3)
         The coordinates (in m) in head coordinate system.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
-    %(subjects_dir)s
-    %(verbose)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -428,15 +451,23 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None, verbose=None):
     return apply_trans(head_mni_t, pos) * 1000.0
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     """Estimate fiducials for a subject.
 
     Parameters
     ----------
-    %(subject)s
-    %(subjects_dir)s
-    %(verbose)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -477,23 +508,34 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     return fids
 
 
-@verbose
+@verbose_static("subject", "subjects_dir", "trans_not_none")
 def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     """Estimate the head->mri transform from fsaverage fiducials.
 
-    A subject's fiducials can be estimated given a Freesurfer ``recon-all``
+    A subject's fiducials can be estimated given a FreeSurfer ``recon-all``
     by transforming ``fsaverage`` fiducials using the inverse Talairach
     transform, see :func:`mne.coreg.get_mni_fiducials`.
 
     Parameters
     ----------
-    %(subject)s
-    %(subjects_dir)s
-    %(verbose)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(trans_not_none)s
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
     """
     from .channels.montage import compute_native_head_t, make_dig_montage
 
@@ -524,15 +566,19 @@ def _get_affine_from_lta_info(lines):
     return affine
 
 
-@verbose
+@verbose_static()
 def read_lta(fname, verbose=None):
-    """Read a Freesurfer linear transform array file.
+    """Read a FreeSurfer linear transform array file.
 
     Parameters
     ----------
     fname : path-like
         The transform filename.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -561,15 +607,23 @@ def read_lta(fname, verbose=None):
     return affine
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def read_talxfm(subject, subjects_dir=None, verbose=None):
     """Compute MRI-to-MNI transform from FreeSurfer talairach.xfm file.
 
     Parameters
     ----------
-    %(subject)s
-    %(subjects_dir)s
-    %(verbose)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -583,7 +637,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     ras_mni_t = read_ras_mni_t(subject, subjects_dir)
     ras_mni_t["trans"][:3, 3] /= 1000.0  # mm->m
 
-    # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
+    # We want to get from FreeSurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
     # Se we need to get the ras->mri transform from the MRI headers.
 
@@ -600,7 +654,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
 
 def _check_mri(mri, subject, subjects_dir) -> str:
-    """Check whether an mri exists in the Freesurfer subject directory."""
+    """Check whether an mri exists in the FreeSurfer subject directory."""
     _validate_type(mri, "path-like", mri)
     mri = Path(mri)
     if mri.is_file() and mri.name != mri:
@@ -668,12 +722,12 @@ def _read_mri_info(path, units="m", return_img=False, use_nibabel=False):
 
 
 def read_freesurfer_lut(fname=None):
-    """Read a Freesurfer-formatted LUT.
+    """Read a FreeSurfer-formatted LUT.
 
     Parameters
     ----------
     fname : path-like | None
-        The filename. Can be None to read the standard Freesurfer LUT.
+        The filename. Can be None to read the standard FreeSurfer LUT.
 
     Returns
     -------
@@ -720,20 +774,28 @@ def _get_lut(fname=None):
     return lut
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
-    """Get a head surface from the Freesurfer subject directory.
+    """Get a head surface from the FreeSurfer subject directory.
 
     Parameters
     ----------
     surf : str
         The name of the surface 'auto', 'head', 'outer_skin', 'head-dense'
         or 'seghead'.
-    %(subject)s
-    %(subjects_dir)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     bem : mne.bem.ConductorModel | None
         The conductor model that stores information about the head surface.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -794,19 +856,27 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     )
 
 
-@verbose
+@verbose_static("subject", "subjects_dir")
 def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
-    """Get a skull surface from the Freesurfer subject directory.
+    """Get a skull surface from the FreeSurfer subject directory.
 
     Parameters
     ----------
     surf : str
         The name of the surface 'outer' or 'inner'.
-    %(subject)s
-    %(subjects_dir)s
+    subject : str
+        The FreeSurfer subject name.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     bem : mne.bem.ConductorModel | None
         The conductor model that stores information about the skull surface.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -841,8 +911,6 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
 
 
 def _estimate_talxfm_rigid(subject, subjects_dir):
-    from .coreg import _trans_from_params, fit_matched_points
-
     xfm = read_talxfm(subject, subjects_dir)
     # XYZ+origin + halfway
     pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])

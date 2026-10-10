@@ -1,0 +1,1 @@
+:func:`mne.datasets.lite_data.data_path` is deprecated and will be removed in MNE 1.15; the documentation build now serves the browser notebooks from the regular datasets, by `Eric Larson`_.

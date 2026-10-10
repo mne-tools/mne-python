@@ -3,18 +3,24 @@
 # Copyright the MNE-Python contributors.
 
 import re as re
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 from ..._fiff.meas_info import create_info
 from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import _check_fname, fill_doc, logger, verbose
+from ...utils import _check_fname, _verbose_control, fill_doc_static, logger
 from ..base import BaseRaw
 
 
-@fill_doc
-def read_raw_boxy(fname, preload=False, verbose=None) -> "RawBOXY":
+@fill_doc_static("preload", "verbose")
+def read_raw_boxy(
+    fname: Path | str,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+) -> "RawBOXY":
     """Reader for an optical imaging recording.
 
     This function has been tested using the ISS Imagent I and II systems
@@ -24,8 +30,25 @@ def read_raw_boxy(fname, preload=False, verbose=None) -> "RawBOXY":
     ----------
     fname : path-like
         Path to the BOXY data file.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -40,7 +63,7 @@ def read_raw_boxy(fname, preload=False, verbose=None) -> "RawBOXY":
     return RawBOXY(fname, preload, verbose)
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawBOXY(BaseRaw):
     """Raw object from a BOXY optical imaging file.
 
@@ -48,22 +71,39 @@ class RawBOXY(BaseRaw):
     ----------
     fname : path-like
         Path to the BOXY data file.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, preload=False, verbose=None):
         logger.info(f"Loading {fname}")
 
         # Read header file and grab some info.
         start_line = np.inf
         col_names = mrk_col = filetype = mrk_data = end_line = None
-        raw_extras = dict()
+        raw_extras: dict[str, Any] = dict()
         raw_extras["offsets"] = list()  # keep track of our offsets
         sfreq = None
         fname = str(_check_fname(fname, "read", True, "fname"))
@@ -80,6 +120,7 @@ class RawBOXY(BaseRaw):
                         end_line = line_num
                         break
                     if mrk_col is not None:
+                        assert mrk_data is not None
                         if filetype == "non-parsed":
                             # Non-parsed files have different lines lengths.
                             crnt_line = i_line.rsplit(" ")[0]
@@ -164,6 +205,7 @@ class RawBOXY(BaseRaw):
             ch["cal"] = cal
 
         # Determine how long our data is.
+        assert end_line is not None
         delta = end_line - start_line
         assert len(raw_extras["offsets"]) == delta + 1
         if filetype == "non-parsed":

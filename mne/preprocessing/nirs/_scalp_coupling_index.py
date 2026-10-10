@@ -5,18 +5,18 @@
 import numpy as np
 
 from ...io import BaseRaw
-from ...utils import _validate_type, verbose
+from ...utils import _validate_type, _verbose_safe_false, verbose_static
 from ..nirs import _channel_frequencies, _validate_nirs_info
 
 
-@verbose
+@verbose_static("l_freq", "h_freq", "l_trans_bandwidth", "h_trans_bandwidth")
 def scalp_coupling_index(
     raw,
     l_freq=0.7,
     h_freq=1.5,
     l_trans_bandwidth=0.3,
     h_trans_bandwidth=0.3,
-    verbose=False,
+    verbose=None,
 ):
     r"""Calculate scalp coupling index.
 
@@ -28,11 +28,33 @@ def scalp_coupling_index(
     ----------
     raw : instance of Raw
         The raw data.
-    %(l_freq)s
-    %(h_freq)s
-    %(l_trans_bandwidth)s
-    %(h_trans_bandwidth)s
-    %(verbose)s
+    l_freq : float | None
+        For FIR filters, the lower pass-band edge; for IIR filters, the lower
+        cutoff frequency. If None the data are only low-passed.
+    h_freq : float | None
+        For FIR filters, the upper pass-band edge; for IIR filters, the upper
+        cutoff frequency. If None the data are only high-passed.
+    l_trans_bandwidth : float | str
+        Width of the transition band at the low cut-off frequency in Hz
+        (high pass or cutoff 1 in bandpass). Can be "auto"
+        (default) to use a multiple of ``l_freq``::
+
+            min(max(l_freq * 0.25, 2), l_freq)
+
+        Only used for ``method='fir'``.
+    h_trans_bandwidth : float | str
+        Width of the transition band at the high cut-off frequency in Hz
+        (low pass or cutoff 2 in bandpass). Can be "auto"
+        (default in 0.14) to use a multiple of ``h_freq``::
+
+            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+        Only used for ``method='fir'``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -53,7 +75,7 @@ def scalp_coupling_index(
         h_freq,
         l_trans_bandwidth=l_trans_bandwidth,
         h_trans_bandwidth=h_trans_bandwidth,
-        verbose=verbose,
+        verbose=_verbose_safe_false(),
     ).get_data()
 
     # Determine number of wavelengths per source-detector pair

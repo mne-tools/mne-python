@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "ddcefca90a609e107e129c59afb13f9445c95ad8",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14032.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/visualization/topo_compare_conditions.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/tests/test_topo.py": {
+      "a": 9,
+      "d": 8
+    },
+    "mne/viz/topo.py": {
+      "a": 32,
+      "d": 9
+    }
+  }
+}

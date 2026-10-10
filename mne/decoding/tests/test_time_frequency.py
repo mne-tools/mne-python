@@ -10,8 +10,8 @@ from numpy.testing import assert_array_equal
 pytest.importorskip("sklearn")
 
 from sklearn.base import clone
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.time_frequency import TimeFrequency
 
 
@@ -22,7 +22,8 @@ def test_timefrequency_basic():
     freqs = [20, 21, 22]
     tf = TimeFrequency(freqs, sfreq=100)
     n_epochs, n_chans, n_times = 10, 2, 100
-    X = np.random.rand(n_epochs, n_chans, n_times)
+    rng = np.random.default_rng(0)
+    X = rng.random((n_epochs, n_chans, n_times))
     for output in ["avg_power", "foo", None]:
         tf = TimeFrequency(freqs, output=output)
         with pytest.raises(ValueError, match="Invalid value"):

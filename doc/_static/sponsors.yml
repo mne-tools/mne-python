@@ -1,0 +1,153 @@
+current:
+    - nih
+    - nsf
+    - aalto
+    - aalto_dk
+    - donders
+    - graz
+    - uw
+    - uw_dk
+sponsors:
+    amazon:
+        img: amazon.svg
+        title: Amazon
+    anr:
+        img: anr.svg
+        title: Agence Nationale de la Recherche
+    cds:
+        dark: cds-dark.svg
+        light: cds.svg
+        title: Paris-Saclay Center for Data Science
+    czi:
+        img: czi.svg
+        title: Chan Zuckerberg Initiative
+    doe:
+        img: doe.svg
+        title: US Department of Energy
+    erc:
+        dark: erc-dark.svg
+        light: erc.svg
+        title: European Research Council
+    google:
+        img: google.svg
+        title: Google
+    nih:
+        img: nih.svg
+        title: National Institutes of Health
+    nsf:
+        img: NSF.svg
+        title: US National Science Foundation
+partner_institutions:
+    aalto:
+        dark: Aalto-dark.svg
+        light: Aalto.svg
+        title: Aalto-yliopiston perustieteiden korkeakoulu
+        url: https://sci.aalto.fi/
+    aarhus:
+        dark: Aarhus-dark.svg
+        light: Aarhus.svg
+        title: Aarhus Universitet
+        url: https://www.au.dk/
+    aestudio:
+        dark: AE-Studio-dark.svg
+        light: AE-Studio-light.svg
+        title: AE Studio
+        url: https://ae.studio/
+    bids:
+        dark: BIDS-dark.svg
+        light: BIDS.svg
+        title: Berkeley Institute for Data Science
+        url: https://bids.berkeley.edu/
+    bu:
+        img: BU.svg
+        title: Boston University
+        url: https://www.bu.edu/
+    cea:
+        img: CEA.png
+        title: Commissariat à l´énergie atomique et aux énergies alternatives
+        url: http://www.cea.fr/
+    chop:
+        dark: CHOP-dark.svg
+        light: CHOP.svg
+        title: Children’s Hospital of Philadelphia Research Institute
+        url: https://www.research.chop.edu/imaging
+    donders:
+        img: Donders.svg
+        title: Donders Institute for Brain, Cognition and Behaviour at Radboud University
+        url: https://www.ru.nl/donders/
+    fcbg:
+        img: FCBG.svg
+        title: Fondation Campus Biotech Geneva
+        url: https://fcbg.ch/
+    graz:
+        img: Graz.svg
+        title: Karl-Franzens-Universität Graz
+        url: https://www.uni-graz.at/
+    harvard:
+        img: Harvard.png
+        title: Harvard Medical School
+        url: https://hms.harvard.edu/
+    icm:
+        img: ICM.png
+        title: Institut du Cerveau et de la Moelle épinière
+        url: https://icm-institute.org/
+    inria:
+        img: inria.png
+        title: Institut national de recherche en informatique et en automatique
+        url: https://www.inria.fr/
+    inserm:
+        dark: Inserm-dark.svg
+        light: Inserm.svg
+        title: Institut national de la santé et de la recherche médicale
+        url: https://www.inserm.fr/
+    julich:
+        dark: Julich-dark.svg
+        light: Julich.svg
+        title: Forschungszentrum Jülich
+        url: https://www.fz-juelich.de/
+    macq:
+        dark: Macquarie-dark.svg
+        light: Macquarie.svg
+        title: Macquarie University
+        url: https://www.mq.edu.au/
+    martinos:
+        img: Martinos.png
+        title: Athinoula A. Martinos Center for Biomedical Imaging
+        url: https://martinos.org/
+    mgh:
+        img: MGH.svg
+        title: Massachusetts General Hospital
+        url: https://www.massgeneral.org/
+    mit:
+        img: MIT.svg
+        title: Massachusetts Institute of Technology
+        url: https://web.mit.edu/
+    mpib:
+        dark: MPIB-dark.svg
+        light: MPIB.svg
+        title: Max-Planck-Institut für Bildungsforschung
+        url: https://www.mpib-berlin.mpg.de/
+    nyu:
+        dark: NYU-dark.svg
+        light: NYU.svg
+        title: New York University
+        url: https://www.nyu.edu/
+    swps:
+        dark: SWPS-dark.svg
+        light: SWPS.svg
+        title: SWPS Uniwersytet Humanistycznospołeczny
+        url: https://www.swps.pl/
+    tpt:
+        img: Telecom_Paris_Tech.svg
+        title: Télécom ParisTech
+        url: https://www.telecom-paris.fr/
+    tui:
+        dark: Ilmenau-dark.svg
+        light: Ilmenau.svg
+        title: Technische Universität Ilmenau
+        url: https://www.tu-ilmenau.de/
+    uw:
+        dark: Washington-dark.svg
+        light: Washington.svg
+        title: Institute for Learning & Brain Sciences at University of Washington
+        url: https://ilabs.uw.edu/

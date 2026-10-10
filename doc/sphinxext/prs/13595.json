@@ -1,0 +1,47 @@
+{
+  "merge_commit_sha": "8b8edb0a70e2fabb4d6c80a5d72caf63349a4a5e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/changes/dev/13595.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/minimum_norm/tests/test_inverse.py": {
+      "a": 20,
+      "d": 6
+    },
+    "mne/tests/test_cov.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 6,
+      "d": 10
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 18,
+      "d": 2
+    },
+    "mne/viz/utils.py": {
+      "a": 20,
+      "d": 14
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 0,
+      "d": 4
+    }
+  }
+}

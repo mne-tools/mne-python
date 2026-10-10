@@ -1,0 +1,48 @@
+{
+  "merge_commit_sha": "a93adbdf826f2df8d4a3427f7ebc438bdd98fd95",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14262.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 19,
+      "d": 15
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/utils/mixin.py": {
+      "a": 18,
+      "d": 7
+    }
+  }
+}

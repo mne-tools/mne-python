@@ -27,13 +27,14 @@ from .utils import (
     _check_fname,
     _check_option,
     _validate_type,
+    _verbose_control,
     check_fname,
     logger,
-    verbose,
+    verbose_static,
 )
 
 
-@verbose
+@verbose_static()
 def read_proj(fname, *, verbose=None):
     """Read projections from a FIF file.
 
@@ -42,7 +43,11 @@ def read_proj(fname, *, verbose=None):
     fname : path-like
         The name of file containing the projections vectors. It should end with
         ``-proj.fif`` or ``-proj.fif.gz``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -64,7 +69,7 @@ def read_proj(fname, *, verbose=None):
     return projs
 
 
-@verbose
+@verbose_static("overwrite")
 def write_proj(fname, projs, *, overwrite=False, verbose=None):
     """Write projections to a FIF file.
 
@@ -75,10 +80,16 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
         ``-proj.fif`` or ``-proj.fif.gz``.
     projs : list of Projection
         The list of projection vectors.
-    %(overwrite)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
         .. versionadded:: 1.0
 
@@ -94,7 +105,7 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
         _write_proj(fid, projs)
 
 
-@verbose
+@_verbose_control
 def _compute_proj(
     data, info, n_grad, n_mag, n_eeg, desc_prefix, meg="separate", verbose=None
 ):
@@ -164,7 +175,7 @@ def _compute_proj(
     return projs
 
 
-@verbose
+@verbose_static("compute_ssp", "n_proj_vectors", "n_jobs")
 def compute_proj_epochs(
     epochs,
     n_grad=2,
@@ -177,14 +188,35 @@ def compute_proj_epochs(
 ):
     """Compute SSP (signal-space projection) vectors on epoched data.
 
-    %(compute_ssp)s
+    This function aims to find those SSP vectors that
+    will project out the ``n`` most prominent signals from the data for each
+    specified sensor type. Consequently, if the provided input data contains high
+    levels of noise, the produced SSP vectors can then be used to eliminate that
+    noise from the data.
 
     Parameters
     ----------
     epochs : instance of Epochs
         The epochs containing the artifact.
-    %(n_proj_vectors)s
-    %(n_jobs)s
+    n_grad : int | float between ``0`` and ``1``
+        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_grad``.
+    n_mag : int | float between ``0`` and ``1``
+        Number of vectors for magnetometers. Either an integer or a float between 0 and
+        1 to select the number of vectors to explain the cumulative variance greater
+        than ``n_mag``.
+    n_eeg : int | float between ``0`` and ``1``
+        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_eeg``.
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Number of jobs to use to compute covariance.
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
@@ -196,7 +228,11 @@ def compute_proj_epochs(
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -238,19 +274,34 @@ def _compute_cov_epochs(epochs, n_jobs, *, log_drops=False):
     return data
 
 
-@verbose
+@verbose_static("compute_ssp", "n_proj_vectors")
 def compute_proj_evoked(
     evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None, meg="separate", verbose=None
 ):
     """Compute SSP (signal-space projection) vectors on evoked data.
 
-    %(compute_ssp)s
+    This function aims to find those SSP vectors that
+    will project out the ``n`` most prominent signals from the data for each
+    specified sensor type. Consequently, if the provided input data contains high
+    levels of noise, the produced SSP vectors can then be used to eliminate that
+    noise from the data.
 
     Parameters
     ----------
     evoked : instance of Evoked
         The Evoked obtained by averaging the artifact.
-    %(n_proj_vectors)s
+    n_grad : int | float between ``0`` and ``1``
+        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_grad``.
+    n_mag : int | float between ``0`` and ``1``
+        Number of vectors for magnetometers. Either an integer or a float between 0 and
+        1 to select the number of vectors to explain the cumulative variance greater
+        than ``n_mag``.
+    n_eeg : int | float between ``0`` and ``1``
+        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_eeg``.
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         tmin and tmax.
@@ -263,7 +314,11 @@ def compute_proj_evoked(
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -280,7 +335,7 @@ def compute_proj_evoked(
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix, meg=meg)
 
 
-@verbose
+@verbose_static("compute_ssp", "n_proj_vectors", "n_jobs")
 def compute_proj_raw(
     raw,
     start=0,
@@ -297,7 +352,11 @@ def compute_proj_raw(
 ):
     """Compute SSP (signal-space projection) vectors on continuous data.
 
-    %(compute_ssp)s
+    This function aims to find those SSP vectors that
+    will project out the ``n`` most prominent signals from the data for each
+    specified sensor type. Consequently, if the provided input data contains high
+    levels of noise, the produced SSP vectors can then be used to eliminate that
+    noise from the data.
 
     Parameters
     ----------
@@ -310,13 +369,30 @@ def compute_proj_raw(
     duration : float | None
         Duration (in seconds) to chunk data into for SSP
         If duration is ``None``, data will not be chunked.
-    %(n_proj_vectors)s
+    n_grad : int | float between ``0`` and ``1``
+        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_grad``.
+    n_mag : int | float between ``0`` and ``1``
+        Number of vectors for magnetometers. Either an integer or a float between 0 and
+        1 to select the number of vectors to explain the cumulative variance greater
+        than ``n_mag``.
+    n_eeg : int | float between ``0`` and ``1``
+        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_eeg``.
     reject : dict | None
         Epoch PTP rejection threshold used if ``duration != None``. See `~mne.Epochs`.
     flat : dict | None
         Epoch flatness rejection threshold used if ``duration != None``. See
         `~mne.Epochs`.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Number of jobs to use to compute covariance.
     meg : str
         Can be ``'separate'`` (default) or ``'combined'`` to compute projectors
@@ -325,7 +401,11 @@ def compute_proj_raw(
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -376,7 +456,7 @@ def compute_proj_raw(
     return projs
 
 
-@verbose
+@verbose_static()
 def sensitivity_map(
     fwd, projs=None, ch_type="grad", mode="fixed", exclude=(), *, verbose=None
 ):
@@ -411,7 +491,11 @@ def sensitivity_map(
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If ``'bads'``, exclude channels in ``fwd['info']['bads']``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

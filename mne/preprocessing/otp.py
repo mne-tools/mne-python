@@ -9,7 +9,7 @@ import numpy as np
 from .._fiff.pick import _picks_to_idx
 from .._ola import _COLA, _Storer
 from ..surface import _normalize_vectors
-from ..utils import logger, verbose
+from ..utils import logger, verbose_static
 
 
 def _svd_cov(cov, data):
@@ -26,7 +26,7 @@ def _svd_cov(cov, data):
     return u, s, v
 
 
-@verbose
+@verbose_static("picks_all_data")
 def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None):
     """Denoise MEG channels using leave-one-out temporal projection.
 
@@ -37,8 +37,20 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
     duration : float | str
         The window duration (in seconds; default 10.) to use. Can also
         be "min" to use as short a window as possible.
-    %(picks_all_data)s
-    %(verbose)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -89,7 +101,7 @@ def oversampled_temporal_projection(raw, duration=10.0, picks=None, verbose=None
             f"duration ({n_samples / raw.info['sfreq']}) yielded {n_samples} samples, "
             f"which is fewer than the number of channels -1 ({len(picks_good) - 1})"
         )
-    n_overlap = n_samples // 2
+    n_overlap = (n_samples + 1) // 2
     raw_otp = raw.copy().load_data(verbose=False)
     otp = _COLA(
         partial(_otp, picks_good=picks_good, picks_bad=picks_bad),

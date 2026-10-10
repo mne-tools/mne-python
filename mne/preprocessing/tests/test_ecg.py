@@ -118,6 +118,10 @@ def test_find_ecg():
     assert average_pulse == 0
     assert np.allclose(ecg, np.zeros_like(ecg))
 
+    # Test that create_ecg_epochs raises clear error when no ECG events found
+    with pytest.raises(ValueError, match="No ECG events could be found."):
+        create_ecg_epochs(raw, ch_name=raw.ch_names[ecg_idx])
+
     # Needs MEG
     with pytest.raises(ValueError, match="Generating an artificial"):
         find_ecg_events(read_raw_fif(raw_fname, preload=False).pick("eeg"))

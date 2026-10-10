@@ -2,17 +2,22 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
+from mne import create_info
 from mne.datasets import testing
 from mne.datasets.testing import data_path
-from mne.io import BaseRaw, read_raw_fif, read_raw_nirx, read_raw_snirf
+from mne.io import BaseRaw, RawArray, read_raw_fif, read_raw_nirx, read_raw_snirf
 from mne.preprocessing.nirs import (
     _channel_frequencies,
     beer_lambert_law,
     optical_density,
+    source_detector_distances,
 )
+from mne.preprocessing.nirs._beer_lambert_law import _get_sd_distances
 from mne.utils import _validate_type
 
 testing_path = data_path(download=False)
@@ -112,3 +117,80 @@ def test_beer_lambert_v_matlab():
             + matlab_data["type"][idx]
         )
         assert raw.info["ch_names"][idx] == matlab_name
+
+
+def test_beer_lambert_sd_distances():
+    """Test Beer-Lambert conversion with explicit source-detector distances."""
+    data = np.array(
+        [[0.1, 0.2, 0.3], [0.15, 0.25, 0.35], [0.4, 0.5, 0.6], [0.45, 0.55, 0.65]]
+    )
+    # Ch names chosen to test reordered indices
+    ch_names = ["S1_D1 760", "S1_D1 850", "S10_D10 760", "S10_D10 850"]
+
+    # Case 1: valid locations, sd_distances=None
+    raw = RawArray(data, create_info(ch_names, sfreq=1.0, ch_types="fnirs_od"))
+    sd_distances = [0.03, 0.03, 0.03, 0.03]
+    for idx, (freq, distance) in enumerate(zip([760, 850, 760, 850], sd_distances)):
+        raw.info["chs"][idx]["loc"][3:6] = [0.0, 0.0, 0.0]
+        raw.info["chs"][idx]["loc"][6:9] = [distance, 0.0, 0.0]
+        raw.info["chs"][idx]["loc"][9] = freq
+    expected = beer_lambert_law(raw)
+
+    # Case 2: valid locations, sd_distances=<arr>
+    with pytest.warns(RuntimeWarning, match=r"(?i)will be overridden"):
+        actual = beer_lambert_law(raw, sd_distances=sd_distances)
+    assert actual.ch_names == expected.ch_names
+    assert_allclose(actual.get_data(), expected.get_data(), rtol=1e-12, atol=0)
+
+    # Case 3: no locations, sd_distances=None
+    for idx in range(len(raw.info["chs"])):
+        raw.info["chs"][idx]["loc"][3:9] = np.nan
+    assert np.isnan(source_detector_distances(raw.info)).all()
+    with pytest.raises(
+        ValueError, match=r"(?i)source-detector distances are all zero or NaN"
+    ):
+        beer_lambert_law(raw)
+
+    # Case 4: no locations, sd_distances=<arr>
+    actual = beer_lambert_law(raw, sd_distances=sd_distances)
+    assert actual.ch_names == expected.ch_names
+    assert_allclose(actual.get_data(), expected.get_data(), rtol=1e-12, atol=0)
+
+    # Case 5: no locations, sd_distances=<scalar>
+    actual = beer_lambert_law(raw, sd_distances=sd_distances[0])
+    assert actual.ch_names == expected.ch_names
+    assert_allclose(actual.get_data(), expected.get_data(), rtol=1e-12, atol=0)
+
+
+def test_get_sd_distances():
+    """Test source-detector distance selection and validation."""
+    raw = RawArray(
+        np.zeros((4, 3)),
+        create_info(
+            ["S1_D1 760", "S1_D1 850", "S2_D2 760", "S2_D2 850"], 1.0, "fnirs_od"
+        ),
+    )
+    expected = np.array([0.03, 0.03, 0.04, 0.04])
+    for idx, (freq, distance) in enumerate(zip([760, 850, 760, 850], expected)):
+        raw.info["chs"][idx]["loc"][3:6] = [0.0, 0.0, 0.0]
+        raw.info["chs"][idx]["loc"][6:9] = [distance, 0.0, 0.0]
+        raw.info["chs"][idx]["loc"][9] = freq
+
+    assert_allclose(_get_sd_distances(raw, None), expected, rtol=1e-12, atol=0)
+    with pytest.warns(RuntimeWarning, match=r"(?i)will be overridden"):
+        assert_allclose(_get_sd_distances(raw, expected), expected, rtol=1e-12, atol=0)
+    with pytest.warns(RuntimeWarning, match=r"(?i)will be overridden"):
+        assert_allclose(
+            _get_sd_distances(raw, 0.05), np.full(4, 0.05), rtol=1e-12, atol=0
+        )
+
+    for idx in range(len(raw.info["chs"])):
+        raw.info["chs"][idx]["loc"][3:9] = np.nan
+    assert_allclose(_get_sd_distances(raw, expected), expected, rtol=1e-12, atol=0)
+
+    with pytest.raises(ValueError, match=r"1D array-like"):
+        _get_sd_distances(raw, np.ones((2, 2)))
+    with pytest.raises(ValueError, match=r"length matching"):
+        _get_sd_distances(raw, [0.03, 0.03])
+    with pytest.raises(TypeError, match=r"sd_distances"):
+        _get_sd_distances(raw, "foo")

@@ -257,6 +257,10 @@ def test_set_eeg_reference():
     with pytest.raises(ValueError, match='supported for ref_channels="averag'):
         set_eeg_reference(raw, ["EEG 001"], True, True)
 
+    # Test passing a single channel name as string
+    reref, ref_data = set_eeg_reference(raw, "EEG 001", copy=True)
+    _test_reference(raw, reref, ref_data, ["EEG 001"])
+
 
 @pytest.mark.parametrize(
     "ch_type, msg",
@@ -273,8 +277,8 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     # gh-6454
     # gh-8739 added DBS
     ch_names = ["ECOG01", "ECOG02", "DBS01", "DBS02", "MISC"]
-    rng = np.random.RandomState(0)
-    data = rng.randn(5, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((5, 1000))
     raw = RawArray(
         data, create_info(ch_names, 1000.0, ["ecog"] * 2 + ["dbs"] * 2 + ["misc"])
     )
@@ -284,9 +288,17 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     else:
         ref_ch = raw.copy().pick(picks=ch_type).ch_names
 
+    # joint=True forces the union-of-types behavior so we can keep validating
+    # ref_data against the joint mean; per-type default is covered by
+    # test_set_eeg_reference_ch_type_list_per_type below.
+    joint = isinstance(ch_type, list) and len(ch_type) > 1
     with catch_logging() as log:
         reref, ref_data = set_eeg_reference(
-            raw.copy(), ch_type=ch_type, projection=projection, verbose=True
+            raw.copy(),
+            ch_type=ch_type,
+            projection=projection,
+            joint=joint,
+            verbose=True,
         )
 
     if not projection:
@@ -302,6 +314,47 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
         ValueError, match="No EEG, ECoG, sEEG or DBS channels found to rereference."
     ):
         set_eeg_reference(raw2, ch_type="auto", projection=projection)
+
+
+@pytest.mark.parametrize("projection", [False, True])
+def test_set_eeg_reference_ch_type_list_per_type(projection):
+    """Test list ch_type defaults to one reference per channel type (gh-13913)."""
+    # Build seeg at +10 uV and ecog at -10 uV (constant). Union mean is zero,
+    # so a single union average reference would leave each subset's original
+    # offset intact. A per-type CAR zeros both subsets.
+    sfreq = 1000.0
+    n = 500
+    data = np.vstack([np.full((4, n), 10.0), np.full((4, n), -10.0)]) * 1e-6
+    ch_names = [f"S{i}" for i in range(4)] + [f"E{i}" for i in range(4)]
+    info = create_info(ch_names, sfreq, ["seeg"] * 4 + ["ecog"] * 4)
+    raw = RawArray(data, info)
+
+    # Default joint=False: per-type reference. ref_data is None.
+    reref, ref_data = set_eeg_reference(
+        raw.copy(),
+        ref_channels="average",
+        ch_type=["seeg", "ecog"],
+        projection=projection,
+    )
+    if projection:
+        reref.apply_proj()
+    assert ref_data is None
+    assert_allclose(reref.get_data(picks="seeg").mean(), 0.0, atol=1e-15)
+    assert_allclose(reref.get_data(picks="ecog").mean(), 0.0, atol=1e-15)
+
+    # joint=True: legacy union-of-types behavior. Union mean is zero, so
+    # neither subset gets zeroed.
+    reref_joint, _ = set_eeg_reference(
+        raw.copy(),
+        ref_channels="average",
+        ch_type=["seeg", "ecog"],
+        projection=projection,
+        joint=True,
+    )
+    if projection:
+        reref_joint.apply_proj()
+    assert_allclose(reref_joint.get_data(picks="seeg").mean(), 10e-6, atol=1e-15)
+    assert_allclose(reref_joint.get_data(picks="ecog").mean(), -10e-6, atol=1e-15)
 
 
 @testing.requires_testing_data
@@ -360,7 +413,7 @@ def test_set_eeg_reference_rest():
     assert 0.006 < exp_var < 0.008
     evoked.set_eeg_reference("REST", forward=fwd)
     exp_var_old = 1 - np.linalg.norm(evoked.data[:, idx] - old) / norm
-    assert 0.005 < exp_var_old <= 0.009
+    assert 0.005 < exp_var_old <= 0.0095
     exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
     assert 0.995 < exp_var <= 1
 
@@ -923,7 +976,8 @@ def test_bipolar_combinations():
     info = create_info(
         ch_names=ch_names, sfreq=1000.0, ch_types=["eeg"] * len(ch_names)
     )
-    raw_data = np.random.randn(len(ch_names), 1000)
+    rng = np.random.default_rng(0)
+    raw_data = rng.standard_normal((len(ch_names), 1000))
     raw = RawArray(raw_data, info)
 
     def _check_bipolar(raw_test, ch_a, ch_b):

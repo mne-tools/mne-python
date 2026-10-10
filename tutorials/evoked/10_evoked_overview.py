@@ -58,9 +58,8 @@ del raw  # reduce memory usage
 # :class:`~mne.Epochs` object, but may also be initiated (or disabled)
 # manually. We will discuss this in more detail later.
 #
-# The information about the baseline period of :class:`~mne.Epochs` is
-# transferred to derived :class:`~mne.Evoked` objects to maintain provenance as
-# you process your data:
+# The information about the baseline period of :class:`~mne.Epochs` is transferred to
+# derived :class:`~mne.Evoked` objects to maintain provenance as you process your data:
 
 print(f"Epochs baseline: {epochs.baseline}")
 print(f"Evoked baseline: {evoked.baseline}")
@@ -71,7 +70,7 @@ print(f"Evoked baseline: {evoked.baseline}")
 #
 # We can visualize the average evoked response for left-auditory stimuli using
 # the :meth:`~mne.Evoked.plot` method, which yields a butterfly plot of each
-# channel type:
+# channel type (interactive butterfly figure):
 
 evoked.plot()
 

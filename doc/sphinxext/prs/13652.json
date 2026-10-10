@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "d6e978467ff4545f81876ce383c520d4d832c993",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": "140396762+1himan@users.noreply.github.com",
+      "l": "1himan"
+    }
+  ],
+  "changes": {
+    "mne/utils/docs.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

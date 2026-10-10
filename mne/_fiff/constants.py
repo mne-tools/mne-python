@@ -2,9 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ..utils._bunch import BunchConstNamed
+from ..utils._bunch import BunchConstNamed, NamedFloat, NamedInt
 
-FIFF = BunchConstNamed()
+FIFF: BunchConstNamed[NamedInt] = BunchConstNamed()
 
 #
 # FIFF version number in use
@@ -376,8 +376,18 @@ FIFF.FIFFV_BEM_SURF_ID_CSF = 2
 FIFF.FIFFV_BEM_SURF_ID_SKULL = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD = 4
 
-FIFF.FIFF_SPHERE_ORIGIN = 3001
-FIFF.FIFF_SPHERE_RADIUS = 3002
+#
+# Spherically symmetric conductor model (3000...)
+#
+FIFF.FIFF_CONDUCTOR_MODEL_KIND = 3000  # What kind of conductor model
+FIFF.FIFF_SPHERE_ORIGIN = 3001  # float  origin of the sphere model
+FIFF.FIFF_SPHERE_COORD_FRAME = 3002  # int   coordinate frame of the origin
+FIFF.FIFF_SPHERE_LAYERS = 3003  # array of layer structures
+
+FIFF.FIFFV_COND_MODEL_UNKNOWN = 0
+FIFF.FIFFV_COND_MODEL_SPHERE = 1  # Spherically symmetric
+FIFF.FIFFV_COND_MODEL_BEM_HOMOG = 2  # Homogeneous BEM model (single layer)
+FIFF.FIFFV_COND_MODEL_BEM = 3  # Multilayer BEM model
 
 FIFF.FIFF_BEM_SURF_ID = 3101  # int    surface number
 FIFF.FIFF_BEM_SURF_NAME = 3102  # string surface name
@@ -401,6 +411,7 @@ FIFF.FIFFV_MNE_SURF_UNKNOWN = -1
 FIFF.FIFFV_MNE_SURF_LEFT_HEMI = 101
 FIFF.FIFFV_MNE_SURF_RIGHT_HEMI = 102
 FIFF.FIFFV_MNE_SURF_MEG_HELMET = 201  # Use this irrespective of the system
+FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET = 1000  # + aseg value, e.g. hippocampus
 #
 #   These relate to the Isotrak data (enum(point))
 #
@@ -834,7 +845,7 @@ _coord_frame_named.update({
 #   FWD Types
 #
 
-FWD = BunchConstNamed()
+FWD: BunchConstNamed[NamedInt | NamedFloat] = BunchConstNamed()
 
 FWD.COIL_UNKNOWN = 0
 FWD.COILC_UNKNOWN = 0
@@ -883,6 +894,11 @@ FIFF.FIFFT_CH_POS_STRUCT = 34
 FIFF.FIFFT_COORD_TRANS_STRUCT = 35
 FIFF.FIFFT_DIG_STRING_STRUCT = 36
 FIFF.FIFFT_STREAM_SEGMENT_STRUCT = 37
+# The layer struct (fiffLayerRec: int32 id, float32 radius) is documented in
+# DictionaryTags.txt as the type of FIFF_SPHERE_LAYERS, but no public header assigns it
+# a primitive type code, so we use the first free one. 38 is taken by the (equally
+# undocumented) FIFFT_DATA_REF_STRUCT, see mne-cpp src/libraries/fiff/fiff_file.h.
+FIFF.FIFFT_LAYER_STRUCT = 39
 FIFF.FIFFT_MATRIX = 0x40000000  # 1073741824, 1 << 30
 FIFF.FIFFT_SPARSE_CCS_MATRIX = 0x00100000  # 1048576
 FIFF.FIFFT_SPARSE_RCS_MATRIX = 0x00200000  # 2097152
@@ -931,6 +947,7 @@ FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM = 115  # lumen
 FIFF.FIFF_UNIT_LX = 116  # lux
 FIFF.FIFF_UNIT_V_M2 = 117  # V/m^2
+FIFF.FIFF_UNIT_SEC2 = 118  # second^2
 #
 # Others we need
 #
@@ -972,6 +989,7 @@ _ch_unit_named = {
         FIFF.FIFF_UNIT_LM,
         FIFF.FIFF_UNIT_LX,
         FIFF.FIFF_UNIT_V_M2,
+        FIFF.FIFF_UNIT_SEC2,
         FIFF.FIFF_UNIT_T_M,
         FIFF.FIFF_UNIT_AM,
         FIFF.FIFF_UNIT_AM_M2,
@@ -999,7 +1017,7 @@ FIFF.FIFF_UNITM_N = -9
 FIFF.FIFF_UNITM_P = -12
 FIFF.FIFF_UNITM_F = -15
 FIFF.FIFF_UNITM_A = -18
-_ch_unit_mul_named = {
+_ch_unit_mul_named: dict[int, NamedInt] = {
     key: key
     for key in (
         FIFF.FIFF_UNITM_E,
@@ -1044,7 +1062,9 @@ FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE = 304  # fNIRS frequency domain AC amplitu
 FIFF.FIFFV_COIL_FNIRS_FD_PHASE = 305  # fNIRS frequency domain phase
 FIFF.FIFFV_COIL_FNIRS_RAW = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE  # old alias
 FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE = 306  # fNIRS time-domain gated amplitude
-FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE = 307  # fNIRS time-domain moments amplitude
+FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY = 307  # fNIRS time-domain moments intensity
+FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN = 308  # fNIRS time-domain moments mean
+FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE = 309  # fNIRS time-domain moments variance
 
 FIFF.FIFFV_COIL_EYETRACK_POS = 400  # Eye-tracking gaze position
 FIFF.FIFFV_COIL_EYETRACK_PUPIL = 401  # Eye-tracking pupil size
@@ -1145,7 +1165,9 @@ _ch_coil_type_named = {
         FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE,
         FIFF.FIFFV_COIL_FNIRS_FD_PHASE,
         FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
-        FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE,
+        FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_INTENSITY,
+        FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_MEAN,
+        FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_VARIANCE,
         FIFF.FIFFV_COIL_MCG_42,
         FIFF.FIFFV_COIL_EYETRACK_POS,
         FIFF.FIFFV_COIL_EYETRACK_PUPIL,
@@ -1183,6 +1205,7 @@ _ch_coil_type_named = {
         FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
         FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
         FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
+        # If more OPM coil types are added here, update mne/viz/topomap.py too.
         FIFF.FIFFV_COIL_KRISS_GRAD,
         FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD,
         FIFF.FIFFV_COIL_COMPUMEDICS_PEDIATRIC_GRAD,

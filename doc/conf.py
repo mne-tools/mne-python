@@ -11,9 +11,11 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import faulthandler
 import os
+import re
 import subprocess
 import sys
-from datetime import datetime, timezone
+import tomllib
+from datetime import UTC, datetime
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -24,10 +26,10 @@ from numpydoc import docscrape
 from sphinx.config import is_serializable
 from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import ExplicitOrder
+from yaml import safe_load
 
 import mne
 import mne.html_templates._templates
-from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,
     run_subprocess,
@@ -53,12 +55,17 @@ curpath = Path(__file__).parent.resolve(strict=True)
 sys.path.append(str(curpath / "sphinxext"))
 
 from credit_tools import generate_credit_rst  # noqa: E402
-from mne_doc_utils import report_scraper, reset_warnings, sphinx_logger  # noqa: E402
+from mne_doc_utils import (  # noqa: E402
+    check_links,
+    report_scraper,
+    reset_warnings,
+    sphinx_logger,
+)
 
 # -- Project information -----------------------------------------------------
 
 project = "MNE"
-td = datetime.now(tz=timezone.utc)
+td = datetime.now(tz=UTC)
 
 # We need to triage which date type we use so that incremental builds work
 # (Sphinx looks at variable changes and rewrites all files if some change)
@@ -139,7 +146,14 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 
 # NB: changes here should also be made to the linkcheck target in the Makefile
-exclude_patterns = ["_includes", "changes/dev"]
+exclude_patterns = [
+    "_includes",
+    "changes/dev",
+    "jupyterlite_contents",
+    "_contents",  # where jupyterlite-sphinx stages what it mounts
+    "lite_extra",
+    "pypi",
+]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -191,6 +205,8 @@ seaborn patsy pyvista dipy nilearn pyqtgraph
         ),
     )
 )
+# Broken as of 2026/06/08 (https://github.com/joblib/joblib/issues/1796)
+intersphinx_mapping["joblib"] = ("https://joblib.readthedocs.io/en/stable", None)
 
 
 # NumPyDoc configuration -----------------------------------------------------
@@ -212,6 +228,7 @@ numpydoc_xref_aliases = {
     "path-like": ":term:`path-like`",
     "array-like": ":term:`array_like <numpy:array_like>`",
     "Path": ":class:`python:pathlib.Path`",
+    "Sequence": ":class:`python:collections.abc.Sequence`",
     "bool": ":ref:`bool <python:typebool>`",
     # Matplotlib
     "colormap": ":ref:`colormap <matplotlib:colormaps>`",
@@ -288,10 +305,15 @@ numpydoc_xref_aliases = {
     "EpochsFIF": "mne.Epochs",
     "EpochsEEGLAB": "mne.Epochs",
     "EpochsKIT": "mne.Epochs",
+    "BaseRaw": "mne.io.Raw",
     "RawANT": "mne.io.Raw",
+    "RawArtemis123": "mne.io.Raw",
+    "RawBCI2k": "mne.io.Raw",
+    "RawBDF": "mne.io.Raw",
     "RawBOXY": "mne.io.Raw",
     "RawBrainVision": "mne.io.Raw",
     "RawBTi": "mne.io.Raw",
+    "RawCNT": "mne.io.Raw",
     "RawCTF": "mne.io.Raw",
     "RawCurry": "mne.io.Raw",
     "RawEDF": "mne.io.Raw",
@@ -305,12 +327,15 @@ numpydoc_xref_aliases = {
     "RawKIT": "mne.io.Raw",
     "RawNedf": "mne.io.Raw",
     "RawNeuralynx": "mne.io.Raw",
+    "RawNicolet": "mne.io.Raw",
     "RawNihon": "mne.io.Raw",
+    "RawNSX": "mne.io.Raw",
     "RawMEF": "mne.io.Raw",
     "RawNIRX": "mne.io.Raw",
     "RawPersyst": "mne.io.Raw",
     "RawSNIRF": "mne.io.Raw",
     "Calibration": "mne.preprocessing.eyetracking.Calibration",
+    "ClusterResult": "mne.stats.ClusterResult",
     # dipy
     "dipy.align.AffineMap": "dipy.align.imaffine.AffineMap",
     "dipy.align.DiffeomorphicMap": "dipy.align.imwarp.DiffeomorphicMap",
@@ -318,16 +343,23 @@ numpydoc_xref_aliases = {
 numpydoc_xref_ignore = {
     # words
     "and",
+    "as",
     "between",
+    "class",
+    "data",
     "instance",
     "instances",
+    "input",
     "of",
     "default",
+    "same",
     "shape",
     "or",
+    "the",
     "with",
     "length",
-    "pair",
+    "key-value",
+    "pairs",
     "matplotlib",
     "optional",
     "kwargs",
@@ -418,7 +450,10 @@ numpydoc_xref_ignore = {
     "polars",
     "default",
     # unlinkable
+    "_Renderer",
+    "n_triangles",
     "CoregistrationUI",
+    "DipoleFitUI",
     "mne_qt_browser.figure.MNEQtBrowser",
     # pooch, since its website is unreliable and users will rarely need the links
     "pooch.Unzip",
@@ -426,42 +461,11 @@ numpydoc_xref_ignore = {
     "pooch.HTTPDownloader",
 }
 numpydoc_validate = True
-numpydoc_validation_checks = {"all"} | set(error_ignores)
-numpydoc_validation_exclude = {  # set of regex
-    # dict subclasses
-    r"\.clear",
-    r"\.get$",
-    r"\.copy$",
-    r"\.fromkeys",
-    r"\.items",
-    r"\.keys",
-    r"\.move_to_end",
-    r"\.pop",
-    r"\.popitem",
-    r"\.setdefault",
-    r"\.update",
-    r"\.values",
-    # list subclasses
-    r"\.append",
-    r"\.count",
-    r"\.extend",
-    r"\.index",
-    r"\.insert",
-    r"\.remove",
-    r"\.sort",
-    # we currently don't document these properly (probably okay)
-    r"\.__getitem__",
-    r"\.__contains__",
-    r"\.__hash__",
-    r"\.__mul__",
-    r"\.__sub__",
-    r"\.__add__",
-    r"\.__iter__",
-    r"\.__div__",
-    r"\.__neg__",
-    # copied from sklearn
-    r"mne\.utils\.deprecated",
-}
+pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+pyproject = tomllib.loads(pyproject_path.read_text("utf-8"))
+pyproject_nv = pyproject["tool"]["numpydoc_validation"]
+numpydoc_validation_checks = set(pyproject_nv["checks"])
+numpydoc_validation_exclude = set(pyproject_nv["exclude"])
 
 
 # -- Sphinx-gallery configuration --------------------------------------------
@@ -489,6 +493,23 @@ if sys.platform.startswith("win"):
         compress_images = ()
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
+# The JupyterLite site, and the data it serves (about 1 GB), only belong in a
+# full build: `make html` turns this on, pattern and noplot builds leave it off.
+build_jupyterlite = os.getenv("MNE_DOC_BUILD_JUPYTERLITE", "0") == "1"
+if build_jupyterlite:
+    from jupyterlite_data import stage_lite_data  # noqa: E402
+
+    extensions.append("jupyterlite_sphinx")
+    # the two gallery folders rather than their parent: jupyterlite-sphinx
+    # mounts each folder listed here under its own name, and the badges
+    # sphinx-gallery writes link to auto_*/... at the root
+    jupyterlite_contents = ["jupyterlite_contents/auto_*"]
+    jupyterlite_bind_ipynb_suffix = False
+    # bakes the browser's extra packages into the Pyodide lock at build time
+    jupyterlite_config = "jupyter_lite_config.py"
+    # served at the docs root (/mne_data/...) through html_extra_path below
+    stage_lite_data(curpath / "lite_extra" / "mne_data")
+
 sphinx_gallery_conf = {
     "doc_module": ("mne",),
     "reference_url": dict(mne=None),
@@ -574,8 +595,8 @@ sphinx_gallery_conf = {
         ".*plot_sensors()|.*rename_channels()|"
         ".*reorder_channels()|.*savgol_filter()|"
         ".*set_eeg_reference()|.*set_channel_types()|"
-        ".*set_meas_date()|.*set_montage()|.*shift_time()|"
-        ".*time_as_index()|.*to_data_frame()|"
+        ".*set_head_sphere()|.*set_meas_date()|.*set_montage()|"
+        ".*shift_time()|.*time_as_index()|.*to_data_frame()|"
         # dictionary inherited
         ".*clear()|.*fromkeys()|.*get()|.*items()|"
         ".*keys()|.*pop()|.*popitem()|.*setdefault()|"
@@ -590,7 +611,203 @@ sphinx_gallery_conf = {
     "copyfile_regex": r".*index\.rst",  # allow custom index.rst files
     "parallel": sphinx_gallery_parallel,
 }
+if build_jupyterlite:
+    sphinx_gallery_conf["jupyterlite"] = {
+        "use_jupyter_lab": True,
+        "jupyterlite_contents": "jupyterlite_contents",
+        # a dotted path rather than the function: sphinx_gallery_conf has to
+        # stay JSON-serializable, so sphinx-gallery imports it itself
+        "notebook_modification_function": (
+            "jupyterlite_cell_notes.note_unrunnable_cells"
+        ),
+    }
 assert is_serializable(sphinx_gallery_conf)
+
+# ---------------------------------------------------------------------------
+# Drop the "Open in JupyterLite" launch badge from gallery pages whose
+# notebooks cannot run in the browser kernel at all: they need the R runtime
+# (rpy2), a compiled package Pyodide does not ship (antio), or multi-GB
+# datasets that cannot be bundled/slimmed. sphinx-gallery adds the badge to
+# every example unconditionally, so strip_lite_badge below removes it from
+# these pages' reST as Sphinx reads it. This only removes the badge/link; the
+# notebook source is untouched (no in-code guard). Files that merely need data
+# bundled, a pure-Python package installed, or pyvista 3D are NOT listed here
+# (they are fixable, not impossible).
+JUPYTERLITE_EXCLUDE = (
+    # Tier 1, impossible: R runtime / compiled package / huge single dataset
+    "examples/stats/r_interop.py",  # rpy2 -> needs the R runtime
+    "examples/io/read_impedances.py",  # antio (compiled, not in Pyodide)
+    "examples/decoding/decoding_rsa.py",  # visual_92_categories ~6 GB
+    "examples/decoding/decoding_spoc_CMC.py",  # fieldtrip_cmc ~700 MB
+    "examples/decoding/ssd_spatial_filters.py",  # fieldtrip_cmc ~700 MB
+    # Tier 2: multi-GB datasets (brainstorm / spm_face / opm / hf_sef)
+    "examples/datasets/brainstorm_data.py",
+    "examples/datasets/hf_sef_data.py",
+    "examples/datasets/opm_data.py",
+    "examples/datasets/spm_faces_dataset.py",
+    "examples/preprocessing/movement_detection.py",
+    "examples/preprocessing/muscle_detection.py",
+    "examples/preprocessing/otp.py",
+    "examples/time_frequency/source_power_spectrum_opm.py",
+    "examples/visualization/evoked_arrowmap.py",
+    "examples/visualization/meg_sensors.py",
+    "tutorials/inverse/80_brainstorm_phantom_elekta.py",
+    "tutorials/inverse/85_brainstorm_phantom_ctf.py",
+    "tutorials/io/60_ctf_bst_auditory.py",
+    "tutorials/preprocessing/80_opm_processing.py",
+    # Tier 3: several blockers each, none of them worth clearing on its own
+    # the volume inverse is ~178 MB and volume source estimates are not
+    # rendered in the browser
+    "examples/inverse/compute_mne_inverse_volume.py",
+    # needs aseg.mgz and the mixed source space, and calls src.plot(), which
+    # is the 3D SourceSpaces view
+    "examples/inverse/mixed_source_space_inverse.py",
+    # nilearn.datasets.load_mni152_template() downloads a template at runtime,
+    # which the browser blocks (CORS); the surrounding try only catches
+    # TypeError, so the failure is not survivable
+    "tutorials/inverse/20_dipole_fit.py",
+    # make_field_map(upsampling=2) subdivides the helmet mesh through VTK, and
+    # plot_field needs the interactive viewer that the browser renderer skips
+    "examples/visualization/mne_helmet.py",
+    # Tier 4: mne.viz.Brain features the browser renderer lacks (see the TODOs
+    # in mne/viz/_brain/_brain.py). Brain itself draws (static, one time point,
+    # one view), and the fNIRS tutorials and 50_background_freesurfer_mne run
+    # in full, but these lean on add_annotation's hover callback,
+    # brain.screenshot, legends, silhouettes or the flatmap, so most of their
+    # cells fail.
+    "examples/visualization/brain.py",
+    "examples/visualization/parcellation.py",
+    "tutorials/clinical/20_seeg.py",
+    "tutorials/forward/10_background_freesurfer.py",
+    "tutorials/inverse/60_visualize_stc.py",
+    # hemi="split" or several views, which are subplots
+    "examples/inverse/source_space_snr.py",
+    "examples/simulation/simulated_raw_data_using_subject_anatomy.py",
+    "tutorials/intro/10_overview.py",
+    "tutorials/machine-learning/50_decoding.py",
+    "tutorials/simulation/70_point_spread.py",
+    # vector source estimates draw glyphs through a VTK mapper
+    "examples/inverse/vector_mne_solution.py",
+    "tutorials/inverse/35_dipole_orientations.py",
+    # volume source estimates need volume rendering
+    "examples/inverse/psf_volume.py",
+    # the time label is updated through the VTK text actor
+    "tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py",
+    "tutorials/stats-source-space/30_cluster_ftest_spatiotemporal.py",
+    # brain.screenshot
+    "tutorials/stats-source-space/60_cluster_rmANOVA_spatiotemporal.py",
+    # plot_evoked_field draws contours
+    "tutorials/visualization/20_ui_events.py",
+    # Tier 5: one-off blockers with no browser path
+    # plot_field needs the interactive viewer
+    "tutorials/evoked/20_visualize_evoked.py",
+    # the three-layer BEM solution alone is 237 MB
+    "examples/inverse/multi_dipole_model.py",
+    # openneuro fetches the recording at runtime, which the browser blocks
+    "examples/preprocessing/esg_rm_heart_artefact_pcaobs.py",
+    # physionet.org is not CORS-enabled and the dataset is not on the CI box
+    "tutorials/clinical/60_sleep.py",
+    # the 4D/BTi phantom dataset is not among the ones CI downloads
+    "tutorials/inverse/90_phantom_4DBTi.py",
+    # needs mne_bids as well as the epilepsy_ecog dataset and 3D sensor views
+    "tutorials/clinical/30_ecog.py",
+    # Tier 6: fetch_fsaverage. _manifest_check_download only skips the
+    # download when every one of its ~190 manifest entries is already present,
+    # so fsaverage cannot be part-bundled, and MNE-sample-data ships no
+    # fsaverage/bem at all. The volume forward and inverse these two want are
+    # 187 MB and 360 MB on top of that.
+    "examples/inverse/morph_volume_stc.py",
+    "tutorials/inverse/50_beamformer_lcmv.py",
+    "examples/visualization/montage.py",
+    # same, plus fetch_infant_template downloads a second template
+    "tutorials/forward/35_eeg_no_mri.py",
+    # snapshot_brain_montage needs a real 3D window to read pixels back from
+    "examples/visualization/3d_to_2d.py",
+    # the three-layer BEM solution is 237 MB, and T1_electrodes.mgz would pull
+    # in the misc dataset's MRI as well
+    "tutorials/inverse/70_eeg_mri_coords.py",
+    # mne_bids is not installable in the browser kernel
+    "tutorials/inverse/95_phantom_KIT.py",
+    # Tier 7: served size. Every file below is copied into every docs deploy,
+    # so a dataset that only one or two pages read has to earn its place;
+    # these did not (sizes are what the staging step copied). Restoring a page
+    # means adding what it reads to DATASET_FILES in jupyterlite_data.py.
+    # somato: 404 MB (the raw alone is 344 MB) for six pages
+    "examples/inverse/dics_epochs.py",
+    "examples/inverse/dics_source_power.py",
+    "examples/inverse/evoked_ers_source_power.py",
+    "examples/inverse/multidict_reweighted_tfmxne.py",
+    "examples/time_frequency/time_frequency_global_field_power.py",
+    "tutorials/time-freq/20_sensors_time_frequency.py",
+    # the .mff EEG recording is a 133 MB folder, for one page
+    "tutorials/preprocessing/90_eyetracking_data.py",
+    # ERP-CORE: 118 MB for two pages
+    "examples/preprocessing/epochs_metadata.py",
+    "tutorials/epochs/40_autogenerate_metadata.py",
+    # refmeg_noise: 93 MB for one page
+    "examples/preprocessing/find_ref_artifacts.py",
+    # testing: the SSS movement recording (38 MB) and EEGLAB folder (34 MB),
+    # two pages each
+    "tutorials/preprocessing/59_head_positions.py",
+    "tutorials/preprocessing/60_maxwell_filtering_sss.py",
+    "tutorials/intro/20_events_from_raw.py",
+    "examples/visualization/roi_erpimage_by_rt.py",
+    # single recordings well past MAX_FILE_MB, 379 MB and 251 MB, so the
+    # staging step skips them and the badge would have nothing to load
+    "examples/datasets/kernel_phantom.py",
+    "examples/io/elekta_epochs.py",
+    # These want EEGBCI runs 1 and 2, which tools/circleci_download.sh never
+    # fetches (it takes subject 1 runs 3/6/10/14 and run 3 for subjects 2-4),
+    # so the data is not on the machine that builds the docs. eeg_bridging
+    # alone would need run 1 for ten subjects.
+    "examples/visualization/onionskin.py",
+    "examples/preprocessing/muscle_ica.py",
+    "examples/preprocessing/eeg_bridging.py",
+    # These read a 3D scene back as pixels, and vtk.js cannot hand a
+    # framebuffer back to Python. Both Report tutorials build their figures by
+    # screenshotting (Report._itv calls backend._take_3d_screenshot), and
+    # 70_report additionally round-trips a report through HDF5.
+    "tutorials/intro/70_report.py",
+    "tutorials/preprocessing/14_quality_control_report.py",
+    # 10_publication_figure is about cropping the white margins off
+    # brain.screenshot(), so without a real screenshot there is no tutorial
+    # left; browser brain.screenshot() raises rather than return a blank image.
+    "tutorials/visualization/10_publication_figure.py",
+    # The whole page drives mne.gui.dipolefit and narrates one GUI window as
+    # its state evolves. The vtk.js renderer draws without a picker, so there
+    # is nothing for those clicks to hit; that is also why 20_source_alignment
+    # carries a cell note for mne.gui.coregistration. Here it is the entire
+    # tutorial rather than one cell, so it is excluded instead.
+    "tutorials/inverse/21_interactive_dipole_fit.py",
+)
+
+_LITE_EXCLUDED_DOCS = {f"auto_{_ex.removesuffix('.py')}" for _ex in JUPYTERLITE_EXCLUDE}
+# the badge container and its indented body, inside the gallery footer
+_LITE_BADGE_RE = re.compile(r"\n {4}\.\. container:: lite-badge\n(?:\n| {6}[^\n]*\n)*")
+
+
+def strip_lite_badge(app, docname, source):
+    """Remove the JupyterLite badge from the pages in JUPYTERLITE_EXCLUDE.
+
+    Done at source-read rather than by wrapping sphinx-gallery's badge
+    generator: a parallel gallery build runs that in worker processes, which
+    never see a patch made here.
+    """
+    if docname in _LITE_EXCLUDED_DOCS:
+        source[0] = _LITE_BADGE_RE.sub("\n", source[0])
+
+
+def lite_contents_at_root(app, config):
+    """Drop the jupyterlite_contents folder sphinx-gallery appends at config-inited.
+
+    Mounted as a folder it would put the notebooks at
+    jupyterlite_contents/auto_*/... while the badges link to auto_*/...; the
+    jupyterlite_contents/auto_* entry set above lists the gallery folders
+    themselves, which land at the root.
+    """
+    config.jupyterlite_contents = ["jupyterlite_contents/auto_*"]
+
+
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
@@ -642,6 +859,18 @@ def fix_sklearn_inherited_docstrings(app, what, name, obj, options, lines):
         lines.insert(loc, "")
 
 
+def link_base_class_attrs(app, what, name, obj, options, lines):
+    """Point numpydoc attribute links of member-less base classes to a subclass."""
+    subclasses = {"mne.io.BaseRaw": "mne.io.Raw", "mne.BaseEpochs": "mne.Epochs"}
+    if what != "class" or name not in subclasses:
+        return
+    # numpydoc>=1.11 emits `.attr`, which fuzzy-matches every class with that attr
+    lines[:] = [
+        re.sub(r":obj:`(\w+) <\.?\1>`", rf":obj:`\1 <{subclasses[name]}.\1>`", line)
+        for line in lines
+    ]
+
+
 # -- Other extension configuration -------------------------------------------
 
 # Consider using http://magjac.com/graphviz-visual-editor for this
@@ -674,6 +903,7 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1126/",  # www.science.org
     "https://doi.org/10.1137/",  # epubs.siam.org
     "https://doi.org/10.1145/",  # dl.acm.org
+    "https://doi.org/10.5281/",  # zenodo.org
     "https://doi.org/10.1155/",  # www.hindawi.com/journals/cin
     "https://doi.org/10.1161/",  # www.ahajournals.org
     "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
@@ -684,14 +914,15 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.3390/",  # mdpi.com
     "https://hms.harvard.edu/",  # doc/funding.rst
     "https://stackoverflow.com/questions/21752259/python-why-pickle",  # doc/help/faq
+    "https://mitpress.mit.edu/9780262525855",  # works but linkcheck fails to resolve
+    "https://zenodo.org",  # doc/help/faq
     "https://blender.org",
     "https://home.alexk101.dev",
     "https://www.mq.edu.au/",
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
-    r"https://scholar.google.com/scholar\?cites=12188330066413208874&as_ylo=2014",
-    r"https://scholar.google.com/scholar\?cites=1521584321377182930&as_ylo=2013",
+    r"https://openalex.org/works\?filter=cites:",  # doc/documentation/cited.rst
     "https://www.research.chop.edu/imaging",
     "http://prdownloads.sourceforge.net/optipng",
     "https://sourceforge.net/projects/aespa/files/",
@@ -728,8 +959,12 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://psychophysiology.cpmc.columbia.edu",
     "https://erc.easme-web.eu",
     "https://www.crnl.fr",
+    # Spurious failure
+    "https://megcore.nih.gov/index.php/Staff",
     # Not rendered by linkcheck builder
     r"ides\.html",
+    # Sponsors not rendered properly by linkcheck builder
+    "{{inst.url}}",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -739,6 +974,9 @@ linkcheck_report_timeouts_as_broken = False
 # autodoc / autosummary
 autosummary_generate = True
 autodoc_default_options = {"inherited-members": None}
+# Types are documented (in human-readable numpydoc form) in the docstrings
+# themselves, so don't also render the annotations into the signatures.
+autodoc_typehints = "none"
 
 # sphinxcontrib-bibtex
 bibtex_bibfiles = ["./references.bib"]
@@ -773,12 +1011,6 @@ nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\..*\.Raw.*"),  # RawEDF etc.
     ("py:.*", r"mne\.epochs\.EpochsFIF.*"),
     ("py:.*", r"mne\.io\..*\.Epochs.*"),  # EpochsKIT etc.
-    (  # BaseRaw attributes are documented in Raw
-        "py:obj",
-        "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names"
-        "|compensation_grade|duration|filenames|first_samp|first_time"
-        "|last_samp|n_times|proj|times|tmax|tmin)",
-    ),
 ]
 suppress_warnings = [
     "image.nonlocal_uri",  # we intentionally link outside
@@ -850,9 +1082,10 @@ html_theme_options = {
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
-        "json_url": "https://mne.tools/dev/_static/versions.json",
+        "json_url": "https://mne.tools/versions.json",
         "version_match": switcher_version_match,
     },
+    "show_version_warning_banner": True,
     "back_to_top_button": False,
 }
 
@@ -886,6 +1119,8 @@ html_extra_path = [
     "getting_started.html",
     "install_mne_python.html",
 ]
+if build_jupyterlite:  # the served data, at /mne_data/...
+    html_extra_path.append("lite_extra")
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
@@ -899,13 +1134,47 @@ html_copy_source = False
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
 
-# accommodate different logo shapes (width values in rem)
-xs = "2"
-sm = "2.5"
-md = "3"
-lg = "4.5"
-xl = "5"
-xxl = "6"
+# sponsor and partner logos
+with open("_static/sponsors.yml") as fid:
+    sponsors_partners = safe_load(fid)
+current = sponsors_partners.pop("current")
+# sponsors
+current_sponsors = list()
+former_sponsors = list()
+for key, val in sponsors_partners["sponsors"].items():
+    if "img" in val:
+        val["name"] = key
+        (current_sponsors if key in current else former_sponsors).append(val)
+    else:
+        assert "light" in val and "dark" in val
+        for mode in ("light", "dark"):
+            (current_sponsors if key in current else former_sponsors).append(
+                dict(
+                    name=f"{key}{'_dk' if mode == 'dark' else ''}",
+                    title=val["title"],
+                    img=val[mode],
+                    klass=f"only-{mode}",
+                )
+            )
+# institutions
+current_institutions = list()
+former_institutions = list()
+for key, val in sponsors_partners["partner_institutions"].items():
+    if "img" in val:
+        val["name"] = key
+        (current_institutions if key in current else former_institutions).append(val)
+    else:
+        assert "light" in val and "dark" in val
+        for mode in ("light", "dark"):
+            (current_institutions if key in current else former_institutions).append(
+                dict(
+                    name=f"{key}{'_dk' if mode == 'dark' else ''}",
+                    title=val["title"],
+                    img=val[mode],
+                    klass=f"only-{mode}",
+                    url=val["url"],
+                )
+            )
 # variables to pass to HTML templating engine
 html_context = {
     "default_mode": "auto",
@@ -914,292 +1183,13 @@ html_context = {
     "github_repo": "mne-python",
     "github_version": "main",
     "doc_path": "doc",
-    "funders": [
-        dict(img="nih.svg", size="3", title="National Institutes of Health"),
-        dict(img="nsf.png", size="3.5", title="US National Science Foundation"),
-        dict(
-            img="erc.svg",
-            size="3.5",
-            title="European Research Council",
-            klass="only-light",
-        ),
-        dict(
-            img="erc-dark.svg",
-            size="3.5",
-            title="European Research Council",
-            klass="only-dark",
-        ),
-        dict(img="doe.svg", size="3", title="US Department of Energy"),
-        dict(img="anr.svg", size="3.5", title="Agence Nationale de la Recherche"),
-        dict(
-            img="cds.svg",
-            size="1.75",
-            title="Paris-Saclay Center for Data Science",
-            klass="only-light",
-        ),
-        dict(
-            img="cds-dark.svg",
-            size="1.75",
-            title="Paris-Saclay Center for Data Science",
-            klass="only-dark",
-        ),
-        dict(img="google.svg", size="2.25", title="Google"),
-        dict(img="amazon.svg", size="2.5", title="Amazon"),
-        dict(img="czi.svg", size="2.5", title="Chan Zuckerberg Initiative"),
-    ],
-    "institutions": [
-        dict(
-            name="Massachusetts General Hospital",
-            img="MGH.svg",
-            url="https://www.massgeneral.org/",
-            size=sm,
-        ),
-        dict(
-            name="Athinoula A. Martinos Center for Biomedical Imaging",
-            img="Martinos.png",
-            url="https://martinos.org/",
-            size=md,
-        ),
-        dict(
-            name="Harvard Medical School",
-            img="Harvard.png",
-            url="https://hms.harvard.edu/",
-            size=sm,
-        ),
-        dict(
-            name="Massachusetts Institute of Technology",
-            img="MIT.svg",
-            url="https://web.mit.edu/",
-            size=md,
-        ),
-        dict(
-            name="New York University",
-            img="NYU.svg",
-            url="https://www.nyu.edu/",
-            size=xs,
-            klass="only-light",
-        ),
-        dict(
-            name="New York University",
-            img="NYU-dark.svg",
-            url="https://www.nyu.edu/",
-            size=xs,
-            klass="only-dark",
-        ),
-        dict(
-            name="Commissariat à l´énergie atomique et aux énergies alternatives",  # noqa E501
-            img="CEA.png",
-            url="http://www.cea.fr/",
-            size=md,
-        ),
-        dict(
-            name="Aalto-yliopiston perustieteiden korkeakoulu",
-            img="Aalto.svg",
-            url="https://sci.aalto.fi/",
-            size=md,
-            klass="only-light",
-        ),
-        dict(
-            name="Aalto-yliopiston perustieteiden korkeakoulu",
-            img="Aalto-dark.svg",
-            url="https://sci.aalto.fi/",
-            size=md,
-            klass="only-dark",
-        ),
-        dict(
-            name="Télécom ParisTech",
-            img="Telecom_Paris_Tech.svg",
-            url="https://www.telecom-paris.fr/",
-            size=md,
-        ),
-        dict(
-            name="University of Washington",
-            img="Washington.svg",
-            url="https://www.washington.edu/",
-            size=md,
-            klass="only-light",
-        ),
-        dict(
-            name="University of Washington",
-            img="Washington-dark.svg",
-            url="https://www.washington.edu/",
-            size=md,
-            klass="only-dark",
-        ),
-        dict(
-            name="Institut du Cerveau et de la Moelle épinière",
-            img="ICM.jpg",
-            url="https://icm-institute.org/",
-            size=md,
-        ),
-        dict(
-            name="Boston University", img="BU.svg", url="https://www.bu.edu/", size=lg
-        ),
-        dict(
-            name="Institut national de la santé et de la recherche médicale",
-            img="Inserm.svg",
-            url="https://www.inserm.fr/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Institut national de la santé et de la recherche médicale",
-            img="Inserm-dark.svg",
-            url="https://www.inserm.fr/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Forschungszentrum Jülich",
-            img="Julich.svg",
-            url="https://www.fz-juelich.de/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Forschungszentrum Jülich",
-            img="Julich-dark.svg",
-            url="https://www.fz-juelich.de/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Technische Universität Ilmenau",
-            img="Ilmenau.svg",
-            url="https://www.tu-ilmenau.de/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Technische Universität Ilmenau",
-            img="Ilmenau-dark.svg",
-            url="https://www.tu-ilmenau.de/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Berkeley Institute for Data Science",
-            img="BIDS.svg",
-            url="https://bids.berkeley.edu/",
-            size=lg,
-            klass="only-light",
-        ),
-        dict(
-            name="Berkeley Institute for Data Science",
-            img="BIDS-dark.svg",
-            url="https://bids.berkeley.edu/",
-            size=lg,
-            klass="only-dark",
-        ),
-        dict(
-            name="Institut national de recherche en informatique et en automatique",  # noqa E501
-            img="inria.png",
-            url="https://www.inria.fr/",
-            size=xl,
-        ),
-        dict(
-            name="Aarhus Universitet",
-            img="Aarhus.svg",
-            url="https://www.au.dk/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="Aarhus Universitet",
-            img="Aarhus-dark.svg",
-            url="https://www.au.dk/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Karl-Franzens-Universität Graz",
-            img="Graz.svg",
-            url="https://www.uni-graz.at/",
-            size=md,
-        ),
-        dict(
-            name="SWPS Uniwersytet Humanistycznospołeczny",
-            img="SWPS.svg",
-            url="https://www.swps.pl/",
-            size=xl,
-            klass="only-light",
-        ),
-        dict(
-            name="SWPS Uniwersytet Humanistycznospołeczny",
-            img="SWPS-dark.svg",
-            url="https://www.swps.pl/",
-            size=xl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Max-Planck-Institut für Bildungsforschung",
-            img="MPIB.svg",
-            url="https://www.mpib-berlin.mpg.de/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Max-Planck-Institut für Bildungsforschung",
-            img="MPIB-dark.svg",
-            url="https://www.mpib-berlin.mpg.de/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Macquarie University",
-            img="Macquarie.svg",
-            url="https://www.mq.edu.au/",
-            size=lg,
-            klass="only-light",
-        ),
-        dict(
-            name="Macquarie University",
-            img="Macquarie-dark.svg",
-            url="https://www.mq.edu.au/",
-            size=lg,
-            klass="only-dark",
-        ),
-        dict(
-            name="AE Studio",
-            img="AE-Studio-light.svg",
-            url="https://ae.studio/",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="AE Studio",
-            img="AE-Studio-dark.svg",
-            url="https://ae.studio/",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Children’s Hospital of Philadelphia Research Institute",
-            img="CHOP.svg",
-            url="https://www.research.chop.edu/imaging",
-            size=xxl,
-            klass="only-light",
-        ),
-        dict(
-            name="Children’s Hospital of Philadelphia Research Institute",
-            img="CHOP-dark.svg",
-            url="https://www.research.chop.edu/imaging",
-            size=xxl,
-            klass="only-dark",
-        ),
-        dict(
-            name="Donders Institute for Brain, Cognition and Behaviour at Radboud University",  # noqa E501
-            img="Donders.png",
-            url="https://www.ru.nl/donders/",
-            size=xl,
-        ),
-        dict(
-            name="Fondation Campus Biotech Geneva",
-            img="FCBG.svg",
-            url="https://fcbg.ch/",
-            size=sm,
-        ),
-    ],
+    "current_sponsors_partners": current,
+    "current_sponsors": current_sponsors,
+    "former_sponsors": former_sponsors,
+    "all_sponsors": [*current_sponsors, *former_sponsors],
+    "current_institutions": current_institutions,
+    "former_institutions": former_institutions,
+    "all_institutions": [*current_institutions, *former_institutions],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
     "carousel": [
@@ -1212,7 +1202,7 @@ html_context = {
         ),
         dict(
             title="Machine Learning",
-            text="Advanced decoding models including time general\u00adiza\u00adtion.",  # noqa E501
+            text="Advanced decoding models including time general\u00adiza\u00adtion.",
             url="auto_tutorials/machine-learning/50_decoding.html",
             img="sphx_glr_50_decoding_006.png",
             alt="Decoding",
@@ -1226,14 +1216,14 @@ html_context = {
         ),
         dict(
             title="Statistics",
-            text="Parametric and non-parametric, permutation tests and clustering.",  # noqa E501
+            text="Parametric and non-parametric, permutation tests and clustering.",
             url="auto_tutorials/stats-source-space/index.html",
             img="sphx_glr_20_cluster_1samp_spatiotemporal_001.png",
             alt="Clusters",
         ),
         dict(
             title="Connectivity",
-            text="All-to-all spectral and effective connec\u00adtivity measures.",  # noqa E501
+            text="All-to-all spectral and effective connec\u00adtivity measures.",
             url="https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html",  # noqa E501
             img="https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png",  # noqa E501
             alt="Connectivity",
@@ -1344,11 +1334,14 @@ for icon, classes in icon_class.items():
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
 
-.. include:: /links.inc
-.. include:: /changes/names.inc
-
 .. currentmodule:: mne
 """
+# NB: names.inc (~400 contributor-name targets) and links.inc are deliberately
+# NOT part of rst_prolog. Parsing them into every document is wasteful (and
+# Sphinx's ReorderConsecutiveTargetAndIndexNodes transform is quadratic in the
+# length of a consecutive run of targets, so names.inc alone cost over a minute
+# of build time this way). The pages that use these link targets include the
+# files explicitly instead.
 
 # -- Dependency info ----------------------------------------------------------
 
@@ -1545,9 +1538,12 @@ vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
+    "credit": "credits/credit",
+    "funding": "credits/sponsors",
     "install/contributing": "development/contributing",
     "overview/cite": "documentation/cite",
     "overview/get_help": "help/index",
+    "overview/people": "credits/leaders",
     "overview/roadmap": "development/roadmap",
     "whats_new": "development/whats_new",
     f"{tu}/evoked/plot_eeg_erp": f"{tu}/evoked/30_eeg_erp",
@@ -1605,6 +1601,7 @@ custom_redirects = {
     f"{ex}/{co}/sensor_connectivity": f"{mne_conn}/{ex}/sensor_connectivity",
     f"{ex}/{vi}/publication_figure": f"{tu}/{vi}/10_publication_figure",
     f"{ex}/{vi}/sensor_noise_level": f"{tu}/{pr}/50_artifact_correction_ssp",
+    f"{ex}/{vi}/montage_sgskip": f"{ex}/{vi}/montage",
 }
 
 # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
@@ -1702,7 +1699,9 @@ def make_custom_redirects(app, exception):
         else:
             to_path = Path(app.outdir) / to
             assert to_path.is_file(), to_path
-        # recreate folders that no longer exist
+        # recreate overview folder (only for redirects now)
+        os.makedirs(Path(app.outdir) / "overview", exist_ok=True)
+        # recreate gallery folders that no longer exist
         defunct_gallery_folders = (
             "misc",
             "discussions",
@@ -1740,6 +1739,23 @@ def make_version(app, exception):
     sphinx_logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
 
 
+def rstjinja(app, docname, source):
+    """Use Jinja to process the sponsors page."""
+    # Make sure we're outputting HTML
+    if app.builder.format != "html":
+        return
+    if docname == "credits/sponsors":
+        src = source[0]
+        rendered = app.builder.templates.render_string(src, app.config.html_context)
+        source[0] = rendered
+
+
+def set_toc_level(app, pagename, templatename, context, doctree):
+    """Show the auto-generated related-software subsections in the right sidebar."""
+    if pagename == "install/mne_tools_suite":
+        context["theme_show_toc_level"] = 2
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 
@@ -1747,10 +1763,18 @@ def setup(app):
     """Set up the Sphinx app."""
     app.connect("autodoc-process-docstring", append_attr_meth_examples)
     app.connect("autodoc-process-docstring", fix_sklearn_inherited_docstrings)
+    app.connect("autodoc-process-docstring", link_base_class_attrs)
     # High prio, will happen before SG
+    app.connect("builder-inited", check_links, priority=5)
     app.connect("builder-inited", generate_credit_rst, priority=10)
     app.connect("builder-inited", report_scraper.set_dirs, priority=20)
     app.connect("build-finished", make_gallery_redirects)
     app.connect("build-finished", make_api_redirects)
     app.connect("build-finished", make_custom_redirects)
     app.connect("build-finished", make_version)
+    app.connect("source-read", rstjinja)
+    if build_jupyterlite:
+        app.connect("source-read", strip_lite_badge)
+        # after sphinx-gallery's own config-inited handler
+        app.connect("config-inited", lite_contents_at_root, priority=1000)
+    app.connect("html-page-context", set_toc_level)

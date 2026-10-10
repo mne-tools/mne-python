@@ -69,6 +69,12 @@ def _read_filter(fid):
     return f
 
 
+def _to_dict(arr: np.ndarray) -> dict[str, np.ndarray]:
+    # Convert a structured array to a dict of arrays
+    assert arr.dtype.names is not None
+    return {name: arr[name] for name in arr.dtype.names}
+
+
 def _read_comp_coeff(fid, d):
     """Read compensation coefficients."""
     # Read the coefficients and initialize
@@ -85,7 +91,7 @@ def _read_comp_coeff(fid, d):
             ("coeffs", ">f8", CTF.CTFV_MAX_BALANCING),
         ]
     )
-    comps = np.fromfile(fid, dt, d["ncomp"])
+    comps = _to_dict(np.fromfile(fid, dt, d["ncomp"]))
     for k in range(d["ncomp"]):
         comp = dict()
         d["comp"].append(comp)
@@ -201,16 +207,14 @@ def _read_res4(dsdir):
                 ("head_coil", _coil_dt, CTF.CTFV_MAX_COILS),
             ]
         )
-        chs = np.fromfile(fid, _ch_dt, res["nchan"])
+        chs = _to_dict(np.fromfile(fid, _ch_dt, res["nchan"]))
         for coil in (chs["coil"], chs["head_coil"]):
             coil["pos"] /= 100.0
             coil["area"] *= 1e-4
         # convert to dict
-        chs = [dict(zip(chs.dtype.names, x)) for x in chs]
-        for ch in chs:
-            for key, val in ch.items():
-                ch[key] = _auto_cast(val)
-        res["chs"] = chs
+        res["chs"] = [
+            {key: _auto_cast(chs[key][ci]) for key in chs} for ci in range(res["nchan"])
+        ]
         for k in range(res["nchan"]):
             res["chs"][k]["ch_name"] = res["ch_names"][k]
 

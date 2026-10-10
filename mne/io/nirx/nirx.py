@@ -8,34 +8,38 @@ import json
 import os.path as op
 import re as re
 from configparser import ConfigParser, RawConfigParser
+from pathlib import Path
 
 import numpy as np
-from scipy.io import loadmat
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _format_dig_points, create_info
 from ..._fiff.utils import _mult_cal_one
 from ..._freesurfer import get_mni_fiducials
 from ...annotations import Annotations
-from ...fixes import _reshape_view
 from ...transforms import _get_trans, apply_trans
 from ...utils import (
     _check_fname,
     _check_option,
     _mask_to_onsets_offsets,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
 from ._localized_abbr import _localized_abbr
 
 
-@fill_doc
+@fill_doc_static("saturated", "preload", "encoding_nirx", "verbose", "nirx_notes")
 def read_raw_nirx(
-    fname, saturated="annotate", *, preload=False, encoding="latin-1", verbose=None
+    fname: Path | str,
+    saturated: str = "annotate",
+    *,
+    preload: bool | str = False,
+    encoding: str = "latin-1",
+    verbose: bool | str | int | None = None,
 ) -> "RawNIRX":
     """Reader for a NIRX fNIRS recording.
 
@@ -46,10 +50,44 @@ def read_raw_nirx(
         the ``.hdr`` header file within that folder. The function will
         automatically find and read all required NIRX files from the
         directory.
-    %(saturated)s
-    %(preload)s
-    %(encoding_nirx)s
-    %(verbose)s
+    saturated : str
+        Replace saturated segments of data with NaNs, can be:
+
+        ``"ignore"``
+            The measured data is returned, even if it contains measurements
+            while the amplifier was saturated.
+        ``"nan"``
+            The returned data will contain NaNs during time segments
+            when the amplifier was saturated.
+        ``"annotate"`` (default)
+            The returned data will contain annotations specifying
+            sections the saturate segments.
+
+        This argument will only be used if there is no .nosatflags file
+        (only if a NIRSport device is used and saturation occurred).
+
+        .. versionadded:: 0.24
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    encoding : str
+        Text encoding of the NIRX header file. See :ref:`standard-encodings`.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -63,7 +101,22 @@ def read_raw_nirx(
 
     Notes
     -----
-    %(nirx_notes)s
+    This function has only been tested with NIRScout and NIRSport devices,
+    and with the NIRStar software version 15 and above and Aurora software
+    2021 and above.
+
+    The NIRSport device can detect if the amplifier is saturated.
+    Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+    in the standard .wlX files.
+    The raw unmodified measured values are stored in another file
+    called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
+    mathematical functions the default behaviour is to return the
+    saturated data.
+
+    .. note::
+        This function expects ``fname`` to be a path to a directory containing the
+        NIRX data files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.). If you have a
+        ``.snirf`` file, use :func:`mne.io.read_raw_snirf` instead.
     """
     return RawNIRX(
         fname, saturated, preload=preload, encoding=encoding, verbose=verbose
@@ -74,7 +127,7 @@ def _open(fname):
     return open(fname, encoding="latin-1")
 
 
-@fill_doc
+@fill_doc_static("saturated", "preload", "encoding_nirx", "verbose", "nirx_notes")
 class RawNIRX(BaseRaw):
     """Raw object from a NIRX fNIRS file.
 
@@ -82,10 +135,44 @@ class RawNIRX(BaseRaw):
     ----------
     fname : path-like
         Path to the NIRX data folder or header file.
-    %(saturated)s
-    %(preload)s
-    %(encoding_nirx)s
-    %(verbose)s
+    saturated : str
+        Replace saturated segments of data with NaNs, can be:
+
+        ``"ignore"``
+            The measured data is returned, even if it contains measurements
+            while the amplifier was saturated.
+        ``"nan"``
+            The returned data will contain NaNs during time segments
+            when the amplifier was saturated.
+        ``"annotate"`` (default)
+            The returned data will contain annotations specifying
+            sections the saturate segments.
+
+        This argument will only be used if there is no .nosatflags file
+        (only if a NIRSport device is used and saturation occurred).
+
+        .. versionadded:: 0.24
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    encoding : str
+        Text encoding of the NIRX header file. See :ref:`standard-encodings`.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -93,11 +180,28 @@ class RawNIRX(BaseRaw):
 
     Notes
     -----
-    %(nirx_notes)s
+    This function has only been tested with NIRScout and NIRSport devices,
+    and with the NIRStar software version 15 and above and Aurora software
+    2021 and above.
+
+    The NIRSport device can detect if the amplifier is saturated.
+    Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+    in the standard .wlX files.
+    The raw unmodified measured values are stored in another file
+    called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
+    mathematical functions the default behaviour is to return the
+    saturated data.
+
+    .. note::
+        This function expects ``fname`` to be a path to a directory containing the
+        NIRX data files (e.g., ``.hdr``, ``.wl1``, ``.wl2``, etc.). If you have a
+        ``.snirf`` file, use :func:`mne.io.read_raw_snirf` instead.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(self, fname, saturated, *, preload=False, encoding=None, verbose=None):
+        from scipy.io import loadmat
+
         logger.info(f"Loading {fname}")
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")
@@ -119,8 +223,6 @@ class RawNIRX(BaseRaw):
                 "description.json",
                 "wl1",
                 "wl2",
-                "probeInfo.mat",
-                "tri",
             )
         else:
             # NIRScout devices and NIRSport1 devices
@@ -132,7 +234,6 @@ class RawNIRX(BaseRaw):
                 "wl1",
                 "wl2",
                 "config.txt",
-                "probeInfo.mat",
             )
             n_dat = len(glob.glob(f"{fname}/*{'dat'}"))
             if n_dat != 1:
@@ -175,6 +276,21 @@ class RawNIRX(BaseRaw):
                     nan_mask[key] = files[key][0 if noidx == 1 else 1]
             files[key] = files[key][fidx]
 
+        # Locate probeInfo file — either .mat (legacy) or .json (newer Aurora)
+        probe_mat = glob.glob(f"{fname}/*probeInfo.mat")
+        probe_json = glob.glob(f"{fname}/*probeInfo.json")
+        if len(probe_json) == 1:
+            files["probeInfo"] = probe_json[0]
+            probe_format = "json"
+        elif len(probe_mat) == 1:
+            files["probeInfo"] = probe_mat[0]
+            probe_format = "mat"
+        else:
+            raise RuntimeError(
+                f"Need one probeInfo.mat or probeInfo.json file, "
+                f"got {len(probe_mat)} .mat and {len(probe_json)} .json"
+            )
+
         # Read number of rows/samples of wavelength data
         with _open(files["wl1"]) as fid:
             last_sample = fid.read().count("\n") - 1
@@ -197,6 +313,7 @@ class RawNIRX(BaseRaw):
                 "2021.4.0-34-ge9fdbbc8",
                 "2021.9.0-5-g3eb32851",
                 "2021.9.0-6-g14ef4a71",
+                "2025.2.0-17-geea6971f",
             ]:
                 warn(
                     "MNE has not been tested with Aurora version "
@@ -253,7 +370,7 @@ class RawNIRX(BaseRaw):
                 except ValueError:
                     pass
                 else:
-                    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                    meas_date = meas_date.replace(tzinfo=dt.UTC)
                     do_break = True
                     logger.debug(f"Measurement date language {loc} detected: {dt_code}")
                     break
@@ -268,7 +385,7 @@ class RawNIRX(BaseRaw):
                 "The date is being set to January 1st, 2000, "
                 f"instead of {repr(datetime_str)}."
             )
-            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.UTC)
 
         # Extract frequencies of light used by machine
         if is_aurora:
@@ -319,7 +436,7 @@ class RawNIRX(BaseRaw):
         else:
             inf = ConfigParser(allow_no_value=True)
             inf.read(files["inf"])
-            inf = inf._sections["Subject Demographics"]
+            inf = inf._sections["Subject Demographics"]  # ty: ignore[unresolved-attribute]
 
         # Store subject information from inf file in mne format
         # Note: NIRX also records "Study Type", "Experiment History",
@@ -361,12 +478,28 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        mat_data = loadmat(files["probeInfo.mat"])
-        probes = mat_data["probeInfo"]["probes"][0, 0]
-        requested_channels = probes["index_c"][0, 0]
-        src_locs = probes["coords_s3"][0, 0] / 100.0
-        det_locs = probes["coords_d3"][0, 0] / 100.0
-        ch_locs = probes["coords_c3"][0, 0] / 100.0
+        if probe_format == "json":
+            with open(files["probeInfo"], encoding="utf-8") as _f:
+                _probe_json = json.load(_f)
+            probes = _probe_json["probeInfo"]["probes"]
+            requested_channels = np.array(probes["index_c"])
+            src_locs = np.array(probes["coords_s3"]) / 1000.0
+            det_locs = np.array(probes["coords_d3"]) / 1000.0
+            ch_locs = np.array(probes["coords_c3"]) / 1000.0
+            if _probe_json["probeInfo"]["head_circumference"] != 610.0:
+                warn(
+                    "The head circumference in the probeInfo.json file is "
+                    f"{_probe_json['probeInfo']['head_circumference']} mm, "
+                    "as opposed to standard 610.0 mm. This may cause misalignment of "
+                    "the optode locations with the subject's head in later steps."
+                )
+        else:
+            mat_data = loadmat(files["probeInfo"])
+            probes = mat_data["probeInfo"]["probes"][0, 0]
+            requested_channels = probes["index_c"][0, 0]
+            src_locs = probes["coords_s3"][0, 0] / 100.0
+            det_locs = probes["coords_d3"][0, 0] / 100.0
+            ch_locs = probes["coords_c3"][0, 0] / 100.0
 
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame
@@ -397,9 +530,11 @@ class RawNIRX(BaseRaw):
         # subset requested in the probe file
         req_ind = np.array([], int)
         for req_idx in range(requested_channels.shape[0]):
-            sd_idx = np.where(
-                (sources == requested_channels[req_idx][0])
-                & (detectors == requested_channels[req_idx][1])
+            sd_idx = np.nonzero(
+                np.asarray(
+                    (sources == requested_channels[req_idx][0])
+                    & (detectors == requested_channels[req_idx][1])
+                )
             )
             req_ind = np.concatenate((req_ind, sd_idx[0]))
         req_ind = req_ind.astype(int)
@@ -423,11 +558,11 @@ class RawNIRX(BaseRaw):
         # The detector location is stored in the third 3 entries of loc.
         # NIRx NIRSite uses MNI coordinates.
         # Also encode the light frequency in the structure.
-        for ch_idx2 in range(requested_channels.shape[0]):
+        for ch_idx2, wl_idx in enumerate(req_ind):
             # Find source and store location
-            src = int(requested_channels[ch_idx2, 0]) - 1
+            src = int(sources[wl_idx]) - 1
             # Find detector and store location
-            det = int(requested_channels[ch_idx2, 1]) - 1
+            det = int(detectors[wl_idx]) - 1
             # Store channel location as midpoint between source and detector.
             midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
             for ii in range(2):
@@ -506,6 +641,9 @@ class RawNIRX(BaseRaw):
         # Read triggers from event file
         if not is_aurora:
             files["tri"] = files["hdr"][:-3] + "evt"
+        else:
+            tri_files = glob.glob(f"{fname}/*.tri")
+            files["tri"] = tri_files[0] if len(tri_files) == 1 else ""
         if op.isfile(files["tri"]):
             with _open(files["tri"]) as fid:
                 t = [re.findall(r"(\d+)", line) for line in fid]
@@ -568,7 +706,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds, sep=" ", replace=None)
         if replace is not None:
             data = replace(data)
         x = np.fromstring(data, float, sep=sep)
-    x = _reshape_view(x, (stop - start, -1))
+    x = x.reshape((stop - start, -1), copy=False)
     x = x[:, cols]
     return x
 

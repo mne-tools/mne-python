@@ -1,0 +1,64 @@
+{
+  "merge_commit_sha": "9ead1599b7ac40ba0cb27abc7eef1650d7c3132d",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com",
+      "l": "CarinaFo"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13969.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/decoding/csp.py": {
+      "a": 10,
+      "d": 0
+    },
+    "mne/decoding/spatial_filter.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/defaults.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/evoked.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/preprocessing/_regress.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 83,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 50,
+      "d": 2
+    }
+  }
+}

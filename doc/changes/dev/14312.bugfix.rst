@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.preprocessing.oversampled_temporal_projection` and :func:`mne.preprocessing.maxwell_filter` with ``st_overlap=True`` could fail the constant overlap-add (COLA) check when the window had an odd number of samples, and adjust non-COLA windows to the closest COLA window when SciPy 1.16+ is installed, by `Eric Larson`_.

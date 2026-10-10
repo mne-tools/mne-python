@@ -10,6 +10,7 @@ import os
 import re
 from builtins import input  # noqa: A004, UP029
 from difflib import get_close_matches
+from functools import wraps
 from importlib import import_module
 from inspect import signature
 from pathlib import Path
@@ -18,7 +19,13 @@ import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..fixes import _compare_version, _median_complex
-from ._logging import _record_warnings, _verbose_safe_false, logger, verbose, warn
+from ._logging import (
+    _record_warnings,
+    _verbose_control,
+    _verbose_safe_false,
+    logger,
+    warn,
+)
 
 
 def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
@@ -83,7 +90,9 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
     Parameters
     ----------
     library : str
-        The library name to import. Must have a ``__version__`` property.
+        The library name to import. Should have a ``__version__`` property;
+        if absent and ``min_version`` is specified, the version check will
+        fail.
     min_version : str
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
@@ -120,11 +129,14 @@ def check_version(library, min_version="0.0", *, strip=True, return_version=Fals
         check_version = min_version and min_version != "0.0"
         get_version = check_version or return_version
         if get_version:
-            version = library.__version__
-            if strip:
+            try:
+                version = library.__version__
+            except AttributeError:
+                version = None
+            if version is not None and strip:
                 version = _strip_dev(version)
         if check_version:
-            if _compare_version(version, "<", min_version):
+            if version is None or _compare_version(version, "<", min_version):
                 ok = False
     out = (ok, version) if return_version else ok
     return out
@@ -225,6 +237,43 @@ def check_random_state(seed):
     )
 
 
+def _check_rng(rng):
+    """Return a NumPy Generator, or a legacy RandomState unchanged.
+
+    Legacy RandomState instances are accepted for interoperability with
+    third-party code such as scikit-learn that does not accept Generator
+    instances.
+    """
+    if isinstance(rng, np.random.mtrand.RandomState):
+        return rng
+    return np.random.default_rng(rng)
+
+
+def _legacy_rng(legacy_name):
+    """Handle presence-sensitive legacy RNG parameters at the call boundary.
+
+    The decorated function must accept a keyword-only ``rng`` parameter. When
+    it is called, ``kwargs["rng"]`` is replaced by the normalized value before
+    the function runs, so the body only ever sees an already-normalized RNG.
+    """
+
+    def decorator(function):
+        @wraps(function)
+        def _legacy_rng_wrapper(*args, **kwargs):
+            if legacy_name not in kwargs:
+                kwargs["rng"] = _check_rng(kwargs.get("rng"))
+                return function(*args, **kwargs)
+            if "rng" in kwargs:
+                raise TypeError(f"Specify only one of rng or {legacy_name}")
+            logger.info(f"Use rng= instead of {legacy_name}= in new code")
+            kwargs["rng"] = check_random_state(kwargs[legacy_name])
+            return function(*args, **kwargs)
+
+        return _legacy_rng_wrapper
+
+    return decorator
+
+
 def _check_event_id(event_id, events):
     """Check event_id and convert to default format."""
     # check out event_id dict
@@ -245,7 +294,7 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-@verbose
+@_verbose_control
 def _check_fname(
     fname,
     overwrite=False,
@@ -281,7 +330,7 @@ def _check_fname(
         if not overwrite:
             raise FileExistsError(
                 "Destination file exists. Please use option "
-                '"overwrite=True" to force overwriting.'
+                f'"overwrite=True" to force overwriting of: {name}'
             )
         elif overwrite != "read":
             logger.info("Overwriting existing file.")
@@ -407,6 +456,7 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
         mne_connectivity="mne-connectivity",
         mne_gui_addons="mne-gui-addons",
         pyvista="pyvistaqt",
+        hed="hedtools",
     ).get(name, name)
 
     got_version = None
@@ -576,6 +626,9 @@ _multi = {
     "array-like": (list, tuple, set, np.ndarray),
     "sparse": (_Sparse(),),
 }
+# Precomputed for isinstance() -- `list | tuple` rebuilds a UnionType on every
+# call (~11x slower), which matters in hot validation paths.
+_list_or_tuple = (list, tuple)
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""):
@@ -604,7 +657,18 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     elif types == "info":
         from .._fiff.meas_info import Info as types
 
-    if not isinstance(types, list | tuple):
+    # Fast path for the common single-type / single-string-spec calls: avoids
+    # rebuilding `check_types` (and the `list | tuple` union) on every call.
+    # `_validate_type` is one of the hottest functions in MNE (e.g. it runs per
+    # channel inside Info._check_consistency). Only returns early on success;
+    # failures fall through to the general path below to build the error message.
+    if isinstance(types, type):
+        if isinstance(item, types):
+            return
+    elif isinstance(types, str) and isinstance(item, _multi[types]):
+        return
+
+    if not isinstance(types, _list_or_tuple):
         types = [types]
 
     check_types = sum(
@@ -698,13 +762,17 @@ def _path_like(item):
         return False
 
 
-def _check_if_nan(data, msg=" to be plotted"):
+def _check_if_nan(data, on_nan="error", msg=" to be plotted"):
     """Raise if any of the values are NaN."""
+    _check_option("on_nan", on_nan, ("error", "warn"))
     if not np.isfinite(data).all():
-        raise ValueError(f"Some of the values {msg} are NaN.")
+        if on_nan == "error":
+            raise ValueError(f"Some of the values {msg} are NaN.")
+        elif on_nan == "warn":
+            warn(f"Some of the values {msg} are NaN")
 
 
-@verbose
+@_verbose_control
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None, verbose=None):
     """Return good channels common to forward model and covariance matrices."""
     from .._fiff.pick import pick_types
@@ -1029,15 +1097,20 @@ def _check_sphere(sphere, info=None, sphere_units="m"):
     from ..bem import ConductorModel, fit_sphere_to_headshape, get_fitting_dig
 
     if sphere is None:
-        sphere = HEAD_SIZE_DEFAULT
-        if info is not None:
-            # Decide if we have enough dig points to do the auto fit
-            try:
-                get_fitting_dig(info, "extra", verbose="error")
-            except (RuntimeError, ValueError):
-                pass
-            else:
-                sphere = "auto"
+        if info is not None and info.get("head_sphere") is not None:
+            # Prefer the sphere stored by inst.set_head_sphere(), always in m
+            sphere, sphere_units = info["head_sphere"], "m"
+        else:
+            # Try the "auto" procedure, fall back to HEAD_SIZE_DEFAULT if it fails
+            sphere = HEAD_SIZE_DEFAULT
+            if info is not None:
+                # Decide if we have enough dig points to do the auto fit
+                try:
+                    get_fitting_dig(info, "extra", verbose="error")
+                except (RuntimeError, ValueError):
+                    pass
+                else:
+                    sphere = "auto"
 
     if isinstance(sphere, str):
         _check_option(

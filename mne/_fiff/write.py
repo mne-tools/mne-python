@@ -7,15 +7,23 @@ import os.path as op
 import re
 import time
 import uuid
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import contextmanager
 from gzip import GzipFile
+from os import PathLike
+from typing import IO, TYPE_CHECKING, Any, Literal
 
 import numpy as np
-from scipy.sparse import csc_array, csr_array
 
 from ..utils import _check_fname, _file_like, _validate_type, logger
+from ..utils._bunch import NamedInt
 from ..utils.numerics import _date_to_julian
 from .constants import FIFF
+
+if TYPE_CHECKING:
+    from scipy.sparse import csc_array, csr_array
+
+    from ..transforms import Transform
 
 # We choose a "magic" date to store (because meas_date is obligatory)
 # to treat as meas_date=None. This one should be impossible for systems
@@ -55,7 +63,7 @@ def _get_split_size(split_size):
 _NEXT_FILE_BUFFER = 1048576  # 2 ** 20 extra cushion for last post-data tags
 
 
-def write_nop(fid, last=False):
+def write_nop(fid: IO[bytes], last: bool = False) -> None:
     """Write a FIFF_NOP."""
     fid.write(np.array(FIFF.FIFF_NOP, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFT_VOID, dtype=">i4").tobytes())
@@ -67,7 +75,9 @@ def write_nop(fid, last=False):
 INT32_MAX = 2147483647
 
 
-def write_int(fid, kind, data):
+def write_int(
+    fid: IO[bytes], kind: int, data: int | Sequence[int] | np.ndarray
+) -> None:
     """Write a 32-bit integer tag to a fif file."""
     data_size = 4
     data = np.asarray(data)
@@ -84,51 +94,61 @@ def write_int(fid, kind, data):
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, ">i4")
 
 
-def write_double(fid, kind, data):
+def write_double(
+    fid: IO[bytes], kind: int, data: float | Sequence[float] | np.ndarray
+) -> None:
     """Write a double-precision floating point tag to a fif file."""
     data_size = 8
     data = np.array(data, dtype=">f8").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_DOUBLE, ">f8")
 
 
-def write_float(fid, kind, data):
+def write_float(
+    fid: IO[bytes], kind: int, data: float | Sequence[float] | np.ndarray
+) -> None:
     """Write a single-precision floating point tag to a fif file."""
     data_size = 4
     data = np.array(data, dtype=">f4").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_FLOAT, ">f4")
 
 
-def write_dau_pack16(fid, kind, data):
+def write_dau_pack16(
+    fid: IO[bytes], kind: int, data: int | Sequence[int] | np.ndarray
+) -> None:
     """Write a dau_pack16 tag to a fif file."""
     data_size = 2
     data = np.array(data, dtype=">i2").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_DAU_PACK16, ">i2")
 
 
-def write_complex64(fid, kind, data):
+def write_complex64(
+    fid: IO[bytes], kind: int, data: complex | Sequence[complex] | np.ndarray
+) -> None:
     """Write a 64 bit complex floating point tag to a fif file."""
     data_size = 8
     data = np.array(data, dtype=">c8").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_COMPLEX_FLOAT, ">c8")
 
 
-def write_complex128(fid, kind, data):
+def write_complex128(
+    fid: IO[bytes], kind: int, data: complex | Sequence[complex] | np.ndarray
+) -> None:
     """Write a 128 bit complex floating point tag to a fif file."""
     data_size = 16
     data = np.array(data, dtype=">c16").T
     _write(fid, data, kind, data_size, FIFF.FIFFT_COMPLEX_FLOAT, ">c16")
 
 
-def write_julian(fid, kind, data):
+def write_julian(fid: IO[bytes], kind: int, data: datetime.date) -> None:
     """Write a Julian-formatted date to a FIF file."""
     assert isinstance(data, datetime.date), type(data)
     data_size = 4
     jd = _date_to_julian(data)
-    data = np.array(jd, dtype=">i4")
+    data = np.array(jd, dtype=">i4")  # type: ignore (name reused for the array)
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, ">i4")
 
 
-def write_string(fid, kind, data):
+def write_string(fid: IO[bytes], kind: int, data: str) -> None:
     """Write a string tag."""
     try:
         str_data = str(data).encode("latin1")
@@ -139,7 +159,7 @@ def write_string(fid, kind, data):
         _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, ">S")
 
 
-def write_name_list(fid, kind, data):
+def write_name_list(fid: IO[bytes], kind: int, data: Iterable[str]) -> None:
     """Write a colon-separated list of names.
 
     Parameters
@@ -149,52 +169,55 @@ def write_name_list(fid, kind, data):
     write_string(fid, kind, ":".join(data))
 
 
-def write_name_list_sanitized(fid, kind, lst, name):
+def write_name_list_sanitized(
+    fid: IO[bytes], kind: int, lst: Sequence[str], *, name: str = "ch_names"
+) -> None:
     """Write a sanitized, colon-separated list of names."""
-    write_string(fid, kind, _safe_name_list(lst, "write", name))
+    write_string(fid, kind, _safe_write_name_list(lst, name))
 
 
-def _safe_name_list(lst, operation, name):
-    if operation == "write":
-        assert isinstance(lst, list | tuple | np.ndarray), type(lst)
-        if any("{COLON}" in val for val in lst):
-            raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
-        return ":".join(val.replace(":", "{COLON}") for val in lst)
-    else:
-        # take a sanitized string and return a list of strings
-        assert operation == "read"
-        assert lst is None or isinstance(lst, str)
-        if not lst:  # None or empty string
-            return []
-        return [val.replace("{COLON}", ":") for val in lst.split(":")]
+def _safe_write_name_list(lst: Sequence[str], name: str) -> str:
+    if any("{COLON}" in val for val in lst):
+        raise ValueError(f'The substring "{{COLON}}" in {name} not supported.')
+    return ":".join(val.replace(":", "{COLON}") for val in lst)
 
 
-def write_float_matrix(fid, kind, mat):
+def _safe_read_name_list(lst: str | None) -> list[str]:
+    if not lst:  # None or empty string
+        return []
+    return [val.replace("{COLON}", ":") for val in lst.split(":")]
+
+
+def write_float_matrix(fid: IO[bytes], kind: NamedInt, mat: np.ndarray) -> None:
     """Write a single-precision floating-point matrix tag."""
     _write_matrix_data(fid, kind, mat, FIFF.FIFFT_FLOAT)
 
 
-def write_double_matrix(fid, kind, mat):
+def write_double_matrix(fid: IO[bytes], kind: NamedInt, mat: np.ndarray) -> None:
     """Write a double-precision floating-point matrix tag."""
     _write_matrix_data(fid, kind, mat, FIFF.FIFFT_DOUBLE)
 
 
-def write_int_matrix(fid, kind, mat):
+def write_int_matrix(fid: IO[bytes], kind: NamedInt, mat: np.ndarray) -> None:
     """Write integer 32 matrix tag."""
     _write_matrix_data(fid, kind, mat, FIFF.FIFFT_INT)
 
 
-def write_complex_float_matrix(fid, kind, mat):
+def write_complex_float_matrix(fid: IO[bytes], kind: NamedInt, mat: np.ndarray) -> None:
     """Write complex 64 matrix tag."""
     _write_matrix_data(fid, kind, mat, FIFF.FIFFT_COMPLEX_FLOAT)
 
 
-def write_complex_double_matrix(fid, kind, mat):
+def write_complex_double_matrix(
+    fid: IO[bytes], kind: NamedInt, mat: np.ndarray
+) -> None:
     """Write complex 128 matrix tag."""
     _write_matrix_data(fid, kind, mat, FIFF.FIFFT_COMPLEX_DOUBLE)
 
 
-def _write_matrix_data(fid, kind, mat, data_type):
+def _write_matrix_data(
+    fid: IO[bytes], kind: NamedInt, mat: np.ndarray, data_type: NamedInt
+):
     dtype = {
         FIFF.FIFFT_FLOAT: ">f4",
         FIFF.FIFFT_DOUBLE: ">f8",
@@ -217,7 +240,7 @@ def _write_matrix_data(fid, kind, mat, data_type):
     check_fiff_length(fid)
 
 
-def get_machid():
+def get_machid() -> np.ndarray[tuple[int], np.dtype[np.int32]]:
     """Get (mostly) unique machine ID.
 
     Returns
@@ -237,7 +260,7 @@ def get_machid():
     return ids
 
 
-def get_new_file_id():
+def get_new_file_id() -> dict[str, int | np.ndarray]:
     """Create a new file ID tag."""
     secs, usecs = divmod(time.time(), 1.0)
     secs, usecs = int(secs), int(usecs * 1e6)
@@ -249,7 +272,7 @@ def get_new_file_id():
     }
 
 
-def write_id(fid, kind, id_=None):
+def write_id(fid: IO[bytes], kind: int, id_: dict[str, Any] | None = None) -> None:
     """Write fiff id."""
     id_ = _generate_meas_id() if id_ is None else id_
 
@@ -267,17 +290,22 @@ def write_id(fid, kind, id_=None):
     fid.write(arr.tobytes())
 
 
-def start_block(fid, kind):
+def start_block(fid: IO[bytes], kind: int) -> None:
     """Write a FIFF_BLOCK_START tag."""
     write_int(fid, FIFF.FIFF_BLOCK_START, kind)
 
 
-def end_block(fid, kind):
+def end_block(fid: IO[bytes], kind: int) -> None:
     """Write a FIFF_BLOCK_END tag."""
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
-def start_file(fname, id_=None, *, overwrite=True):
+def start_file(
+    fname: str | PathLike | IO[bytes],
+    id_: dict[str, Any] | None = None,
+    *,
+    overwrite: bool = True,
+) -> IO[bytes]:
     """Open a fif file for writing and writes the compulsory header tags.
 
     Parameters
@@ -289,6 +317,7 @@ def start_file(fname, id_=None, *, overwrite=True):
     id_ : dict | None
         ID to use for the FIFF_FILE_ID.
     """
+    fid: IO[bytes]
     if _file_like(fname):
         logger.debug(f"Writing using {type(fname)} I/O")
         fid = fname
@@ -300,7 +329,7 @@ def start_file(fname, id_=None, *, overwrite=True):
             logger.debug("Writing using gzip")
             # defaults to compression level 9, which is barely smaller but much
             # slower. 2 offers a good compromise.
-            fid = GzipFile(fname, "wb", compresslevel=2)
+            fid = GzipFile(fname, "wb", compresslevel=2)  # type: ignore (Gzip ≠ IO)
         else:
             logger.debug("Writing using normal I/O")
             fid = open(fname, "wb")
@@ -312,14 +341,19 @@ def start_file(fname, id_=None, *, overwrite=True):
 
 
 @contextmanager
-def start_and_end_file(fname, id_=None, *, overwrite=True):
+def start_and_end_file(
+    fname: str | PathLike | IO[bytes],
+    id_: dict[str, Any] | None = None,
+    *,
+    overwrite: bool = True,
+) -> Generator[IO[bytes], None, None]:
     """Start and (if successfully written) close the file."""
     with start_file(fname, id_=id_, overwrite=overwrite) as fid:
         yield fid
         end_file(fid)  # we only hit this line if the yield does not err
 
 
-def check_fiff_length(fid, close=True):
+def check_fiff_length(fid: IO[bytes], close: bool = True) -> None:
     """Ensure our file hasn't grown too large to work properly."""
     if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
         if close:
@@ -331,14 +365,14 @@ def check_fiff_length(fid, close=True):
         )
 
 
-def end_file(fid):
+def end_file(fid: IO[bytes]) -> None:
     """Write the closing tags to a fif file and closes the file."""
     write_nop(fid, last=True)
     check_fiff_length(fid)
     fid.close()
 
 
-def write_coord_trans(fid, trans):
+def write_coord_trans(fid: IO[bytes], trans: "Transform") -> None:
     """Write a coordinate transformation structure."""
     data_size = 4 * 2 * 12 + 4 * 2
     fid.write(np.array(FIFF.FIFF_COORD_TRANS, dtype=">i4").tobytes())
@@ -362,7 +396,7 @@ def write_coord_trans(fid, trans):
     fid.write(np.array(move, dtype=">f4").tobytes())
 
 
-def write_ch_info(fid, ch):
+def write_ch_info(fid: IO[bytes], ch: dict[str, Any]) -> None:
     """Write a channel information record to a fif file."""
     data_size = 4 * 13 + 4 * 7 + 16
 
@@ -390,7 +424,14 @@ def write_ch_info(fid, ch):
     fid.write(b"\0" * (16 - len(ch_name)))
 
 
-def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
+def write_dig_points(
+    fid: IO[bytes],
+    dig: Iterable[dict[str, Any]] | None,
+    block: bool = False,
+    coord_frame: int | None = None,
+    *,
+    ch_names: Sequence[str] | None = None,
+) -> None:
     """Write a set of digitizer data points into a fif file."""
     if dig is not None:
         data_size = 5 * 4
@@ -408,20 +449,42 @@ def write_dig_points(fid, dig, block=False, coord_frame=None, *, ch_names=None):
             fid.write(np.array(d["ident"], ">i4").tobytes())
             fid.write(np.array(d["r"][:3], ">f4").tobytes())
         if ch_names is not None:
-            write_name_list_sanitized(
-                fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names, "ch_names"
-            )
+            write_name_list_sanitized(fid, FIFF.FIFF_MNE_CH_NAME_LIST, ch_names)
         if block:
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 
 
-def write_float_sparse_rcs(fid, kind, mat):
+def write_layer_struct(fid, kind, layers):
+    """Write an array of layer structures of a layered sphere model."""
+    from .tag import _LAYER_DTYPE
+
+    layers = np.array(
+        [(layer["id"], layer["rad"]) for layer in layers], dtype=_LAYER_DTYPE
+    )
+    _write(
+        fid,
+        layers,
+        kind,
+        _LAYER_DTYPE.itemsize,
+        FIFF.FIFFT_LAYER_STRUCT,
+        _LAYER_DTYPE,
+    )
+
+
+def write_float_sparse_rcs(fid: IO[bytes], kind: int, mat: "csr_array") -> None:
     """Write a single-precision sparse compressed row matrix tag."""
     return write_float_sparse(fid, kind, mat, fmt="csr")
 
 
-def write_float_sparse(fid, kind, mat, fmt="auto"):
+def write_float_sparse(
+    fid: IO[bytes],
+    kind: int,
+    mat: "csr_array | csc_array",
+    fmt: Literal["auto", "csr", "csc"] = "auto",
+) -> None:
     """Write a single-precision floating-point sparse matrix tag."""
+    from scipy.sparse import csc_array, csr_array
+
     if fmt == "auto":
         fmt = "csr" if isinstance(mat, csr_array) else "csc"
     need = csr_array if fmt == "csr" else csc_array
@@ -448,7 +511,7 @@ def write_float_sparse(fid, kind, mat, fmt="auto"):
 
 def _generate_meas_id():
     """Generate a new meas_id dict."""
-    id_ = dict()
+    id_: dict[str, Any] = dict()
     id_["version"] = FIFF.FIFFC_VERSION
     id_["machid"] = get_machid()
     id_["secs"], id_["usecs"] = DATE_NONE

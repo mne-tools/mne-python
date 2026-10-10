@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import re
 import shutil
 from contextlib import nullcontext
 from functools import partial
@@ -21,15 +22,17 @@ from numpy.testing import (
 
 import mne.channels.montage
 from mne import (
-    __file__ as _mne_file,
-)
-from mne import (
+    EpochsArray,
     create_info,
     pick_types,
     read_evokeds,
 )
+from mne import (
+    __file__ as _mne_file,
+)
 from mne._fiff._digitization import (
     _count_points_by_type,
+    _fiducial_coords,
     _format_dig_points,
     _get_dig_eeg,
     _get_fid_coords,
@@ -53,6 +56,7 @@ from mne.channels import (
     read_dig_polhemus_isotrak,
     read_polhemus_fastscan,
 )
+from mne.channels._standard_montage_utils import standard_montage_look_up_table
 from mne.channels.montage import (
     _BUILTIN_STANDARD_MONTAGES,
     _check_get_coord_frame,
@@ -74,7 +78,6 @@ from mne.preprocessing import compute_current_source_density
 from mne.transforms import _ensure_trans, _get_trans, apply_trans, invert_transform
 from mne.utils import _record_warnings, assert_dig_allclose
 from mne.utils._testing import assert_object_equal
-from mne.viz._3d import _fiducial_coords
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = data_path / "montage" / "eeganes07.fif"
@@ -131,7 +134,7 @@ def _get_dig_montage_pos(montage):
 
 def test_dig_montage_trans(tmp_path):
     """Test getting a trans from and applying a trans to a montage."""
-    nasion, lpa, rpa, *ch_pos = np.random.RandomState(0).randn(10, 3)
+    nasion, lpa, rpa, *ch_pos = np.random.default_rng(0).standard_normal((10, 3))
     ch_pos = {f"EEG{ii:3d}": pos for ii, pos in enumerate(ch_pos, 1)}
     montage = make_dig_montage(
         ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame="mri"
@@ -186,7 +189,7 @@ def test_documented():
     """Test that standard montages are documented."""
     montage_dir = Path(_mne_file).parent / "channels" / "data" / "montages"
     montage_files = Path(montage_dir).glob("*")
-    montage_names = [f.stem for f in montage_files]
+    montage_names = [f.stem for f in montage_files if f.name != "README.md"]
 
     assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
     assert set(montage_names) == set([m.name for m in _BUILTIN_STANDARD_MONTAGES])
@@ -701,7 +704,10 @@ def test_read_dig_montage_using_polhemus_fastscan():
     montage = make_dig_montage(
         # EEG_CH
         ch_pos=dict(
-            zip(ascii_lowercase[:N_EEG_CH], np.random.RandomState(0).rand(N_EEG_CH, 3))
+            zip(
+                ascii_lowercase[:N_EEG_CH],
+                np.random.default_rng(0).random((N_EEG_CH, 3)),
+            )
         ),
         # NO NAMED points
         nasion=my_electrode_positions[0],
@@ -792,7 +798,7 @@ def isotrak_eeg(tmp_path_factory):
     """Mock isotrak file with EEG positions."""
     _SEED = 42
     N_ROWS, N_COLS = 5, 3
-    content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
+    content = np.random.default_rng(_SEED).standard_normal((N_ROWS, N_COLS))
 
     fname = tmp_path_factory.mktemp("data") / "test.eeg"
     with open(str(fname), "w") as fid:
@@ -831,7 +837,7 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
     }
     ch_names = [f"eeg {ii:01d}" for ii in range(N_CHANNELS)]
     EXPECTED_CH_POS = dict(
-        zip(ch_names, np.random.RandomState(_SEED).randn(N_CHANNELS, 3))
+        zip(ch_names, np.random.default_rng(_SEED).standard_normal((N_CHANNELS, 3)))
     )
 
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
@@ -878,8 +884,8 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
 
 def test_combining_digmontage_objects():
     """Test combining different DigMontage objects."""
-    rng = np.random.RandomState(0)
-    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.rand(3, 3)))
+    rng = np.random.default_rng(0)
+    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.random((3, 3))))
 
     # hsp positions are [1X, 1X, 1X]
     hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.0))
@@ -949,24 +955,26 @@ def test_combining_digmontage_objects():
 
 def test_combining_digmontage_forbiden_behaviors():
     """Test combining different DigMontage objects with repeated names."""
-    rng = np.random.RandomState(0)
-    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.rand(3, 3)))
+    rng = np.random.default_rng(0)
+    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.random((3, 3))))
     dig1 = make_dig_montage(
         **fiducials,
-        ch_pos=dict(zip(list("abc"), rng.rand(3, 3))),
+        ch_pos=dict(zip(list("abc"), rng.random((3, 3)))),
     )
     dig2 = make_dig_montage(
         **fiducials,
-        ch_pos=dict(zip(list("bcd"), rng.rand(3, 3))),
+        ch_pos=dict(zip(list("bcd"), rng.random((3, 3)))),
     )
     dig2_wrong_fid = make_dig_montage(
-        nasion=rng.rand(3),
-        lpa=rng.rand(3),
-        rpa=rng.rand(3),
-        ch_pos=dict(zip(list("ghi"), rng.rand(3, 3))),
+        nasion=rng.random(3),
+        lpa=rng.random(3),
+        rpa=rng.random(3),
+        ch_pos=dict(zip(list("ghi"), rng.random((3, 3)))),
     )
     dig2_wrong_coordframe = make_dig_montage(
-        **fiducials, ch_pos=dict(zip(list("ghi"), rng.rand(3, 3))), coord_frame="meg"
+        **fiducials,
+        ch_pos=dict(zip(list("ghi"), rng.random((3, 3)))),
+        coord_frame="meg",
     )
 
     EXPECTED_ERR_MSG = "Cannot.*duplicated channel.*found: 'b', 'c'."
@@ -1420,7 +1428,7 @@ def test_set_montage_mgh(rename):
         atol = 3e-3  # different subsets of channel locations
         assert rename == "custom"
         assert len(_MGH60) == 60
-        mon = make_standard_montage("standard_1020")
+        mon = make_standard_montage("colin27_1020")
         assert len(mon._get_ch_pos()) == 94
 
         def renamer(x):
@@ -1433,7 +1441,7 @@ def test_set_montage_mgh(rename):
         raw.set_montage(mon)
 
     if mon is not None:
-        # first two are 'Fp1' and 'Fz', take them from standard_1020.elc --
+        # first two are 'Fp1' and 'Fz', take them from colin27_1020.elc --
         # they should not be changed on load!
         want_pos = [[-29.4367, 83.9171, -6.9900], [0.1123, 88.2470, -1.7130]]
         got_pos = [
@@ -1799,7 +1807,8 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
 def test_montage_head_frame(ch_type):
     """Test that head frame is set properly."""
     # gh-9446
-    data = np.random.randn(2, 100)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((2, 100))
     info = create_info(["a", "b"], 512, ch_type)
     for ch in info["chs"]:
         assert ch["coord_frame"] == FIFF.FIFFV_COORD_HEAD
@@ -1989,15 +1998,39 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_COUNT = 28
+    EXPECTED_COUNT = 34
 
     montages = get_builtin_montages()
-    assert len(montages) == EXPECTED_COUNT
+    assert len(montages) == EXPECTED_COUNT, (
+        f"Expected {EXPECTED_COUNT} montages, got {len(montages)}, adjust "
+        "EXPECTED_COUNT or add new montage to _BUILTIN_STANDARD_MONTAGES in "
+        "mne/channels/montage.py"
+    )
+    assert len(standard_montage_look_up_table) == EXPECTED_COUNT
 
     montages_with_descriptions = get_builtin_montages(descriptions=True)
     assert len(montages_with_descriptions) == EXPECTED_COUNT
-    for montage_with_description in montages_with_descriptions:
-        assert len(montage_with_description) == 2
+    loc_regex = re.compile(r".*\(([0-9]+)(?:\+([0-9]+))? locations\)$")
+    fnirs_regex = re.compile(r".*\(([0-9]+) sources, ([0-9]+) detectors\)$")
+    for name, desc in montages_with_descriptions:
+        mon = make_standard_montage(name)
+        # Verify docstring contains correct info about locations
+        match = loc_regex.match(desc)
+        if match is None:
+            match = fnirs_regex.match(desc)
+            assert match is not None, f"{name}: couldn't match desc to channel count"
+            n_src, n_det = int(match.group(1)), int(match.group(2))
+            assert len(mon.ch_names) == n_src + n_det, (
+                f"{name}: Expected {n_src + n_det} channels, got {len(mon.ch_names)}"
+            )
+        else:
+            n_chs, n_fids = int(match.group(1)), int(match.group(2) or 0)
+            assert len(mon.ch_names) == n_chs, (
+                f"{name}: Expected {n_chs} channels, got {len(mon.ch_names)}"
+            )
+            assert len(mon.dig) == n_chs + n_fids, (
+                f"{name}: Expected {n_chs + n_fids} dig points, got {len(mon.dig)}"
+            )
 
 
 @testing.requires_testing_data
@@ -2021,8 +2054,8 @@ def test_plot_montage():
 
 def test_montage_equality():
     """Test montage equality."""
-    rng = np.random.RandomState(0)
-    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.rand(3, 3)))
+    rng = np.random.default_rng(0)
+    fiducials = dict(zip(("nasion", "lpa", "rpa"), rng.random((3, 3))))
 
     # hsp positions are [1X, 1X, 1X]
     hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.0))
@@ -2145,3 +2178,79 @@ def test_fnirs_montage():
     raw.set_channel_types({ch_name: "eeg" for ch_name in raw.ch_names[-2:]})
     with pytest.raises(ValueError, match="mix of fNIRS"):
         raw.get_montage()
+
+
+def test_set_montage_meg_eeg_no_digitization():
+    """Regression test for GH-12011.
+
+    set_montage() must not crash when MEG+EEG info has EEG reference
+    positions set to the [1, 0, 0] sentinel (digitization was skipped).
+    """
+    ch_names = [f"EEG{i:03d}" for i in range(1, 11)] + ["MEG0111"]
+    ch_types = ["eeg"] * 10 + ["grad"]
+    info = create_info(ch_names=ch_names, sfreq=1000.0, ch_types=ch_types)
+
+    # Simulate MEG reader behaviour when digitization is skipped:
+    # EEG ref position (loc[3:6]) is set to the [1, 0, 0] sentinel
+    with info._unlock():
+        for ch in info["chs"]:
+            if ch["ch_name"].startswith("EEG"):
+                ch["loc"][3:6] = [1.0, 0.0, 0.0]
+
+    data = np.zeros((1, len(ch_names), 100))
+    epochs = EpochsArray(data, info)
+
+    # This must not raise IndexError (regression test for GH-12011)
+    montage = make_standard_montage("spherical_1005")
+    epochs.set_montage(montage, on_missing="ignore")
+
+
+@pytest.mark.parametrize("kind", ("1005", "1010", "1020"))
+def test_1020_equivalence(kind):
+    """Test equivalence (or lack thereof) of 10-20 electrode sets."""
+    # At some point we should maybe make all of these have the same sets of channel
+    # names. But given their different provenances, let's live with them being different
+    # for now, and fix if users run into issues.
+
+    # colin has no 1010 variant
+    colin_kind = "1005" if kind == "1010" else kind
+    colin = make_standard_montage(f"colin27_{colin_kind}")
+    fsaverage = make_standard_montage(f"fsaverage_{kind}")
+    spherical = make_standard_montage(f"spherical_{kind}")
+    for montage in (colin, fsaverage, spherical):
+        kinds = set(d["kind"] for d in montage.dig[:3])
+        assert kinds == {FIFF.FIFFV_POINT_CARDINAL}
+        ids = [d["ident"] for d in montage.dig[:3]]
+        assert ids == [
+            FIFF.FIFFV_POINT_LPA,
+            FIFF.FIFFV_POINT_NASION,
+            FIFF.FIFFV_POINT_RPA,
+        ]
+    colin_names = set(colin.ch_names)
+    fsaverage_names = set(fsaverage.ch_names)
+    spherical_names = set(spherical.ch_names)
+    # normalize down to fsaverage_names, which is the set produced by FieldTrip
+    if kind == "1005":
+        extra_spherical = {
+            "NFp2",
+            "NFp1",
+            "NFp2h",
+            "NFpz",
+            "N2h",
+            "NFp1h",
+            "N2",
+            "N1h",
+            "N1",
+        }
+        assert extra_spherical.issubset(spherical_names)
+        assert fsaverage_names == spherical_names - extra_spherical
+
+        extra_colin = {"A1", "T6", "M2", "T4", "T3", "M1", "A2", "T5"}
+        assert extra_colin.issubset(colin_names)
+        assert fsaverage_names == colin_names - extra_colin
+    else:
+        assert kind in ("1010", "1020")
+        assert fsaverage_names == spherical_names
+        # Our colin27 contains a bunch of extra names, so don't bother with extra list
+        # here, just check subset
+        assert fsaverage_names.issubset(colin_names)

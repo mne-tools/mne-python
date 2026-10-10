@@ -46,3 +46,4 @@ directly from a terminal, see :ref:`python_commands`.
     realtime
     report
     logging
+    array_api
