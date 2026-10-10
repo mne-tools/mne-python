@@ -82,6 +82,7 @@ from .utils import (
     _check_combine,
     _check_event_id,
     _check_fname,
+    _check_on_missing,
     _check_option,
     _check_pandas_index_arguments,
     _check_pandas_installed,
@@ -2416,6 +2417,7 @@ class BaseEpochs(
         self,
         indices: np.ndarray | list,
         reason: list | tuple | str = "USER",
+        on_drop_all: Literal["raise", "warn", "ignore"] = "warn",
         verbose: bool | str | int | None = None,
     ) -> Self:
         """Drop epochs based on indices or boolean mask.
@@ -2439,6 +2441,12 @@ class BaseEpochs(
             Reason(s) for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Reason(s) are applied to all indices specified.
             Default: 'USER'.
+        on_drop_all : 'warn' | 'raise' | 'ignore'
+            Behavior when all epochs are dropped.
+            Can be ``'warn'`` (default) to emit a warning, ``'raise'`` to raise
+            an error, or ``'ignore'`` to do nothing.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -2464,6 +2472,7 @@ class BaseEpochs(
             drop_idx = np.where(epochs.selection == plot_idx)[0]
             epochs.drop(drop_idx)
         """
+        _check_on_missing(on_drop_all, "on_drop_all")
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
@@ -2488,6 +2497,9 @@ class BaseEpochs(
             _pl(count),
             ", ".join(map(str, np.sort(try_idx))),
         )
+
+        if len(self.events) == 0 and reason != "EQUALIZED_COUNT":
+            _on_missing(on_drop_all, "All epochs dropped.", name="on_drop_all")
 
         return self
 

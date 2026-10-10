@@ -524,7 +524,7 @@ class BrowserBase(ABC):
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == "epochs":
             bad_ixs = np.isin(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
-            self.mne.inst.drop(bad_ixs)
+            self.mne.inst.drop(bad_ixs, on_drop_all="ignore")
             logger.info(
                 "The following epochs were marked as bad "
                 "and are dropped:\n"

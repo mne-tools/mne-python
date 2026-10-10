@@ -5378,3 +5378,41 @@ def test_epochs_warn_out_of_bounds_events():
     mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None, on_outside="ignore")
     # an in-range event whose epoch window merely clips the edge must NOT warn
     mne.Epochs(raw, np.array([[990, 0, 1]]), tmin=0, tmax=0.5, baseline=None)
+
+
+def test_drop_all_epochs():
+    """Test on_drop_all parameter in Epochs.drop."""
+    data = np.random.default_rng(0).standard_normal((2, 1, 10))
+    info = create_info(["ch1"], 1000.0, "eeg")
+    epochs = EpochsArray(data, info)
+
+    # 1. Dropping a subset should not warn even with default on_drop_all="warn"
+    epochs.copy().drop([0])
+
+    # 2. Dropping all epochs with default on_drop_all ("warn")
+    with pytest.warns(RuntimeWarning, match="All epochs dropped"):
+        epochs.copy().drop([0, 1])
+
+    # 3. Test 'warn' explicitly
+    with pytest.warns(RuntimeWarning, match="All epochs dropped"):
+        epochs.copy().drop([0, 1], on_drop_all="warn")
+
+    # 4. Test 'raise'
+    with pytest.raises(ValueError, match="All epochs dropped"):
+        epochs.copy().drop([0, 1], on_drop_all="raise")
+
+    # 5. Test 'ignore' explicitly
+    epochs.copy().drop([0, 1], on_drop_all="ignore")
+
+    # 6. Test invalid option raises ValueError
+    with pytest.raises(
+        ValueError, match="Invalid value for the 'on_drop_all' parameter"
+    ):
+        epochs.copy().drop([0], on_drop_all="invalid")
+
+    # 7. Test dropping with boolean mask
+    with pytest.warns(RuntimeWarning, match="All epochs dropped"):
+        epochs.copy().drop([True, True])
+
+    # 8. Test internal equalization does not warn when all epochs dropped
+    epochs.copy().drop([0, 1], reason="EQUALIZED_COUNT")
