@@ -1147,8 +1147,8 @@ def test_rescale():
 @pytest.mark.parametrize("preload", (True, False))
 def test_epochs_baseline_basic(preload, tmp_path):
     """Test baseline and rescaling modes with and without preloading."""
-    data = np.array([[2, 3], [2, 3]], float)
-    info = create_info(2, 1000.0, ("eeg", "misc"))
+    data = np.array([[2, 3], [2, 3], [2, 3], [2, 3]], float)
+    info = create_info(4, 1000.0, ("eeg", "misc", "pupil", "eyegaze"))
     raw = RawArray(data, info)
     events = np.array([[0, 0, 1]])
 
@@ -1156,12 +1156,12 @@ def test_epochs_baseline_basic(preload, tmp_path):
     epochs.drop_bad()
     epochs_nobl = epochs.copy()
     epochs_data = epochs.get_data(copy=False)
-    assert epochs_data.shape == (1, 2, 2)
+    assert epochs_data.shape == (1, 4, 2)
     expected = data.copy()
     assert_array_equal(epochs_data[0], expected)
     # the baseline period (1 sample here)
     epochs.apply_baseline((0, 0))
-    expected[0] = [0, 1]
+    expected[[0, 2]] = [0, 1]  # eeg and pupil corrected; misc and eyegaze are not
     if preload:
         assert_allclose(epochs_data[0][0], expected[0])
     else:
@@ -1169,8 +1169,17 @@ def test_epochs_baseline_basic(preload, tmp_path):
     assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
     # entire interval
     epochs.apply_baseline((None, None))
-    expected[0] = [-0.5, 0.5]
+    expected[[0, 2]] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
+
+    # gh-13898: test that pupil channels (not eyegaze) are
+    # baseline-corrected upon epoching
+    epochs_init_bl = mne.Epochs(
+        raw, events, None, 0, 1e-3, baseline=(0, 0), preload=preload
+    )
+    expected_bl = data.copy()
+    expected_bl[[0, 2]] = [0, 1]
+    assert_allclose(epochs_init_bl.get_data()[0], expected_bl)
 
     # Preloading applies baseline correction.
     if preload:
