@@ -343,6 +343,16 @@ def test_get_data_copy():
     # Make sure we didn't mess up our values
     assert_allclose(data_orig, epochs._data)
 
+    # Test indexing combinations (arrays, slices)
+    item_arr = np.array([0, 2])
+    picks_arr = np.array([1, 3])
+    data_comb = epochs.get_data(item=item_arr, picks=picks_arr)
+    assert_array_equal(data_comb, epochs._data[item_arr[:, None], picks_arr])
+    data_slice_item = epochs.get_data(item=slice(0, 2), picks=picks_arr)
+    assert_array_equal(data_slice_item, epochs._data[0:2, picks_arr])
+    data_slice_picks = epochs.get_data(item=item_arr, picks=slice(1, 3))
+    assert_array_equal(data_slice_picks, epochs._data[item_arr, 1:3])
+
 
 def test_hierarchical():
     """Test hierarchical access."""

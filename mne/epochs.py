@@ -2788,7 +2788,10 @@ class BaseEpochs(
             logger.debug("  Slicing time")
             data = data[..., start:stop]  # view (slice)
         if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
-            data = data[select][:, picks]
+            if isinstance(select, np.ndarray) and isinstance(picks, np.ndarray):
+                data = data[select[:, None], picks]
+            else:
+                data = data[select, picks]
         del picks
         if ch_factors is not None:
             if data_is_self_data:
