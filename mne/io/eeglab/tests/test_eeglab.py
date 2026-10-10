@@ -5,6 +5,7 @@
 import os
 import shutil
 import sys
+import warnings
 from copy import deepcopy
 from unittest.mock import Mock
 
@@ -789,9 +790,11 @@ def test_fidsposition_information(monkeypatch, has_type):
     """Test reading file with 3 fiducial locations."""
     if not has_type:
 
-        def get_bad_information(eeg, get_pos, *, montage_units):
+        def get_bad_information(eeg, get_pos, *, montage_units, **kwargs):
             del eeg.chaninfo["nodatchans"]["type"]
-            return _get_montage_information(eeg, get_pos, montage_units=montage_units)
+            return _get_montage_information(
+                eeg, get_pos, montage_units=montage_units, **kwargs
+            )
 
         monkeypatch.setattr(
             mne.io.eeglab.eeglab, "_get_montage_information", get_bad_information
@@ -940,3 +943,43 @@ def test_lazy_vs_preload_all_formats(fname):
 
     # Verify annotations are present
     assert len(raw_lazy.annotations) == len(raw_preload.annotations)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "reader, fname, eog, eog_names, eeg_name, ignore_warn",
+    [
+        (
+            read_raw_eeglab,
+            raw_fname_chanloc,
+            ["Fp1", "Fp2"],
+            ["Fp1", "Fp2"],
+            "F7",
+            ".*boundary.*",
+        ),
+        (
+            read_epochs_eeglab,
+            epochs_fname_mat,
+            ["FP1"],
+            ["FP1"],
+            "Fz",
+            ".*multiple events.*",
+        ),
+    ],
+)
+def test_eeglab_eog_montage(reader, fname, eog, eog_names, eeg_name, ignore_warn):
+    """Test reading EEGLAB files with EOG channels and montage locations."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*setting position.*")
+        warnings.filterwarnings("ignore", message=ignore_warn)
+        inst = reader(fname, eog=eog)
+
+    for ch_name in eog_names:
+        assert inst.get_channel_types([ch_name])[0] == "eog"
+    assert inst.get_channel_types([eeg_name])[0] == "eeg"
+
+    mon = inst.get_montage()
+    assert mon is not None
+    for ch_name in eog_names:
+        assert ch_name not in mon.ch_names
+    assert eeg_name in mon.ch_names
