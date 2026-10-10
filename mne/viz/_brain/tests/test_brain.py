@@ -714,6 +714,8 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     # because the surface can be switched back and forth live
     assert not brain.widgets["orientation"].is_enabled()
     assert not brain.widgets["silhouette"].is_enabled()
+    keys = brain.plotter.iren._key_press_event_callbacks
+    assert "Left" not in keys  # a flat map cannot be rotated
     with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
         brain.set_silhouette_line_width(3.0)
 
@@ -736,6 +738,7 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     assert brain.interaction == "trackball"
     assert brain.widgets["orientation"].is_enabled()
     assert brain.widgets["silhouette"].is_enabled()
+    assert "Left" in keys
     brain.show_view("medial")  # no longer ignored
 
     brain.close()
