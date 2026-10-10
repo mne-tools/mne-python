@@ -283,6 +283,7 @@ def _plot_evoked(
     import matplotlib.pyplot as plt
 
     _check_option("spatial_colors", spatial_colors, [True, False, "auto"])
+    sphere = _check_sphere(sphere, info=evoked.info)
     # For evoked.plot_image ...
     # First input checks for group_by and axes if any of them is not None.
     # Either both must be dicts, or neither.
@@ -460,7 +461,7 @@ def _plot_evoked(
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if proj == "reconstruct":
-        evoked = evoked.reconstruct_proj()
+        evoked = evoked.reconstruct_proj(origin=sphere[:3])
 
     if plot_type == "butterfly":
         _plot_lines(
@@ -2210,10 +2211,12 @@ def plot_evoked_joint(
         )
     _check_option('topomap_args["proj"]', proj, (True, False, "reconstruct"))
     evoked = evoked.copy()
+    sphere = _check_sphere(topomap_args.get("sphere"), evoked.info)
+    topomap_args["sphere"] = sphere
     if proj:
         evoked.apply_proj()
         if proj == "reconstruct":
-            evoked.reconstruct_proj()
+            evoked.reconstruct_proj(origin=sphere[:3])
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
     evoked.pick(picks, exclude=exclude)
     info = evoked.info

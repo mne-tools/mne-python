@@ -131,6 +131,10 @@ if TYPE_CHECKING:
     # ``BrowserBase``, so alias it to annotate ``.plot()`` returns without the dep.
     from .viz._figure import BrowserBase as MNEQtBrowser
 
+# BIDS names an epoched recording like a continuous one (e.g., ``*_meg.fif``)
+_FNAME_ENDINGS = ("-epo.fif", "_epo.fif", "_meg.fif", "_eeg.fif", "_ieeg.fif")
+_FNAME_ENDINGS += tuple(f"{e}.gz" for e in _FNAME_ENDINGS)
+
 
 def _pack_reject_params(epochs):
     reject_params = dict()
@@ -2615,8 +2619,9 @@ class BaseEpochs(
                 "dropped. Consider using epochs.drop_bad()."
             )
         select = self._item_to_select(item)  # indices or slice
-        use_idx = np.arange(len(self.events))[select]
-        n_events = len(use_idx)
+        if not self.preload or not self._bad_dropped:
+            use_idx = np.arange(len(self.events))[select]
+            n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -2783,12 +2788,15 @@ class BaseEpochs(
             data_is_self_data = False  # copy (fancy indexing)
         else:
             picks = slice(None)
-        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
-            data = data[select][:, picks]
-        del picks
         if start != 0 or stop != self.times.size:
             logger.debug("  Slicing time")
             data = data[..., start:stop]  # view (slice)
+        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
+            if isinstance(select, np.ndarray) and isinstance(picks, np.ndarray):
+                data = data[select[:, None], picks]
+            else:
+                data = data[select, picks]
+        del picks
         if ch_factors is not None:
             if data_is_self_data:
                 logger.debug("  Copying, scale factors applied")
@@ -3300,9 +3308,7 @@ class BaseEpochs(
         -----
         Bad epochs will be dropped before saving the epochs to disk.
         """
-        check_fname(
-            fname, "epochs", ("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz")
-        )
+        check_fname(fname, "epochs", _FNAME_ENDINGS)
 
         # check for file existence and expand `~` if present
         fname = str(
@@ -6144,7 +6150,7 @@ class EpochsFIF(BaseEpochs):
             check_fname(
                 fname=fname,
                 filetype="epochs",
-                endings=("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz"),
+                endings=_FNAME_ENDINGS,
             )
             fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         elif not preload:

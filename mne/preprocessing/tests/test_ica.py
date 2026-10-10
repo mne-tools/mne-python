@@ -1921,3 +1921,91 @@ def test_ica_rejects_nonfinite():
     ica = ICA(n_components=2, rng=0, method="fastica", max_iter="auto")
     with pytest.raises(ValueError, match=r"Input data contains non-finite values"):
         ica.fit(raw)
+
+
+def _ica_data(seed=0):
+    from scipy import signal
+
+    rng = np.random.default_rng(seed)
+    n_samples = 4000
+    time = np.linspace(0, 8, n_samples)
+
+    s1 = np.sin(2 * time)  # Sinusoidal
+    s2 = np.sign(np.sin(3 * time))  # Square wave
+    s3 = signal.sawtooth(2 * np.pi * time)  # Sawtooth
+
+    S = np.column_stack([s1, s2, s3])
+    S += 0.2 * rng.standard_normal(S.shape)  # Add noise
+    S /= S.std(axis=0)  # Standardize
+
+    # Mixing matrix
+    A = np.array([[1, 1, 1], [0.5, 2, 1.0], [1.5, 1.0, 2.0]])
+    # Observations
+    X = S @ A.T
+    return X, A, A
+
+
+def _test_raw(seed=0):
+    X, _, _ = _ica_data(seed=seed)
+    n_times, n_channels = X.shape
+    info = create_info([f"EEG{i:03d}" for i in range(n_channels)], 250.0, "eeg")
+    with info._unlock():
+        info["highpass"] = 1.0
+    return RawArray(X.T, info)
+
+
+@pytest.mark.parametrize("method", ["fastica", "infomax", "picard", "jamica"])
+def test_ica_converged_attribute(method):
+    """Test that ICA reports whether the decomposition converged.
+
+    The only previous signal was ``n_iter_``, and the backends disagree about
+    what it means: FastICA returns ``n_iter_ == max_iter`` when it fails to
+    converge, while a converged Infomax fit can return any count.
+    """
+    pytest.importorskip("picard")
+    pytest.importorskip("jamica")
+
+    raw = _test_raw()
+    ica = ICA(n_components=3, method=method, random_state=97, max_iter=3)
+    with _record_warnings():
+        ica.fit(raw)
+    assert ica.converged_ is False
+
+    ica = ICA(n_components=3, method=method, random_state=97, max_iter=2000)
+    ica.fit(raw)
+    assert ica.converged_ is True
+    assert ica.n_iter_ < 2000
+
+
+@pytest.mark.parametrize("method", ["fastica", "infomax"])
+def test_ica_converged_survives_save(method, tmp_path):
+    """Test that ``converged_`` round-trips through ``save``/``read_ica``.
+
+    A truncated decomposition is still used to choose ``exclude``, so the fact
+    that it was truncated has to travel with the file rather than staying in a
+    warning emitted at fit time.
+    """
+    raw = _test_raw()
+
+    for max_iter, expected in ((3, False), (2000, True)):
+        ica = ICA(n_components=3, method=method, random_state=97, max_iter=max_iter)
+        with _record_warnings():
+            ica.fit(raw)
+        assert ica.converged_ is expected
+
+        fname = tmp_path / f"test_{method}_{max_iter}-ica.fif"
+        ica.save(fname)
+        # Not just equal -- the same type. ``_serialize`` stores the bool as an
+        # int, so ``is False`` would otherwise break after a round trip.
+        assert read_ica(fname).converged_ is expected
+
+
+def test_ica_converged_reset():
+    """Test that ``converged_`` is cleared when the ICA is refitted."""
+    raw = _test_raw()
+    ica = ICA(n_components=3, method="fastica", random_state=97)
+    with _record_warnings():
+        ica.fit(raw)
+    assert hasattr(ica, "converged_")
+    ica._reset()
+    assert not hasattr(ica, "converged_")

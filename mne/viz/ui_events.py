@@ -293,6 +293,21 @@ class ChannelsSelect(UIEvent):
     ch_names: list[str]
 
 
+class _TimeUpdated(UIEvent):
+    """Brain has moved to a new time point (event name ``"__time_updated"``)."""
+
+
+class _ColormapRangeUpdated(UIEvent):
+    """Brain has applied new colormap limits (``"__colormap_range_updated"``)."""
+
+
+@dataclass
+class _SurfaceUpdated(UIEvent):
+    """Brain has switched to another surface (``"__surface_updated"``)."""
+
+    flat_change: bool  # whether it switched between a flat map and a 3D surface
+
+
 def _delete_event_channel(event=None, *, weakfig):
     """Delete the event channel (callback function)."""
     fig = weakfig()

@@ -714,6 +714,8 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     # because the surface can be switched back and forth live
     assert not brain.widgets["orientation"].is_enabled()
     assert not brain.widgets["silhouette"].is_enabled()
+    keys = brain.plotter.iren._key_press_event_callbacks
+    assert "Left" not in keys  # a flat map cannot be rotated
     with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
         brain.set_silhouette_line_width(3.0)
 
@@ -736,6 +738,7 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     assert brain.interaction == "trackball"
     assert brain.widgets["orientation"].is_enabled()
     assert brain.widgets["silhouette"].is_enabled()
+    assert "Left" in keys
     brain.show_view("medial")  # no longer ignored
 
     brain.close()
@@ -1218,6 +1221,12 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.show_view("medial")
     brain.set_data_smoothing(1)
     _assert_brain_range(brain, [0.1, 0.3])
+    # the dock follows limits that get bumped to keep fmin <= fmid <= fmax
+    brain.update_lut(fmin=0.25)
+    for key, val in dict(fmin=0.25, fmid=0.25, fmax=0.3).items():
+        val *= brain._data["fscale"]
+        assert brain.widgets[key].get_value() == pytest.approx(val)
+        assert brain.widgets[f"entry_{key}"].get_value() == pytest.approx(val)
     from mne.utils import use_log_level
 
     with use_log_level("debug"):

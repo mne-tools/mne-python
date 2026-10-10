@@ -96,6 +96,40 @@ def test_interpolate_bridged_electrodes():
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
+    # pre-existing bads that are not bridged must not influence the bridged
+    # interpolation (raw only; the behavior does not depend on the input type)
+    idx0 = raw.ch_names.index("EEG 001")
+    idx1 = raw.ch_names.index("EEG 002")
+    ch_names_orig = raw.ch_names.copy()
+    raw.info["bads"] = ["EEG 003"]
+    bads_orig = raw.info["bads"].copy()
+    # Verify non-bridged bad doesn't influence the interpolation result
+    inst_clean = interpolate_bridged_electrodes(raw.copy(), [(idx0, idx1)])
+    data_clean = inst_clean.get_data(picks=["EEG 001", "EEG 002"])
+    inst_pois = raw.copy()
+    inst_pois.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 003"])
+    data_bad_poisoned = inst_pois.get_data(picks="EEG 003").copy()
+    inst_pois = interpolate_bridged_electrodes(inst_pois, [(idx0, idx1)])
+    assert np.array_equal(inst_pois.get_data(picks=["EEG 001", "EEG 002"]), data_clean)
+    assert np.array_equal(inst_pois.get_data(picks="EEG 003"), data_bad_poisoned)
+    assert inst_pois.info["bads"] == bads_orig
+    assert not any(["virtual" in ch for ch in inst_pois.ch_names])
+    assert inst_pois.ch_names == ch_names_orig
+    # Bridged channel that is also marked bad should be repaired
+    inst_overlap = raw.copy()
+    inst_overlap.info["bads"] = ["EEG 001", "EEG 003"]
+    bads_overlap = inst_overlap.info["bads"].copy()
+    data_bad_before = inst_overlap.get_data(picks="EEG 003").copy()
+    inst_overlap.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 001"])
+    data_bridged_poisoned = inst_overlap.get_data(picks="EEG 001").copy()
+    inst_overlap = interpolate_bridged_electrodes(inst_overlap, [(idx0, idx1)])
+    assert inst_overlap.info["bads"] == bads_overlap
+    assert not np.array_equal(
+        inst_overlap.get_data(picks="EEG 001"), data_bridged_poisoned
+    )
+    assert np.array_equal(inst_overlap.get_data(picks="EEG 003"), data_bad_before)
+    raw.info["bads"] = []
+
     for inst in (raw, epochs, evoked):
         idx0 = inst.ch_names.index("EEG 001")
         idx1 = inst.ch_names.index("EEG 002")

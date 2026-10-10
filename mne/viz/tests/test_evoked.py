@@ -325,6 +325,12 @@ def test_plot_evoked_reconstruct():
     fig = evoked.plot(proj="reconstruct", exclude=[])
     amplitudes_recon = _get_amplitudes(fig)
     assert len(amplitudes_recon) == len(evoked.ch_names)
+    # the origin comes from sphere
+    sphere = (0.0, 0.0, 0.04, 0.09)
+    fig = evoked.plot(proj="reconstruct", exclude=[], sphere=sphere)
+    want = evoked.copy().reconstruct_proj(origin=sphere[:3]).data * 1e6
+    assert_allclose(_get_amplitudes(fig), want)
+    assert not np.allclose(amplitudes_recon, want)
 
     cov = read_cov(cov_fname)
     with pytest.raises(ValueError, match='Cannot use proj="reconstruct"'):
