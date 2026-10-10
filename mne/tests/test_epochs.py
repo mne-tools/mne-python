@@ -1555,6 +1555,10 @@ def test_epochs_io_preload(tmp_path, preload):
         epochs.save(epochs_badname, overwrite=True)
     with pytest.warns(RuntimeWarning, match="-epo.fif"):
         read_epochs(epochs_badname, preload=preload)
+    # BIDS names an epoched recording like a continuous one
+    epochs_bids_name = tmp_path / "sub-01_task-test_meg.fif"
+    epochs.save(epochs_bids_name, overwrite=True)
+    read_epochs(epochs_bids_name, preload=preload)
 
     # test loading epochs with missing events
     epochs = Epochs(
