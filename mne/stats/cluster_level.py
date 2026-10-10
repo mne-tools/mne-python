@@ -2938,6 +2938,17 @@ class ClusterResult:
             f"{len(self.clusters)} clusters{contrast}>"
         )
 
+    @staticmethod
+    def _get_stat_unit(stat_fun, default="stat"):
+        """Return the unit label for a test statistic (e.g. "t" or "F")."""
+        if stat_fun is f_oneway:
+            return "F"
+        if stat_fun is ttest_1samp_no_p:
+            return "t"
+        if isinstance(stat_fun, partial) and stat_fun.func is _rm_anova_stat_fun:
+            return "F"
+        return default
+
     def plot_joint(
         self,
         info,
@@ -3011,9 +3022,10 @@ class ClusterResult:
 
         # Test statistics are not in Volts: disable the V -> uV scaling
         # and label the axes with t-values instead.
+        unit = self._get_stat_unit(self.stat_fun)
         ch_types = set(stat_evoked.get_channel_types())
         scalings = {ch_type: 1.0 for ch_type in ch_types}
-        units = {ch_type: "t-values" for ch_type in ch_types}
+        units = {ch_type: unit for ch_type in ch_types}
 
         ts_args = {"scalings": scalings, "units": units, **(ts_args or {})}
         topomap_args = {"scalings": scalings, "units": units, **(topomap_args or {})}
