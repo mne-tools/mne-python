@@ -1,0 +1,1 @@
+Speed up :func:`mne.baseline.rescale` when channel ``picks`` are specified by computing baseline statistics only on the selected channels, by :newcontrib:`Ishaan Maheshwari`.

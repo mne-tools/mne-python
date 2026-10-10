@@ -311,6 +311,9 @@ def test_get_data_copy():
     assert np.all(
         data.shape[-1] == epochs._data.shape[-1] - np.nonzero(epochs.times == 0)[0]
     )
+    t_idx = np.nonzero(epochs.times >= 0)[0][0]
+    data_sub = epochs.get_data(picks=[0, 2], item=[1, 2], tmin=0)
+    assert_allclose(data_sub, epochs._data[1:3, [0, 2], t_idx:])
 
     assert epochs.get_data(tmin=0, tmax=0).size == 0
 
@@ -328,6 +331,8 @@ def test_get_data_copy():
     assert np.shares_memory(data, epochs._data)
     assert data is epochs._data
     data_orig = data.copy()
+    data_view = epochs.get_data(tmin=0, copy=False)
+    assert np.shares_memory(data_view, epochs._data)
     # picks, item, and units must be None
     data = epochs.get_data(copy=False, picks=[1])
     assert not np.shares_memory(data, epochs._data)
@@ -1115,6 +1120,18 @@ def test_rescale():
     x = np.log10(x)
     s = np.std(x[:3])
     assert_allclose(tester(mode="zlogratio"), x / s)
+
+    # Test rescale with picks subset
+    data_multi = np.array([[2, 3, 4, 5], [10, 10, 10, 10]], float)
+    res_picks = rescale(data_multi, times, baseline, mode="mean", picks=[0], copy=True)
+    assert_allclose(res_picks[0], [-1, 0, 1, 2])
+    assert_allclose(res_picks[1], [10, 10, 10, 10])  # Non-picked channel unchanged
+
+    res_zscore = rescale(
+        data_multi, times, baseline, mode="zscore", picks=[0], copy=True
+    )
+    assert_allclose(res_zscore[0], [-1, 0, 1, 2] / np.std([2, 3, 4]))
+    assert_allclose(res_zscore[1], [10, 10, 10, 10])
 
 
 @pytest.mark.parametrize("preload", (True, False))
