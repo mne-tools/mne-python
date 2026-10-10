@@ -444,7 +444,7 @@
         },
         {
             "@type": "Person",
-            "email": "chdinh@nmr.mgh.harvard.edu",
+            "email": "christoph.dinh@mne-cpp.org",
             "givenName": "Christoph",
             "familyName": "Dinh"
         },
@@ -1005,12 +1005,6 @@
             "email": "",
             "givenName": "Chetan",
             "familyName": "Gohil"
-        },
-        {
-            "@type": "Person",
-            "email": "chdinh@nmr.mgh.harvard.edu",
-            "givenName": "Christopher",
-            "familyName": "Dinh"
         },
         {
             "@type": "Person",

@@ -22,6 +22,7 @@ from ..filter import _iir_filter, _overlap_add_filter
 from ..utils import (
     _check_option,
     _get_stim_channel,
+    _pl,
     _validate_type,
     get_config,
     logger,
@@ -162,6 +163,25 @@ class BrowserBase(ABC):
         self._update_picks()
         if not self.mne.instance_type == "ica":
             self._update_projector()
+
+    def __repr__(self):
+        """Summarize the browsed data."""
+        if self.mne.instance_type == "ica":
+            inst, unit, prefix = self.mne.ica_inst, "component", "ICA of "
+            # exclude any EOG/ECG channels shown alongside the components
+            n = np.isin(self.mne.ch_names, self.mne.ica._ica_names).sum()
+        else:
+            inst, unit, prefix = self.mne.inst, "channel", ""
+            # group_by="selection" can list a channel more than once
+            n = np.unique(self.mne.ch_order).size
+        if self.mne.is_epochs:
+            size = f"{len(inst)} epoch{_pl(inst)}"
+        else:
+            size = f"{inst.duration:0.1f} s"
+        return (
+            f"<{type(self).__name__} | {prefix}{type(inst).__name__}, browsing "
+            f"{n} {unit}{_pl(n)}, {size}>"
+        )
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # ANNOTATIONS

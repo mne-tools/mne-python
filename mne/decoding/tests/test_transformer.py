@@ -100,6 +100,9 @@ def test_scaler(info, method):
 
     X2 = scaler.fit(epochs_data, y).transform(epochs_data)
     assert_array_equal(X, X2)
+    X_one = epochs_data[..., :1].copy()  # reshape is then a view of the input
+    assert_array_equal(scaler.transform(X_one), X[..., :1])
+    assert_array_equal(X_one, epochs_data[..., :1])
 
     # inverse_transform
     Xi = scaler.inverse_transform(X)

@@ -129,10 +129,6 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
             f"Bad rescaling slice ({imin}:{imax}) from time values {bmin}, {bmax}"
         )
 
-    # technically this is inefficient when `picks` is given, but assuming
-    # that we generally pick most channels for rescaling, it's not so bad
-    mean = np.mean(data[..., imin:imax], axis=-1, keepdims=True)
-
     if mode == "mean":
 
         def fun(d, m):
@@ -176,10 +172,13 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
             d /= np.std(d[..., imin:imax], axis=-1, keepdims=True)
 
     if picks is None:
+        mean = np.mean(data[..., imin:imax], axis=-1, keepdims=True)
         fun(data, mean)
     else:
         for pi in picks:
-            fun(data[..., pi, :], mean[..., pi, :])
+            d_chan = data[..., pi, :]
+            mean = np.mean(d_chan[..., imin:imax], axis=-1, keepdims=True)
+            fun(d_chan, mean)
     return data
 
 

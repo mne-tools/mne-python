@@ -307,7 +307,7 @@ def test_make_forward_solution_bti(fname_src_small):
         pytest.param("MNE-C", marks=requires_mne_mark()),
         pytest.param(
             "openmeeg",
-            marks=[requires_openmeeg_mark(), pytest.mark.ultraslowtest],
+            marks=[requires_openmeeg_mark(), pytest.mark.slowtest],
         ),
     ],
 )
@@ -443,15 +443,9 @@ def test_make_forward_solution_basic():
         make_forward_solution(fname_raw, fname_trans, fname_src, fname_bem_meg)
 
 
-@pytest.mark.ultraslowtest
+@pytest.mark.slowtest
 @requires_openmeeg_mark()
-@pytest.mark.parametrize(
-    "n_layers",
-    [
-        3,
-        pytest.param(1, marks=pytest.mark.xfail(raises=RuntimeError)),
-    ],
-)
+@pytest.mark.parametrize("n_layers", [3, 1])
 @testing.requires_testing_data
 def test_make_forward_solution_openmeeg(n_layers):
     """Test making M-EEG forward solution from OpenMEEG."""
@@ -459,14 +453,16 @@ def test_make_forward_solution_openmeeg(n_layers):
     bem_surfaces = read_bem_surfaces(fname_bem_small)
     raw = read_raw_fif(fname_raw)
     n_sensors = 366
+    n_inside, n_sources_kept = 255, 184
     ch_types = ["eeg", "meg"]
     if n_layers == 1:
         ch_types = ["meg"]
-        bem_surfaces = bem_surfaces[-1:]
+        # OpenMEEG's 1-layer MEG solution is inaccurate for a 320-triangle mesh
+        bem_surfaces = read_bem_surfaces(fname_bem_meg)
         assert bem_surfaces[0]["id"] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
         n_sensors = 306
+        n_inside, n_sources_kept = 258, 167
     raw.pick(ch_types)
-    n_sources_kept = 184
     fwds = dict()
     for solver in ["openmeeg", "mne"]:
         bem = make_bem_solution(bem_surfaces, solver=solver)
@@ -482,7 +478,7 @@ def test_make_forward_solution_openmeeg(n_layers):
                 verbose=True,
             )
         log = log.getvalue()
-        assert "Total 255/258 points inside the surface" in log
+        assert f"Total {n_inside}/258 points inside the surface" in log
         assert isinstance(fwd, Forward)
         fwds[solver] = fwd
         del fwd

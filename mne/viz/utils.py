@@ -2685,6 +2685,7 @@ def _plot_psd(
     line_alpha,
     sphere,
     xlabels_list,
+    selectable,
 ):
     # helper function for Spectrum.plot()
     from matplotlib.ticker import ScalarFormatter
@@ -2779,7 +2780,7 @@ def _plot_psd(
             bad_ch_idx=bad_ch_idx,
             titles=titles,
             ch_types_used=ch_types_used,
-            selectable=True,
+            selectable=selectable,
             psd=True,
             line_alpha=line_alpha,
             nave=None,
