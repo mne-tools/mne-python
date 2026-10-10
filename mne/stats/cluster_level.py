@@ -2937,3 +2937,106 @@ class ClusterResult:
             f"<ClusterResult | p={self.cluster_p_values.min()}, "
             f"{len(self.clusters)} clusters{contrast}>"
         )
+
+    @staticmethod
+    def _get_stat_unit(stat_fun, default="stat"):
+        """Return the unit label for a test statistic (e.g. "t" or "F")."""
+        if stat_fun is f_oneway:
+            return "F"
+        if stat_fun is ttest_1samp_no_p:
+            return "t"
+        if isinstance(stat_fun, partial) and stat_fun.func is _rm_anova_stat_fun:
+            return "F"
+        return default
+
+    def plot_joint(
+        self,
+        info,
+        times_sec,
+        times="peaks",
+        title=None,
+        picks=None,
+        exclude="bads",
+        show=True,
+        ts_args=None,
+        topomap_args=None,
+    ):
+        """Plot the observed cluster test statistic as a joint plot.
+
+        Visualizes test statistics as a time series (butterfly plot) with
+        topographic maps at selected time points, preserving spatial relationships
+        between channels.
+
+        Parameters
+        ----------
+        info : instance of Info
+            The Info object from the evoked data, containing channel information.
+        times_sec : array-like
+            The time vector (in seconds) corresponding to the stat_obs time axis.
+            Should match the length of ``stat_obs.shape[1]``.
+        times : float | array of float | "auto" | "peaks"
+            The time point(s) at which to show topomaps. If ``"auto"``, 5 evenly
+            spaced topographies will be shown. If ``"peaks"``, automatically finds
+            time points by checking for local maxima. Defaults to ``"peaks"``.
+        title : str | None
+            The title for the plot. If ``None``, a default title is created based
+            on the test statistic name and contrast. If an empty string, no title
+            is shown. Defaults to ``None``.
+        picks : str | array-like | slice | None
+            Channels to include. Defaults to ``None`` (all channels).
+        exclude : list of str | "bads"
+            Channels to exclude. Defaults to ``"bads"``.
+        show : bool
+            Show figure if ``True``. Defaults to ``True``.
+        ts_args : dict | None
+            Arguments forwarded to :func:`mne.Evoked.plot`.
+            Defaults to ``None``.
+        topomap_args : dict | None
+            Arguments forwarded to :func:`mne.Evoked.plot_topomap`.
+            Defaults to ``None``.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure | list
+            The figure object(s) containing the plot.
+        """
+        from mne import EvokedArray
+        from mne.viz.evoked import plot_evoked_joint
+
+        # Create EvokedArray from test statistics
+        stat_evoked = EvokedArray(
+            self.stat_obs,
+            info,
+            tmin=times_sec[0],
+        )
+
+        # Create default title if not provided
+        if title is None:
+            if self.contrast is not None:
+                title = (
+                    f"Observed cluster {self.stat_name} "
+                    f"({self.contrast[0]} − {self.contrast[1]})"
+                )
+            else:
+                title = f"Observed cluster {self.stat_name}"
+
+        # Test statistics are not in Volts: disable the V -> uV scaling
+        # and label the axes with t-values instead.
+        unit = self._get_stat_unit(self.stat_fun)
+        ch_types = set(stat_evoked.get_channel_types())
+        scalings = {ch_type: 1.0 for ch_type in ch_types}
+        units = {ch_type: unit for ch_type in ch_types}
+
+        ts_args = {"scalings": scalings, "units": units, **(ts_args or {})}
+        topomap_args = {"scalings": scalings, "units": units, **(topomap_args or {})}
+
+        return plot_evoked_joint(
+            stat_evoked,
+            times=times,
+            title=title,
+            picks=picks,
+            exclude=exclude,
+            show=show,
+            ts_args=ts_args,
+            topomap_args=topomap_args,
+        )

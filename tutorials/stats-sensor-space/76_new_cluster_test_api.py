@@ -28,8 +28,6 @@ You will:
 
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 import mne
@@ -178,29 +176,11 @@ print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 
 print(f"Number of permutations run: {cluster_result.n_permutations}")
 
-# times (in seconds) and channel names come from the evoked data
-times = grand_avg_diff.times
-ch_names = grand_avg_diff.ch_names
-
-# stat_obs holds the observed t-values, arranged as (channels, times)
-stat_obs = cluster_result.stat_obs
-
-# symmetric colour limits so the diverging colormap is centred on zero
-vlim = np.abs(stat_obs).max()
-
-fig, ax = plt.subplots(layout="constrained")
-im = ax.imshow(
-    stat_obs,
-    aspect="auto",
-    origin="lower",
-    extent=[times[0], times[-1], 0, len(ch_names)],
-    cmap="RdBu_r",
-    vmin=-vlim,
-    vmax=vlim,
+# Plot cluster result
+fig = cluster_result.plot_joint(
+    info=grand_avg_diff.info,
+    times_sec=grand_avg_diff.times,
+    times="peaks",
+    title="Observed cluster statistic (target - non-target)",
+    show=False,
 )
-ax.set_yticks(np.arange(len(ch_names)) + 0.5)
-ax.set_yticklabels(ch_names)
-ax.set_xlabel("time (s)")
-ax.set_ylabel("channel")
-ax.set_title("Observed cluster statistic (target - non-target)")
-fig.colorbar(im, ax=ax, label="t-value")
