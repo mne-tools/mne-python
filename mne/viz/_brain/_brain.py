@@ -65,6 +65,7 @@ from ..ui_events import (
     TimeChange,
     _ColormapRangeUpdated,
     _get_event_channel,
+    _SurfaceUpdated,
     _TimeUpdated,
     publish,
     subscribe,
@@ -2859,17 +2860,6 @@ class Brain(_TimeViewerMixin):
             self.layered_meshes[h].update_geometry(
                 geo.coords, geo.nn, geo.faces if flat_change else None
             )
-
-            # picked points only exist once the time viewer has been set up
-            for (pt_hemi, vertex_id), spheres in getattr(
-                self, "_picked_points", {}
-            ).items():
-                if pt_hemi != h:
-                    continue
-                center = np.array(geo.coords[vertex_id])
-                for sphere in spheres:
-                    mesh = sphere["mesh"]
-                    mesh.points = mesh.points + (center - np.array(mesh.center))
             for data in self._all_data.values():
                 hemi_data = data.get(h)
                 if hemi_data is None:
@@ -2881,7 +2871,7 @@ class Brain(_TimeViewerMixin):
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
         self._surf = surf
-        if flat_change:  # switch the camera, interaction and controls to 2D/3D
+        if flat_change:  # switch the camera and interaction to 2D/3D
             if surf == "flat":
                 self._pre_flat = (list(self._views), self._interaction)
                 self._views = ["flat"] * len(self._views)
@@ -2899,10 +2889,7 @@ class Brain(_TimeViewerMixin):
             self._interaction = interaction
             for _ in self._iter_views("vol"):  # will traverse all
                 self._renderer.set_interaction(interaction)
-            self._configure_arrow_keys()
-            if self.time_viewer:
-                self._update_flat_widgets()
-                self._configure_help()
+        publish(self, _SurfaceUpdated(flat_change=flat_change))
         if self.silhouette:
             for actor in self._silhouette_actors:
                 self.plotter.remove_actor(actor)

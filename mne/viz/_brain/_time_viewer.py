@@ -949,9 +949,24 @@ class _TimeViewerMixin:
         # The scene publishes these after it has updated itself (see ui_events.py)
         subscribe(self, "__time_updated", self._on_time_updated)
         subscribe(self, "__colormap_range_updated", self._sync_colormap_widgets)
+        subscribe(self, "__surface_updated", self._on_surface_updated)
 
     def _on_time_updated(self, event):
         self.plot_time_line(update=True)
+
+    def _on_surface_updated(self, event):
+        # move the picked-vertex spheres onto the new geometry
+        for (hemi, vertex_id), spheres in self._picked_points.items():
+            if hemi not in self._hemis:
+                continue
+            center = np.array(self.geo[hemi].coords[vertex_id])
+            for sphere in spheres:
+                mesh = sphere["mesh"]
+                mesh.points = mesh.points + (center - np.array(mesh.center))
+        if event.flat_change:  # the arrow keys and some controls differ for 2D
+            self._configure_arrow_keys()
+            self._update_flat_widgets()
+            self._configure_help()
 
     def _sync_colormap_widgets(self, event=None):
         """Show the active overlay's colormap limits in the dock widgets."""
