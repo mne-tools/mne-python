@@ -1206,6 +1206,8 @@ def pytest_runtest_logreport(report: pytest.TestReport):
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Handle the end of the session."""
+    if exitstatus == pytest.ExitCode.OK and _bad_skips:
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
     n = session.config.option.durations
     if n is None:
         return
@@ -1226,9 +1228,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
-    # Now handle exit status modification
-    if exitstatus == pytest.ExitCode.OK and _bad_skips:
-        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -1430,12 +1429,17 @@ def pytest_report_teststatus(
     """Turn unexpected skips into errors."""
     if report.outcome == "skipped":
         return _modify_report_skips(report)
+    # already converted, e.g., in an xdist worker before the report was sent here
+    if report.outcome in ("error", "failed") and "UNEXPECTED SKIP" in str(
+        report.longrepr
+    ):
+        return report.outcome, report.outcome[0].upper(), "UNEXPECTED SKIP"
 
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
 MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", None)
-_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL)
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL | re.IGNORECASE)
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
@@ -1455,12 +1459,8 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         return
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
-    # xfail tests aren't true "skips" but show up as skipped in reports
-    if getattr(report, "keywords", {}).get("xfail", False):
-        return
-    # the above only catches marks, so we need to actually parse the report to catch
-    # an xfail based on the traceback
-    if " pytest.xfail( " in reason:
+    # xfail tests (marked or imperative) aren't true "skips" but show up as skipped
+    if hasattr(report, "wasxfail"):
         return
     if reason.startswith("Skipped: "):
         reason = reason[9:]

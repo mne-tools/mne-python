@@ -15,6 +15,7 @@ from functools import partial
 from pathlib import Path
 from urllib.error import URLError
 
+import numpy as np
 import pytest
 
 import mne
@@ -109,7 +110,7 @@ def test_config(tmp_path):
     pytest.raises(TypeError, _get_stim_channel, [1], None)
 
 
-def test_sys_info_basic():
+def test_sys_info_basic(monkeypatch):
     """Test info-showing utility."""
     out = ClosingStringIO()
     sys_info(fid=out, check_version=False)
@@ -122,6 +123,18 @@ def test_sys_info_basic():
         assert "Platform macOS-" in out
     elif platform.system() == "Linux":
         assert "Platform Linux" in out
+    assert isinstance(mne.utils.config._get_runtime_blas_path(), str)
+    # conda's generic libblas interface resolved to its runtime provider
+    blas = dict(name="blas", version="3.9.0")
+    monkeypatch.setattr(
+        np, "show_config", lambda mode: {"Build Dependencies": {"blas": blas}}
+    )
+    for path, want in (
+        ("/x/vecLib.framework/Versions/A/libBLAS.dylib", "Accelerate"),
+        ("", "blas 3.9.0"),
+    ):
+        monkeypatch.setattr(mne.utils.config, "_get_runtime_blas_path", lambda: path)
+        assert mne.utils.config._get_numpy_build_blas().startswith(f"{want}, ")
 
 
 def test_sys_info_windowing_system(monkeypatch):
