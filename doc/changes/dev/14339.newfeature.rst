@@ -1,1 +1,0 @@
-Add :meth:`mne.stats.ClusterResult.plot_joint` to visualize the observed cluster test statistic as a joint plot, by `CarinaFo`_.
