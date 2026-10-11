@@ -12,10 +12,13 @@ from mne.stats import (
     cluster_test,
     combine_adjacency,
     f_mway_rm,
+    f_oneway,
     f_threshold_mway_rm,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
+    ttest_1samp_no_p,
 )
+from mne.stats.cluster_level import ClusterResult
 from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
 from mne.utils import GetEpochsMixin
 
@@ -419,3 +422,30 @@ def test_cluster_test_adjacency():
     )
     with pytest.raises(ValueError, match='"auto" could not infer sensor adjacency'):
         cluster_test(df_no_montage, "data ~ condition", **kwargs)
+
+
+def _plot(stat_fun, **kwargs):
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], 1000.0, "eeg").set_montage(
+        "fsaverage_1020"
+    )
+    times = np.linspace(0, 1, 10)
+    res = ClusterResult(
+        stat_obs=np.random.default_rng(0).standard_normal((4, 10)),
+        clusters=[],
+        cluster_p_values=np.array([]),
+        H0=np.array([]),
+        stat_fun=stat_fun,
+        n_permutations=1,
+        **kwargs,
+    )
+    return res.plot_joint(info, times, show=False)
+
+
+@pytest.mark.parametrize(
+    ("stat_fun", "unit"),
+    [(ttest_1samp_no_p, "t"), (f_oneway, "F")],  # TODO: how many tests do we support?
+)
+def test_plot_joint_unit_matches_stat_fun(stat_fun, unit):
+    """Axis label uses the unit for the statistic, not V or µV."""
+    fig = _plot(stat_fun)
+    assert unit in fig.axes[3].get_ylabel()
