@@ -178,9 +178,7 @@ print(f"Number of permutations run: {cluster_result.n_permutations}")
 
 # Plot cluster result
 fig = cluster_result.plot_joint(
-    info=grand_avg_diff.info,
-    times_sec=grand_avg_diff.times,
-    times="peaks",
-    title="Observed cluster statistic (target - non-target)",
+    info=df["evoked"][0].info,
+    times_sec=df["evoked"][0].times,
     show=False,
 )
