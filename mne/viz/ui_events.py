@@ -308,6 +308,10 @@ class _SurfaceUpdated(UIEvent):
     flat_change: bool  # whether it switched between a flat map and a 3D surface
 
 
+class _OverlayAdded(UIEvent):
+    """Brain has added an overlay and made it the active one (``"__overlay_added"``)."""
+
+
 def _delete_event_channel(event=None, *, weakfig):
     """Delete the event channel (callback function)."""
     fig = weakfig()

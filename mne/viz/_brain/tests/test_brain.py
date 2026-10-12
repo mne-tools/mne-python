@@ -1319,6 +1319,7 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
         remove_existing=False,
     )
     assert brain.widgets["data_key"].is_visible()
+    assert brain.widgets["data_key"].get_value() == "overlay2"
     assert brain._active_data_key == "overlay2"
 
     # switching the dropdown updates the active key and refreshes sliders

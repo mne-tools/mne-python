@@ -950,9 +950,18 @@ class _TimeViewerMixin:
         subscribe(self, "__time_updated", self._on_time_updated)
         subscribe(self, "__colormap_range_updated", self._sync_colormap_widgets)
         subscribe(self, "__surface_updated", self._on_surface_updated)
+        subscribe(self, "__overlay_added", self._on_overlay_added)
 
     def _on_time_updated(self, event):
         self.plot_time_line(update=True)
+
+    def _on_overlay_added(self, event):
+        keys = list(self._all_data.keys())
+        self.widgets["data_key"].set_items(keys)
+        self.widgets["data_key"].set_value(self._active_data_key)  # select_data_key
+        if len(keys) > 1:
+            self.widgets["data_key"].show()
+        self._refresh_colormap_widgets()
 
     def _on_surface_updated(self, event):
         # move the picked-vertex spheres onto the new geometry

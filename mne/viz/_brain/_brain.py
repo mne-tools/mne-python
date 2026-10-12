@@ -65,6 +65,7 @@ from ..ui_events import (
     TimeChange,
     _ColormapRangeUpdated,
     _get_event_channel,
+    _OverlayAdded,
     _SurfaceUpdated,
     _TimeUpdated,
     publish,
@@ -1091,15 +1092,9 @@ class Brain(_TimeViewerMixin):
         # _current_time
         self.set_data_smoothing(self._all_data[key]["smoothing_steps"])
 
-        # setting the data_key widget fires select_data_key, which needs this
-        # overlay's smooth_mat (and, for volumes, its grid) to already exist
-        if "data_key" in self.widgets:
-            keys = list(self._all_data.keys())
-            self.widgets["data_key"].set_items(keys)
-            self.widgets["data_key"].set_value(key)
-            if len(keys) > 1:
-                self.widgets["data_key"].show()
-            self._refresh_colormap_widgets()
+        # the time viewer reacts by selecting this overlay, which needs its
+        # smooth_mat (and, for volumes, its grid) to already exist
+        publish(self, _OverlayAdded())
 
         # 3) add the other actors
         if colorbar is True:
