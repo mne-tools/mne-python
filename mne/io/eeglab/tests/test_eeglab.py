@@ -5,7 +5,6 @@
 import os
 import shutil
 import sys
-import warnings
 from copy import deepcopy
 from unittest.mock import Mock
 
@@ -946,8 +945,10 @@ def test_lazy_vs_preload_all_formats(fname):
 
 
 @testing.requires_testing_data
+@pytest.mark.filterwarnings("ignore:At least one epoch has multiple events")
+@pytest.mark.filterwarnings("ignore:The data contains 'boundary' events")
 @pytest.mark.parametrize(
-    "reader, fname, eog, eog_names, eeg_name, ignore_warn",
+    "reader, fname, eog, eog_names, eeg_name",
     [
         (
             read_raw_eeglab,
@@ -955,7 +956,6 @@ def test_lazy_vs_preload_all_formats(fname):
             ["Fp1", "Fp2"],
             ["Fp1", "Fp2"],
             "F7",
-            ".*boundary.*",
         ),
         (
             read_epochs_eeglab,
@@ -963,16 +963,12 @@ def test_lazy_vs_preload_all_formats(fname):
             ["FP1"],
             ["FP1"],
             "Fz",
-            ".*multiple events.*",
         ),
     ],
 )
-def test_eeglab_eog_montage(reader, fname, eog, eog_names, eeg_name, ignore_warn):
+def test_eeglab_eog_montage(reader, fname, eog, eog_names, eeg_name):
     """Test reading EEGLAB files with EOG channels and montage locations."""
-    with warnings.catch_warnings():
-        warnings.filterwarnings("error", message=".*setting position.*")
-        warnings.filterwarnings("ignore", message=ignore_warn)
-        inst = reader(fname, eog=eog)
+    inst = reader(fname, eog=eog)
 
     for ch_name in eog_names:
         assert inst.get_channel_types([ch_name])[0] == "eog"
