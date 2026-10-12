@@ -2373,20 +2373,16 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         fmax_idx = np.searchsorted(self.freqs, fmax, side="right")
         tmin_idx = np.searchsorted(self.times, tmin)
         tmax_idx = np.searchsorted(self.times, tmax, side="right")
-        freq_picks = np.arange(fmin_idx, fmax_idx)
-        time_picks = np.arange(tmin_idx, tmax_idx)
         freq_axis = self._dims.index("freq")
         time_axis = self._dims.index("time")
         chan_axis = self._dims.index("channel")
-        # normally there's a risk of np.take reducing array dimension if there
-        # were only one channel or frequency selected, but `_picks_to_idx`
-        # and np.arange both always return arrays, so we're safe; the result
-        # will always have the same `ndim` as it started with.
-        data = (
-            self._data.take(picks, chan_axis)
-            .take(freq_picks, freq_axis)
-            .take(time_picks, time_axis)
-        )
+        idx = [slice(None)] * self._data.ndim
+        idx[chan_axis] = picks
+        idx[freq_axis] = slice(fmin_idx, fmax_idx)
+        idx[time_axis] = slice(tmin_idx, tmax_idx)
+        data = self._data[tuple(idx)]
+        if np.shares_memory(data, self._data):
+            data = data.copy()
         out = [data]
         if return_times:
             times = self._raw_times[tmin_idx:tmax_idx]
