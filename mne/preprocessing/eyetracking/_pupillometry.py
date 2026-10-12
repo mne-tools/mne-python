@@ -84,8 +84,14 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze, match):
     # descriptions in ``match`` are interpolated over and that the start/stop times
     # stay aligned with ``blink_annots`` in the loop below.
     starts, ends = _annotations_starts_stops(raw, match)
-    starts = starts / raw.info["sfreq"]
-    ends = ends / raw.info["sfreq"]
+    starts = (starts / raw.info["sfreq"]) - pre_buffer
+    ends = (ends / raw.info["sfreq"]) + post_buffer
+    start_indices = np.searchsorted(raw.times, starts, side="left")
+    end_indices = np.searchsorted(raw.times, ends, side="right")
+    for annot in blink_annots:
+        if "ch_names" not in annot or not annot["ch_names"]:
+            msg = f"Blink annotation missing values for 'ch_names' key: {annot}"
+            raise ValueError(msg)
     # iterate over each eyetrack channel and interpolate the blinks
     interpolated_chs = []
     for ci, ch_info in enumerate(raw.info["chs"]):
@@ -97,27 +103,23 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze, match):
                 continue
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
-        for annot, start, end in zip(blink_annots, starts, ends):
-            if "ch_names" not in annot or not annot["ch_names"]:
-                msg = f"Blink annotation missing values for 'ch_names' key: {annot}"
-                raise ValueError(msg)
-            start -= pre_buffer
-            end += post_buffer
+        for annot, s_idx, e_idx in zip(blink_annots, start_indices, end_indices):
             if ch_info["ch_name"] not in annot["ch_names"]:
                 continue  # skip if the channel is not in the blink annotation
             # Update the mask for times within the current blink period
-            mask |= (raw.times >= start) & (raw.times <= end)
+            mask[s_idx:e_idx] = True
         blink_indices = np.where(mask)[0]
-        non_blink_indices = np.where(~mask)[0]
+        if len(blink_indices) > 0:
+            non_blink_indices = np.where(~mask)[0]
 
-        # Linear interpolation
-        interpolated_samples = np.interp(
-            raw.times[blink_indices],
-            raw.times[non_blink_indices],
-            raw._data[ci, non_blink_indices],
-        )
-        # Replace the samples at the blink_indices with the interpolated values
-        raw._data[ci, blink_indices] = interpolated_samples
+            # Linear interpolation
+            interpolated_samples = np.interp(
+                raw.times[blink_indices],
+                raw.times[non_blink_indices],
+                raw._data[ci, non_blink_indices],
+            )
+            # Replace the samples at the blink_indices with the interpolated values
+            raw._data[ci, blink_indices] = interpolated_samples
         interpolated_chs.append(ch_info["ch_name"])
     if interpolated_chs:
         logger.info(
