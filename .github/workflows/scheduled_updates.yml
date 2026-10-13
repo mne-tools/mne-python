@@ -80,7 +80,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v3.0.0
+      - uses: j178/prek-action@v3.0.1
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         env:

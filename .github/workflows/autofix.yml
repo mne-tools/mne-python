@@ -30,7 +30,7 @@ jobs:
         with:
           project-root: ${{ github.workspace }}
       # Run this last, since it can fail the job if moved up
-      - uses: j178/prek-action@v3.0.0
+      - uses: j178/prek-action@v3.0.1
       - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a
         if: success() || failure()
   changed-files:
@@ -74,7 +74,7 @@ jobs:
           activate-environment: true
           enable-cache: false
           python-version: "3.12"
-      - uses: prefix-dev/setup-pixi@v0.10.2
+      - uses: prefix-dev/setup-pixi@v0.11.0
         with:
           manifest-path: tools/ci/macos-intel/pixi.toml
           run-install: false
