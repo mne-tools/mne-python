@@ -137,7 +137,7 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
         rng=[0, 10],
         callback=mock,
         tooltip="slider",
-        tick_labels=True,
+        tick_labels=["0", "10"],
     )
 
     # check box

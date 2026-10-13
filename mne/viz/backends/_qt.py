@@ -945,13 +945,15 @@ class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, stretch=0, *, row=None, col=None):
+    def _layout_add_widget(
+        self, layout, widget, stretch=0, *, row=None, col=None, row_span=1, col_span=1
+    ):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
             if isinstance(layout, QGridLayout):
-                layout.addWidget(widget, row, col)
+                layout.addWidget(widget, row, col, row_span, col_span)
             else:
                 layout.addWidget(widget, stretch)
 
@@ -1071,7 +1073,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         callback,
         *,
         compact=True,
-        tick_labels=False,
+        tick_labels=None,
         double=False,
         tooltip=None,
         layout=None,
@@ -1090,12 +1092,16 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.floatValueChanged.connect(callback)
         else:
             widget.valueChanged.connect(callback)
-        if tick_labels:
-            self._dock_add_label(value=f"{rng[0]:.3g}", layout=layout)
-        self._layout_add_widget(layout, widget, row=row, col=col)
-
-        if tick_labels:
-            self._dock_add_label(value=f"{rng[1]:.3g}", layout=layout)
+        if tick_labels is not None and len(tick_labels) > 0:
+            grid = self._layout_create(orientation="grid")
+            self._layout_add_widget(
+                grid, widget, row=0, col=0, row_span=1, col_span=len(tick_labels)
+            )
+            for i, text in enumerate(tick_labels):
+                self._dock_add_label(value=text, layout=grid, row=1, col=i)
+            self._layout_add_widget(layout, grid, row=row, col=col)
+        else:
+            self._layout_add_widget(layout, widget, row=row, col=col)
 
         return _QtWidget(widget)
 
