@@ -2003,6 +2003,14 @@ def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtb
     assert brain._trace_display_subtitle(line) == (
         f"{n_vertices} vertices, mode: {brain.label_extract_mode}"
     )
+    # only picking plots a trace: adding a label directly keeps its own color
+    n_lines = len(brain.mpl_canvas.axes.get_lines())
+    other = brain._annotation_labels["lh"][label_id - 1]
+    brain.add_label(other, color="red")
+    assert len(brain.mpl_canvas.axes.get_lines()) == n_lines
+    overlay = brain.layered_meshes["lh"]._overlays[other.name]
+    assert_array_equal(overlay._colormap[1], [255, 0, 0, 255])
+    brain.layered_meshes["lh"].remove_overlay(other.name)
 
     # clicking the same label again removes it
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)

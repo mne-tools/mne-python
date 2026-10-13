@@ -1427,34 +1427,6 @@ class Brain(_TimeViewerMixin):
         if scalar_thresh is not None:
             ids = ids[scalars >= scalar_thresh]
 
-        if self.time_viewer and self.show_traces and self.traces_mode == "label":
-            stc = self._data["stc"]
-            src = self._data["src"]
-            tc = stc.extract_label_time_course(
-                label, src=src, mode=self.label_extract_mode
-            )
-            tc = tc[0]
-            if tc.ndim == 2:  # vector data: show the norm across orientations
-                tc = np.linalg.norm(tc, axis=0)
-            color = next(self.color_cycle)
-            line = self.mpl_canvas.plot(
-                self._data["time"], tc, label=label_name, color=color, update=False
-            )
-            # count the source vertices the extraction uses, not surface ones
-            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
-            self._label_trace_meta[line] = (
-                hemi,
-                label_name,
-                self.label_extract_mode,
-                np.intersect1d(label.vertices, stc_vertices).size,
-            )
-            self.mpl_canvas.axes.relim()
-            self.mpl_canvas.axes.autoscale_view()
-            self.mpl_canvas.update_plot()
-        else:
-            line = None
-
-        orig_color = color
         color = _to_rgb(color, alpha, alpha=True)
         cmap = np.array(
             [
@@ -1493,9 +1465,6 @@ class Brain(_TimeViewerMixin):
                 opacity=alpha,
                 name=label_name,
             )
-            if self.time_viewer and self.show_traces and self.traces_mode == "label":
-                label._color = orig_color
-                label._line = line
             self._labels[hemi].append(label)
         self._renderer._update()
 
