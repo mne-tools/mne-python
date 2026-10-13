@@ -52,6 +52,19 @@ EXPECTED_REPR = (
             0.065,
             (1920, 1080),
         ),
+        (
+            0,
+            "H3",
+            "right",
+            0.5,
+            1.0,
+            POSITIONS.tolist(),
+            OFFSETS.tolist(),
+            GAZES.tolist(),
+            (0.531, 0.298),
+            0.065,
+            (1920, 1080),
+        ),
         (None, None, None, None, None, None, None, None, None, None, None),
     ],
 )
@@ -114,6 +127,16 @@ def test_create_calibration(
     # test __repr__
     if cal["onset"] is not None:
         assert repr(cal) == EXPECTED_REPR  # test __repr__
+
+    # test plot
+    if cal["positions"] is not None:
+        import matplotlib.pyplot as plt
+
+        fig = cal.plot(show=False)
+        plt.close(fig)
+    else:
+        with pytest.raises(ValueError, match="positions and gaze keys"):
+            cal.plot(show=False)
 
 
 @requires_testing_data

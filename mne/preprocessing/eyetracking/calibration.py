@@ -75,6 +75,12 @@ class Calibration(dict):
         screen_distance=None,
         screen_resolution=None,
     ):
+        if positions is not None:
+            positions = np.asarray(positions, dtype=float)
+        if offsets is not None:
+            offsets = np.asarray(offsets, dtype=float)
+        if gaze is not None:
+            gaze = np.asarray(gaze, dtype=float)
         super().__init__(
             onset=onset,
             model=model,
@@ -137,8 +143,13 @@ class Calibration(dict):
         from ...viz.utils import plt_show
 
         msg = "positions and gaze keys must both be 2D numpy arrays."
-        assert isinstance(self["positions"], np.ndarray), msg
-        assert isinstance(self["gaze"], np.ndarray), msg
+        if (
+            not isinstance(self["positions"], np.ndarray)
+            or not isinstance(self["gaze"], np.ndarray)
+            or self["positions"].ndim != 2
+            or self["gaze"].ndim != 2
+        ):
+            raise ValueError(msg)
 
         if axes is not None:
             from matplotlib.axes import Axes
