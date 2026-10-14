@@ -951,6 +951,35 @@ class _TimeViewerMixin:
         subscribe(self, "__colormap_range_updated", self._sync_colormap_widgets)
         subscribe(self, "__surface_updated", self._on_surface_updated)
         subscribe(self, "__overlay_added", self._on_overlay_added)
+        # published before the window closes, while everything is still alive
+        subscribe(self, "figure_closing", self._on_figure_closing)
+
+    def _on_figure_closing(self, event):
+        self.clear_glyphs()
+        self._clear_widgets()
+        if self.mpl_canvas is not None:
+            self.mpl_canvas.clear()
+        if self.act_data_smooth is not None:
+            for key in list(self.act_data_smooth.keys()):
+                self.act_data_smooth[key] = None
+        # resolve the reference cycles
+        for key in (
+            "mpl_canvas",
+            "time_actor",
+            "act_data_smooth",
+            "_hover_caption",
+            "widgets",
+        ):
+            setattr(self, key, None)
+
+    def _clear_widgets(self):
+        if not hasattr(self, "widgets"):
+            return
+        for widget in self.widgets.values():
+            if widget is not None:
+                for key in ("triggered", "floatValueChanged"):
+                    setattr(widget, key, None)
+        self.widgets.clear()
 
     def _on_time_updated(self, event):
         self.plot_time_line(update=True)

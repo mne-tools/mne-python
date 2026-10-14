@@ -1431,6 +1431,7 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
         assert "annotation" not in brain.widgets
         assert "extract_mode" not in brain.widgets
     brain.close()
+    assert brain.widgets is None and brain.mpl_canvas is None
 
 
 @testing.requires_testing_data

@@ -532,7 +532,6 @@ class Brain(_TimeViewerMixin):
     def _clean(self):
         # resolve the reference cycle
         self._renderer._window_close_disconnect()
-        self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
         for hemi in self.layered_meshes:
@@ -541,12 +540,6 @@ class Brain(_TimeViewerMixin):
             self.plotter.remove_actor(actor)
         self._silhouette_actors = None
         self._clear_callbacks()
-        self._clear_widgets()
-        if getattr(self, "mpl_canvas", None) is not None:
-            self.mpl_canvas.clear()
-        if getattr(self, "act_data_smooth", None) is not None:
-            for key in list(self.act_data_smooth.keys()):
-                self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
         for renderer in getattr(self._renderer, "_all_renderers", ()):  # VTK only
             renderer.RemoveAllLights()
@@ -564,20 +557,8 @@ class Brain(_TimeViewerMixin):
         # XXX end PyVista
         for key in (
             "plotter",
-            "window",
-            "dock",
-            "tool_bar",
-            "menu_bar",
-            "interactor",
-            "mpl_canvas",
-            "time_actor",
-            "picked_renderer",
-            "act_data_smooth",
             "_scalar_bar",
             "_scalar_bar_ticks",
-            "_hover_caption",
-            "actions",
-            "widgets",
             "geo",
             "_all_data",
         ):
@@ -635,15 +616,6 @@ class Brain(_TimeViewerMixin):
         # Remove the default key binding
         if getattr(self, "iren", None) is not None:
             self.plotter.iren.clear_key_event_callbacks()
-
-    def _clear_widgets(self):
-        if not hasattr(self, "widgets"):
-            return
-        for widget in self.widgets.values():
-            if widget is not None:
-                for key in ("triggered", "floatValueChanged"):
-                    setattr(widget, key, None)
-        self.widgets.clear()
 
     @property
     def interaction(self):
