@@ -1417,3 +1417,30 @@ def test_gif(tmp_path):
     bad_name.write_bytes(b"")
     with pytest.raises(ValueError, match="Allowed values"):
         r.add_image(bad_name, "fname")
+
+
+def test_report_add_ica_sources(monkeypatch):
+    """Test ICA source timecourses in report."""
+    pytest.importorskip("sklearn")
+    from unittest.mock import Mock
+
+    from mne import Annotations
+
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((25, 6000))
+    info = create_info(25, 100.0, ch_types="eeg")
+    raw = RawArray(data, info)
+    raw.set_annotations(Annotations([1.0], [2.0], ["artifact"]))
+    ica = ICA(n_components=25, max_iter=1, method="fastica", random_state=0)
+    with _record_warnings():
+        ica.fit(raw)
+
+    spy = Mock(wraps=ica.plot_sources)
+    monkeypatch.setattr(ica, "plot_sources", spy)
+    r = Report()
+    with _record_warnings():
+        r.add_ica(ica=ica, title="ICA", inst=raw, picks=[0, 1], plot_sources=True)
+    assert spy.call_args.kwargs["show_scrollbars"] is False
+    assert "Sources" in [c.name for c in r._content]
+    assert len(raw.annotations) == 1
+    assert raw.annotations.description[0] == "artifact"

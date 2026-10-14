@@ -2331,20 +2331,33 @@ class Report:
     def _add_ica_sources(
         self, *, ica, inst, picks, n_components, image_format, section, tags, replace
     ):
-        with use_browser_backend("matplotlib"):
-            fig = ica.plot_sources(
-                inst=inst, picks=picks, n_components=n_components, show=False
-            )
-        self._add_figure(
-            fig=fig,
-            title="Sources",
-            caption=None,
-            image_format=image_format,
-            tags=tags,
-            section=section,
-            replace=replace,
-            own_figure=True,
+        orig_annotations = (
+            inst.annotations.copy() if isinstance(inst, BaseRaw) else None
         )
+        try:
+            if orig_annotations is not None:
+                inst.set_annotations(None)
+            with use_browser_backend("matplotlib"):
+                fig = ica.plot_sources(
+                    inst=inst,
+                    picks=picks,
+                    n_components=n_components,
+                    show_scrollbars=False,
+                    show=False,
+                )
+            self._add_figure(
+                fig=fig,
+                title="Sources",
+                caption=None,
+                image_format=image_format,
+                tags=tags,
+                section=section,
+                replace=replace,
+                own_figure=True,
+            )
+        finally:
+            if orig_annotations is not None:
+                inst.set_annotations(orig_annotations)
 
     def _add_ica(
         self,
