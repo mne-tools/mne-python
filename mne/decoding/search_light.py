@@ -2,10 +2,15 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .base import (  # isort: skip
+    BaseEstimator,
+    _check_estimator,
+)
+
 import logging
 
 import numpy as np
-from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
+from sklearn.base import MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import check_is_fitted
@@ -18,7 +23,6 @@ from ..utils import (
     array_split_idx,
     fill_doc_static,
 )
-from .base import _check_estimator
 from .transformer import MNETransformerMixin
 
 

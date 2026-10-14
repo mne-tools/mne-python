@@ -2,8 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .base import BaseEstimator  # isort: skip
+
 import numpy as np
-from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
 from ..time_frequency.tfr import _compute_tfr

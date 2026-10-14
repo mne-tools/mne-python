@@ -4,10 +4,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .base import BaseEstimator  # isort: skip
+
 import numpy as np
 from scipy import linalg
 from scipy.signal import fftconvolve
-from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.base import RegressorMixin
 from sklearn.utils.validation import check_is_fitted
 
 from .._numba import jit

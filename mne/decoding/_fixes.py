@@ -2,7 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from mne.utils import _soft_import
+from ..utils import _soft_import  # isort: skip
+
+_soft_import("sklearn", "for decoding")
 
 
 def _get_array_namespace(X):

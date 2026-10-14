@@ -4,6 +4,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from ..utils import _soft_import  # isort: skip
+
+_soft_import("sklearn", "decoding")
+
 import datetime as dt
 import numbers
 from functools import partial
@@ -23,9 +27,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import check_scoring
 from sklearn.model_selection import KFold, StratifiedKFold, check_cv
 from sklearn.utils import indexable
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
 
 from .._fiff.meas_info import Info
+from ..epochs import BaseEpochs
 from ..parallel import parallel_func
 from ..utils import (
     _check_fname,
@@ -34,6 +39,7 @@ from ..utils import (
     _pl,
     _validate_type,
     _verbose_control,
+    check_version,
     logger,
     pinv,
     verbose_static,
@@ -49,7 +55,58 @@ from ._ged import (
     _smart_ged,
 )
 from ._mod_ged import _no_op_mod
-from .transformer import MNETransformerMixin, Vectorizer
+
+
+class MNETransformerMixin(TransformerMixin):
+    """TransformerMixin plus some helpers."""
+
+    def _check_data(
+        self,
+        epochs_data,
+        *,
+        y=None,
+        atleast_3d=True,
+        fit=False,
+        return_y=False,
+        multi_output=False,
+        check_n_features=True,
+    ):
+        # Sklearn calls asarray under the hood which works, but elsewhere they check for
+        # __len__ then look at the size of obj[0]... which is an epoch of shape (1, ...)
+        # rather than what they expect (shape (...)). So we explicitly get the NumPy
+        # array to make everyone happy.
+        if isinstance(epochs_data, BaseEpochs):
+            epochs_data = epochs_data.get_data(copy=False)
+        kwargs = dict(dtype=np.float64, allow_nd=True, order="C")
+        if check_version("sklearn", "1.6"):  # TODO VERSION sklearn 1.6+
+            kwargs["force_writeable"] = True
+        if hasattr(self, "n_features_in_") and check_n_features:
+            if y is None:
+                epochs_data = validate_data(
+                    self,
+                    epochs_data,
+                    **kwargs,
+                    reset=fit,
+                )
+            else:
+                epochs_data, y = validate_data(
+                    self,
+                    epochs_data,
+                    y,
+                    **kwargs,
+                    reset=fit,
+                )
+        elif y is None:
+            epochs_data = check_array(epochs_data, **kwargs)
+        else:
+            epochs_data, y = check_X_y(
+                X=epochs_data, y=y, multi_output=multi_output, **kwargs
+            )
+        if fit:
+            self.n_features_in_ = epochs_data.shape[1]
+        if atleast_3d:
+            epochs_data = np.atleast_3d(epochs_data)
+        return (epochs_data, y) if return_y else epochs_data
 
 
 class _GEDTransformer(MNETransformerMixin, BaseEstimator):
@@ -794,6 +851,8 @@ def get_coef(
     # we should transpose to be consistent with how spatial filters
     # store filters and patterns: (n_components, n_channels)
     if inverse_transform and hasattr(estimator, "steps"):
+        from .transformer import Vectorizer
+
         is_vectorizer = any(
             isinstance(param_value, Vectorizer)
             for param_value in estimator.get_params(deep=True).values()

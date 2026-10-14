@@ -473,10 +473,20 @@ def test_check_sphere():
         _check_sphere("auto", info_trunc)
 
 
-def test_soft_import():
+def test_soft_import(monkeypatch):
     """Test _soft_import."""
     with pytest.raises(RuntimeError, match=r".* the module mne>=999 \(found version.*"):
         _soft_import("mne", "testing", min_version="999")
+    for key in list(sys.modules):
+        if key == "mne.decoding" or key.startswith(("mne.decoding.", "sklearn")):
+            monkeypatch.delitem(sys.modules, key)
+    monkeypatch.delattr(mne, "decoding", raising=False)
+    monkeypatch.setitem(sys.modules, "sklearn", None)
+    for name in mne.decoding.__all__:
+        with pytest.raises(
+            RuntimeError, match="For decoding to work, the module sklearn is needed"
+        ):
+            getattr(mne.decoding, name)
 
 
 def test_soft_import_missing_version(monkeypatch):

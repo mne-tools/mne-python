@@ -2,15 +2,15 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .base import BaseEstimator, _set_cv  # isort: skip
+
 from collections import Counter
 
 import numpy as np
-from sklearn.base import BaseEstimator
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..parallel import parallel_func
 from ..utils import logger, verbose_static
-from .base import _set_cv
 from .transformer import MNETransformerMixin
 
 
