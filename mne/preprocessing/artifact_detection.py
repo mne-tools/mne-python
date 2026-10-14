@@ -117,7 +117,7 @@ def annotate_muscle_zscore(
         logger.info("Using %s sensors for muscle artifact detection", ch_type)
     else:
         _check_option("ch_type", ch_type, ["mag", "grad", "eeg"])
-    raw_copy.pick(ch_type)
+    raw_copy.pick(ch_type, exclude="bads")
 
     raw_copy.filter(
         filter_freq[0],
