@@ -271,10 +271,15 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     if len(bads_nirs) == 0:
         return
     picks_bad = pick_channels(inst.info["ch_names"], bads_nirs, exclude=[])
-    bads_mask = [p in picks_bad for p in picks_nirs]
+    bads_mask = np.isin(picks_nirs, picks_bad)
 
     chs = [inst.info["chs"][i] for i in picks_nirs]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
+    invalid_mask = np.isnan(locs3d).any(axis=1) | (np.abs(locs3d) <= 1e-16).all(axis=1)
+    if np.any(bads_mask & ~invalid_mask) and not np.any(~bads_mask & ~invalid_mask):
+        raise ValueError(
+            "No good fNIRS channel with a valid position to interpolate from."
+        )
 
     dist = pdist(locs3d)
     dist = squareform(dist)
@@ -283,11 +288,16 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
         # `bad_raw_idx` is the index of the bad channel in `inst`
         # `bad_dist_idx` is the index of the bad channel in `dist`
         bad_dist_idx = np.where(picks_nirs == bad_raw_idx)[0][0]
+        if invalid_mask[bad_dist_idx]:
+            inst._data[..., bad_raw_idx, :] = np.nan
+            continue
         dists_to_bad = dist[bad_dist_idx].copy()
         # Ignore distances to self
         dists_to_bad[dists_to_bad == 0] = np.inf
         # Ignore distances to other bad channels
         dists_to_bad[bads_mask] = np.inf
+        # Ignore channels without valid positions
+        dists_to_bad[invalid_mask] = np.inf
         # Find closest remaining channels for same frequency
         closest_dist_idx = np.argmin(dists_to_bad) + (bad_dist_idx % 2)
         closest_raw_idx = picks_nirs[closest_dist_idx]
