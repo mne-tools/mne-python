@@ -26,7 +26,7 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT, _picks_to_idx, pick_types
 from .._freesurfer import _mri_orientation, _reorient_image
 from ..cov import Covariance, read_cov
 from ..defaults import _handle_default
@@ -2331,6 +2331,17 @@ class Report:
     def _add_ica_sources(
         self, *, ica, inst, picks, n_components, image_format, section, tags, replace
     ):
+        picks_idx = _picks_to_idx(ica.n_components_, picks, picks_on="components")
+        if len(picks_idx) == 0:
+            return
+        chunk_size = 20 if n_components is None else int(n_components)
+        chunks = [
+            picks_idx[i : i + chunk_size] for i in range(0, len(picks_idx), chunk_size)
+        ]
+        eog_chs = pick_types(inst.info, meg=False, eog=True, ref_meg=False)
+        ecg_chs = pick_types(inst.info, meg=False, ecg=True, ref_meg=False)
+        extra_picks = np.concatenate((eog_chs, ecg_chs)).astype(int)
+
         orig_annotations = (
             inst.annotations.copy() if isinstance(inst, BaseRaw) else None
         )
@@ -2338,23 +2349,29 @@ class Report:
             if orig_annotations is not None:
                 inst.set_annotations(None)
             with use_browser_backend("matplotlib"):
-                fig = ica.plot_sources(
-                    inst=inst,
-                    picks=picks,
-                    n_components=n_components,
-                    show_scrollbars=False,
-                    show=False,
-                )
-            self._add_figure(
-                fig=fig,
-                title="Sources",
-                caption=None,
-                image_format=image_format,
-                tags=tags,
-                section=section,
-                replace=replace,
-                own_figure=True,
-            )
+                for chunk in chunks:
+                    title = (
+                        "Sources"
+                        if len(chunks) == 1
+                        else f"Sources (ICs {min(chunk)}–{max(chunk)})"
+                    )
+                    fig = ica.plot_sources(
+                        inst=inst,
+                        picks=chunk,
+                        n_components=len(chunk) + len(extra_picks),
+                        show_scrollbars=False,
+                        show=False,
+                    )
+                    self._add_figure(
+                        fig=fig,
+                        title=title,
+                        caption=None,
+                        image_format=image_format,
+                        tags=tags,
+                        section=section,
+                        replace=replace,
+                        own_figure=True,
+                    )
         finally:
             if orig_annotations is not None:
                 inst.set_annotations(orig_annotations)
@@ -2378,6 +2395,10 @@ class Report:
         replace,
         plot_sources=False,
     ):
+        _validate_type(n_components, "int-like", "n_components")
+        if n_components < 1:
+            raise ValueError(f"n_components must be at least 1, got {n_components}")
+
         if _path_like(ica):
             ica = read_ica(ica)
 
@@ -2567,7 +2588,9 @@ class Report:
             This only affects the behavior of the component
             topography and properties plots.
         n_components : int
-            Maximum number of ICA components to plot. Defaults to 20.
+            Maximum number of ICA components to display per figure or slider.
+            If the number of components exceeds this value, they will be
+            paginated across multiple figures/sliders. Defaults to 20.
 
             .. versionadded:: 1.13
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None

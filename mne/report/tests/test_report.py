@@ -1444,3 +1444,13 @@ def test_report_add_ica_sources(monkeypatch):
     assert "Sources" in [c.name for c in r._content]
     assert len(raw.annotations) == 1
     assert raw.annotations.description[0] == "artifact"
+
+    r = Report()
+    with _record_warnings():
+        r.add_ica(ica=ica, title="ICA", inst=raw, plot_sources=True)
+    names = [c.name for c in r._content]
+    assert "Sources (ICs 0–19)" in names
+    assert "Sources (ICs 20–24)" in names
+
+    with pytest.raises(ValueError, match="n_components must be at least 1"):
+        r.add_ica(ica=ica, title="ICA", inst=raw, plot_sources=True, n_components=0)
