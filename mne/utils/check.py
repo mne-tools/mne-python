@@ -433,6 +433,12 @@ def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
         )
 
 
+class _SoftImportError(RuntimeError, ImportError):
+    """Raised when an optional dependency is missing or incompatible."""
+
+    pass
+
+
 def _soft_import(name, purpose, strict=True, *, min_version=None):
     """Import soft dependencies, providing informative errors on failure.
 
@@ -476,7 +482,7 @@ def _soft_import(name, purpose, strict=True, *, min_version=None):
         extra = "" if min_version is None else f">={min_version}"
         if got_version is not None:
             extra += f" (found version {got_version})"
-        raise RuntimeError(
+        raise _SoftImportError(
             f"For {purpose} to work, the module {name}{extra} is needed, "
             "but it could not be imported. Use the following installation method "
             "appropriate for your environment:\n\n"

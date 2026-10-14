@@ -2,10 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .base import BaseEstimator, MNETransformerMixin  # isort: skip
+
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin, check_array, clone
+from sklearn.base import clone
 from sklearn.preprocessing import RobustScaler, StandardScaler
-from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
 
 from .._fiff.pick import (
@@ -15,68 +16,13 @@ from .._fiff.pick import (
     pick_info,
 )
 from ..cov import _check_scalings_user
-from ..epochs import BaseEpochs
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
 from ..utils import (
     _check_option,
     _validate_type,
-    check_version,
     fill_doc_static,
 )
-from ._fixes import validate_data
-
-
-class MNETransformerMixin(TransformerMixin):
-    """TransformerMixin plus some helpers."""
-
-    def _check_data(
-        self,
-        epochs_data,
-        *,
-        y=None,
-        atleast_3d=True,
-        fit=False,
-        return_y=False,
-        multi_output=False,
-        check_n_features=True,
-    ):
-        # Sklearn calls asarray under the hood which works, but elsewhere they check for
-        # __len__ then look at the size of obj[0]... which is an epoch of shape (1, ...)
-        # rather than what they expect (shape (...)). So we explicitly get the NumPy
-        # array to make everyone happy.
-        if isinstance(epochs_data, BaseEpochs):
-            epochs_data = epochs_data.get_data(copy=False)
-        kwargs = dict(dtype=np.float64, allow_nd=True, order="C")
-        if check_version("sklearn", "1.6"):  # TODO VERSION sklearn 1.6+
-            kwargs["force_writeable"] = True
-        if hasattr(self, "n_features_in_") and check_n_features:
-            if y is None:
-                epochs_data = validate_data(
-                    self,
-                    epochs_data,
-                    **kwargs,
-                    reset=fit,
-                )
-            else:
-                epochs_data, y = validate_data(
-                    self,
-                    epochs_data,
-                    y,
-                    **kwargs,
-                    reset=fit,
-                )
-        elif y is None:
-            epochs_data = check_array(epochs_data, **kwargs)
-        else:
-            epochs_data, y = check_X_y(
-                X=epochs_data, y=y, multi_output=multi_output, **kwargs
-            )
-        if fit:
-            self.n_features_in_ = epochs_data.shape[1]
-        if atleast_3d:
-            epochs_data = np.atleast_3d(epochs_data)
-        return (epochs_data, y) if return_y else epochs_data
 
 
 class _ConstantScaler:

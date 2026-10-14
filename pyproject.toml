@@ -435,6 +435,9 @@ select = ["A", "B006", "D", "E", "F", "I", "UP", "UP031", "W"]
 "mne/datasets/*/*.py" = [
   "D103",  # Missing docstring in public function
 ]
+"mne/decoding/*.py" = [
+  "E402",  # Module level import not at top of file
+]
 "mne/decoding/tests/test_*.py" = [
   "E402",  # Module level import not at top of file
 ]

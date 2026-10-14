@@ -2,11 +2,16 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from .base import (  # isort: skip
+    BaseEstimator,
+    _check_estimator,
+    get_coef,
+)
+
 import numbers
 
 import numpy as np
 from sklearn.base import (
-    BaseEstimator,
     MetaEstimatorMixin,
     clone,
     is_regressor,
@@ -16,7 +21,6 @@ from sklearn.metrics import r2_score
 
 from ..utils import _validate_type, fill_doc_static
 from ._fixes import _check_n_features_3d, _get_array_namespace, validate_data
-from .base import _check_estimator, get_coef
 from .time_delaying_ridge import TimeDelayingRidge
 
 

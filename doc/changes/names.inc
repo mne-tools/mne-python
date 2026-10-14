@@ -240,7 +240,7 @@
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
 .. _Kalle Makela: https://github.com/Kallemakela
 .. _Kalle Mäkelä: https://github.com/kalomak
-.. _Kambiz Tabavi: https://github.com/ktavabi
+.. _Kambiz Tavabi: https://github.com/ktavabi
 .. _Katarina Slama: https://github.com/katarinaslama
 .. _Katia Al-Amir: https://github.com/katia-sentry
 .. _Katrin Leinweber: https://github.com/katrinleinweber
@@ -437,6 +437,7 @@
 .. _Simon M. Hofmann: https://github.com/SHEscher
 .. _Simon-Shlomo Poil: https://github.com/simon-shlomo
 .. _Sina Esmaeili: https://github.com/snesmaeili
+.. _Soham Mitra: https://github.com/SohamXYZDev
 .. _Sondre Foslien: https://github.com/sondrfos
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Sourav Singh: https://github.com/souravsingh
