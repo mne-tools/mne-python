@@ -12,6 +12,7 @@ from shutil import copyfile
 import numpy as np
 import pytest
 from matplotlib import image
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -1430,6 +1431,11 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
     else:  # volume
         assert "annotation" not in brain.widgets
         assert "extract_mode" not in brain.widgets
+    # closing a linked figure must not tear down this one's time viewer
+    fig = Figure()
+    ui_events.link(fig, brain)
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert brain.widgets and brain.mpl_canvas is not None
     brain.close()
     assert brain.widgets is None and brain.mpl_canvas is None
 

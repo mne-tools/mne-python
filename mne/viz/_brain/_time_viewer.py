@@ -955,6 +955,8 @@ class _TimeViewerMixin:
         subscribe(self, "figure_closing", self._on_figure_closing)
 
     def _on_figure_closing(self, event):
+        if event.source is not self:  # forwarded from a linked figure
+            return
         self.clear_glyphs()
         self._clear_widgets()
         if self.mpl_canvas is not None:
