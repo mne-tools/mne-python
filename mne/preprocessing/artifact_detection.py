@@ -92,6 +92,22 @@ def annotate_muscle_zscore(
     scores_muscle : array
         Z-score values averaged across channels for each sample.
 
+    Notes
+    -----
+    The envelope of each channel is z-scored over time, the z-scores are summed
+    across all channels of ``ch_type`` and divided by ``sqrt(n_channels)``, and the
+    result is low-pass filtered at 4 Hz before thresholding. An artifact present on
+    only a few channels is therefore diluted: one channel with a z-score of 10 among
+    270 channels contributes only ``10 / sqrt(270)``, about 0.6, to the score. To
+    detect focal muscle activity, such as temporal muscle seen on a few temporal
+    sensors, pass a copy restricted to those channels, e.g.
+    ``annotate_muscle_zscore(raw.copy().pick(ch_names))``.
+
+    Each channel is z-scored against its own mean and standard deviation over the
+    recording (excluding segments annotated as bad), so muscle activity present
+    during a large part of the recording raises this baseline and may be
+    under-detected.
+
     References
     ----------
     .. footbibliography::
