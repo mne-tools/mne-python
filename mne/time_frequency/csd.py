@@ -1653,13 +1653,11 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True, decim=1)
         tslice = slice(tstart, tstop, tstep)
         psds = psds[:, :, tslice]
 
-    psds_conj = np.conj(psds)
-
-    # Compute the spectral density between all pairs of series
-    n_channels = data.shape[0]
-    csds = np.vstack(
-        [np.mean(psds[[i]] * psds_conj[i:], axis=2) for i in range(n_channels)]
-    )
+    # Compute upper-triangle CSD across channel pairs via batched matmul
+    psds = psds.transpose(1, 0, 2)  # (n_wavelets, n_channels, n_times)
+    csds = psds @ psds.conj().swapaxes(-1, -2) / psds.shape[-1]
+    ii, jj = np.triu_indices(psds.shape[1])
+    csds = csds[:, ii, jj].T
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
