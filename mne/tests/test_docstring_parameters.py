@@ -372,9 +372,12 @@ def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
     bad = []
+    # CI tests an installed wheel from site-packages, where examples/ (if any)
+    # belongs to other packages (e.g. trame-vuetify), not to us
+    installed = root.name in ("site-packages", "dist-packages")
     for sub in ("mne", "examples", "tutorials"):
         base = root / sub
-        if not base.is_dir():  # e.g. examples/tutorials absent from a wheel
+        if not base.is_dir() or (installed and sub != "mne"):
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
