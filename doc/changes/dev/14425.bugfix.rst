@@ -1,1 +1,1 @@
-Handle non-UTF-8 output gracefully in :func:`mne.utils.run_subprocess`, by `Ishaan Maheshwari`_.
+Handle non-UTF-8 output gracefully in ``mne.utils.run_subprocess``, by `Ishaan Maheshwari`_.
