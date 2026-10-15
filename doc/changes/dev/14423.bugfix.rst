@@ -1,0 +1,1 @@
+Fix MNE-Python readers for Neuralynx recordings with gaps, following changes in  `Neo 0.14.6 <https://github.com/NeuralEnsemble/python-neo/blob/0.14.6/doc/source/releases/0.14.6.rst>`_ by `Scott Huberty`_
