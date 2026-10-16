@@ -945,13 +945,15 @@ class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, stretch=0, *, row=None, col=None):
+    def _layout_add_widget(
+        self, layout, widget, stretch=0, *, row=None, col=None, row_span=1, col_span=1
+    ):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
             if isinstance(layout, QGridLayout):
-                layout.addWidget(widget, row, col)
+                layout.addWidget(widget, row, col, row_span, col_span)
             else:
                 layout.addWidget(widget, stretch)
 
@@ -1071,6 +1073,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         callback,
         *,
         compact=True,
+        tick_labels=None,
+        tick_positions=None,
         double=False,
         tooltip=None,
         layout=None,
@@ -1089,7 +1093,36 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.floatValueChanged.connect(callback)
         else:
             widget.valueChanged.connect(callback)
-        self._layout_add_widget(layout, widget, row=row, col=col)
+        if tick_labels is not None and len(tick_labels) > 0:
+            # If the user has not provided fixed positions, compute them ourselves
+            if tick_positions is None:
+                n_labels = len(tick_labels)
+                if n_labels == 1:
+                    # Special case: a single label is placed in the middle (0.5)
+                    tick_positions = [0.5]
+                else:
+                    # Normal case for 2+ labels: evenly spaced between 0 and 1
+                    tick_positions = [
+                        i / (n_labels - 1) for i, _ in enumerate(tick_labels)
+                    ]
+
+            n_columns = 100
+            grid = self._layout_create(orientation="grid")
+
+            # The slider spans the full width of the grid (n_columns)
+            self._layout_add_widget(
+                grid, widget, row=0, col=0, row_span=1, col_span=n_columns
+            )
+
+            # Each label's column is computed from its position across n_columns
+            for i, text in enumerate(tick_labels):
+                tick_col = int(round(tick_positions[i] * (n_columns - 1)))
+                self._dock_add_label(value=text, layout=grid, row=1, col=tick_col)
+
+            self._layout_add_widget(layout, grid, row=row, col=col)
+        else:
+            self._layout_add_widget(layout, widget, row=row, col=col)
+
         return _QtWidget(widget)
 
     def _dock_add_check_box(
@@ -1187,7 +1220,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._dock_collapsibles.append((content, not collapse))
 
         toggle = QToolButton()
-        toggle.setText(f"{'▾' if not collapse else '▸'}  {name}")
+        toggle.setText(f"{'â–¾' if not collapse else 'â–¸'}  {name}")
         toggle.setCheckable(True)
         toggle.setChecked(not collapse)
         toggle.setCursor(Qt.PointingHandCursor)
@@ -1203,7 +1236,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
         def _toggle_visibility(checked, content=content, toggle=toggle, name=name):
             content.setVisible(checked)
-            toggle.setText(f"{'▾' if checked else '▸'}  {name}")
+            toggle.setText(f"{'â–¾' if checked else 'â–¸'}  {name}")
 
         toggle.toggled.connect(_toggle_visibility)
 
