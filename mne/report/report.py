@@ -26,7 +26,7 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT, _picks_to_idx, pick_types
 from .._freesurfer import _mri_orientation, _reorient_image
 from ..cov import Covariance, read_cov
 from ..defaults import _handle_default
@@ -35,7 +35,7 @@ from ..event import read_events
 from ..evoked import Evoked, read_evokeds
 from ..forward import Forward, read_forward_solution
 from ..html_templates import _get_html_template
-from ..io import BaseRaw, read_raw
+from ..io import BaseRaw, RawArray, read_raw
 from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
@@ -2329,22 +2329,155 @@ class Report:
             )
 
     def _add_ica_sources(
-        self, *, ica, inst, picks, n_components, image_format, section, tags, replace
+        self,
+        *,
+        ica,
+        inst,
+        picks,
+        n_components,
+        source_segments,
+        source_duration,
+        image_format,
+        section,
+        tags,
+        replace,
     ):
-        with use_browser_backend("matplotlib"):
-            fig = ica.plot_sources(
-                inst=inst, picks=picks, n_components=n_components, show=False
+        import matplotlib.pyplot as plt
+
+        picks_idx = _picks_to_idx(ica.n_components_, picks, picks_on="components")
+        if len(picks_idx) == 0:
+            return
+        chunk_size = 20 if n_components is None else int(n_components)
+        chunks = [
+            picks_idx[i : i + chunk_size] for i in range(0, len(picks_idx), chunk_size)
+        ]
+        eog_chs = pick_types(inst.info, meg=False, eog=True, ref_meg=False)
+        ecg_chs = pick_types(inst.info, meg=False, ecg=True, ref_meg=False)
+        extra_picks = np.concatenate((eog_chs, ecg_chs)).astype(int)
+
+        is_raw = isinstance(inst, BaseRaw)
+        n_segments = 1 if source_segments is None else int(source_segments)
+        if (
+            is_raw
+            and n_segments > 1
+            and (inst.times[-1] - inst.times[0] > source_duration)
+        ):
+            times = np.linspace(inst.times[0], inst.times[-1], n_segments + 2)[1:-1]
+            t_starts = np.clip(
+                times - source_duration / 2.0,
+                inst.times[0],
+                inst.times[-1] - source_duration,
             )
-        self._add_figure(
-            fig=fig,
-            title="Sources",
-            caption=None,
-            image_format=image_format,
-            tags=tags,
-            section=section,
-            replace=replace,
-            own_figure=True,
-        )
+            t_stops = t_starts + source_duration
+            durations = t_stops - t_starts
+        elif is_raw:
+            t_starts = [inst.times[0]]
+            t_stops = [min(t_starts[0] + source_duration, inst.times[-1])]
+            durations = [t_stops[0] - t_starts[0]]
+
+        if is_raw:
+            raw_segs = []
+            for s, e in zip(t_starts, t_stops):
+                st, sp = inst.time_as_index((s, e))
+                raw_segs.append(
+                    RawArray(
+                        inst.get_data(start=st, stop=sp + 1),
+                        inst.info,
+                        first_samp=st,
+                        verbose=False,
+                    )
+                )
+            seg_sources = [ica.get_sources(seg) for seg in raw_segs[1:]]
+
+        orig_annotations = inst.annotations.copy() if is_raw else None
+        try:
+            if orig_annotations is not None:
+                inst.set_annotations(None)
+            with use_browser_backend("matplotlib"):
+                for chunk in chunks:
+                    title = (
+                        "Sources"
+                        if len(chunks) == 1
+                        else f"Sources (ICs {min(chunk)}–{max(chunk)})"
+                    )
+                    fig = ica.plot_sources(
+                        inst=raw_segs[0] if is_raw else inst,
+                        picks=chunk,
+                        stop=durations[0] if is_raw else None,
+                        n_components=len(chunk) + len(extra_picks),
+                        show_first_samp=is_raw,
+                        show_scrollbars=False,
+                        show=False,
+                    )
+                    try:
+                        if not is_raw or len(raw_segs) == 1:
+                            self._add_figure(
+                                fig=fig,
+                                title=title,
+                                caption=None,
+                                image_format=image_format,
+                                tags=tags,
+                                section=section,
+                                replace=replace,
+                                own_figure=True,
+                            )
+                        else:
+                            images = [
+                                self._fig_to_img(
+                                    fig=fig,
+                                    image_format=image_format,
+                                    own_figure=False,
+                                )
+                            ]
+                            for seg, src, duration in zip(
+                                raw_segs[1:], seg_sources, durations[1:]
+                            ):
+                                data_k = src.get_data(picks=chunk)
+                                if len(extra_picks):
+                                    data_k = np.concatenate(
+                                        [data_k, seg.get_data(picks=extra_picks)],
+                                        axis=0,
+                                    )
+                                fig.mne.inst = RawArray(
+                                    data_k,
+                                    fig.mne.info,
+                                    first_samp=seg.first_samp,
+                                    verbose=False,
+                                )
+                                fig.mne.first_time = seg._first_time
+                                fig.mne.t_start = seg._first_time
+                                fig.mne.duration = duration
+                                fig._redraw(annotations=False)
+                                images.append(
+                                    self._fig_to_img(
+                                        fig=fig,
+                                        image_format=image_format,
+                                        own_figure=False,
+                                    )
+                                )
+                            captions = [
+                                (
+                                    f"Segment {i + 1} of {len(images)} "
+                                    f"({t_starts[i]:.1f} – {t_stops[i]:.1f} s)"
+                                )
+                                for i in range(len(images))
+                            ]
+                            self._add_slider(
+                                figs=None,
+                                imgs=images,
+                                title=title,
+                                captions=captions,
+                                start_idx=0,
+                                image_format=image_format,
+                                tags=tags,
+                                section=section,
+                                replace=replace,
+                            )
+                    finally:
+                        plt.close(fig)
+        finally:
+            if orig_annotations is not None:
+                inst.set_annotations(orig_annotations)
 
     def _add_ica(
         self,
@@ -2364,7 +2497,21 @@ class Report:
         n_jobs,
         replace,
         plot_sources=False,
+        source_segments=None,
+        source_duration=20.0,
     ):
+        _validate_type(source_segments, ("int-like", None), "source_segments")
+        if source_segments is not None and source_segments < 1:
+            raise ValueError(
+                f"source_segments must be at least 1, got {source_segments}"
+            )
+        _validate_type(source_duration, "numeric", "source_duration")
+        if source_duration <= 0:
+            raise ValueError(f"source_duration must be positive, got {source_duration}")
+        _validate_type(n_components, "int-like", "n_components")
+        if n_components < 1:
+            raise ValueError(f"n_components must be at least 1, got {n_components}")
+
         if _path_like(ica):
             ica = read_ica(ica)
 
@@ -2509,6 +2656,8 @@ class Report:
                 inst=inst,
                 picks=picks,
                 n_components=n_components,
+                source_segments=source_segments,
+                source_duration=source_duration,
                 image_format=image_format,
                 section=section,
                 tags=tags,
@@ -2532,6 +2681,8 @@ class Report:
         tags=("ica",),
         replace=False,
         plot_sources=False,
+        source_segments=None,
+        source_duration=20.0,
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
 
@@ -2554,7 +2705,9 @@ class Report:
             This only affects the behavior of the component
             topography and properties plots.
         n_components : int
-            Maximum number of ICA components to plot. Defaults to 20.
+            Maximum number of ICA components to display per figure or slider.
+            If the number of components exceeds this value, they will be
+            paginated across multiple figures/sliders. Defaults to 20.
 
             .. versionadded:: 1.13
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
@@ -2585,6 +2738,18 @@ class Report:
             to be provided. Defaults to ``False``.
 
             .. versionadded:: 1.12
+        source_segments : int | None
+            Number of temporal segments to sample evenly across the recording
+            timeline. If ``None`` or ``1``, a single segment is plotted. If
+            greater than 1 and ``inst`` is an instance of :class:`~mne.io.Raw`,
+            multiple segments are captured and rendered as an interactive
+            slider. Defaults to ``None``.
+
+            .. versionadded:: 1.14
+        source_duration : float
+            Duration of each temporal segment in seconds. Defaults to ``20.0``.
+
+            .. versionadded:: 1.14
 
         Notes
         -----
@@ -2607,6 +2772,8 @@ class Report:
             n_jobs=n_jobs,
             replace=replace,
             plot_sources=plot_sources,
+            source_segments=source_segments,
+            source_duration=source_duration,
         )
 
     def remove(self, *, title=None, tags=None, remove_all=False):
