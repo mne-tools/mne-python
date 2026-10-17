@@ -1345,7 +1345,9 @@ class _IpyPlayback(_AbstractPlayback):
 
 class _IpyMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        ipympl = _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        import ipympl.backend_nbagg
+
         self.canvas = ipympl.backend_nbagg.Canvas(self.fig)
         self.manager = ipympl.backend_nbagg.FigureManager(self.canvas, 0)
 
