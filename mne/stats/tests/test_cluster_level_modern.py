@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
 from unittest import mock
 
 import numpy as np
@@ -20,7 +21,7 @@ from mne.stats import (
     permutation_cluster_test,
     ttest_1samp_no_p,
 )
-from mne.stats.cluster_level import ClusterResult
+from mne.stats.cluster_level import ClusterResult, _rm_anova_stat_fun
 from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
 from mne.utils import GetEpochsMixin
 
@@ -426,45 +427,32 @@ def test_cluster_test_adjacency():
         cluster_test(df_no_montage, "data ~ condition", **kwargs)
 
 
-def _info():
-    return create_info(["Fz", "Cz", "Pz", "Oz"], 1000.0, "eeg").set_montage(
-        "fsaverage_1020"
-    )
-
-
-def _result(stat_fun, **kwargs):
-    return ClusterResult(
-        stat_obs=np.random.default_rng(0).standard_normal((4, 10)),
+@pytest.mark.parametrize(
+    ("stat_fun", "unit"),
+    [
+        (ttest_1samp_no_p, "t"),
+        (f_oneway, "F"),
+        pytest.param(
+            partial(_rm_anova_stat_fun, factor_levels=[2, 2], effects="A:B"),
+            "F",
+            id="rm_anova-F",
+        ),
+    ],
+)
+def test_cluster_result_plot_joint_units(stat_fun, unit):
+    """Test plot_joint labels the statistic and does not rescale it to µV."""
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
+    result = ClusterResult(
+        stat_obs=np.zeros((4, 10)),  # required keywords
         clusters=[],
         cluster_p_values=np.array([]),
         H0=np.array([]),
         stat_fun=stat_fun,
         n_permutations=1,
-        **kwargs,
     )
-
-
-@pytest.mark.parametrize(
-    ("stat_fun", "unit"),
-    [(ttest_1samp_no_p, "t"), (f_oneway, "F")],  # TODO: how many tests do we support?
-)
-def test_plot_joint_unit_matches_stat_fun(stat_fun, unit):
-    """Units passed to MNE match the statistic, not V or µV."""
-    TIMES = np.linspace(0, 0.09, 10)
-    PLOT = "mne.viz.evoked.plot_evoked_joint"
-    with mock.patch(PLOT) as plot:
-        _result(stat_fun).plot_joint(_info(), TIMES, times=[0.02], show=False)
+    # mock a figure
+    with mock.patch("mne.viz.evoked.plot_evoked_joint") as plot:
+        result.plot_joint(info, np.arange(10), times=[2.0])
     for key in ("ts_args", "topomap_args"):
         assert plot.call_args.kwargs[key]["units"]["eeg"] == unit
-
-
-@pytest.mark.parametrize("stat_fun", [ttest_1samp_no_p, f_oneway, lambda x: x])
-def test_plot_joint_disables_scaling(stat_fun):
-    """Test statistics must not be scaled from V to µV."""
-    TIMES = np.linspace(0, 0.09, 10)
-    PLOT = "mne.viz.evoked.plot_evoked_joint"
-    with mock.patch(PLOT) as plot:
-        _result(stat_fun).plot_joint(_info(), TIMES, times=[0.02], show=False)
-    for key in ("ts_args", "topomap_args"):
-        scalings = plot.call_args.kwargs[key]["scalings"]
-        assert scalings and all(v == 1.0 for v in scalings.values())
+        assert plot.call_args.kwargs[key]["scalings"] == dict(eeg=1.0)
