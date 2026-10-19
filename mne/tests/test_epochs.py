@@ -311,6 +311,9 @@ def test_get_data_copy():
     assert np.all(
         data.shape[-1] == epochs._data.shape[-1] - np.nonzero(epochs.times == 0)[0]
     )
+    t_idx = np.nonzero(epochs.times >= 0)[0][0]
+    data_sub = epochs.get_data(picks=[0, 2], item=[1, 2], tmin=0)
+    assert_allclose(data_sub, epochs._data[1:3, [0, 2], t_idx:])
 
     assert epochs.get_data(tmin=0, tmax=0).size == 0
 
@@ -328,6 +331,8 @@ def test_get_data_copy():
     assert np.shares_memory(data, epochs._data)
     assert data is epochs._data
     data_orig = data.copy()
+    data_view = epochs.get_data(tmin=0, copy=False)
+    assert np.shares_memory(data_view, epochs._data)
     # picks, item, and units must be None
     data = epochs.get_data(copy=False, picks=[1])
     assert not np.shares_memory(data, epochs._data)
@@ -337,6 +342,16 @@ def test_get_data_copy():
     assert not np.shares_memory(data, epochs._data)
     # Make sure we didn't mess up our values
     assert_allclose(data_orig, epochs._data)
+
+    # Test indexing combinations (arrays, slices)
+    item_arr = np.array([0, 2])
+    picks_arr = np.array([1, 3])
+    data_comb = epochs.get_data(item=item_arr, picks=picks_arr)
+    assert_array_equal(data_comb, epochs._data[item_arr[:, None], picks_arr])
+    data_slice_item = epochs.get_data(item=slice(0, 2), picks=picks_arr)
+    assert_array_equal(data_slice_item, epochs._data[0:2, picks_arr])
+    data_slice_picks = epochs.get_data(item=item_arr, picks=slice(1, 3))
+    assert_array_equal(data_slice_picks, epochs._data[item_arr, 1:3])
 
 
 def test_hierarchical():
@@ -1116,12 +1131,24 @@ def test_rescale():
     s = np.std(x[:3])
     assert_allclose(tester(mode="zlogratio"), x / s)
 
+    # Test rescale with picks subset
+    data_multi = np.array([[2, 3, 4, 5], [10, 10, 10, 10]], float)
+    res_picks = rescale(data_multi, times, baseline, mode="mean", picks=[0], copy=True)
+    assert_allclose(res_picks[0], [-1, 0, 1, 2])
+    assert_allclose(res_picks[1], [10, 10, 10, 10])  # Non-picked channel unchanged
+
+    res_zscore = rescale(
+        data_multi, times, baseline, mode="zscore", picks=[0], copy=True
+    )
+    assert_allclose(res_zscore[0], [-1, 0, 1, 2] / np.std([2, 3, 4]))
+    assert_allclose(res_zscore[1], [10, 10, 10, 10])
+
 
 @pytest.mark.parametrize("preload", (True, False))
 def test_epochs_baseline_basic(preload, tmp_path):
     """Test baseline and rescaling modes with and without preloading."""
-    data = np.array([[2, 3], [2, 3]], float)
-    info = create_info(2, 1000.0, ("eeg", "misc"))
+    data = np.array([[2, 3], [2, 3], [2, 3], [2, 3]], float)
+    info = create_info(4, 1000.0, ("eeg", "misc", "pupil", "eyegaze"))
     raw = RawArray(data, info)
     events = np.array([[0, 0, 1]])
 
@@ -1129,12 +1156,12 @@ def test_epochs_baseline_basic(preload, tmp_path):
     epochs.drop_bad()
     epochs_nobl = epochs.copy()
     epochs_data = epochs.get_data(copy=False)
-    assert epochs_data.shape == (1, 2, 2)
+    assert epochs_data.shape == (1, 4, 2)
     expected = data.copy()
     assert_array_equal(epochs_data[0], expected)
     # the baseline period (1 sample here)
     epochs.apply_baseline((0, 0))
-    expected[0] = [0, 1]
+    expected[[0, 2]] = [0, 1]  # eeg and pupil corrected; misc and eyegaze are not
     if preload:
         assert_allclose(epochs_data[0][0], expected[0])
     else:
@@ -1142,8 +1169,17 @@ def test_epochs_baseline_basic(preload, tmp_path):
     assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
     # entire interval
     epochs.apply_baseline((None, None))
-    expected[0] = [-0.5, 0.5]
+    expected[[0, 2]] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
+
+    # gh-13898: test that pupil channels (not eyegaze) are
+    # baseline-corrected upon epoching
+    epochs_init_bl = mne.Epochs(
+        raw, events, None, 0, 1e-3, baseline=(0, 0), preload=preload
+    )
+    expected_bl = data.copy()
+    expected_bl[[0, 2]] = [0, 1]
+    assert_allclose(epochs_init_bl.get_data()[0], expected_bl)
 
     # Preloading applies baseline correction.
     if preload:
@@ -1528,6 +1564,10 @@ def test_epochs_io_preload(tmp_path, preload):
         epochs.save(epochs_badname, overwrite=True)
     with pytest.warns(RuntimeWarning, match="-epo.fif"):
         read_epochs(epochs_badname, preload=preload)
+    # BIDS names an epoched recording like a continuous one
+    epochs_bids_name = tmp_path / "sub-01_task-test_meg.fif"
+    epochs.save(epochs_bids_name, overwrite=True)
+    read_epochs(epochs_bids_name, preload=preload)
 
     # test loading epochs with missing events
     epochs = Epochs(
@@ -5347,3 +5387,41 @@ def test_epochs_warn_out_of_bounds_events():
     mne.Epochs(raw, oob, tmin=-0.2, tmax=0.5, baseline=None, on_outside="ignore")
     # an in-range event whose epoch window merely clips the edge must NOT warn
     mne.Epochs(raw, np.array([[990, 0, 1]]), tmin=0, tmax=0.5, baseline=None)
+
+
+def test_drop_all_epochs():
+    """Test on_drop_all parameter in Epochs.drop."""
+    data = np.random.default_rng(0).standard_normal((2, 1, 10))
+    info = create_info(["ch1"], 1000.0, "eeg")
+    epochs = EpochsArray(data, info)
+
+    # 1. Dropping a subset should not warn even with default on_drop_all="warn"
+    epochs.copy().drop([0])
+
+    # 2. Dropping all epochs with default on_drop_all ("warn")
+    with pytest.warns(RuntimeWarning, match="All epochs dropped"):
+        epochs.copy().drop([0, 1])
+
+    # 3. Test 'warn' explicitly
+    with pytest.warns(RuntimeWarning, match="All epochs dropped"):
+        epochs.copy().drop([0, 1], on_drop_all="warn")
+
+    # 4. Test 'raise'
+    with pytest.raises(ValueError, match="All epochs dropped"):
+        epochs.copy().drop([0, 1], on_drop_all="raise")
+
+    # 5. Test 'ignore' explicitly
+    epochs.copy().drop([0, 1], on_drop_all="ignore")
+
+    # 6. Test invalid option raises ValueError
+    with pytest.raises(
+        ValueError, match="Invalid value for the 'on_drop_all' parameter"
+    ):
+        epochs.copy().drop([0], on_drop_all="invalid")
+
+    # 7. Test dropping with boolean mask
+    with pytest.warns(RuntimeWarning, match="All epochs dropped"):
+        epochs.copy().drop([True, True])
+
+    # 8. Test internal equalization does not warn when all epochs dropped
+    epochs.copy().drop([0, 1], reason="EQUALIZED_COUNT")

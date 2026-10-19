@@ -7,6 +7,7 @@ import json
 import warnings
 from collections import namedtuple
 from collections.abc import Sequence
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, is_dataclass
 from inspect import Parameter, isfunction, signature
@@ -199,6 +200,29 @@ def _rng_to_seed(rng):
     return rng
 
 
+@contextmanager
+def _catch_convergence(warning_class):
+    """Detect a non-convergence warning without swallowing it.
+
+    Several ICA backends report non-convergence only by warning -- sklearn's
+    ``FastICA`` and ``jamica`` both do -- so the warning is the only signal
+    available. It is captured to set ``converged_`` and then re-emitted, since
+    silencing a warning users currently rely on would be a regression.
+
+    Yields a one-element list; after the block, ``result[0]`` is ``True`` if no
+    such warning was raised. It is a list rather than a bool because the value
+    is only known once the block has finished -- read ``result[0]``, not the
+    list itself, which is always truthy.
+    """
+    result = [True]
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        yield result
+    result[0] = not any(issubclass(w.category, warning_class) for w in caught)
+    for w in caught:  # re-emit everything, including unrelated warnings
+        warnings.warn_explicit(w.message, w.category, w.filename, w.lineno)
+
+
 @fill_doc_static("rng", "random_state_rng", "verbose", "info")
 class ICA(ContainsMixin):
     """Data decomposition using Independent Component Analysis (ICA).
@@ -341,6 +365,17 @@ class ICA(ContainsMixin):
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
+    converged_ : bool
+        Whether the ICA decomposition converged, i.e. whether fitting stopped
+        because the algorithm's own tolerance was met rather than because
+        ``max_iter`` was reached.
+
+        .. note:: A decomposition that stopped at ``max_iter`` still yields
+                  components, and those components are still used to choose
+                  ``exclude``. Whether it converged is therefore worth checking
+                  before trusting the result.
+
+        .. versionadded:: 1.13
     n_iter_ : int
         If fit, the number of iterations required to complete ICA.
 
@@ -822,6 +857,7 @@ class ICA(ContainsMixin):
             "pca_explained_variance_",
             "pca_mean_",
             "n_iter_",
+            "converged_",
             "drop_inds_",
             "reject_",
         ):
@@ -1020,23 +1056,30 @@ class ICA(ContainsMixin):
         sel = slice(0, self.n_components_)
         if self.method == "fastica":
             from sklearn.decomposition import FastICA
+            from sklearn.exceptions import ConvergenceWarning
 
             ica = FastICA(
                 whiten=False, random_state=_rng_to_seed(rng), **self.fit_params
             )
-            ica.fit(data[:, sel])
+            # sklearn signals non-convergence with a ConvergenceWarning and
+            # exposes no attribute, so the warning is what has to be caught.
+            with _catch_convergence(ConvergenceWarning) as converged:
+                ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
+            self.converged_ = converged[0]
         elif self.method in ("infomax", "extended-infomax"):
-            unmixing_matrix, n_iter = infomax(
+            unmixing_matrix, n_iter, converged = infomax(
                 data[:, sel],
                 rng=_check_rng(rng),
                 return_n_iter=True,
+                return_converged=True,
                 **self.fit_params,
             )
             self.unmixing_matrix_ = unmixing_matrix
             self.n_iter_ = n_iter
-            del unmixing_matrix, n_iter
+            self.converged_ = converged
+            del unmixing_matrix, n_iter, converged
         elif self.method == "picard":
             from picard import picard
 
@@ -1049,21 +1092,26 @@ class ICA(ContainsMixin):
             )
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            # picard() stops at max_iter without raising; it reports no flag.
+            self.converged_ = self.n_iter_ < self.fit_params["max_iter"]
             del _, n_iter
         elif self.method == "jamica":
             jamica = _soft_import(
                 "jamica", "fitting ICA with method='jamica'", min_version="0.3.0"
             )
 
-            _, W, _, n_iter = jamica.amica(
-                data[:, sel].T,
-                whiten=False,
-                return_n_iter=True,
-                random_state=_rng_to_seed(rng),
-                **self.fit_params,
-            )
+            # Like sklearn, jamica reports non-convergence only by warning.
+            with _catch_convergence(jamica.JamicaConvergenceWarning) as converged:
+                _, W, _, n_iter = jamica.amica(
+                    data[:, sel].T,
+                    whiten=False,
+                    return_n_iter=True,
+                    random_state=_rng_to_seed(rng),
+                    **self.fit_params,
+                )
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter
+            self.converged_ = converged[0]
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         norms = self.pca_explained_variance_
@@ -2463,10 +2511,11 @@ class ICA(ContainsMixin):
             raw.info, meg=False, include=self.ch_names, exclude=[], ref_meg=False
         )
 
-        data = raw[picks, start:stop][0]
-        data = self._pick_sources(data, include, exclude, n_pca_components)
-
-        raw[picks, start:stop] = data
+        A, b = self._pick_sources(include, exclude, n_pca_components)
+        step = 10000  # samples per chunk, keeps temporaries small
+        for chunk_start in range(start, stop, step):
+            sl = slice(chunk_start, min(chunk_start + step, stop))
+            _apply_affine(raw._data[:, sl], picks, A, b)
         return raw
 
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
@@ -2485,11 +2534,9 @@ class ICA(ContainsMixin):
                 "provide Epochs compatible with 'ica.ch_names'."
             )
 
-        data = np.hstack(epochs.get_data(picks))
-        data = self._pick_sources(data, include, exclude, n_pca_components)
-
-        # restore epochs, channels, tsl order
-        epochs._data[:, picks] = np.array(np.split(data, len(epochs.events), 1))
+        A, b = self._pick_sources(include, exclude, n_pca_components)
+        for epoch_data in epochs._data:
+            _apply_affine(epoch_data, picks, A, b)
         epochs.preload = True
 
         return epochs
@@ -2508,22 +2555,18 @@ class ICA(ContainsMixin):
                 "provide an Evoked object that's compatible with ica.ch_names."
             )
 
-        data = evoked.data[picks]
-        data = self._pick_sources(data, include, exclude, n_pca_components)
-
-        # restore evoked
-        evoked.data[picks] = data
-
+        A, b = self._pick_sources(include, exclude, n_pca_components)
+        _apply_affine(evoked.data, picks, A, b)
         return evoked
 
-    def _pick_sources(self, data, include, exclude, n_pca_components):
-        """Aux function."""
+    def _pick_sources(self, include, exclude, n_pca_components):
+        """Get A, b such that the cleaned data are ``A @ data + b[:, None]``."""
         if n_pca_components is None:
             n_pca_components = self.n_pca_components
-        data = self._pre_whiten(data)
+        n_ch = self.pca_components_.shape[1]
+        A = self._pre_whiten(np.eye(n_ch))
         exclude = self._check_exclude(exclude)
         _n_pca_comp = self._check_n_pca_components(n_pca_components)
-        n_ch, _ = data.shape
 
         max_pca_components = self.pca_components_.shape[0]
         if not self.n_components_ <= _n_pca_comp <= max_pca_components:
@@ -2538,10 +2581,6 @@ class ICA(ContainsMixin):
             f"    Transforming to ICA space ({self.n_components_} "
             f"component{_pl(self.n_components_)})"
         )
-
-        # Apply first PCA
-        if self.pca_mean_ is not None:
-            data -= self.pca_mean_[:, None]
 
         sel_keep = np.arange(self.n_components_)
         if include not in (None, []):
@@ -2579,19 +2618,20 @@ class ICA(ContainsMixin):
             (sel_keep, np.arange(self.n_components_, _n_pca_comp))
         )
         proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
-        data = np.dot(proj_mat, data)
         assert proj_mat.shape == (n_ch,) * 2
 
-        if self.pca_mean_ is not None:
-            data += self.pca_mean_[:, None]
-
-        # restore scaling
+        # unwhiten(proj_mat @ (whiten(x) - mean) + mean)
+        mean = np.zeros(n_ch) if self.pca_mean_ is None else self.pca_mean_
+        A = proj_mat @ A
+        b = mean - proj_mat @ mean
         if self.noise_cov is None:  # revert standardization
-            data *= self.pre_whitener_
+            A *= self.pre_whitener_
+            b *= self.pre_whitener_[:, 0]
         else:
-            data = np.linalg.pinv(self.pre_whitener_, rcond=1e-14) @ data
-
-        return data
+            unwhitener = np.linalg.pinv(self.pre_whitener_, rcond=1e-14)
+            A = unwhitener @ A
+            b = unwhitener @ b
+        return A, b
 
     @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
@@ -3447,6 +3487,12 @@ def _exp_var_ncomp(var, n):
     return n, cvar[n - 1]
 
 
+def _apply_affine(data, picks, A, b):
+    x = A @ data[picks]
+    x += b[:, None]
+    data[picks] = x
+
+
 def _check_start_stop(raw, start, stop):
     """Aux function."""
     out = list()
@@ -3745,6 +3791,7 @@ def _write_ica(fid, ica):
         "labels_": getattr(ica, "labels_", None),
         "method": getattr(ica, "method", None),
         "n_iter_": getattr(ica, "n_iter_", None),
+        "converged_": getattr(ica, "converged_", None),
         "fit_params": getattr(ica, "fit_params", None),
     }
 
@@ -3909,6 +3956,11 @@ def read_ica(fname, verbose=None):
         ica.method = ica_misc["method"]
     if "n_iter_" in ica_misc:
         ica.n_iter_ = ica_misc["n_iter_"]
+    if "converged_" in ica_misc:
+        converged = ica_misc["converged_"]
+        # _serialize round-trips the bool as an int; restore the type so that
+        # `ica.converged_ is False` behaves the same before and after saving.
+        ica.converged_ = None if converged is None else bool(converged)
     if "fit_params" in ica_misc:
         ica.fit_params = ica_misc["fit_params"]
     ica.reject_ = ica_reject

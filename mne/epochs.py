@@ -82,6 +82,7 @@ from .utils import (
     _check_combine,
     _check_event_id,
     _check_fname,
+    _check_on_missing,
     _check_option,
     _check_pandas_index_arguments,
     _check_pandas_installed,
@@ -130,6 +131,10 @@ if TYPE_CHECKING:
     # The optional ``mne_qt_browser`` window subclasses the first-party
     # ``BrowserBase``, so alias it to annotate ``.plot()`` returns without the dep.
     from .viz._figure import BrowserBase as MNEQtBrowser
+
+# BIDS names an epoched recording like a continuous one (e.g., ``*_meg.fif``)
+_FNAME_ENDINGS = ("-epo.fif", "_epo.fif", "_meg.fif", "_eeg.fif", "_ieeg.fif")
+_FNAME_ENDINGS += tuple(f"{e}.gz" for e in _FNAME_ENDINGS)
 
 
 def _pack_reject_params(epochs):
@@ -2412,6 +2417,7 @@ class BaseEpochs(
         self,
         indices: np.ndarray | list,
         reason: list | tuple | str = "USER",
+        on_drop_all: Literal["raise", "warn", "ignore"] = "warn",
         verbose: bool | str | int | None = None,
     ) -> Self:
         """Drop epochs based on indices or boolean mask.
@@ -2435,6 +2441,12 @@ class BaseEpochs(
             Reason(s) for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Reason(s) are applied to all indices specified.
             Default: 'USER'.
+        on_drop_all : 'warn' | 'raise' | 'ignore'
+            Behavior when all epochs are dropped.
+            Can be ``'warn'`` (default) to emit a warning, ``'raise'`` to raise
+            an error, or ``'ignore'`` to do nothing.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -2460,6 +2472,7 @@ class BaseEpochs(
             drop_idx = np.where(epochs.selection == plot_idx)[0]
             epochs.drop(drop_idx)
         """
+        _check_on_missing(on_drop_all, "on_drop_all")
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
@@ -2484,6 +2497,9 @@ class BaseEpochs(
             _pl(count),
             ", ".join(map(str, np.sort(try_idx))),
         )
+
+        if len(self.events) == 0 and reason != "EQUALIZED_COUNT":
+            _on_missing(on_drop_all, "All epochs dropped.", name="on_drop_all")
 
         return self
 
@@ -2615,8 +2631,9 @@ class BaseEpochs(
                 "dropped. Consider using epochs.drop_bad()."
             )
         select = self._item_to_select(item)  # indices or slice
-        use_idx = np.arange(len(self.events))[select]
-        n_events = len(use_idx)
+        if not self.preload or not self._bad_dropped:
+            use_idx = np.arange(len(self.events))[select]
+            n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -2783,12 +2800,15 @@ class BaseEpochs(
             data_is_self_data = False  # copy (fancy indexing)
         else:
             picks = slice(None)
-        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
-            data = data[select][:, picks]
-        del picks
         if start != 0 or stop != self.times.size:
             logger.debug("  Slicing time")
             data = data[..., start:stop]  # view (slice)
+        if not all(isinstance(x, slice) and x == slice(None) for x in (select, picks)):
+            if isinstance(select, np.ndarray) and isinstance(picks, np.ndarray):
+                data = data[select[:, None], picks]
+            else:
+                data = data[select, picks]
+        del picks
         if ch_factors is not None:
             if data_is_self_data:
                 logger.debug("  Copying, scale factors applied")
@@ -3300,9 +3320,7 @@ class BaseEpochs(
         -----
         Bad epochs will be dropped before saving the epochs to disk.
         """
-        check_fname(
-            fname, "epochs", ("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz")
-        )
+        check_fname(fname, "epochs", _FNAME_ENDINGS)
 
         # check for file existence and expand `~` if present
         fname = str(
@@ -6144,7 +6162,7 @@ class EpochsFIF(BaseEpochs):
             check_fname(
                 fname=fname,
                 filetype="epochs",
-                endings=("-epo.fif", "-epo.fif.gz", "_epo.fif", "_epo.fif.gz"),
+                endings=_FNAME_ENDINGS,
             )
             fname = _check_fname(fname=fname, must_exist=True, overwrite="read")
         elif not preload:

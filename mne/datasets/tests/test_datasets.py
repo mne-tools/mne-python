@@ -289,6 +289,14 @@ def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     assert (destination).is_dir()
     for fname in _zip_fnames:
         assert (destination / fname).is_file()
+    if n_have == 0:
+        manifest_path.write_text("foo/foo.txt\nmissing.txt\n")
+        msg = (
+            "Zip file did not have correct names:\n"
+            "foo/bar.txt\nfoo/baz.txt\nmissing.txt"
+        )
+        with pytest.raises(RuntimeError, match=msg):
+            _manifest_check_download(manifest_path, destination / "sub", url, hash_)
 
 
 def _fake_mcd(manifest_path, destination, url, hash_, name=None, fake_files=False):

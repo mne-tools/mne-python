@@ -2,13 +2,12 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import warnings
 from functools import partial
 
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_option, _ensure_int, logger, verbose_static, warn
+from ..utils import _check_option, _ensure_int, _pl, logger, verbose_static, warn
 from ..utils.numerics import _mask_to_onsets_offsets
 
 
@@ -276,14 +275,35 @@ def psd_array_welch(
         good_mask = ~nan_mask_full
         t_onsets, t_offsets = _mask_to_onsets_offsets(good_mask[0])
         x_splits = [x[..., t_ons:t_off] for t_ons, t_off in zip(t_onsets, t_offsets)]
-        # weights reflect the number of samples used from each span. For spans longer
-        # than `n_per_seg`, trailing samples may be discarded. For spans shorter than
-        # `n_per_seg`, the wrapped function (`scipy.signal.spectrogram`) automatically
-        # reduces `n_per_seg` to match the span length (with a warning).
+        # Weights reflect the number of samples used from each span (trailing
+        # samples that do not fill a whole window are discarded).
         step = n_per_seg - n_overlap
         span_lengths = [span.shape[-1] for span in x_splits]
         weights = [
             w if w < n_per_seg else w - ((w - n_overlap) % step) for w in span_lengths
+        ]
+        # A span shorter than n_per_seg is analyzed with a window shrunk to its
+        # length and n_overlap clamped below it (SciPy shrinks nperseg but not
+        # noverlap, then raises; gh-13039). n_fft is unchanged, and SciPy zero-pads
+        # each segment to n_fft, so every span lands on the same frequency grid;
+        # short spans just get coarser resolution. A fixed-length window array
+        # cannot be shrunk, so that combination raises a clear error instead.
+        n_short = sum(w < n_per_seg for w in span_lengths)
+        if n_short and not isinstance(window, (str, tuple)):
+            raise ValueError(
+                f"{n_short} good data span{_pl(n_short)} shorter than n_per_seg "
+                f"({n_per_seg}) cannot be analyzed with a fixed-length window array; "
+                "pass a window name or tuple, or reduce n_per_seg."
+            )
+        if n_short:
+            warn(
+                f"{n_short} good data span{_pl(n_short)} shorter than n_per_seg "
+                f"({n_per_seg}) analyzed with a reduced window (lower spectral "
+                "resolution); reduce n_per_seg to silence this warning."
+            )
+        funcs = [
+            partial(_func, nperseg=min(w, n_per_seg), noverlap=min(n_overlap, w - 1))
+            for w in span_lengths
         ]
         agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
@@ -291,22 +311,6 @@ def psd_array_welch(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
                 '"bad_*" annotations. Parallelization may be sub-optimal.'
             )
-        if (np.array(span_lengths) < n_per_seg).any():
-            logger.info(
-                "At least one good data span is shorter than n_per_seg, and will be "
-                "analyzed with a shorter window than the rest of the file."
-            )
-
-        def func(*args, **kwargs):
-            # swallow SciPy warnings caused by short good data spans
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action="ignore",
-                    module="scipy",
-                    category=UserWarning,
-                    message=r"nperseg = \d+ is greater than input length",
-                )
-                return _func(*args, **kwargs)
 
     else:
         # Either no NaNs, or NaNs are not aligned across channels.
@@ -317,10 +321,10 @@ def psd_array_welch(
             )
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
         agg_func = np.concatenate
-        func = _func
+        funcs = [_func] * len(x_splits)
     f_spect = parallel(
-        my_spect_func(d, func=func, freq_sl=freq_sl, average=average, output=output)
-        for d in x_splits
+        my_spect_func(d, func=fn, freq_sl=freq_sl, average=average, output=output)
+        for d, fn in zip(x_splits, funcs)
     )
     psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)

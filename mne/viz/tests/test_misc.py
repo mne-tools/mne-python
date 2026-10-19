@@ -12,6 +12,7 @@ from numpy.testing import assert_array_equal
 from mne import (
     SourceEstimate,
     create_info,
+    make_ad_hoc_cov,
     pick_events,
     read_cov,
     read_dipole,
@@ -141,6 +142,15 @@ def test_plot_cov():
     raw.set_channel_types({ch: "misc" for ch in raw.ch_names}, on_unit_change="ignore")
     with pytest.raises(RuntimeError, match="No plottable channel types found"):
         cov.plot(raw.info, exclude=raw.ch_names[6:])
+
+
+def test_plot_cov_diagonal():
+    """Test plotting of diagonal covariances (e.g., from make_ad_hoc_cov)."""
+    n_channels = 10
+    sfreq = 100
+    info = create_info(n_channels, sfreq, ch_types="eeg")
+    cov = make_ad_hoc_cov(info, std={"eeg": 1})
+    cov.plot(info)
 
 
 @testing.requires_testing_data

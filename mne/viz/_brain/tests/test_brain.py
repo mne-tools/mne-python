@@ -12,6 +12,7 @@ from shutil import copyfile
 import numpy as np
 import pytest
 from matplotlib import image
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -714,6 +715,8 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     # because the surface can be switched back and forth live
     assert not brain.widgets["orientation"].is_enabled()
     assert not brain.widgets["silhouette"].is_enabled()
+    keys = brain.plotter.iren._key_press_event_callbacks
+    assert "Left" not in keys  # a flat map cannot be rotated
     with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
         brain.set_silhouette_line_width(3.0)
 
@@ -736,6 +739,7 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     assert brain.interaction == "trackball"
     assert brain.widgets["orientation"].is_enabled()
     assert brain.widgets["silhouette"].is_enabled()
+    assert "Left" in keys
     brain.show_view("medial")  # no longer ignored
 
     brain.close()
@@ -1218,6 +1222,12 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.show_view("medial")
     brain.set_data_smoothing(1)
     _assert_brain_range(brain, [0.1, 0.3])
+    # the dock follows limits that get bumped to keep fmin <= fmid <= fmax
+    brain.update_lut(fmin=0.25)
+    for key, val in dict(fmin=0.25, fmid=0.25, fmax=0.3).items():
+        val *= brain._data["fscale"]
+        assert brain.widgets[key].get_value() == pytest.approx(val)
+        assert brain.widgets[f"entry_{key}"].get_value() == pytest.approx(val)
     from mne.utils import use_log_level
 
     with use_log_level("debug"):
@@ -1310,6 +1320,7 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
         remove_existing=False,
     )
     assert brain.widgets["data_key"].is_visible()
+    assert brain.widgets["data_key"].get_value() == "overlay2"
     assert brain._active_data_key == "overlay2"
 
     # switching the dropdown updates the active key and refreshes sliders
@@ -1420,7 +1431,13 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
     else:  # volume
         assert "annotation" not in brain.widgets
         assert "extract_mode" not in brain.widgets
+    # closing a linked figure must not tear down this one's time viewer
+    fig = Figure()
+    ui_events.link(fig, brain)
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert brain.widgets and brain.mpl_canvas is not None
     brain.close()
+    assert brain.widgets is None and brain.mpl_canvas is None
 
 
 @testing.requires_testing_data
@@ -1993,6 +2010,14 @@ def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtb
     assert brain._trace_display_subtitle(line) == (
         f"{n_vertices} vertices, mode: {brain.label_extract_mode}"
     )
+    # only picking plots a trace: adding a label directly keeps its own color
+    n_lines = len(brain.mpl_canvas.axes.get_lines())
+    other = brain._annotation_labels["lh"][label_id - 1]
+    brain.add_label(other, color="red")
+    assert len(brain.mpl_canvas.axes.get_lines()) == n_lines
+    overlay = brain.layered_meshes["lh"]._overlays[other.name]
+    assert_array_equal(overlay._colormap[1], [255, 0, 0, 255])
+    brain.layered_meshes["lh"].remove_overlay(other.name)
 
     # clicking the same label again removes it
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)

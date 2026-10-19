@@ -15,16 +15,6 @@ from ._numba import bincount, has_numba, jit, prange
 
 
 @jit()
-def _jit_cross(out, x, y):
-    out[..., 0] = x[..., 1] * y[..., 2]
-    out[..., 0] -= x[..., 2] * y[..., 1]
-    out[..., 1] = x[..., 2] * y[..., 0]
-    out[..., 1] -= x[..., 0] * y[..., 2]
-    out[..., 2] = x[..., 0] * y[..., 1]
-    out[..., 2] -= x[..., 1] * y[..., 0]
-
-
-@jit()
 def _fast_cross_nd_sum(a, b, c):
     """Fast cross and sum."""
     return (
@@ -32,6 +22,11 @@ def _fast_cross_nd_sum(a, b, c):
         + (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1]
         + (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2]
     )
+
+
+@jit()
+def _dot3(a, b):
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
 
 @jit()
@@ -50,6 +45,32 @@ def _accumulate_normals(tris, tri_nn, npts):
         for idx in range(3):  # x, y, z
             nn[:, idx] += bincount(verts, weights=tri_nn[:, idx], minlength=npts)
     return nn
+
+
+@jit()
+def _decimate_spacing(indptr, indices, spacing):  # pragma: no cover
+    """Find the vertices to use for an integer source space spacing."""
+    n_vert = len(indptr) - 1
+    d = np.full(n_vert, 10000, np.int64)
+    # A mysterious algorithm follows
+    for k in range(n_vert):
+        neigh = indices[indptr[k] : indptr[k + 1]]
+        d[k] = min(np.min(d[neigh]) + 1, d[k])
+        if d[k] >= spacing:
+            d[k] = 0
+        d[neigh] = np.minimum(d[neigh], d[k] + 1)
+    if spacing == 2:
+        for k in range(n_vert - 1, -1, -1):
+            for n in indices[indptr[k] : indptr[k + 1]]:
+                d[k] = min(d[k], d[n] + 1)
+                d[n] = min(d[n], d[k] + 1)
+        for k in range(n_vert):
+            if d[k] > 0:
+                neigh = indices[indptr[k] : indptr[k + 1]]
+                if np.sum(d[neigh] == 0) <= 2:
+                    d[k] = 0
+                d[neigh] = np.minimum(d[neigh], d[k] + 1)
+    return d == 0
 
 
 @jit()
@@ -230,7 +251,7 @@ def _nearest_tri_edge(pt_tris, pqs, dist, a, b, c):  # pragma: no cover
 
 if has_numba:
 
-    @jit()
+    @jit(parallel=True)
     def _get_solids(tri_rrs, fros):
         """Compute _sum_solids_div total angle in chunks.
 
@@ -245,7 +266,7 @@ if has_numba:
         """
         n_tris = len(tri_rrs)
         tot_angle = np.zeros(len(fros))
-        for pi in range(len(fros)):
+        for pi in prange(len(fros)):
             fx, fy, fz = fros[pi, 0], fros[pi, 1], fros[pi, 2]
             angle = 0.0
             for ti in range(n_tris):
@@ -272,7 +293,59 @@ if has_numba:
             tot_angle[pi] = angle
         return tot_angle
 
+    @jit(parallel=True)
+    def _lin_pot_coeff_sub(fros, tri_rrs, tri_nn, tri_area, tris, same, submat):
+        """Subtract linear potential coefficients of all triangles from submat.
+
+        Same math as ``bem._lin_pot_coeff``, but as a scalar loop (points outer so
+        each thread owns rows of ``submat``) for the same reasons as ``_get_solids``.
+        """
+        edges = tri_rrs[:, np.array([1, 2, 0])] - tri_rrs
+        sizes = np.sqrt(np.sum(edges * edges, axis=-1))
+        # not in-place: numba's broadcasted /= gave NaNs here
+        edges = edges / sizes.reshape(-1, 3, 1)
+        for pi in prange(len(fros)):
+            v = np.empty((3, 3))
+            ll = np.empty(3)
+            beta = np.empty(3)
+            vec_omega = np.empty(3)
+            for ti in range(len(tris)):
+                tri = tris[ti]
+                # No contribution from a triangle that this vertex belongs to
+                if same and (tri[0] == pi or tri[1] == pi or tri[2] == pi):
+                    continue
+                for k in range(3):
+                    for c in range(3):
+                        v[k, c] = tri_rrs[ti, k, c] - fros[pi, c]
+                    ll[k] = np.sqrt(_dot3(v[k], v[k]))
+                triple = _fast_cross_nd_sum(v[0], v[1], v[2])
+                ss = ll[0] * ll[1] * ll[2]
+                for k in range(3):
+                    ss += _dot3(v[(k + 1) % 3], v[(k + 2) % 3]) * ll[k]
+                solid = np.arctan2(triple, ss)
+                if abs(solid) < np.pi / 1e6:
+                    continue
+                for k in range(3):  # _calc_beta
+                    k1 = (k + 1) % 3
+                    num = ll[k] + _dot3(v[k], edges[ti, k])
+                    den = ll[k1] + _dot3(v[k1], edges[ti, k])
+                    beta[k] = np.log(num / den) / sizes[ti, k]
+                for c in range(3):
+                    vec_omega[c] = 0.0
+                    for k in range(3):
+                        vec_omega[c] += (beta[k - 1] - beta[k]) * v[k, c]
+                area2 = 2.0 * tri_area[ti]
+                for k in range(3):
+                    k1, k2 = (k + 1) % 3, (k + 2) % 3
+                    zdots = _fast_cross_nd_sum(v[k1], v[k2], tri_nn[ti])
+                    omega = 2.0 * area2 * solid * zdots
+                    for c in range(3):
+                        omega -= triple * (v[k2, c] - v[k1, c]) * vec_omega[c]
+                    submat[pi, tri[k]] += omega / (area2 * area2)
+
 else:  # pragma: no cover
+    from .bem import _lin_pot_coeff_sub_numpy
     from .surface import _get_solids_numpy
 
     _get_solids = _get_solids_numpy
+    _lin_pot_coeff_sub = _lin_pot_coeff_sub_numpy

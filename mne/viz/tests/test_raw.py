@@ -662,6 +662,7 @@ def test_plot_raw_traces(raw, events, browser_backend):
         events=events, order=[1, 7, 5, 2, 3], n_channels=3, group_by="original"
     )
     assert hasattr(fig, "mne")  # make sure fig.mne param object is present
+    assert repr(fig).endswith(" | Raw, browsing 5 channels, 24.0 s>")
     if ismpl:
         assert len(fig.axes) == 5
 

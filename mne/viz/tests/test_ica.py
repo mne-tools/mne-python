@@ -370,6 +370,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     if sys.platform == "darwin":  # unknown transformation bug
         monkeypatch.setenv("MNE_BROWSE_RAW_SIZE", "20,20")
     fig = ica.plot_sources(raw)
+    assert repr(fig).endswith(" | ICA of Raw, browsing 2 components, 1.0 s>")
     assert browser_backend._get_n_figs() == 1
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)

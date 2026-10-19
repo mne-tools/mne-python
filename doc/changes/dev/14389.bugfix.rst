@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.scale_mri` wrote an invalid ``n_params`` value to the ``MRI scaling parameters.cfg`` file when ``scale`` was a scalar, by `Christian Brodbeck`_.

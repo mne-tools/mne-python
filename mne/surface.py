@@ -338,13 +338,11 @@ def _reorder_ccw(rrs, tris):
     # This ensures that rendering with front-/back-face culling works properly
     com = np.mean(rrs, axis=0)
     rr_tris = rrs[tris]
-    dirs = np.sign(
-        (
-            np.cross(rr_tris[:, 1] - rr_tris[:, 0], rr_tris[:, 2] - rr_tris[:, 0])
-            * (rr_tris[:, 0] - com)
-        ).sum(-1)
-    ).astype(int)
-    return np.array([t[::d] for d, t in zip(dirs, tris)])
+    dirs = (
+        np.cross(rr_tris[:, 1] - rr_tris[:, 0], rr_tris[:, 2] - rr_tris[:, 0])
+        * (rr_tris[:, 0] - com)
+    ).sum(-1)
+    return np.where(dirs[:, np.newaxis] < 0, tris[:, ::-1], tris)
 
 
 ###############################################################################
@@ -354,9 +352,7 @@ def _reorder_ccw(rrs, tris):
 def fast_cross_3d(x, y):
     """Compute cross product between list of 3D vectors.
 
-    Much faster than np.cross() when the number of cross products
-    becomes large (>= 500). This is because np.cross() methods become
-    less memory efficient at this stage.
+    Equivalent to :func:`numpy.cross`.
 
     Parameters
     ----------
@@ -378,14 +374,7 @@ def fast_cross_3d(x, y):
     assert y.ndim >= 1
     assert x.shape[-1] == 3
     assert y.shape[-1] == 3
-    if max(x.size, y.size) >= 500:
-        from ._surface_numba import _jit_cross
-
-        out = np.empty(np.broadcast(x, y).shape)
-        _jit_cross(out, x, y)
-        return out
-    else:
-        return np.cross(x, y)
+    return np.cross(x, y)
 
 
 def _triangle_neighbors(tris, npts):
@@ -533,8 +522,25 @@ def complete_surface_info(
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
         logger.info("    Vertex neighbors...")
+        # Same sorted sets (and checks) as _get_surf_neighbors, for all vertices
+        edges = mesh_edges(surf["tris"])
+        n_vert = np.diff(edges.indptr)
+        n_tri = np.array([len(n) for n in surf["neighbor_tri"]])
+        bad = np.where(n_vert > n_tri)[0]
+        if len(bad):
+            raise RuntimeError(f"Too many neighbors for vertex {bad[0]}.")
+        for k in np.where(n_vert != n_tri)[0]:
+            logger.info(
+                "    Incorrect number of distinct neighbors for vertex"
+                " %d (%d instead of %d) [fixed].",
+                k,
+                n_vert[k],
+                n_tri[k],
+            )
+        indices = edges.indices.copy()  # don't hand out views of the cached edges
         surf["neighbor_vert"] = [
-            _get_surf_neighbors(surf, k) for k in range(surf["np"])
+            indices[start:stop]
+            for start, stop in zip(edges.indptr[:-1], edges.indptr[1:])
         ]
 
     return surf
@@ -566,8 +572,7 @@ def _get_surf_neighbors(surf, k):
 def _normalize_vectors(rr):
     """Normalize surface vertices."""
     size = np.linalg.norm(rr, axis=1)
-    mask = size > 0
-    rr[mask] /= size[mask, np.newaxis]  # operate in-place
+    np.divide(rr, size[:, np.newaxis], out=rr, where=size[:, np.newaxis] > 0)
     return size
 
 
@@ -824,7 +829,7 @@ class _CheckInside:
 
         # Use qhull as our first pass (*much* faster than our check)
         del_outside = self.del_tri.find_simplex(rr) < 0
-        n = sum(del_outside)
+        n = del_outside.sum()
         inside[idx[del_outside]] = False
         idx = idx[~del_outside]
         rr = rr[~del_outside]
@@ -1233,23 +1238,14 @@ def _tessellate_sphere(mylevel):
         ).swapaxes(0, 1)
         tris = np.reshape(tris, (np.prod(tris.shape[:2]), 3))
 
-    # Copy the resulting approximation into standard table
-    rr_orig = rr
-    rr = np.empty_like(rr)
-    nnode = 0
-    for k, tri in enumerate(tris):
-        for j in range(3):
-            coord = rr_orig[tri[j]]
-            # this is faster than cdist (no need for sqrt)
-            similarity = np.dot(rr[:nnode], coord)
-            idx = np.where(similarity > 0.99999)[0]
-            if len(idx) > 0:
-                tris[k, j] = idx[0]
-            else:
-                rr[nnode] = coord
-                tris[k, j] = nnode
-                nnode += 1
-    rr = rr[:nnode].copy()
+    # Shared vertices are bitwise-identical copies, so exact deduplication works
+    flat = tris.ravel()
+    _, first, inverse = np.unique(
+        rr[flat], axis=0, return_index=True, return_inverse=True
+    )
+    order = np.argsort(first)  # number vertices by first appearance in tris
+    tris = np.argsort(order)[inverse].reshape(tris.shape)
+    rr = rr[flat[first[order]]]
     return rr, tris
 
 
@@ -1324,7 +1320,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
             surf["inuse"][mmap[k]] = True
 
         logger.info("Setting up the triangulation for the decimated surface...")
-        surf["use_tris"] = np.array([mmap[ist] for ist in ico_surf["tris"]], np.int32)
+        surf["use_tris"] = mmap[ico_surf["tris"]].astype(np.int32)
     if surf["use_tris"] is not None:
         surf["nuse_tri"] = len(surf["use_tris"])
     else:
@@ -1344,31 +1340,11 @@ def _decimate_surface_spacing(surf, spacing):
     assert isinstance(spacing, int)
     assert spacing > 0
     logger.info("    Decimating...")
-    d = np.full(surf["np"], 10000, int)
+    from ._surface_numba import _decimate_spacing
 
-    # A mysterious algorithm follows
-    for k in range(surf["np"]):
-        neigh = surf["neighbor_vert"][k]
-        d[k] = min(np.min(d[neigh]) + 1, d[k])
-        if d[k] >= spacing:
-            d[k] = 0
-        d[neigh] = np.minimum(d[neigh], d[k] + 1)
-
-    if spacing == 2.0:
-        for k in range(surf["np"] - 1, -1, -1):
-            for n in surf["neighbor_vert"][k]:
-                d[k] = min(d[k], d[n] + 1)
-                d[n] = min(d[n], d[k] + 1)
-        for k in range(surf["np"]):
-            if d[k] > 0:
-                neigh = surf["neighbor_vert"][k]
-                n = np.sum(d[neigh] == 0)
-                if n <= 2:
-                    d[k] = 0
-                d[neigh] = np.minimum(d[neigh], d[k] + 1)
-
-    surf["inuse"] = np.zeros(surf["np"], int)
-    surf["inuse"][d == 0] = 1
+    edges = mesh_edges(surf["tris"])
+    inuse = _decimate_spacing(edges.indptr, edges.indices, spacing)
+    surf["inuse"] = inuse.astype(int)
     return surf
 
 
@@ -1765,8 +1741,6 @@ def read_tri(fname_in, swap=False, verbose=None):
 
 def _get_solids_numpy(tri_rrs, fros):
     """Compute _sum_solids_div total angle in chunks (NumPy fallback)."""
-    from ._surface_numba import _jit_cross
-
     # NOTE: This incorporates the division by 4PI that used to be separate
     tot_angle = np.zeros(len(fros))
     for ti in range(len(tri_rrs)):
@@ -1774,9 +1748,7 @@ def _get_solids_numpy(tri_rrs, fros):
         v1 = fros - tri_rr[0]
         v2 = fros - tri_rr[1]
         v3 = fros - tri_rr[2]
-        v4 = np.empty((v1.shape[0], 3))
-        _jit_cross(v4, v1, v2)
-        triple = np.sum(v4 * v3, axis=1)
+        triple = np.sum(np.cross(v1, v2) * v3, axis=1)
         l1 = np.sqrt(np.sum(v1 * v1, axis=1))
         l2 = np.sqrt(np.sum(v2 * v2, axis=1))
         l3 = np.sqrt(np.sum(v3 * v3, axis=1))
@@ -2264,7 +2236,6 @@ def __getattr__(name):
         "_find_nearest_tri_pts",
         "_get_solids",
         "_get_tri_dist",
-        "_jit_cross",
         "_nearest_tri_edge",
         "_triangle_coords",
     ):

@@ -1,0 +1,1 @@
+Optimize time slicing order in :meth:`mne.Epochs.get_data` to avoid temporary full-array copies when subsetting, by :newcontrib:`Ishaan Maheshwari`.

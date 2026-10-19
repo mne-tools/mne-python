@@ -1050,11 +1050,7 @@ class _ForwardModeler:
             eeg=True,
             ignore_ref=False,
         )
-        self.fwd_data = _prep_field_computation(
-            sensors=self.sensors,
-            bem=self.bem,
-            n_jobs=self.n_jobs,
-        )
+        self.fwd_data = _prep_field_computation(sensors=self.sensors, bem=self.bem)
         if self.bem["is_sphere"]:
             self.check_inside = _CheckInsideSphere(self.bem)
         else:

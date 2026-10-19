@@ -121,25 +121,6 @@ def _labels_to_clusters(active, labels):
     return np.split(active, np.flatnonzero(np.diff(labels)) + 1)
 
 
-def _get_clusters_st(x_in, adjacency, max_step=1):
-    """Find spatio-temporal clusters via SciPy connected components."""
-    active, labels = _get_labels_st(x_in, adjacency, max_step)
-    if labels is None:
-        return []
-    return _labels_to_clusters(active, labels)
-
-
-def _get_cluster_sums_st(x, x_in, adjacency, max_step, t_power):
-    """Like _get_clusters_st, but return only the per-cluster sums of x."""
-    active, labels = _get_labels_st(x_in, adjacency, max_step)
-    if labels is None:
-        return np.array([])
-    weights = x[active]
-    if t_power != 1:
-        weights = np.sign(weights) * np.abs(weights) ** t_power
-    return np.bincount(labels, weights=weights)
-
-
 def _get_labels(x_in, adjacency):
     """Label connected components among the active points of a global adjacency.
 
@@ -177,17 +158,6 @@ def _get_components(x_in, adjacency):
     if labels is None:
         return []
     return _labels_to_clusters(active, labels)
-
-
-def _get_cluster_sums(x, x_in, adjacency, t_power):
-    """Like _get_components, but return only the per-cluster sums of x."""
-    active, labels = _get_labels(x_in, adjacency)
-    if labels is None:
-        return np.array([])
-    weights = x[active]
-    if t_power != 1:
-        weights = np.sign(weights) * np.abs(weights) ** t_power
-    return np.bincount(labels, weights=weights)
 
 
 def _find_clusters(
@@ -452,27 +422,26 @@ def _find_clusters_1dir(
             )
         if adjacency is False or adjacency.shape[0] == x_in.size:
             # global adjacency spans the whole (flattened) data;
-            # _get_components/_get_cluster_sums need COO's .row/.col attributes
+            # _get_labels needs COO's .row/.col attributes
             if adjacency is not False and adjacency.format != "coo":
                 adjacency = sparse.coo_array(adjacency)
-            if sums_only:
-                return None, _get_cluster_sums(x, x_in, adjacency, t_power)
-            clusters = _get_components(x_in, adjacency)
+            active, labels = _get_labels(x_in, adjacency)
         elif sparse.issparse(adjacency):
             # spatial-only adjacency, applied along the second (e.g. time) dim
-            if sums_only:
-                return None, _get_cluster_sums_st(x, x_in, adjacency, max_step, t_power)
-            clusters = _get_clusters_st(x_in, adjacency, max_step)
+            active, labels = _get_labels_st(x_in, adjacency, max_step)
         else:
             raise TypeError(
                 f"adjacency must be a sparse array or False, got {type(adjacency)}"
             )
-        from ._cluster_level_numba import _masked_sum, _masked_sum_power
-
-        if t_power == 1:
-            sums = [_masked_sum(x, c) for c in clusters]
-        else:
-            sums = [_masked_sum_power(x, c, t_power) for c in clusters]
+        clusters = None if sums_only else []
+        sums = np.array([])
+        if labels is not None:
+            weights = x[active]
+            if t_power != 1:
+                weights = np.sign(weights) * np.abs(weights) ** t_power
+            sums = np.bincount(labels, weights=weights)
+            if not sums_only:
+                clusters = _labels_to_clusters(active, labels)
 
     return clusters, np.atleast_1d(sums)
 
@@ -2233,16 +2202,13 @@ def summarize_clusters_stc(
             "your threshold or check your statistical "
             "analysis."
         )
-    data = np.zeros((n_vertices, n_times))
     data_summary = np.zeros((n_vertices, len(good_cluster_inds) + 1))
-    from ._cluster_level_numba import _sum_cluster_data
-
     for ii, cluster_ind in enumerate(good_cluster_inds):
-        data.fill(0)
         t_inds, v_inds = clusters[cluster_ind]
-        data[v_inds, t_inds] = t_obs[t_inds, v_inds]
         # Store a nice visualization of the cluster by summing across time
-        data_summary[:, ii + 1] = np.sum(_sum_cluster_data(data, tstep), axis=1)
+        data_summary[:, ii + 1] = (
+            np.bincount(v_inds, np.sign(t_obs[t_inds, v_inds]), n_vertices) * tstep
+        )
         # Make the first "time point" a sum across all clusters for easy
         # visualization
     data_summary[:, 0] = np.sum(data_summary, axis=1)

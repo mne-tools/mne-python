@@ -217,7 +217,7 @@ def _fast_sphere_dot_r0(
     cosmags2 = np.concatenate(cosmags2s)
 
     # outer product, sum over coords
-    ct = np.einsum("ik,jk->ij", rr1_orig, rr2)
+    ct = rr1_orig @ rr2.T
     np.clip(ct, -1, 1, ct)
 
     # expand axes
@@ -244,7 +244,7 @@ def _fast_sphere_dot_r0(
         n1c2 = np.einsum("ik,ijk->ij", cosmags1, rr2)
         n2c1 = np.einsum("jk,ijk->ij", cosmags2, rr1)
         n2c2 = np.einsum("jk,ijk->ij", cosmags2, rr2)
-        n1n2 = np.einsum("ik,jk->ij", cosmags1, cosmags2)
+        n1n2 = cosmags1 @ cosmags2.T
         part1 = ct * n1c1 * n2c2
         part2 = n1c1 * n2c1 + n1c2 * n2c2
 

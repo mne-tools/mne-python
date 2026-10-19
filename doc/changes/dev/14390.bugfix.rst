@@ -1,0 +1,1 @@
+Include pupil channels in baseline correction in :class:`~mne.Epochs`, by `Aditya`_.

@@ -146,6 +146,7 @@ class _TimeViewerMixin:
         self._configure_tool_bar()
         self._configure_status_bar()
         self._configure_help()
+        self._configure_ui_events()
         # show everything at the end
         self.toggle_interface()
         self._renderer.show()
@@ -490,13 +491,11 @@ class _TimeViewerMixin:
         rng = [0, fmax * fscale]
         with disable_ui_events(self):
             for key in ("fmin", "fmid", "fmax"):
-                val = self._data[key] * fscale
                 self.widgets[key].set_range(rng)
-                self.widgets[key].set_value(val)
                 self.widgets[f"entry_{key}"].set_range(rng)
-                self.widgets[f"entry_{key}"].set_value(val)
             if "smoothing" in self.widgets:
                 self.widgets["smoothing"].set_value(self._data["smoothing_steps"])
+        self._sync_colormap_widgets()
         # Force the brain and colorbar to reflect the newly active overlay.
         self._update_colormap_range(
             fmin=self._data["fmin"],
@@ -946,6 +945,77 @@ class _TimeViewerMixin:
         if self.status_progress is not None:
             self.status_progress.hide()
 
+    def _configure_ui_events(self):
+        # The scene publishes these after it has updated itself (see ui_events.py)
+        subscribe(self, "__time_updated", self._on_time_updated)
+        subscribe(self, "__colormap_range_updated", self._sync_colormap_widgets)
+        subscribe(self, "__surface_updated", self._on_surface_updated)
+        subscribe(self, "__overlay_added", self._on_overlay_added)
+        # published before the window closes, while everything is still alive
+        subscribe(self, "figure_closing", self._on_figure_closing)
+
+    def _on_figure_closing(self, event):
+        if event.source is not self:  # forwarded from a linked figure
+            return
+        self.clear_glyphs()
+        self._clear_widgets()
+        if self.mpl_canvas is not None:
+            self.mpl_canvas.clear()
+        if self.act_data_smooth is not None:
+            for key in list(self.act_data_smooth.keys()):
+                self.act_data_smooth[key] = None
+        # resolve the reference cycles
+        for key in (
+            "mpl_canvas",
+            "time_actor",
+            "act_data_smooth",
+            "_hover_caption",
+            "widgets",
+        ):
+            setattr(self, key, None)
+
+    def _clear_widgets(self):
+        if not hasattr(self, "widgets"):
+            return
+        for widget in self.widgets.values():
+            if widget is not None:
+                for key in ("triggered", "floatValueChanged"):
+                    setattr(widget, key, None)
+        self.widgets.clear()
+
+    def _on_time_updated(self, event):
+        self.plot_time_line(update=True)
+
+    def _on_overlay_added(self, event):
+        keys = list(self._all_data.keys())
+        self.widgets["data_key"].set_items(keys)
+        self.widgets["data_key"].set_value(self._active_data_key)  # select_data_key
+        if len(keys) > 1:
+            self.widgets["data_key"].show()
+        self._refresh_colormap_widgets()
+
+    def _on_surface_updated(self, event):
+        # move the picked-vertex spheres onto the new geometry
+        for (hemi, vertex_id), spheres in self._picked_points.items():
+            if hemi not in self._hemis:
+                continue
+            center = np.array(self.geo[hemi].coords[vertex_id])
+            for sphere in spheres:
+                mesh = sphere["mesh"]
+                mesh.points = mesh.points + (center - np.array(mesh.center))
+        if event.flat_change:  # the arrow keys and some controls differ for 2D
+            self._configure_arrow_keys()
+            self._update_flat_widgets()
+            self._configure_help()
+
+    def _sync_colormap_widgets(self, event=None):
+        """Show the active overlay's colormap limits in the dock widgets."""
+        with disable_ui_events(self):
+            for key in ("fmin", "fmid", "fmax"):
+                val = self._data[key] * self._data["fscale"]
+                self.widgets[key].set_value(val)
+                self.widgets[f"entry_{key}"].set_value(val)
+
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
             self._mouse_no_mvt -= 1
@@ -1083,7 +1153,33 @@ class _TimeViewerMixin:
             return
 
         if hemi == label.hemi:
-            self.add_label(label, borders=True)
+            stc = self._data["stc"]
+            src = self._data["src"]
+            tc = stc.extract_label_time_course(
+                label, src=src, mode=self.label_extract_mode
+            )
+            tc = tc[0]
+            if tc.ndim == 2:  # vector data: show the norm across orientations
+                tc = np.linalg.norm(tc, axis=0)
+            color = next(self.color_cycle)
+            line = self.mpl_canvas.plot(
+                self._data["time"], tc, label=label.name, color=color, update=False
+            )
+            # count the source vertices the extraction uses, not surface ones
+            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
+            self._label_trace_meta[line] = (
+                hemi,
+                label.name,
+                self.label_extract_mode,
+                np.intersect1d(label.vertices, stc_vertices).size,
+            )
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
+            # the label on the brain gets the same color as its trace
+            self.add_label(label, borders=True, color=color)
+            label._color = color
+            label._line = line
             self._picked_patches[hemi].append(label_id)
 
     def _remove_label_glyph(self, hemi, label_id):

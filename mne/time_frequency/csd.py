@@ -1724,7 +1724,9 @@ def csd_tfr(epochs_tfr, tmin=None, tmax=None, picks=None, projs=None, verbose=No
         # There is a redundancy in the calculation here because we don't really
         # need the lower triangle of the matrix, but it should still be faster
         # than a loop (hopefully!).
-        csds = np.einsum("xft,yft->xyf", epochs_data, np.conj(epochs_data))
+        csds = np.einsum(
+            "xft,yft->xyf", epochs_data, np.conj(epochs_data), optimize=True
+        )
         csds = csds[np.triu_indices(n_channels) + (slice(None),)]
         csds /= epochs_data.shape[-1]
 

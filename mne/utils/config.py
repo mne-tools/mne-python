@@ -701,10 +701,30 @@ def _get_numpy_build_blas():
     except Exception:
         return None
     version = blas.get("version", "")
+    # conda's libblas is a switchable interface; macOS installs often point it at
+    # Accelerate, which threadpoolctl can't see
+    if name in ("blas", "cblas") and "veclib" in _get_runtime_blas_path().lower():
+        name, version = "accelerate", ""  # version was the interface's
     name = _blas_rename.get(name, name)
     if version and version != "unknown":  # Accelerate reports a literal "unknown"
         name = f"{name} {version}"
     return f"{name}, threads not introspectable"
+
+
+def _get_runtime_blas_path():
+    """Get the path of the library actually providing NumPy's cblas_dgemm."""
+    import ctypes
+
+    try:  # private module, POSIX-only dladdr, and the symbol can be named differently
+        from numpy._core import _multiarray_umath
+
+        dgemm = ctypes.CDLL(_multiarray_umath.__file__).cblas_dgemm
+        info = (ctypes.c_void_p * 4)()  # Dl_info, whose first field is dli_fname
+        if ctypes.CDLL(None).dladdr(ctypes.cast(dgemm, ctypes.c_void_p), info):
+            return ctypes.string_at(info[0]).decode()
+    except Exception:
+        pass
+    return ""
 
 
 _gpu_cmd = """\

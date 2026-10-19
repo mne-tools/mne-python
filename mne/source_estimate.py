@@ -1592,7 +1592,10 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         """
         stc = self.copy()
         stc._remove_kernel_sens_data_()
-        stc._data = abs(stc._data)
+        if np.iscomplexobj(stc._data):
+            stc._data = abs(stc._data)
+        else:
+            np.abs(stc._data, out=stc._data)
         return stc
 
     def sqrt(self):

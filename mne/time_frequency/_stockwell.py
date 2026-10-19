@@ -220,11 +220,13 @@ def tfr_array_stockwell(
     itc = np.empty((n_channels, n_freq, n_out)) if return_itc else None
 
     parallel, my_st, n_jobs = parallel_func(_st_power_itc, n_jobs, verbose=verbose)
-    tfrs = parallel(
+    tfrs = (
         my_st(data[:, c, :], start_f, return_itc, zero_pad, decim, W)
         for c in range(n_channels)
     )
-    for c, (this_psd, this_itc) in enumerate(iter(tfrs)):
+    if parallel is not list:  # when serial, iterate lazily to not hold all results
+        tfrs = parallel(tfrs)
+    for c, (this_psd, this_itc) in enumerate(tfrs):
         psd[c] = this_psd
         if this_itc is not None:
             itc[c] = this_itc

@@ -104,8 +104,8 @@ class _ConstantScaler:
         self.mean_ = np.zeros_like(std)
         return self
 
-    def transform(self, X):
-        return X / self.std_
+    def transform(self, X, copy=True):
+        return np.divide(X, self.std_, out=None if copy else X)
 
     def inverse_transform(self, X, y=None):
         return X * self.std_
@@ -120,8 +120,10 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     if X.size == 0:
         return X.copy() if return_result else None
     orig_shape = X.shape
-    X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
-    X = func(X, *args, **kwargs)
+    X_2d = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
+    if kwargs.get("copy") is False and np.may_share_memory(X_2d, X):
+        kwargs["copy"] = True  # reshape gave a view of the input, don't modify it
+    X = func(X_2d, *args, **kwargs)
     if return_result:
         X = X.reshape((orig_shape[0], orig_shape[2], orig_shape[1]), copy=False)
         X = X.transpose(0, 2, 1)
@@ -240,7 +242,11 @@ class Scaler(MNETransformerMixin, BaseEstimator):
                 assert len(self.info["ch_names"]) == epochs_data.shape[1]
             epochs_data = epochs_data[..., np.newaxis]
         assert epochs_data.ndim == 3, epochs_data.shape
-        return _sklearn_reshape_apply(self.scaler_.transform, True, epochs_data)
+        # RobustScaler.transform has no copy argument
+        kwargs = {} if isinstance(self.scaler_, RobustScaler) else dict(copy=False)
+        return _sklearn_reshape_apply(
+            self.scaler_.transform, True, epochs_data, **kwargs
+        )
 
     def fit_transform(self, epochs_data, y=None):
         """Fit to data, then transform it.

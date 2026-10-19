@@ -845,6 +845,10 @@ class DigMontage:
         self.dig = fids_mni + self.dig
         return self
 
+    def _remove_dig_points(self, mask):
+        self.dig = [d for d, m in zip(self.dig, mask) if not m]
+        return self
+
     @verbose_static()
     def remove_fiducials(self, verbose=None):
         """Remove the fiducial points from a montage.
@@ -871,9 +875,44 @@ class DigMontage:
         with intracranial data to BIDS format, the coordinate frame
         should not be changed by removing fiducials.
         """
-        for d in self.dig.copy():
-            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
-                self.dig.remove(d)
+        mask = [d["kind"] == FIFF.FIFFV_POINT_CARDINAL for d in self.dig]
+        return self._remove_dig_points(mask)
+
+    @fill_doc_static("on_missing_ch_names")
+    def drop_channels(self, ch_names, on_missing="raise"):
+        """Drop channel(s).
+
+        Parameters
+        ----------
+        ch_names : iterable or str
+            Iterable (e.g. list) of channel name(s) or channel name to remove.
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The modified instance.
+
+        See Also
+        --------
+        rename_channels
+        remove_fiducials
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        from .channels import _check_drop_ch_names
+
+        drop_chs = set(_check_drop_ch_names(ch_names, self.ch_names, on_missing))
+        mask = [name in drop_chs for name in self._get_dig_names()]
+        self._remove_dig_points(mask)
+        self.ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
         return self
 
 

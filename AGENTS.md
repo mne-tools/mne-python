@@ -108,9 +108,6 @@ pytest mne/tests/test_evoked.py -k test_io_evoked --verbose
 # fetch datasets explicitly if needed
 python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
 python -c "import mne; mne.datasets.sample.data_path(verbose=True)"
-
-# useful flags: -x (stop on first failure), --pdb, --durations=5,
-# --cov=mne.viz --cov-report=term-missing (see which lines are covered)
 ```
 
 Docstring / doctest checks:
@@ -134,6 +131,27 @@ make clean           # remove build artifacts, __pycache__, *.pyc/*.so
 There is no separate "build" step for the library itself beyond the editable install (pure
 Python + hatchling/hatch-vcs for versioning from git tags).
 
+Before handing work back, at minimum run `pre-commit run --files <changed files>`, the targeted
+tests for the changed code, and `pytest mne/tests/test_docstring_parameters.py` if public
+docstrings or signatures changed. Report any failures rather than working around them.
+
+## Boundaries
+
+Ask the human first before:
+- adding or bumping a dependency, or changing minimum supported versions;
+- editing CI / release configuration (`.github/workflows/`, `azure-pipelines.yml`,
+  `.circleci/`, `tools/`) or `.pre-commit-config.yaml`;
+- adding, renaming, or removing public API (including new parameters or keyword values), or
+  deprecating anything.
+
+Never:
+- add AI co-authorship trailers or agent-written text to commits, issues, or PRs (see above);
+- skip, `xfail`, loosen, or delete an existing test to make a change pass;
+- bypass hooks (`git commit --no-verify`) or silence warnings/lint rules instead of fixing them;
+- commit data files or large binaries — test data belongs in the external `testing` dataset;
+- edit `doc/changes/dev.rst` or versioned `doc/changes/vX.Y.rst` files by hand;
+- adapt code whose license is not BSD-compatible or cannot be determined (see below).
+
 ## Architecture
 
 ### Lazy public API via stub files
@@ -144,9 +162,7 @@ pattern. When adding a new public function/class, it typically needs to be added
 `__init__.pyi` (and, for docs, to `doc/python_reference.rst`) as well as implemented.
 
 ### I/O readers: one subpackage per format
-`mne/io/<format>/` (ant, array, artemis123, bci2k, besa, boxy, brainvision, bti, cnt, ctf, curry,
-edf, eeglab, egi, eximia, eyelink, fieldtrip, fil, hitachi, kit, mef, nedf, neuralynx, nicolet,
-nihon, nirx, nsx, persyst, snirf, ...) each implement a `read_raw_<format>` function and a
+`mne/io/<format>/` subpackages each implement a `read_raw_<format>` function and a
 format-specific `Raw<Format>` subclass of `BaseRaw` (`mne/io/base.py`). `mne/io/_read_raw.py`
 provides the generic `read_raw()` dispatcher. New format support follows this same shape: a
 subpackage with a reader function + `BaseRaw` subclass + its own `tests/` dir with small
@@ -187,7 +203,10 @@ User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types:
 `doc/changes/dev.rst` at release time; don't edit `doc/changes/dev.rst` or the versioned
 `doc/changes/vX.Y.rst` files directly for new changes. New contributors must also add themselves
 to `doc/changes/names.inc` (build fails otherwise) and are credited with `:newcontrib:` in their
-changelog entry instead of a plain name link.
+changelog entry instead of a plain name link. Pick `<type>` by intent (performance improvements
+are `newfeature`, not `bugfix`) and keep the entry to one short sentence ending with the
+contributor name link, e.g. "Speed up X by optimizing Y, by `Jane Doe`_"; read an existing
+fragment or two before writing yours.
 
 The `<PR-number>` for a not-yet-opened PR is one more than the highest number currently in use;
 issues and PRs share a single number sequence, so query the most recently created of either
@@ -226,7 +245,12 @@ gh api "repos/mne-tools/mne-python/issues?state=all&per_page=1&sort=created&dire
   when bumping minimum versions, so a workaround without the marker tends to outlive its
   reason for existing.
 - Prefer the `testing` dataset over `sample`/other large datasets in tests (smaller, faster).
-- Prefer to keep unit tests compact and add to existing tests when possible. The full test suite takes about an hour on CIs, so minimizing test time (for CIs) and test verbosity (for reviewers) is important.
+  The full test suite takes about an hour on CIs, so test time matters as much as test length.
+- For a bug fix, confirm that the new or modified tests fail on `main` and pass with the fix:
+  keep the test changes, restore the non-test files to their `main` versions (e.g.,
+  `git diff main -- <src files> > fix.patch && git checkout main -- <src files>`), run the tests,
+  then `git apply fix.patch` and rerun. A regression test that passes without the fix guards
+  nothing. Avoid `git stash` for this, since it can pick up unrelated stashes.
 - When new functionality is added, it is good in general to add it somewhere in an example (`examples/`) or a tutorial (`tutorials/`) to help with discoverability and documentation.
 - Code adapted from an outside source must be under a BSD-compatible license (BSD, MIT, ISC, Apache-2.0, public domain, ...); GPL/LGPL/AGPL and non-commercial or no-derivatives licenses are not acceptable. Attribute it in a comment directly above the adapted code, naming the source (URL and/or author) and its license, e.g.:
   ```python
@@ -240,9 +264,3 @@ gh api "repos/mne-tools/mne-python/issues?state=all&per_page=1&sort=created&dire
   whole-suite back-to-back runs drift ±20–100 %. Verify which installed mne a
   benchmark actually imports (`print(mne.__file__)`) before trusting numbers,
   and keep fixture data out of commits.
-- Changelog fragments (`doc/changes/dev/<PR#>.<type>.rst`): pick `<type>` by
-  intent — performance improvements are `newfeature`, not `bugfix`. Keep the
-  entry to one short sentence ending with the contributor name link, e.g.
-  "Speed up X by optimizing Y, by `Jane Doe`_", and make sure the name anchors
-  in `doc/changes/names.inc` (add it if missing). Read an existing fragment
-  or two before writing yours.

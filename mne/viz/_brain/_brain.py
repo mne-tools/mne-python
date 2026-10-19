@@ -63,8 +63,11 @@ from .._3d_overlay import LayeredMesh
 from ..ui_events import (
     ColormapRange,
     TimeChange,
+    _ColormapRangeUpdated,
     _get_event_channel,
-    disable_ui_events,
+    _OverlayAdded,
+    _SurfaceUpdated,
+    _TimeUpdated,
     publish,
     subscribe,
     unsubscribe,
@@ -529,7 +532,6 @@ class Brain(_TimeViewerMixin):
     def _clean(self):
         # resolve the reference cycle
         self._renderer._window_close_disconnect()
-        self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
         for hemi in self.layered_meshes:
@@ -538,12 +540,6 @@ class Brain(_TimeViewerMixin):
             self.plotter.remove_actor(actor)
         self._silhouette_actors = None
         self._clear_callbacks()
-        self._clear_widgets()
-        if getattr(self, "mpl_canvas", None) is not None:
-            self.mpl_canvas.clear()
-        if getattr(self, "act_data_smooth", None) is not None:
-            for key in list(self.act_data_smooth.keys()):
-                self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
         for renderer in getattr(self._renderer, "_all_renderers", ()):  # VTK only
             renderer.RemoveAllLights()
@@ -561,20 +557,8 @@ class Brain(_TimeViewerMixin):
         # XXX end PyVista
         for key in (
             "plotter",
-            "window",
-            "dock",
-            "tool_bar",
-            "menu_bar",
-            "interactor",
-            "mpl_canvas",
-            "time_actor",
-            "picked_renderer",
-            "act_data_smooth",
             "_scalar_bar",
             "_scalar_bar_ticks",
-            "_hover_caption",
-            "actions",
-            "widgets",
             "geo",
             "_all_data",
         ):
@@ -612,13 +596,7 @@ class Brain(_TimeViewerMixin):
             return
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
-        if self.time_viewer:
-            with disable_ui_events(self):
-                if "time" in self.widgets:
-                    self.widgets["time"].set_value(time_idx)
-                if "current_time" in self.widgets:
-                    self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-            self.plot_time_line(update=True)
+        publish(self, _TimeUpdated())
         self._renderer._update()
 
     def _on_colormap_range(self, event):
@@ -629,32 +607,15 @@ class Brain(_TimeViewerMixin):
         # Check if limits have changed at all.
         if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
-        # Update the GUI elements.
-        with disable_ui_events(self):
-            for key, val in lims.items():
-                if val is not None:
-                    if key in self.widgets:
-                        self.widgets[key].set_value(val * self._data["fscale"])
-                    entry_key = "entry_" + key
-                    if entry_key in self.widgets:
-                        self.widgets[entry_key].set_value(val * self._data["fscale"])
         # Update the render.
         self._update_colormap_range(**lims)
+        publish(self, _ColormapRangeUpdated())
         self._renderer._update()
 
     def _clear_callbacks(self):
         # Remove the default key binding
         if getattr(self, "iren", None) is not None:
             self.plotter.iren.clear_key_event_callbacks()
-
-    def _clear_widgets(self):
-        if not hasattr(self, "widgets"):
-            return
-        for widget in self.widgets.values():
-            if widget is not None:
-                for key in ("triggered", "floatValueChanged"):
-                    setattr(widget, key, None)
-        self.widgets.clear()
 
     @property
     def interaction(self):
@@ -1103,15 +1064,9 @@ class Brain(_TimeViewerMixin):
         # _current_time
         self.set_data_smoothing(self._all_data[key]["smoothing_steps"])
 
-        # setting the data_key widget fires select_data_key, which needs this
-        # overlay's smooth_mat (and, for volumes, its grid) to already exist
-        if "data_key" in self.widgets:
-            keys = list(self._all_data.keys())
-            self.widgets["data_key"].set_items(keys)
-            self.widgets["data_key"].set_value(key)
-            if len(keys) > 1:
-                self.widgets["data_key"].show()
-            self._refresh_colormap_widgets()
+        # the time viewer reacts by selecting this overlay, which needs its
+        # smooth_mat (and, for volumes, its grid) to already exist
+        publish(self, _OverlayAdded())
 
         # 3) add the other actors
         if colorbar is True:
@@ -1444,34 +1399,6 @@ class Brain(_TimeViewerMixin):
         if scalar_thresh is not None:
             ids = ids[scalars >= scalar_thresh]
 
-        if self.time_viewer and self.show_traces and self.traces_mode == "label":
-            stc = self._data["stc"]
-            src = self._data["src"]
-            tc = stc.extract_label_time_course(
-                label, src=src, mode=self.label_extract_mode
-            )
-            tc = tc[0]
-            if tc.ndim == 2:  # vector data: show the norm across orientations
-                tc = np.linalg.norm(tc, axis=0)
-            color = next(self.color_cycle)
-            line = self.mpl_canvas.plot(
-                self._data["time"], tc, label=label_name, color=color, update=False
-            )
-            # count the source vertices the extraction uses, not surface ones
-            stc_vertices = stc.vertices[0 if hemi == "lh" else 1]
-            self._label_trace_meta[line] = (
-                hemi,
-                label_name,
-                self.label_extract_mode,
-                np.intersect1d(label.vertices, stc_vertices).size,
-            )
-            self.mpl_canvas.axes.relim()
-            self.mpl_canvas.axes.autoscale_view()
-            self.mpl_canvas.update_plot()
-        else:
-            line = None
-
-        orig_color = color
         color = _to_rgb(color, alpha, alpha=True)
         cmap = np.array(
             [
@@ -1510,9 +1437,6 @@ class Brain(_TimeViewerMixin):
                 opacity=alpha,
                 name=label_name,
             )
-            if self.time_viewer and self.show_traces and self.traces_mode == "label":
-                label._color = orig_color
-                label._line = line
             self._labels[hemi].append(label)
         self._renderer._update()
 
@@ -2872,17 +2796,6 @@ class Brain(_TimeViewerMixin):
             self.layered_meshes[h].update_geometry(
                 geo.coords, geo.nn, geo.faces if flat_change else None
             )
-
-            # picked points only exist once the time viewer has been set up
-            for (pt_hemi, vertex_id), spheres in getattr(
-                self, "_picked_points", {}
-            ).items():
-                if pt_hemi != h:
-                    continue
-                center = np.array(geo.coords[vertex_id])
-                for sphere in spheres:
-                    mesh = sphere["mesh"]
-                    mesh.points = mesh.points + (center - np.array(mesh.center))
             for data in self._all_data.values():
                 hemi_data = data.get(h)
                 if hemi_data is None:
@@ -2894,7 +2807,7 @@ class Brain(_TimeViewerMixin):
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
         self._surf = surf
-        if flat_change:  # switch the camera, interaction and controls to 2D/3D
+        if flat_change:  # switch the camera and interaction to 2D/3D
             if surf == "flat":
                 self._pre_flat = (list(self._views), self._interaction)
                 self._views = ["flat"] * len(self._views)
@@ -2912,10 +2825,7 @@ class Brain(_TimeViewerMixin):
             self._interaction = interaction
             for _ in self._iter_views("vol"):  # will traverse all
                 self._renderer.set_interaction(interaction)
-            self._configure_arrow_keys()
-            if self.time_viewer:
-                self._update_flat_widgets()
-                self._configure_help()
+        publish(self, _SurfaceUpdated(flat_change=flat_change))
         if self.silhouette:
             for actor in self._silhouette_actors:
                 self.plotter.remove_actor(actor)
