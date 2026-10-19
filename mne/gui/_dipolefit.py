@@ -232,8 +232,9 @@ class DipoleFitUI:
                 f"to {evoked.baseline[1]:.3f} seconds)."
             )
             std = dict()
-            for typ in set(evoked.get_channel_types(only_data_chs=True)):
-                baseline = evoked.copy().pick(typ).crop(*evoked.baseline)
+            good = evoked.copy().pick("data", exclude="bads")
+            for typ in set(good.get_channel_types()):
+                baseline = good.copy().pick(typ).crop(*evoked.baseline)
                 std[typ] = baseline.data.std(axis=1).mean()
             cov = make_ad_hoc_cov(evoked.info, std)
         else:
