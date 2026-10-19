@@ -14,6 +14,7 @@ from contextlib import contextmanager
 # used by matplotlib and pyvistaqt
 from qtpy import API_NAME  # noqa: F401, isort: skip
 
+import numpy as np
 import pyvista
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.colors import to_hex
@@ -1102,9 +1103,7 @@ class _QtDock(_AbstractDock, _QtLayout):
                     tick_positions = [0.5]
                 else:
                     # Normal case for 2+ labels: evenly spaced between 0 and 1
-                    tick_positions = [
-                        i / (n_labels - 1) for i, _ in enumerate(tick_labels)
-                    ]
+                    tick_positions = np.linspace(0, 1, n_labels)
 
             n_columns = 100
             grid = self._layout_create(orientation="grid")
@@ -1220,7 +1219,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._dock_collapsibles.append((content, not collapse))
 
         toggle = QToolButton()
-        toggle.setText(f"{'â–¾' if not collapse else 'â–¸'}  {name}")
+        toggle.setText(f"{'▾' if not collapse else '▸'}  {name}")
         toggle.setCheckable(True)
         toggle.setChecked(not collapse)
         toggle.setCursor(Qt.PointingHandCursor)
@@ -1236,7 +1235,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
         def _toggle_visibility(checked, content=content, toggle=toggle, name=name):
             content.setVisible(checked)
-            toggle.setText(f"{'â–¾' if checked else 'â–¸'}  {name}")
+            toggle.setText(f"{'▾' if checked else '▸'}  {name}")
 
         toggle.toggled.connect(_toggle_visibility)
 

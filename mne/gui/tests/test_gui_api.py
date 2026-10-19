@@ -346,7 +346,7 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     # --- BEGIN: tooltips ---
     widget = renderer._dock_add_button(name="", callback=mock, tooltip="foo")
     assert widget.get_tooltip() == "foo"
-    # Change it â€¦
+    # Change it …
     widget.set_tooltip("bar")
     assert widget.get_tooltip() == "bar"
     # --- END: tooltips ---
