@@ -56,6 +56,7 @@ from mne.preprocessing.maxwell import (
     _trans_sss_basis,
 )
 from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
+from mne.time_frequency import psd_array_welch
 from mne.transforms import rot_to_quat
 from mne.utils import (
     _record_warnings,
@@ -711,6 +712,56 @@ def test_basic():
     maxwell_filter(raw_missing)
     with pytest.warns(RuntimeWarning, match="not in data"):
         maxwell_filter(raw_missing, calibration=fine_cal_fname)
+
+
+def _lf_band_power(data, sfreq):
+    """Average power in the 0.5-3 Hz band."""
+    psd, freqs = psd_array_welch(data, sfreq=sfreq, fmin=0.5, fmax=40.0, n_fft=2048)
+    band = (freqs >= 0.5) & (freqs <= 3.0)
+    return np.trapezoid(np.mean(psd, axis=0)[band], freqs[band])
+
+
+@testing.requires_testing_data
+def test_foster_inverse():
+    """Test noise-weighted SSS (Foster's inverse)."""
+    raw = read_crop(raw_fname, (0.0, 4.0)).load_data()
+    raw.pick_types(meg=True, eeg=False, eog=False, stim=False)
+    sfreq = raw.info["sfreq"]
+    n_ch, n_times = raw.get_data().shape
+    times = np.arange(n_times) / sfreq
+    # SSS of the clean data is the reference signal
+    ref = maxwell_filter(raw, coord_frame="head").get_data()
+    # Inject correlated low-frequency interference like in OPM recordings
+    rng = np.random.default_rng(42)
+    loadings = rng.standard_normal((n_ch, 3))
+    raw._data += (
+        loadings @ rng.standard_normal((3, n_times)) * 30e-13
+        + 150e-13 * np.sin(2 * np.pi * 1.5 * times)
+        + rng.standard_normal((n_ch, n_times)) * 8e-13
+    )
+    noise_cov = compute_raw_covariance(raw, rank="info", method="empirical")
+    data = raw.get_data()
+    std = maxwell_filter(raw, coord_frame="head").get_data()
+    fos = maxwell_filter(raw, coord_frame="head", noise_cov=noise_cov).get_data()
+    assert fos.shape == data.shape
+    # Standard SSS amplifies the low-frequency interference, while Foster's
+    # inverse suppresses it
+    assert _lf_band_power(std, sfreq) > _lf_band_power(data, sfreq)
+    assert _lf_band_power(fos, sfreq) < _lf_band_power(std, sfreq)
+    # Foster's inverse is an LMMSE estimator, so it damps the signal
+    assert (
+        np.corrcoef(fos.ravel(), ref.ravel())[0, 1]
+        < np.corrcoef(std.ravel(), ref.ravel())[0, 1]
+    )
+    # Input validation
+    with pytest.raises(NotImplementedError, match="st_duration"):
+        maxwell_filter(raw, noise_cov=noise_cov, st_duration=1.0)
+    with pytest.raises(TypeError, match="Covariance"):
+        maxwell_filter(raw, noise_cov="foo")
+    bad_cov = noise_cov.copy()
+    bad_cov["names"] = [name + "_bad" for name in bad_cov["names"]]
+    with pytest.raises(ValueError, match="Missing channels"):
+        maxwell_filter(raw, noise_cov=bad_cov)
 
 
 @testing.requires_testing_data
