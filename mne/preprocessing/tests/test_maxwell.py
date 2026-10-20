@@ -42,11 +42,13 @@ from mne.preprocessing import (
 from mne.preprocessing.maxwell import (
     _bases_complex_to_real,
     _bases_real_to_complex,
+    _compute_data_cov,
     _compute_sphere_activation_in,
     _get_degrees_orders,
     _get_n_moments,
     _mne_ord_to_mf_idx,
     _prep_mf_coils,
+    _read_cross_talk,
     _sh_complex_to_real,
     _sh_negate,
     _sh_real_to_complex,
@@ -753,6 +755,50 @@ def test_foster_inverse():
         np.corrcoef(fos.ravel(), ref.ravel())[0, 1]
         < np.corrcoef(std.ravel(), ref.ravel())[0, 1]
     )
+    # An empty-room covariance is a more realistic noise model: it preserves
+    # the signal better but suppresses less of the injected interference
+    erm = read_crop(erm_fname)
+    erm.pick_types(meg=True, eeg=False, eog=False, stim=False)
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        noise_cov_erm = compute_raw_covariance(erm, rank="info", method="empirical")
+    fos_erm = maxwell_filter(
+        raw, coord_frame="head", noise_cov=noise_cov_erm
+    ).get_data()
+    assert _lf_band_power(fos_erm, sfreq) < _lf_band_power(std, sfreq)
+    assert _lf_band_power(fos_erm, sfreq) > _lf_band_power(fos, sfreq)
+    assert (
+        np.corrcoef(fos_erm.ravel(), ref.ravel())[0, 1]
+        > np.corrcoef(fos.ravel(), ref.ravel())[0, 1]
+    )
+    # Cross-talk is applied before SSS, so the data and noise covariances are
+    # cross-talk corrected too
+    ctc, _ = _read_cross_talk(ctc_fname, raw.ch_names)
+    raw_ctc = raw.copy()
+    raw_ctc._data[:] = ctc @ raw_ctc._data
+    noise_cov_ctc = noise_cov.copy()
+    noise_cov_ctc["data"] = ctc @ noise_cov["data"] @ ctc.T
+    fos_ctc = maxwell_filter(
+        raw, coord_frame="head", cross_talk=ctc_fname, noise_cov=noise_cov
+    ).get_data()
+    fos_ctc_equiv = maxwell_filter(
+        raw_ctc, coord_frame="head", noise_cov=noise_cov_ctc
+    ).get_data()
+    assert_allclose(fos_ctc, fos_ctc_equiv, rtol=1e-7, atol=1e-18)
+    # Annotated segments are excluded when estimating the data covariance
+    raw_ann = raw.copy()
+    raw_ann.set_annotations(mne.Annotations([1.0], [1.0], ["bad_acq_skip"]))
+    picks = np.arange(n_ch)
+    got = _compute_data_cov(raw_ann, picks, None, ("bad_acq_skip",))
+    want = np.cov(
+        np.concatenate(
+            (
+                raw_ann.get_data(picks=picks, start=0, stop=int(1.0 * sfreq)),
+                raw_ann.get_data(picks=picks, start=int(2.0 * sfreq), stop=n_times),
+            ),
+            axis=1,
+        )
+    )
+    assert_allclose(got, want, rtol=1e-10)
     # Input validation
     with pytest.raises(NotImplementedError, match="st_duration"):
         maxwell_filter(raw, noise_cov=noise_cov, st_duration=1.0)
