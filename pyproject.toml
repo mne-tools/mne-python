@@ -137,6 +137,7 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = [
+  "certifi >= 2026.10.18",  # see https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
   "decorator >= 5.1",
   "jinja2 >= 3.1",
   "lazy_loader >= 0.3",
