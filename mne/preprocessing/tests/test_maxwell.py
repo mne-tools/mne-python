@@ -788,17 +788,35 @@ def test_foster_inverse():
     raw_ann = raw.copy()
     raw_ann.set_annotations(mne.Annotations([1.0], [1.0], ["bad_acq_skip"]))
     picks = np.arange(n_ch)
-    got = _compute_data_cov(raw_ann, picks, None, ("bad_acq_skip",))
-    want = np.cov(
-        np.concatenate(
-            (
-                raw_ann.get_data(picks=picks, start=0, stop=int(1.0 * sfreq)),
-                raw_ann.get_data(picks=picks, start=int(2.0 * sfreq), stop=n_times),
-            ),
-            axis=1,
-        )
+    got, got_mean = _compute_data_cov(raw_ann, picks, None, ("bad_acq_skip",))
+    kept = np.concatenate(
+        (
+            raw_ann.get_data(picks=picks, start=0, stop=int(1.0 * sfreq)),
+            raw_ann.get_data(picks=picks, start=int(2.0 * sfreq), stop=n_times),
+        ),
+        axis=1,
     )
-    assert_allclose(got, want, rtol=1e-10)
+    assert_allclose(got, np.cov(kept), rtol=1e-10)
+    assert_allclose(got_mean, kept.mean(axis=1), rtol=1e-10)
+    # The affine term preserves the mean of the internal subspace
+    S, _, _, n_use_in = compute_maxwell_basis(raw.info, coord_frame="head")
+    c = S[:, :n_use_in] @ rng.standard_normal(n_use_in)
+    c *= 1e-14 / np.std(c)
+    raw_offset = raw.copy()
+    raw_offset._data += c[:, np.newaxis]
+    fos_offset = (
+        maxwell_filter(raw_offset, coord_frame="head", noise_cov=noise_cov).get_data()
+        - fos
+    )
+    assert_allclose(fos_offset.mean(axis=1), c, rtol=0.05, atol=1e-25)
+    # The affine term is also applied with interpolated movement operators
+    fos_move = maxwell_filter(
+        raw,
+        coord_frame="head",
+        head_pos=read_head_pos(pos_fname),
+        noise_cov=noise_cov,
+    )
+    assert np.isfinite(fos_move.get_data()).all()
     # Input validation
     with pytest.raises(NotImplementedError, match="st_duration"):
         maxwell_filter(raw, noise_cov=noise_cov, st_duration=1.0)

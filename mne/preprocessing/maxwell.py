@@ -443,15 +443,18 @@ def maxwell_filter(
         interference that standard SSS amplifies, at the cost of damping the
         reconstructed signal. The covariance should describe sensor noise and
         interference (for example, estimated from an empty-room recording) and
-        be in the same channel space and units as ``raw``. Because the prior is
-        normalized to unit trace, the result depends on the absolute scale of
-        this covariance, and covariance projectors are not applied. If
-        ``cross_talk`` is used, the covariance is transformed into the
-        cross-talk-corrected space. Segments annotated as
+        be in the same channel space and units as ``raw``. The moment prior is
+        estimated from the data covariance, de-biased with this covariance,
+        and normalized to unit trace; the result therefore depends on the
+        absolute scale of this covariance, and covariance projectors are not
+        applied. The affine estimator also preserves a constant offset in the
+        reconstructed subspace. If ``cross_talk`` is used, both covariances
+        are transformed into the cross-talk-corrected space. Segments annotated as
         ``skip_by_annotation`` are excluded when estimating the data
-        covariance. If ``None`` (default), the standard least-squares
-        pseudoinverse is used. Not supported with spatiotemporal SSS
-        (``st_duration``).
+        covariance. Only the internal SSS subspace is used; for an empty-room
+        covariance the full basis may be preferable but is not supported yet.
+        If ``None`` (default), the standard least-squares pseudoinverse is
+        used. Not supported with spatiotemporal SSS (``st_duration``).
 
         .. versionadded:: 1.14
     verbose : bool | str | int | None
@@ -798,11 +801,11 @@ def _prep_maxwell_filter(
         if ctc_good is not None:
             noise_data = np.asarray(ctc_good @ noise_data @ ctc_good.T)
         # Prior over the internal moments comes from the data covariance
-        data_cov = _compute_data_cov(
+        data_cov, data_mean = _compute_data_cov(
             raw, meg_picks[good_mask], ctc_good, skip_by_annotation
         )
     else:
-        noise_data = data_cov = None
+        noise_data = data_cov = data_mean = None
 
     #
     # Translate to destination frame (always use non-fine-cal bases)
@@ -884,6 +887,7 @@ def _prep_maxwell_filter(
         mult=mult,
         noise_cov=noise_data,
         data_cov=data_cov,
+        mean_data=data_mean,
     )
     update_kwargs.update(
         nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans
@@ -1085,27 +1089,43 @@ class _MoveComp:
         idx = np.where(self.pos[1] == offset)[0][0]
         dev_head_t = self.pos[0][idx]
         t = offset / self.sfreq
-        S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in = self.get_decomp(
-            dev_head_t, t=t
-        )
+        (
+            S_decomp,
+            S_decomp_full,
+            pS_decomp,
+            reg_moments,
+            n_use_in,
+            mean_moments,
+        ) = self.get_decomp(dev_head_t, t=t)
         S_recon_reg = self.S_recon.take(reg_moments[:n_use_in], axis=1)
         if self.reconstruct == "orig":
             op_sss = np.dot(S_decomp_full, pS_decomp)
+            if mean_moments is not None:
+                b = mean_moments - pS_decomp @ S_decomp @ mean_moments
+                affine = S_decomp_full @ b
+            else:
+                affine = None
         else:
             assert self.reconstruct == "in"
             op_sss = np.dot(S_recon_reg, pS_decomp[:n_use_in])
+            if mean_moments is not None:
+                mean_in = mean_moments[:n_use_in]
+                b = mean_in - pS_decomp[:n_use_in] @ S_decomp[:, :n_use_in] @ mean_in
+                affine = S_recon_reg @ b
+            else:
+                affine = None
         assert op_sss.shape[1] == self.n_good
         op_in = np.dot(S_decomp[:, :n_use_in], pS_decomp[:n_use_in])
         op_resid = np.eye(S_decomp.shape[0]) - op_in
         op_resid -= np.dot(S_decomp[:, n_use_in:], pS_decomp[n_use_in:])
-        return op_sss, op_in, op_resid
+        return op_sss, op_in, op_resid, affine
 
     def initialize(self, get_decomp, dev_head_t, S_recon):
         """Secondary initialization.
 
         Call :meth:`set_offset` before feeding data.
         """
-        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
+        _, _, pS_decomp, self.reg_moments_0, _, _ = get_decomp(dev_head_t, t=0.0)
         self.n_good = pS_decomp.shape[1]
         self.S_recon = S_recon
         self.get_decomp = get_decomp
@@ -1144,7 +1164,7 @@ class _MoveComp:
                     [[0.0, 0.0, 0.0, 1.0]],
                 ]
             )
-            S_decomp_st, _, pS_decomp_st, _, n_use_in_st = self.get_decomp(
+            S_decomp_st, _, pS_decomp_st, _, n_use_in_st, _ = self.get_decomp(
                 avg_trans, t=start / self.sfreq
             )
             self.op_in_avg = np.dot(
@@ -1169,7 +1189,7 @@ class _MoveComp:
         in_data = resid_data = None
         for sl, left, right, l_interp in self.smooth.feed_generator(n_samp):
             good_data = data[good_mask, sl]
-            l_sss, l_in, l_resid = left
+            l_sss, l_in, l_resid, l_affine = left
             assert l_sss.shape[1] == good_data.shape[0]
             if in_data is None:
                 in_data = np.empty((l_in.shape[0], data.shape[1]))
@@ -1177,9 +1197,14 @@ class _MoveComp:
             r_interp = 1.0 - l_interp if l_interp is not None else None
             if not st_only:
                 data[:, sl] = np.dot(l_sss, good_data)
+                if l_affine is not None:
+                    data[:, sl] += l_affine[:, np.newaxis]
                 if l_interp is not None:
                     data[:, sl] *= l_interp
-                    data[:, sl] += r_interp * np.dot(right[0], good_data)
+                    right_data = np.dot(right[0], good_data)
+                    if l_affine is not None:
+                        right_data += right[3][:, np.newaxis]
+                    data[:, sl] += r_interp * right_data
 
             # Reconstruct data using original location from external
             # and internal spaces and compute residual
@@ -1270,7 +1295,7 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
 
 
 def _compute_data_cov(raw, picks, ctc, skip_by_annotation):
-    """Estimate the data covariance in chunks, excluding annotations."""
+    """Estimate the data covariance and mean in chunks, excluding annotations."""
     sfreq = raw.info["sfreq"]
     step = max(int(round(10.0 * sfreq)), 1)
     onsets, ends = _annotations_starts_stops(raw, skip_by_annotation, invert=True)
@@ -1295,7 +1320,9 @@ def _compute_data_cov(raw, picks, ctc, skip_by_annotation):
             "because too little data remained after excluding "
             f"{skip_by_annotation} annotations."
         )
-    return (total_sq - np.outer(total, total) / n_samples) / (n_samples - 1)
+    mean = total / n_samples
+    cov = (total_sq - np.outer(total, total) / n_samples) / (n_samples - 1)
+    return cov, mean
 
 
 def _get_sensor_operator(raw, meg_picks):
@@ -1589,6 +1616,7 @@ def _get_decomp(
     mult,
     noise_cov=None,
     data_cov=None,
+    mean_data=None,
 ):
     """Get a decomposition matrix and pseudoinverse matrices."""
     #
@@ -1670,12 +1698,15 @@ def _get_decomp(
     assert pS_decomp.shape[1] == S_decomp.shape[0] == good_mask.sum()
 
     # Replace the internal pseudoinverse with Foster's inverse
+    mean_moments = None
     if noise_cov is not None:
+        if mean_data is not None:
+            mean_moments = pS_decomp @ mean_data
         S_in = S_decomp[:, :n_use_in]
         pS_in = pS_decomp[:n_use_in]
         moments_cov = pS_in @ data_cov @ pS_in.T
         pS_decomp[:n_use_in] = _foster_inverse(S_in, noise_cov, moments_cov, pS_in)
-    return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in
+    return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in, mean_moments
 
 
 def _foster_inverse(S_in, N, moments_cov, pS_in):
@@ -1697,6 +1728,14 @@ def _foster_inverse(S_in, N, moments_cov, pS_in):
     -------
     B : ndarray, shape (n_use_in, n_good_meg)
         The noise-weighted pseudoinverse.
+
+    Notes
+    -----
+    The prior is de-biased by removing the sensor-noise contribution
+    ``pS_in @ N @ pS_in.T`` and projected onto the positive semidefinite
+    cone. It is then normalized to unit trace, which makes the estimator
+    independent of the overall prior scale while keeping the relative
+    weighting by ``N`` meaningful.
     """
     # De-bias the moments covariance and project it to the PSD cone
     X = (moments_cov + moments_cov.T) / 2 - pS_in @ N @ pS_in.T
@@ -3548,7 +3587,7 @@ def compute_maxwell_basis(
         mag_scale=mag_scale,
         extended_proj=extended_proj,
     )
-    _, S_decomp_full, pS_decomp, reg_moments, n_use_in = params[
+    _, S_decomp_full, pS_decomp, reg_moments, n_use_in, _ = params[
         "_get_this_decomp_trans"
     ](info["dev_head_t"], t=0.0)
     return S_decomp_full, pS_decomp, reg_moments, n_use_in
