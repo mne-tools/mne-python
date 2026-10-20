@@ -1300,6 +1300,62 @@ def test_invalid_set_meas_date():
         info.set_meas_date("2025-01-01 00:00:00.000000")
 
 
+def test_set_meas_date_timezone(tmp_path):
+    """Test set_meas_date with timezone-aware datetime and utc_offset (#9953)."""
+    from datetime import datetime, timedelta, timezone
+
+    info = create_info(1, 1000, "eeg")
+
+    # Timezone-naive datetime should raise ValueError
+    naive_dt = datetime(2021, 11, 4, 11, 50, 49)
+    with pytest.raises(ValueError, match="timezone-aware"):
+        info.set_meas_date(naive_dt)
+
+    # Positive UTC offset (e.g. Europe/Berlin +02:00)
+    tz_plus2 = timezone(timedelta(hours=2))
+    dt_plus2 = datetime(2021, 11, 4, 11, 50, 49, 123456, tzinfo=tz_plus2)
+    info.set_meas_date(dt_plus2)
+    assert info["utc_offset"] == "+02:00"
+    expected_utc = datetime(2021, 11, 4, 9, 50, 49, 123456, tzinfo=UTC)
+    assert info["meas_date"] == expected_utc
+
+    # Negative UTC offset (e.g. America/New_York -05:00)
+    tz_minus5 = timezone(timedelta(hours=-5))
+    dt_minus5 = datetime(2021, 11, 4, 6, 30, 0, tzinfo=tz_minus5)
+    info.set_meas_date(dt_minus5)
+    assert info["utc_offset"] == "-05:00"
+    assert info["meas_date"] == datetime(2021, 11, 4, 11, 30, 0, tzinfo=UTC)
+
+    # UTC datetime should clear / not set utc_offset
+    dt_utc = datetime(2021, 11, 4, 11, 50, 49, tzinfo=UTC)
+    info.set_meas_date(dt_utc)
+    assert info["utc_offset"] is None
+    assert info["meas_date"] == dt_utc
+
+    # None should clear both
+    info.set_meas_date(None)
+    assert info["meas_date"] is None
+    assert info["utc_offset"] is None
+
+    # Test RawArray set_meas_date and FIFF I/O round-trip
+    from ...io import RawArray, read_raw_fif
+
+    raw = RawArray(np.zeros((1, 100)), create_info(1, 1000, "eeg"))
+    raw.set_meas_date(dt_plus2)
+    assert raw.info["utc_offset"] == "+02:00"
+    assert raw.info["meas_date"] == expected_utc
+
+    fname = tmp_path / "test_raw.fif"
+    raw.save(fname, overwrite=True)
+    raw_loaded = read_raw_fif(fname)
+    assert raw_loaded.info["utc_offset"] == "+02:00"
+    assert raw_loaded.info["meas_date"] == expected_utc
+
+    # Anonymization should clear utc_offset
+    raw_loaded.anonymize()
+    assert raw_loaded.info["utc_offset"] is None
+
+
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
     "fname",

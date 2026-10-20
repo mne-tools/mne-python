@@ -1935,14 +1935,24 @@ def _handle_meas_date(meas_date):
     if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = "%Y-%m-%d %H:%M:%S.%f"
         try:
-            meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+            dt = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+            meas_date = dt.replace(tzinfo=UTC)
         except ValueError:
-            meas_date = None
-        else:
-            meas_date = meas_date.replace(tzinfo=UTC)
+            try:
+                dt = datetime.strptime(meas_date, "%Y-%m-%d %H:%M:%S.%f%z")
+                meas_date = dt.astimezone(UTC)
+            except ValueError:
+                meas_date = None
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
+    elif isinstance(meas_date, datetime):
+        # Non-UTC timezone-aware datetimes are converted to UTC for internal storage
+        if meas_date.tzinfo is None:
+            raise ValueError(
+                f"Date must be a timezone-aware datetime object: {repr(meas_date)}"
+            )
+        meas_date = meas_date.astimezone(UTC)
     elif np.isscalar(meas_date):
         # It would be nice just to do:
         #

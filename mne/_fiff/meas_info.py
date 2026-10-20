@@ -1063,7 +1063,9 @@ class SetChannelsMixin(MontageMixin):
         ----------
         meas_date : datetime | float | tuple | None
             The new measurement date.
-            If datetime object, it must be timezone-aware and in UTC.
+            If datetime object, it must be timezone-aware. If not in UTC,
+            it will be converted to UTC and ``info['utc_offset']`` will be
+            set accordingly.
             A tuple of (seconds, microseconds) or float (alias for
             ``(meas_date, 0)``) can also be passed and a datetime
             object will be automatically created. If None, will remove
@@ -1094,9 +1096,21 @@ class SetChannelsMixin(MontageMixin):
 
         info = _get_info_or_self(self)
 
+        # Determine UTC offset string (sHH:MM) if non-UTC timezone-aware datetime
+        utc_offset = None
+        if isinstance(meas_date, datetime.datetime) and meas_date.tzinfo is not None:
+            offset = meas_date.utcoffset()
+            if offset is not None and offset != datetime.timedelta(0):
+                total_seconds = int(offset.total_seconds())
+                sign = "+" if total_seconds >= 0 else "-"
+                total_seconds = abs(total_seconds)
+                hours, minutes = divmod(total_seconds // 60, 60)
+                utc_offset = f"{sign}{hours:02d}:{minutes:02d}"
+
         meas_date = _handle_meas_date(meas_date)
         with info._unlock():
             info["meas_date"] = meas_date
+            info["utc_offset"] = utc_offset
 
         # clear file_id and meas_id if needed
         if meas_date is None:
