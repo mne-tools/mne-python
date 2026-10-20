@@ -441,7 +441,15 @@ def maxwell_filter(
         basis (see :footcite:`McPherson2026`). This is intended for data with
         noisy sensors (e.g., OPM-MEG), where it can suppress low-frequency
         interference that standard SSS amplifies, at the cost of damping the
-        reconstructed signal. If ``None`` (default), the standard least-squares
+        reconstructed signal. The covariance should describe sensor noise and
+        interference (for example, estimated from an empty-room recording) and
+        be in the same channel space and units as ``raw``. Because the prior is
+        normalized to unit trace, the result depends on the absolute scale of
+        this covariance, and covariance projectors are not applied. If
+        ``cross_talk`` is used, the covariance is transformed into the
+        cross-talk-corrected space. Segments annotated as
+        ``skip_by_annotation`` are excluded when estimating the data
+        covariance. If ``None`` (default), the standard least-squares
         pseudoinverse is used. Not supported with spatiotemporal SSS
         (``st_duration``).
 
@@ -713,19 +721,7 @@ def _prep_maxwell_filter(
         meg_picks, mag_picks, grad_picks, mag_scale, info
     )
 
-    #
-    # Noise covariance for Foster's inverse
-    #
     good_names = [info["ch_names"][c] for c in meg_picks[good_mask]]
-    if noise_cov is not None:
-        noise_cov = pick_channels_cov(
-            noise_cov, good_names, exclude=[], ordered=True, copy=True
-        )
-        noise_data = np.asarray(noise_cov["data"])
-        # Prior over the internal moments comes from the data covariance
-        data_cov = np.cov(raw.get_data(picks=meg_picks[good_mask]))
-    else:
-        noise_data = data_cov = None
 
     #
     # Extended projection vectors
@@ -788,6 +784,25 @@ def _prep_maxwell_filter(
     ctc, sss_ctc = _read_cross_talk(cross_talk, meg_ch_names)
     update_kwargs["sss_ctc"] = sss_ctc
     del sss_ctc
+
+    #
+    # Noise covariance for Foster's inverse
+    #
+    if noise_cov is not None:
+        noise_cov = pick_channels_cov(
+            noise_cov, good_names, exclude=[], ordered=True, copy=True
+        )
+        noise_data = np.asarray(noise_cov["data"])
+        # SSS is applied to cross-talk-corrected data
+        ctc_good = None if ctc is None else ctc[good_mask][:, good_mask]
+        if ctc_good is not None:
+            noise_data = np.asarray(ctc_good @ noise_data @ ctc_good.T)
+        # Prior over the internal moments comes from the data covariance
+        data_cov = _compute_data_cov(
+            raw, meg_picks[good_mask], ctc_good, skip_by_annotation
+        )
+    else:
+        noise_data = data_cov = None
 
     #
     # Translate to destination frame (always use non-fine-cal bases)
@@ -1252,6 +1267,35 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = mag_scale
     return coil_scale, mag_scale
+
+
+def _compute_data_cov(raw, picks, ctc, skip_by_annotation):
+    """Estimate the data covariance in chunks, excluding annotations."""
+    sfreq = raw.info["sfreq"]
+    step = max(int(round(10.0 * sfreq)), 1)
+    onsets, ends = _annotations_starts_stops(raw, skip_by_annotation, invert=True)
+    n_ch = len(picks)
+    total = np.zeros(n_ch)
+    total_sq = np.zeros((n_ch, n_ch))
+    n_samples = 0
+    for onset, end in zip(onsets, ends):
+        for start in range(onset, end, step):
+            stop = min(start + step, end)
+            data = raw.get_data(picks=picks, start=start, stop=stop)
+            if data.shape[1] == 0:
+                continue
+            if ctc is not None:
+                data = ctc @ data
+            total += data.sum(axis=1)
+            total_sq += data @ data.T
+            n_samples += data.shape[1]
+    if n_samples < 2:
+        raise ValueError(
+            "Could not estimate the data covariance for the Foster's inverse "
+            "because too little data remained after excluding "
+            f"{skip_by_annotation} annotations."
+        )
+    return (total_sq - np.outer(total, total) / n_samples) / (n_samples - 1)
 
 
 def _get_sensor_operator(raw, meg_picks):
