@@ -17,7 +17,7 @@ from .. import __version__
 from .._fiff.compensator import make_compensator
 from .._fiff.constants import FIFF, FWD
 from .._fiff.meas_info import Info, _simplify_info
-from .._fiff.pick import pick_info, pick_types
+from .._fiff.pick import pick_channels_cov, pick_info, pick_types
 from .._fiff.proc_history import _read_ctc
 from .._fiff.proj import Projection
 from .._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
@@ -26,6 +26,7 @@ from .._ola import _COLA, _Interp2, _Storer
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
+from ..cov import Covariance
 from ..fixes import _safe_svd, sph_harm_y
 from ..forward import _concatenate_coils, _create_meg_coils, _prep_meg_channels
 from ..io import BaseRaw, RawArray
@@ -263,6 +264,7 @@ def maxwell_filter(
     extended_proj=(),
     st_overlap=True,
     mc_interp="hann",
+    noise_cov=None,
     verbose=None,
 ):
     """Maxwell filter data using multipole moments.
@@ -433,6 +435,17 @@ def maxwell_filter(
         "linear", or "hann" (default in 1.11).
 
         .. versionadded:: 1.10
+    noise_cov : instance of Covariance | None
+        Noise covariance used to estimate the internal multipole moments with
+        Foster's inverse, a noise-weighted pseudoinverse of the internal SSS
+        basis (see :footcite:`McPherson2026`). This is intended for data with
+        noisy sensors (e.g., OPM-MEG), where it can suppress low-frequency
+        interference that standard SSS amplifies, at the cost of damping the
+        reconstructed signal. If ``None`` (default), the standard least-squares
+        pseudoinverse is used. Not supported with spatiotemporal SSS
+        (``st_duration``).
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -576,6 +589,7 @@ def maxwell_filter(
         extended_proj=extended_proj,
         st_overlap=st_overlap,
         mc_interp=mc_interp,
+        noise_cov=noise_cov,
     )
     raw_sss = _run_maxwell_filter(raw, **params)
     # Update info
@@ -608,6 +622,7 @@ def _prep_maxwell_filter(
     reconstruct="in",
     st_overlap=True,
     mc_interp="hann",
+    noise_cov=None,
     verbose=None,
 ):
     # There are an absurd number of different possible notations for spherical
@@ -635,6 +650,12 @@ def _prep_maxwell_filter(
     _check_option(
         "bad_condition", bad_condition, ["error", "warning", "ignore", "info"]
     )
+    _validate_type(noise_cov, (Covariance, None), "noise_cov", "Covariance or None")
+    if noise_cov is not None and st_duration is not None:
+        raise NotImplementedError(
+            "noise_cov (Foster's inverse) is not supported together with "
+            "spatiotemporal SSS (st_duration)"
+        )
     if raw.info["dev_head_t"] is None and coord_frame == "head":
         raise RuntimeError(
             'coord_frame cannot be "head" because '
@@ -693,10 +714,23 @@ def _prep_maxwell_filter(
     )
 
     #
+    # Noise covariance for Foster's inverse
+    #
+    good_names = [info["ch_names"][c] for c in meg_picks[good_mask]]
+    if noise_cov is not None:
+        noise_cov = pick_channels_cov(
+            noise_cov, good_names, exclude=[], ordered=True, copy=True
+        )
+        noise_data = np.asarray(noise_cov["data"])
+        # Prior over the internal moments comes from the data covariance
+        data_cov = np.cov(raw.get_data(picks=meg_picks[good_mask]))
+    else:
+        noise_data = data_cov = None
+
+    #
     # Extended projection vectors
     #
     _validate_type(extended_proj, (list, tuple), "extended_proj")
-    good_names = [info["ch_names"][c] for c in meg_picks[good_mask]]
     if len(extended_proj) > 0:
         extended_proj_ = list()
         for pi, proj in enumerate(extended_proj):
@@ -833,6 +867,8 @@ def _prep_maxwell_filter(
         bad_condition=bad_condition,
         mag_scale=mag_scale,
         mult=mult,
+        noise_cov=noise_data,
+        data_cov=data_cov,
     )
     update_kwargs.update(
         nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans
@@ -1507,6 +1543,8 @@ def _get_decomp(
     t,
     mag_scale,
     mult,
+    noise_cov=None,
+    data_cov=None,
 ):
     """Get a decomposition matrix and pseudoinverse matrices."""
     #
@@ -1586,7 +1624,49 @@ def _get_decomp(
     S_decomp /= coil_scale[good_mask]
     S_decomp_full /= coil_scale
     assert pS_decomp.shape[1] == S_decomp.shape[0] == good_mask.sum()
+
+    # Replace the internal pseudoinverse with Foster's inverse
+    if noise_cov is not None:
+        S_in = S_decomp[:, :n_use_in]
+        pS_in = pS_decomp[:n_use_in]
+        moments_cov = pS_in @ data_cov @ pS_in.T
+        pS_decomp[:n_use_in] = _foster_inverse(S_in, noise_cov, moments_cov, pS_in)
     return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in
+
+
+def _foster_inverse(S_in, N, moments_cov, pS_in):
+    """Compute Foster's noise-weighted pseudoinverse of the internal basis.
+
+    Parameters
+    ----------
+    S_in : ndarray, shape (n_good_meg, n_use_in)
+        Internal basis mapping moments to (scaled) sensor data.
+    N : ndarray, shape (n_good_meg, n_good_meg)
+        Sensor noise covariance.
+    moments_cov : ndarray, shape (n_use_in, n_use_in)
+        Covariance of the least-squares internal moment estimate.
+    pS_in : ndarray, shape (n_use_in, n_good_meg)
+        Least-squares pseudoinverse of ``S_in``, used to remove the noise
+        contribution from ``moments_cov``.
+
+    Returns
+    -------
+    B : ndarray, shape (n_use_in, n_good_meg)
+        The noise-weighted pseudoinverse.
+    """
+    # De-bias the moments covariance and project it to the PSD cone
+    X = (moments_cov + moments_cov.T) / 2 - pS_in @ N @ pS_in.T
+    eigenvalues, eigenvectors = linalg.eigh((X + X.T) / 2)
+    X = (eigenvectors * np.clip(eigenvalues, 0, None)) @ eigenvectors.T
+    trace = np.trace(X)
+    if not np.isfinite(trace) or trace <= 0:
+        raise ValueError(
+            "The Foster's inverse moment prior is degenerate (trace <= 0); the "
+            "noise covariance is too large relative to the data covariance. "
+            "Consider using a smaller noise covariance."
+        )
+    A = X / trace
+    return A @ S_in.T @ linalg.pinv(S_in @ A @ S_in.T + N, check_finite=False)
 
 
 def _get_s_decomp(
