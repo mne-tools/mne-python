@@ -35,7 +35,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cached-property-2.0.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cached_property-2.0.1-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/certifi-2026.7.22-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/certifi-2026.10.19-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cfgv-3.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/charset-normalizer-3.5.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/click-8.5.0-pyh5ded981_0.conda
@@ -592,7 +592,7 @@ packages:
   license: BSD-2-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/appnope?source=compressed-mapping
+  - pkg:pypi/appnope?source=hash-mapping
   size: 12232
   timestamp: 1787337124448
 - conda: https://conda.anaconda.org/conda-forge/noarch/argon2-cffi-25.1.0-pyhd8ed1ab_0.conda
@@ -768,16 +768,17 @@ packages:
   - pkg:pypi/cached-property?source=compressed-mapping
   size: 16597
   timestamp: 1787678456483
-- conda: https://conda.anaconda.org/conda-forge/noarch/certifi-2026.7.22-pyhd8ed1ab_0.conda
-  sha256: fb167de4388e64e52aa3907ed099afab944c1fa6e5f74b281a312dae1bcf7f3b
-  md5: 37e13edbe3b48f1095a9d085ef9cd83b
+- conda: https://conda.anaconda.org/conda-forge/noarch/certifi-2026.10.19-pyhd8ed1ab_0.conda
+  sha256: ee3bca803cac13760131b6147e2fe60c97e769978e7542d678842b65e285d239
+  md5: 94480ec10238da5dd5659ae0b933634b
   depends:
-  - python >=3.10
+  - python >=3.11
   license: ISC
   purls:
-  - pkg:pypi/certifi?source=hash-mapping
-  size: 137015
-  timestamp: 1784717699092
+  - pkg:pypi/certifi?source=compressed-mapping
+  run_exports: {}
+  size: 136752
+  timestamp: 1792488039424
 - conda: https://conda.anaconda.org/conda-forge/noarch/cfgv-3.5.0-pyhd8ed1ab_0.conda
   sha256: aa589352e61bb221351a79e5946d56916e3c595783994884accdb3b97fe9d449
   md5: 381bd45fb7aa032691f3063aff47e3a1
@@ -1356,7 +1357,7 @@ packages:
   license: BSD-2-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/imageio?source=compressed-mapping
+  - pkg:pypi/imageio?source=hash-mapping
   size: 310465
   timestamp: 1788865642221
 - conda: https://conda.anaconda.org/conda-forge/noarch/imageio-ffmpeg-0.6.0-pyhd8ed1ab_0.conda
@@ -2463,7 +2464,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/pre-commit?source=compressed-mapping
+  - pkg:pypi/pre-commit?source=hash-mapping
   size: 201879
   timestamp: 1786408353117
 - conda: https://conda.anaconda.org/conda-forge/noarch/prometheus_client-0.26.0-pyhd8ed1ab_0.conda
@@ -2845,7 +2846,7 @@ packages:
   license: BSD-3-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/pyvista-js
+  - pkg:pypi/pyvista-js?source=compressed-mapping
   size: 75842
   timestamp: 1789142404852
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-validation-0.2.2-pyh5ded981_0.conda
@@ -2859,7 +2860,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/pyvista-validation
+  - pkg:pypi/pyvista-validation?source=compressed-mapping
   size: 40640
   timestamp: 1789614540757
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyvistaqt-0.13.1-pyhd8ed1ab_0.conda

@@ -30,9 +30,9 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/77/f5/21d2de20e8b8b04
 
 [[packages]]
 name = "certifi"
-version = "2026.1.4"
-sdist = { url = "https://files.pythonhosted.org/packages/e0/2d/a891ca51311197f6ad14a7ef42e2399f36cf2f9bd44752b3dc4eab60fdc5/certifi-2026.1.4.tar.gz", upload-time = 2026-01-04T02:42:41Z, size = 154268, hashes = { sha256 = "ac726dd470482006e014ad384921ed6438c457018f4b3d204aea4281258b2120" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/e6/ad/3cc14f097111b4de0040c83a525973216457bbeeb63739ef1ed275c1c021/certifi-2026.1.4-py3-none-any.whl", upload-time = 2026-01-04T02:42:40Z, size = 152900, hashes = { sha256 = "9943707519e4add1115f44c2bc244f782c0249876bf51b6599fee1ffbedd685c" } }]
+version = "2026.10.18"
+sdist = { url = "https://files.pythonhosted.org/packages/7e/eb/a2aa1ac3ea30dd3f30ca57f40232138b6b0040719316ecb85daf61167771/certifi-2026.10.18.tar.gz", upload-time = 2026-10-18T16:21:07Z, size = 135227, hashes = { sha256 = "b9995d97b64d0431a5af837d8ca8cd6238104d1f319f04bd93ea43124d6c861e" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/08/ba/95dd616042484f7c83a06974388b37b837732740ee70bc5dc715b5fcd55a/certifi-2026.10.18-py3-none-any.whl", upload-time = 2026-10-18T16:21:06Z, size = 134093, hashes = { sha256 = "73191c47aaa79da394e8fee2dbc2ec827432cab56311122c9e47abf79e390f62" } }]
 
 [[packages]]
 name = "charset-normalizer"
