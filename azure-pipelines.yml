@@ -252,9 +252,13 @@ stages:
               restoreKeys: '"uv" | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(TEST_MODE)"'
               path: $(UV_CACHE_DIR)
             displayName: Cache uv
+            continueOnError: true  # saving can run out of disk space on a cache miss
           - bash: ./tools/azure_dependencies.sh
             displayName: Install dependencies
-          - script: uv pip install --only-binary=":all:" --no-binary=mne -e .
+          - bash: |
+              set -xeo pipefail
+              uv pip install --only-binary=":all:" --no-binary=mne -e .
+              uv cache prune --ci  # keep the saved cache small
             displayName: Install mne
           - script: mne sys_info -pd
             displayName: Print config
