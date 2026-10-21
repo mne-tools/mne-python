@@ -475,10 +475,7 @@ class Xdawn(XdawnTransformer):
 
         filters = [filt[: self.n_components] for filt in self.filters_.values()]
         filters = np.concatenate(filters, axis=0)
-        X = np.dot(filters, X)
-        if X.ndim == 3:
-            X = X.transpose((1, 0, 2))
-        return X
+        return filters @ X
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.
