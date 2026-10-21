@@ -1850,7 +1850,7 @@ class _QtWindow(_AbstractWindow):
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
         # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
         # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
-        # plotter.ren_win:    vtkXOpenGLRenderWindow
+        # plotter.render_window: vtkXOpenGLRenderWindow
         self._interactor.setMinimumSize(*sz)
         if adjust_mpl:
             mpl_h = int(
