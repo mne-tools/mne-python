@@ -2614,6 +2614,11 @@ def events_from_annotations(
           - Other raw formats: Behaves like None.
 
           .. versionadded:: 0.18
+
+        Several descriptions may map to the same event code (e.g., to merge
+        conditions), but the returned ``event_id`` then cannot be passed to
+        :class:`~mne.Epochs` as-is, because it requires each event code to map to
+        exactly one name.
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match. The default ignores descriptions beginning

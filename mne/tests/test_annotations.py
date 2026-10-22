@@ -969,6 +969,8 @@ def test_event_id_function_using_custom_function():
 
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
+    with pytest.raises(ValueError, match=r"same event code \(42: \['a', 'b'"):
+        Epochs(raw, events, event_id)
 
 
 # Test for IO with .csv files
