@@ -1943,17 +1943,17 @@ def _handle_meas_date(meas_date):
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
+    elif np.isscalar(meas_date):
+        # It would be nice just to do:
+        #
+        #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+        #
+        # But Windows does not like timestamps < 0. So we'll use
+        # our specialized wrapper instead:
+        meas_date = np.array(np.modf(meas_date)[::-1])
+        meas_date *= [1, 1e6]
+        meas_date = _stamp_to_dt(np.round(meas_date))
     if meas_date is not None:
-        if np.isscalar(meas_date):
-            # It would be nice just to do:
-            #
-            #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
-            #
-            # But Windows does not like timestamps < 0. So we'll use
-            # our specialized wrapper instead:
-            meas_date = np.array(np.modf(meas_date)[::-1])
-            meas_date *= [1, 1e6]
-            meas_date = _stamp_to_dt(np.round(meas_date))
         _check_dt(meas_date)  # run checks
     return meas_date
 

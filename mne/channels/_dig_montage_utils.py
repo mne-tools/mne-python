@@ -69,7 +69,9 @@ def _read_dig_montage_egi(
 
 def _parse_brainvision_dig_montage(fname, scale):
     FID_NAME_MAP = {"Nasion": "nasion", "RPA": "rpa", "LPA": "lpa"}
-    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    _soft_import("defusedxml", "reading BrainVision montages")
+    import defusedxml.ElementTree
+
     root = defusedxml.ElementTree.parse(fname).getroot()
     sensors = root.find("CapTrakElectrodeList")
 

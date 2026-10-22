@@ -174,6 +174,12 @@ def test_muscle_annotation(meas_date, events):
     onset = onset.astype(int)
     assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
     assert annot_muscle.duration.size == 2
+    # Bad channels are excluded
+    raw.info["bads"] = ["MEG0111"]
+    _, scores_bads = annotate_muscle_zscore(raw, ch_type="mag", threshold=10)
+    raw_drop = raw.copy().drop_channels(raw.info["bads"])
+    _, scores_drop = annotate_muscle_zscore(raw_drop, ch_type="mag", threshold=10)
+    assert_allclose(scores_bads, scores_drop)
     raw.set_annotations(annot_muscle)
 
 
