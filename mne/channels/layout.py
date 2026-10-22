@@ -1244,12 +1244,11 @@ def _merge_opm_data(data, merged_names):
         Data for channels with requested channels merged. Channels used in the
         merge are removed from the array.
     """
-    to_remove = np.empty(0, dtype=np.int32)
-    for idx, ch in enumerate(merged_names):
-        if ch.endswith("MERGE-REMOVE"):
-            to_remove = np.append(to_remove, idx)
-    to_remove = np.unique(to_remove)
-    for rem in sorted(to_remove, reverse=True):
+    to_remove = np.array(
+        [idx for idx, ch in enumerate(merged_names) if ch.endswith("MERGE-REMOVE")],
+        dtype=int,
+    )
+    for rem in to_remove[::-1]:
         del merged_names[rem]
     data = np.delete(data, to_remove, axis=0)
     return data, merged_names

@@ -1537,7 +1537,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
     m_obs = np.dot(centered_points, tangent_u)
     # find principal eigendirection
     m_cov = np.dot(m_obs.T, m_obs)
-    w, vr = linalg.eig(m_cov)
+    w, vr = linalg.eigh(m_cov)
     i = np.argmax(w)
     eigendir = vr[:, i]
     # project back into 3d space
