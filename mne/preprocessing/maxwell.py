@@ -436,25 +436,21 @@ def maxwell_filter(
 
         .. versionadded:: 1.10
     noise_cov : instance of Covariance | None
-        Noise covariance used to estimate the internal multipole moments with
-        Foster's inverse, a noise-weighted pseudoinverse of the internal SSS
-        basis (see :footcite:`McPherson2026`). This is intended for data with
-        noisy sensors (e.g., OPM-MEG), where it can suppress low-frequency
-        interference that standard SSS amplifies, at the cost of damping the
-        reconstructed signal. The covariance should describe sensor noise and
-        interference (for example, estimated from an empty-room recording) and
-        be in the same channel space and units as ``raw``. The moment prior is
-        estimated from the data covariance, de-biased with this covariance,
-        and normalized to unit trace; the result therefore depends on the
-        absolute scale of this covariance, and covariance projectors are not
-        applied. The affine estimator also preserves a constant offset in the
-        reconstructed subspace. If ``cross_talk`` is used, both covariances
-        are transformed into the cross-talk-corrected space. Segments annotated as
-        ``skip_by_annotation`` are excluded when estimating the data
-        covariance. Only the internal SSS subspace is used; for an empty-room
-        covariance the full basis may be preferable but is not supported yet.
-        If ``None`` (default), the standard least-squares pseudoinverse is
-        used. Not supported with spatiotemporal SSS (``st_duration``).
+        Sensor noise covariance used to estimate the internal multipole moments
+        with Foster's inverse :footcite:`McPherson2026`, a noise-weighted
+        alternative to the pseudoinverse of the SSS basis that can reduce the
+        spread of sensor noise and artifacts across channels and suppress
+        low-frequency fields in OPM recordings. The prior covariance of the
+        multipole moments is estimated from the data (excluding segments
+        annotated with ``skip_by_annotation``). Only the internal basis is used,
+        so the covariance should capture sensor noise and external interference
+        but not brain activity, e.g., by using
+        :func:`~mne.compute_raw_covariance` on an empty-room recording or a
+        baseline period before stimulation. Bad channels should still be
+        marked, especially ones that are flat in the data used to compute the
+        covariance, as these are treated as noise-free. If ``None`` (default),
+        the standard pseudoinverse is used. Not supported with spatiotemporal
+        SSS (``st_duration``).
 
         .. versionadded:: 1.14
     verbose : bool | str | int | None
@@ -724,12 +720,11 @@ def _prep_maxwell_filter(
         meg_picks, mag_picks, grad_picks, mag_scale, info
     )
 
-    good_names = [info["ch_names"][c] for c in meg_picks[good_mask]]
-
     #
     # Extended projection vectors
     #
     _validate_type(extended_proj, (list, tuple), "extended_proj")
+    good_names = [info["ch_names"][c] for c in meg_picks[good_mask]]
     if len(extended_proj) > 0:
         extended_proj_ = list()
         for pi, proj in enumerate(extended_proj):
@@ -795,7 +790,7 @@ def _prep_maxwell_filter(
         noise_cov = pick_channels_cov(
             noise_cov, good_names, exclude=[], ordered=True, copy=True
         )
-        noise_data = np.asarray(noise_cov["data"])
+        noise_data = noise_cov._get_square()
         # SSS is applied to cross-talk-corrected data
         ctc_good = None if ctc is None else ctc[good_mask][:, good_mask]
         if ctc_good is not None:
@@ -1089,31 +1084,18 @@ class _MoveComp:
         idx = np.where(self.pos[1] == offset)[0][0]
         dev_head_t = self.pos[0][idx]
         t = offset / self.sfreq
-        (
-            S_decomp,
-            S_decomp_full,
-            pS_decomp,
-            reg_moments,
-            n_use_in,
-            mean_moments,
-        ) = self.get_decomp(dev_head_t, t=t)
+        S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in, foster_b = (
+            self.get_decomp(dev_head_t, t=t)
+        )
         S_recon_reg = self.S_recon.take(reg_moments[:n_use_in], axis=1)
         if self.reconstruct == "orig":
             op_sss = np.dot(S_decomp_full, pS_decomp)
-            if mean_moments is not None:
-                b = mean_moments - pS_decomp @ S_decomp @ mean_moments
-                affine = S_decomp_full @ b
-            else:
-                affine = None
+            S_affine = S_decomp_full[:, :n_use_in]
         else:
             assert self.reconstruct == "in"
             op_sss = np.dot(S_recon_reg, pS_decomp[:n_use_in])
-            if mean_moments is not None:
-                mean_in = mean_moments[:n_use_in]
-                b = mean_in - pS_decomp[:n_use_in] @ S_decomp[:, :n_use_in] @ mean_in
-                affine = S_recon_reg @ b
-            else:
-                affine = None
+            S_affine = S_recon_reg
+        affine = None if foster_b is None else S_affine @ foster_b
         assert op_sss.shape[1] == self.n_good
         op_in = np.dot(S_decomp[:, :n_use_in], pS_decomp[:n_use_in])
         op_resid = np.eye(S_decomp.shape[0]) - op_in
@@ -1697,59 +1679,18 @@ def _get_decomp(
     S_decomp_full /= coil_scale
     assert pS_decomp.shape[1] == S_decomp.shape[0] == good_mask.sum()
 
-    # Replace the internal pseudoinverse with Foster's inverse
-    mean_moments = None
+    # Replace the internal pseudoinverse with Foster's inverse (Eqs. 17, 18, and 20
+    # of McPherson et al.), using the covariance of the SSS moments as the prior
+    foster_b = None
     if noise_cov is not None:
-        if mean_data is not None:
-            mean_moments = pS_decomp @ mean_data
         S_in = S_decomp[:, :n_use_in]
         pS_in = pS_decomp[:n_use_in]
-        moments_cov = pS_in @ data_cov @ pS_in.T
-        pS_decomp[:n_use_in] = _foster_inverse(S_in, noise_cov, moments_cov, pS_in)
-    return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in, mean_moments
-
-
-def _foster_inverse(S_in, N, moments_cov, pS_in):
-    """Compute Foster's noise-weighted pseudoinverse of the internal basis.
-
-    Parameters
-    ----------
-    S_in : ndarray, shape (n_good_meg, n_use_in)
-        Internal basis mapping moments to (scaled) sensor data.
-    N : ndarray, shape (n_good_meg, n_good_meg)
-        Sensor noise covariance.
-    moments_cov : ndarray, shape (n_use_in, n_use_in)
-        Covariance of the least-squares internal moment estimate.
-    pS_in : ndarray, shape (n_use_in, n_good_meg)
-        Least-squares pseudoinverse of ``S_in``, used to remove the noise
-        contribution from ``moments_cov``.
-
-    Returns
-    -------
-    B : ndarray, shape (n_use_in, n_good_meg)
-        The noise-weighted pseudoinverse.
-
-    Notes
-    -----
-    The prior is de-biased by removing the sensor-noise contribution
-    ``pS_in @ N @ pS_in.T`` and projected onto the positive semidefinite
-    cone. It is then normalized to unit trace, which makes the estimator
-    independent of the overall prior scale while keeping the relative
-    weighting by ``N`` meaningful.
-    """
-    # De-bias the moments covariance and project it to the PSD cone
-    X = (moments_cov + moments_cov.T) / 2 - pS_in @ N @ pS_in.T
-    eigenvalues, eigenvectors = linalg.eigh((X + X.T) / 2)
-    X = (eigenvectors * np.clip(eigenvalues, 0, None)) @ eigenvectors.T
-    trace = np.trace(X)
-    if not np.isfinite(trace) or trace <= 0:
-        raise ValueError(
-            "The Foster's inverse moment prior is degenerate (trace <= 0); the "
-            "noise covariance is too large relative to the data covariance. "
-            "Consider using a smaller noise covariance."
-        )
-    A = X / trace
-    return A @ S_in.T @ linalg.pinv(S_in @ A @ S_in.T + N, check_finite=False)
+        X = pS_in @ data_cov @ pS_in.T
+        B = X @ S_in.T @ linalg.pinv(S_in @ X @ S_in.T + noise_cov, check_finite=False)
+        # b = <x> - B S <x>, with S <x> estimated by the data mean
+        foster_b = (pS_in - B) @ mean_data
+        pS_decomp[:n_use_in] = B
+    return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in, foster_b
 
 
 def _get_s_decomp(

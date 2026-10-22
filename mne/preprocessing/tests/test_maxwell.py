@@ -13,7 +13,15 @@ from numpy.testing import assert_allclose, assert_array_equal
 from scipy import sparse
 
 import mne
-from mne import compute_raw_covariance, concatenate_raws, pick_info, pick_types
+from mne import (
+    Covariance,
+    compute_raw_covariance,
+    concatenate_raws,
+    make_ad_hoc_cov,
+    pick_channels_cov,
+    pick_info,
+    pick_types,
+)
 from mne._fiff.constants import FIFF
 from mne.annotations import _annotations_starts_stops
 from mne.chpi import filter_chpi, read_head_pos
@@ -58,7 +66,7 @@ from mne.preprocessing.maxwell import (
     _trans_sss_basis,
 )
 from mne.rank import _compute_rank_int, _get_rank_sss, compute_rank
-from mne.time_frequency import psd_array_welch
+from mne.simulation import add_noise
 from mne.transforms import rot_to_quat
 from mne.utils import (
     _record_warnings,
@@ -708,124 +716,17 @@ def test_basic():
         maxwell_filter(raw, origin=[0] * 4)
     with pytest.raises(ValueError, match="must be a float"):
         maxwell_filter(raw, mag_scale="foo")
+    with pytest.raises(TypeError, match="Covariance"):
+        maxwell_filter(raw, noise_cov="foo")
+    noise_cov = make_ad_hoc_cov(raw.copy().pick("meg").info)
+    with pytest.raises(NotImplementedError, match="st_duration"):
+        maxwell_filter(raw, noise_cov=noise_cov, st_duration=1.0)
     raw_missing = raw.copy().load_data()
     raw_missing.info["bads"] = ["MEG0111"]
     raw_missing.pick("meg", exclude="bads")  # will be missing the bad
     maxwell_filter(raw_missing)
     with pytest.warns(RuntimeWarning, match="not in data"):
         maxwell_filter(raw_missing, calibration=fine_cal_fname)
-
-
-def _lf_band_power(data, sfreq):
-    """Average power in the 0.5-3 Hz band."""
-    psd, freqs = psd_array_welch(data, sfreq=sfreq, fmin=0.5, fmax=40.0, n_fft=2048)
-    band = (freqs >= 0.5) & (freqs <= 3.0)
-    return np.trapezoid(np.mean(psd, axis=0)[band], freqs[band])
-
-
-@testing.requires_testing_data
-def test_foster_inverse():
-    """Test noise-weighted SSS (Foster's inverse)."""
-    raw = read_crop(raw_fname, (0.0, 4.0)).load_data()
-    raw.pick_types(meg=True, eeg=False, eog=False, stim=False)
-    sfreq = raw.info["sfreq"]
-    n_ch, n_times = raw.get_data().shape
-    times = np.arange(n_times) / sfreq
-    # SSS of the clean data is the reference signal
-    ref = maxwell_filter(raw, coord_frame="head").get_data()
-    # Inject correlated low-frequency interference like in OPM recordings
-    rng = np.random.default_rng(42)
-    loadings = rng.standard_normal((n_ch, 3))
-    raw._data += (
-        loadings @ rng.standard_normal((3, n_times)) * 30e-13
-        + 150e-13 * np.sin(2 * np.pi * 1.5 * times)
-        + rng.standard_normal((n_ch, n_times)) * 8e-13
-    )
-    noise_cov = compute_raw_covariance(raw, rank="info", method="empirical")
-    data = raw.get_data()
-    std = maxwell_filter(raw, coord_frame="head").get_data()
-    fos = maxwell_filter(raw, coord_frame="head", noise_cov=noise_cov).get_data()
-    assert fos.shape == data.shape
-    # Standard SSS amplifies the low-frequency interference, while Foster's
-    # inverse suppresses it
-    assert _lf_band_power(std, sfreq) > _lf_band_power(data, sfreq)
-    assert _lf_band_power(fos, sfreq) < _lf_band_power(std, sfreq)
-    # Foster's inverse is an LMMSE estimator, so it damps the signal
-    assert (
-        np.corrcoef(fos.ravel(), ref.ravel())[0, 1]
-        < np.corrcoef(std.ravel(), ref.ravel())[0, 1]
-    )
-    # An empty-room covariance is a more realistic noise model: it preserves
-    # the signal better but suppresses less of the injected interference
-    erm = read_crop(erm_fname)
-    erm.pick_types(meg=True, eeg=False, eog=False, stim=False)
-    with pytest.warns(RuntimeWarning, match="Too few samples"):
-        noise_cov_erm = compute_raw_covariance(erm, rank="info", method="empirical")
-    fos_erm = maxwell_filter(
-        raw, coord_frame="head", noise_cov=noise_cov_erm
-    ).get_data()
-    assert _lf_band_power(fos_erm, sfreq) < _lf_band_power(std, sfreq)
-    assert _lf_band_power(fos_erm, sfreq) > _lf_band_power(fos, sfreq)
-    assert (
-        np.corrcoef(fos_erm.ravel(), ref.ravel())[0, 1]
-        > np.corrcoef(fos.ravel(), ref.ravel())[0, 1]
-    )
-    # Cross-talk is applied before SSS, so the data and noise covariances are
-    # cross-talk corrected too
-    ctc, _ = _read_cross_talk(ctc_fname, raw.ch_names)
-    raw_ctc = raw.copy()
-    raw_ctc._data[:] = ctc @ raw_ctc._data
-    noise_cov_ctc = noise_cov.copy()
-    noise_cov_ctc["data"] = ctc @ noise_cov["data"] @ ctc.T
-    fos_ctc = maxwell_filter(
-        raw, coord_frame="head", cross_talk=ctc_fname, noise_cov=noise_cov
-    ).get_data()
-    fos_ctc_equiv = maxwell_filter(
-        raw_ctc, coord_frame="head", noise_cov=noise_cov_ctc
-    ).get_data()
-    assert_allclose(fos_ctc, fos_ctc_equiv, rtol=1e-7, atol=1e-18)
-    # Annotated segments are excluded when estimating the data covariance
-    raw_ann = raw.copy()
-    raw_ann.set_annotations(mne.Annotations([1.0], [1.0], ["bad_acq_skip"]))
-    picks = np.arange(n_ch)
-    got, got_mean = _compute_data_cov(raw_ann, picks, None, ("bad_acq_skip",))
-    kept = np.concatenate(
-        (
-            raw_ann.get_data(picks=picks, start=0, stop=int(1.0 * sfreq)),
-            raw_ann.get_data(picks=picks, start=int(2.0 * sfreq), stop=n_times),
-        ),
-        axis=1,
-    )
-    assert_allclose(got, np.cov(kept), rtol=1e-10)
-    assert_allclose(got_mean, kept.mean(axis=1), rtol=1e-10)
-    # The affine term preserves the mean of the internal subspace
-    S, _, _, n_use_in = compute_maxwell_basis(raw.info, coord_frame="head")
-    c = S[:, :n_use_in] @ rng.standard_normal(n_use_in)
-    c *= 1e-14 / np.std(c)
-    raw_offset = raw.copy()
-    raw_offset._data += c[:, np.newaxis]
-    fos_offset = (
-        maxwell_filter(raw_offset, coord_frame="head", noise_cov=noise_cov).get_data()
-        - fos
-    )
-    assert_allclose(fos_offset.mean(axis=1), c, rtol=0.05, atol=1e-25)
-    # The affine term is also applied with interpolated movement operators
-    fos_move = maxwell_filter(
-        raw,
-        coord_frame="head",
-        head_pos=read_head_pos(pos_fname),
-        noise_cov=noise_cov,
-    )
-    assert np.isfinite(fos_move.get_data()).all()
-    # Input validation
-    with pytest.raises(NotImplementedError, match="st_duration"):
-        maxwell_filter(raw, noise_cov=noise_cov, st_duration=1.0)
-    with pytest.raises(TypeError, match="Covariance"):
-        maxwell_filter(raw, noise_cov="foo")
-    bad_cov = noise_cov.copy()
-    bad_cov["names"] = [name + "_bad" for name in bad_cov["names"]]
-    with pytest.raises(ValueError, match="Missing channels"):
-        maxwell_filter(raw, noise_cov=bad_cov)
 
 
 @testing.requires_testing_data
@@ -1287,6 +1188,18 @@ def test_cross_talk(tmp_path):
     with use_coil_def(elekta_def_fname):
         raw_sss = maxwell_filter(raw, cross_talk=ctc_fname, **kwargs)
     assert_meg_snr(raw_sss, sss_ctc, 275.0)
+    # Foster's inverse is applied to cross-talk-corrected data and noise
+    raw_meg = raw.copy().pick("meg", exclude=()).load_data()
+    raw_meg.info["bads"] = []
+    noise_cov = make_ad_hoc_cov(raw_meg.info)
+    ctc = _read_cross_talk(ctc_fname, raw_meg.ch_names)[0]
+    raw_ctc = raw_meg.copy()
+    raw_ctc._data[:] = ctc @ raw_meg._data
+    N = ctc @ np.diag(noise_cov.data) @ ctc.T
+    noise_cov_ctc = Covariance(N, raw_meg.ch_names, [], [], noise_cov["nfree"])
+    got = maxwell_filter(raw_meg, cross_talk=ctc_fname, noise_cov=noise_cov, **kwargs)
+    want = maxwell_filter(raw_ctc, noise_cov=noise_cov_ctc, **kwargs)
+    assert_allclose(got.get_data(), want.get_data(), atol=1e-20)
     py_ctc = raw_sss.info["proc_history"][0]["max_info"]["sss_ctc"]
     assert len(py_ctc) > 0
 
@@ -1914,6 +1827,12 @@ def test_mf_skips():
     onsets, ends = _annotations_starts_stops(raw, ("edge", "bad_acq_skip"), invert=True)
     assert (ends - onsets).min() / raw.info["sfreq"] == 2.0
     assert (ends - onsets).max() / raw.info["sfreq"] == 3.0
+    # the data covariance for Foster's inverse excludes the skips
+    picks = np.arange(10)
+    cov, mean = _compute_data_cov(raw, picks, None, ("edge", "bad_acq_skip"))
+    kept = np.concatenate([raw[picks, a:b][0] for a, b in zip(onsets, ends)], axis=1)
+    assert_allclose(cov, np.cov(kept), rtol=1e-6)
+    assert_allclose(mean, kept.mean(axis=1), rtol=1e-6)
     for st_duration in (2.0, 3.0):
         raw_sss = maxwell_filter(raw, st_duration=st_duration, **kwargs)
         for start, stop in zip(onsets, ends):
@@ -2314,8 +2233,34 @@ def test_compute_maxwell_basis(regularize, n, int_order):
     assert n_use_in == n
     assert n_use_in == len(reg_moments) - 15  # no externals removed
     xform = S[:, :n_use_in] @ pS[:n_use_in]
-    got = xform @ raw.pick(picks="meg", exclude="bads").get_data()
+    data = raw.get_data(picks="meg", exclude="bads")
+    got = xform @ data
     assert_allclose(got, want, atol=1e-16)
+    # Foster's inverse follows Eqs. 17, 18, and 20 of McPherson et al. and reduces
+    # (OPM-like) sensor noise relative to standard SSS
+    info = raw.copy().pick("meg").info
+    noise_cov = make_ad_hoc_cov(info, std=dict(grad=5e-12, mag=2e-13))
+    raw_noisy = add_noise(raw.copy().load_data(), noise_cov, rng=0)
+    got = maxwell_filter(raw_noisy, noise_cov=noise_cov, **kwargs).get_data("meg")
+    data = raw_noisy.get_data(picks="meg", exclude="bads")
+    good_names = raw.copy().pick("meg", exclude="bads").ch_names
+    S_in = S[np.isin(info.ch_names, good_names), :n_use_in]
+    x = pS[:n_use_in] @ data
+    X = np.cov(x).reshape(n_use_in, n_use_in)
+    N = np.diag(pick_channels_cov(noise_cov, good_names, ordered=True).data)
+    B = X @ S_in.T @ np.linalg.pinv(S_in @ X @ S_in.T + N)
+    x_bar = B @ data + (x.mean(axis=1) - B @ data.mean(axis=1))[:, np.newaxis]
+    assert_allclose(got, S[:, :n_use_in] @ x_bar, atol=5e-16)
+    if n_use_in:
+        sss = maxwell_filter(raw_noisy, **kwargs).get_data("meg")
+        assert np.linalg.norm(got - want) < 0.7 * np.linalg.norm(sss - want)
+    # including with (static) movement compensation
+    head_pos = _linear_head_pos(raw, 3)
+    head_pos[:, 4:7] = raw.info["dev_head_t"]["trans"][:3, 3]
+    raw_mc = _maxwell_filter_ola(
+        raw_noisy, noise_cov=noise_cov, head_pos=head_pos, **kwargs
+    )
+    assert_allclose(raw_mc.get_data("meg"), got, atol=1e-16)
 
 
 @testing.requires_testing_data
