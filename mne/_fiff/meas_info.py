@@ -2311,6 +2311,14 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
                     f" or None, got {repr(self['meas_date'])!r}"
                 )
+        utc_offset = self.get("utc_offset")
+        if utc_offset is not None and not (
+            isinstance(utc_offset, str) and re.fullmatch(r"[+-]\d{2}:\d{2}", utc_offset)
+        ):
+            raise RuntimeError(
+                f'{prepend_error}info["utc_offset"] must be a str of the form sHH:MM '
+                f"or None, got {repr(utc_offset)}"
+            )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
         if (
@@ -2813,6 +2821,9 @@ def read_meas_info(
         elif kind == FIFF.FIFF_UTC_OFFSET:
             tag = read_tag(fid, pos)
             utc_offset = str(tag.data)
+            # MNE < 1.14 wrote sHHMM instead of sHH:MM for EGI and MEF data
+            if re.fullmatch(r"[+-]\d{4}", utc_offset):
+                utc_offset = f"{utc_offset[:3]}:{utc_offset[3:]}"
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data

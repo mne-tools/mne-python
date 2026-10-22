@@ -537,10 +537,10 @@ def test_egi_coord_frame():
 @pytest.mark.parametrize(
     "fname, timestamp, utc_offset",
     [
-        (egi_mff_fname, "2017-02-23T11:35:13.220824+01:00", "+0100"),
-        (egi_mff_pns_fname, "2017-09-20T09:55:44.072000+01:00", "+0100"),
-        (egi_eprime_pause_fname, "2018-07-30T10:46:09.621673-04:00", "-0400"),
-        (egi_pause_w1337_fname, "2019-10-14T10:54:27.395210-07:00", "-0700"),
+        (egi_mff_fname, "2017-02-23T11:35:13.220824+01:00", "+01:00"),
+        (egi_mff_pns_fname, "2017-09-20T09:55:44.072000+01:00", "+01:00"),
+        (egi_eprime_pause_fname, "2018-07-30T10:46:09.621673-04:00", "-04:00"),
+        (egi_pause_w1337_fname, "2019-10-14T10:54:27.395210-07:00", "-07:00"),
     ],
 )
 def test_meas_date(fname, timestamp, utc_offset):
@@ -553,7 +553,7 @@ def test_meas_date(fname, timestamp, utc_offset):
     local_utc_diff = hour_local - hour_utc
     assert raw.info["meas_date"] == measdate
     assert raw.info["utc_offset"] == utc_offset
-    assert local_utc_diff == int(utc_offset[:-2])
+    assert local_utc_diff == int(utc_offset[:-3])
 
 
 @requires_testing_data

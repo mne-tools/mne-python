@@ -1027,7 +1027,7 @@ def _complete_info(info):
     with info._unlock():
         info["proj_id"] = 1
         info["proj_name"] = "h"
-        info["utc_offset"] = "i"
+        info["utc_offset"] = "+01:00"
         d = (1717707794, 2)
         info["proc_history"] = [
             dict(
@@ -1300,7 +1300,7 @@ def test_invalid_set_meas_date():
         info.set_meas_date("2025-01-01 00:00:00.000000")
 
 
-def test_set_meas_date_timezone(tmp_path):
+def test_set_meas_date_timezone(tmp_path, monkeypatch):
     """Test set_meas_date with timezone-aware datetime and utc_offset (#9953)."""
     from datetime import datetime, timedelta, timezone
 
@@ -1324,6 +1324,10 @@ def test_set_meas_date_timezone(tmp_path):
     dt_minus5 = datetime(2021, 11, 4, 6, 30, 0, tzinfo=tz_minus5)
     info.set_meas_date(dt_minus5)
     assert info["utc_offset"] == "-05:00"
+    with info._unlock():
+        info["utc_offset"] = "-0500"
+    with pytest.raises(RuntimeError, match="sHH:MM"):
+        info._check_consistency()
     assert info["meas_date"] == datetime(2021, 11, 4, 11, 30, 0, tzinfo=UTC)
 
     # UTC datetime should clear / not set utc_offset
@@ -1350,6 +1354,14 @@ def test_set_meas_date_timezone(tmp_path):
     raw_loaded = read_raw_fif(fname)
     assert raw_loaded.info["utc_offset"] == "+02:00"
     assert raw_loaded.info["meas_date"] == expected_utc
+
+    # Legacy sHHMM offsets written by MNE < 1.14 are converted on read
+    with raw.info._unlock():
+        raw.info["utc_offset"] = "+0200"
+    with monkeypatch.context() as m:
+        m.setattr(Info, "_check_consistency", lambda *args, **kwargs: None)
+        raw.save(fname, overwrite=True)
+    assert read_raw_fif(fname).info["utc_offset"] == "+02:00"
 
     # Anonymization should clear utc_offset
     raw_loaded.anonymize()
