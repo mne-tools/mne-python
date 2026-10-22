@@ -1,4 +1,5 @@
 .. _Aaron Earle-Richardson: https://github.com/Aaronearlerichardson
+.. _Aasma Gupta: https://github.com/AasmaGupta
 .. _Abram Hindle: https://softwareprocess.es
 .. _Achilleas Koutsou: https://github.com/achilleas-k
 .. _Adam Li: https://github.com/adam2392
