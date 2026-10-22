@@ -336,10 +336,9 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     monkeypatch.setattr(coreg._renderer, "_process_events", _press_stop)
     coreg._fit_icp()
     monkeypatch.setattr(coreg._renderer, "_process_events", process_events)
-    assert "stopped" in coreg._widgets["status_message"].get_value()
-    assert "1 iterations" in coreg._widgets["status_message"].get_value()
+    assert "stopped after 1 iteration " in coreg._widgets["status_message"].get_value()
     assert not coreg._widgets["stop_icp"].is_enabled()
-    assert not coreg._widgets["status_progress"].is_visible()
+    assert coreg._widgets["status_progress"].get_value() == 1  # where it stopped
     # toolbar (interface toggle, help) and the head shape point checkbox
     coreg._save_screenshot(tmp_path / "coreg.png")
     assert (tmp_path / "coreg.png").is_file()

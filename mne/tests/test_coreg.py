@@ -531,6 +531,15 @@ def test_coreg_fitting_invariants():
         assert (kept <= distance).all()
         assert len(kept) <= prev_n_kept
         prev_n_kept = len(kept)
+    # a new info with a different number of points resets the mask (gh-14420)
+    info_fewer = info.copy()
+    extra = [d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in info["dig"]]
+    with info_fewer._unlock():
+        info_fewer["dig"].pop(np.where(extra)[0][-1])
+    coreg.set_info(info_fewer)
+    assert coreg._extra_points_filter is None
+    assert len(coreg._filtered_extra_points) == sum(extra) - 1
+    coreg.set_info(info)
 
     # fit_fiducials / fit_icp
     for _ in range(5):
