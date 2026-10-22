@@ -165,6 +165,18 @@ print('bar', file=sys.{kind})
     assert std == want
     assert other == ""
 
+    if not do_raise:
+        # Ensure non-UTF-8 bytes don't cause UnicodeDecodeError
+        fname_non_utf8 = tmp_path / f"non_utf8_{kind}.py"
+        fname_non_utf8.write_text(
+            f"import sys\nsys.{kind}.buffer.write('bøfsandwich'.encode('latin-1'))",
+            encoding="utf-8",
+        )
+        stdout, stderr = run_subprocess([sys.executable, fname_non_utf8], verbose=False)
+        out = stdout if kind == "stdout" else stderr
+        # \ufffd is the unicode replacement character
+        assert out == "b\ufffdfsandwich"
+
 
 def test_clean_names():
     """Test cleaning names on OPM dataset.
@@ -177,19 +189,3 @@ def test_clean_names():
     ch_names_clean = _clean_names(ch_names, before_dash=True)
     assert ch_names == ch_names_clean
     assert len(set(ch_names_clean)) == len(ch_names_clean)
-
-
-def test_run_subprocess_non_utf8(tmp_path):
-    """Test run_subprocess handles non-utf8 binary streams gracefully."""
-    fname = tmp_path / "emit_non_utf8.py"
-    with open(fname, "w") as fid:
-        fid.write(
-            "import sys\n"
-            "sys.stdout.buffer.write(bytes([255, 254]) + b' hello\\n')\n"
-            "sys.stderr.buffer.write(bytes([255, 254]) + b' err\\n')\n"
-            "sys.stdout.flush()\n"
-            "sys.stderr.flush()\n"
-        )
-    stdout, stderr = run_subprocess([sys.executable, str(fname)], verbose=False)
-    assert "hello" in stdout
-    assert "err" in stderr
