@@ -1714,8 +1714,10 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split):
         ),
         (
             "bids",
-            Path("sub-01") / "meg" / "sub-01_epo.fif",
-            lambda i: Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_epo.fif",
+            Path("sub-01") / "meg" / "sub-01_desc-x_epo.fif",
+            lambda i: (
+                Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_desc-x_epo.fif"
+            ),
             True,
         ),
         (
@@ -1766,6 +1768,7 @@ def test_split_naming(
         subject="01",
         datatype="meg",
         split="01",
+        description="x",
         suffix="epo",
         extension=".fif",
         check=False,

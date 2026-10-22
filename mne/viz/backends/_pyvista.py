@@ -162,7 +162,7 @@ class PyVistaFigure(Figure3D):
         return self.plotter
 
     def _is_active(self):
-        return hasattr(self.plotter, "ren_win")
+        return self.plotter.render_window is not None
 
 
 class _Projection:
@@ -1625,7 +1625,7 @@ def _is_osmesa(plotter):
         # realization the first time), and asking VTK has segfaulted before.
         # This cannot be a plotter-keyed cache: each figure is a new plotter,
         # so it would miss every time and keep every plotter alive forever.
-        _GPU_REPORT = plotter.ren_win.ReportCapabilities()
+        _GPU_REPORT = plotter.render_window.ReportCapabilities()
     return _is_osmesa_from_report(_GPU_REPORT)
 
 
