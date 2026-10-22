@@ -4212,7 +4212,7 @@ def test_metadata(tmp_path, monkeypatch):
     epochs.metadata["new_key"] = 1
     assert_array_equal(epochs["new_key == 1"].get_data(), epochs.get_data())
     # ensure bad user changes break things
-    epochs.metadata.drop(epochs.metadata.index[2], inplace=True)
+    epochs._metadata = epochs.metadata.drop(epochs.metadata.index[2])
     assert len(epochs.metadata) == len(epochs) - 1
     with pytest.raises(
         ValueError, match="metadata must have the same number of rows .*"

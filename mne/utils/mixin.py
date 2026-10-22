@@ -860,6 +860,6 @@ def _prepare_read_metadata(metadata):
         if pd:
             metadata = pd.DataFrame.from_records(metadata)
             if "index" in metadata.columns:
-                metadata.set_index("index", inplace=True)
+                metadata = metadata.set_index("index")
             assert isinstance(metadata, pd.DataFrame)
     return metadata

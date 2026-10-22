@@ -152,7 +152,7 @@ channels = ["MEG 1332", "MEG 1342"]
 data = long_df.loc["auditory/left"].query("channel in @channels")
 # convert channel column (CategoryDtype → string; for a nicer-looking legend)
 data["channel"] = data["channel"].astype(str)
-data.reset_index(drop=True, inplace=True)  # speeds things up
+data = data.reset_index(drop=True)  # speeds things up
 sns.lineplot(x="time", y="value", hue="channel", data=data)
 
 # %%
