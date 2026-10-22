@@ -1468,15 +1468,18 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
                 on_click()
 
             widget.mousePressEvent = mousePressEvent
-        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        self._status_bar.addWidget(widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = QProgressBar()
+        widget.setFixedWidth(150)
         policy = widget.sizePolicy()
         policy.setRetainSizeWhenHidden(True)
         widget.setSizePolicy(policy)
-        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        # QStatusBar's own API keeps widgets in its row; adding them to its layout()
+        # stacked them below that row, where they got clipped or dropped
+        self._status_bar.addPermanentWidget(widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_update(self):

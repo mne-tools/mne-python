@@ -1547,7 +1547,10 @@ class CoregistrationUI(HasTraits):
             updates = ["hsp", "hpi", "sensors", "head_fids", "helmet"]
             if update_head:
                 updates.insert(0, "head")
-            self._widgets["status_progress"].set_range([0, 0])
+            n_iterations = self._icp_n_iterations
+            # set_range takes one [min, max] value, not one per widget name
+            self._widgets["status_progress"].set_range([0, n_iterations])
+            self._forward_widget_command("status_progress", "set_value", 0)
             self._forward_widget_command(
                 "status_progress", "show", value=None, input_value=False
             )
@@ -1557,6 +1560,9 @@ class CoregistrationUI(HasTraits):
                 self._display_message(
                     f"Fitting ICP - iteration {iteration + 1} (max {n_iterations}), "
                     "Esc to stop"
+                )
+                self._forward_widget_command(
+                    "status_progress", "set_value", iteration + 1
                 )
                 self._update_plot(updates)
                 self._current_icp_iterations += 1
@@ -1570,7 +1576,7 @@ class CoregistrationUI(HasTraits):
             stopped = False
             try:
                 self.coreg.fit_icp(
-                    n_iterations=self._icp_n_iterations,
+                    n_iterations=n_iterations,
                     lpa_weight=self._lpa_weight,
                     nasion_weight=self._nasion_weight,
                     rpa_weight=self._rpa_weight,
@@ -1581,16 +1587,23 @@ class CoregistrationUI(HasTraits):
                 stopped = True
             finally:
                 self._forward_widget_command("stop_icp", "set_enabled", False)
+            duration = time.time() - start
+            n_done = self._current_icp_iterations
+            its = f"{n_done} iteration{'s' if n_done != 1 else ''}"
+            # the bar stays until the next fit: full when ICP is done (it usually
+            # converges before the maximum), or where it was when stopped
+            if stopped:
+                msg = f"Fitting ICP stopped after {its}"
+            else:
                 self._forward_widget_command(
-                    "status_progress", "hide", value=None, input_value=False
+                    "status_progress", "set_value", n_iterations
                 )
-            end = time.time()
+                if n_done < n_iterations:
+                    msg = f"Fitting ICP converged in {its}"
+                else:
+                    msg = f"Fitting ICP reached the maximum of {its}"
             self._display_message()
-            self._display_message(
-                f"Fitting ICP {'stopped' if stopped else 'finished'} in "
-                f"{end - start:.2f} seconds and "
-                f"{self._current_icp_iterations} iterations."
-            )
+            self._display_message(f"{msg} ({duration:.2f} s).")
             del self._current_icp_iterations
 
     def _task_save_subject(self):
