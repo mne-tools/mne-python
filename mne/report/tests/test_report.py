@@ -17,7 +17,6 @@ from matplotlib import pyplot as plt
 
 from mne import (
     Epochs,
-    EpochsArray,
     create_info,
     pick_channels_cov,
     read_cov,
@@ -868,38 +867,6 @@ def test_add_or_replace_section():
     assert r.html[2] == old_r.html[2]
 
 
-def test_add_epochs_reject_thresholds():
-    """Test that rejection thresholds are shown in the report."""
-    info = create_info(["EEG 001", "EEG 002"], 1000.0, "eeg")
-    data = np.random.default_rng(0).standard_normal((5, 2, 100)) * 1e-6
-    title = "Rejection thresholds"
-
-    epochs = EpochsArray(data, info)
-    epochs.drop_bad(reject=dict(eeg=100e-6), flat=dict(eeg=1e-7))
-    r = Report()
-    r.add_epochs(epochs=epochs, title="epochs", psd=False)
-    html = [h for h in r.html if title in h]
-    assert len(html) == 1
-    assert "100 µV" in html[0]
-    assert "0.1 µV" in html[0]
-
-    # custom rejection functions are shown as such
-    epochs = EpochsArray(data, info)
-    epochs.drop_bad(reject=dict(eeg=lambda x: (False, "ok")))
-    r = Report()
-    r.add_epochs(epochs=epochs, title="epochs", psd=False)
-    html = [h for h in r.html if title in h]
-    assert len(html) == 1
-    assert "custom function" in html[0]
-
-    # no thresholds, no table
-    epochs = EpochsArray(data, info)
-    epochs.drop_bad()
-    r = Report()
-    r.add_epochs(epochs=epochs, title="epochs", psd=False)
-    assert not any(title in h for h in r.html)
-
-
 def test_scraper(tmp_path):
     """Test report scraping."""
     r = Report()
@@ -1070,7 +1037,16 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     assert "Metadata" in r.html[-1]
     assert "No metadata set" in r.html[-1]
-
+    assert "Rejection thresholds" not in r.html[-1]
+    epochs_rejected = epochs_without_metadata.copy().drop_bad(
+        reject=dict(mag=1e-10), flat=dict(grad=1e-15)
+    )
+    r.add_epochs(
+        epochs=epochs_rejected, title="my rejected epochs", psd=False, projs=False
+    )
+    assert "Rejection thresholds" in r.html[-1]
+    assert "100000 fT" in r.html[-1]
+    assert "0.01 fT/cm" in r.html[-1]
     # Try with metadata
     r.add_epochs(
         epochs=epochs_with_metadata,
