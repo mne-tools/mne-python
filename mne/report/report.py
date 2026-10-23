@@ -2342,7 +2342,7 @@ class Report:
         tags,
         replace,
     ):
-        picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
+        picks = np.sort(_picks_to_idx(ica.n_components_, picks, picks_on="components"))
         # plot_sources appends EOG/ECG channels, so leave room for them
         n_extra = len(
             pick_types(inst.info, meg=False, eog=True, ecg=True, ref_meg=False)
@@ -2381,26 +2381,24 @@ class Report:
         chunks = [
             picks[ii : ii + n_components] for ii in range(0, len(picks), n_components)
         ]
+        sources = [ica.get_sources(this_inst).get_data() for this_inst in insts[1:]]
         with use_browser_backend("matplotlib"):
             for chunk in chunks:
                 title = "Sources"
                 if len(chunks) > 1:
                     title += f" (ICs {chunk[0]}–{chunk[-1]})"
-                figs = [
-                    ica.plot_sources(
-                        inst=this_inst,
-                        picks=chunk,
-                        stop=duration,
-                        n_components=len(chunk) + n_extra,
-                        show_first_samp=is_raw,
-                        show_scrollbars=False,
-                        show=False,
-                    )
-                    for this_inst in insts
-                ]
-                if len(figs) == 1:
+                fig = ica.plot_sources(
+                    inst=insts[0],
+                    picks=chunk,
+                    stop=duration,
+                    n_components=len(chunk) + n_extra,
+                    show_first_samp=is_raw,
+                    show_scrollbars=False,
+                    show=False,
+                )
+                if len(insts) == 1:
                     self._add_figure(
-                        fig=figs[0],
+                        fig=fig,
                         title=title,
                         caption=None,
                         image_format=image_format,
@@ -2410,9 +2408,32 @@ class Report:
                         own_figure=True,
                     )
                 else:
+                    # Building a browser per segment is slow, so redraw this one with
+                    # each segment's data; _fig_to_img closes it, but it still renders
+                    extra = [
+                        inst.ch_names.index(name)
+                        for name in fig.mne.info["ch_names"][len(chunk) :]
+                    ]
+                    imgs = list()
+                    for ii, this_inst in enumerate(insts):
+                        if ii:
+                            data = np.concatenate(
+                                [sources[ii - 1][chunk], this_inst.get_data()[extra]]
+                            )
+                            fig.mne.inst = RawArray(
+                                data,
+                                fig.mne.info,
+                                first_samp=this_inst.first_samp,
+                                verbose=False,
+                            )
+                            fig.mne.first_time = fig.mne.t_start = this_inst._first_time
+                            fig._redraw()
+                        imgs.append(
+                            self._fig_to_img(fig=fig, image_format=image_format)
+                        )
                     self._add_slider(
-                        figs=figs,
-                        imgs=None,
+                        figs=None,
+                        imgs=imgs,
                         title=title,
                         captions=captions,
                         start_idx=0,
