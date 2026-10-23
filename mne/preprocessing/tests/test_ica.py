@@ -1782,7 +1782,7 @@ def test_read_ica_eeglab_mismatch(tmp_path):
         tmp_path / fname_orig.with_suffix(".fdt").name,
     )
     fname = tmp_path / base
-    data = loadmat(fname_orig)
+    data = {k: v for k, v in loadmat(fname_orig).items() if not k.startswith("__")}
     w = data["EEG"]["icaweights"][0][0]
     w[:] = np.random.default_rng(0).standard_normal(w.shape)
     savemat(fname, data, appendmat=False)

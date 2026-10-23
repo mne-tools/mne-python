@@ -160,7 +160,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    out = out.decode("utf-8")
+                    out = out.decode("utf-8", errors="replace")
                     log_out = out.removesuffix("\n")
                     logger.info(log_out)
                     all_out += out
@@ -171,7 +171,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    err = err.decode("utf-8")
+                    err = err.decode("utf-8", errors="replace")
                     err_out = err.removesuffix("\n")
 
                     # Leave this as logger.warning rather than warn(...) to

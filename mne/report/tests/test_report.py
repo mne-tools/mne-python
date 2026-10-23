@@ -1089,6 +1089,22 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     assert "ICA component 2" in r._content[-2].html
     assert "Sources" in r._content[-1].html
+    assert "slider" not in r._content[-1].html
+    r.add_ica(
+        ica=ica,
+        title="my ica with source segments",
+        inst=raw,
+        picks=[2, 0, 1],
+        n_components=2,
+        plot_sources=True,
+        source_segments=3,
+        source_duration=2.0,
+    )
+    assert r._content[-2].name == "Sources (ICs 0–1)"
+    assert r._content[-1].name == "Sources (ICs 2–2)"
+    assert "Segment 3 of 3" in r._content[-1].html
+    with pytest.raises(ValueError, match="source_segments must be at least 1"):
+        r.add_ica(ica=ica, title="ica", inst=raw, plot_sources=True, source_segments=0)
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(
