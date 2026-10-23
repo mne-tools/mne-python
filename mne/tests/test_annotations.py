@@ -969,6 +969,8 @@ def test_event_id_function_using_custom_function():
 
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
+    with pytest.raises(ValueError, match=r"same event code \(42: \['a', 'b'"):
+        Epochs(raw, events, event_id)
 
 
 # Test for IO with .csv files
@@ -1243,6 +1245,11 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmp_path_factory, ch_names
         pytest.param((3, 140000), 3.14, id="Scalar tuple"),
         pytest.param(
             "2002-12-03 19:01:11.720100", 1038942071.7201, id="valid iso8601 string"
+        ),
+        pytest.param(
+            "2002-12-03 19:01:11.720100+03:00",
+            1038931271.7201,
+            id="valid iso8601 string with tz",
         ),
         pytest.param("2002-12-03T19:01:11.720100", None, id="invalid iso8601 string"),
     ],

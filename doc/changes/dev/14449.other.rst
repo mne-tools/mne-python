@@ -1,0 +1,1 @@
+Accelerate Morlet cross-spectral density calculation across channel pairs in :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` via batched matrix multiplication, by `Ishaan Maheshwari`_.
