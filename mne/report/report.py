@@ -4854,6 +4854,41 @@ class Report:
             replace=replace,
         )
 
+    def _add_epochs_reject(self, *, epochs, section, tags, replace):
+        reject = epochs.reject or dict()
+        flat = epochs.flat or dict()
+        scalings = _handle_default("scalings")
+        units = _handle_default("units")
+
+        def _fmt(thresholds, ch_type):
+            if ch_type not in thresholds:
+                return "–"
+            value = thresholds[ch_type]
+            if callable(value):
+                return "custom function"
+            scaled = value * scalings.get(ch_type, 1.0)
+            return f"{scaled:g} {units.get(ch_type, '')}".strip()
+
+        rows = "\n".join(
+            f"<tr><td>{ch_type}</td><td>{_fmt(reject, ch_type)}</td>"
+            f"<td>{_fmt(flat, ch_type)}</td></tr>"
+            for ch_type in sorted(set(reject) | set(flat))
+        )
+        html = (
+            '<table class="table table-hover table-striped table-sm small">\n'
+            "<thead><tr><th>Channel type</th><th>Reject (peak-to-peak max)</th>"
+            "<th>Flat (peak-to-peak min)</th></tr></thead>\n"
+            f"<tbody>\n{rows}\n</tbody>\n</table>"
+        )
+        self._add_html_element(
+            div_klass="epochs",
+            tags=tags,
+            title="Rejection thresholds",
+            html=html,
+            section=section,
+            replace=replace,
+        )
+
     @_use_agg
     def _add_epochs(
         self,
@@ -4937,6 +4972,11 @@ class Report:
 
         # Drop log
         if epochs._bad_dropped:
+            if epochs.reject is not None or epochs.flat is not None:
+                self._add_epochs_reject(
+                    epochs=epochs, tags=tags, section=section, replace=replace
+                )
+
             title = "Drop log"
 
             if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops

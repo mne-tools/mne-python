@@ -441,6 +441,7 @@
 .. _Sophie Herbst: https://github.com/SophieHerbst
 .. _Sourav Singh: https://github.com/souravsingh
 .. _Srivarsha Chivukula: https://github.com/varshaa-1616
+.. _Sruthi Sureshkumar: https://github.com/sruthisureshkumar-arch
 .. _Stanislas Chambon: https://github.com/Slasnista
 .. _Stefan Appelhoff: https://stefanappelhoff.com
 .. _Stefan Repplinger: https://github.com/stfnrpplngr

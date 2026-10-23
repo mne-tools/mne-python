@@ -1037,7 +1037,16 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     assert "Metadata" in r.html[-1]
     assert "No metadata set" in r.html[-1]
-
+    assert "Rejection thresholds" not in r.html[-1]
+    epochs_rejected = epochs_without_metadata.copy().drop_bad(
+        reject=dict(mag=1e-10), flat=dict(grad=1e-15)
+    )
+    r.add_epochs(
+        epochs=epochs_rejected, title="my rejected epochs", psd=False, projs=False
+    )
+    assert "Rejection thresholds" in r.html[-1]
+    assert "100000 fT" in r.html[-1]
+    assert "0.01 fT/cm" in r.html[-1]
     # Try with metadata
     r.add_epochs(
         epochs=epochs_with_metadata,
