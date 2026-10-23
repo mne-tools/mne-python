@@ -1873,7 +1873,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         for renderer in self._renderer._all_renderers:
             renderer.reset_camera()
 
-    def save_image(self, filename=None, mode="rgb"):
+    def save_image(self, filename=None, mode="rgb", *, scale=1):
         """Save view from all panels to disk.
 
         Parameters
@@ -1882,13 +1882,20 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             Path to new image file.
         mode : str
             Either ``'rgb'`` or ``'rgba'`` for values to return.
+        scale : int
+            The scale factor for the screenshot. Larger values produce higher
+            resolution images. Default is 1.
+
+            .. versionadded:: 1.14
         """
         if filename is None:
             filename = _generate_default_filename(".png")
-        _save_ndarray_img(filename, self.screenshot(mode=mode, time_viewer=True))
+        _save_ndarray_img(
+            filename, self.screenshot(mode=mode, time_viewer=True, scale=scale)
+        )
 
     @fill_doc_static("time_viewer_brain_screenshot")
-    def screenshot(self, mode="rgb", time_viewer=False):
+    def screenshot(self, mode="rgb", time_viewer=False, *, scale=1):
         """Generate a screenshot of current view.
 
         Parameters
@@ -1898,14 +1905,20 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         time_viewer : bool
             If True, include time viewer traces. Only used if
             ``time_viewer=True`` and ``separate_canvas=False``.
+        scale : int
+            The scale factor for the screenshot. Larger values produce higher
+            resolution images. Default is 1.
+
+            .. versionadded:: 1.14
 
         Returns
         -------
         screenshot : array
             Image pixel values.
         """
+        scale = _ensure_int(scale, "scale")
         n_channels = 3 if mode == "rgb" else 4
-        img = self._renderer.screenshot(mode)
+        img = self._renderer.screenshot(mode, scale=scale)
         logger.debug(f"Got screenshot of size {img.shape}")
         if (
             time_viewer
@@ -1926,7 +1939,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 # so let's just calculate the DPI we need to get
                 # the correct size output based on the widths being equal
                 size_in = fig.get_size_inches()
-                dpi = fig.get_dpi()
+                dpi = fig.get_dpi() * scale
                 want_size = tuple(x * dpi for x in size_in)
                 n_pix = want_size[0] * want_size[1]
                 logger.debug(

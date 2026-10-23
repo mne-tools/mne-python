@@ -674,7 +674,7 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def screenshot(self, mode="rgb", filename=None):
+    def screenshot(self, mode="rgb", filename=None, *, scale=1):
         """Take a screenshot of the scene.
 
         Parameters
@@ -684,6 +684,11 @@ class _AbstractRenderer(ABC):
             Default is 'rgb'.
         filename : str | None
             If not None, save the figure to the disk.
+        scale : int
+            The scale factor for the screenshot. Larger values produce higher
+            resolution images. Default is 1.
+
+            .. versionadded:: 1.14
         """
         pass
 
