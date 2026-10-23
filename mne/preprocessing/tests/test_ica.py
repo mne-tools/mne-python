@@ -1875,7 +1875,9 @@ def test_ica_ch_types(ch_type):
     # test apply and get_sources
     for inst in [raw, epochs, evoked]:
         ica.apply(inst)
-        ica.get_sources(inst)
+        sources = ica.get_sources(inst, add_channels=["1", "0"])
+        assert sources.ch_names[-2:] == ["1", "0"]
+        assert_allclose(sources.get_data(["1", "0"]), inst.get_data(["1", "0"]))
 
 
 @testing.requires_testing_data
