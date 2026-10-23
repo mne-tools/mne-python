@@ -5240,7 +5240,7 @@ class Epochs(BaseEpochs):
                 if metadata is None:
                     metadata = extras_df
                 else:
-                    extras_df.set_index(metadata.index, inplace=True)
+                    extras_df = extras_df.set_index(metadata.index)
                     metadata = pd.concat(
                         [metadata, extras_df], axis=1, ignore_index=False
                     )
