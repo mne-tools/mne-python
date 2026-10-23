@@ -1687,7 +1687,7 @@ def _get_decomp(
         pS_in = pS_decomp[:n_use_in]
         X = pS_in @ data_cov @ pS_in.T
         B = X @ S_in.T @ linalg.pinv(S_in @ X @ S_in.T + noise_cov, check_finite=False)
-        # b = <x> - B S <x>, with S <x> estimated by the data mean
+        # b = <x> - B <phi>, where <x> = pS <phi>, so the output mean matches SSS
         foster_b = (pS_in - B) @ mean_data
         pS_decomp[:n_use_in] = B
     return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in, foster_b
