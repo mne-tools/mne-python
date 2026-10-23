@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pyvista
 
-from .._fiff.pick import pick_types
+from .._fiff.pick import _picks_by_type, pick_types
 from ..bem import (
     ConductorModel,
     _ensure_bem_surfaces,
@@ -35,6 +35,7 @@ from ..transforms import _get_trans, _get_transforms_to_coord_frame, apply_trans
 from ..utils import (
     _auto_weakref,
     _check_option,
+    _time_mask,
     _validate_type,
     fill_doc_static,
     logger,
@@ -231,11 +232,12 @@ class DipoleFitUI:
                 f"Estimating noise covariance from baseline ({evoked.baseline[0]:.3f} "
                 f"to {evoked.baseline[1]:.3f} seconds)."
             )
+            tmask = _time_mask(
+                evoked.times, *evoked.baseline, sfreq=evoked.info["sfreq"]
+            )
             std = dict()
-            good = evoked.copy().pick("data", exclude="bads")
-            for typ in good.get_channel_types(unique=True):
-                baseline = good.copy().pick(typ).crop(*evoked.baseline)
-                std[typ] = baseline.data.std(axis=1).mean()
+            for typ, picks in _picks_by_type(evoked.info):
+                std[typ] = evoked.data[picks][:, tmask].std(axis=1).mean()
             cov = make_ad_hoc_cov(evoked.info, std)
         else:
             cov = _ensure_cov(cov)
