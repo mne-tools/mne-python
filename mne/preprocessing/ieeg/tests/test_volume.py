@@ -106,7 +106,7 @@ def test_make_montage_volume():
     CT = nib.Nifti1Image(CT_data, subject_brain.affine)
 
     elec_image = make_montage_volume(montage, CT, thresh=0.25)
-    elec_image_data = np.array(elec_image.dataobj)
+    elec_image_data = np.asarray(elec_image.dataobj)
 
     # check elec image, center should be no more than half a voxel away
     for i in range(len(montage.ch_names)):

@@ -296,10 +296,12 @@ def compute_bridged_electrodes(
 
     # next, compute electrical distance matrix, upper triangular
     n_epochs = data.shape[0]
-    ed_matrix = np.zeros((n_epochs, picks.size, picks.size)) * np.nan
-    for i in range(picks.size):
-        for j in range(i + 1, picks.size):
-            ed_matrix[:, i, j] = np.var(data[:, i] - data[:, j], axis=1)
+    ed_matrix = np.full((n_epochs, picks.size, picks.size), np.nan)
+    centered = data - np.mean(data, axis=-1, keepdims=True)
+    cov = (centered @ centered.swapaxes(-1, -2)) / data.shape[-1]
+    var = np.diagonal(cov, axis1=1, axis2=2)
+    ii, jj = np.triu_indices(picks.size, k=1)
+    ed_matrix[:, ii, jj] = var[:, ii] + var[:, jj] - 2 * cov[:, ii, jj]
 
     # scale, fill in other half, diagonal
     ed_matrix *= 1e12  # scale to muV**2
@@ -324,15 +326,15 @@ def compute_bridged_electrodes(
 
     # find electrodes that are below the cutoff local minimum on
     # `epochs_threshold` proportion of epochs
-    for i in range(picks.size):
-        for j in range(i + 1, picks.size):
-            bridged_count = np.sum(ed_matrix[:, i, j] < local_minimum)
-            if bridged_count / n_epochs > epoch_threshold:
-                logger.info(
-                    "Bridge detected between "
-                    f"{inst.ch_names[picks[i]]} and "
-                    f"{inst.ch_names[picks[j]]}"
-                )
-                bridged_idx.append((picks[i], picks[j]))
+    bridged_mask = (
+        np.mean(ed_matrix[:, ii, jj] < local_minimum, axis=0) > epoch_threshold
+    )
+    for i, j in zip(ii[bridged_mask], jj[bridged_mask]):
+        logger.info(
+            "Bridge detected between "
+            f"{inst.ch_names[picks[i]]} and "
+            f"{inst.ch_names[picks[j]]}"
+        )
+        bridged_idx.append((picks[i], picks[j]))
 
     return bridged_idx, ed_matrix
