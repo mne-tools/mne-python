@@ -269,3 +269,33 @@ brain.add_data(
     smoothing_steps=5,
 )
 brain.show_view(azimuth=180, elevation=70, distance=380, focalpoint=(0, 10, 20))
+
+# %%
+# Plot data on subcortical structures
+# -----------------------------------
+#
+# :func:`mne.setup_subcortical_source_space` builds surface source spaces for
+# subcortical structures. Their data is added with ``hemi="vol"`` together with
+# the source space. Because the meshes are in real anatomical coordinates, use a
+# non-inflated cortical surface such as ``surf="white"``. Here we show a synthetic
+# gradient along the anterior-posterior axis of the left amygdala and hippocampus.
+# :meth:`mne.MixedSourceEstimate.plot` shows them in the same way.
+
+src = mne.setup_subcortical_source_space(
+    "sample", label=["Left-Hippocampus", "Left-Amygdala"], subjects_dir=subjects_dir
+)
+rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
+data = (rr[:, 1] - rr[:, 1].min()) / np.ptp(rr[:, 1])
+brain = mne.viz.Brain(
+    "sample", subjects_dir=subjects_dir, hemi="lh", surf="white", **brain_kwargs
+)
+brain.add_data(
+    data,
+    hemi="vol",
+    vertices=np.concatenate([s["vertno"] for s in src]),
+    src=src,
+    fmin=0,
+    fmax=1,
+    colormap="viridis",
+)
+brain.show_view(azimuth=150, elevation=90, distance=400, focalpoint=(0, -10, 10))
