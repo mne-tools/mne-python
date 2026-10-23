@@ -2342,142 +2342,85 @@ class Report:
         tags,
         replace,
     ):
-        import matplotlib.pyplot as plt
-
-        picks_idx = _picks_to_idx(ica.n_components_, picks, picks_on="components")
-        if len(picks_idx) == 0:
-            return
-        chunk_size = 20 if n_components is None else int(n_components)
-        chunks = [
-            picks_idx[i : i + chunk_size] for i in range(0, len(picks_idx), chunk_size)
-        ]
-        eog_chs = pick_types(inst.info, meg=False, eog=True, ref_meg=False)
-        ecg_chs = pick_types(inst.info, meg=False, ecg=True, ref_meg=False)
-        extra_picks = np.concatenate((eog_chs, ecg_chs)).astype(int)
-
+        picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
+        # plot_sources appends EOG/ECG channels, so leave room for them
+        n_extra = len(
+            pick_types(inst.info, meg=False, eog=True, ecg=True, ref_meg=False)
+        )
         is_raw = isinstance(inst, BaseRaw)
-        n_segments = 1 if source_segments is None else int(source_segments)
-        if (
-            is_raw
-            and n_segments > 1
-            and (inst.times[-1] - inst.times[0] > source_duration)
-        ):
-            times = np.linspace(inst.times[0], inst.times[-1], n_segments + 2)[1:-1]
-            t_starts = np.clip(
-                times - source_duration / 2.0,
-                inst.times[0],
-                inst.times[-1] - source_duration,
-            )
-            t_stops = t_starts + source_duration
-            durations = t_stops - t_starts
-        elif is_raw:
-            t_starts = [inst.times[0]]
-            t_stops = [min(t_starts[0] + source_duration, inst.times[-1])]
-            durations = [t_stops[0] - t_starts[0]]
-
+        insts, captions, duration = [inst], None, None
         if is_raw:
-            raw_segs = []
-            for s, e in zip(t_starts, t_stops):
-                st, sp = inst.time_as_index((s, e))
-                raw_segs.append(
+            # Sample evenly spaced segments; the copies carry no annotations, so
+            # these do not obscure the traces
+            duration = min(source_duration, inst.times[-1])
+            n_segments = 1 if source_segments is None else source_segments
+            if n_segments > 1 and inst.times[-1] > source_duration:
+                centers = np.linspace(0, inst.times[-1], n_segments + 2)[1:-1]
+                t_starts = np.clip(
+                    centers - duration / 2.0, 0, inst.times[-1] - duration
+                )
+            else:
+                t_starts = [0.0]
+            insts, captions = list(), list()
+            for ii, t_start in enumerate(t_starts):
+                start, stop = inst.time_as_index([t_start, t_start + duration])
+                # first_samp=start plus show_first_samp=True below keeps the time
+                # axis relative to the start of the recording
+                insts.append(
                     RawArray(
-                        inst.get_data(start=st, stop=sp + 1),
+                        inst.get_data(start=start, stop=stop + 1),
                         inst.info,
-                        first_samp=st,
+                        first_samp=int(start),
                         verbose=False,
                     )
                 )
-            seg_sources = [ica.get_sources(seg) for seg in raw_segs[1:]]
-
-        orig_annotations = inst.annotations.copy() if is_raw else None
-        try:
-            if orig_annotations is not None:
-                inst.set_annotations(None)
-            with use_browser_backend("matplotlib"):
-                for chunk in chunks:
-                    title = (
-                        "Sources"
-                        if len(chunks) == 1
-                        else f"Sources (ICs {min(chunk)}–{max(chunk)})"
-                    )
-                    fig = ica.plot_sources(
-                        inst=raw_segs[0] if is_raw else inst,
+                captions.append(
+                    f"Segment {ii + 1} of {len(t_starts)} "
+                    f"({t_start:.1f} – {t_start + duration:.1f} s)"
+                )
+        chunks = [
+            picks[ii : ii + n_components] for ii in range(0, len(picks), n_components)
+        ]
+        with use_browser_backend("matplotlib"):
+            for chunk in chunks:
+                title = "Sources"
+                if len(chunks) > 1:
+                    title += f" (ICs {chunk[0]}–{chunk[-1]})"
+                figs = [
+                    ica.plot_sources(
+                        inst=this_inst,
                         picks=chunk,
-                        stop=durations[0] if is_raw else None,
-                        n_components=len(chunk) + len(extra_picks),
+                        stop=duration,
+                        n_components=len(chunk) + n_extra,
                         show_first_samp=is_raw,
                         show_scrollbars=False,
                         show=False,
                     )
-                    try:
-                        if not is_raw or len(raw_segs) == 1:
-                            self._add_figure(
-                                fig=fig,
-                                title=title,
-                                caption=None,
-                                image_format=image_format,
-                                tags=tags,
-                                section=section,
-                                replace=replace,
-                                own_figure=True,
-                            )
-                        else:
-                            images = [
-                                self._fig_to_img(
-                                    fig=fig,
-                                    image_format=image_format,
-                                    own_figure=False,
-                                )
-                            ]
-                            for seg, src, duration in zip(
-                                raw_segs[1:], seg_sources, durations[1:]
-                            ):
-                                data_k = src.get_data(picks=chunk)
-                                if len(extra_picks):
-                                    data_k = np.concatenate(
-                                        [data_k, seg.get_data(picks=extra_picks)],
-                                        axis=0,
-                                    )
-                                fig.mne.inst = RawArray(
-                                    data_k,
-                                    fig.mne.info,
-                                    first_samp=seg.first_samp,
-                                    verbose=False,
-                                )
-                                fig.mne.first_time = seg._first_time
-                                fig.mne.t_start = seg._first_time
-                                fig.mne.duration = duration
-                                fig._redraw(annotations=False)
-                                images.append(
-                                    self._fig_to_img(
-                                        fig=fig,
-                                        image_format=image_format,
-                                        own_figure=False,
-                                    )
-                                )
-                            captions = [
-                                (
-                                    f"Segment {i + 1} of {len(images)} "
-                                    f"({t_starts[i]:.1f} – {t_stops[i]:.1f} s)"
-                                )
-                                for i in range(len(images))
-                            ]
-                            self._add_slider(
-                                figs=None,
-                                imgs=images,
-                                title=title,
-                                captions=captions,
-                                start_idx=0,
-                                image_format=image_format,
-                                tags=tags,
-                                section=section,
-                                replace=replace,
-                            )
-                    finally:
-                        plt.close(fig)
-        finally:
-            if orig_annotations is not None:
-                inst.set_annotations(orig_annotations)
+                    for this_inst in insts
+                ]
+                if len(figs) == 1:
+                    self._add_figure(
+                        fig=figs[0],
+                        title=title,
+                        caption=None,
+                        image_format=image_format,
+                        tags=tags,
+                        section=section,
+                        replace=replace,
+                        own_figure=True,
+                    )
+                else:
+                    self._add_slider(
+                        figs=figs,
+                        imgs=None,
+                        title=title,
+                        captions=captions,
+                        start_idx=0,
+                        image_format=image_format,
+                        tags=tags,
+                        section=section,
+                        replace=replace,
+                    )
 
     def _add_ica(
         self,

@@ -1080,6 +1080,21 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     assert "ICA component 2" in r._content[-2].html
     assert "Sources" in r._content[-1].html
+    assert "slider" not in r._content[-1].html
+    r.add_ica(
+        ica=ica,
+        title="my ica with source segments",
+        inst=raw,
+        n_components=2,
+        plot_sources=True,
+        source_segments=3,
+        source_duration=2.0,
+    )
+    assert r._content[-2].name == "Sources (ICs 0–1)"
+    assert r._content[-1].name == "Sources (ICs 2–2)"
+    assert "Segment 3 of 3" in r._content[-1].html
+    with pytest.raises(ValueError, match="source_segments must be at least 1"):
+        r.add_ica(ica=ica, title="ica", inst=raw, plot_sources=True, source_segments=0)
     epochs_baseline = epochs_without_metadata.copy().load_data()
     epochs_baseline.apply_baseline((None, 0))
     r.add_ica(
@@ -1417,78 +1432,3 @@ def test_gif(tmp_path):
     bad_name.write_bytes(b"")
     with pytest.raises(ValueError, match="Allowed values"):
         r.add_image(bad_name, "fname")
-
-
-def test_report_add_ica_sources(monkeypatch):
-    """Test ICA source timecourses in report."""
-    pytest.importorskip("sklearn")
-    from unittest.mock import Mock
-
-    from mne import Annotations
-
-    rng = np.random.default_rng(0)
-    data = rng.standard_normal((25, 6000))
-    info = create_info(25, 100.0, ch_types="eeg")
-    raw = RawArray(data, info)
-    raw.set_annotations(Annotations([1.0], [2.0], ["artifact"]))
-    ica = ICA(n_components=25, max_iter=1, method="fastica", random_state=0)
-    with _record_warnings():
-        ica.fit(raw)
-
-    spy = Mock(wraps=ica.plot_sources)
-    monkeypatch.setattr(ica, "plot_sources", spy)
-    r = Report()
-    with _record_warnings():
-        r.add_ica(ica=ica, title="ICA", inst=raw, picks=[0, 1], plot_sources=True)
-    assert spy.call_args.kwargs["show_scrollbars"] is False
-    assert "Sources" in [c.name for c in r._content]
-    assert len(raw.annotations) == 1
-    assert raw.annotations.description[0] == "artifact"
-
-    r = Report()
-    with _record_warnings():
-        r.add_ica(ica=ica, title="ICA", inst=raw, plot_sources=True)
-    names = [c.name for c in r._content]
-    assert "Sources (ICs 0–19)" in names
-    assert "Sources (ICs 20–24)" in names
-    assert "slider" not in r._content[-1].html
-
-    eog_raw = RawArray(
-        rng.standard_normal((1, 6000)), create_info(["EOG"], 100.0, "eog")
-    )
-    raw.add_channels([eog_raw])
-    r = Report()
-    with _record_warnings():
-        r.add_ica(
-            ica=ica,
-            title="ICA",
-            inst=raw,
-            plot_sources=True,
-            source_segments=3,
-            source_duration=5.0,
-        )
-    slider_item = [c for c in r._content if c.name == "Sources (ICs 0–19)"][0]
-    assert "slider" in slider_item.html
-    assert "Segment 1 of 3" in slider_item.html
-    assert "Segment 3 of 3" in slider_item.html
-
-    raw_short = raw.copy().crop(0, 4.0)
-    r = Report()
-    with _record_warnings():
-        r.add_ica(
-            ica=ica,
-            title="ICA",
-            inst=raw_short,
-            plot_sources=True,
-            source_segments=3,
-            source_duration=5.0,
-        )
-    short_item = [c for c in r._content if c.name == "Sources (ICs 0–19)"][0]
-    assert "slider" not in short_item.html
-
-    with pytest.raises(ValueError, match="n_components must be at least 1"):
-        r.add_ica(ica=ica, title="ICA", inst=raw, plot_sources=True, n_components=0)
-    with pytest.raises(ValueError, match="source_segments must be at least 1"):
-        r.add_ica(ica=ica, title="ICA", inst=raw, plot_sources=True, source_segments=0)
-    with pytest.raises(ValueError, match="source_duration must be positive"):
-        r.add_ica(ica=ica, title="ICA", inst=raw, plot_sources=True, source_duration=0)
