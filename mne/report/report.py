@@ -2342,6 +2342,8 @@ class Report:
         tags,
         replace,
     ):
+        import matplotlib.pyplot as plt
+
         picks = np.sort(_picks_to_idx(ica.n_components_, picks, picks_on="components"))
         # plot_sources appends EOG/ECG channels, so leave room for them
         n_extra = len(
@@ -2409,7 +2411,7 @@ class Report:
                     )
                 else:
                     # Building a browser per segment is slow, so redraw this one with
-                    # each segment's data; _fig_to_img closes it, but it still renders
+                    # each segment's data
                     extra = [
                         inst.ch_names.index(name)
                         for name in fig.mne.info["ch_names"][len(chunk) :]
@@ -2429,8 +2431,11 @@ class Report:
                             fig.mne.first_time = fig.mne.t_start = this_inst._first_time
                             fig._redraw()
                         imgs.append(
-                            self._fig_to_img(fig=fig, image_format=image_format)
+                            self._fig_to_img(
+                                fig=fig, image_format=image_format, own_figure=False
+                            )
                         )
+                    plt.close(fig)
                     self._add_slider(
                         figs=None,
                         imgs=imgs,
