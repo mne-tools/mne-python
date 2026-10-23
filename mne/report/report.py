@@ -2412,6 +2412,9 @@ class Report:
                 else:
                     # Building a browser per segment is slow, so redraw this one with
                     # each segment's data
+                    _constrain_fig_resolution(
+                        fig, max_width=self.img_max_width, max_res=self.img_max_res
+                    )
                     extra = [
                         inst.ch_names.index(name)
                         for name in fig.mne.info["ch_names"][len(chunk) :]
@@ -2429,7 +2432,9 @@ class Report:
                                 verbose=False,
                             )
                             fig.mne.first_time = fig.mne.t_start = this_inst._first_time
-                            fig._redraw()
+                            # _redraw() would also draw the canvas, as savefig does
+                            fig._update_data()
+                            fig._draw_traces()
                         imgs.append(
                             self._fig_to_img(
                                 fig=fig, image_format=image_format, own_figure=False
