@@ -1714,8 +1714,10 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split):
         ),
         (
             "bids",
-            Path("sub-01") / "meg" / "sub-01_epo.fif",
-            lambda i: Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_epo.fif",
+            Path("sub-01") / "meg" / "sub-01_desc-x_epo.fif",
+            lambda i: (
+                Path("sub-01") / "meg" / f"sub-01_split-{i + 1:02d}_desc-x_epo.fif"
+            ),
             True,
         ),
         (
@@ -1766,6 +1768,7 @@ def test_split_naming(
         subject="01",
         datatype="meg",
         split="01",
+        description="x",
         suffix="epo",
         extension=".fif",
         check=False,
@@ -3764,7 +3767,7 @@ def test_add_channels_epochs():
     assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg), atol=1e-12)
 
 
-def test_array_epochs(tmp_path, browser_backend):
+def test_array_epochs(tmp_path, monkeypatch, browser_backend):
     """Test creating epochs from array."""
     # creating
     data = rng.random((10, 20, 300))
@@ -3780,6 +3783,8 @@ def test_array_epochs(tmp_path, browser_backend):
     with pytest.raises(ValueError, match="number of events must match"):
         EpochsArray(data[:-1], info, events, tmin)
     pytest.raises(ValueError, EpochsArray, data, info, events, tmin, dict(a=1))
+    with pytest.raises(ValueError, match=r"same event code \(1: \['a', 'b'\]\)"):
+        EpochsArray(data, info, events, tmin, dict(a=1, b=1, c=2))
     pytest.raises(ValueError, EpochsArray, data, info, events, tmin, selection=[1])
     # should be fine
     EpochsArray(data, info, events, tmin, selection=np.arange(len(events)) + 5)
@@ -3793,6 +3798,16 @@ def test_array_epochs(tmp_path, browser_backend):
     assert_allclose(epochs.times, epochs2.times)
     assert_equal(epochs.event_id, epochs2.event_id)
     assert_array_equal(epochs.events, epochs2.events)
+    # files written before duplicate event codes were rejected stay readable
+    epochs_dup = epochs.copy()
+    epochs_dup.event_id = dict(a=1, b=1, c=2)
+    with monkeypatch.context() as m:
+        m.setattr(EpochsArray, "_sanity_check_event_id", lambda self: None)
+        epochs_dup.save(temp_fname, overwrite=True)
+    with pytest.warns(RuntimeWarning, match="one-to-one mapping"):
+        epochs_dup = read_epochs(temp_fname, preload=False)
+    with pytest.raises(ValueError, match="same event code"):
+        epochs_dup["a"]
 
     # plotting
     epochs[0].plot(events=False)
@@ -3910,7 +3925,7 @@ def test_concatenate_epochs():
     with pytest.raises(ValueError, match="has values that do not match any"):
         epochs2["a"]
     epochs2.event_id = dict(a=1, b=1)
-    with pytest.raises(ValueError, match="has duplicate values"):
+    with pytest.raises(ValueError, match="same event code"):
         epochs2["a"]
     # mismatch check
     epochs2.event_id = dict(b=1)

@@ -13,7 +13,12 @@ import numpy as np
 
 from ._logging import _verbose_control, verbose_static, warn
 from ._typing import Self
-from .check import _check_pandas_installed, _check_preload, _validate_type
+from .check import (
+    _check_event_id_unique,
+    _check_pandas_installed,
+    _check_preload,
+    _validate_type,
+)
 from .numerics import _time_mask, object_hash, object_size
 
 logger = logging.getLogger("mne")  # one selection here used across mne-python
@@ -167,22 +172,16 @@ class GetEpochsMixin:
         return select
 
     def _sanity_check_event_id(self):
-        for kind in ("keys", "values"):
-            a = list(getattr(self.event_id, kind)())
-            if len(set(a)) != len(a):
-                raise ValueError(
-                    f"The event_id dictionary has duplicate {kind}. Please ensure that "
-                    f"all {kind} are unique: {a}"
-                )
-            if kind == "values":
-                missing = sorted(set(self.events[:, 2][~np.isin(self.events[:, 2], a)]))
-                if len(missing):
-                    raise ValueError(
-                        "The event_id dictionary has values that do not match any "
-                        "event codes in self.events. Please ensure that all values "
-                        "in event_id are present in self.events[:, 2]. "
-                        f"Missing event codes: {missing}"
-                    )
+        _check_event_id_unique(self.event_id)
+        a = list(self.event_id.values())
+        missing = sorted(set(self.events[:, 2][~np.isin(self.events[:, 2], a)]))
+        if len(missing):
+            raise ValueError(
+                "The event_id dictionary has values that do not match any "
+                "event codes in self.events. Please ensure that all values "
+                "in event_id are present in self.events[:, 2]. "
+                f"Missing event codes: {missing}"
+            )
 
     def _getitem(
         self,
