@@ -1573,6 +1573,7 @@ class Coregistration:
         """
         _validate_type(info, (Info, None), "info")
         self._info = info
+        self._extra_points_filter = None
         self._setup_digs()
         return self
 

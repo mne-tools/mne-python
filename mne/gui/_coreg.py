@@ -69,6 +69,10 @@ from ..viz.backends._utils import _qt_block, _qt_safe_window
 from ..viz.utils import safe_event
 
 
+class _ICPStopped(Exception):
+    """Raised from the ICP callback to stop a running fit."""
+
+
 class _WorkerData:
     def __init__(self, name, params=None):
         self._name = name
@@ -421,6 +425,7 @@ class CoregistrationUI(HasTraits):
         self._reset_fitting_parameters()
         self._configure_dialogs()
         self._configure_status_bar()
+        self._configure_tool_bar()
         self._configure_dock()
         self._configure_picking()
         self._configure_legend()
@@ -781,6 +786,7 @@ class CoregistrationUI(HasTraits):
             # MRI fiducials
             "save_mri_fids",
             # View options
+            "head_shape_points",
             "helmet",
             "meg",
             "head_opacity",
@@ -1531,36 +1537,73 @@ class CoregistrationUI(HasTraits):
     def _fits_icp(self):
         self._fit_icp_real(update_head=True)
 
+    def _stop_icp(self):
+        self._icp_stop_requested = True
+
     def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
+            self._icp_stop_requested = False
             updates = ["hsp", "hpi", "sensors", "head_fids", "helmet"]
             if update_head:
                 updates.insert(0, "head")
+            n_iterations = self._icp_n_iterations
+            # set_range takes one [min, max] value, not one per widget name
+            self._widgets["status_progress"].set_range([0, n_iterations])
+            self._forward_widget_command("status_progress", "set_value", 0)
+            self._forward_widget_command(
+                "status_progress", "show", value=None, input_value=False
+            )
+            self._forward_widget_command("stop_icp", "set_enabled", True)
 
             def callback(iteration, n_iterations):
-                self._display_message(f"Fitting ICP - iteration {iteration + 1}")
+                self._display_message(
+                    f"Fitting ICP - iteration {iteration + 1} (max {n_iterations}), "
+                    "Esc to stop"
+                )
+                self._forward_widget_command(
+                    "status_progress", "set_value", iteration + 1
+                )
                 self._update_plot(updates)
                 self._current_icp_iterations += 1
                 self._update_distance_estimation()
                 self._update_parameters()
-                self._renderer._process_events()  # allow a draw or cancel
+                self._renderer._process_events()  # allow a draw or a Stop click
+                if self._icp_stop_requested:
+                    raise _ICPStopped
 
             start = time.time()
-            self.coreg.fit_icp(
-                n_iterations=self._icp_n_iterations,
-                lpa_weight=self._lpa_weight,
-                nasion_weight=self._nasion_weight,
-                rpa_weight=self._rpa_weight,
-                callback=callback,
-                verbose=self._verbose,
-            )
-            end = time.time()
+            stopped = False
+            try:
+                self.coreg.fit_icp(
+                    n_iterations=n_iterations,
+                    lpa_weight=self._lpa_weight,
+                    nasion_weight=self._nasion_weight,
+                    rpa_weight=self._rpa_weight,
+                    callback=callback,
+                    verbose=self._verbose,
+                )
+            except _ICPStopped:  # keep the alignment from the last iteration
+                stopped = True
+            finally:
+                self._forward_widget_command("stop_icp", "set_enabled", False)
+            duration = time.time() - start
+            n_done = self._current_icp_iterations
+            its = f"{n_done} iteration{'s' if n_done != 1 else ''}"
+            # the bar stays until the next fit: full when ICP is done (it usually
+            # converges before the maximum), or where it was when stopped
+            if stopped:
+                msg = f"Fitting ICP stopped after {its}"
+            else:
+                self._forward_widget_command(
+                    "status_progress", "set_value", n_iterations
+                )
+                if n_done < n_iterations:
+                    msg = f"Fitting ICP converged in {its}"
+                else:
+                    msg = f"Fitting ICP reached the maximum of {its}"
             self._display_message()
-            self._display_message(
-                f"Fitting ICP finished in {end - start:.2f} seconds and "
-                f"{self._current_icp_iterations} iterations."
-            )
+            self._display_message(f"{msg} ({duration:.2f} s).")
             del self._current_icp_iterations
 
     def _task_save_subject(self):
@@ -1920,6 +1963,14 @@ class CoregistrationUI(HasTraits):
             name="View Options",
             collapse=collapse,
         )
+        self._widgets["head_shape_points"] = self._renderer._dock_add_check_box(
+            name="Show head shape points",
+            value=self._head_shape_points,
+            callback=self._set_head_shape_points,
+            tooltip="Show/hide the digitized head shape points",
+            layout=view_options_layout,
+            shortcut="h",
+        )
         self._widgets["helmet"] = self._renderer._dock_add_check_box(
             name="Show MEG helmet",
             value=self._helmet,
@@ -2080,6 +2131,14 @@ class CoregistrationUI(HasTraits):
             tooltip="Find rotation and translation to match the head shape points",
             layout=fit_layout,
         )
+        self._widgets["stop_icp"] = self._renderer._dock_add_button(
+            name="Stop",
+            callback=self._stop_icp,
+            tooltip="Stop the running ICP fit, keeping the alignment so far",
+            layout=fit_layout,
+            shortcut="Esc",
+        )
+        self._forward_widget_command("stop_icp", "set_enabled", False)
         self._renderer._layout_add_widget(param_layout, fit_layout)
         trans_layout = self._renderer._dock_add_group_box(
             name="HEAD <> MRI Transform",
@@ -2190,6 +2249,60 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command(
             "status_message", "hide", value=None, input_value=False
         )
+        self._widgets["status_progress"] = self._renderer._status_bar_add_progress_bar()
+        self._forward_widget_command(
+            "status_progress", "hide", value=None, input_value=False
+        )
+
+    def _configure_tool_bar(self):
+        self._renderer._tool_bar_initialize(name="Toolbar")
+        self._renderer._tool_bar_add_file_button(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._save_screenshot,
+        )
+        self._renderer._tool_bar_add_button(
+            name="visibility",
+            desc="Toggle Controls",
+            func=self._toggle_interface,
+            icon_name="visibility_on",
+            shortcut="i",
+        )
+        self._renderer._tool_bar_add_spacer()
+        self._renderer._tool_bar_add_button(
+            name="help", desc="Help", func=self._show_help, shortcut="?"
+        )
+        self._interface_visible = True
+        self._help_canvas = self._renderer._window_get_help_canvas(
+            [
+                ("?", "Display help window"),
+                ("i", "Toggle interface"),
+                ("h", "Show/hide head shape points"),
+                ("Esc", "Stop the running ICP fit"),
+            ],
+            [
+                ("Left-click-and-drag", "Rotate the view"),
+                ("Middle-click-and-drag", "Pan the view"),
+                ("Right-click-and-drag / scroll", "Zoom the view"),
+                ("Left-click on the head", "Place the current MRI fiducial (unlocked)"),
+            ],
+        )
+
+    def _save_screenshot(self, filename):
+        self._renderer.screenshot(filename=filename)
+
+    def _toggle_interface(self):
+        self._interface_visible = not self._interface_visible
+        with self._renderer._window_ensure_minimum_sizes():
+            if self._interface_visible:
+                self._renderer._dock_show()
+            else:
+                self._renderer._dock_hide()
+        icon = "visibility_on" if self._interface_visible else "visibility_off"
+        self._renderer._tool_bar_update_button_icon(name="visibility", icon_name=icon)
+
+    def _show_help(self):
+        self._help_canvas.show()
 
     def _clean(self):
         if not self._accept_close_event:
