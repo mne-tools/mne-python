@@ -1,0 +1,1 @@
+Clear head shape points omit filter in :meth:`mne.coreg.Coregistration.set_info` when loading a new digitizer recording (:gh:`14420`), by `Badri Vishal Pandey`_.

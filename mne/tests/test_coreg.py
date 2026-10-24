@@ -532,6 +532,11 @@ def test_coreg_fitting_invariants():
         assert len(kept) <= prev_n_kept
         prev_n_kept = len(kept)
 
+    # GH#14420: verify set_info clears omitted points filter
+    assert coreg._extra_points_filter is not None
+    coreg.set_info(info)
+    assert coreg._extra_points_filter is None
+
     # fit_fiducials / fit_icp
     for _ in range(5):
         coreg.reset()
