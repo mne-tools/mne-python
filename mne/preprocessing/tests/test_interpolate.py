@@ -11,7 +11,7 @@ from numpy.testing import assert_array_equal
 
 from mne import Epochs, create_info, io, pick_types, read_events
 from mne.channels import make_standard_montage
-from mne.preprocessing import interpolate_bridged_electrodes
+from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
 from mne.preprocessing.interpolate import _find_centroid_sphere
 from mne.transforms import _cart_to_sph
 
@@ -43,6 +43,38 @@ def _load_data():
     )
     evoked = epochs.average()
     return raw.load_data(), epochs.load_data(), evoked
+
+
+@pytest.mark.parametrize("interp_thresh", [0.0, 0.5, 1.0])
+@pytest.mark.parametrize("inst_type", ["raw", "epochs", "evoked"])
+def test_equalize_bads(interp_thresh, inst_type):
+    """Test equalize_bads function."""
+    raw, epochs, evoked = _load_data()
+
+    if inst_type == "raw":
+        insts = [raw.copy().crop(0, 1), raw.copy().crop(0, 2)]
+    elif inst_type == "epochs":
+        insts = [epochs.copy()[:1], epochs.copy()[:2]]
+    else:
+        insts = [evoked.copy().crop(0, 0.1), raw.copy().crop(0, 0.2)]
+
+    with pytest.raises(ValueError, match="between 0"):
+        equalize_bads(insts, interp_thresh=2.0)
+
+    bads = insts[0].copy().pick("eeg").ch_names[:3]
+    insts[0].info["bads"] = bads[:2]
+    insts[1].info["bads"] = bads[1:]
+
+    insts_ok = equalize_bads(insts, interp_thresh=interp_thresh)
+    if interp_thresh == 0:
+        bads_ok = []
+    elif interp_thresh == 1:
+        bads_ok = bads
+    else:  # interp_thresh == 0.5
+        bads_ok = bads[1:]
+
+    for inst in insts_ok:
+        assert set(inst.info["bads"]) == set(bads_ok)
 
 
 @pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
@@ -87,7 +119,7 @@ def test_interpolate_bridged_electrodes_bads():
     assert out.info["bads"] == ["EEG 001", "EEG 003"]
 
     # a bridged bad must be repaired, with no trace of its 1 V bad data
-    raw.apply_function(lambda x: np.full_like(x, 2.0), picks="EEG 001")
+    raw.apply_function(lambda x: np.full_like(x, 1.0), picks="EEG 001")
     out = interpolate_bridged_electrodes(raw.copy(), pairs)
     assert np.abs(out.get_data(picks="EEG 001")).max() < 1e-3
     assert out.info["bads"] == ["EEG 001", "EEG 003"]
