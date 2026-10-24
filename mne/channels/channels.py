@@ -1058,6 +1058,8 @@ class InterpolationMixin:
         method=None,
         exclude=(),
         on_bad_position="warn",
+        *,
+        interpolation=None,
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -1109,6 +1111,14 @@ class InterpolationMixin:
             filled with :data:`~numpy.nan`.
 
             .. versionadded:: 1.12
+        interpolation : dict | instance of InterpolationMatrix | None
+            A precomputed interpolation matrix, e.g. from
+            :func:`mne.channels.compute_bad_channel_interpolation_matrix`.
+            If provided, this matrix will be applied directly without recomputing
+            the forward or spherical spline mappings. Channel names and bad
+            channels must match the precomputed matrix.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -1127,6 +1137,7 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            _do_interp_dots,
             _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
@@ -1137,6 +1148,36 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
+
+        if interpolation is not None:
+            _validate_type(interpolation, (dict,), "interpolation")
+            if interpolation.get("ch_names") != list(self.ch_names) or set(
+                interpolation.get("bads", [])
+            ) != set(self.info["bads"]):
+                raise ValueError(
+                    "The precomputed interpolation matrix is not compatible with "
+                    "this instance. Channel names and bad channels must match."
+                )
+            for step in interpolation.get("steps", []):
+                if step.get("matrix") is None:
+                    self._data[..., step["bads_idx"], :] = np.nan
+                else:
+                    _do_interp_dots(
+                        self, step["matrix"], step["goods_idx"], step["bads_idx"]
+                    )
+            if reset_bads is True:
+                if any(
+                    step.get("method") == "nan"
+                    for step in interpolation.get("steps", [])
+                ):
+                    warn(
+                        "interpolate_bads was called with method='nan' and "
+                        "reset_bads=True. Consider setting reset_bads=False so "
+                        "that the nan-containing channels can be easily "
+                        "excluded from later computations."
+                    )
+                self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
+            return self
 
         # check for channels with invalid position(s)
         invalid_chs = []
