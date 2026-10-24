@@ -1,0 +1,1 @@
+:meth:`mne.MixedSourceEstimate.plot` now shows source spaces created by :func:`mne.setup_subcortical_source_space` as surface meshes alongside the cortex, by `Payam Sadeghi-Shabestari`_.
