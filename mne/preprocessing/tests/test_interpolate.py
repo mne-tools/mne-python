@@ -7,10 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 
 from mne import Epochs, create_info, io, pick_types, read_events
 from mne.channels import make_standard_montage
-from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
+from mne.preprocessing import interpolate_bridged_electrodes
 from mne.preprocessing.interpolate import _find_centroid_sphere
 from mne.transforms import _cart_to_sph
 
@@ -44,142 +45,75 @@ def _load_data():
     return raw.load_data(), epochs.load_data(), evoked
 
 
-@pytest.mark.parametrize("interp_thresh", [0.0, 0.5, 1.0])
-@pytest.mark.parametrize("inst_type", ["raw", "epochs", "evoked"])
-def test_equalize_bads(interp_thresh, inst_type):
-    """Test equalize_bads function."""
+@pytest.mark.parametrize("kind", ["raw", "epochs", "evoked"])
+@pytest.mark.parametrize(
+    "bridged", [("EEG 001", "EEG 002"), ("EEG 001", "EEG 002", "EEG 003")]
+)
+def test_interpolate_bridged_electrodes(kind, bridged):
+    """Bridged groups are interpolated for all data types."""
     raw, epochs, evoked = _load_data()
+    inst = dict(raw=raw, epochs=epochs, evoked=evoked)[kind]
+    ch_names, bads = inst.ch_names.copy(), inst.info["bads"].copy()
+    picks = list(bridged)
+    # all pairs within the group, so a 3-channel group must be merged into one
+    idx = [inst.ch_names.index(ch) for ch in bridged]
+    pairs = list(itertools.combinations(idx, 2))
 
-    if inst_type == "raw":
-        insts = [raw.copy().crop(0, 1), raw.copy().crop(0, 2)]
-    elif inst_type == "epochs":
-        insts = [epochs.copy()[:1], epochs.copy()[:2]]
-    else:
-        insts = [evoked.copy().crop(0, 0.1), raw.copy().crop(0, 0.2)]
+    reference = inst.copy()
+    reference.info["bads"] = picks
+    reference.interpolate_bads()
 
-    with pytest.raises(ValueError, match="between 0"):
-        equalize_bads(insts, interp_thresh=2.0)
-
-    bads = insts[0].copy().pick("eeg").ch_names[:3]
-    insts[0].info["bads"] = bads[:2]
-    insts[1].info["bads"] = bads[1:]
-
-    insts_ok = equalize_bads(insts, interp_thresh=interp_thresh)
-    if interp_thresh == 0:
-        bads_ok = []
-    elif interp_thresh == 1:
-        bads_ok = bads
-    else:  # interp_thresh == 0.5
-        bads_ok = bads[1:]
-
-    for inst in insts_ok:
-        assert set(inst.info["bads"]) == set(bads_ok)
+    inst = interpolate_bridged_electrodes(inst, pairs)
+    assert inst.ch_names == ch_names  # virtual channel removed, order kept
+    assert inst.info["bads"] == bads
+    # close to, but not identical with, regular interpolation
+    diff = np.abs(inst.get_data(picks=picks) - reference.get_data(picks=picks))
+    assert 1e-6 < diff.mean() < 5.4e-5
 
 
-def test_interpolate_bridged_electrodes():
-    """Test interpolate_bridged_electrodes function."""
-    raw, epochs, evoked = _load_data()
-    for inst in (raw, epochs, evoked):
-        idx0 = inst.ch_names.index("EEG 001")
-        idx1 = inst.ch_names.index("EEG 002")
-        ch_names_orig = inst.ch_names.copy()
-        bads_orig = inst.info["bads"].copy()
-        inst2 = inst.copy()
-        inst2.info["bads"] = ["EEG 001", "EEG 002"]
-        inst2.interpolate_bads()
-        data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002"])
-        inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
-        data_interp = inst.get_data(picks=["EEG 001", "EEG 002"])
-        assert not any(["virtual" in ch for ch in inst.ch_names])
-        assert inst.ch_names == ch_names_orig
-        assert inst.info["bads"] == bads_orig
-        # check closer to regular interpolation than original data
-        assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
+def test_interpolate_bridged_electrodes_bads():
+    """Pre-existing bads are preserved and do not contaminate the result."""
+    raw = _load_data()[0]
+    bridged = ["EEG 001", "EEG 002"]
+    pairs = [tuple(raw.ch_names.index(ch) for ch in bridged)]
+    raw.info["bads"] = ["EEG 001", "EEG 003"]  # bridged+bad, and bad only
+    clean = interpolate_bridged_electrodes(raw.copy(), pairs)
 
-    # pre-existing bads that are not bridged must not influence the bridged
-    # interpolation (raw only; the behavior does not depend on the input type)
-    idx0 = raw.ch_names.index("EEG 001")
-    idx1 = raw.ch_names.index("EEG 002")
-    ch_names_orig = raw.ch_names.copy()
-    raw.info["bads"] = ["EEG 003"]
-    bads_orig = raw.info["bads"].copy()
-    # Verify non-bridged bad doesn't influence the interpolation result
-    inst_clean = interpolate_bridged_electrodes(raw.copy(), [(idx0, idx1)])
-    data_clean = inst_clean.get_data(picks=["EEG 001", "EEG 002"])
-    inst_pois = raw.copy()
-    inst_pois.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 003"])
-    data_bad_poisoned = inst_pois.get_data(picks="EEG 003").copy()
-    inst_pois = interpolate_bridged_electrodes(inst_pois, [(idx0, idx1)])
-    assert np.array_equal(inst_pois.get_data(picks=["EEG 001", "EEG 002"]), data_clean)
-    assert np.array_equal(inst_pois.get_data(picks="EEG 003"), data_bad_poisoned)
-    assert inst_pois.info["bads"] == bads_orig
-    assert not any(["virtual" in ch for ch in inst_pois.ch_names])
-    assert inst_pois.ch_names == ch_names_orig
-    # Bridged channel that is also marked bad should be repaired
-    inst_overlap = raw.copy()
-    inst_overlap.info["bads"] = ["EEG 001", "EEG 003"]
-    bads_overlap = inst_overlap.info["bads"].copy()
-    data_bad_before = inst_overlap.get_data(picks="EEG 003").copy()
-    inst_overlap.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 001"])
-    data_bridged_poisoned = inst_overlap.get_data(picks="EEG 001").copy()
-    inst_overlap = interpolate_bridged_electrodes(inst_overlap, [(idx0, idx1)])
-    assert inst_overlap.info["bads"] == bads_overlap
-    assert not np.array_equal(
-        inst_overlap.get_data(picks="EEG 001"), data_bridged_poisoned
-    )
-    assert np.array_equal(inst_overlap.get_data(picks="EEG 003"), data_bad_before)
-    raw.info["bads"] = []
+    # a non-bridged bad must be ignored as a source and left untouched
+    raw.apply_function(lambda x: np.full_like(x, 1.0), picks="EEG 003")
+    out = interpolate_bridged_electrodes(raw.copy(), pairs)
+    assert_array_equal(out.get_data(picks=bridged), clean.get_data(picks=bridged))
+    assert_array_equal(out.get_data(picks="EEG 003"), 1.0)
+    assert out.info["bads"] == ["EEG 001", "EEG 003"]
 
-    for inst in (raw, epochs, evoked):
-        idx0 = inst.ch_names.index("EEG 001")
-        idx1 = inst.ch_names.index("EEG 002")
-        idx2 = inst.ch_names.index("EEG 003")
-        ch_names_orig = inst.ch_names.copy()
-        bads_orig = inst.info["bads"].copy()
-        inst2 = inst.copy()
-        inst2.info["bads"] = ["EEG 001", "EEG 002", "EEG 003"]
-        inst2.interpolate_bads()
-        data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002", "EEG 003"])
-        inst = interpolate_bridged_electrodes(
-            inst, [(idx0, idx1), (idx0, idx2), (idx1, idx2)]
-        )
-        data_interp = inst.get_data(picks=["EEG 001", "EEG 002", "EEG 003"])
-        assert not any(["virtual" in ch for ch in inst.ch_names])
-        assert inst.ch_names == ch_names_orig
-        assert inst.info["bads"] == bads_orig
-        # check closer to regular interpolation than original data
-        assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
+    # a bridged bad must be repaired, with no trace of its 1 V bad data
+    raw.apply_function(lambda x: np.full_like(x, 2.0), picks="EEG 001")
+    out = interpolate_bridged_electrodes(raw.copy(), pairs)
+    assert np.abs(out.get_data(picks="EEG 001")).max() < 1e-3
+    assert out.info["bads"] == ["EEG 001", "EEG 003"]
 
-    # test bad_limit
+
+def test_interpolate_bridged_electrodes_bad_limit():
+    """Groups larger than bad_limit raise, and bad_limit is validated."""
     montage = make_standard_montage("spherical_1005")
+    # drop old/new alias names (e.g. T3/T7) that share positions
     ch_names = [
-        ch
-        for ch in montage.ch_names
-        if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]
+        ch for ch in montage.ch_names if ch not in ("P7", "P8", "T3", "T4", "T5", "T6")
     ]
-    info = create_info(ch_names, sfreq=1024, ch_types="eeg")
-    rng = np.random.default_rng(0)
-    data = rng.standard_normal((len(ch_names), 1024))
-    data[:5, :] = np.ones((5, 1024))
-    raw = io.RawArray(data, info)
-    raw.set_montage("spherical_1005")
-    raw.info["bads"] = [ch_names[10]]  # a bad channel outside the bridged group
-    bridged_idx = list(itertools.combinations(range(5), 2))
-    with pytest.raises(
-        RuntimeError,
-        match="The channels AF1, AF10, AF10h, AF1h, AF2 are bridged "
-        "together and form a large area of bridged electrodes.",
-    ):
-        interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
-    # bads must be preserved when the error is raised
-    assert raw.info["bads"] == [ch_names[10]]
-    # increase the limit to prevent raising
-    interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)
-    # invalid argument
-    with pytest.raises(
-        ValueError, match="Argument 'bad_limit' should be a strictly positive integer."
-    ):
-        interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=-4)
+    info = create_info(ch_names, sfreq=100, ch_types="eeg")
+    data = np.random.default_rng(0).standard_normal((len(ch_names), 100)) * 1e-5
+    data[:5] = 1e-5  # first five channels identical -> one bridged group of 5
+    raw = io.RawArray(data, info).set_montage(montage)
+    raw.info["bads"] = [ch_names[10]]
+    pairs = list(itertools.combinations(range(5), 2))
+
+    with pytest.raises(RuntimeError, match="form a large area of bridged"):
+        interpolate_bridged_electrodes(raw, pairs, bad_limit=4)
+    assert raw.info["bads"] == [ch_names[10]]  # bads restored after the error
+    interpolate_bridged_electrodes(raw, pairs, bad_limit=5)  # at the limit: fine
+    for bad_limit in (0, -4):
+        with pytest.raises(ValueError, match="strictly positive integer"):
+            interpolate_bridged_electrodes(raw, pairs, bad_limit=bad_limit)
 
 
 def test_find_centroid():
