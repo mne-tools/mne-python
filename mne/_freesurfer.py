@@ -63,7 +63,7 @@ def _get_aseg(aseg, subject, subjects_dir):
         aseg = subjects_dir / subject / "mri" / f"{aseg}.mgz"
     _check_fname(aseg, overwrite="read", must_exist=True)
     aseg = nib.load(aseg)
-    aseg_data = np.array(aseg.dataobj)
+    aseg_data = np.asarray(aseg.dataobj)
     return aseg, aseg_data
 
 
@@ -90,7 +90,7 @@ def _reorient_image(img, axcodes="RAS"):
     .. versionadded:: 0.24
     """
     nib = _import_nibabel("reorient MRI image")
-    orig_data = np.array(img.dataobj).astype(np.float32)
+    orig_data = np.asarray(img.dataobj).astype(np.float32)
     # reorient data to RAS
     ornt = nib.orientations.axcodes2ornt(
         nib.orientations.aff2axcodes(img.affine)

@@ -162,7 +162,7 @@ class PyVistaFigure(Figure3D):
         return self.plotter
 
     def _is_active(self):
-        return hasattr(self.plotter, "ren_win")
+        return self.plotter.render_window is not None
 
 
 class _Projection:
@@ -969,8 +969,10 @@ class _PyVistaRenderer(_AbstractRenderer):
             update=update,
         )
 
-    def screenshot(self, mode="rgb", filename=None):
-        return _take_3d_screenshot(figure=self.figure, mode=mode, filename=filename)
+    def screenshot(self, mode="rgb", filename=None, *, scale=1):
+        return _take_3d_screenshot(
+            figure=self.figure, mode=mode, filename=filename, scale=scale
+        )
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.plotter, xyz)
@@ -1482,13 +1484,13 @@ def _close_3d_figure(figure):
     _ALL_PLOTTERS.pop(plotter._id_name, None)
 
 
-def _take_3d_screenshot(figure, mode="rgb", filename=None):
+def _take_3d_screenshot(figure, mode="rgb", filename=None, *, scale=1):
     # force the render to happen right now if it's an option (not available on
     # notebooks)
     meth = getattr(figure.plotter, "_render", figure.plotter.render)
     meth()
     return figure.plotter.screenshot(
-        transparent_background=(mode == "rgba"), filename=filename
+        transparent_background=(mode == "rgba"), filename=filename, scale=scale
     )
 
 
@@ -1625,7 +1627,7 @@ def _is_osmesa(plotter):
         # realization the first time), and asking VTK has segfaulted before.
         # This cannot be a plotter-keyed cache: each figure is a new plotter,
         # so it would miss every time and keep every plotter alive forever.
-        _GPU_REPORT = plotter.ren_win.ReportCapabilities()
+        _GPU_REPORT = plotter.render_window.ReportCapabilities()
     return _is_osmesa_from_report(_GPU_REPORT)
 
 

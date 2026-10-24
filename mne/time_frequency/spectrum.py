@@ -1020,15 +1020,14 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         )
         fmin_idx = np.searchsorted(self.freqs, fmin)
         fmax_idx = np.searchsorted(self.freqs, fmax, side="right")
-        freq_picks = np.arange(fmin_idx, fmax_idx)
         freq_axis = self._dims.index("freq")
         chan_axis = self._dims.index("channel")
-        # normally there's a risk of np.take reducing array dimension if there
-        # were only one channel or frequency selected, but `_picks_to_idx`
-        # always returns an array of picks, and np.arange always returns an
-        # array of freq bin indices, so we're safe; the result will always be
-        # 2D.
-        data = self._data.take(picks, chan_axis).take(freq_picks, freq_axis)
+        idx = [slice(None)] * self._data.ndim
+        idx[chan_axis] = picks
+        idx[freq_axis] = slice(fmin_idx, fmax_idx)
+        data = self._data[tuple(idx)]
+        if np.shares_memory(data, self._data):
+            data = data.copy()
         if return_freqs:
             freqs = self._freqs[fmin_idx:fmax_idx]
             return (data, freqs)
@@ -2575,12 +2574,13 @@ class EpochsSpectrumArray(EpochsSpectrum):
         ``IGNORED`` in the drop log.
     event_id : int | list of int | dict | str | list of str | None
         The id of the :term:`events` to consider. If dict, the keys can later be used to
-        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
-        dict will be created with the id as string. If a list of int, all :term:`events`
-        with the IDs specified in the list are used. If a str or list of str, ``events``
-        must be ``None`` to use annotations and then the IDs must be the name(s) of the
-        annotations to use. If None, all :term:`events` will be used and a dict is
-        created with string integer names corresponding to the event id integers.
+        access associated :term:`events`, and each value must be unique. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with the id as
+        string. If a list of int, all :term:`events` with the IDs specified in the list
+        are used. If a str or list of str, ``events`` must be ``None`` to use
+        annotations and then the IDs must be the name(s) of the annotations to use. If
+        None, all :term:`events` will be used and a dict is created with string integer
+        names corresponding to the event id integers.
     dim_names : tuple of str
         The name of the dimensions in the data, in the order they occur. Must contain
         ``'channel'`` and ``'freq'``;  if data are unaggregated estimates, also include

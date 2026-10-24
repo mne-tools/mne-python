@@ -175,8 +175,11 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None, ch_type="auto"):
         # that all supplied channels actually exist.
         assert len(ref_to) > 0
         ref_names = ref_from
-        ref_from = pick_channels(inst.ch_names, ref_from, ordered=True)
-        ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
+        from ..io.base import _convert_slice
+
+        # slices (when contiguous) avoid fancy-indexing copies of the data
+        ref_from = _convert_slice(pick_channels(inst.ch_names, ref_from, ordered=True))
+        ref_to = _convert_slice(pick_channels(inst.ch_names, ref_to, ordered=True))
 
         data = inst._data
         ref_data = data[..., ref_from, :].mean(-2, keepdims=True)

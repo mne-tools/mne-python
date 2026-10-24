@@ -25,6 +25,7 @@ from mne.coreg import (
     coregister_fiducials,
     create_default_subject,
     get_mni_fiducials,
+    read_mri_cfg,
     scale_bem,
     scale_labels,
     scale_mri,
@@ -165,6 +166,9 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
         mri_fiducials=mri_fiducials,
     )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
+    cfg = read_mri_cfg("flachkopf", tmp_path)
+    assert cfg["n_params"] == np.size(scale)
+    assert_array_equal(cfg["scale"], scale)
     spath = tmp_path / "flachkopf" / "bem"
     spath_fname = "flachkopf-%s-src.fif"
 

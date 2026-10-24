@@ -213,47 +213,43 @@ def _correct_auto_elements(surf, mat):
     return
 
 
+def _lin_pot_coeff_sub_numpy(fros, tri_rrs, tri_nn, tri_area, tris, same, submat):
+    """Subtract linear potential coefficients of all triangles from submat."""
+    for k, tri in enumerate(tris):
+        coeffs = _lin_pot_coeff(fros, tri_rrs[k], tri_nn[k], tri_area[k])
+        # No contribution from a triangle that this vertex belongs to
+        if same:
+            coeffs[tri] = 0.0
+        submat[:, tri] -= coeffs
+
+
 def _fwd_bem_lin_pot_coeff(surfs):
     """Calculate the coefficients for linear collocation approach."""
+    from ._surface_numba import _lin_pot_coeff_sub
+
     # taken from fwd_bem_linear_collocation.c
     nps = [surf["np"] for surf in surfs]
     np_tot = sum(nps)
     coeff = np.zeros((np_tot, np_tot))
     offsets = np.cumsum(np.concatenate(([0], nps)))
     for si_1, surf1 in enumerate(surfs):
-        rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info(
                 f"        {_bem_surf_name[surf1['id']]} ({nps[si_1]:d}) -> "
                 f"{_bem_surf_name[surf2['id']]} ({nps[si_2]}) ..."
             )
-            tri_rr = surf2["rr"][surf2["tris"]]
-            tri_nn = surf2["tri_nn"]
-            tri_area = surf2["tri_area"]
             submat = coeff[
                 offsets[si_1] : offsets[si_1 + 1], offsets[si_2] : offsets[si_2 + 1]
             ]  # view
-            for k in range(surf2["ntri"]):
-                tri = surf2["tris"][k]
-                if si_1 == si_2:
-                    skip_idx = (
-                        (rr_ord == tri[0]) | (rr_ord == tri[1]) | (rr_ord == tri[2])
-                    )
-                else:
-                    skip_idx = list()
-                # No contribution from a triangle that
-                # this vertex belongs to
-                # if sidx1 == sidx2 and (tri == j).any():
-                #     continue
-                # Otherwise do the hard job
-                coeffs = _lin_pot_coeff(
-                    fros=surf1["rr"],
-                    tri_rr=tri_rr[k],
-                    tri_nn=tri_nn[k],
-                    tri_area=tri_area[k],
-                )
-                coeffs[skip_idx] = 0.0
-                submat[:, tri] -= coeffs
+            _lin_pot_coeff_sub(
+                surf1["rr"],
+                surf2["rr"][surf2["tris"]],
+                surf2["tri_nn"],
+                surf2["tri_area"],
+                surf2["tris"],
+                si_1 == si_2,
+                submat,
+            )
             if si_1 == si_2:
                 _correct_auto_elements(surf1, submat)
     return coeff

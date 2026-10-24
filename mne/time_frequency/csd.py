@@ -1653,13 +1653,11 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True, decim=1)
         tslice = slice(tstart, tstop, tstep)
         psds = psds[:, :, tslice]
 
-    psds_conj = np.conj(psds)
-
-    # Compute the spectral density between all pairs of series
-    n_channels = data.shape[0]
-    csds = np.vstack(
-        [np.mean(psds[[i]] * psds_conj[i:], axis=2) for i in range(n_channels)]
-    )
+    # Compute upper-triangle CSD across channel pairs via batched matmul
+    psds = psds.transpose(1, 0, 2)  # (n_wavelets, n_channels, n_times)
+    csds = psds @ psds.conj().swapaxes(-1, -2) / psds.shape[-1]
+    ii, jj = np.triu_indices(psds.shape[1])
+    csds = csds[:, ii, jj].T
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
@@ -1724,7 +1722,9 @@ def csd_tfr(epochs_tfr, tmin=None, tmax=None, picks=None, projs=None, verbose=No
         # There is a redundancy in the calculation here because we don't really
         # need the lower triangle of the matrix, but it should still be faster
         # than a loop (hopefully!).
-        csds = np.einsum("xft,yft->xyf", epochs_data, np.conj(epochs_data))
+        csds = np.einsum(
+            "xft,yft->xyf", epochs_data, np.conj(epochs_data), optimize=True
+        )
         csds = csds[np.triu_indices(n_channels) + (slice(None),)]
         csds /= epochs_data.shape[-1]
 

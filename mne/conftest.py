@@ -103,14 +103,6 @@ def pytest_configure(config: pytest.Config):
     ):
         config.addinivalue_line("markers", marker)
 
-    # Fixtures
-    for fixture in (
-        "matplotlib_config",
-        "qt_config",
-        "protect_config",
-    ):
-        config.addinivalue_line("usefixtures", fixture)
-
     # pytest-qt uses PYTEST_QT_API, but let's make it respect qtpy's QT_API
     # if present
     if os.getenv("PYTEST_QT_API") is None and os.getenv("QT_API") is not None:
@@ -182,30 +174,16 @@ def pytest_configure(config: pytest.Config):
     # numpy distutils used by SciPy
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
-    ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
-    # Windows CIs using MESA get this
-    ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
-    # joblib
-    ignore:ast\.Num is deprecated.*:DeprecationWarning
-    ignore:Attribute n is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
-    # numpydoc
-    ignore:ast\.NameConstant is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
-    # pooch
-    ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
     # pandas
-    ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
-    ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     ignore:Python binding for RankQuantileOptions.*:
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
     ignore:Call to deprecated method Get.*:DeprecationWarning
-    # nibabel <-> NumPy 2.0
-    ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
     ignore:The 'copy' argument in Quantity is deprecated.*:
     # debugpy uses deprecated matplotlib API
@@ -214,7 +192,6 @@ def pytest_configure(config: pytest.Config):
     ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     # eeglabio
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
-    ignore:Starting field name with a underscore.*:
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     # sklearn
@@ -250,7 +227,7 @@ def pytest_configure(config: pytest.Config):
                 "filterwarnings",
                 "ignore:"
                 ".+ is deprecated and will be removed in a future version.*:"
-                "pandas.errors.Pandas4Warning",
+                "pandas.errors.Pandas4Warning:statsmodels",
             )
 
     # Deal with pytest-qt -- everything should already be skipped for example by not
@@ -349,7 +326,7 @@ def verbose_debug():
         yield
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
@@ -357,7 +334,7 @@ def qt_config():
         os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -1121,7 +1098,7 @@ def options_3d():
         yield
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def protect_config():
     """Protect ~/.mne."""
     temp = _TempDir()
@@ -1217,6 +1194,8 @@ def pytest_runtest_logreport(report: pytest.TestReport):
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     """Handle the end of the session."""
+    if exitstatus == pytest.ExitCode.OK and _bad_skips:
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
     n = session.config.option.durations
     if n is None:
         return
@@ -1237,9 +1216,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
     _files[:] = files[:n]
-    # Now handle exit status modification
-    if exitstatus == pytest.ExitCode.OK and _bad_skips:
-        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -1441,12 +1417,17 @@ def pytest_report_teststatus(
     """Turn unexpected skips into errors."""
     if report.outcome == "skipped":
         return _modify_report_skips(report)
+    # already converted, e.g., in an xdist worker before the report was sent here
+    if report.outcome in ("error", "failed") and "UNEXPECTED SKIP" in str(
+        report.longrepr
+    ):
+        return report.outcome, report.outcome[0].upper(), "UNEXPECTED SKIP"
 
 
 # Default means "allow all skips". Can use something like "$." to mean
 # "never match", i.e., "treat all skips as errors"
 MNE_TEST_ALLOW_SKIP = os.getenv("MNE_TEST_ALLOW_SKIP", None)
-_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL)
+_valid_skips_re = re.compile(MNE_TEST_ALLOW_SKIP or ".*", re.DOTALL | re.IGNORECASE)
 
 
 # To turn unexpected skips into errors, we need to look both at the collection phase
@@ -1466,12 +1447,8 @@ def _modify_report_skips(report: pytest.TestReport | pytest.CollectReport):
         return
     if file.endswith("doctest.py"):  # _python/doctest.py
         return
-    # xfail tests aren't true "skips" but show up as skipped in reports
-    if getattr(report, "keywords", {}).get("xfail", False):
-        return
-    # the above only catches marks, so we need to actually parse the report to catch
-    # an xfail based on the traceback
-    if " pytest.xfail( " in reason:
+    # xfail tests (marked or imperative) aren't true "skips" but show up as skipped
+    if hasattr(report, "wasxfail"):
         return
     if reason.startswith("Skipped: "):
         reason = reason[9:]

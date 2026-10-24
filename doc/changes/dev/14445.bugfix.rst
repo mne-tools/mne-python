@@ -1,0 +1,1 @@
+Fix bug where :class:`mne.Epochs` and :class:`mne.EpochsArray` accepted an ``event_id`` mapping several names to the same event code and only raised an error on data loading or indexing, they now raise at construction, by `Stefan Appelhoff`_.

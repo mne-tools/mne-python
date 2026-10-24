@@ -1249,3 +1249,39 @@ def test_crop_reset_first_samp():
     raw2 = RawArray(data, info)
     raw2.crop(tmin=2.0, tmax=5.0)
     assert raw2.first_samp != 0
+
+
+@pytest.mark.parametrize("first_samp", [0, 250])
+@pytest.mark.parametrize("meas_date", [None, 1e9])
+@pytest.mark.parametrize("preload", [True, False])
+def test_crop_reset_first_samp_alignment(
+    first_samp, meas_date, preload, tmp_path
+) -> None:
+    """Test that crop(reset_first_samp=True) keeps data and annotations aligned."""
+    info = create_info(ch_names=["CH1"], sfreq=100.0, ch_types=["eeg"])
+    # the data values are the sample indices, annotations at samples 100, 300, 500
+    raw = RawArray(np.arange(1000.0)[np.newaxis], info, first_samp=first_samp)
+    raw.set_meas_date(meas_date)
+    raw.set_annotations(
+        Annotations(onset=[1.0, 3.0, 5.0], duration=0.0, description=["a", "b", "c"])
+    )
+    raw.save(tmp_path / "test_raw.fif")
+    raw = read_raw_fif(tmp_path / "test_raw.fif", preload=preload)
+    for tmin in (2.0, 1.0):  # crop twice, the 2nd crop starts at sample 300
+        raw.crop(tmin, reset_first_samp=True)
+        assert raw.first_samp == 0
+        events, _ = mne.events_from_annotations(raw)
+        assert_array_equal(raw.get_data()[0, events[:, 0]], [300, 500])
+    assert raw.get_data()[0, 0] == 300
+    raw.save(tmp_path / "test_cropped_raw.fif")
+    raw_read = read_raw_fif(tmp_path / "test_cropped_raw.fif")
+    assert raw_read.first_samp == 0
+    assert_array_equal(mne.events_from_annotations(raw_read)[0], events)
+
+    # concatenated raws with discontinuous first_samp, cropping out the first one
+    raws = [raw.copy().crop(0, 1.99), raw.copy().crop(2.0, reset_first_samp=True)]
+    raw = concatenate_raws(raws)
+    raw.crop(3.0, reset_first_samp=True)
+    assert raw.first_samp == 0
+    assert raw.last_samp == raw.n_times - 1
+    assert raw.get_data()[0, 0] == 600

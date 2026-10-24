@@ -57,11 +57,11 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           version: ">=0.9"
           activate-environment: true
-          python-version: "3.12"
+          python-version: "3.14"  # keep in sync with `tool.ty.environment` in pyproject.toml
       - name: Install dependencies
         run: uv pip install -e . packaging requests tomlkit prek
       - name: Update tracked dependencies
@@ -80,7 +80,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v3.0.0
+      - uses: j178/prek-action@v3.0.1
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         env:

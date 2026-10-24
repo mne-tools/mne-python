@@ -106,13 +106,21 @@ def read_raw_neuralynx(
 
 
 # Helper for neo change of exclude_filename -> exclude_filenames in 0.13.2
-def _exclude_kwarg(exclude_fnames):
+def _neo_kwargs(exclude_fnames):
     from neo.io import NeuralynxIO
 
+    kwargs = {}
     key = "exclude_filename"
-    if "exclude_filenames" in inspect.getfullargspec(NeuralynxIO).args:
+    params = inspect.signature(NeuralynxIO)
+    if "exclude_filenames" in params.parameters:
         key += "s"
-    return {key: exclude_fnames}
+    kwargs[key] = exclude_fnames
+
+    # Introduced in neo version 0.14.6
+    if "gap_tolerance_ms" in params.parameters:
+        # As recommended by neo API documentation. This restores the old behavior
+        kwargs.update({"gap_tolerance_ms": 0.0})
+    return kwargs
 
 
 @fill_doc_static()
@@ -146,9 +154,11 @@ class RawNeuralynx(BaseRaw):
 
             logger.info("Ignoring .ncs files:\n" + "\n".join(exclude_fnames))
 
+        # Gap handling and filename excluding
+        neo_kwargs = _neo_kwargs(exclude_fnames)
         # get basic file info from header, throw Error if NeuralynxIO can't parse
         try:
-            nlx_reader = NeuralynxIO(dirname=fname, **_exclude_kwarg(exclude_fnames))
+            nlx_reader = NeuralynxIO(dirname=fname, **neo_kwargs)
         except ValueError as e:
             # give a more informative error message and what the user can do about it
             if "Incompatible section structures across streams" in str(e):
@@ -341,9 +351,10 @@ class RawNeuralynx(BaseRaw):
         # quantities is a dependency of neo so we are guaranteed it exists
         from quantities import Hz
 
+        neo_kwargs = _neo_kwargs(self._raw_extras[0]["exclude_fnames"])
         nlx_reader = NeuralynxIO(
             dirname=self.filenames[fi],
-            **_exclude_kwarg(self._raw_extras[0]["exclude_fnames"]),
+            **neo_kwargs,
         )
         neo_block = nlx_reader.read(lazy=True)
 

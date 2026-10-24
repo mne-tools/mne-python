@@ -731,8 +731,10 @@ class _LiteRenderer(_AbstractRenderer):
     def project(self, xyz, ch_names):
         _lite_unsupported("Projecting 3D positions onto the scene")
 
-    def screenshot(self, mode="rgb", filename=None):
-        return _take_3d_screenshot(self._figure, mode=mode, filename=filename)
+    def screenshot(self, mode="rgb", filename=None, *, scale=1):
+        return _take_3d_screenshot(
+            self._figure, mode=mode, filename=filename, scale=scale
+        )
 
     # -- camera -------------------------------------------------------------
     def get_camera(self, *, rigid=None):
@@ -966,7 +968,7 @@ def _check_3d_figure(figure):
     _validate_type(figure, _LiteFigure, "figure")
 
 
-def _take_3d_screenshot(figure, mode="rgb", filename=None):
+def _take_3d_screenshot(figure, mode="rgb", filename=None, *, scale=1):
     # pyvista-js can, but only by driving a headless browser from outside
     _lite_unsupported("Taking a screenshot")
 

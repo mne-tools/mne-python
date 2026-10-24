@@ -30,6 +30,7 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys, browser_ba
     with epochs.info._unlock():
         epochs.info["lowpass"] = 10.0  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title="Epochs")
+    assert repr(fig).endswith(" | Epochs, browsing 19 channels, 1 epoch>")
     ticks = fig._get_ticklabels("x")
     assert ticks == ["2"]
     browser_backend._close_all()

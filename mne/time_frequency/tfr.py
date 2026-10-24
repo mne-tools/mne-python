@@ -392,12 +392,14 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
         for i, W in enumerate(Ws):
             fft_Ws[i] = fft(W, fsize)
+        buf = np.empty_like(fft_Ws)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
         if use_fft:
-            rets = ifft(fft(x, fsize) * fft_Ws)
+            np.multiply(fft_Ws, fft(x, fsize), out=buf)
+            rets = ifft(buf, overwrite_x=True)
 
         # Loop across wavelets
         for ii, W in enumerate(Ws):
@@ -599,10 +601,12 @@ def _compute_tfr(
     parallel, my_cwt, n_jobs = parallel_func(_time_frequency_loop, n_jobs)
 
     # Parallelization is applied across channels.
-    tfrs = parallel(
+    tfrs = (
         my_cwt(channel, Ws, output, use_fft, "same", decim, weights)
         for channel in epoch_data.transpose(1, 0, 2)
     )
+    if parallel is not list:  # when serial, iterate lazily to not hold all results
+        tfrs = parallel(tfrs)
 
     # FIXME: to avoid overheads we should use np.array_split()
     for channel_idx, tfr in enumerate(tfrs):
@@ -2369,20 +2373,16 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         fmax_idx = np.searchsorted(self.freqs, fmax, side="right")
         tmin_idx = np.searchsorted(self.times, tmin)
         tmax_idx = np.searchsorted(self.times, tmax, side="right")
-        freq_picks = np.arange(fmin_idx, fmax_idx)
-        time_picks = np.arange(tmin_idx, tmax_idx)
         freq_axis = self._dims.index("freq")
         time_axis = self._dims.index("time")
         chan_axis = self._dims.index("channel")
-        # normally there's a risk of np.take reducing array dimension if there
-        # were only one channel or frequency selected, but `_picks_to_idx`
-        # and np.arange both always return arrays, so we're safe; the result
-        # will always have the same `ndim` as it started with.
-        data = (
-            self._data.take(picks, chan_axis)
-            .take(freq_picks, freq_axis)
-            .take(time_picks, time_axis)
-        )
+        idx = [slice(None)] * self._data.ndim
+        idx[chan_axis] = picks
+        idx[freq_axis] = slice(fmin_idx, fmax_idx)
+        idx[time_axis] = slice(tmin_idx, tmax_idx)
+        data = self._data[tuple(idx)]
+        if np.shares_memory(data, self._data):
+            data = data.copy()
         out = [data]
         if return_times:
             times = self._raw_times[tmin_idx:tmax_idx]
