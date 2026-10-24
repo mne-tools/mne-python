@@ -94,6 +94,22 @@ def _skip_check_picard(method):
         pytest.importorskip("picard")
 
 
+def test_bws_score_local_rng():
+    """BWS scores must not consume NumPy's global random state."""
+    rng = np.random.default_rng(0)
+    # Enough observations to require random, rather than exact, permutations.
+    data = rng.standard_normal((2, 20))
+    target = rng.standard_normal(20)
+    global_rng = check_random_state(None)
+    state = global_rng.get_state()
+    try:
+        scores = get_score_funcs()["bws_test"](data, target)
+        assert_equal(global_rng.get_state(), state)
+        assert_equal(scores.shape, (2,))
+    finally:
+        global_rng.set_state(state)
+
+
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_full_data_recovery(method):
     """Test recovery of full data when no source is rejected."""
