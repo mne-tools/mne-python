@@ -28,8 +28,6 @@ You will:
 
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 import mne
@@ -172,35 +170,18 @@ print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 # -------------------
 #
 # The result object carries the observed cluster-level statistics. We plot the
-# observed t-values as a heatmap with time on the x-axis and channel names on
-# the y-axis. Because the contrast is target minus non-target, positive t-values
-# mean a stronger response to targets, matching the difference plotted earlier.
+# observed t-values as a joint plot: a butterfly plot of the t-value time course
+# of every channel, with topographic maps at the time points of the largest
+# peaks. Because the contrast is target minus non-target, positive t-values mean
+# a stronger response to targets, matching the difference plotted earlier.
+# Note that this shows the test statistic itself, not which channels and time
+# points belong to a significant cluster.
 
 print(f"Number of permutations run: {cluster_result.n_permutations}")
 
-# times (in seconds) and channel names come from the evoked data
-times = grand_avg_diff.times
-ch_names = grand_avg_diff.ch_names
-
-# stat_obs holds the observed t-values, arranged as (channels, times)
-stat_obs = cluster_result.stat_obs
-
-# symmetric colour limits so the diverging colormap is centred on zero
-vlim = np.abs(stat_obs).max()
-
-fig, ax = plt.subplots(layout="constrained")
-im = ax.imshow(
-    stat_obs,
-    aspect="auto",
-    origin="lower",
-    extent=[times[0], times[-1], 0, len(ch_names)],
-    cmap="RdBu_r",
-    vmin=-vlim,
-    vmax=vlim,
+# Plot cluster result statistic (for now without the actual cluster highlighted)
+fig = cluster_result.plot_joint(
+    info=df["evoked"][0].info,
+    times_sec=df["evoked"][0].times,
+    show=False,
 )
-ax.set_yticks(np.arange(len(ch_names)) + 0.5)
-ax.set_yticklabels(ch_names)
-ax.set_xlabel("time (s)")
-ax.set_ylabel("channel")
-ax.set_title("Observed cluster statistic (target - non-target)")
-fig.colorbar(im, ax=ax, label="t-value")
