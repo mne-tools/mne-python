@@ -170,13 +170,16 @@ print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 # -------------------
 #
 # The result object carries the observed cluster-level statistics. We plot the
-# observed t-values as a heatmap with time on the x-axis and channel names on
-# the y-axis. Because the contrast is target minus non-target, positive t-values
-# mean a stronger response to targets, matching the difference plotted earlier.
+# observed t-values as a joint plot: a butterfly plot of the t-value time course
+# of every channel, with topographic maps at the time points of the largest
+# peaks. Because the contrast is target minus non-target, positive t-values mean
+# a stronger response to targets, matching the difference plotted earlier.
+# Note that this shows the test statistic itself, not which channels and time
+# points belong to a significant cluster.
 
 print(f"Number of permutations run: {cluster_result.n_permutations}")
 
-# Plot cluster result
+# Plot cluster result statistic (for now without the actual cluster highlighted)
 fig = cluster_result.plot_joint(
     info=df["evoked"][0].info,
     times_sec=df["evoked"][0].times,
