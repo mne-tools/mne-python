@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import asyncio
+import gc
 import json
 import os
 import platform
@@ -594,6 +595,9 @@ def test_lite_brain(renderer_lite, monkeypatch):
     monkeypatch.undo()  # the real _draw_scene, to check it skips an unchanged scene
     _same_page_not_resent(rend)
     brain.close()
+    del brain, rend
+    gc.collect()
+    assert not list(mne.viz.Brain._instances)  # its widgets no longer pin it
 
 
 def _count_draw(draws, rend):

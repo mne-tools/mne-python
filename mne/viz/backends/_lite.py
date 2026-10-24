@@ -771,6 +771,10 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
     def _display_default_tool_bar(self):
         pass  # its one button takes a screenshot, which pyvista-js cannot
 
+    def close(self):
+        super().close()  # after the close callbacks, which still use the widgets
+        self._close_widgets()
+
     def _viewer_widget(self):
         """Return the widget the scene is drawn into, as ``show`` asks for it."""
         # Two frames in one grid cell, in HTML widgets: a redraw loads into the

@@ -1269,7 +1269,8 @@ class _IpyPlayback(_AbstractPlayback):
         play.max = rng[1]
         play.value = round(value)
         slider = time_widget._widget
-        jsdlink((play, "value"), (slider, "value"))
+        # a widget too, which holds both ends open
+        self._gui_widgets.append(jsdlink((play, "value"), (slider, "value")))
 
 
 class _IpyMplInterface(_AbstractMplInterface):
@@ -1339,7 +1340,9 @@ class _IpyWindow(_AbstractWindow):
         return self.figure.plotter.window_size
 
     def _window_get_simple_canvas(self, width, height, dpi):
-        return _IpyMplCanvas(width, height, dpi)
+        canvas = _IpyMplCanvas(width, height, dpi)
+        self._gui_widgets.append(canvas.canvas)
+        return canvas
 
     def _window_get_help_canvas(self, pairs, mouse_pairs=None):
         text1, text2 = zip(*pairs, *(mouse_pairs or []))
@@ -1361,6 +1364,8 @@ class _IpyWindow(_AbstractWindow):
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
         self._mplcanvas = _IpyBrainMplCanvas(brain, w, h, self._window_get_dpi())
+        # now, as Brain's mpl_canvas.clear() drops it before the GUI is closed
+        self._gui_widgets.append(self._mplcanvas.canvas)
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):
@@ -1510,6 +1515,7 @@ class _IpyRenderer(
         self._tool_bar = None
         self._status_bar = None
         self._file_picker = _FilePckr(rows=10)
+        self._gui_widgets = list()  # the roots _close_widgets closes from
         super()._window_initialize(fullscreen=fullscreen)
 
     def _display_default_tool_bar(self):
@@ -1519,15 +1525,15 @@ class _IpyRenderer(
             desc="Take a screenshot",
             func=self.screenshot,
         )
-        display(self._tool_bar)
+        self._display_widget(self._tool_bar)
 
     def show(self):
         # menu bar
         if self._menu_bar is not None:
-            display(self._menu_bar)
+            self._display_widget(self._menu_bar)
         # tool bar
         if self._tool_bar is not None:
-            display(self._tool_bar)
+            self._display_widget(self._tool_bar)
         else:
             self._display_default_tool_bar()
         # viewer
@@ -1544,11 +1550,35 @@ class _IpyRenderer(
         rendering_row.append(viewer)
         if self._docks is not None and "right" in self._docks:
             rendering_row.append(self._docks["right"][0])
-        display(HBox(rendering_row))
+        self._display_widget(HBox(rendering_row))
         # status bar
         if self._status_bar is not None:
-            display(self._status_bar)
+            self._display_widget(self._status_bar)
         # file picker
         self._file_picker.hide()
-        display(self._file_picker._widget)
+        self._display_widget(self._file_picker._widget)
         return self.scene()
+
+    def _display_widget(self, widget):
+        self._gui_widgets.append(widget)
+        display(widget)
+
+    def _close_widgets(self):
+        """Close the GUI's widgets, which ipywidgets otherwise keeps alive.
+
+        Their callbacks point back at the figure, so until then it cannot die.
+        """
+        for widget in self._gui_widgets:
+            _close_widget_tree(widget)
+        self._gui_widgets.clear()
+
+
+def _close_widget_tree(widget):
+    # closing a widget leaves open the ones it holds: a box's children, a
+    # widget's layout and style, a link's ends, ipympl's toolbar
+    widget.close()
+    for key in widget.keys:
+        values = getattr(widget, key)
+        for value in values if isinstance(values, tuple) else (values,):
+            if isinstance(value, Widget) and value.comm is not None:
+                _close_widget_tree(value)
