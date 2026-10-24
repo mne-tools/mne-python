@@ -106,7 +106,9 @@ def regress_artifact(
         picks_artifact = _picks_to_idx(inst.info, picks_artifact)
         want_betas_shape = (len(picks), len(picks_artifact))
         _check_option("betas.shape", betas.shape, (want_betas_shape,))
-        model = EOGRegression(picks, picks_artifact, proj=proj)
+        model = EOGRegression(
+            picks=picks, exclude=exclude, picks_artifact=picks_artifact, proj=proj
+        )
         model.info_ = inst.info.copy()
         model.coef_ = betas
     return model.apply(inst, copy=copy), model.coef_
