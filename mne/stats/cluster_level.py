@@ -2933,13 +2933,17 @@ class ClusterResult:
         topographic maps at selected time points, preserving spatial relationships
         between channels.
 
+        .. note::
+            Only results of shape ``(n_channels, n_times)`` (e.g. from
+            :class:`~mne.Evoked` input) are supported. Time-frequency results
+            are not supported yet.
+
         Parameters
         ----------
         info : instance of Info
             The Info object from the evoked data, containing channel information.
         times_sec : array-like
-            The time vector (in seconds) corresponding to the stat_obs time axis.
-            Should match the length of ``stat_obs.shape[1]``.
+            Must have length stat_obs.shape[1] and spacing 1 / info["sfreq"].
         times : float | array of float | "auto" | "peaks"
             The time point(s) at which to show topomaps. If ``"auto"``, 5 evenly
             spaced topographies will be shown. If ``"peaks"``, automatically finds
@@ -2969,12 +2973,30 @@ class ClusterResult:
         from mne import EvokedArray
         from mne.viz.evoked import plot_evoked_joint
 
-        # Create EvokedArray from test statistics
-        stat_evoked = EvokedArray(
-            self.stat_obs,
-            info,
-            tmin=times_sec[0],
-        )
+        # for now only supports 2D clusters
+        if self.stat_obs.ndim != 2:
+            raise ValueError(
+                "plot_joint supports only (n_channels, n_times) statistics, got "
+                f"stat_obs with shape {self.stat_obs.shape}. Time-frequency "
+                "results are not supported yet."
+            )
+        if len(info["ch_names"]) != self.stat_obs.shape[0]:
+            raise ValueError(
+                f"info has {len(info['ch_names'])} channels, but stat_obs has "
+                f"{self.stat_obs.shape[0]}."
+            )
+
+        times_sec = np.asarray(times_sec, float)
+
+        stat_evoked = EvokedArray(self.stat_obs, info, tmin=times_sec[0])
+
+        if times_sec.shape != stat_evoked.times.shape or not np.allclose(
+            stat_evoked.times, times_sec
+        ):
+            raise ValueError(
+                "times_sec does not match the time axis of stat_obs given "
+                f"info['sfreq']={info['sfreq']}."
+            )
 
         # Create default title if not provided
         if title is None:
