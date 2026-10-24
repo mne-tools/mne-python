@@ -684,3 +684,63 @@ def test_interpolate_to_meg(monkeypatch):
         evoked_rt.interpolate_to("ctf151", **kwargs)
     with pytest.raises(ValueError, match="Invalid value"):
         evoked_rt.interpolate_to("foo", **kwargs)
+
+
+def test_cached_interpolation_matrix():
+    """Test caching bad channel interpolation matrix for EEG (gh-4651)."""
+    from mne.channels import (
+        InterpolationMatrix,
+        compute_bad_channel_interpolation_matrix,
+    )
+
+    # 1. Setup raw EEG data with bad channel
+    raw = read_raw_fif(raw_fname).crop(0, 0.5).load_data()
+    raw.pick(pick_types(raw.info, meg=False, eeg=True)[:10])
+    raw.info["bads"] = [raw.ch_names[2]]
+
+    interp = compute_bad_channel_interpolation_matrix(raw)
+    assert isinstance(interp, InterpolationMatrix)
+    assert repr(interp) == "<InterpolationMatrix | 1 bad channels, 1 steps (eeg)>"
+    assert interp.copy() == interp
+    assert compute_bad_channel_interpolation_matrix(raw.info) == interp
+
+    # 2. Test bit-exact numerical parity across Raw, Epochs, Evoked
+    assert_allclose(
+        raw.copy().interpolate_bads(interpolation=interp).get_data(),
+        raw.copy().interpolate_bads().get_data(),
+        atol=1e-15,
+    )
+    epochs = make_fixed_length_epochs(raw, duration=0.2, preload=True)
+    assert_allclose(
+        epochs.copy().interpolate_bads(interpolation=interp).get_data(),
+        epochs.copy().interpolate_bads().get_data(),
+        atol=1e-15,
+    )
+    evoked = epochs.average()
+    assert_allclose(
+        evoked.copy().interpolate_bads(interpolation=interp).data,
+        evoked.copy().interpolate_bads().data,
+        atol=1e-15,
+    )
+
+    # 3. Test input validation and compatibility checks
+    with pytest.raises(TypeError, match="interpolation must be an instance of"):
+        raw.interpolate_bads(interpolation="invalid")
+    with pytest.raises(TypeError, match="inst_or_info must be an instance of"):
+        compute_bad_channel_interpolation_matrix("invalid")
+    with pytest.raises(ValueError, match="not compatible"):
+        raw.copy().drop_channels([raw.ch_names[0]]).interpolate_bads(
+            interpolation=interp
+        )
+    raw_bad_mismatch = raw.copy()
+    raw_bad_mismatch.info["bads"] = [raw.ch_names[0]]
+    with pytest.raises(ValueError, match="not compatible"):
+        raw_bad_mismatch.interpolate_bads(interpolation=interp)
+
+    # 4. Empty bads and reset_bads=False
+    raw_no_bads = raw.copy()
+    raw_no_bads.info["bads"] = []
+    with pytest.warns(RuntimeWarning, match="No bad channels to interpolate"):
+        assert len(compute_bad_channel_interpolation_matrix(raw_no_bads)["steps"]) == 0
+    raw_keep = raw.copy().interpolate_bads(interpolation=interp, reset_bads=False)
+    assert raw_keep.info["bads"] == raw.info["bads"]
