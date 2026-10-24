@@ -569,9 +569,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         if event.time == self._current_time:
             return
         time_idx = self._to_time_index(event.time)
-        self._update_current_time_idx(time_idx)
+        self._update_current_time_idx(time_idx)  # renders
         publish(self, _TimeUpdated())
-        self._renderer._update()
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -581,10 +580,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         # Check if limits have changed at all.
         if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
-        # Update the render.
-        self._update_colormap_range(**lims)
+        self._update_colormap_range(**lims)  # renders
         publish(self, _ColormapRangeUpdated())
-        self._renderer._update()
 
     def _clear_callbacks(self):
         # Remove the default key binding
@@ -1212,7 +1209,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.0  # for the outer mesh
             # TODO: reaches into VTK through the renderer, which the
-            # jupyterlite_notebook backend cannot offer (its pages are excluded
+            # notebook_js backend cannot offer (its pages are excluded
             # in doc/conf.py); refactor the renderer interface so Brain only
             # uses its abstract methods. Same for the time label and glyph
             # actors below.
