@@ -91,9 +91,9 @@ fid_fname = pformat(bem_fname, name="fiducials")
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, "{subject}-{spacing}-src.fif")
 _head_fnames = (
+    head_bem_fname,
     os.path.join(bem_dirname, "outer_skin.surf"),
     head_sparse_fname,
-    head_bem_fname,
 )
 _high_res_head_fnames = (
     os.path.join(bem_dirname, "{subject}-head-dense.fif"),
