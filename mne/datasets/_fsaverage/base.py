@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import shutil
 from pathlib import Path
 
 from ...utils import get_subjects_dir, set_config, verbose_static
@@ -50,6 +51,15 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     the zip file is downloaded and files are updated. No files will
     be overwritten.
 
+    The head surface ``bem/fsaverage-head.fif`` is the smooth head surface
+    packaged with MNE-Python (the one :func:`mne.create_default_subject`
+    installs) rather than the watershed outer skin surface from the zip file.
+    To update an existing copy of fsaverage, delete the file and call this
+    function again.
+
+    .. versionchanged:: 1.13
+       The packaged head surface is used for ``bem/fsaverage-head.fif``.
+
     .. versionadded:: 0.18
     """
     # Code used to create the BEM (other files taken from MNE-sample-data):
@@ -74,6 +84,10 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     subjects_dir = subjects_dir.expanduser().absolute()
     fs_dir = subjects_dir / "fsaverage"
     fs_dir.mkdir(parents=True, exist_ok=True)
+    # Both zip files contain the watershed outer skin as bem/fsaverage-head.fif;
+    # replace it with the packaged head surface unless the file already existed
+    head_fname = fs_dir / "bem" / "fsaverage-head.fif"
+    replace_head = not head_fname.is_file()
     _manifest_check_download(
         manifest_path=FSAVERAGE_MANIFEST_PATH / "root.txt",
         destination=subjects_dir,
@@ -86,6 +100,12 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
         url="https://github.com/mne-tools/mne-data/releases/download/fsaverage-1.0/fsaverage-bem.zip",
         hash_="b31509cdcf7908af6a83dc5ee8f49fb1",
     )
+    if replace_head:
+        head_fname.parent.mkdir(exist_ok=True)
+        shutil.copyfile(
+            Path(__file__).parents[2] / "data" / "fsaverage" / "fsaverage-head.fif",
+            head_fname,
+        )
     return fs_dir
 
 
