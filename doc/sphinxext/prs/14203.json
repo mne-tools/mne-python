@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "0363ac572438f456f57ac560feb3b9259a89f853",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "mne/coreg.py": {
+      "a": 78,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 8,
+      "d": 29
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 40,
+      "d": 0
+    }
+  }
+}

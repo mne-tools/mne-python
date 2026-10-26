@@ -1,0 +1,148 @@
+{
+  "merge_commit_sha": "bee0ae30ce2fa6ef99b769acafafc12a71df5934",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/__init__.py": {
+      "a": 6,
+      "d": 3
+    },
+    "mne/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_chpi_numba.py": {
+      "a": 88,
+      "d": 0
+    },
+    "mne/_numba.py": {
+      "a": 52,
+      "d": 0
+    },
+    "mne/_surface_numba.py": {
+      "a": 278,
+      "d": 0
+    },
+    "mne/_transforms_numba.py": {
+      "a": 141,
+      "d": 0
+    },
+    "mne/bem.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/channels/montage.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/chpi.py": {
+      "a": 10,
+      "d": 76
+    },
+    "mne/conftest.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/coreg.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/decoding/time_delaying_ridge.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/fixes.py": {
+      "a": 0,
+      "d": 41
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 17,
+      "d": 289
+    },
+    "mne/forward/_compute_forward_numba.py": {
+      "a": 302,
+      "d": 0
+    },
+    "mne/io/ctf/trans.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/morph_map.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/preprocessing/_annotate_amplitude.py": {
+      "a": 2,
+      "d": 9
+    },
+    "mne/preprocessing/_annotate_amplitude_numba.py": {
+      "a": 18,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/stats/_cluster_level_numba.py": {
+      "a": 28,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 5,
+      "d": 16
+    },
+    "mne/surface.py": {
+      "a": 31,
+      "d": 264
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/tests/test_import_nesting.py": {
+      "a": 64,
+      "d": 30
+    },
+    "mne/tests/test_surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 22,
+      "d": 123
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/utils/_numerics_numba.py": {
+      "a": 27,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 28,
+      "d": 7
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 7,
+      "d": 11
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 3,
+      "d": 2
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

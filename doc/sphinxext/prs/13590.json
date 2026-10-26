@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "1801e8689b2a8aee0a7c3118c20b47545aecd4db",
+  "authors": [
+    {
+      "n": "Himanshu Mahor",
+      "e": "140396762+1himan@users.noreply.github.com",
+      "l": "1himan"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "mne/io/base.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

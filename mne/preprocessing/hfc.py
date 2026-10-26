@@ -6,11 +6,11 @@ import numpy as np
 
 from .._fiff.pick import _picks_to_idx, pick_info
 from .._fiff.proj import Projection
-from ..utils import verbose
+from ..utils import verbose_static
 from .maxwell import _prep_mf_coils, _sss_basis
 
 
-@verbose
+@verbose_static("info", "projs")
 def compute_proj_hfc(
     info, order=1, picks="meg", exclude="bads", *, accuracy="accurate", verbose=None
 ):
@@ -22,7 +22,9 @@ def compute_proj_hfc(
 
     Parameters
     ----------
-    %(info)s
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     order : int
         The order of the spherical harmonic basis set to use. Set to 1 to use
         only the homogeneous field component (default), 2 to add gradients, 3
@@ -38,11 +40,16 @@ def compute_proj_hfc(
     accuracy : str
         Can be ``"point"``, ``"normal"`` or ``"accurate"`` (default), defines
         which level of coil definition accuracy is used to generate model.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(projs)s
+    projs : list of Projection
+        List of computed projection vectors.
 
     See Also
     --------

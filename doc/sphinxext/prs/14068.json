@@ -1,0 +1,60 @@
+{
+  "merge_commit_sha": "c268d1d13de9930c3534ce81e5ac94c851fdfadb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".github/workflows/tests.yml": {
+      "a": 6,
+      "d": 6
+    },
+    "azure-pipelines.yml": {
+      "a": 15,
+      "d": 14
+    },
+    "mne/conftest.py": {
+      "a": 15,
+      "d": 1
+    },
+    "mne/decoding/tests/test_ged.py": {
+      "a": 32,
+      "d": 3
+    },
+    "mne/utils/config.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/tests/test_ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 26,
+      "d": 4
+    },
+    "tools/github_actions_test.sh": {
+      "a": 39,
+      "d": 7
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 7,
+      "d": 1
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 12,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

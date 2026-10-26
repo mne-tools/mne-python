@@ -1,0 +1,35 @@
+{
+  "merge_commit_sha": "852e8ffe6ed5f9b72ed352fab7639ef80e077f84",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "README.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "doc/changes/v1.12.rst": {
+      "a": 3,
+      "d": 6
+    },
+    "doc/install/installers.rst": {
+      "a": 16,
+      "d": 8
+    },
+    "doc/sphinxext/related_software.txt": {
+      "a": 3,
+      "d": 2
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 6,
+      "d": 1
+    }
+  }
+}

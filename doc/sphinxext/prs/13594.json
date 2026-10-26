@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "7518f9833bd4d719d0012a79124b3e326ea0105a",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    "mne/io/egi/events.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/utils.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

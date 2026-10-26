@@ -19,7 +19,6 @@ from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, EpochsArray, create_info, io, pick_types, read_events
 from mne.decoding import (
@@ -31,6 +30,7 @@ from mne.decoding import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.defaults import DEFAULTS
 from mne.utils import use_log_level
 
@@ -100,6 +100,9 @@ def test_scaler(info, method):
 
     X2 = scaler.fit(epochs_data, y).transform(epochs_data)
     assert_array_equal(X, X2)
+    X_one = epochs_data[..., :1].copy()  # reshape is then a view of the input
+    assert_array_equal(scaler.transform(X_one), X[..., :1])
+    assert_array_equal(X_one, epochs_data[..., :1])
 
     # inverse_transform
     Xi = scaler.inverse_transform(X)
@@ -205,7 +208,8 @@ def test_psdestimator():
 
 def test_vectorizer():
     """Test Vectorizer."""
-    data = np.random.rand(150, 18, 6)
+    rng = np.random.default_rng(0)
+    data = rng.random((150, 18, 6))
     vect = Vectorizer()
     result = vect.fit_transform(data)
     assert_equal(result.ndim, 2)
@@ -217,7 +221,7 @@ def test_vectorizer():
     assert_array_equal(vect.inverse_transform(result[1:]), data[1:])
 
     # check with different shape
-    assert_equal(vect.fit_transform(np.random.rand(150, 18, 6, 3)).shape, (150, 324))
+    assert_equal(vect.fit_transform(rng.random((150, 18, 6, 3))).shape, (150, 324))
     assert_equal(vect.fit_transform(data[1:]).shape, (149, 108))
 
     # check if raised errors are working correctly
@@ -261,9 +265,9 @@ def test_unsupervised_spatial_filter():
 
     # Test fit
     n_components = 4
-    usf = UnsupervisedSpatialFilter(PCA(n_components))
+    usf = UnsupervisedSpatialFilter(PCA(n_components, random_state=0))
     usf.fit(X)
-    usf1 = UnsupervisedSpatialFilter(PCA(n_components))
+    usf1 = UnsupervisedSpatialFilter(PCA(n_components, random_state=0))
 
     # test transform
     assert_equal(usf.transform(X).ndim, 3)
@@ -273,16 +277,17 @@ def test_unsupervised_spatial_filter():
     assert_array_almost_equal(usf.inverse_transform(usf.transform(X)), X)
 
     # Test with average param
-    usf = UnsupervisedSpatialFilter(PCA(4), average=True)
+    usf = UnsupervisedSpatialFilter(PCA(4, random_state=0), average=True)
     usf.fit_transform(X)
-    usf = UnsupervisedSpatialFilter(PCA(4), 2)
+    usf = UnsupervisedSpatialFilter(PCA(4, random_state=0), 2)
     with pytest.raises(TypeError, match="average must be"):
         usf.fit(X)
 
 
 def test_temporal_filter():
     """Test methods of TemporalFilter."""
-    X = np.random.rand(5, 5, 1200)
+    rng = np.random.default_rng(0)
+    X = rng.random((5, 5, 1200))
 
     # Test init test
     values = (
@@ -307,7 +312,7 @@ def test_temporal_filter():
         filt.transform("foo")
 
     # Test with 2 dimensional data array
-    X = np.random.rand(101, 500)
+    X = rng.random((101, 500))
     filt = TemporalFilter(
         l_freq=25.0, h_freq=50.0, sfreq=1000.0, filter_length=150, fir_design="firwin2"
     )
@@ -333,13 +338,13 @@ def test_bad_triage():
         Scaler(scalings="mean"),
         # Not easy to test Scaler(info) b/c number of channels must match
         TemporalFilter(),
-        UnsupervisedSpatialFilter(PCA()),
+        UnsupervisedSpatialFilter(PCA(random_state=0)),
         Vectorizer(),
     ]
 )
 def test_sklearn_compliance(estimator, check):
     """Test LinearModel compliance with sklearn."""
-    pytest.importorskip("sklearn", minversion="1.4")  # TODO VERSION remove on 1.4+
+    pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
     ignores = []
     if estimator.__class__.__name__ == "FilterEstimator":
         ignores += [

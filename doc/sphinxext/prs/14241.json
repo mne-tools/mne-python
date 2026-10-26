@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "e8102ad0661c9e1e75cb310f2063fc3c366b5c3e",
+  "authors": [
+    {
+      "n": "Bru",
+      "e": "42702466+bruAristimunha@users.noreply.github.com",
+      "l": "bruAristimunha"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14241.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/utils.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

@@ -5,7 +5,7 @@
 import numpy as np
 import pytest
 
-from mne import create_info
+from mne import Annotations, create_info
 from mne.annotations import _annotations_starts_stops
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import RawArray, read_raw_eyelink
@@ -71,3 +71,44 @@ def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze, crop):
     if interpolate_gaze:
         assert not np.isnan(data[0, blink_ind]).any()  # left eye
         assert not np.isnan(data[1, blink_ind]).any()  # right eye
+
+
+def _pupil_raw_with_gaps():
+    """Synthetic pupil Raw with two missing segments at known sample ranges."""
+    info = create_info(["pupil_left", "pupil_right"], 100.0, ["pupil", "pupil"])
+    data = np.ones((2, 1000)) * 5.0
+    data[:, 100:150] = 0.0  # a blink
+    data[:, 600:650] = 0.0  # a non-blink gap (e.g. NaN/dropout)
+    raw = RawArray(data, info)
+    raw.set_annotations(
+        Annotations(
+            onset=[1.0, 6.0],
+            duration=[0.5, 0.5],
+            description=["BAD_blink", "BAD_NAN"],
+            ch_names=[("pupil_left", "pupil_right"), ("pupil_left", "pupil_right")],
+        )
+    )
+    return raw
+
+
+def test_interpolate_blinks_respects_match():
+    """All descriptions in ``match`` are interpolated, not just ``BAD_blink``.
+
+    Regression test for #13880: ``interpolate_blinks`` exposes a ``match``
+    parameter, but the segment start/stop times were derived from a hardcoded
+    ``"BAD_blink"`` query, so any other matched annotation (e.g. ``BAD_NAN``
+    from :func:`mne.preprocessing.annotate_nan`) was silently ignored.
+    """
+    # default match="BAD_blink": only the blink gap is filled, the other remains
+    raw = _pupil_raw_with_gaps()
+    interpolate_blinks(raw, buffer=(0.0, 0.0))
+    data = raw.get_data()
+    assert not np.any(data[:, 100:150] == 0.0)  # blink interpolated
+    assert np.all(data[:, 600:650] == 0.0)  # unmatched gap untouched
+
+    # match both descriptions: both gaps are interpolated
+    raw = _pupil_raw_with_gaps()
+    interpolate_blinks(raw, buffer=(0.0, 0.0), match=["BAD_blink", "BAD_NAN"])
+    data = raw.get_data()
+    assert not np.any(data[:, 100:150] == 0.0)
+    assert not np.any(data[:, 600:650] == 0.0)

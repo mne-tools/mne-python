@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "93145a3d98b7ed7679b65f50b4456134975e0692",
+  "authors": [
+    {
+      "n": "Natneal.B",
+      "e": "nati.new77@gmail.com",
+      "l": "natinew77-creator"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/Makefile": {
+      "a": 10,
+      "d": 7
+    },
+    "doc/changes/dev/14135.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/build_lite_wheel.py": {
+      "a": 126,
+      "d": 0
+    },
+    "pyproject.toml": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

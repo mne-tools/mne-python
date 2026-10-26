@@ -107,7 +107,7 @@ Bugs
 
 - Fix bug in :func:`mne.export.export_raw` to ignore None value in filenames attribute of :class:`mne.io.RawArray` (:gh:`10927` by :newcontrib:`Reza Nasri`)
 
-- Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)
+- Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik D. Weber`)
 
 - Fix bug in :func:`mne.Epochs.drop_bad` where data was loaded although no rejection had to be performed (:gh:`10718` by :newcontrib:`Lukas Gemein`)
 
@@ -175,7 +175,7 @@ Bugs
 
 - The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`10749` by `Richard Höchenberger`_)
 
-- Add a YouTube video tutorial for editing Freesurfer surfaces in Blender to :ref:`tut-fix-meshes` (:gh:`10778` by `Alex Rockhill`_)
+- Add a YouTube video tutorial for editing FreeSurfer surfaces in Blender to :ref:`tut-fix-meshes` (:gh:`10778` by `Alex Rockhill`_)
 
 - The default interaction style of :meth:`mne.Evoked.plot_field` has been changed such that if behaves like :func:`~mne.viz.plot_alignment` when trying to rotate the head (:gh:`10788` by `Richard Höchenberger`_)
 
@@ -269,3 +269,5 @@ Authors
 * Stefan Appelhoff
 * T. Wang+
 * Tziona NessAiver+
+
+.. include:: names.inc

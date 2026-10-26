@@ -24,9 +24,8 @@ wave fNIRS), and additionally AC amplitude and phase (for
 frequency domain fNIRS).
 
 .. warning:: MNE-Python stores metadata internally with a specific structure,
-             and internal functions expect specific naming conventions.
-             Manual modification of channel names and metadata
-             is not recommended.
+             and internal functions expect specific naming conventions. Manual
+             modification of channel names and metadata is not recommended.
 
 .. _import-snirf:
 
@@ -174,7 +173,7 @@ import mne
 # load. We simulate 16 channels with 100 samples of data and save this to a
 # file called fnirs.csv.
 
-pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
+pd.DataFrame(np.random.default_rng(97).normal(size=(16, 100))).to_csv("fnirs.csv")
 
 
 # %%

@@ -4,12 +4,21 @@
 
 from gzip import GzipFile
 from io import SEEK_SET, BytesIO
+from os import PathLike
 from pathlib import Path
+from typing import IO, Any
 
 import numpy as np
-from scipy.sparse import issparse
 
-from ..utils import _check_fname, _file_like, _validate_type, logger, verbose, warn
+from ..utils import (
+    _check_fname,
+    _file_like,
+    _validate_type,
+    logger,
+    verbose_static,
+    warn,
+)
+from ..utils._typing import LogLevel
 from .constants import FIFF
 from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
@@ -104,8 +113,10 @@ def _get_next_fname(fid, fname, tree):
     return next_fname
 
 
-@verbose
-def fiff_open(fname, preload=False, verbose=None):
+@verbose_static()
+def fiff_open(
+    fname: Path | IO[bytes], preload: bool = False, verbose: LogLevel = None
+) -> tuple[IO[bytes], dict[str, Any], list[Tag]]:
     """Open a FIF file.
 
     Parameters
@@ -116,7 +127,11 @@ def fiff_open(fname, preload=False, verbose=None):
         If True, all data from the file is read into a memory buffer. This
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -201,18 +216,18 @@ def _fiff_open(fname, fid, preload):
     return fid, tree, directory
 
 
-@verbose
+@verbose_static()
 def show_fiff(
-    fname,
-    indent="    ",
-    read_limit=np.inf,
-    max_str=30,
-    output=str,
-    tag=None,
+    fname: str | PathLike,
+    indent: str = "    ",
+    read_limit: int | float = np.inf,
+    max_str: int = 30,
+    output: type[str] | type[list] = str,
+    tag: int | None = None,
     *,
-    show_bytes=False,
-    verbose=None,
-):
+    show_bytes: bool = False,
+    verbose: LogLevel = None,
+) -> str | list[str]:
     """Show FIFF information.
 
     This function is similar to mne_show_fiff.
@@ -236,11 +251,15 @@ def show_fiff(
         is shown.
     show_bytes : bool
         If True (default False), print the byte offsets of each tag.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    contents : str
+    contents : str | list of str
         The contents of the file.
     """
     if output not in [list, str]:
@@ -295,6 +314,8 @@ def _show_tree(
     show_bytes=False,
 ):
     """Show FIFF tree."""
+    from scipy.sparse import issparse
+
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

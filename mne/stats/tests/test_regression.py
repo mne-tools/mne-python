@@ -141,7 +141,9 @@ def test_continuous_regression_with_overlap():
     def solver(X, y):
         # Newer scikit-learn returns 1D array for ridge_regression, so ensure
         # 2D output
-        return np.atleast_2d(ridge_regression(X, y, alpha=0.0, solver="cholesky"))
+        return np.atleast_2d(
+            ridge_regression(X, y, alpha=0.0, solver="cholesky", random_state=0)
+        )
 
     assert_allclose(
         effect,
@@ -150,7 +152,7 @@ def test_continuous_regression_with_overlap():
 
     # test bad solvers
     def solT(X, y):
-        return ridge_regression(X, y, alpha=0.0, solver="cholesky").T
+        return ridge_regression(X, y, alpha=0.0, solver="cholesky", random_state=0).T
 
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver="err")

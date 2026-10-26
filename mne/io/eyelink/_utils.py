@@ -6,6 +6,7 @@
 
 import re
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import numpy as np
 
@@ -14,7 +15,8 @@ from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import _check_pandas_installed, logger, warn
 
-EYELINK_COLS = {
+# heterogeneous nested structure (tuples of column names or sub-dicts by eye)
+EYELINK_COLS: dict[str, Any] = {
     "timestamp": ("time",),
     "pos": {
         "left": ("xpos_left", "ypos_left", "pupil_left"),
@@ -79,8 +81,8 @@ def _parse_eyelink_ascii(
             raw_extras["dfs"]["samples"], raw_extras["sfreq"]
         )
     # Convert timestamps to seconds
-    for df in raw_extras["dfs"].values():
-        df = _convert_times(df, raw_extras["first_timestamp"])
+    for key, df in raw_extras["dfs"].items():
+        raw_extras["dfs"][key] = _convert_times(df, raw_extras["first_timestamp"])
     # Find overlaps between left and right eye events
     if find_overlaps:
         for key in raw_extras["dfs"]:
@@ -103,7 +105,7 @@ def _parse_recording_blocks(fname):
     samples lines start with a posix-like string,
     and contain eyetracking sample info. Event Lines
     start with an upper case string and contain info
-    about occular events (i.e. blink/saccade), or experiment
+    about ocular events (i.e. blink/saccade), or experiment
     messages sent by the stimulus presentation software.
     """
     with fname.open() as file:
@@ -129,7 +131,7 @@ def _parse_recording_blocks(fname):
             if line.startswith("START"):  # start of recording block
                 is_recording_block = True
                 # Initialize container for new block data
-                current_block = {
+                current_block: dict[str, Any] = {
                     "samples": [],
                     "events": {
                         "START": [],
@@ -182,14 +184,14 @@ def _validate_data(data_blocks: list):
         pupil_units.append(block["info"]["pupil_unit"])
     if "GAZE" in units:
         logger.info(
-            "Pixel coordinate data detected."
+            "Pixel coordinate data detected. "
             "Pass `scalings=dict(eyegaze=1e3)` when using plot"
             " method to make traces more legible."
         )
     if "HREF" in units:
         logger.info("Head-referenced eye-angle (HREF) data detected.")
     elif "PUPIL" in units:
-        warn("Raw eyegaze coordinates detected. Analyze with caution.")
+        warn("Raw pupil position data detected. Analyze with caution.")
     if "AREA" in pupil_units:
         logger.info("Pupil-size area detected.")
     elif "DIAMETER" in pupil_units:
@@ -369,7 +371,7 @@ def _create_dataframes_for_block(block, apply_offsets):
         df_dict["samples"] = pd.DataFrame(block["samples"])
         df_dict["samples"] = _drop_status_col(df_dict["samples"])  # drop STATUS col
 
-    # dataframe for each type of occular event in this block
+    # dataframe for each type of ocular event in this block
     for event, label in zip(
         ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
     ):
@@ -559,11 +561,27 @@ def _drop_status_col(samples_df):
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
     for col in samples_df.columns[3:]:
-        if samples_df[col][0][0].isnumeric():
-            # if the value is numeric, it's not a status column
-            continue
-        if len(samples_df[col][0]) in [3, 5, 13, 17]:
+        # use first valid index and value to ignore leading empty values
+        # see https://github.com/mne-tools/mne-python/issues/13567
+        first_valid_index = samples_df[col].first_valid_index()
+        if first_valid_index is None:
+            # The entire column is NaN, so we can drop it
             status_cols.append(col)
+            continue
+        first_value = samples_df.loc[first_valid_index, col]
+        try:
+            float(first_value)
+            continue  # if the value is numeric, it's not a status column
+        except (ValueError, TypeError):
+            # cannot convert to float, so it might be a status column
+            # further check the length of the string value
+            if len(first_value) in [3, 5, 13, 17]:
+                status_cols.append(col)
+            else:
+                warn(
+                    f"Unexpected non-numeric value {repr(first_value)} in "
+                    "status column. Please contact mne-python developers"
+                )
     return samples_df.drop(columns=status_cols)
 
 
@@ -602,7 +620,7 @@ def _assign_col_names(col_names, df_dict):
         new_col_names = {
             old: new for old, new in zip(df.columns[:max_cols], cols[:max_cols])
         }
-        df.rename(columns=new_col_names, inplace=True)
+        df_dict[key] = df.rename(columns=new_col_names)
     logger.debug(f"Skipped assigning column names to {skipped_types} dataframes.")
     return df_dict
 
@@ -635,12 +653,11 @@ def _set_missing_values(df, columns):
 
 
 def _sort_by_time(df, col="time"):
-    df.sort_values(col, ascending=True, inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    return df.sort_values(col, ascending=True).reset_index(drop=True)
 
 
 def _convert_times(df, first_samp, col="time"):
-    """Set initial time to 0, converts from ms to seconds in place.
+    """Set initial time to 0, converts from ms to seconds.
 
     Parameters
     ----------
@@ -660,7 +677,7 @@ def _convert_times(df, first_samp, col="time"):
     The "first" sample is inferred to be the first sample of
     the first recording block, i.e. the first "START" line.
     """
-    _sort_by_time(df, col)
+    df = _sort_by_time(df, col)
     for col in df.columns:
         if str(col).endswith("time"):  # 'time' and 'end_time' cols
             df[col] -= first_samp
@@ -686,7 +703,7 @@ def _adjust_times(
     sfreq : int | float:
         sampling frequency of the data
 
-    time_col : str (default 'time'):
+    time_col : str
         name of column with the timestamps (e.g. 9511881, 9511882, ...)
 
     Returns
@@ -697,7 +714,7 @@ def _adjust_times(
     -----
     After _parse_recording_blocks, Files with multiple recording blocks will
     have missing timestamps for the duration of the period between the blocks.
-    This would cause the occular annotations (i.e. blinks) to not line up with
+    This would cause the ocular annotations (i.e. blinks) to not line up with
     the signal.
     """
     pd = _check_pandas_installed()
@@ -723,8 +740,8 @@ def _find_overlaps(df, max_time=0.05):
     Parameters
     ----------
     df : pandas.DataFrame
-        Pandas DataFrame with occular events (fixations, saccades, blinks)
-    max_time : float (default 0.05)
+        Pandas DataFrame with ocular events (fixations, saccades, blinks)
+    max_time : float
         Time in seconds. Defaults to .05 (50 ms)
 
     Returns
@@ -746,7 +763,8 @@ def _find_overlaps(df, max_time=0.05):
 
     if not len(df):
         return
-    df["overlap_start"] = df.sort_values("time")["time"].diff().lt(max_time)
+    df = df.sort_values("time")
+    df["overlap_start"] = df["time"].diff().lt(max_time)
 
     df["overlap_end"] = df["end_time"].diff().abs().lt(max_time)
 
@@ -791,7 +809,7 @@ def _href_to_radian(opposite, f=15_000):
     ----------
     opposite : int
         The x or y coordinate in an HREF gaze sample.
-    f : int (default 15_000)
+    f : int
         distance of plane from the eye. Defaults to 15,000 units, which was taken
         from the Eyelink 1000 plus user manual.
 
@@ -1030,7 +1048,9 @@ def _parse_calibration(
             avg_error = float(line.split("avg.")[0].split()[-1])  # e.g. 0.3
             max_error = float(line.split("max")[0].split()[-1])  # e.g. 0.9
 
-            n_points = int(regex.search(model).group())  # e.g. 13
+            match = regex.search(model)
+            assert match is not None
+            n_points = int(match.group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
 
             # The next n_point lines contain the validation data

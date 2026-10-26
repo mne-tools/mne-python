@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "4c3c0684a4b70b9194f08cc01c31484562ffea8f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 32,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 4,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

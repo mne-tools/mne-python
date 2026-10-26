@@ -28,8 +28,9 @@ from mne.utils import _record_warnings, catch_logging
 
 def _generate_tf_data():
     n, p, t = 30, 40, 64
-    rng = np.random.RandomState(0)
-    G = rng.randn(n, p)
+    # seed chosen so the recovered active set matches true_active_set
+    rng = np.random.default_rng(1)
+    G = rng.standard_normal((n, p))
     G /= np.std(G, axis=0)[None, :]
     X = np.zeros((p, t))
     active_set = [0, 4]
@@ -39,15 +40,15 @@ def _generate_tf_data():
     X[4, times <= np.pi / 2] = 0
     X[4, times >= np.pi] = 0
     M = np.dot(G, X)
-    M += 1 * rng.randn(*M.shape)
+    M += rng.normal(scale=1, size=M.shape)
     return M, G, active_set
 
 
 def test_l21_mxne():
     """Test convergence of MxNE solver."""
     n, p, t, alpha = 30, 40, 20, 1.0
-    rng = np.random.RandomState(0)
-    G = rng.randn(n, p)
+    rng = np.random.default_rng(0)
+    G = rng.standard_normal((n, p))
     G /= np.std(G, axis=0)[None, :]
     X = np.zeros((p, t))
     X[0] = 3
@@ -121,8 +122,8 @@ def test_l21_mxne():
 def test_non_convergence():
     """Test non-convergence of MxNE solver to catch unexpected bugs."""
     n, p, t, alpha = 30, 40, 20, 1.0
-    rng = np.random.RandomState(0)
-    G = rng.randn(n, p)
+    rng = np.random.default_rng(0)
+    G = rng.standard_normal((n, p))
     G /= np.std(G, axis=0)[None, :]
     X = np.zeros((p, t))
     X[0] = 3
@@ -195,7 +196,8 @@ def test_norm_epsilon():
     l1_ratio = 0.03
     # test that vanilla epsilon norm = weights equal to 1
     w_time = np.ones(n_coefs[0])
-    Y = np.abs(np.random.randn(n_coefs[0]))
+    rng = np.random.default_rng(0)
+    Y = np.abs(rng.standard_normal(n_coefs[0]))
     assert_allclose(
         norm_epsilon(Y, l1_ratio, phi), norm_epsilon(Y, l1_ratio, phi, w_time=w_time)
     )
@@ -329,8 +331,8 @@ def test_tf_mxne_vs_mxne():
 def test_iterative_reweighted_mxne():
     """Test convergence of irMxNE solver."""
     n, p, t, alpha = 30, 40, 20, 1
-    rng = np.random.RandomState(0)
-    G = rng.randn(n, p)
+    rng = np.random.default_rng(0)
+    G = rng.standard_normal((n, p))
     G /= np.std(G, axis=0)[None, :]
     X = np.zeros((p, t))
     X[0] = 3

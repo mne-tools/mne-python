@@ -8,6 +8,7 @@ from collections.abc import Callable
 import numpy as np
 
 from mne.annotations import _sync_onset
+from mne.defaults import DEFAULTS
 from mne.utils import _check_edfio_installed, warn
 
 _check_edfio_installed()
@@ -37,7 +38,13 @@ def _round_float_to_8_characters(
     return round_func(value * factor) / factor
 
 
-def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
+# Make a little dict that maps voltage channels to uV scale factors
+_UV_CH_SCALARS = dict((k, 1e6) for k, v in DEFAULTS["si_units"].items() if v == "V")
+
+
+def _export_raw_edf_bdf(
+    fname, raw, physical_range, digital_range, add_ch_type, file_format
+):
     """Export Raw objects to EDF/BDF files.
 
     Parameters
@@ -48,6 +55,9 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
         The raw instance to export.
     physical_range : str or tuple
         Physical range setting.
+    digital_range : "auto" | "orig"
+        Whether to use maximum available bit depth, or the digital min/max that were
+        present in the originally-read EDF/BDF file.
     add_ch_type : bool
         Whether to add channel type to signal label.
     file_format : str
@@ -58,24 +68,108 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
     TODO: if in future the Info object supports transducer or technician information,
     allow writing those here.
     """
-    units = dict(
-        eeg="uV", ecog="uV", seeg="uV", eog="uV", ecg="uV", emg="uV", bio="uV", dbs="uV"
-    )
-
     if file_format == "EDF":
-        digital_min, digital_max = -32767, 32767  # 16-bit
+        format_digital_range = (-32768, 32767)  # 16-bit
         signal_class = EdfSignal
         writer_class = Edf
     else:  # BDF
-        digital_min, digital_max = -8388607, 8388607  # 24-bit
+        format_digital_range = (-8388608, 8388607)  # 24-bit
         signal_class = BdfSignal
         writer_class = Bdf
-
+    extras = raw._raw_extras[0]
+    read_picks = raw._read_picks[0]
     ch_types = np.array(raw.get_channel_types())
 
     # load and prepare data
     raw.load_data()
-    data = raw.get_data(units=units)
+    # data read from EDF/BDF/GDF store their original per-channel scale factors, so
+    # undo those if present, otherwise write voltage channels in µV. Multiply rather
+    # than divide so that e.g. 1e-5 V becomes exactly 10.0 µV
+    # (1e-5 / 1e-6 == 10.000000000000002 whereas 1e-5 * 1e6 == 10.0 exactly).
+    # Physical dimensions must match this scaling; for EDF, _check_orig_units has
+    # already normalized mu variants to µ (micro sign), and EDF headers must be ASCII
+    if "units" in extras:
+        scaler = 1.0 / extras["units"][read_picks]
+        physical_dimensions = [
+            raw._orig_units.get(ch, "").replace("\u00b5", "u") for ch in raw.ch_names
+        ]
+    else:
+        scaler = np.array([_UV_CH_SCALARS.get(t, 1.0) for t in ch_types])
+        physical_dimensions = ["uV" if t in _UV_CH_SCALARS else "" for t in ch_types]
+    physical_dimensions = [
+        "" if d == "n/a" or t == "stim" else d
+        for d, t in zip(physical_dimensions, ch_types)
+    ]
+    data = raw.get_data()
+    data *= scaler[:, np.newaxis]
+
+    # compute per-channel digital range
+    if digital_range == "orig" and not (
+        "digital_min" in extras and "digital_max" in extras
+    ):
+        warn(
+            f"Cannot write {file_format} using original digital range (necessary info "
+            "not available); falling back to 'auto' behavior (using max available "
+            f"digital range, {16 if file_format == 'EDF' else 24}-bit)."
+        )
+        digital_range = "auto"
+    if digital_range == "orig":
+        digital_ranges = np.c_[extras["digital_min"], extras["digital_max"]]
+        digital_ranges = digital_ranges[read_picks].astype(int)
+    else:
+        # symmetric, so that the midpoint of the physical range (e.g., zero) maps
+        # exactly to a digital value
+        dmax = format_digital_range[1]
+        digital_ranges = np.tile([-dmax, dmax], (len(ch_types), 1))
+
+    # compute per-channel physical range
+    if physical_range == "orig" and not (
+        "physical_min" in extras and "physical_max" in extras
+    ):
+        warn(
+            f"Cannot write {file_format} using original physical range (necessary info "
+            "not available); falling back to 'auto' behavior (setting the physical "
+            "range to range of the data, separately for each channel type)."
+        )
+        physical_range = "auto"
+    if physical_range == "orig":
+        physical_ranges = np.c_[extras["physical_min"], extras["physical_max"]]
+        physical_ranges = physical_ranges[read_picks]
+    elif physical_range == "auto":  # per channel type
+        physical_ranges = np.zeros((len(ch_types), 2))
+        for ch_type in np.unique(ch_types):
+            mask = ch_types == ch_type
+            physical_ranges[mask] = data[mask].min(), data[mask].max()
+    elif physical_range == "channelwise":
+        physical_ranges = np.c_[data.min(axis=1), data.max(axis=1)]
+    else:
+        # get the physical min and max of the data in uV
+        # Physical ranges of the data in uV are usually set by the manufacturer and
+        # electrode properties. In general, physical min and max should be the clipping
+        # levels of the ADC input, and they should be the same for all channels. For
+        # example, Nihon Kohden uses ±3200 uV for all EEG channels (corresponding to the
+        # actual clipping levels of their input amplifiers & ADC). For a discussion,
+        # see https://github.com/sccn/eeglab/issues/246
+        pmin, pmax = physical_range[0], physical_range[1]
+
+        # check that physical min and max is not exceeded
+        if data.max() > pmax:
+            warn(
+                f"The maximum μV of the data {data.max()} is more than the physical max"
+                f" passed in {pmax}."
+            )
+        if data.min() < pmin:
+            warn(
+                f"The minimum μV of the data {data.min()} is less than the physical min"
+                f" passed in {pmin}."
+            )
+        data = np.clip(data, pmin, pmax)
+        physical_ranges = np.tile([pmin, pmax], (len(ch_types), 1))
+    if physical_range in ("auto", "channelwise"):
+        # physical min and max must differ, so handle flat channels
+        flat = physical_ranges[:, 0] == physical_ranges[:, 1]
+        physical_ranges[flat, 1] += 1
+
     sfreq = raw.info["sfreq"]
     pad_annotations = []
 
@@ -124,43 +218,6 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
     if linefreq is not None:
         filter_str_info += f" N:{linefreq}Hz"
 
-    # compute physical range
-    if physical_range == "auto":
-        # get max and min for each channel type data
-        ch_types_phys_max = dict()
-        ch_types_phys_min = dict()
-
-        for _type in np.unique(ch_types):
-            _picks = [n for n, t in zip(raw.ch_names, ch_types) if t == _type]
-            _data = raw.get_data(units=units, picks=_picks)
-            ch_types_phys_max[_type] = _data.max()
-            ch_types_phys_min[_type] = _data.min()
-    elif physical_range == "channelwise":
-        prange = None
-    else:
-        # get the physical min and max of the data in uV
-        # Physical ranges of the data in uV are usually set by the manufacturer and
-        # electrode properties. In general, physical min and max should be the clipping
-        # levels of the ADC input, and they should be the same for all channels. For
-        # example, Nihon Kohden uses ±3200 uV for all EEG channels (corresponding to the
-        # actual clipping levels of their input amplifiers & ADC). For a discussion,
-        # see https://github.com/sccn/eeglab/issues/246
-        pmin, pmax = physical_range[0], physical_range[1]
-
-        # check that physical min and max is not exceeded
-        if data.max() > pmax:
-            warn(
-                f"The maximum μV of the data {data.max()} is more than the physical max"
-                f" passed in {pmax}."
-            )
-        if data.min() < pmin:
-            warn(
-                f"The minimum μV of the data {data.min()} is less than the physical min"
-                f" passed in {pmin}."
-            )
-        data = np.clip(data, pmin, pmax)
-        prange = pmin, pmax
-
     # create signals
     signals = []
     for idx, ch in enumerate(raw.ch_names):
@@ -173,25 +230,42 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
                 f"channel name before exporting to {file_format}."
             )
 
-        if physical_range == "auto":  # per channel type
-            pmin = ch_types_phys_min[ch_type]
-            pmax = ch_types_phys_max[ch_type]
-            if pmax == pmin:
-                pmax = pmin + 1
-            prange = pmin, pmax
-
-        signals.append(
-            signal_class(
-                data[idx],
-                out_sfreq,
-                label=signal_label,
-                transducer_type="",
-                physical_dimension="" if ch_type == "stim" else "uV",
-                physical_range=prange,
-                digital_range=(digital_min, digital_max),
-                prefiltering=filter_str_info,
-            )
+        pmin, pmax = physical_ranges[idx]
+        digital_min, digital_max = digital_ranges[idx]
+        # assemble kwargs to signal constructor
+        signal_kwargs = dict(
+            sampling_frequency=out_sfreq,
+            label=signal_label,
+            transducer_type="",
+            physical_dimension=physical_dimensions[idx],
+            physical_range=(pmin, pmax),
+            prefiltering=filter_str_info,
         )
+        if physical_range == "orig":
+            # init the Signal using *digital* values, with the full digital range the
+            # format supports (in case the original file's values exceeded the ranges
+            # stated in its header)...
+            gain = (pmax - pmin) / (digital_max - digital_min)
+            offset = pmax / gain - digital_max
+            digital = np.rint(data[idx] / gain - offset)
+            digital = digital.astype(signal_class._digital_dtype)
+            signals.append(
+                signal_class.from_digital(
+                    digital, digital_range=format_digital_range, **signal_kwargs
+                )
+            )
+            # ...then after signal creation, set requested digital range
+            # (to work around EDFIO signal clipping safeguards; for round-trip fidelity)
+            signals[-1]._set_digital_range((digital_min, digital_max))
+        else:
+            # the typical case: init signal from float values
+            signals.append(
+                signal_class(
+                    data=data[idx],
+                    digital_range=(digital_min, digital_max),
+                    **signal_kwargs,
+                )
+            )
 
     # create patient info
     subj_info = raw.info.get("subject_info")
@@ -271,11 +345,15 @@ def _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format):
     ).write(fname)
 
 
-def _export_raw_edf(fname, raw, physical_range, add_ch_type):
+def _export_raw_edf(fname, raw, physical_range, digital_range, add_ch_type):
     """Export Raw object to EDF."""
-    _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format="EDF")
+    _export_raw_edf_bdf(
+        fname, raw, physical_range, digital_range, add_ch_type, file_format="EDF"
+    )
 
 
-def _export_raw_bdf(fname, raw, physical_range, add_ch_type):
+def _export_raw_bdf(fname, raw, physical_range, digital_range, add_ch_type):
     """Export Raw object to BDF."""
-    _export_raw_edf_bdf(fname, raw, physical_range, add_ch_type, file_format="BDF")
+    _export_raw_edf_bdf(
+        fname, raw, physical_range, digital_range, add_ch_type, file_format="BDF"
+    )

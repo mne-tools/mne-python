@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "e3c16c57cfe09e01818bd9e02e73822b1fc4d62a",
+  "authors": [
+    {
+      "n": "Chetan Gohil",
+      "e": "53237863+cgohil8@users.noreply.github.com",
+      "l": "cgohil8"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/related_software_nodeps.txt": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

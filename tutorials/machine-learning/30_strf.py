@@ -31,7 +31,7 @@ from sklearn.preprocessing import scale
 import mne
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 
-rng = np.random.RandomState(1337)  # To make this example reproducible
+rng = np.random.default_rng(1337)  # To make this example reproducible
 
 # %%
 # Load audio data
@@ -139,7 +139,7 @@ y = np.zeros((n_epochs, n_times))
 for ii, iep in enumerate(X_del):
     # Simulate this epoch and add random noise
     noise_amp = 0.002
-    y[ii] = np.dot(weights_sim, iep) + noise_amp * rng.randn(n_times)
+    y[ii] = np.dot(weights_sim, iep) + rng.normal(scale=noise_amp, size=n_times)
 
 # Plot the first 2 trials of audio and the simulated electrode activity
 X_plt = scale(np.hstack(X[:2]).T).T

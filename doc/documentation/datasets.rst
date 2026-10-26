@@ -7,7 +7,7 @@ Datasets Overview
     :class: sidebar
 
     Do not hesitate to contact MNE-Python developers on the
-    `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
+    `MNE Forum`_ to discuss the possibility of
     adding more publicly available datasets.
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
@@ -162,7 +162,7 @@ EEGBCI motor imagery
 :func:`mne.datasets.eegbci.load_data`
 
 The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004` and on the
-`PhysioNet documentation page <https://physionet.org/content/eegmmidb/1.0.0/>`_.
+`PhysioNet documentation page`_.
 The data set is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 It contains 64-channel EEG recordings from 109 subjects and 14 runs on each
 subject in EDF+ format. The recordings were made using the BCI2000 system.
@@ -255,7 +255,7 @@ based on Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
+    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
 
 
 mTRF Dataset
@@ -541,6 +541,27 @@ the people in the scene were unrecognizable.
 
     * :ref:`tut-eyetrack-heatmap`
 
+.. _lite-data:
+
+JupyterLite data
+================
+:func:`mne.datasets.lite_data.data_path`
+
+Deprecated, and will be removed in MNE 1.15. This curated archive existed for
+the documentation build, which now serves the browser notebooks from the
+regular datasets above; use those fetchers instead.
+
+.. note:: Not every tutorial and example can run in the browser, so the
+   "Open in JupyterLite" badge is only shown on the pages that work there. A page
+   is left without a badge when it needs a non-Python runtime (for example the R
+   interoperability example, via ``rpy2``), a compiled reader with no WebAssembly
+   build (such as ``antio``), or a dataset too large to serve to a browser
+   (brainstorm, spm_face, opm, hf_sef, and similar).
+
+   3D is also limited: sensor alignment and source estimates are drawn with
+   vtk.js as static scenes, so the coregistration GUI and the interactive
+   viewers (time slider, hover, screenshots) are not available.
+
 References
 ==========
 
@@ -553,4 +574,5 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-.. _ERP-CORE dataset: https://erpinfo.org/erp-core
+
+.. include:: ../links.inc

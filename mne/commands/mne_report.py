@@ -75,10 +75,10 @@ import time
 
 import mne
 from mne.report import Report
-from mne.utils import logger, verbose
+from mne.utils import _verbose_control, logger
 
 
-@verbose
+@_verbose_control
 def log_elapsed(t, verbose=None):
     """Log elapsed time."""
     logger.info(f"Report complete in {round(t, 1)} seconds")

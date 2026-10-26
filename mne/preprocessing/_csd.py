@@ -12,7 +12,6 @@
 
 import numpy as np
 from scipy.optimize import minimize_scalar
-from scipy.stats import gaussian_kde
 
 from .._fiff.constants import FIFF
 from .._fiff.pick import pick_types
@@ -21,7 +20,13 @@ from ..channels.interpolation import _calc_g, _calc_h
 from ..epochs import BaseEpochs, make_fixed_length_epochs
 from ..evoked import Evoked
 from ..io import BaseRaw
-from ..utils import _check_preload, _ensure_int, _validate_type, logger, verbose
+from ..utils import (
+    _check_preload,
+    _ensure_int,
+    _validate_type,
+    logger,
+    verbose_static,
+)
 
 
 def _prepare_G(G, lambda2):
@@ -51,7 +56,7 @@ def _compute_csd(G_precomputed, H, radius):
     return X
 
 
-@verbose
+@verbose_static()
 def compute_current_source_density(
     inst,
     sphere="auto",
@@ -86,11 +91,15 @@ def compute_current_source_density(
         Number of Legendre terms to evaluate.
     copy : bool
         Whether to overwrite instance data or create a copy.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    inst_csd : instance of Raw, Epochs or Evoked
+    inst_csd : same type as the input data
         The transformed data. Output type will match input type.
 
     Notes
@@ -153,7 +162,7 @@ def compute_current_source_density(
     _validate_type(z, "numeric", "z")
     _validate_type(radius, "numeric", "radius")
     if radius <= 0:
-        raise ValueError("sphere radius must be greater than 0, got {radius}")
+        raise ValueError(f"sphere radius must be greater than 0, got {radius}")
 
     pos = np.array([inst.info["chs"][pick]["loc"][:3] for pick in picks])
     if not np.isfinite(pos).all() or np.isclose(pos, 0.0).all(1).any():
@@ -195,7 +204,7 @@ def compute_current_source_density(
     return inst
 
 
-@verbose
+@verbose_static()
 def compute_bridged_electrodes(
     inst,
     lm_cutoff=16,
@@ -243,7 +252,11 @@ def compute_bridged_electrodes(
         :class:`mne.io.BaseRaw`. The default is 2 seconds.
     bw_method : None
         ``bw_method`` to pass to :class:`scipy.stats.gaussian_kde`.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -261,6 +274,8 @@ def compute_bridged_electrodes(
     ----------
     .. footbibliography::
     """
+    from scipy.stats import gaussian_kde
+
     _check_preload(inst, "Computing bridged electrodes")
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)
@@ -281,10 +296,12 @@ def compute_bridged_electrodes(
 
     # next, compute electrical distance matrix, upper triangular
     n_epochs = data.shape[0]
-    ed_matrix = np.zeros((n_epochs, picks.size, picks.size)) * np.nan
-    for i in range(picks.size):
-        for j in range(i + 1, picks.size):
-            ed_matrix[:, i, j] = np.var(data[:, i] - data[:, j], axis=1)
+    ed_matrix = np.full((n_epochs, picks.size, picks.size), np.nan)
+    centered = data - np.mean(data, axis=-1, keepdims=True)
+    cov = (centered @ centered.swapaxes(-1, -2)) / data.shape[-1]
+    var = np.diagonal(cov, axis1=1, axis2=2)
+    ii, jj = np.triu_indices(picks.size, k=1)
+    ed_matrix[:, ii, jj] = var[:, ii] + var[:, jj] - 2 * cov[:, ii, jj]
 
     # scale, fill in other half, diagonal
     ed_matrix *= 1e12  # scale to muV**2
@@ -309,15 +326,15 @@ def compute_bridged_electrodes(
 
     # find electrodes that are below the cutoff local minimum on
     # `epochs_threshold` proportion of epochs
-    for i in range(picks.size):
-        for j in range(i + 1, picks.size):
-            bridged_count = np.sum(ed_matrix[:, i, j] < local_minimum)
-            if bridged_count / n_epochs > epoch_threshold:
-                logger.info(
-                    "Bridge detected between "
-                    f"{inst.ch_names[picks[i]]} and "
-                    f"{inst.ch_names[picks[j]]}"
-                )
-                bridged_idx.append((picks[i], picks[j]))
+    bridged_mask = (
+        np.mean(ed_matrix[:, ii, jj] < local_minimum, axis=0) > epoch_threshold
+    )
+    for i, j in zip(ii[bridged_mask], jj[bridged_mask]):
+        logger.info(
+            "Bridge detected between "
+            f"{inst.ch_names[picks[i]]} and "
+            f"{inst.ch_names[picks[j]]}"
+        )
+        bridged_idx.append((picks[i], picks[j]))
 
     return bridged_idx, ed_matrix

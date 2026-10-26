@@ -1,0 +1,1 @@
+Allow passing timezone-aware non-UTC :class:`datetime.datetime` objects to :meth:`mne.Info.set_meas_date` and automatically set ``info["utc_offset"]``, by `Tziona NessAiver`_ and `Ishaan Maheshwari`_.

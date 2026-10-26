@@ -474,9 +474,9 @@ def test_pick_forward_seeg_ecog():
 
 def test_picks_by_channels():
     """Test creating pick_lists."""
-    rng = np.random.RandomState(909)
+    rng = np.random.default_rng(909)
 
-    test_data = rng.random_sample((4, 2000))
+    test_data = rng.random((4, 2000))
     ch_names = [f"MEG {i:03d}" for i in [1, 2, 3, 4]]
     ch_types = ["grad", "mag", "mag", "eeg"]
     sfreq = 250.0
@@ -495,7 +495,7 @@ def test_picks_by_channels():
     assert len(pick_list) == len(pick_list2) + 1
     assert pick_list2[0][0] == "meg"
 
-    test_data = rng.random_sample((4, 2000))
+    test_data = rng.random((4, 2000))
     ch_names = [f"MEG {i:03d}" for i in [1, 2, 3, 4]]
     ch_types = ["mag", "mag", "mag", "mag"]
     sfreq = 250.0
@@ -730,7 +730,7 @@ def test_pick_types_csd():
         names, 256, ["eeg", "eeg", "eeg", "eeg", "mag", "mag", "misc", "csd"]
     )
     raw = RawArray(np.zeros((8, 512)), info1)
-    raw.set_montage(make_standard_montage("standard_1020"), verbose="error")
+    raw.set_montage(make_standard_montage("spherical_1005"), verbose="error")
     raw_csd = compute_current_source_density(raw, verbose="error")
 
     assert_array_equal(pick_types(info1, csd=True), [7])
@@ -754,7 +754,7 @@ def test_get_channel_types_equiv(meg, eeg, ordered):
     pick_types(raw.info, meg=meg, eeg=eeg)
     picks = pick_types(raw.info, meg=meg, eeg=eeg)
     if not ordered:
-        picks = np.random.RandomState(0).permutation(picks)
+        picks = np.random.default_rng(0).permutation(picks)
     if not meg and not eeg:
         with pytest.raises(ValueError, match="No appropriate channels"):
             raw.get_channel_types(picks=picks)
@@ -762,3 +762,28 @@ def test_get_channel_types_equiv(meg, eeg, ordered):
     types = np.array(raw.get_channel_types(picks=picks))
     types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
     assert_array_equal(types, types_iter)
+
+
+def test_pick_channels_matches_by_name():
+    """Test picking maps names to positions regardless of the order given."""
+    ch_names = ["a", "b", "c", "d"]
+    # include is out of order, repeats a name, and names one that is excluded
+    sel = pick_channels(ch_names, ["d", "b", "b", "c"], exclude=["c"], ordered=False)
+    assert_array_equal(sel, [1, 3])
+    # with ordered=True the caller's order is kept, duplicates and all
+    sel = pick_channels(ch_names, ["d", "b", "b"], ordered=True)
+    assert_array_equal(sel, [3, 1, 1])
+    # a name that is not present is an error, not a silent skip
+    with pytest.raises(ValueError, match="Missing channels"):
+        pick_channels(ch_names, ["a", "nope"], ordered=True)
+
+
+def test_picks_to_idx_duplicate_names():
+    """Test a repeated channel name resolves to its first position."""
+    with pytest.warns(RuntimeWarning, match="not unique"):
+        info = create_info(["a", "b", "a"], 100.0, "eeg")
+    # "b" is unambiguous; picking it must not be shifted by the duplicate "a"
+    assert_array_equal(_picks_to_idx(info, ["b"]), [1])
+    # an ambiguous name is rejected rather than silently resolved
+    with pytest.raises(ValueError, match="could not be interpreted"):
+        _picks_to_idx(info, ["a"])

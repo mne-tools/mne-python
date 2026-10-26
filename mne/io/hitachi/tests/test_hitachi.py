@@ -181,7 +181,6 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
 """  # noqa: E501
 
 
-@pytest.mark.parametrize("preload", (True, False))
 @pytest.mark.parametrize(
     "version, n_ch, n_times, lowpass, sex, date, end",
     [
@@ -193,10 +192,10 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
         (["1.18", "1.18"], 92, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
     ],
 )
-def test_hitachi_basic(
-    preload, version, n_ch, n_times, lowpass, sex, date, end, tmp_path
-):
+def test_hitachi_basic(version, n_ch, n_times, lowpass, sex, date, end, tmp_path):
     """Test NIRSport1 file with no saturation."""
+    # preload=True/False (and memmapped, and "auto") is covered by
+    # _test_raw_reader below, so this test does not parametrize over it
     if not isinstance(version, list):
         versions = [version]
     else:
@@ -213,34 +212,34 @@ def test_hitachi_basic(
             fid.write(CONTENTS[v])
         fnames.append(fname)
         del fname
-    raw = read_raw_hitachi(fnames, preload=preload, verbose=True)
+    raw = read_raw_hitachi(fnames, preload=True, verbose=True)
     data = raw.get_data()
     assert data.shape == (n_ch, n_times)
     assert raw.info["sfreq"] == 10
     assert raw.info["lowpass"] == lowpass
     assert raw.info["subject_info"]["sex"] == sex
     assert np.isfinite(raw.get_data()).all()
-    assert raw.info["meas_date"] == dt.datetime(*date, tzinfo=dt.timezone.utc)
+    assert raw.info["meas_date"] == dt.datetime(*date, tzinfo=dt.UTC)
     # bad distances (zero)
     distances = source_detector_distances(raw.info)
     want = [np.nan] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.0)
     raw_od_bad = optical_density(raw)
-    with pytest.warns(RuntimeWarning, match="will be zero"):
+    with pytest.raises(ValueError, match="all zero or NaN"):
         beer_lambert_law(raw_od_bad, ppf=6)
     # bad distances (too big)
     if versions[0] == "1.18" and len(fnames) == 1:
         need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]
         have = "P7 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 F3".split()
         assert len(need) == len(have)
-        mon = make_standard_montage("standard_1020")
+        mon = make_standard_montage("spherical_1005")
         mon.rename_channels(dict(zip(have, need)))
         raw.set_montage(mon)
         raw_od_bad = optical_density(raw)
         with pytest.warns(RuntimeWarning, match="greater than 10 cm"):
             beer_lambert_law(raw_od_bad, ppf=6)
     # good distances
-    mon = make_standard_montage("standard_1020")
+    mon = make_standard_montage("spherical_1005")
     if versions[0] == "1.18":
         assert len(fnames) in (1, 2)
         need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]

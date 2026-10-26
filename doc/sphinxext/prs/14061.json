@@ -1,0 +1,72 @@
+{
+  "merge_commit_sha": "04707c7182c846e9402292277879ea7a130fb597",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14061.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 52,
+      "d": 38
+    },
+    "mne/forward/_field_interpolation.py": {
+      "a": 11,
+      "d": 17
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 71,
+      "d": 106
+    },
+    "mne/forward/tests/test_field_interpolation.py": {
+      "a": 45,
+      "d": 55
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 30,
+      "d": 19
+    },
+    "mne/minimum_norm/inverse.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 0,
+      "d": 2
+    },
+    "mne/surface.py": {
+      "a": 65,
+      "d": 7
+    },
+    "mne/tests/test_morph.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/tests/test_source_estimate.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/tests/test_surface.py": {
+      "a": 28,
+      "d": 0
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 4,
+      "d": 4
+    }
+  }
+}

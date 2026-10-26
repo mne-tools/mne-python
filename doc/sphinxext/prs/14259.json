@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "c42eb6d825228a824a2a99356262b046b2a37909",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/related_software.py": {
+      "a": 2,
+      "d": 5
+    }
+  }
+}

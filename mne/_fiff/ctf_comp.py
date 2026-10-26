@@ -3,10 +3,12 @@
 # Copyright the MNE-Python contributors.
 
 from copy import deepcopy
+from typing import IO, Any
 
 import numpy as np
 
-from ..utils import _pl, logger, verbose
+from ..utils import _pl, logger, verbose_static
+from ..utils._typing import LogLevel
 from .constants import FIFF
 from .matrix import _read_named_matrix, write_named_matrix
 from .tag import read_tag
@@ -53,8 +55,13 @@ def _calibrate_comp(
     comp["data"]["data"] = row_cals[:, None] * comp["data"]["data"] * col_cals[None, :]
 
 
-@verbose
-def read_ctf_comp(fid, node, chs, verbose=None):
+@verbose_static()
+def read_ctf_comp(
+    fid: IO[bytes],
+    node: dict[str, Any],
+    chs: list[dict[str, Any]],
+    verbose: LogLevel = None,
+) -> list[dict[str, Any]]:
     """Read the CTF software compensation data from the given node.
 
     Parameters
@@ -66,7 +73,11 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     chs : list
         The list of channels from info['chs'] to match with
         compensators that are read.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -151,7 +162,7 @@ def _read_ctf_comp(fid, node, chs, ch_names_mapping):
 # Writing
 
 
-def write_ctf_comp(fid, comps):
+def write_ctf_comp(fid: IO[bytes], comps: list[dict[str, Any]]) -> None:
     """Write the CTF compensation data into a fif file.
 
     Parameters

@@ -29,6 +29,15 @@ from mne import (
     write_evokeds,
 )
 from mne._fiff.constants import FIFF
+from mne._fiff.meas_info import write_meas_info
+from mne._fiff.write import (
+    end_block,
+    start_and_end_file,
+    start_block,
+    write_ch_info,
+    write_float,
+    write_int,
+)
 from mne.evoked import Evoked, EvokedArray, _get_peak
 from mne.io import read_raw_fif
 from mne.utils import _record_warnings, grand_average
@@ -78,13 +87,13 @@ def test_get_data():
 
 def test_decim():
     """Test evoked decimation."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     n_channels, n_times = 10, 20
     dec_1, dec_2 = 2, 3
     decim = dec_1 * dec_2
     sfreq = 10.0
     sfreq_new = sfreq / decim
-    data = rng.randn(n_channels, n_times)
+    data = rng.standard_normal((n_channels, n_times))
     info = create_info(n_channels, sfreq, "eeg")
     with info._unlock():
         info["lowpass"] = sfreq_new / float(decim)
@@ -285,6 +294,35 @@ def test_io_evoked(tmp_path):
     ave5 = ave4.copy()
     ave5.info["bads"] = ave4.info["bads"][::-1]
     write_evokeds(fname3, [ave4, ave5])
+
+    # MNE-C style: channel info local to the evoked block, one epoch tag per channel
+    fname_local = tmp_path / "test-local-ave.fif"
+    evo = ave.copy().pick(ave.ch_names[:3])
+    meas_info = ave.copy().resample(ave.info["sfreq"] / 2).info
+    with start_and_end_file(fname_local) as fid:
+        start_block(fid, FIFF.FIFFB_MEAS)
+        write_meas_info(fid, meas_info)
+        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        start_block(fid, FIFF.FIFFB_EVOKED)
+        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, evo.first)
+        write_int(fid, FIFF.FIFF_LAST_SAMPLE, evo.last)
+        write_int(fid, FIFF.FIFF_NCHAN, evo.info["nchan"])
+        write_float(fid, FIFF.FIFF_SFREQ, evo.info["sfreq"])
+        for ch in evo.info["chs"]:
+            write_ch_info(fid, ch)
+        start_block(fid, FIFF.FIFFB_ASPECT)
+        write_int(fid, FIFF.FIFF_ASPECT_KIND, FIFF.FIFFV_ASPECT_AVERAGE)
+        write_int(fid, FIFF.FIFF_NAVE, evo.nave)
+        for row, ch in zip(evo.data, evo.info["chs"]):
+            write_float(fid, FIFF.FIFF_EPOCH, row / ch["cal"])
+        end_block(fid, FIFF.FIFFB_ASPECT)
+        end_block(fid, FIFF.FIFFB_EVOKED)
+        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        end_block(fid, FIFF.FIFFB_MEAS)
+    evo_local = read_evokeds(fname_local, 0, proj=False)
+    assert evo_local.info["sfreq"] == evo.info["sfreq"]
+    assert evo_local.ch_names == evo.ch_names
+    assert_allclose(evo_local.data, evo.data, rtol=1e-6)
 
     # constructor
     pytest.raises(TypeError, Evoked, fname)
@@ -761,8 +799,8 @@ def test_arithmetic():
 def test_array_epochs(tmp_path):
     """Test creating evoked from array."""
     # creating
-    rng = np.random.RandomState(42)
-    data1 = rng.randn(20, 60)
+    rng = np.random.default_rng(42)
+    data1 = rng.standard_normal((20, 60))
     sfreq = 1e3
     ch_names = [f"EEG {i + 1:03}" for i in range(20)]
     types = ["eeg"] * 20
@@ -955,7 +993,8 @@ def test_hilbert():
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
     # create fake evoked data to use for checking apply_function
-    data = np.random.rand(10, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.random((10, 1000))
     info = create_info(10, 1000.0, "eeg")
     evoked = EvokedArray(data, info)
     evoked_data = evoked.data.copy()

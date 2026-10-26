@@ -333,6 +333,10 @@ def test_spectrum_getitem_epochs(epochs_spectrum):
     want = epochs_spectrum.get_data()
     got = epochs_spectrum["1"].get_data()
     assert_array_equal(want, got)
+    # gh-14260: a slice selection owns its data rather than aliasing the parent
+    sliced = epochs_spectrum[:1]
+    assert sliced._data.flags["OWNDATA"]
+    assert not np.shares_memory(sliced._data, epochs_spectrum._data)
 
 
 @pytest.mark.parametrize("method", ("mean", partial(np.std, axis=0)))
@@ -429,7 +433,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     if long_format:
         grouping_cols.append("channel")
         drop_cols.append("ch_type")
-        orig_df.drop(columns="ch_type", inplace=True)
+        orig_df = orig_df.drop(columns="ch_type")
     # only do a couple freq bins, otherwise test takes forever for multitaper
     subset = partial(np.isin, test_elements=spectrum.freqs[:2])
     df = df.loc[subset(df["freq"])]
@@ -450,13 +454,13 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
         else:
             agg_df = gb.mean()  # excludes missing values itself
     else:
-        gb = gb[df.columns]  # XXX: try removing when minimum pandas >= 2.1 is required
+        gb = gb[df.columns]  # still needed as of pandas 3.0
         agg_df = gb.apply(_agg_helper, spectrum.weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
-    agg_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
-    orig_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
+    agg_df = agg_df.sort_values(by=grouping_cols, ignore_index=True)
+    orig_df = orig_df.sort_values(by=grouping_cols, ignore_index=True)
     # One can have categorical dtype and the other plain object, so don't check that
     assert_frame_equal(agg_df, orig_df, check_categorical=False, check_dtype=False)
 
@@ -711,7 +715,10 @@ def test_plot_spectrum(method, output, average, request):
     spectrum.plot(average=True, amplitude=False, spatial_colors=False)
     n_grad = sum(ch_type == "grad" for ch_type in spectrum.get_channel_types())
     for amp, sc in ((True, True), (False, False)):
-        fig = spectrum.plot(average=False, amplitude=amp, spatial_colors=sc, exclude=())
+        fig = spectrum.plot(
+            average=False, amplitude=amp, spatial_colors=sc, exclude=(), selectable=sc
+        )
+        assert hasattr(fig.axes[0], "_span_selector") is sc
         lines = fig.axes[0].lines[2:]  # grads, ignore two vlines
         assert len(lines) == n_grad
         bad_color = "0.5" if sc else "r"
@@ -723,7 +730,8 @@ def test_plot_spectrum(method, output, average, request):
 
 def test_plot_spectrum_array_with_bads():
     """Test plotting a spectrum array with bads."""
-    raw = RawArray(np.random.randn(3, 1000), create_info(3, 1000, "eeg"))
+    rng = np.random.default_rng(0)
+    raw = RawArray(rng.standard_normal((3, 1000)), create_info(3, 1000, "eeg"))
     raw.info["bads"] = [raw.ch_names[1]]
     spectrum = raw.compute_psd()
     with pytest.raises(
@@ -760,3 +768,22 @@ def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
         want = (20 if amplitude else 10) * np.log10(want)
 
     assert want == got, f"expected {want}, got {got}"
+
+
+def test_spectrum_get_data(raw_spectrum, epochs_spectrum):
+    """Test get_data indexing and copy semantics for Spectrum and EpochsSpectrum."""
+    for spect in (raw_spectrum, epochs_spectrum):
+        data = spect.get_data()
+        assert not np.shares_memory(data, spect._data)
+        picks = [0, 2]
+        fmin, fmax = spect.freqs[2], spect.freqs[5]
+        sub_data, sub_freqs = spect.get_data(
+            picks=picks, fmin=fmin, fmax=fmax, return_freqs=True
+        )
+        assert not np.shares_memory(sub_data, spect._data)
+        assert_allclose(sub_freqs, spect.freqs[2:6])
+        freq_idx = slice(2, 6)
+        if spect is raw_spectrum:
+            assert_array_equal(sub_data, spect._data[picks, freq_idx])
+        else:
+            assert_array_equal(sub_data, spect._data[:, picks, freq_idx])

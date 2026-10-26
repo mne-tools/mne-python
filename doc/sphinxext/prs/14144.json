@@ -1,0 +1,96 @@
+{
+  "merge_commit_sha": "ba769742e2c7155586ad9a913174e452ba4a1228",
+  "authors": [
+    {
+      "n": "Natneal.B",
+      "e": "nati.new77@gmail.com",
+      "l": "natinew77-creator"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14144.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/jupyterlite_lite_renderer.py": {
+      "a": 23,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 25,
+      "d": 3
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_transforms.py": {
+      "a": 13,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 54,
+      "d": 12
+    },
+    "mne/utils/config.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/_lite.py": {
+      "a": 634,
+      "d": 0
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 15,
+      "d": 4
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 230,
+      "d": 42
+    },
+    "mne/viz/backends/tests/test_utils.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 20,
+      "d": 9
+    },
+    "pyproject.toml": {
+      "a": 5,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "merge_commit_sha": "0ad04f8b47f30d454a82159e663f9b261dc2a5f0",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 3,
+      "d": 3
+    },
+    ".github/actions/rename_towncrier/rename_towncrier.py": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".pre-commit-config.yaml": {
+      "a": 0,
+      "d": 1
+    },
+    "README.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/dev/14140.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 8,
+      "d": 13
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 2,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/annotations.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/export/_egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/export/tests/test_export.py": {
+      "a": 5,
+      "d": 5
+    },
+    "mne/io/brainvision/brainvision.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/brainvision/tests/test_brainvision.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/ctf/tests/test_ctf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/curry/curry.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/curry/tests/test_curry.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/edf/edf.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/edf/tests/test_gdf.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/egi/egimff.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/egi/tests/test_egi.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/hitachi/tests/test_hitachi.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/mef/mef.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/nedf/nedf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/neuralynx/neuralynx.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/neuralynx/tests/test_neuralynx.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nihon/nihon.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/nirx.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/nirx/tests/test_nirx.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/io/nsx/nsx.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/io/snirf/_snirf.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/io/tests/test_raw.py": {
+      "a": 2,
+      "d": 7
+    },
+    "mne/minimum_norm/tests/test_snr.py": {
+      "a": 6,
+      "d": 9
+    },
+    "mne/preprocessing/tests/test_annotate_amplitude.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_annotations.py": {
+      "a": 7,
+      "d": 7
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_typing.py": {
+      "a": 1,
+      "d": 8
+    },
+    "mne/utils/numerics.py": {
+      "a": 5,
+      "d": 8
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 3
+    },
+    "tools/check_pyproject_helpers.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/dev/check_steering_committee.py": {
+      "a": 2,
+      "d": 4
+    },
+    "tools/dev/update_credit_json.py": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/generate_codemeta.py": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_verify_python.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/hooks/update_environment_file.py": {
+      "a": 1,
+      "d": 5
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 16,
+      "d": 30
+    },
+    "tutorials/preprocessing/58_fmri_gradient_artifact.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

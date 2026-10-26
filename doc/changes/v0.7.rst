@@ -10,7 +10,7 @@ Changelog
 
 - New decoding module for MEG analysis containing sklearn compatible transformers by `Mainak Jas`_ and `Alex Gramfort`_
 
-- New realtime module containing RtEpochs, RtClient and MockRtClient class by `Martin Luessi`_, `Christopher Dinh`_, `Alex Gramfort`_, `Denis Engemann`_ and `Mainak Jas`_
+- New realtime module containing RtEpochs, RtClient and MockRtClient class by `Martin Luessi`_, `Christoph Dinh`_, `Alex Gramfort`_, `Denis Engemann`_ and `Mainak Jas`_
 
 - Allow picking normal orientation in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
 
@@ -134,3 +134,5 @@ of commits):
 *   1  Luke Bloy
 *   1  Emanuele Olivetti
 *   1  Yousra BEKHTI
+
+.. include:: names.inc

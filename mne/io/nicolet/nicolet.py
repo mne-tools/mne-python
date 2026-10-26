@@ -5,19 +5,28 @@
 import calendar
 import datetime
 from os import path
+from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
 from ..._fiff.utils import _create_chs, _find_channels, _read_segments_file
-from ...utils import fill_doc, logger
+from ...utils import fill_doc_static, logger
 from ..base import BaseRaw
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 def read_raw_nicolet(
-    input_fname, ch_type, eog=(), ecg=(), emg=(), misc=(), preload=False, verbose=None
+    input_fname: Path | str,
+    ch_type: str,
+    eog: list | tuple | Literal["auto"] = (),
+    ecg: list | tuple | Literal["auto"] = (),
+    emg: list | tuple | Literal["auto"] = (),
+    misc: list | tuple = (),
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
 ) -> "RawNicolet":
     """Read Nicolet data as raw object.
 
@@ -48,12 +57,29 @@ def read_raw_nicolet(
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    raw : instance of Raw
+    raw : instance of RawNicolet
         A Raw object containing the data.
 
     See Also
@@ -82,7 +108,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     header = fname + ".head"
 
     logger.info("Reading header...")
-    header_info = dict()
+    header_info: dict[str, Any] = dict()
     with open(header) as fid:
         for line in fid:
             var, value = line.split("=")

@@ -90,6 +90,29 @@ def test_datasets_basic(tmp_path, monkeypatch):
     assert sd / "fsaverage" == sd_2
 
 
+def test_erp_core_fetch_file(tmp_path, monkeypatch):
+    """Test fetching individual ERP CORE files."""
+    fnames = (
+        "sub-001/eeg/sub-001_task-N170_eeg.fdt",
+        "sub-001/eeg/sub-001_task-N170_eeg.set",
+        "sub-001/eeg/sub-001_task-N170_events.tsv",
+    )
+
+    def fetch(pooch_instance, fname, **kwargs):
+        assert fname in pooch_instance.registry
+        destination = pooch_instance.abspath / fname
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.touch()
+        return str(destination)
+
+    monkeypatch.setattr(pooch.Pooch, "fetch", fetch)
+    for fname in fnames:
+        destination = datasets.erp_core.fetch_file(fname, path=tmp_path)
+        assert destination == tmp_path / "ERP-CORE-N170" / fname
+    with pytest.raises(ValueError, match="Invalid value for.*fname"):
+        datasets.erp_core.fetch_file("unknown", path=tmp_path)
+
+
 @requires_good_network
 def test_downloads(tmp_path, monkeypatch, capsys):
     """Test dataset URL and version handling."""
@@ -266,6 +289,14 @@ def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     assert (destination).is_dir()
     for fname in _zip_fnames:
         assert (destination / fname).is_file()
+    if n_have == 0:
+        manifest_path.write_text("foo/foo.txt\nmissing.txt\n")
+        msg = (
+            "Zip file did not have correct names:\n"
+            "foo/bar.txt\nfoo/baz.txt\nmissing.txt"
+        )
+        with pytest.raises(RuntimeError, match=msg):
+            _manifest_check_download(manifest_path, destination / "sub", url, hash_)
 
 
 def _fake_mcd(manifest_path, destination, url, hash_, name=None, fake_files=False):
@@ -322,3 +353,20 @@ def test_fetch_uncompressed_file(tmp_path):
     )
     fetch_dataset(dataset_dict, path=None, force_update=True)
     assert (tmp_path / "foo" / "LICENSE.foo").is_file()
+
+
+def test_lite_data():
+    """Test the lite_data curated dataset is registered correctly."""
+    from mne.datasets import lite_data
+    from mne.datasets.config import MNE_DATASETS
+
+    assert "lite_data" in MNE_DATASETS
+    cfg = MNE_DATASETS["lite_data"]
+    assert cfg["archive_name"] == "MNE-lite-data.tar.gz"
+    assert cfg["hash"].startswith("md5:")
+    assert cfg["url"].startswith("https://osf.io/")
+    assert cfg["config_key"] == "MNE_DATASETS_LITE_DATA_PATH"
+    with pytest.warns(FutureWarning, match="removed in MNE 1.15"):
+        lite_data.data_path(download=False)
+    with pytest.warns(FutureWarning, match="removed in MNE 1.15"):
+        lite_data.get_version()

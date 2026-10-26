@@ -85,6 +85,7 @@ Inverse Solutions
    Dipole
    DipoleFixed
    fit_dipole
+   gui.dipolefit
 
 :py:mod:`mne.dipole`:
 

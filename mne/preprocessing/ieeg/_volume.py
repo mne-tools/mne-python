@@ -7,10 +7,17 @@ import numpy as np
 from ...channels import DigMontage, make_dig_montage
 from ...surface import _voxel_neighbors
 from ...transforms import Transform, _frame_to_str, apply_trans
-from ...utils import _check_option, _pl, _require_version, _validate_type, verbose, warn
+from ...utils import (
+    _check_option,
+    _pl,
+    _require_version,
+    _validate_type,
+    verbose_static,
+    warn,
+)
 
 
-@verbose
+@verbose_static("moving", "static", "reg_affine", "sdr_morph")
 def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     """Warp a montage to a template with image volumes using SDR.
 
@@ -21,11 +28,20 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     ----------
     montage : instance of mne.channels.DigMontage
         The montage object containing the channels.
-    %(moving)s
-    %(static)s
-    %(reg_affine)s
-    %(sdr_morph)s
-    %(verbose)s
+    moving : instance of SpatialImage
+        The image to morph ("from" volume).
+    static : instance of SpatialImage
+        The image to align with ("to" volume).
+    reg_affine : ndarray of float, shape (4, 4)
+        The affine that registers one volume to another.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the symmetric diffeomorphic registration
+        (SDR) morph.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -46,8 +62,8 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     _validate_type(sdr_morph, (DiffeomorphicMap, None), "sdr_morph")
     _validate_type(montage, DigMontage, "montage")
 
-    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32), moving.affine)
-    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32), static.affine)
+    moving_mgh = MGHImage(np.asarray(moving.dataobj).astype(np.float32), moving.affine)
+    static_mgh = MGHImage(np.asarray(static.dataobj).astype(np.float32), static.affine)
     del moving, static
 
     # get montage channel coordinates
@@ -103,7 +119,7 @@ def _warn_missing_chs(info, dig_image, after_warp=False):
     """Warn that channels are missing."""
     # ensure that each electrode contact was marked in at least one voxel
     missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj)))
+        set(np.unique(np.asarray(dig_image.dataobj)))
     )
     missing_ch = [info.ch_names[idx - 1] for idx in missing]
     if missing_ch:
@@ -114,7 +130,7 @@ def _warn_missing_chs(info, dig_image, after_warp=False):
         )
 
 
-@verbose
+@verbose_static()
 def make_montage_volume(
     montage,
     base_image,
@@ -152,12 +168,16 @@ def make_montage_volume(
     use_min : bool
         Whether to hypointensities in the volume as channel locations.
         Default False uses hyperintensities.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
     elec_image : nibabel.spatialimages.SpatialImage
-        An image in Freesurfer surface RAS space with voxel values
+        An image in FreeSurfer surface RAS space with voxel values
         corresponding to the index of the channel. The background
         is 0s and this index starts at 1.
     """
@@ -178,7 +198,7 @@ def make_montage_volume(
         base_image = nib.load(base_image)
 
     base_image_mgh = nib.MGHImage(
-        np.array(base_image.dataobj).astype(np.float32), base_image.affine
+        np.asarray(base_image.dataobj).astype(np.float32), base_image.affine
     )
     del base_image
 

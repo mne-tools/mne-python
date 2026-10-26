@@ -45,7 +45,7 @@ raw.set_eeg_reference(projection=True)
 n_dipoles = 4  # number of dipoles to create
 epoch_duration = 2.0  # duration of each epoch/event
 n = 0  # harmonic number
-rng = np.random.RandomState(0)  # random state (make reproducible)
+rng = np.random.default_rng(0)  # random state (make reproducible)
 
 
 def data_fun(times):
@@ -67,7 +67,7 @@ times = raw.times[: int(raw.info["sfreq"] * epoch_duration)]
 fwd = mne.read_forward_solution(fwd_fname)
 src = fwd["src"]
 stc = simulate_sparse_stc(
-    src, n_dipoles=n_dipoles, times=times, data_fun=data_fun, random_state=rng
+    src, n_dipoles=n_dipoles, times=times, data_fun=data_fun, rng=rng
 )
 # look at our source data
 fig, ax = plt.subplots(1)
@@ -79,9 +79,9 @@ mne.viz.utils.plt_show()
 # Simulate raw data
 raw_sim = simulate_raw(raw.info, [stc] * 10, forward=fwd, verbose=True)
 cov = make_ad_hoc_cov(raw_sim.info)
-add_noise(raw_sim, cov, iir_filter=[0.2, -0.2, 0.04], random_state=rng)
-add_ecg(raw_sim, random_state=rng)
-add_eog(raw_sim, random_state=rng)
+add_noise(raw_sim, cov, iir_filter=[0.2, -0.2, 0.04], rng=rng)
+add_ecg(raw_sim, rng=rng)
+add_eog(raw_sim, rng=rng)
 raw_sim.plot()
 
 ##############################################################################

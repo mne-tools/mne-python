@@ -54,9 +54,9 @@ raw = mne.io.read_raw_edf(raw_fname, preload=True)
 # Clean channel names to be able to use a standard 1005 montage
 eegbci.standardize(raw)
 
-# Read and set the EEG electrode locations, which are already in fsaverage's
-# space (MNI space) for standard_1020:
-montage = mne.channels.make_standard_montage("standard_1005")
+# Read and set the EEG electrode locations using an anatomically
+# shaped 10-05 montage:
+montage = mne.channels.make_standard_montage("fsaverage_1005")
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
@@ -88,7 +88,7 @@ fwd
 # We don't have a sample infant dataset for MNE, so let's fake a 10-20 one:
 
 ch_names = "Fz Cz Pz Oz Fp1 Fp2 F3 F4 F7 F8 C3 C4 T7 T8 P3 P4 P7 P8 O1 O2".split()
-data = np.random.RandomState(0).randn(len(ch_names), 1000)
+data = np.random.default_rng(0).standard_normal((len(ch_names), 1000))
 info = mne.create_info(ch_names, 1000.0, "eeg")
 raw = mne.io.RawArray(data, info)
 

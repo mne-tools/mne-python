@@ -23,7 +23,7 @@ from ..utils import (
     _validate_type,
     check_fname,
     logger,
-    verbose,
+    verbose_static,
 )
 from .maxwell import (
     _col_norm_pinv,
@@ -35,7 +35,7 @@ from .maxwell import (
 )
 
 
-@verbose
+@verbose_static("ext_order_maxwell", "origin_maxwell", "cross_talk_maxwell")
 def compute_fine_calibration(
     raw,
     n_imbalance=3,
@@ -62,12 +62,30 @@ def compute_fine_calibration(
     t_window : float
         Time window to use for surface normal rotation in seconds.
         Default is 10.
-    %(ext_order_maxwell)s
+    ext_order : int
+        Order of external component of spherical expansion.
         Default is 2, which is lower than the default (3) for
         :func:`mne.preprocessing.maxwell_filter` because it tends to yield
         more stable parameter estimates.
-    %(origin_maxwell)s
-    %(cross_talk_maxwell)s
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    cross_talk : path-like | bool | None
+        Path to the FIF file with cross-talk correction information.
+        If ``None``, will use the ``info["cross_talk"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no cross-talk correction will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control cross-talk correction using
+           ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+           if available.
     calibration : dict | None
         Dictionary with existing calibration. If provided, the magnetometer
         imbalances and adjusted normals will be used and only the gradiometer
@@ -83,7 +101,11 @@ def compute_fine_calibration(
         be used.
 
         .. versionadded:: 1.9
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -595,6 +617,15 @@ def write_fine_calibration(fname, calibration):
     keys = ("ch_names", "locs", "imb_cals")
     with open(fname, "wb") as cal_file:
         for ch_name, loc, imb_cal in zip(*(calibration[key] for key in keys)):
+            # MaxFilter expects bare channel numbers, so undo the "MEG%04d"
+            # renaming that read_fine_calibration applies to Neuromag channels.
+            # Match only that 4-digit form, leaving e.g. KIT "MEG001" untouched.
+            if (
+                ch_name.startswith("MEG")
+                and len(ch_name) == 7
+                and ch_name[3:].isdigit()
+            ):
+                ch_name = str(int(ch_name[3:]))
             cal_line = np.concatenate([loc, imb_cal]).round(6)
             cal_line = " ".join(f"{c:0.6f}" for c in cal_line)
             cal_file.write(f"{ch_name} {cal_line}\n".encode("ASCII"))

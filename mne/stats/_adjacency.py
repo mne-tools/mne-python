@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy import sparse
 
 from ..utils import _check_option, _validate_type
 from ..utils.check import int_like
@@ -45,18 +44,20 @@ def combine_adjacency(*structure):
     dimension by passing a matrix of zeros. For example:
 
     >>> import numpy as np
-    >>> from scipy.sparse import diags
+    >>> from scipy.sparse import diags_array
     >>> from mne.stats import combine_adjacency
     >>> n_times, n_freqs, n_chans = (50, 7, 16)
-    >>> chan_adj = diags([1., 1.], offsets=(-1, 1), shape=(n_chans, n_chans))
+    >>> chan_adj = diags_array([1., 1.], offsets=(-1, 1), shape=(n_chans, n_chans))
     >>> combine_adjacency(
     ...     n_times,  # regular lattice adjacency for times
     ...     np.zeros((n_freqs, n_freqs)),  # no adjacency between freq. bins
     ...     chan_adj,  # custom matrix, or use mne.channels.find_ch_adjacency
     ...     )  # doctest: +SKIP
-    <5600x5600 sparse array of type '<class 'numpy.float64'>'
-            with 27076 stored elements in COOrdinate format>
+    <COOrdinate sparse array of dtype 'float64'
+            with 27076 stored elements and shape (5600, 5600)>
     """
+    from scipy import sparse
+
     structure = list(structure)
     for di, dim in enumerate(structure):
         name = f"structure[{di}]"

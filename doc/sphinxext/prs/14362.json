@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "6f41c1aec55ca334057e2753ca352fa1d68817bf",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

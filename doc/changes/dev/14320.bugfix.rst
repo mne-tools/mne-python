@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.preprocessing.interpolate_bridged_electrodes` where ``inst.info["bads"]`` was cleared and not restored when too many electrodes were bridged together and a :class:`RuntimeError` was raised, by `Carina Forster`_.

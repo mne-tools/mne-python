@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "f20829cf903237b96ac7eb05de0b4adfc84bb137",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com",
+      "l": "BabaSanfour"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14129.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14129.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/cov.py": {
+      "a": 103,
+      "d": 77
+    },
+    "mne/tests/test_cov.py": {
+      "a": 24,
+      "d": 0
+    }
+  }
+}

@@ -18,6 +18,7 @@ from mne.preprocessing.nirs import (
     _check_channels_ordered,
     _fnirs_optode_names,
     _fnirs_spread_bads,
+    _has_source_detector_distances,
     _optode_position,
     _validate_nirs_info,
     beer_lambert_law,
@@ -40,12 +41,18 @@ fname_labnirs_multi_wavelength = (
 )
 
 
+def read_raw_snirf_safe(fname):
+    """Wrap to read_raw_snirf, skipping if h5py is not installed."""
+    pytest.importorskip("h5py")
+    return read_raw_snirf(fname)
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "fname, readerfn",
     [
         (fname_nirx_15_0, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_picks(fname, readerfn):
@@ -121,7 +128,7 @@ def _fnirs_check_bads(info):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_check_bads(fname, readerfn):
@@ -166,7 +173,7 @@ def test_fnirs_check_bads(fname, readerfn):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_spread_bads(fname, readerfn):
@@ -210,7 +217,7 @@ def test_fnirs_spread_bads(fname, readerfn):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_fnirs_channel_frequency_ordering(fname, readerfn):
@@ -265,7 +272,8 @@ def test_fnirs_channel_frequency_ordering(fname, readerfn):
 
 def test_fnirs_channel_naming_and_order_custom_raw():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.normal(size=(6, 10))
+    rng = np.random.default_rng(0)
+    data = rng.normal(size=(6, 10))
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
@@ -364,7 +372,8 @@ def test_fnirs_channel_naming_and_order_custom_raw():
 
 def test_fnirs_channel_naming_and_order_custom_optical_density():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.normal(size=(6, 10))
+    rng = np.random.default_rng(0)
+    data = rng.normal(size=(6, 10))
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
@@ -422,13 +431,13 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw2 = RawArray(data, info, verbose=True)
     raw.add_channels([raw2])
-    with pytest.raises(ValueError, match="does not support a combination"):
+    with pytest.raises(ValueError, match="exactly one of"):
         _check_channels_ordered(raw.info, [760, 850])
 
 
 def test_fnirs_channel_naming_and_order_custom_chroma():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.RandomState(0).randn(6, 10)
+    data = np.random.default_rng(0).standard_normal((6, 10))
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
@@ -532,6 +541,22 @@ def test_optode_names():
     assert_array_equal(det_names, [f"D{n}" for n in ["1", "11", "17"]])
 
 
+def test_has_source_detector_distances():
+    """Ensure source-detector distance availability is detected."""
+    ch_names = ["S1_D1 760", "S1_D1 850", "S2_D1 760", "S2_D1 850"]
+    info = create_info(ch_names=ch_names, ch_types=np.repeat("fnirs_od", 4), sfreq=1.0)
+    assert not _has_source_detector_distances(info)
+    for idx in range(2):
+        info["chs"][idx]["loc"][3:6] = [0.0, 0.0, 0.0]
+        info["chs"][idx]["loc"][6:9] = [0.03, 0.0, 0.0]
+    assert _has_source_detector_distances(info, picks=[0, 1])
+    assert not _has_source_detector_distances(info)  # some chs missing
+    for idx in range(2, 4):
+        info["chs"][idx]["loc"][3:6] = [0.01, 0.0, 0.0]
+        info["chs"][idx]["loc"][6:9] = [0.04, 0.0, 0.0]
+    assert _has_source_detector_distances(info)
+
+
 @testing.requires_testing_data
 def test_optode_loc():
     """Ensure optode location extraction is correct."""
@@ -544,7 +569,7 @@ def test_order_agnostic(nirx_snirf):
     """Test that order does not matter to (pre)processing results."""
     raw_nirx, raw_snirf = nirx_snirf
     raw_random = raw_nirx.copy().pick(
-        np.random.RandomState(0).permutation(len(raw_nirx.ch_names))
+        np.random.default_rng(0).permutation(len(raw_nirx.ch_names))
     )
     raws = dict(nirx=raw_nirx, snirf=raw_snirf, random=raw_random)
     del raw_nirx, raw_snirf, raw_random
@@ -598,7 +623,7 @@ def test_order_agnostic(nirx_snirf):
         (fname_nirx_15_0, read_raw_nirx),
         (fname_nirx_15_2_short, read_raw_nirx),
         (fname_nirx_15_2, read_raw_nirx),
-        (fname_labnirs_multi_wavelength, read_raw_snirf),
+        (fname_labnirs_multi_wavelength, read_raw_snirf_safe),
     ],
 )
 def test_nirs_channel_grouping(fname, readerfn):

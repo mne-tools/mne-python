@@ -1,0 +1,23 @@
+{
+  "merge_commit_sha": "9438956d4b2d435ec8aabe02e82ff66112da6924",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13894.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 6,
+      "d": 5
+    }
+  }
+}

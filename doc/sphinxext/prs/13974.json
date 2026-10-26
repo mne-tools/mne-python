@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "566bbe89aabdffa1a12a3024b51ade158176728c",
+  "authors": [
+    {
+      "n": "tcastillo",
+      "e": "theocastillo@yahoo.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13974.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_ola.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/dipole.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/inverse_sparse/mxne_optim.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

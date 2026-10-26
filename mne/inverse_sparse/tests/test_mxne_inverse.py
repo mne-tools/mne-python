@@ -24,6 +24,7 @@ from mne.inverse_sparse.mxne_inverse import (
 from mne.inverse_sparse.mxne_optim import norm_l2inf
 from mne.label import read_label
 from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.minimum_norm.inverse import _log_exp_var
 from mne.minimum_norm.tests.test_inverse import assert_stc_res, assert_var_exp_log
 from mne.simulation import simulate_evoked, simulate_sparse_stc
 from mne.source_estimate import VolSourceEstimate
@@ -48,7 +49,7 @@ def forward():
 
 @testing.requires_testing_data
 @pytest.mark.timeout(150)  # ~30 s on Travis Linux
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 def test_mxne_inverse_standard(forward):
     """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
@@ -358,7 +359,7 @@ def test_mxne_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(
-        50e-9 * np.random.RandomState(42).randn(1, 4),
+        np.random.default_rng(42).normal(scale=50e-9, size=(1, 4)),
         vertices=[stc.vertices[0][:1]],
         tmin=stc.tmin,
         tstep=stc.tstep,
@@ -370,7 +371,7 @@ def test_mxne_vol_sphere():
         cov,
         nave=1e9,
         use_cps=True,
-        random_state=0,
+        rng=np.random.default_rng(0),
     )
 
     dip_mxne = mixed_norm(
@@ -443,10 +444,9 @@ def test_split_gof_basic(mod):
         M_est = gain @ X
     else:
         assert mod is None
-    res = M - M_est
-    gof = 100 * (1.0 - (res * res).sum() / (M * M).sum())
+    gof = _log_exp_var(M, M_est, axis=0)
     gof_split = _split_gof(M, X, gain)
-    assert_allclose(gof_split.sum(), gof)
+    assert_allclose(gof_split.sum(0), gof)
     want = gof_split[[0, 0]]
     if mod == "augment":
         want = np.concatenate((want, [[0]]))
@@ -510,16 +510,16 @@ def test_mxne_inverse_sure_synthetic(
     n_sensors, n_dipoles, n_times, nnz, corr, n_orient, snr=4
 ):
     """Tests SURE criterion for automatic alpha selection on synthetic data."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     sigma = np.sqrt(1 - corr**2)
-    U = rng.randn(n_sensors)
+    U = rng.standard_normal(n_sensors)
     # generate gain matrix
     G = np.empty([n_sensors, n_dipoles], order="F")
     G[:, :n_orient] = np.expand_dims(U, axis=-1)
     n_dip_per_pos = n_dipoles // n_orient
     for j in range(1, n_dip_per_pos):
         U *= corr
-        U += sigma * rng.randn(n_sensors)
+        U += rng.normal(scale=sigma, size=n_sensors)
         G[:, j * n_orient : (j + 1) * n_orient] = np.expand_dims(U, axis=-1)
     # generate coefficient matrix
     support = rng.choice(n_dip_per_pos, nnz, replace=False)
@@ -528,7 +528,7 @@ def test_mxne_inverse_sure_synthetic(
         X[k * n_orient : (k + 1) * n_orient, :] = rng.normal(size=(n_orient, n_times))
     # generate measurement matrix
     M = G @ X
-    noise = rng.randn(n_sensors, n_times)
+    noise = rng.standard_normal((n_sensors, n_times))
     sigma = 1 / np.linalg.norm(noise) * np.linalg.norm(M) / snr
     M += sigma * noise
     # inverse modeling with sure
@@ -547,7 +547,7 @@ def test_mxne_inverse_sure_synthetic(
         debias=True,
         solver="auto",
         dgap_freq=10,
-        random_state=0,
+        rng=np.random.default_rng(0),
         verbose=False,
     )
     assert np.count_nonzero(active_set, axis=-1) == n_orient * nnz
@@ -604,7 +604,13 @@ def test_mxne_inverse_sure_meg():
     )
     evoked = evoked.crop(tmin=0, tmax=10e-3)
     stc_ = mixed_norm(
-        evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5, depth=0.9, random_state=1
+        evoked,
+        forward,
+        noise_cov,
+        loose=0.9,
+        n_mxne_iter=5,
+        depth=0.9,
+        random_state=1,
     )
     assert len(stc_.vertices) == len(stc.vertices) == 2
     for si in range(len(stc_.vertices)):
@@ -633,7 +639,7 @@ def test_mxne_inverse_empty():
             n_mxne_iter=3,
             alpha=99,
             return_residual=True,
-            random_state=0,
+            rng=0,
         )
         assert stc.data.size == 0
         assert stc.vertices[0].size == 0

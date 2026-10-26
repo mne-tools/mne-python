@@ -7,10 +7,10 @@ from math import ceil
 import numpy as np
 from scipy.fft import irfft, rfft, rfftfreq
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose_static
 
 
-@verbose
+@verbose_static()
 def stft(x, wsize, tstep=None, verbose=None):
     """STFT Short-Term Fourier Transform using a sine window.
 
@@ -26,7 +26,11 @@ def stft(x, wsize, tstep=None, verbose=None):
     tstep : int
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

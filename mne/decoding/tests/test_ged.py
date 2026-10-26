@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 from functools import partial
+from inspect import signature
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +14,6 @@ pytest.importorskip("sklearn")
 
 from sklearn.model_selection import ParameterGrid
 from sklearn.utils._testing import assert_allclose
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, compute_rank, create_info, pick_types, read_events
 from mne._fiff.proj import make_eeg_average_ref_proj
@@ -28,6 +28,7 @@ from mne.decoding._ged import (
 )
 from mne.decoding._mod_ged import _no_op_mod
 from mne.decoding.base import _GEDTransformer
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.io import read_raw
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -121,13 +122,41 @@ def _mock_mod_ged_callable(evals, evecs, covs, **kwargs):
     return evals, evecs, sorter
 
 
+class _ReprCallable:
+    """Callable wrapper with a stable name/repr (and forwarded signature).
+
+    ``parametrize_with_checks`` builds test IDs from ``repr(estimator)``. The bare
+    functions/partials used below have reprs that embed ``id()`` memory addresses,
+    which differ across pytest-xdist worker processes and make xdist abort with
+    "Different tests were collected between workers". Wrapping them yields
+    deterministic, worker-stable IDs. ``__signature__`` is forwarded so that
+    ``_GEDTransformer`` still validates ``cov_callable``'s required args.
+    """
+
+    def __init__(self, func, name):
+        self._func = func
+        self.__name__ = name
+        self.__signature__ = signature(func)
+
+    def __call__(self, *args, **kwargs):
+        return self._func(*args, **kwargs)
+
+    def __repr__(self):
+        return self.__name__
+
+
 param_grid = dict(
     n_components=[4],
-    cov_callable=[partial(_mock_cov_callable, cov_method_params=dict(reg="empirical"))],
-    mod_ged_callable=[_mock_mod_ged_callable],
+    cov_callable=[
+        _ReprCallable(
+            partial(_mock_cov_callable, cov_method_params=dict(reg="empirical")),
+            "cov_callable",
+        )
+    ],
+    mod_ged_callable=[_ReprCallable(_mock_mod_ged_callable, "mod_ged_callable")],
     dec_type=["single", "multi"],
     restr_type=["restricting", "whitening"],
-    R_func=[None, partial(np.sum, axis=0)],
+    R_func=[None, _ReprCallable(partial(np.sum, axis=0), "R_func")],
 )
 
 ged_estimators = [_GEDTransformer(**p) for p in ParameterGrid(param_grid)]

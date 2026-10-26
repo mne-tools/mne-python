@@ -7,7 +7,7 @@
 from functools import partial
 from pathlib import Path
 
-from ..utils import fill_doc
+from ..utils import fill_doc_static
 from .base import BaseRaw
 
 
@@ -26,6 +26,7 @@ def _get_supported():
     from . import (
         read_raw_ant,
         read_raw_artemis123,
+        read_raw_bci2k,
         read_raw_bdf,
         read_raw_boxy,
         read_raw_brainvision,
@@ -42,6 +43,7 @@ def _get_supported():
         read_raw_fil,
         read_raw_gdf,
         read_raw_kit,
+        read_raw_mef,
         read_raw_nedf,
         read_raw_nicolet,
         read_raw_nihon,
@@ -58,6 +60,7 @@ def _get_supported():
         ".gdf": dict(GDF=read_raw_gdf),
         ".vhdr": dict(brainvision=read_raw_brainvision),
         ".ahdr": dict(brainvision=read_raw_brainvision),
+        ".mefd": dict(MEF=read_raw_mef),
         ".fif": dict(FIF=read_raw_fif),
         ".fif.gz": dict(FIF=read_raw_fif),
         ".set": dict(EEGLAB=read_raw_eeglab),
@@ -77,7 +80,10 @@ def _get_supported():
         ".ds": dict(CTF=read_raw_ctf),
         ".txt": dict(BOXY=read_raw_boxy),
         # Curry
-        ".dat": dict(CURRY=read_raw_curry),
+        ".dat": dict(
+            CURRY=read_raw_curry,
+            BCI2K=read_raw_bci2k,
+        ),
         ".dap": dict(CURRY=read_raw_curry),
         ".rs3": dict(CURRY=read_raw_curry),
         ".cdt": dict(CURRY=read_raw_curry),
@@ -116,8 +122,14 @@ def split_name_ext(fname):
     return fname, None  # unknown file extension
 
 
-@fill_doc
-def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
+@fill_doc_static("preload", "verbose")
+def read_raw(
+    fname: Path | str,
+    *,
+    preload: bool | str = False,
+    verbose: bool | str | int | None = None,
+    **kwargs,
+) -> BaseRaw:
     """Read raw file.
 
     This function is a convenient wrapper for readers defined in `mne.io`. The
@@ -128,6 +140,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
 
     * `~mne.io.read_raw_ant`
     * `~mne.io.read_raw_artemis123`
+    * `~mne.io.read_raw_bci2k`
     * `~mne.io.read_raw_bdf`
     * `~mne.io.read_raw_boxy`
     * `~mne.io.read_raw_brainvision`
@@ -144,6 +157,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     * `~mne.io.read_raw_fil`
     * `~mne.io.read_raw_gdf`
     * `~mne.io.read_raw_kit`
+    * `~mne.io.read_raw_mef`
     * `~mne.io.read_raw_nedf`
     * `~mne.io.read_raw_nicolet`
     * `~mne.io.read_raw_nihon`
@@ -156,8 +170,25 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
     ----------
     fname : path-like
         Name of the file to read.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     **kwargs
         Additional keyword arguments to pass to the underlying reader. For
         details, see the arguments of the reader for the respective file
@@ -165,7 +196,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs) -> BaseRaw:
 
     Returns
     -------
-    raw : mne.io.Raw
+    raw : instance of BaseRaw
         Raw object.
     """
     _, ext = split_name_ext(fname)

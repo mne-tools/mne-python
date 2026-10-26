@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "9d71dd03c92d6a4773b9c40f2b51283da5484804",
+  "authors": [
+    {
+      "n": "sametseckın",
+      "e": "242940435+sametSeckiiin@users.noreply.github.com",
+      "l": "sametSeckiiin"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/development/contributing.rst": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

@@ -3,7 +3,6 @@
 # Copyright the MNE-Python contributors.
 
 from pathlib import Path
-from shutil import copytree
 
 import numpy as np
 import pytest
@@ -27,8 +26,10 @@ from mne import (
     read_bem_surfaces,
     read_freesurfer_lut,
     read_source_spaces,
+    read_surface,
     read_trans,
     setup_source_space,
+    setup_subcortical_source_space,
     setup_volume_source_space,
     write_source_spaces,
 )
@@ -43,7 +44,7 @@ from mne.source_space import (
 )
 from mne.source_space._source_space import _compare_source_spaces
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.utils import _record_warnings, requires_mne, run_subprocess
+from mne.utils import _record_warnings, copytree_rw, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -67,7 +68,7 @@ trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 
 @testing.requires_testing_data
@@ -464,9 +465,9 @@ def test_accumulate_normals():
     n_tris = int(3.2e5)
     # use all positive to make a worst-case for cumulative summation
     # (real "nn" vectors will have both positive and negative values)
-    tris = (rng.rand(n_tris, 1) * (n_pts - 2)).astype(int)
+    tris = (rng.random((n_tris, 1)) * (n_pts - 2)).astype(int)
     tris = np.c_[tris, tris + 1, tris + 2]
-    tri_nn = rng.rand(n_tris, 3)
+    tri_nn = rng.random((n_tris, 3))
     this = dict(tris=tris, np=n_pts, ntri=n_tris, tri_nn=tri_nn)
 
     # cut-and-paste from original code in surface.py:
@@ -563,7 +564,7 @@ def test_setup_source_space(tmp_path):
 def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
     pytest.importorskip("nibabel")
-    copytree(subjects_dir / "sample", tmp_path / "sample")
+    copytree_rw(subjects_dir / "sample", tmp_path / "sample")
     args = [] if spacing == 7 else ["--spacing", str(spacing)]
     monkeypatch.setenv("SUBJECTS_DIR", str(tmp_path))
     monkeypatch.setenv("SUBJECT", "sample")
@@ -675,6 +676,71 @@ def test_source_space_from_label(tmp_path, pass_ids):
     _compare_source_spaces(src, src_from_file, mode="approx")
 
 
+@testing.requires_testing_data
+def test_setup_subcortical_source_space(tmp_path):
+    """Test setting up a subcortical/cerebellar surface source space."""
+    pytest.importorskip("nibabel")
+    pytest.importorskip("pyvista")
+    atlas_ids, _ = read_freesurfer_lut()
+    fname_surf = subjects_dir / "sample" / "surf" / "lh.white"
+
+    # exactly one of label/surface must be given
+    with pytest.raises(ValueError, match="Exactly one of"):
+        setup_subcortical_source_space("sample", subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match="Exactly one of"):
+        setup_subcortical_source_space(
+            "sample",
+            label="Left-Amygdala",
+            surface=fname_surf,
+            subjects_dir=subjects_dir,
+        )
+
+    # label input: tessellate regions from the anatomical segmentation
+    labels = ["Left-Amygdala", "Left-Hippocampus"]
+    src_label = setup_subcortical_source_space(
+        "sample", label=labels, aseg="aseg", subjects_dir=subjects_dir
+    )
+    assert src_label.kind == "subcortical_surf"
+    assert len(src_label) == len(labels)
+    for s, name in zip(src_label, labels):
+        assert s["type"] == "surf"
+        assert s["seg_name"] == name
+        assert s["id"] == FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + atlas_ids[name]
+        assert s["rr"].shape[1] == 3 and s["ntri"] > 0
+
+    # mesh input: an externally-supplied surface (path or rr/tris dict)
+    rr, tris = read_surface(fname_surf)[:2]
+    src_surface = setup_subcortical_source_space(
+        "sample",
+        surface=fname_surf,
+        subjects_dir=subjects_dir,
+        keep_largest_component=False,
+    )
+    assert len(src_surface) == 1
+    assert src_surface[0]["id"] == FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+    assert src_surface[0]["rr"].shape[0] == rr.shape[0]
+    assert src_surface[0]["ntri"] == len(tris)
+
+    src_surface_dict = setup_subcortical_source_space(
+        "sample",
+        surface=dict(rr=rr, tris=tris),
+        subjects_dir=subjects_dir,
+        keep_largest_component=False,
+    )
+    assert_allclose(src_surface_dict[0]["rr"], src_surface[0]["rr"])
+
+    # I/O roundtrip
+    fname_temp = tmp_path / "subcortical-src.fif"
+    write_source_spaces(fname_temp, src_label)
+    src_read = read_source_spaces(fname_temp)
+    assert len(src_read) == len(src_label)
+    for orig, read in zip(src_label, src_read):
+        assert orig["seg_name"] == read["seg_name"]
+        assert orig["id"] == read["id"]
+        assert_allclose(orig["rr"], read["rr"], atol=1e-6)
+        assert_array_equal(orig["tris"], read["tris"])
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_source_space_exclusive_complete(src_volume_labels):
@@ -760,7 +826,7 @@ def test_read_volume_from_src():
 def test_combine_source_spaces(tmp_path):
     """Test combining source spaces."""
     nib = pytest.importorskip("nibabel")
-    rng = np.random.RandomState(2)
+    rng = np.random.default_rng(2)
     volume_labels = ["Brain-Stem", "Right-Hippocampus"]  # two fairly large
 
     # create a sparse surface source space to ensure all get mapped
@@ -779,7 +845,7 @@ def test_combine_source_spaces(tmp_path):
     )
 
     # setup a discrete source space
-    rr = rng.randint(0, 11, (20, 3)) * 5e-3
+    rr = rng.integers(0, 11, (20, 3)) * 5e-3
     nn = np.zeros(rr.shape)
     nn[:, -1] = 1
     pos = {"rr": rr, "nn": nn}
@@ -909,7 +975,7 @@ def test_morphed_source_space_return():
     """Test returning a morphed source space to the original subject."""
     # let's create some random data on fsaverage
     pytest.importorskip("nibabel")
-    data = rng.randn(20484, 1)
+    data = rng.standard_normal((20484, 1))
     tmin, tstep = 0, 1.0
     src_fs = read_source_spaces(fname_fs)
     stc_fs = SourceEstimate(

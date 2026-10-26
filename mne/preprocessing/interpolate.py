@@ -7,7 +7,6 @@
 from itertools import chain
 
 import numpy as np
-from scipy.sparse.csgraph import connected_components
 
 from .._fiff.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
@@ -85,6 +84,10 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     that to aid in interpolation rather than completely discarding the
     data from the two channels.
 
+    .. versionchanged:: 1.14
+       Pre-existing bad channels that are not part of the bridged set are
+       now excluded from the interpolation.
+
     Parameters
     ----------
     inst : instance of Epochs, Evoked, or Raw
@@ -101,13 +104,15 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
 
     Returns
     -------
-    inst : instance of Epochs, Evoked, or Raw
+    inst : same type as the input data
         The modified data object.
 
     See Also
     --------
     mne.preprocessing.compute_bridged_electrodes
     """
+    from scipy.sparse.csgraph import connected_components
+
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
     bad_limit = _ensure_int(bad_limit, "bad_limit")
     if bad_limit <= 0:
@@ -123,9 +128,6 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         raise RuntimeError(
             f"Montage channel positions must be in ``head`` got {pos['coord_frame']}"
         )
-    # store bads orig to put back at the end
-    bads_orig = inst.info["bads"]
-    inst.info["bads"] = list()
 
     # look for group of bad channels
     nodes = sorted(set(chain(*bridged_idx)))
@@ -151,6 +153,10 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
                 "and form a large area of bridged electrodes. Interpolation "
                 "might be inaccurate."
             )
+
+    # store bads orig to put back at the end
+    bads_orig = inst.info["bads"]
+    inst.info["bads"] = list()
 
     # make virtual channels
     virtual_chs = dict()
@@ -187,7 +193,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
 
     # use the virtual channels to interpolate
     inst.info["bads"] = list(bads)
-    inst.interpolate_bads()
+    # Exclude pre-existing bad channels that are not part of the bridged set
+    # so they can neither contribute to the interpolation nor be interpolated
+    # themselves. Channels that are both bridged and marked bad remain
+    # interpolation targets, as before.
+    exclude_bads = [ch for ch in bads_orig if ch not in bads]
+    inst.interpolate_bads(exclude=exclude_bads)
 
     # drop virtual channels
     inst.drop_channels(list(virtual_chs.keys()))

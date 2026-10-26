@@ -11,9 +11,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.sparse import csr_array, triu
-from scipy.sparse.csgraph import dijkstra
-from scipy.spatial.distance import cdist
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import Info, create_info
@@ -35,13 +32,14 @@ from .._fiff.write import (
 )
 from .._freesurfer import (
     _check_mri,
+    _get_aseg,
     _get_atlas_values,
     _get_mri_info_data,
     get_volume_labels_from_aseg,
     read_freesurfer_lut,
 )
 from ..bem import ConductorModel, read_bem_surfaces
-from ..fixes import _get_img_fdata, _reshape_view
+from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
     _CheckInside,
@@ -50,6 +48,8 @@ from ..surface import (
     _create_surf_spacing,
     _get_ico_surface,
     _get_surf_neighbors,
+    _keep_largest_component,
+    _marching_cubes,
     _normalize_vectors,
     _tessellate_sphere_surf,
     _triangle_neighbors,
@@ -82,16 +82,16 @@ from ..utils import (
     _pl,
     _suggest,
     _validate_type,
+    _verbose_control,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     get_subjects_dir,
     logger,
     object_size,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
-from ..viz import plot_alignment
 
 _src_kind_dict = {
     "vol": "volume",
@@ -299,6 +299,7 @@ class SourceSpaces(list):
     @property
     def kind(self):
         types = list()
+        ids = list()
         for si, s in enumerate(self):
             _validate_type(s, dict, f"source_spaces[{si}]")
             types.append(s.get("type", None))
@@ -307,23 +308,44 @@ class SourceSpaces(list):
                 types[-1],
                 ("surf", "discrete", "vol"),
             )
-        if all(k == "surf" for k in types[:2]):
+            ids.append(s.get("id", FIFF.FIFFV_MNE_SURF_UNKNOWN))
+        n = len(types)
+        is_subcortical = [
+            t == "surf" and i >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+            for t, i in zip(types, ids)
+        ]
+        leading_surf_pair = n >= 2 and types[0] == "surf" and types[1] == "surf"
+        leading_subcortical_pair = (
+            leading_surf_pair and is_subcortical[0] and is_subcortical[1]
+        )
+        if leading_surf_pair and not leading_subcortical_pair:
             surf_check = 2
-            if len(types) == 2:
-                kind = "surface"
-            else:
-                kind = "mixed"
+            kind = "surface" if n == 2 else "mixed"
+        elif n == 1 and types[0] == "surf" and not is_subcortical[0]:
+            surf_check = 1
+            kind = "mixed"
+        elif n == 0:
+            surf_check = 0
+            kind = "mixed"
+        elif all(is_subcortical):
+            surf_check = 0
+            kind = "subcortical_surf"
+        elif any(is_subcortical):
+            surf_check = 0
+            kind = "mixed"
+        elif all(k == "discrete" for k in types):
+            surf_check = 0
+            kind = "discrete"
         else:
             surf_check = 0
-            if all(k == "discrete" for k in types):
-                kind = "discrete"
-            else:
-                kind = "volume"
-        if any(k == "surf" for k in types[surf_check:]):
+            kind = "volume"
+        if any(
+            types[i] == "surf" and not is_subcortical[i] for i in range(surf_check, n)
+        ):
             raise RuntimeError(f"Invalid source space with kinds {types}")
         return kind
 
-    @verbose
+    @verbose_static()
     def plot(
         self,
         head=False,
@@ -333,6 +355,7 @@ class SourceSpaces(list):
         trans=None,
         *,
         fig=None,
+        set_view=True,
         verbose=None,
     ):
         """Plot the source space.
@@ -367,13 +390,25 @@ class SourceSpaces(list):
             If ``None``, creates a new 600x600 pixel figure with black background.
 
             .. versionadded:: 1.10
-        %(verbose)s
+        set_view : bool
+            If True (default), set the view of the figure to a default one. Can be
+            set to False to keep the view a figure passed via ``fig`` already has,
+            which is useful when reusing a single figure for multiple plots.
+
+            .. versionadded:: 1.13
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
         fig : instance of Figure3D
             The figure.
         """
+        from ..viz import plot_alignment
+
         surfaces = list()
         bem = None
 
@@ -437,11 +472,24 @@ class SourceSpaces(list):
             bem=bem,
             src=self,
             fig=fig,
+            set_view=set_view,
         )
 
-    def __getitem__(self, *args, **kwargs):
-        """Get an item."""
-        out = super().__getitem__(*args, **kwargs)
+    def __getitem__(self, key):
+        """Get one or more source spaces.
+
+        Parameters
+        ----------
+        key : int | slice
+            The source space(s) to get.
+
+        Returns
+        -------
+        src : dict | instance of SourceSpaces
+            A single source space if ``key`` is an integer, otherwise a new
+            :class:`~mne.SourceSpaces` instance.
+        """
+        out = super().__getitem__(key)
         if isinstance(out, list):
             out = SourceSpaces(out)
         return out
@@ -476,7 +524,18 @@ class SourceSpaces(list):
         return self[0].get("subject_his_id", None) if len(self) else None
 
     def __add__(self, other):
-        """Combine source spaces."""
+        """Combine source spaces.
+
+        Parameters
+        ----------
+        other : instance of SourceSpaces
+            The source spaces to append.
+
+        Returns
+        -------
+        src : instance of SourceSpaces
+            A new instance containing the source spaces of both objects.
+        """
         out = self.copy()
         out += other
         return SourceSpaces(out)
@@ -507,7 +566,7 @@ class SourceSpaces(list):
             ss.append(deepcopy(s, memodict))
         return SourceSpaces(ss, info)
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, overwrite=False, *, verbose=None):
         """Save the source spaces to a fif file.
 
@@ -515,12 +574,18 @@ class SourceSpaces(list):
         ----------
         fname : path-like
             File to write, which should end with ``-src.fif`` or ``-src.fif.gz``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         write_source_spaces(fname, self, overwrite=overwrite)
 
-    @verbose
+    @verbose_static("overwrite")
     def export_volume(
         self,
         fname,
@@ -567,10 +632,16 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 0.19
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -839,7 +910,7 @@ def _add_patch_info(s):
     logger.info("    Patch information added...")
 
 
-@verbose
+@verbose_static()
 def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
@@ -849,9 +920,13 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
         An open file descriptor.
     tree : dict
         The FIF tree structure if source is a file id.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -877,7 +952,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     return SourceSpaces(src)
 
 
-@verbose
+@verbose_static()
 def read_source_spaces(fname, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
@@ -886,9 +961,13 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     fname : path-like
         The name of the file, which should end with ``-src.fif`` or
         ``-src.fif.gz``.
-    patch_stats : bool, optional (default False)
+    patch_stats : bool
         Calculate and add cortical patch statistics to the surfaces.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1036,6 +1115,7 @@ def _read_one_source_space(fid, this):
                 offset += n
             res["neighbor_vert"] = neighbors
 
+    if res["type"] in ("vol", "surf"):
         tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
         if tag is not None:
             res["seg_name"] = tag.data
@@ -1159,7 +1239,7 @@ def _read_one_source_space(fid, this):
     return res
 
 
-@verbose
+@_verbose_control
 def _complete_source_space_info(this, verbose=None):
     """Add more info on surface."""
     #   Main triangulation
@@ -1264,7 +1344,7 @@ def _get_vertno(src):
 # Write routines
 
 
-@verbose
+@verbose_static()
 def _write_source_spaces_to_fid(fid, src, verbose=None):
     """Write the source spaces to a FIF file.
 
@@ -1274,7 +1354,11 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         An open file descriptor.
     src : list
         The list of source spaces.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     for s in src:
         logger.info("    Write a source space...")
@@ -1285,7 +1369,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
     logger.info("    %d source spaces written", len(src))
 
 
-@verbose
+@verbose_static("overwrite")
 def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
     """Write source spaces to a file.
 
@@ -1296,8 +1380,14 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
         ``-src.fif.gz``.
     src : instance of SourceSpaces
         The source spaces (as returned by read_source_spaces).
-    %(overwrite)s
-    %(verbose)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1337,6 +1427,8 @@ def _write_source_spaces(fid, src):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
+    from scipy.sparse import csr_array, triu
+
     if this["type"] == "surf":
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
     elif this["type"] == "vol":
@@ -1421,9 +1513,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        # Shouldn't need this cast but on SciPy 1.9.3 at least this returns a csr_matrix
-        # instead of csr_array
-        dists = csr_array(triu(dists, format=dists.format))
+        dists = triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -1432,7 +1522,7 @@ def _write_one_source_space(fid, this, verbose=None):
         )
 
     #   Segmentation data
-    if this["type"] == "vol" and ("seg_name" in this):
+    if this["type"] in ("vol", "surf") and ("seg_name" in this):
         # Save the name of the segment
         write_string(fid, FIFF.FIFF_COMMENT, this["seg_name"])
 
@@ -1441,7 +1531,7 @@ def _write_one_source_space(fid, this, verbose=None):
 # Creation and decimation
 
 
-@verbose
+@_verbose_control
 def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
@@ -1490,7 +1580,7 @@ def _check_spacing(spacing, verbose=None):
     return stype, sval, ico_surf, src_type_str
 
 
-@verbose
+@verbose_static("subject", "subjects_dir", "n_jobs")
 def setup_source_space(
     subject,
     spacing="oct6",
@@ -1505,7 +1595,8 @@ def setup_source_space(
 
     Parameters
     ----------
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
@@ -1516,7 +1607,10 @@ def setup_source_space(
            Support for integers for distance-based spacing.
     surface : str
         The surface to use.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     add_dist : bool | str
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended. Can also be 'patch' to only
@@ -1524,9 +1618,19 @@ def setup_source_space(
 
         .. versionchanged:: 0.20
            Support for ``add_dist='patch'``.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Ignored if ``add_dist=='patch'``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1651,7 +1755,7 @@ def _check_volume_labels(volume_label, mri, name="volume_label"):
     return volume_label
 
 
-@verbose
+@verbose_static("subjects_dir", "n_jobs")
 def setup_volume_source_space(
     subject=None,
     pos=5.0,
@@ -1717,12 +1821,15 @@ def setup_volume_source_space(
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    %(subjects_dir)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
     volume_label : str | dict | list | None
         Region(s) of interest to use. None (default) will create a single
         whole-brain source space. Otherwise, a separate source space will be
         created for each entry in the list or dict (str will be turned into
-        a single-element list). If list of str, standard Freesurfer labels
+        a single-element list). If list of str, standard FreeSurfer labels
         are assumed. If dict, should be a mapping of region names to atlas
         id numbers, allowing the use of other atlases.
 
@@ -1743,10 +1850,20 @@ def setup_volume_source_space(
         when many labels are used.
 
         .. versionadded:: 0.21
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
 
         .. versionadded:: 1.6
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1982,6 +2099,198 @@ def _complete_vol_src(sp, subject=None):
     return sp
 
 
+def _surf_from_mesh(rr, tris, subject):
+    """Build a source-space-ready surf dict from vertices/triangles (in m)."""
+    surf = dict(rr=np.asarray(rr, float), tris=np.asarray(tris, np.int64))
+    complete_surface_info(surf, do_neighbor_vert=False, copy=False)
+    surf["inuse"] = np.ones(surf["np"], int)
+    sizes = _normalize_vectors(surf["nn"])
+    surf["inuse"][sizes <= 0] = False
+    surf["nuse"] = int(surf["inuse"].sum())
+    surf["vertno"] = np.where(surf["inuse"])[0]
+    surf["use_tris"] = None
+    surf["nuse_tri"] = 0
+    surf["subject_his_id"] = subject
+    for key in ("tri_area", "tri_cent", "tri_nn", "neighbor_tri"):
+        del surf[key]
+    surf.update(
+        dist=None,
+        dist_limit=None,
+        nearest=None,
+        nearest_dist=None,
+        pinfo=None,
+        patch_inds=None,
+        type="surf",
+        coord_frame=FIFF.FIFFV_COORD_MRI,
+    )
+    return surf
+
+
+@verbose_static("aseg", "subjects_dir", "smooth")
+def setup_subcortical_source_space(
+    subject,
+    label=None,
+    surface=None,
+    aseg="auto",
+    subjects_dir=None,
+    keep_largest_component=True,
+    smooth=0,
+    fill_hole_size=None,
+    add_dist=False,
+    *,
+    verbose=None,
+):
+    """Set up a subcortical or cerebellar surface source space.
+
+    This builds a :class:`~mne.SourceSpaces` from a triangulated mesh of a subcortical
+    or cerebellar structure, either tessellated directly from an
+    anatomical segmentation (``label``) or supplied as an
+    externally-produced mesh (``surface``, e.g. one fitted by another
+    package such as CMB). Exactly one of ``label`` or ``surface`` must be
+    provided.
+
+    .. warning::
+        This is **experimental** functionality. :class:`~mne.SourceSpaces`
+        created by this function are not (yet) compatible with morphing
+        (:class:`~mne.SourceMorph`), :func:`mne.extract_label_time_course`
+        does not yet know how to select vertices within a subcortical-surface
+        label, and plotting support is limited (for example, the
+        :meth:`~mne.MixedSourceEstimate.plot` method does not yet support
+        these source spaces).
+
+    Parameters
+    ----------
+    subject : str
+        Subject to process.
+    label : str | list | dict | None
+        Region(s) of interest to tessellate from the anatomical
+        segmentation given by ``aseg``. One source space is created per
+        entry (a single str is turned into a one-element list). If dict,
+        maps region names to atlas id numbers, allowing the use of other
+        atlases. Mutually exclusive with ``surface``.
+    surface : path-like | dict | None
+        A FreeSurfer-compatible surface file (e.g. a ``.surf`` file), or a
+        dict with ``'rr'`` and ``'tris'`` entries in FreeSurfer surface RAS
+        coordinates (mm), such as those returned by :func:`mne.read_surface`
+        or produced by an external mesh-fitting tool. Creates a single
+        source space. Mutually exclusive with ``label``.
+    aseg : str
+        The anatomical segmentation file. Default ``auto`` uses ``aparc+aseg``
+        if available and ``wmparc`` if not. This may be any anatomical
+        segmentation file in the mri subdirectory of the FreeSurfer subject
+        directory.
+
+        .. versionchanged:: 1.8
+           Added support for the new default ``'auto'``.
+
+        Only used when ``label`` is provided.
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    keep_largest_component : bool
+        If True (default), keep only the largest connected component of
+        each tessellated mesh, discarding disconnected islands (the
+        marching-cubes equivalent of FreeSurfer's
+        ``mris_extract_main_component``).
+    smooth : float in [0, 1)
+        The smoothing factor to be applied. Default 0 is no smoothing.
+
+        Only used when ``label`` is provided.
+    fill_hole_size : int | None
+        The size of holes to remove in the mesh in voxels. Default is None,
+        no holes are removed. This dilates the boundaries of the surface by
+        ``fill_hole_size`` voxels, so use the minimal size needed. Only used
+        when ``label`` is provided.
+    add_dist : bool
+        If True, compute inter-source distances along the mesh (see
+        :func:`mne.add_source_space_distances`). Default False, as this can
+        be slow and is not needed for a forward solution.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+
+    Returns
+    -------
+    src : instance of SourceSpaces
+        The subcortical/cerebellar surface source space(s), one per
+        ``label`` entry, or a single one if ``surface`` was used.
+
+    See Also
+    --------
+    setup_volume_source_space
+    setup_source_space
+
+    Notes
+    -----
+    This is a first, deliberately narrow proof of concept: it has been
+    validated interactively on the ``sample`` subject. See the warning above
+    for known gaps, to be addressed in follow-up work.
+
+    .. versionadded:: 1.12
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    _validate_type(label, (str, list, tuple, dict, None), "label")
+    _validate_type(surface, ("path-like", dict, None), "surface")
+    if (label is None) == (surface is None):
+        raise ValueError(
+            "Exactly one of `label` or `surface` must be provided, got "
+            f"label={label!r}, surface={surface!r}"
+        )
+
+    srcs = list()
+    if label is not None:
+        aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+        mri = aseg_img.get_filename()
+        volume_label = _check_volume_labels(label, mri, name="label")
+        vox_mri_t = np.array(aseg_img.header.get_vox2ras_tkr(), float)
+        vox_mri_t[:3] *= 1e-3  # mm -> m
+        meshes = _marching_cubes(
+            aseg_data,
+            list(volume_label.values()),
+            smooth=smooth,
+            fill_hole_size=fill_hole_size,
+        )
+        for (seg_name, seg_id), (rr, tris) in zip(volume_label.items(), meshes):
+            if len(rr) == 0:
+                warn(
+                    f"Value {seg_id} not found for label {seg_name!r} in "
+                    f"anatomical segmentation file {mri}, skipping"
+                )
+                continue
+            if keep_largest_component:
+                rr, tris = _keep_largest_component(rr, tris)
+            rr = apply_trans(vox_mri_t, rr)
+            s = _surf_from_mesh(rr, tris, subject)
+            s["seg_name"] = seg_name
+            s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + seg_id
+            srcs.append(s)
+        if len(srcs) == 0:
+            raise ValueError(f"None of the requested labels were found in {mri}")
+    else:
+        if isinstance(surface, dict):
+            rr, tris = surface["rr"], surface["tris"]
+        else:
+            surface = str(
+                _check_fname(surface, overwrite="read", must_exist=True, name="surface")
+            )
+            rr, tris = read_surface(surface)[:2]
+        rr = np.array(rr, float) / 1000.0  # mm -> m
+        tris = np.array(tris, np.int64)
+        if keep_largest_component:
+            rr, tris = _keep_largest_component(rr, tris)
+        s = _surf_from_mesh(rr, tris, subject)
+        s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+        srcs.append(s)
+
+    src = SourceSpaces(srcs, dict(working_dir=os.getcwd(), command_line="None"))
+    if add_dist:
+        add_source_space_distances(src, dist_limit=np.inf)
+    return src
+
+
 def _make_voxel_ras_trans(move, ras, voxel_size):
     """Make a transformation from MRI_VOXEL to MRI surface RAS (i.e. MRI)."""
     assert voxel_size.ndim == 1
@@ -2086,7 +2395,7 @@ def _make_volume_source_space(
     logger.info(
         f"Surface CM = ({1000 * cm[0]:6.1f} {1000 * cm[1]:6.1f} {1000 * cm[2]:6.1f}) mm"
     )
-    logger.info("Surface fits inside a sphere with radius %6.1f mm" % (1000 * maxdist))
+    logger.info(f"Surface fits inside a sphere with radius {1000 * maxdist:6.1f} mm")
     logger.info("Surface extent:")
     for c, mi, ma in zip("xyz", mins, maxs):
         logger.info(f"    {c} = {1000 * mi:6.1f} ... {1000 * ma:6.1f} mm")
@@ -2317,7 +2626,7 @@ def _make_volume_source_space(
         checks = np.where(neigh >= 0)[0]
         removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
-        neigh = _reshape_view(neigh, old_shape)
+        neigh = neigh.reshape(old_shape, copy=False)
         neigh = neigh.T
         # Thought we would need this, but C code keeps -1 vertices, so we will:
         # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
@@ -2355,6 +2664,8 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
+    from scipy.sparse import csr_array
+
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
@@ -2417,6 +2728,8 @@ def _add_interpolator(sp):
 
 def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
+    from scipy.sparse import csr_array
+
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
     trans = np.array(trans, np.float64)  # to -> from
@@ -2544,7 +2857,7 @@ def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
     return data, indices, indptr
 
 
-@verbose
+@_verbose_control
 def _filter_source_spaces(
     surf_or_check_inside, *, limit, mri_head_t, src, n_jobs=None, verbose=None
 ):
@@ -2637,7 +2950,7 @@ def _filter_source_spaces(
     return check_inside
 
 
-@verbose
+@_verbose_control
 def _adjust_patch_info(s, verbose=None):
     """Adjust patch information in place after vertex omission."""
     if s.get("patch_inds") is not None:
@@ -2651,7 +2964,7 @@ def _adjust_patch_info(s, verbose=None):
         _add_patch_info(s)
 
 
-@verbose
+@_verbose_control
 def _ensure_src(src, kind=None, extra="", verbose=None):
     """Ensure we have a source space."""
     _check_option("kind", kind, (None, "surface", "volume", "mixed", "discrete"))
@@ -2692,7 +3005,7 @@ def _ensure_src_subject(src, subject):
 _DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
 
 
-@verbose
+@verbose_static("n_jobs")
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=None):
     """Compute inter-source distances along the cortical surface.
 
@@ -2710,9 +3023,19 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
         10/2013) must be installed. If 0, then only patch (nearest vertex)
         information is added.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         Ignored if ``dist_limit==0.``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2732,6 +3055,9 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse import csr_array
+    from scipy.sparse.csgraph import dijkstra
+
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2775,15 +3101,25 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
             min_idx = min_idx[midx, range_idx]
             min_dists.append(min_dist)
             min_idxs.append(min_idx)
-            # convert to sparse representation
+            # Convert to sparse representation. Deriving the row/column vertex
+            # numbers from the flat indices of the entries we keep -- rather than
+            # from np.meshgrid(vertno, vertno), whose two dense (n_use, n_use)
+            # index arrays are over 800 MB apiece for an ico-5 source space --
+            # and indexing in the narrowest safe dtype roughly halves the peak
+            # memory of this block. Arrays are freed as soon as they are consumed
+            # for the same reason.
+            n_use = len(s["vertno"])
             d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
-            idx = d > 0
-            d = d[idx]
-            i, j = np.meshgrid(s["vertno"], s["vertno"])
-            i = i.ravel()[idx]
-            j = j.ravel()[idx]
+            idx_dtype = np.int32 if d.size <= np.iinfo(np.int32).max else np.int64
+            vertno = s["vertno"].astype(idx_dtype)
+            idx = np.flatnonzero(d).astype(idx_dtype, copy=False)  # 0 == not computed
+            data = d[idx]
+            del d
+            row = vertno[idx % n_use]
+            col = vertno[idx // n_use]
+            del idx, vertno
             s["dist"] = csr_array(
-                (d, (i, j)), shape=(s["np"], s["np"]), dtype=np.float32
+                (data, (row, col)), shape=(s["np"], s["np"]), dtype=np.float32
             )
             s["dist_limit"] = np.array([dist_limit], np.float32)
 
@@ -2801,6 +3137,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
 
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
+    from scipy.sparse.csgraph import dijkstra
+
     func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
@@ -2828,7 +3166,7 @@ def _do_src_distances(con, vertno, run_inds, limit):
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
 # checking, which might not be the case (could be all volumes)
-@fill_doc
+@fill_doc_static("subject")
 def get_volume_labels_from_src(src, subject, subjects_dir):
     """Return a list of Label of segmented volumes included in the src space.
 
@@ -2836,9 +3174,10 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     ----------
     src : instance of SourceSpaces
         The source space containing the volume regions.
-    %(subject)s
+    subject : str
+        The FreeSurfer subject name.
     subjects_dir : str
-        Freesurfer folder of the subjects.
+        FreeSurfer folder of the subjects.
 
     Returns
     -------
@@ -2900,6 +3239,8 @@ def _get_hemi(s):
         return "lh", 0, s["id"]
     elif s["id"] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
         return "rh", 1, s["id"]
+    elif s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
+        return s.get("seg_name", "subcortical"), None, s["id"]
     else:
         raise ValueError(f"unknown surface ID {s['id']}")
 
@@ -2951,7 +3292,7 @@ def _get_vertex_map_nn(
     return best
 
 
-@verbose
+@verbose_static()
 def morph_source_spaces(
     src_from,
     subject_to,
@@ -2979,7 +3320,11 @@ def morph_source_spaces(
         to be provided, since it is stored in the source space itself.
     subjects_dir : path-like | None
         Path to ``SUBJECTS_DIR`` if it is not set in the environment.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3040,7 +3385,7 @@ def morph_source_spaces(
     return SourceSpaces(src_out, info=info)
 
 
-@verbose
+@verbose_static("subjects_dir")
 def _get_morph_src_reordering(
     vertices, src_from, subject_from, subject_to, subjects_dir=None, verbose=None
 ):
@@ -3056,8 +3401,15 @@ def _get_morph_src_reordering(
         The source subject.
     subject_to : str
         The destination subject.
-    %(subjects_dir)s
-    %(verbose)s
+    subjects_dir : path-like | None
+        The path to the directory containing the FreeSurfer subjects
+        reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+        variable.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3119,6 +3471,7 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_array_less,
         assert_equal,
     )
+    from scipy.spatial.distance import cdist
 
     if mode != "exact" and "approx" not in mode:  # 'nointerp' can be appended
         raise RuntimeError(f"unknown mode {mode}")
@@ -3129,8 +3482,6 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_equal(a, b, str(a ^ b))
         for name in ["nuse", "ntri", "np", "type", "id"]:
             a, b = s0[name], s1[name]
-            if name == "id":  # workaround for old NumPy bug
-                a, b = int(a), int(b)
             assert_equal(a, b, name)
         for name in ["subject_his_id"]:
             if name in s0 or name in s1:
@@ -3254,7 +3605,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     return nn
 
 
-@verbose
+@verbose_static("info", "picks_good_data", "trans_not_none")
 def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None):
     """Compute distances between vertices and sensors.
 
@@ -3263,11 +3614,29 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
     src : instance of SourceSpaces
         The object with vertex positions for which to compute distances to
         sensors.
-    %(info)s Must contain sensor positions to which distances shall
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Must contain sensor positions to which distances shall
         be computed.
-    %(picks_good_data)s
-    %(trans_not_none)s
-    %(verbose)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
+    trans : str | dict | instance of Transform
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3275,6 +3644,8 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
         The Euclidean distances of source space vertices with respect to
         sensors.
     """
+    from scipy.spatial.distance import cdist
+
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), "info")
 

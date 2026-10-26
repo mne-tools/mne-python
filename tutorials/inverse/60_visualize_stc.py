@@ -88,17 +88,6 @@ brain.add_annotation("HCPMMP1_combined", borders=2)
 # %%
 # Note that here we used ``initial_time=0.1``, but we can also browse through
 # time using ``time_viewer=True``.
-#
-# In case ``PyVista`` is not available, we also offer a ``matplotlib``
-# backend. Here we use verbose='error' to ignore a warning that not all
-# vertices were used in plotting.
-mpl_fig = stc.plot(
-    subjects_dir=subjects_dir,
-    initial_time=initial_time,
-    backend="matplotlib",
-    verbose="error",
-    smoothing_steps=7,
-)
 
 # %%
 #

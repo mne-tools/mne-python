@@ -11,6 +11,7 @@ __all__ = [
     "Evoked",
     "EvokedArray",
     "Forward",
+    "HEDAnnotations",
     "Info",
     "Label",
     "MixedSourceEstimate",
@@ -31,6 +32,7 @@ __all__ = [
     "apply_forward_raw",
     "average_forward_solutions",
     "beamformer",
+    "bem",
     "channel_indices_by_type",
     "channel_type",
     "channels",
@@ -88,6 +90,7 @@ __all__ = [
     "head_to_mri",
     "inverse_sparse",
     "io",
+    "label_adjacency",
     "label_sign_flip",
     "labels_to_stc",
     "make_ad_hoc_cov",
@@ -162,6 +165,7 @@ __all__ = [
     "set_log_level",
     "set_memmap_min_size",
     "setup_source_space",
+    "setup_subcortical_source_space",
     "setup_volume_source_space",
     "simulation",
     "source_space",
@@ -180,11 +184,13 @@ __all__ = [
     "sys_info",
     "time_frequency",
     "transform_surface_to",
+    "transforms",
     "use_coil_def",
     "use_log_level",
     "verbose",
     "vertex_to_mni",
     "viz",
+    "volume_label_adjacency",
     "what",
     "whiten_evoked",
     "write_bem_solution",
@@ -203,6 +209,7 @@ __all__ = [
 ]
 from . import (
     beamformer,
+    bem,
     channels,
     chpi,
     commands,
@@ -228,6 +235,7 @@ from . import (
     stats,
     surface,
     time_frequency,
+    transforms,
     viz,
 )
 from ._fiff.meas_info import Info, create_info
@@ -260,6 +268,7 @@ from ._freesurfer import (
 )
 from .annotations import (
     Annotations,
+    HEDAnnotations,
     annotations_from_events,
     count_annotations,
     events_from_annotations,
@@ -345,6 +354,7 @@ from .label import (
     BiHemiLabel,
     Label,
     grow_labels,
+    label_adjacency,
     label_sign_flip,
     labels_to_stc,
     morph_labels,
@@ -353,6 +363,7 @@ from .label import (
     read_labels_from_annot,
     split_label,
     stc_to_label,
+    volume_label_adjacency,
     write_label,
     write_labels_to_annot,
 )
@@ -400,6 +411,7 @@ from .source_space._source_space import (
     morph_source_spaces,
     read_source_spaces,
     setup_source_space,
+    setup_subcortical_source_space,
     setup_volume_source_space,
     write_source_spaces,
 )

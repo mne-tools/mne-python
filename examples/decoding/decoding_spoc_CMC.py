@@ -60,7 +60,7 @@ y = emg_epochs.get_data().var(axis=2)[:, 0]  # target is EMG power
 
 # Classification pipeline with SPoC spatial filtering and Ridge Regression
 spoc = SPoC(n_components=2, log=True, reg="oas", rank="full")
-clf = make_pipeline(spoc, Ridge())
+clf = make_pipeline(spoc, Ridge(random_state=127))
 # Define a two fold cross-validation
 cv = KFold(n_splits=2, shuffle=False)
 

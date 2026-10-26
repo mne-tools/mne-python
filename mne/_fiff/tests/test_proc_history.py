@@ -25,9 +25,7 @@ def test_maxfilter_io():
     assert mf["sss_info"]["out_order"] <= 5
     assert mf["sss_info"]["nchan"] > len(mf["sss_info"]["components"])
 
-    assert (
-        info["ch_names"][: mf["sss_info"]["nchan"]] == mf["sss_ctc"]["proj_items_chs"]
-    )
+    assert info["ch_names"][: mf["sss_info"]["nchan"]] == mf["sss_ctc"]["ch_names"]
     assert mf["sss_ctc"]["decoupler"].shape == (
         mf["sss_info"]["nchan"],
         mf["sss_info"]["nchan"],

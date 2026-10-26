@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "b4428f3aaa12c827f223e34b1ebfa77d45cc52c3",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 2,
+      "d": 3
+    },
+    "examples/visualization/evoked_topomap.py": {
+      "a": 3,
+      "d": 4
+    },
+    "mne/viz/ui_events.py": {
+      "a": 5,
+      "d": 7
+    },
+    "tutorials/visualization/20_ui_events.py": {
+      "a": 0,
+      "d": 1
+    }
+  }
+}

@@ -172,11 +172,12 @@ for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
 # width, transition bandwidth and other aspects of the filter. See the
 # docstring for details.
 #
-# It's also possible to try to use a spectrum fitting routine to notch filter.
-# In principle it can automatically detect the frequencies to notch, but our
-# implementation generally does not do so reliably, so we specify the
-# frequencies to remove instead, and it does a good job of removing the
-# line noise at those frequencies:
+# It's also possible to use a spectrum fitting routine to notch filter, which
+# fits and subtracts sinusoids (found using the multitaper harmonic F test of
+# :footcite:`Thomson1982`) rather than filtering out a band. It can
+# automatically detect the frequencies to notch (``freqs=None``), but here we
+# specify the frequencies to remove, and it does a good job of removing the
+# line noise at those frequencies without affecting neighboring frequencies:
 
 raw_notch_fit = raw.copy().notch_filter(
     freqs=freqs, picks=meg_picks, method="spectrum_fit", filter_length="10s"
@@ -353,6 +354,12 @@ print(
 #    corresponding Events array *simultaneously* so that they stay more or less
 #    in synch. This can be done by passing the Events array as the
 #    ``events`` parameter to :meth:`raw.resample() <mne.io.Raw.resample>`.
+#
+#
+# References
+# ^^^^^^^^^^
+#
+# .. footbibliography::
 #
 #
 # .. LINKS

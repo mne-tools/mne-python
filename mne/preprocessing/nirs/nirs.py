@@ -3,25 +3,37 @@
 # Copyright the MNE-Python contributors.
 
 import re
+import warnings
+from contextlib import contextmanager
 
 import numpy as np
 
 from ..._fiff.pick import _picks_to_idx, pick_types
-from ...utils import _check_option, _validate_type, fill_doc
+from ...utils import _check_option, _validate_type, fill_doc_static, warn
 
 # Standardized fNIRS channel name regexs
 _S_D_F_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*)")
 _S_D_H_RE = re.compile(r"S(\d+)_D(\d+) (\w+)")
 
 
-@fill_doc
+@fill_doc_static("info_not_none", "picks_all_data")
 def source_detector_distances(info, picks=None):
     r"""Determine the distance between NIRS source and detectors.
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(picks_all_data)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
 
     Returns
     -------
@@ -40,7 +52,7 @@ def source_detector_distances(info, picks=None):
     )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def short_channels(info, threshold=0.01):
     r"""Determine which NIRS channels are short.
 
@@ -49,7 +61,9 @@ def short_channels(info, threshold=0.01):
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     threshold : float
         The threshold distance for what is considered short in meters.
 
@@ -60,6 +74,12 @@ def short_channels(info, threshold=0.01):
         Of shape equal to number of channels.
     """
     return source_detector_distances(info) < threshold
+
+
+def _has_source_detector_distances(info, picks=None):
+    """Return True if source-detector distances can be computed."""
+    distances = source_detector_distances(info, picks=picks)
+    return len(distances) > 0 and np.all(distances > 0)
 
 
 def _channel_frequencies(info):
@@ -104,10 +124,33 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # All chromophore fNIRS data
     picks_chroma = _picks_to_idx(info, ["hbo", "hbr"], exclude=[], allow_empty=True)
 
-    if (len(picks_wave) > 0) and (len(picks_chroma) > 0):
+    # All TD moments
+    td_moments = [
+        "fnirs_td_moments_intensity",
+        "fnirs_td_moments_mean",
+        "fnirs_td_moments_variance",
+    ]
+    picks_moments = _picks_to_idx(info, td_moments, exclude=[], allow_empty=True)
+
+    # All TD gated
+    picks_gated = _picks_to_idx(
+        info, ["fnirs_td_gated_amplitude"], exclude=[], allow_empty=True
+    )
+
+    n_found = sum(
+        len(x) > 0
+        for x in (
+            picks_wave,
+            picks_chroma,
+            picks_moments,
+            picks_gated,
+        )
+    )
+    if n_found != 1:
         picks = _throw_or_return_empty(
-            "MNE does not support a combination of amplitude, optical "
-            "density, and haemoglobin data in the same raw structure.",
+            "MNE supports exactly one of amplitude, optical density, "
+            "TD moments, TD gated, and haemoglobin data in a given raw "
+            f"structure, found {n_found}",
             throw_errors,
         )
 
@@ -116,10 +159,13 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         error_word = "frequencies"
         use_RE = _S_D_F_RE
         picks = picks_wave
-    else:
+    elif len(picks_chroma):
         error_word = "chromophore"
         use_RE = _S_D_H_RE
         picks = picks_chroma
+    else:
+        assert len(picks_moments) or len(picks_gated)
+        return  # nothing to check
 
     pair_vals = np.array(pair_vals)
     if pair_vals.shape[0] < 2:
@@ -241,6 +287,20 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
                     f"Found {got} but needed {want}. "
                 )
     return picks
+
+
+@contextmanager
+def _warn_channel(ch_name):
+    """Re-emit warnings raised while processing one channel, naming it.
+
+    NumPy emits numerical warnings (e.g. "divide by zero encountered in log")
+    without any channel context.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        yield
+    for w in caught:
+        warn(f"{w.message} in channel {ch_name}", w.category)
 
 
 def _throw_or_return_empty(msg, throw_errors):

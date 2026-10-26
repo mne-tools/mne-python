@@ -3,3 +3,5 @@ rules:
     config:
       policies:
         "*": ref-pin
+  secrets-outside-env:
+    disable: true  # TODO: Someday we should use envs for these

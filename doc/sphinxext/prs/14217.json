@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "c249d7959710183f6a1f1e5fd3777235d7e8b03a",
+  "authors": [
+    {
+      "n": "Lucakaemmer",
+      "e": "60244347+Lucakaemmer@users.noreply.github.com",
+      "l": "Lucakaemmer"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14217.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/stats/tests/test_cluster_level.py": {
+      "a": 17,
+      "d": 0
+    }
+  }
+}

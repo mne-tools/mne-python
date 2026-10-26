@@ -77,18 +77,18 @@ ax.set(title="No preprocessing", **set_kwargs)
 # The simplest method for reducing low frequency drift in the data is to
 # use a set of reference sensors away from the scalp, which only sample the
 # ambient fields in the room. An advantage of this method is that no prior
-# knowldge of the locations of the sensors is required. However, it assumes
+# knowledge of the locations of the sensors is required. However, it assumes
 # that the reference sensors experience the same interference as scalp
 # recordings.
 #
 # To do this in our current dataset, we require a bit of housekeeping.
 # There are a set of channels beginning with the name "Flux" which do not
-# contain any evironmental data, these need to be set to as bad channels.
+# contain any environmental data, these need to be set to as bad channels.
 # Another channel -- G2-17-TAN -- will also be set to bad.
 #
 # For now we are only interested in removing artefacts seen below 5 Hz, so we
 # initially low-pass filter the good reference channels in this dataset prior
-# to regression
+# to regression.
 #
 # Looking at the processed data, we see there has been a large reduction in the
 # low frequency drift, but there are still periods where the drift has not been
@@ -128,14 +128,14 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 # ------------------------------------------------------
 #
 # Regression of a reference channel is a start, but in this instance assumes
-# the relatiship between the references and a given sensor on the head as
+# that the relationship between the references and a given sensor on the head is
 # constant. However this becomes less accurate when the reference is not moving
 # but the subject is. An alternative method, Homogeneous Field Correction (HFC)
-# only requires that the sensors on the helmet stationary relative to each
+# only requires that the sensors on the helmet are stationary relative to each
 # other. Which in a well-designed rigid helmet is the case.
 
 
-# include gradients by setting order to 2, set to 1 for homgenous components
+# include gradients by setting order to 2, set to 1 for homogeneous components
 projs = mne.preprocessing.compute_proj_hfc(raw.info, order=2)
 raw.add_proj(projs).apply_proj(verbose="error")
 
@@ -160,7 +160,7 @@ psd_post_hfc = raw.compute_psd(**psd_kwargs)
 # denoising step is to calculate the power spectrum of the dataset before and
 # after processing. We will use metric called the shielding factor to summarise
 # the values. Positive shielding factors indicate a reduction in power, whilst
-# negative means in increase.
+# negative means an increase.
 #
 # We see that reference regression does a good job in reducing low frequency
 # drift up to ~2 Hz, with 20 dB of shielding. But rapidly drops off due to
@@ -202,9 +202,9 @@ ax.set(
 # --------------------------
 #
 # Having regressed much of the high-amplitude, low-frequency interference, we
-# can now look to filtering the remnant nuisance signals. The motivation for
+# can now look at filtering the remnant nuisance signals. The motivation for
 # filtering after regression (rather than before) is to minimise any filter
-# artefacts generated when removing such high-amplitude interfece (compared
+# artefacts generated when removing such high-amplitude interference (compared
 # to the neural signals we are interested in).
 #
 # We are going to remove the 50 Hz mains signal with a notch filter,

@@ -6,10 +6,11 @@
 
 import inspect
 import os
+import shutil
 import sys
 import tempfile
 import traceback
-from functools import wraps
+from functools import partial, wraps
 from shutil import rmtree
 from unittest import SkipTest
 
@@ -56,32 +57,59 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
+# Filled in by the autouse ``_track_request`` fixture in mne/conftest.py.
+_current_pytest_request = None
+
+
+def _pytest_tmp_path():
+    """Get the ``tmp_path`` of the test that is currently running.
+
+    This lets plain helper functions (rather than fixtures) write under
+    ``--basetemp``, so their output is cleaned up by pytest and shows up in
+    temp-space accounting, without every call site having to pass it in.
+    """
+    return _current_pytest_request.getfixturevalue("tmp_path")
+
+
+def _apply_marks(marks, func):
+    """Apply several pytest marks to a test function."""
+    for mark in reversed(marks):
+        func = mark(func)
+    return func
+
+
 def requires_mne(func):
     """Decorate a function as requiring MNE."""
-    return requires_mne_mark()(func)
+    return _apply_marks(requires_mne_mark(), func)
 
 
 def requires_mne_mark():
     """Mark pytest tests that require MNE-C."""
     import pytest
 
-    return pytest.mark.skipif(not has_mne_c(), reason="Requires MNE-C")
+    # The mne_c mark carries no condition; it exists so that CI can select or
+    # deselect the MNE-C tests as a group with `-m`.
+    return [
+        pytest.mark.mne_c,
+        pytest.mark.skipif(not has_mne_c(), reason="Requires MNE-C"),
+    ]
 
 
 def requires_openmeeg_mark():
     """Mark pytest tests that require OpenMEEG."""
     import pytest
 
-    return pytest.mark.skipif(
-        not check_version("openmeeg", "2.5.6"), reason="Requires OpenMEEG >= 2.5.6"
-    )
+    return pytest.mark.skipif(not check_version("openmeeg"), reason="Requires OpenMEEG")
 
 
 def requires_freesurfer(arg):
-    """Require Freesurfer."""
+    """Require FreeSurfer."""
     import pytest
 
-    reason = "Requires Freesurfer"
+    # As for mne_c above, the freesurfer mark is unconditional and only exists so
+    # that CI can select or deselect these tests as a group with `-m`.
+    marks = [pytest.mark.freesurfer]
+    reason = "Requires FreeSurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
@@ -92,13 +120,13 @@ def requires_freesurfer(arg):
             skip = True
         else:
             skip = False
-        return pytest.mark.skipif(skip, reason=reason)
+        marks.append(pytest.mark.skipif(skip, reason=reason))
+        return partial(_apply_marks, marks)
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
-            arg
-        )
+        marks.append(pytest.mark.skipif(not has_freesurfer(), reason=reason))
+        return _apply_marks(marks, arg)
 
 
 def requires_good_network(func):
@@ -146,7 +174,7 @@ def has_mne_c():
 
 
 def has_freesurfer():
-    """Check for Freesurfer."""
+    """Check for FreeSurfer."""
     return "FREESURFER_HOME" in os.environ
 
 
@@ -385,16 +413,6 @@ def _click_ch_name(fig, ch_index=0, button=1):
     _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)
 
 
-def _get_suptitle(fig):
-    """Get fig suptitle (shim for matplotlib < 3.8.0)."""
-    # TODO: obsolete when minimum MPL version is 3.8
-    if check_version("matplotlib", "3.8"):
-        return fig.get_suptitle()
-    else:
-        # unreliable hack; should work in most tests as we rarely use `sup_{x,y}label`
-        return fig.texts[0].get_text()
-
-
 def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
     __tracebackhide__ = True
 
@@ -417,3 +435,45 @@ def assert_trans_allclose(actual, desired, dist_tol=0.0, angle_tol=0.0):
         f"{1000 * dist:0.3f} > {1000 * dist_tol:0.3f} mm translation"
     )
     assert angle <= angle_tol, f"{angle:0.3f} > {angle_tol:0.3f}° rotation"
+
+
+def _chmod_rw_R(path):
+    assert os.path.isdir(path), f"Expected a directory, got {path}"
+    os.chmod(path, 0o700 | os.stat(path).st_mode)
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            this_name = os.path.join(root, name)
+            os.chmod(this_name, 0o600 | os.stat(this_name).st_mode)
+        for name in dirs:
+            this_name = os.path.join(root, name)
+            os.chmod(this_name, 0o770 | os.stat(this_name).st_mode)
+
+
+def copytree_rw(src, dst):
+    """Copy a directory tree and make it read/write."""
+    assert os.path.isdir(src), f"Expected a directory, got {src}"
+    shutil.copytree(src, dst)
+    _chmod_rw_R(dst)
+    return dst
+
+
+_vtk_object_base = None
+
+
+def _is_vtk(obj):
+    """Check if an object is a VTK object worth leak-checking (for refleak).
+
+    An ``isinstance`` check, not a class-name-prefix one: VTK >= 9.6
+    instantiates pythonic override subclasses whose names lack the ``vtk``
+    prefix (``PolyData``, ``VTKAOSArray_vtkFloatArray``, ...), and pyvista
+    wrapper subclasses count as VTK objects too. Requires ``vtkmodules``.
+    """
+    global _vtk_object_base
+    if _vtk_object_base is None:
+        from vtkmodules.vtkCommonCore import vtkObjectBase
+
+        _vtk_object_base = vtkObjectBase
+    # vtkBuffer_IhE (vtkBuffer<unsigned char>) instances are known to linger
+    return (
+        isinstance(obj, _vtk_object_base) and obj.__class__.__name__ != "vtkBuffer_IhE"
+    )

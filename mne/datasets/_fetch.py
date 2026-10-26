@@ -2,8 +2,6 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from __future__ import annotations  # only needed for Python ≤ 3.9
-
 import os
 import os.path as op
 import sys
@@ -26,6 +24,7 @@ from .utils import (
     _downloader_params,
     _get_path,
     _log_time_size,
+    _pl,
 )
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
@@ -127,7 +126,8 @@ def fetch_dataset(
         {'dataset_name': 'sample',
          'archive_name': 'MNE-sample-data-processed.tar.gz',
          'hash': 'md5:e8f30c4516abdc12a0c08e6bae57409c',
-         'url': 'https://osf.io/download/86qa2?version=6',
+         'url': 'https://github.com/mne-tools/mne-data/releases/download/'
+                'sample-6/MNE-sample-data-processed.tar.gz',
          'folder_name': 'MNE-sample-data',
          'config_key': 'MNE_DATASETS_SAMPLE_PATH'}
 
@@ -253,6 +253,9 @@ def fetch_dataset(
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
     sz = 0
+    logger.info(
+        "Fetching %s file%s for the %s dataset ...", len(names), _pl(names), name
+    )
 
     for idx in range(len(names)):
         # fetch and unpack the data

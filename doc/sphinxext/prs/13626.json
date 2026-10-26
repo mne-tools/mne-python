@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "f3f1c96afb65db1199debc6b4319ee1fcae04cae",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    "tools/dev/check_steering_committee.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

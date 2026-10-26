@@ -3,7 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import shutil
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 
 import numpy as np
@@ -85,8 +85,8 @@ def test_gdf2_birthday(tmp_path):
     new_fname = tmp_path / "temp.gdf"
     shutil.copyfile(gdf2_path.with_name(gdf2_path.name + ".gdf"), new_fname)
     # go back 44.5 years so the subject should show up as 44
-    offset_edf = datetime.now(tz=timezone.utc) - datetime(  # to their ref
-        1, 1, 1, tzinfo=timezone.utc
+    offset_edf = datetime.now(tz=UTC) - datetime(  # to their ref
+        1, 1, 1, tzinfo=UTC
     )
     offset_44_yr = offset_edf - timedelta(days=int(365 * 44.5))  # 44.5 yr ago
     offset_44_yr_days = offset_44_yr.total_seconds() / (24 * 60 * 60)  # days
@@ -101,7 +101,7 @@ def test_gdf2_birthday(tmp_path):
     raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
     assert "subject_info" not in raw._raw_extras[0]
     assert raw.info["subject_info"] is not None
-    birthdate = datetime(1, 1, 1, tzinfo=timezone.utc) + offset_44_yr
+    birthdate = datetime(1, 1, 1, tzinfo=UTC) + offset_44_yr
     assert raw.info["subject_info"]["birthday"] == date(
         birthdate.year,
         birthdate.month,

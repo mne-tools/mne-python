@@ -50,7 +50,7 @@ Changelog
 
 - Add helmet for Artemis123 for :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
-- Add support for reading MATLAB ``v7.3+`` files in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` via `pymatreader`_ by `Steven Gutstein`_, `Eric Larson`_, and `Thomas Hartmann`_
+- Add support for reading MATLAB ``v7.3+`` files in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` via `pymatreader <https://gitlab.com/obob/pymatreader>`__ by `Steven Gutstein`_, `Eric Larson`_, and `Thomas Hartmann`_
 
 - Add support for raw PSD plots in :meth:`mne.Report.parse_folder` via ``raw_psd`` argument of :class:`mne.Report` by `Eric Larson`_
 
@@ -315,3 +315,7 @@ People who contributed to this release  (in alphabetical order):
 * Tristan Stenner
 * buildqa
 * jeythekey
+
+.. include:: names.inc
+
+.. include:: ../links.inc

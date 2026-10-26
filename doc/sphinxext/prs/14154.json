@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "dc24e29648267a84cccf5eada3846eca9e52726a",
+  "authors": [
+    {
+      "n": "Lifeng",
+      "e": "76589235+Gnefil@users.noreply.github.com",
+      "l": "Gnefil"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

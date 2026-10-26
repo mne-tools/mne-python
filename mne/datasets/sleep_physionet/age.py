@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from ...utils import verbose
+from ...utils import verbose_static
 from ..utils import _log_time_size
 from ._utils import (
     AGE_SLEEP_RECORDS,
@@ -22,7 +22,7 @@ data_path = _data_path  # expose _data_path(..) as data_path(..)
 BASE_URL = "https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/"
 
 
-@verbose
+@verbose_static()
 def fetch_data(
     subjects,
     recording=(1, 2),
@@ -71,7 +71,11 @@ def fetch_data(
         are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
         is 'warn' it will proceed but warn, if 'ignore' it will proceed
         silently.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

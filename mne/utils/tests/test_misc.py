@@ -10,7 +10,25 @@ from contextlib import nullcontext
 import pytest
 
 import mne
-from mne.utils import _clean_names, catch_logging, run_subprocess, sizeof_fmt
+from mne.utils import (
+    _assert_no_instances,
+    _clean_names,
+    catch_logging,
+    run_subprocess,
+    sizeof_fmt,
+)
+
+
+def test_assert_no_instances():
+    """Test that our wrapper works."""
+
+    class _Foo:
+        pass
+
+    _holder = {"key": _Foo()}
+
+    with pytest.raises(AssertionError, match="after closing"):
+        _assert_no_instances(_Foo, "after closing")
 
 
 def test_sizeof_fmt():
@@ -146,6 +164,18 @@ print('bar', file=sys.{kind})
         other = stdout
     assert std == want
     assert other == ""
+
+    if not do_raise:
+        # Ensure non-UTF-8 bytes don't cause UnicodeDecodeError
+        fname_non_utf8 = tmp_path / f"non_utf8_{kind}.py"
+        fname_non_utf8.write_text(
+            f"import sys\nsys.{kind}.buffer.write('bøfsandwich'.encode('latin-1'))",
+            encoding="utf-8",
+        )
+        stdout, stderr = run_subprocess([sys.executable, fname_non_utf8], verbose=False)
+        out = stdout if kind == "stdout" else stderr
+        # \ufffd is the unicode replacement character
+        assert out == "b\ufffdfsandwich"
 
 
 def test_clean_names():

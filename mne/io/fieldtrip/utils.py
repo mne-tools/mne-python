@@ -202,7 +202,7 @@ def _set_sfreq(ft_struct):
             "FieldTrip structure contained multiple sample rates, trying the "
             f"first of:\n{sfreq} Hz"
         )
-        sfreq = float(sfreq.ravel()[0])
+        sfreq = float(np.asarray(sfreq).ravel()[0])
     return sfreq
 
 

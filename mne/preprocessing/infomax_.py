@@ -6,12 +6,13 @@ import math
 
 import numpy as np
 from scipy.special import expit
-from scipy.stats import kurtosis
 
-from ..utils import check_random_state, logger, random_permutation, verbose
+from ..utils import _legacy_rng, logger, verbose_static
+from ..utils.numerics import _random_permutation
 
 
-@verbose
+@_legacy_rng("random_state")
+@verbose_static("rng", "random_state_rng")
 def infomax(
     data,
     weights=None,
@@ -25,13 +26,16 @@ def infomax(
     kurt_size=6000,
     ext_blocks=1,
     max_iter=200,
-    random_state=None,
     blowup=1e4,
     blowup_fac=0.5,
     n_small_angle=20,
     use_bias=True,
     verbose=None,
     return_n_iter=False,
+    return_converged=False,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Run (extended) Infomax ICA decomposition on raw data.
 
@@ -79,7 +83,6 @@ def infomax(
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    %(random_state)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.
@@ -95,17 +98,48 @@ def infomax(
     use_bias : bool
         This quantity indicates if the bias should be computed.
         Defaults to True.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     return_n_iter : bool
         Whether to return the number of iterations performed. Defaults to
         False.
+    return_converged : bool
+        Whether to additionally return whether the algorithm converged, i.e.
+        whether it stopped because its own tolerance was met rather than
+        because ``max_iter`` was reached.
+
+        .. versionadded:: 1.13
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
     unmixing_matrix : np.ndarray, shape (n_features, n_features)
         The linear unmixing operator.
     n_iter : int
-        The number of iterations. Only returned if ``return_max_iter=True``.
+        The number of iterations actually performed. Only returned if
+        ``return_n_iter=True``.
+    converged : bool
+        Whether the algorithm converged. Only returned if
+        ``return_converged=True``.
+
+        .. versionadded:: 1.13
 
     References
     ----------
@@ -116,7 +150,7 @@ def infomax(
            analysis using an extended infomax algorithm for mixed subgaussian
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
-    rng = check_random_state(random_state)
+    from scipy.stats import kurtosis
 
     # define some default parameters
     max_weight = 1e8
@@ -179,9 +213,10 @@ def infomax(
 
     # trainings loop
     olddelta, oldchange = 1.0, 0.0
+    converged = False
     while step < max_iter:
         # shuffle data at each step
-        permute = random_permutation(n_samples, rng)
+        permute = _random_permutation(n_samples, rng)
 
         # ICA training block
         # loop across block samples
@@ -289,11 +324,13 @@ def infomax(
                 if n_small_angle is not None:
                     count_small_angle += 1
                     if count_small_angle > n_small_angle:
-                        max_iter = step
+                        converged = True
+                        break
 
             # apply stopping rule
             if step > 2 and change < w_change:
-                step = max_iter
+                converged = True
+                break
             elif change > blowup:
                 l_rate *= blowup_fac
 
@@ -329,7 +366,9 @@ def infomax(
                 )
 
     # prepare return values
+    out = (weights.T,)
     if return_n_iter:
-        return weights.T, step
-    else:
-        return weights.T
+        out += (step,)
+    if return_converged:
+        out += (converged,)
+    return out[0] if len(out) == 1 else out

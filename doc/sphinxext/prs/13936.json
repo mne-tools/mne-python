@@ -1,0 +1,59 @@
+{
+  "merge_commit_sha": "b2b0380e282674023ba4c672197aafadea3efa54",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13936.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/_standard_montage_utils.py": {
+      "a": 26,
+      "d": 4
+    },
+    "mne/channels/data/montages/fsaverage_1005.tsv": {
+      "a": 341,
+      "d": 0
+    },
+    "mne/channels/data/montages/fsaverage_1010.tsv": {
+      "a": 74,
+      "d": 0
+    },
+    "mne/channels/data/montages/fsaverage_1020.tsv": {
+      "a": 25,
+      "d": 0
+    },
+    "mne/channels/montage.py": {
+      "a": 31,
+      "d": 13
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 81,
+      "d": 4
+    },
+    "mne/viz/tests/test_montage.py": {
+      "a": 2,
+      "d": 0
+    },
+    "tutorials/forward/35_eeg_no_mri.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

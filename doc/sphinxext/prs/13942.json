@@ -1,0 +1,43 @@
+{
+  "merge_commit_sha": "6b7c6f47ac058d802762f0700c92904a9b94b23d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13942.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/maxwell.py": {
+      "a": 78,
+      "d": 25
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 62,
+      "d": 25
+    },
+    "mne/source_estimate.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/transforms.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 19,
+      "d": 5
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

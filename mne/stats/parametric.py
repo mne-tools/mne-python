@@ -6,8 +6,6 @@ from functools import reduce
 from string import ascii_uppercase
 
 import numpy as np
-from scipy import stats
-from scipy.signal import detrend
 
 from ..utils import _check_option
 
@@ -111,7 +109,7 @@ def ttest_ind_no_p(a, b, equal_var=True, sigma=0.0):
     return t
 
 
-def f_oneway(*args):
+def f_oneway(*args, sigma=0.0, method="relative"):
     """Perform a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
@@ -125,6 +123,20 @@ def f_oneway(*args):
     ----------
     *args : array_like
         The sample measurements should be given as arguments.
+    sigma : float
+        Regularization parameter (>= 0) added to the within-group mean
+        square to mitigate F-statistic inflation under low-variance
+        conditions. ``0`` (default) disables correction.
+
+        .. versionadded:: 1.12
+    method : str
+        How *sigma* is interpreted when ``sigma > 0``. Can be
+        ``'relative'`` (default) or ``'absolute'``.
+        ``'relative'`` multiplies *sigma* by the median within-group
+        mean square (scale-invariant, recommended).
+        ``'absolute'`` uses *sigma* directly as a raw sigma squared.
+
+        .. versionadded:: 1.12
 
     Returns
     -------
@@ -151,6 +163,9 @@ def f_oneway(*args):
     ----------
     .. footbibliography::
     """
+    _check_option("method", method, ["absolute", "relative"])
+    if sigma < 0:
+        raise ValueError(f"sigma must be >= 0, got {sigma}")
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -168,6 +183,12 @@ def f_oneway(*args):
     dfwn = n_samples - n_classes
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
+    if sigma > 0.0:
+        if method == "relative":
+            sigma_sq = sigma * np.median(msw)
+        else:
+            sigma_sq = float(sigma)
+        msw = (sswn + sigma_sq) / float(dfwn)
     f = msb / msw
     return f
 
@@ -239,6 +260,8 @@ def _get_contrast_indices(effect_idx, n_factors):  # noqa: D401
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """Set up contrasts."""
+    from scipy.signal import detrend
+
     sc = []
     n_factors = len(factor_levels)
     # prepare computation of Kronecker products
@@ -298,6 +321,8 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects="A*B", pvalue=0.05):
     -----
     .. versionadded:: 0.10
     """
+    from scipy import stats
+
     effect_picks, _ = _map_effects(len(factor_levels), effects)
 
     F_threshold = []
@@ -363,6 +388,8 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
     -----
     .. versionadded:: 0.10
     """
+    from scipy import stats
+
     out_reshape = (-1,)
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
@@ -415,6 +442,8 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
 
 def _parametric_ci(arr, ci=0.95):
     """Calculate the `ci`% parametric confidence interval for `arr`."""
+    from scipy import stats
+
     mean = arr.mean(0)
     if len(arr) < 2:  # can't compute standard error
         sigma = np.full_like(mean, np.nan)

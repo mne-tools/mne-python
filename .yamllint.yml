@@ -8,3 +8,5 @@ rules:
   document-start: disable
   new-lines:
     type: platform
+  indentation:
+    indent-sequences: consistent

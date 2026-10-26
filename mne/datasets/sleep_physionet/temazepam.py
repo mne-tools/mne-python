@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from ...utils import verbose
+from ...utils import verbose_static
 from ..utils import _log_time_size
 from ._utils import TEMAZEPAM_SLEEP_RECORDS, _check_subjects, _data_path, _fetch_one
 
@@ -16,7 +16,7 @@ data_path = _data_path  # expose _data_path(..) as data_path(..)
 BASE_URL = "https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/"  # noqa: E501
 
 
-@verbose
+@verbose_static()
 def fetch_data(
     subjects, path=None, force_update=False, base_url=BASE_URL, *, verbose=None
 ):
@@ -46,7 +46,11 @@ def fetch_data(
         Force update of the dataset even if a local copy exists.
     base_url : str
         The base URL to download from.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

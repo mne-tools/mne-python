@@ -1,0 +1,1 @@
+Several usability improvements to :func:`mne.gui.coregistration`: icons on more action buttons and polished tooltip text, a color-coded fit-quality indicator next to the HSP/MRI distance summary, by `Payam Sadeghi-Shabestari`_.

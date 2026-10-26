@@ -16,6 +16,7 @@ Reading raw data
    read_raw
    read_raw_ant
    read_raw_artemis123
+   read_raw_bci2k
    read_raw_bdf
    read_raw_boxy
    read_raw_brainvision
@@ -34,6 +35,7 @@ Reading raw data
    read_raw_gdf
    read_raw_hitachi
    read_raw_kit
+   read_raw_mef
    read_raw_nedf
    read_raw_nicolet
    read_raw_nihon

@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "59db5b92b6efe676dcb916eea2cacfdac06a051d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14132.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 14,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 33,
+      "d": 13
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 83,
+      "d": 6
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,1 @@
+:class:`mne.viz.Brain` now offers ``'flat'`` surf option for subjects that have the required patch files, by `Payam Sadeghi-Shabestari`_.

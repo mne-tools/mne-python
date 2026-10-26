@@ -1,0 +1,39 @@
+{
+  "merge_commit_sha": "64d1e32f2e65471bebd5c92dddf5875c202ae4ec",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 0,
+      "d": 9
+    },
+    "doc/changes/dev/13981.dependency.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/install/advanced.rst": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/conftest.py": {
+      "a": 0,
+      "d": 4
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/setup_xvfb.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

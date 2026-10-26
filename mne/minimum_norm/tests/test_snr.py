@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import os
+from contextlib import chdir
 from os import path as op
 
 import numpy as np
@@ -26,9 +26,7 @@ def test_snr(tmp_path):
     inv = read_inverse_operator(fname_inv)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
     snr = estimate_snr(evoked, inv)[0]
-    orig_dir = os.getcwd()
-    os.chdir(tempdir)
-    try:
+    with chdir(tempdir):
         cmd = [
             "mne_compute_mne",
             "--inv",
@@ -41,11 +39,10 @@ def test_snr(tmp_path):
             "--bmax",
             "0",
         ]
-        run_subprocess(cmd)
-    except Exception:
-        pass  # this returns 1 for some reason
-    finally:
-        os.chdir(orig_dir)
+        try:
+            run_subprocess(cmd)
+        except Exception:
+            pass  # this returns 1 for some reason
     times, snr_c, _ = np.loadtxt(op.join(tempdir, "SNR")).T
     assert_allclose(times / 1000.0, evoked.times, atol=1e-2)
     assert_allclose(snr, snr_c, atol=1e-2, rtol=1e-2)

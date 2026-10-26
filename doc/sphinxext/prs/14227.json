@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "939b4d0b81e574dc5a3dad8849073788f02b84f0",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    }
+  ],
+  "changes": {
+    ".gitignore": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 3,
+      "d": 5
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 19,
+      "d": 24
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 3,
+      "d": 3
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

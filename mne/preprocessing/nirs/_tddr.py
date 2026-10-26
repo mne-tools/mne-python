@@ -7,11 +7,11 @@ import numpy as np
 from scipy.signal import butter, filtfilt
 
 from ...io import BaseRaw
-from ...utils import _validate_type, verbose
-from ..nirs import _validate_nirs_info
+from ...utils import _validate_type, verbose_static
+from ..nirs import _validate_nirs_info, _warn_channel
 
 
-@verbose
+@verbose_static()
 def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """Apply temporal derivative distribution repair to data.
 
@@ -23,7 +23,11 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     ----------
     raw : instance of Raw
         The raw data.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -51,7 +55,8 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     if not len(picks):
         raise RuntimeError("TDDR should be run on optical density or hemoglobin data.")
     for pick in picks:
-        raw._data[pick] = _TDDR(raw._data[pick], raw.info["sfreq"])
+        with _warn_channel(raw.ch_names[pick]):
+            raw._data[pick] = _TDDR(raw._data[pick], raw.info["sfreq"])
 
     return raw
 

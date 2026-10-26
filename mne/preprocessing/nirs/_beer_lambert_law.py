@@ -11,10 +11,15 @@ from scipy.io import loadmat
 from ..._fiff.constants import FIFF
 from ...io import BaseRaw
 from ...utils import _validate_type, pinv, warn
-from ..nirs import _channel_frequencies, _validate_nirs_info, source_detector_distances
+from ..nirs import (
+    _channel_frequencies,
+    _has_source_detector_distances,
+    _validate_nirs_info,
+    source_detector_distances,
+)
 
 
-def beer_lambert_law(raw, ppf=6.0):
+def beer_lambert_law(raw, ppf=6.0, *, sd_distances=None):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
@@ -26,6 +31,12 @@ def beer_lambert_law(raw, ppf=6.0):
 
         .. versionchanged:: 1.7
            Support for different factors for the two wavelengths.
+    sd_distances : array-like | float | None
+        Source-detector distances in meters. If ``None``, distances are read
+        from ``raw.info['chs']``. If array-like, the values must have a distance
+        for each channel, matching the order in ``info['chs']``.
+
+        .. versionadded:: 1.13
 
     Returns
     -------
@@ -70,9 +81,14 @@ def beer_lambert_law(raw, ppf=6.0):
         )
 
     abs_coef = _load_absorption(unique_freqs)  # shape (n_wavelengths, 2)
-    distances = source_detector_distances(raw.info, picks="all")
+    distances = _get_sd_distances(raw, sd_distances)
     bad = ~np.isfinite(distances[picks])
     bad |= distances[picks] <= 0
+    if bad.all():
+        raise ValueError(
+            "Source-detector distances are all zero or NaN. Consider setting a "
+            "montage with raw.set_montage or providing sd_distances."
+        )
     if bad.any():
         warn(
             "Source-detector distances are zero or NaN, some resulting "
@@ -127,6 +143,39 @@ def beer_lambert_law(raw, ppf=6.0):
     # Validate the format of data after transformation is valid
     _validate_nirs_info(raw.info, fnirs="hb")
     return raw
+
+
+def _get_sd_distances(raw, sd_distances):
+    """Get source-detector distances for each channel.
+
+    Returns
+    -------
+    dists : array of float
+        Array containing distances in meters.
+        Of shape equal to number of channels.
+    """
+    if sd_distances is None:
+        # picks="all" used here instead of picks s.t. distance indices match raw
+        return source_detector_distances(raw.info, picks="all")
+    elif _has_source_detector_distances(raw.info, picks="all"):
+        warn("Source-detector distances in raw.info[] will be overridden")
+    _validate_type(sd_distances, ("numeric", "array-like"), "sd_distances")
+    sd_distances = np.array(sd_distances, float)
+    n_channels = len(raw.info["chs"])
+    if sd_distances.ndim == 0:
+        return np.full(n_channels, sd_distances)
+    if sd_distances.ndim != 1:
+        raise ValueError(
+            "sd_distances must be a float or a 1D array-like, got "
+            f"shape {sd_distances.shape}"
+        )
+    if len(sd_distances) != n_channels:
+        raise ValueError(
+            "sd_distances must be a float or an array-like with length matching "
+            f"the len(raw.info['chs']) ({n_channels}), "
+            f"got length {len(sd_distances)}"
+        )
+    return sd_distances
 
 
 def _load_absorption(freqs):

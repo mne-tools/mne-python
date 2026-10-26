@@ -18,6 +18,11 @@ The procedure consists of:
   - compute stats to see if the power estimates are significantly different
     between conditions.
 
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -131,7 +136,7 @@ F_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
     n_permutations=100,
     threshold=threshold,
     tail=0,
-    seed=np.random.default_rng(seed=8675309),
+    rng=np.random.default_rng(seed=8675309),
 )
 
 # %%

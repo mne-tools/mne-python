@@ -301,7 +301,7 @@ def eeg_power_band(epochs):
 
 pipe = make_pipeline(
     FunctionTransformer(eeg_power_band, validate=False),
-    RandomForestClassifier(n_estimators=100, random_state=42),
+    RandomForestClassifier(n_estimators=100, random_state=241),
 )
 
 # Train

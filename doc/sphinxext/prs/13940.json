@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "d8fda7674d198502a1760d86a96bb9d81f759f79",
+  "authors": [
+    {
+      "n": "Vincent Gao",
+      "e": "gaobing1230@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13940.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/_pupillometry.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/preprocessing/eyetracking/tests/test_pupillometry.py": {
+      "a": 42,
+      "d": 1
+    }
+  }
+}

@@ -39,6 +39,7 @@ Forward Modeling
    read_surface
    sensitivity_map
    setup_source_space
+   setup_subcortical_source_space
    setup_volume_source_space
    surface.complete_surface_info
    surface.read_curvature
