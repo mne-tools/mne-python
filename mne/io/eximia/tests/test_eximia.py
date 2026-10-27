@@ -2,7 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from numpy.testing import assert_array_equal
+import numpy as np
+from numpy.testing import assert_allclose, assert_array_equal
 from scipy import io as sio
 
 from mne.datasets.testing import data_path, requires_testing_data
@@ -18,11 +19,7 @@ def test_eximia_nxe():
     fname = testing_path / "eximia" / "test_eximia.nxe"
     raw = read_raw_eximia(fname, preload=True)
     assert "RawEximia" in repr(raw)
-    _test_raw_reader(
-        read_raw_eximia,
-        fname=fname,
-        test_scaling=False,  # XXX probably a scaling problem
-    )
+    _test_raw_reader(read_raw_eximia, fname=fname)
     fname_mat = testing_path / "eximia" / "test_eximia.mat"
     mc = sio.loadmat(fname_mat)
     m_data = mc["data"]
@@ -47,4 +44,6 @@ def test_eximia_nxe():
     ]
     assert ch_types == m_ch_types
 
-    assert_array_equal(m_data, raw._data)
+    stim = np.array(ch_types) == "stim"
+    assert_array_equal(m_data[stim], raw._data[stim])
+    assert_allclose(m_data[~stim] * 1e-6, raw._data[~stim], rtol=1e-12)
