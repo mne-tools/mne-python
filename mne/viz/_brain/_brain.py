@@ -12,6 +12,7 @@ from io import BytesIO
 import numpy as np
 from scipy.interpolate import interp1d
 
+from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import Info
 from ..._fiff.pick import pick_types
 from ..._freesurfer import (
@@ -34,6 +35,7 @@ from ...transforms import (
     _get_trans,
     _get_transforms_to_coord_frame,
     apply_trans,
+    fit_matched_points,
 )
 from ...utils import (
     Bunch,
@@ -1309,8 +1311,29 @@ class Brain(_TimeViewerMixin):
         # all meshes go in one LayeredMesh, so offset each one's vertex numbers
         offsets = np.cumsum([0] + [s["np"] for s in src])[:-1]
         rr = np.concatenate([s["rr"] for s in src])
-        if self._units == "mm":
-            rr = rr * 1000
+        nn = np.concatenate([s["nn"] for s in src])
+        scale = 1000.0 if self._units == "mm" else 1.0
+        if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD:  # e.g., fwd["src"]
+            for hemi, s in zip(("lh", "rh"), self._data["src"][:2]):
+                if hemi in self.geo and s["np"] == len(self.geo[hemi].coords):
+                    try:
+                        head_mri_t = fit_matched_points(
+                            s["rr"], self.geo[hemi].coords / scale, tol=1e-4
+                        )
+                        break
+                    except RuntimeError:  # not the same surface
+                        pass
+            else:
+                raise ValueError(
+                    "The subcortical source spaces are in head coordinates, and "
+                    "the head to MRI transform could not be determined from the "
+                    "cortical source spaces. Transform them to MRI coordinates "
+                    "first, e.g. with mne.transform_surface_to(s, 'mri', trans) "
+                    "for each source space."
+                )
+            rr = apply_trans(head_mri_t, rr)
+            nn = apply_trans(head_mri_t, nn, move=False)
+        rr = rr * scale
         tris = np.concatenate([s["tris"] + off for s, off in zip(src, offsets)])
         vertices = np.concatenate([s["vertno"] + off for s, off in zip(src, offsets)])
         if len(vertices) != len(hemi_data["vertices"]):
@@ -1318,19 +1341,30 @@ class Brain(_TimeViewerMixin):
                 f"The stc has {len(hemi_data['vertices'])} subcortical vertices but "
                 f"src has {len(vertices)}, they must match"
             )
-        mesh = LayeredMesh(
-            self._renderer,
-            vertices=rr,
-            triangles=tris,
-            normals=np.concatenate([s["nn"] for s in src]),
-        )
+        mesh = LayeredMesh(self._renderer, vertices=rr, triangles=tris, normals=nn)
         mesh._map()
-        # the data overlay itself is added by _update_current_time_idx
+        # gray base layer like the cortex has, so the mesh stays visible where the
+        # data is transparent; the data overlay is added by _update_current_time_idx
+        mesh.add_overlay(
+            scalars=np.zeros(len(rr)),
+            colormap=np.array([self._brain_color]) * 255,
+            rng=[0, 1],
+            opacity=self._alpha,
+            name="curv",
+        )
         hemi_data["smooth_mat"] = _hemi_morph(
             tris, np.arange(len(rr)), vertices, "nearest", maps=None, warn=False
         )
         hemi_data["subcortical_mesh"] = mesh
         return mesh._actor
+
+    @property
+    def _subcortical_meshes(self):
+        return [
+            key_data["vol"]["subcortical_mesh"]
+            for key_data in self._all_data.values()
+            if "subcortical_mesh" in key_data.get("vol", {})
+        ]
 
     def add_label(
         self,
@@ -2755,8 +2789,9 @@ class Brain(_TimeViewerMixin):
             The opacity of the cortical surface, between 0 and 1.
         """
         self._alpha = float(alpha)
-        for hemi in self._hemis:
-            self.layered_meshes[hemi].update_overlay("curv", opacity=self._alpha)
+        meshes = [self.layered_meshes[hemi] for hemi in self._hemis]
+        for mesh in meshes + self._subcortical_meshes:
+            mesh.update_overlay("curv", opacity=self._alpha)
         self._renderer._update()
 
     def set_cortex_colormap(self, cortex):
@@ -2786,6 +2821,8 @@ class Brain(_TimeViewerMixin):
                 colormap=geo_kwargs["colormap"],
                 rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
             )
+        for mesh in self._subcortical_meshes:
+            mesh.update_overlay("curv", colormap=np.array([self._brain_color]) * 255)
         self._renderer._update()
 
     def set_surf(self, surf):
