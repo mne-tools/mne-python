@@ -401,6 +401,38 @@ def test_interpolation_nirs_epochs():
     _assert_nirs_donor(epochs)
 
 
+@pytest.mark.parametrize("missing", [np.nan, 0.0])
+def test_interpolation_nirs_missing_positions(missing):
+    """Test NIRS interpolation with channels lacking positions (NaN or all zero)."""
+    kwargs = dict(method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0))
+    bads = ["S2_D2 760", "S2_D2 850"]
+
+    # Good channels without positions are not used as donors
+    raw = _nirs_raw()
+    for ch in ["S1_D1 760", "S1_D1 850"]:
+        raw.info["chs"][raw.ch_names.index(ch)]["loc"][:3] = missing
+    raw.info["bads"] = bads
+    raw.interpolate_bads(**kwargs)
+    assert_allclose(
+        raw.get_data(picks=bads), raw.get_data(picks=["S3_D3 760", "S3_D3 850"])
+    )
+
+    # Bad channels without positions are set to NaN
+    raw = _nirs_raw()
+    for ch in raw.info["chs"]:
+        ch["loc"][:3] = missing
+    raw.info["bads"] = bads
+    with pytest.warns(RuntimeWarning, match="will be all NaN"):
+        raw.interpolate_bads(**kwargs)
+    assert np.isnan(raw.get_data(picks=bads)).all()
+
+    # No good channel left to interpolate from
+    raw = _nirs_raw()
+    raw.info["bads"] = raw.ch_names
+    with pytest.raises(ValueError, match="No good fNIRS channel"):
+        raw.interpolate_bads(**kwargs)
+
+
 @testing.requires_testing_data
 def test_interpolation_ecog():
     """Test interpolation for ECoG."""
