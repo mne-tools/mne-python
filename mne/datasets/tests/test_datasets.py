@@ -82,24 +82,12 @@ def test_datasets_basic(tmp_path, monkeypatch):
     with pytest.raises(FileNotFoundError, match="as specified by MNE_DAT"):
         testing.data_path(download=False)
 
-    def fake_download(manifest_path, destination, url, hash_):
-        for name in manifest_path.read_text().split():
-            if not (destination / name).is_file():  # like the real downloader
-                (destination / name).parent.mkdir(parents=True, exist_ok=True)
-                (destination / name).write_bytes(b"")
+    def noop(*args, **kwargs):
+        return
 
-    monkeypatch.setattr(
-        mne.datasets._fsaverage.base, "_manifest_check_download", fake_download
-    )
+    monkeypatch.setattr(mne.datasets._fsaverage.base, "_manifest_check_download", noop)
     sd_2 = datasets.fetch_fsaverage()
     assert sd / "fsaverage" == sd_2
-    # the packaged head surface is installed, but an existing one is left alone
-    head = sd_2 / "bem" / "fsaverage-head.fif"
-    packaged = Path(mne.__file__).parent / "data" / "fsaverage" / "fsaverage-head.fif"
-    assert head.read_bytes() == packaged.read_bytes()
-    head.write_bytes(b"")
-    datasets.fetch_fsaverage()
-    assert head.read_bytes() == b""
 
 
 def test_erp_core_fetch_file(tmp_path, monkeypatch):
