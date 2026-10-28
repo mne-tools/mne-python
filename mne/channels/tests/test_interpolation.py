@@ -223,9 +223,10 @@ def test_interpolation_meg():
     raw.crop(0, 0.1).load_data().pick(epochs_meg.ch_names)
     raw.info.normalize_proj()
     raw.set_channel_types({raw.ch_names[0]: "stim"}, on_unit_change="ignore")
-    raw.info["bads"] = [raw.ch_names[1]]
+    raw.info["bads"] = raw.ch_names[:2]
     raw.load_data()
     raw.interpolate_bads(mode="fast")
+    assert raw.info["bads"] == raw.ch_names[:1]  # stim not interpolated, stays bad
     del raw
 
     # check that interpolation works for MEG
@@ -267,6 +268,7 @@ def test_interpolation_meg():
     data2 = evoked.interpolate_bads(origin="auto", exclude=["MEG 0121"]).data[pick]
     assert np.corrcoef(data1[0], data2[0])[0, 1] > thresh
     assert np.all(data2[1] == 1e10)
+    assert evoked.info["bads"] == ["MEG 0121"]
 
 
 def _this_interpol(inst, ref_meg=False):
@@ -383,10 +385,12 @@ def test_interpolation_nirs_reordered_picks():
     """Test NIRS interpolation uses the closest donor in raw channel space."""
     raw = _nirs_raw()
     raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
-    raw.interpolate_bads(
-        method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
-    )
+    kwargs = dict(method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False)
+    raw.interpolate_bads(reset_bads=False, **kwargs)
     _assert_nirs_donor(raw)
+    assert raw.info["bads"] == ["S2_D2 760", "S2_D2 850"]
+    raw.interpolate_bads(**kwargs)
+    assert raw.info["bads"] == []
 
 
 def test_interpolation_nirs_epochs():

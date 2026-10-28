@@ -1067,7 +1067,9 @@ class InterpolationMixin:
         Parameters
         ----------
         reset_bads : bool
-            If True, remove the bads from info.
+            If True, remove the interpolated channels from ``info["bads"]``.
+            Bad channels that were not interpolated (e.g., those in ``exclude``
+            or of a channel type not handled by ``method``) are kept.
         mode : str
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of channels
@@ -1195,6 +1197,10 @@ class InterpolationMixin:
             idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
             if len(pick_info(self.info, idx)["bads"]) == 0:
                 method.pop(ch_type)
+        picks = _picks_to_idx(
+            self.info, list(method), exclude=exclude, allow_empty=True
+        )
+        interpolated = set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
         logger.info("Interpolating bad channels.")
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):
@@ -1231,7 +1237,9 @@ class InterpolationMixin:
                     "nan-containing channels can be easily excluded from later "
                     "computations."
                 )
-            self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
+            self.info["bads"] = [
+                ch for ch in self.info["bads"] if ch not in interpolated
+            ]
 
         return self
 

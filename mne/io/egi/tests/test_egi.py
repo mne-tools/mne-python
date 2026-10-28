@@ -82,7 +82,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
             raw = _test_raw_reader(
                 read_raw_egi,
                 input_fname=fname,
-                test_scaling=False,  # XXX probably some bug
+                test_scaling=False,  # large DC offsets plus zero-filled skips
                 test_rank="less",
                 events_as_annotations=False,
             )
@@ -167,7 +167,7 @@ def test_io_egi_mff(events_as_annotations):
         input_fname=egi_mff_fname,
         include=include,
         channel_naming="EEG %03d",
-        test_scaling=False,  # XXX probably some bug
+        test_scaling=False,  # real data with transients up to ~140 mV
         events_as_annotations=events_as_annotations,
     )
     assert raw.info["sfreq"] == 1000.0
@@ -260,7 +260,6 @@ def test_io_egi():
         input_fname=egi_fname,
         include=include,
         test_rank="less",
-        test_scaling=False,  # XXX probably some bug
         events_as_annotations=False,
     )
 
@@ -322,7 +321,6 @@ def test_io_egi_pns_mff(tmp_path):
         channel_naming="EEG %03d",
         verbose="error",
         test_rank="less",
-        test_scaling=False,  # XXX probably some bug
     )
     assert names == pns_names
     mat_names = [
@@ -682,7 +680,7 @@ def test_read_event_keys(fname, expected):
         raw = _test_raw_reader(
             read_raw_egi,
             input_fname=fname,
-            test_scaling=False,
+            test_scaling=False,  # large DC offsets plus zero-filled skips
             test_rank="less",
             events_as_annotations=True,
             event_key="cel#",

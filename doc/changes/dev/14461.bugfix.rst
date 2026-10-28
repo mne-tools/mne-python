@@ -1,0 +1,6 @@
+Fixed several issues with readers and interpolations, by `Eric Larson`_:
+
+- :func:`mne.io.read_raw_eximia` now returns EEG and EOG data in V instead of µV (values are now 1e-6 times what they were before)
+- :meth:`mne.io.Raw.interpolate_bads` with fNIRS channels no longer clear all of ``info["bads"]`` even with ``reset_bads=False``
+- ``reset_bads=True`` now removes only the channels that were actually interpolated from ``info["bads"]`` instead of all non-excluded bads
+- :meth:`mne.io.Raw.set_montage` stores EEG digitization points in channel order (with the reference first as ident 0) instead of montage order

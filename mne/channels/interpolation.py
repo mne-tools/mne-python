@@ -303,9 +303,6 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
         closest_raw_idx = picks_nirs[closest_dist_idx]
         inst._data[..., bad_raw_idx, :] = inst._data[..., closest_raw_idx, :]
 
-    # TODO: this seems like a bug because it does not respect reset_bads
-    inst.info["bads"] = [ch for ch in inst.info["bads"] if ch in exclude]
-
     return inst
 
 
