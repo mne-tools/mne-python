@@ -82,7 +82,7 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     # with mne/data/fsaverage/fsaverage-head.fif.
     #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
-    subjects_dir = subjects_dir.expanduser().absolute()
+    subjects_dir = Path(subjects_dir).expanduser().absolute()
     fs_dir = subjects_dir / "fsaverage"
     fs_dir.mkdir(parents=True, exist_ok=True)
     _manifest_check_download(
