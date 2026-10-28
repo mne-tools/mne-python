@@ -1,0 +1,1 @@
+Support precomputed interpolation matrices for MEG bad channels in :func:`mne.channels.compute_bad_channel_interpolation_matrix`, by `Ishaan Maheshwari`_.

@@ -1,1 +1,0 @@
-Add :func:`mne.channels.compute_bad_channel_interpolation_matrix` and support for precomputed interpolation matrices in :meth:`~mne.io.Raw.interpolate_bads`, :meth:`~mne.Epochs.interpolate_bads`, and :meth:`~mne.Evoked.interpolate_bads`, by `Ishaan Maheshwari`_.

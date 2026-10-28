@@ -229,10 +229,12 @@ def compute_bad_channel_interpolation_matrix(
     inst_or_info,
     *,
     origin="auto",
+    mode="accurate",
+    ref_meg=False,
     exclude=(),
     verbose=None,
 ):
-    """Compute the bad channel interpolation matrix for EEG.
+    """Compute the bad channel interpolation matrix for EEG and MEG.
 
     Parameters
     ----------
@@ -242,6 +244,11 @@ def compute_bad_channel_interpolation_matrix(
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'`` (default), which means a head-digitization-based
         origin fit.
+    mode : str
+        Either ``'accurate'`` or ``'fast'``, determines the quality of the
+        Legendre polynomial expansion used for interpolation of MEG channels.
+    ref_meg : bool
+        Whether to include reference MEG channels.
     exclude : list | tuple
         The channels to exclude from interpolation.
     verbose : bool | str | int | None
@@ -261,25 +268,48 @@ def compute_bad_channel_interpolation_matrix(
     -----
     .. versionadded:: 1.14
     """
+    from ..forward import _map_meg_or_eeg_channels
+
     info = getattr(inst_or_info, "info", inst_or_info)
     _validate_type(info, (Info,), "inst_or_info", "Raw, Epochs, Evoked, or Info")
+    origin = _check_origin(origin, info)
+    steps = []
 
-    resolved_origin = _check_origin(origin, info)
-    res = _compute_spline_interpolation(info, resolved_origin, exclude=exclude)
-    if res is None:
+    # EEG spherical spline interpolation
+    if eeg := _compute_spline_interpolation(info, origin, exclude=exclude):
+        steps.append(
+            dict(
+                ch_type="eeg",
+                method="spline",
+                goods_idx=eeg[0],
+                bads_idx=eeg[1],
+                matrix=eeg[2],
+            )
+        )
+
+    # MEG forward field interpolation
+    picks = pick_types(info, meg=True, eeg=False, ref_meg=ref_meg, exclude=exclude)
+    if bad := [p for p in picks if info["ch_names"][p] in info["bads"]]:
+        good = [p for p in picks if p not in bad]
+        mat = _map_meg_or_eeg_channels(
+            pick_info(info, good), pick_info(info, bad), mode=mode, origin=origin
+        )
+        goods_idx, bads_idx = np.zeros((2, len(info["ch_names"])), bool)
+        goods_idx[good], bads_idx[bad] = True, True
+        steps.append(
+            dict(
+                ch_type="meg",
+                method="MNE",
+                goods_idx=goods_idx,
+                bads_idx=bads_idx,
+                matrix=mat,
+            )
+        )
+
+    if not steps:
         warn("No bad channels to interpolate. Doing nothing...")
-        return InterpolationMatrix([], info["ch_names"], info["bads"], origin=None)
-
-    goods_idx, bads_idx, interp_mat = res
-    step = dict(
-        ch_type="eeg",
-        method="spline",
-        goods_idx=goods_idx,
-        bads_idx=bads_idx,
-        matrix=interp_mat,
-    )
     return InterpolationMatrix(
-        [step], info["ch_names"], info["bads"], origin=resolved_origin
+        steps, info["ch_names"], info["bads"], origin=origin if steps else None
     )
 
 
