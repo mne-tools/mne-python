@@ -2045,8 +2045,9 @@ class _QtWidget(_AbstractWdgt):
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
         # Restyling a QLineEdit can scroll it to the end of its text; scroll back so
-        # the beginning of the text stays visible.
-        if hasattr(self._widget, "setCursorPosition"):
+        # the beginning of the text stays visible. Not while the user is typing,
+        # though, or each keystroke would be inserted at the start (gh-14463).
+        if hasattr(self._widget, "setCursorPosition") and not self._widget.isModified():
             self._widget.setCursorPosition(0)
 
     def set_hover_callbacks(self, enter, leave):

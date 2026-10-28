@@ -305,7 +305,6 @@ class CoregistrationUI(HasTraits):
         self._redraws_pending = set()
         self._parameter_mutex = threading.Lock()
         self._redraw_mutex = threading.Lock()
-        self._job_queue = queue.Queue()
         self._parameter_queue = queue.Queue()
         self._head_geo = None
         self._check_inside = None
@@ -983,7 +982,6 @@ class CoregistrationUI(HasTraits):
 
     def _configure_worker(self):
         work_plan = {
-            "_job_queue": dict(save_subject=self._save_subject),
             "_parameter_queue": dict(set_parameter=self._set_parameter),
         }
         for queue_name, jobs in work_plan.items():
@@ -1606,14 +1604,6 @@ class CoregistrationUI(HasTraits):
             self._display_message(f"{msg} ({duration:.2f} s).")
             del self._current_icp_iterations
 
-    def _task_save_subject(self):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-
-        if MNE_3D_BACKEND_TESTING:
-            self._save_subject()
-        else:
-            self._job_queue.put(_WorkerData("save_subject", None))
-
     def _task_set_parameter(self, value, mode_name, coord):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
 
@@ -2080,7 +2070,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save scaled anatomy",
-            callback=self._task_save_subject,
+            callback=lambda: self._save_subject(),
             tooltip="Save the scaled MRI anatomy as a new FreeSurfer subject",
             layout=subject_to_layout,
         )
