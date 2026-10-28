@@ -1,5 +1,7 @@
 __all__ = [
     "DigMontage",
+    "InterpolationMatrix",
+    "compute_bad_channel_interpolation_matrix",
     "Layout",
     "_EEG_SELECTIONS",
     "_SELECTIONS",
@@ -51,6 +53,10 @@ from .channels import (
     read_vectorview_selection,
     rename_channels,
     unify_bad_channels,
+)
+from .interpolation import (
+    InterpolationMatrix,
+    compute_bad_channel_interpolation_matrix,
 )
 from .layout import (
     Layout,

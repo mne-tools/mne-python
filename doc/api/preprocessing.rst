@@ -34,6 +34,8 @@ Projections:
 
    Layout
    DigMontage
+   InterpolationMatrix
+   compute_bad_channel_interpolation_matrix
    compute_native_head_t
    fix_mag_coil_types
    read_polhemus_fastscan

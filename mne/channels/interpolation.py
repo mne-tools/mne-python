@@ -9,12 +9,18 @@ from numpy.polynomial.legendre import legval
 from scipy.interpolate import RectBivariateSpline
 from scipy.linalg import pinv
 
-from .._fiff.meas_info import _simplify_info, create_info
+from .._fiff.meas_info import Info, _simplify_info, create_info
 from .._fiff.pick import pick_channels, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from ..bem import _check_origin
 from ..surface import _normalize_vectors
-from ..utils import _validate_type, _verbose_control, logger, warn
+from ..utils import (
+    _validate_type,
+    _verbose_control,
+    logger,
+    object_diff,
+    warn,
+)
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -133,26 +139,72 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     )
 
 
-@_verbose_control
-def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
+class InterpolationMatrix(dict):
+    """Channel interpolation matrix and metadata.
+
+    Parameters
+    ----------
+    steps : list of dict
+        The interpolation steps. Each step is a dict containing
+        ``'matrix'``, ``'goods_idx'``, ``'bads_idx'``, ``'ch_type'``, and ``'method'``.
+    ch_names : list of str
+        The channel names of the instance.
+    bads : list of str
+        The bad channels.
+    origin : tuple | ndarray | str | None
+        The origin used for interpolation.
+    """
+
+    def __init__(self, steps, ch_names, bads, origin=None):
+        super().__init__(
+            steps=list(steps),
+            ch_names=list(ch_names),
+            bads=list(bads),
+            origin=origin,
+        )
+
+    def __repr__(self):  # noqa: D105
+        ch_types = ", ".join(
+            t for s in self.get("steps", []) if (t := s.get("ch_type"))
+        )
+        types_info = f" ({ch_types})" if ch_types else ""
+        return (
+            f"<InterpolationMatrix | {len(self.get('bads', []))} bad channels, "
+            f"{len(self.get('steps', []))} steps{types_info}>"
+        )
+
+    def copy(self):
+        """Return a copy of the InterpolationMatrix.
+
+        Returns
+        -------
+        inst : instance of InterpolationMatrix
+            A copy of the interpolation matrix.
+        """
+        return deepcopy(self)
+
+    def __eq__(self, other):  # noqa: D105
+        return isinstance(other, InterpolationMatrix) and object_diff(self, other) == ""
+
+
+def _compute_spline_interpolation(info, origin, exclude=(), ecog=False):
+    """Compute spherical spline interpolation matrix for EEG or ECoG."""
     if exclude is None:
         exclude = list()
-    bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
-    goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
+    bads_idx = np.zeros(len(info["ch_names"]), dtype=bool)
+    goods_idx = np.zeros(len(info["ch_names"]), dtype=bool)
 
-    picks = pick_types(inst.info, meg=False, eeg=not ecog, ecog=ecog, exclude=exclude)
-    inst.info._check_consistency()
-    bads_idx[picks] = [inst.ch_names[ch] in inst.info["bads"] for ch in picks]
+    picks = pick_types(info, meg=False, eeg=not ecog, ecog=ecog, exclude=exclude)
+    info._check_consistency()
+    bads_idx[picks] = [info["ch_names"][ch] in info["bads"] for ch in picks]
 
     if len(picks) == 0 or bads_idx.sum() == 0:
-        return
+        return None
 
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    pos = inst._get_channel_positions(picks)
-
-    # Make sure only EEG are used
+    pos = info._get_channel_positions(picks)
     bads_idx_pos = bads_idx[picks]
     goods_idx_pos = goods_idx[picks]
 
@@ -169,8 +221,75 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
     pos_bad = pos[bads_idx_pos] - origin
     logger.info(f"Computing interpolation matrix from {len(pos_good)} sensor positions")
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
+    return goods_idx, bads_idx, interpolation
 
-    logger.info(f"Interpolating {len(pos_bad)} sensors")
+
+@_verbose_control
+def compute_bad_channel_interpolation_matrix(
+    inst_or_info,
+    *,
+    origin="auto",
+    exclude=(),
+    verbose=None,
+):
+    """Compute the bad channel interpolation matrix for EEG.
+
+    Parameters
+    ----------
+    inst_or_info : instance of Raw | Epochs | Evoked | Info
+        The data instance or Info containing channel positions and bad channels.
+    origin : array-like, shape (3,) | str
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'`` (default), which means a head-digitization-based
+        origin fit.
+    exclude : list | tuple
+        The channels to exclude from interpolation.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+
+    Returns
+    -------
+    interpolation : instance of InterpolationMatrix
+        The interpolation matrix object that can be passed to
+        :meth:`~mne.io.Raw.interpolate_bads`, :meth:`~mne.Epochs.interpolate_bads`,
+        or :meth:`~mne.Evoked.interpolate_bads`.
+
+    Notes
+    -----
+    .. versionadded:: 1.14
+    """
+    info = getattr(inst_or_info, "info", inst_or_info)
+    _validate_type(info, (Info,), "inst_or_info", "Raw, Epochs, Evoked, or Info")
+
+    resolved_origin = _check_origin(origin, info)
+    res = _compute_spline_interpolation(info, resolved_origin, exclude=exclude)
+    if res is None:
+        warn("No bad channels to interpolate. Doing nothing...")
+        return InterpolationMatrix([], info["ch_names"], info["bads"], origin=None)
+
+    goods_idx, bads_idx, interp_mat = res
+    step = dict(
+        ch_type="eeg",
+        method="spline",
+        goods_idx=goods_idx,
+        bads_idx=bads_idx,
+        matrix=interp_mat,
+    )
+    return InterpolationMatrix(
+        [step], info["ch_names"], info["bads"], origin=resolved_origin
+    )
+
+
+@_verbose_control
+def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
+    res = _compute_spline_interpolation(inst.info, origin, exclude=exclude, ecog=ecog)
+    if res is None:
+        return
+    goods_idx, bads_idx, interpolation = res
+    logger.info(f"Interpolating {bads_idx.sum()} sensors")
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 

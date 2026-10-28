@@ -255,6 +255,7 @@ numpydoc_xref_aliases = {
     "SourceSpaces": "mne.SourceSpaces",
     "Epochs": "mne.Epochs",
     "Layout": "mne.channels.Layout",
+    "InterpolationMatrix": "mne.channels.InterpolationMatrix",
     "EvokedArray": "mne.EvokedArray",
     "BiHemiLabel": "mne.BiHemiLabel",
     "AverageTFR": "mne.time_frequency.AverageTFR",
