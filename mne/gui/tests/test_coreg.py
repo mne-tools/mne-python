@@ -413,6 +413,8 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     # scaling onto the source subject would delete it, so it must be refused
     coreg._set_subject_to("sample")
     assert not coreg._widgets["save_subject"].is_enabled()
+    assert not coreg._widgets["load_scaling"].is_enabled()
+    assert "not a scaled subject" in coreg._widgets["load_scaling"].get_tooltip()
     coreg._set_scale_mode("uniform")
     coreg._fits_fiducials()
     want = coreg.coreg.fiducials.dig[1]["r"] * coreg.coreg._scale
@@ -427,6 +429,16 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         tmp_subjects_dir / subject_to / "bem" / f"{subject_to}-fiducials.fif"
     )
     assert_allclose(fids[1]["r"], want, atol=1e-6)
+
+    # the saved scaling can be loaded back
+    saved_scale = coreg.coreg._scale.copy()
+    assert coreg._widgets["load_scaling"].is_enabled()
+    coreg._widgets["scaling_mode"].set_value("3-axis")
+    coreg._widgets["sY"].set_value(150.0)
+    coreg._load_scaling()
+    assert coreg._scale_mode == "uniform"
+    assert_allclose(coreg.coreg._scale, saved_scale)
+    assert not coreg._mri_scale_modified
 
     # and when scaling fails, the log should say why -- and not claim success
     monkeypatch.setattr("mne.gui._coreg.scale_mri", _raise_scale_mri)
