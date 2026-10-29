@@ -921,6 +921,8 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.mq.edu.au/",
     "https://www.biorxiv.org/content/10.1101/",  # biorxiv.org
     "https://www.researchgate.net/profile/",
+    "https://scholar.google.com/citations",
+    "https://www.anaconda.com/blog/",
     "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html",
     r"https://openalex.org/works\?filter=cites:",  # doc/documentation/cited.rst
     "https://www.research.chop.edu/imaging",
@@ -941,8 +943,9 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://www.cea.fr",
     "http://www.humanconnectome.org/data",
     "https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu",
-    "https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize",
+    "https://surfer.nmr.mgh.harvard.edu/fswiki/",
     "https://launchpad.net",
+    "https://labeling.ucsd.edu/",
     # Max retries exceeded
     "https://doi.org/10.7488/ds/1556",
     "https://datashare.is.ed.ac.uk/handle/10283",

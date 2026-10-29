@@ -49,7 +49,7 @@
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
 .. _Aslan Satary Dizaji: https://github.com/aslansd
-.. _Athish M: https://github.com/athishdresu
+.. _Athish M: https://github.com/athishio
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
 .. _Badri Vishal Pandey: https://github.com/badrisatyam1-ctrl
@@ -110,7 +110,7 @@
 .. _Deepesh Sonar: https://github.com/Deepnar
 .. _Denis Engemann: https://denis-engemann.de
 .. _Desislava Petkova: https://github.com/dipetkov
-.. _Dev Parikh: https://github.com/devparikh0506
+.. _Dev Parikh: https://github.com/devpparikh
 .. _Devesh Bervar: https://github.com/deveshbervar
 .. _Dimitri Papadopoulos Orfanos: https://github.com/DimitriPapadopoulos
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
@@ -128,7 +128,7 @@
 .. _Emanuele Olivetti: https://github.com/emanuele
 .. _Emily Stephen: https://github.com/emilyps14
 .. _Emma Bailey: https://github.com/emma-bailey
-.. _Emma Zhang: https://portfolio-production-ed03.up.railway.app/
+.. _Emma Zhang: https://github.com/zhijingz
 .. _Emmanuel Ferdman: https://github.com/emmanuel-ferdman
 .. _Emrecan Çelik: https://github.com/emrecncelik
 .. _Enrico Varano: https://github.com/enricovara/
@@ -239,7 +239,7 @@
 .. _Jussi Nurminen: https://github.com/jjnurminen
 .. _Justus Schwabedal: https://github.com/jusjusjus
 .. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
-.. _Kalle Makela: https://github.com/Kallemakela
+.. _Kalle Makela: https://github.com/kalomak
 .. _Kalle Mäkelä: https://github.com/kalomak
 .. _Kambiz Tavabi: https://github.com/ktavabi
 .. _Katarina Slama: https://github.com/katarinaslama
@@ -492,7 +492,7 @@
 .. _Velu Prabhakar Kumaravel: https://github.com/vpKumaravel
 .. _Victor Férat: https://github.com/vferat
 .. _Victoria Peterson: https://github.com/vpeterson
-.. _Vincent Gao: https://github.com/gaoflow
+.. _Vincent Gao: https://github.com/binggao1230
 .. _Virginie van Wassenhove: https://brainthemind.com/virginie-van-wassenhove
 .. _Wei Xu: https://github.com/psyxw
 .. _Will Turner: https://bootstrapbill.github.io
