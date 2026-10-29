@@ -110,7 +110,7 @@
 .. _Deepesh Sonar: https://github.com/Deepnar
 .. _Denis Engemann: https://denis-engemann.de
 .. _Desislava Petkova: https://github.com/dipetkov
-.. _Dev Parikh: https://github.com/devparikh0506
+.. _Dev Parikh: https://github.com/devpparikh
 .. _Devesh Bervar: https://github.com/deveshbervar
 .. _Dimitri Papadopoulos Orfanos: https://github.com/DimitriPapadopoulos
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
@@ -128,7 +128,7 @@
 .. _Emanuele Olivetti: https://github.com/emanuele
 .. _Emily Stephen: https://github.com/emilyps14
 .. _Emma Bailey: https://github.com/emma-bailey
-.. _Emma Zhang: https://portfolio-production-ed03.up.railway.app/
+.. _Emma Zhang: https://github.com/zhijingz
 .. _Emmanuel Ferdman: https://github.com/emmanuel-ferdman
 .. _Emrecan Çelik: https://github.com/emrecncelik
 .. _Enrico Varano: https://github.com/enricovara/
