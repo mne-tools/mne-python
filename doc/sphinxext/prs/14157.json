@@ -1,0 +1,108 @@
+{
+  "merge_commit_sha": "af9991ef2d6757b6ccf3c985d4f74c2b9cb26be6",
+  "authors": [
+    {
+      "n": "Natneal.B",
+      "e": "nati.new77@gmail.com",
+      "l": "natinew77-creator"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".coveragerc": {
+      "a": 1,
+      "d": 0
+    },
+    ".gitignore": {
+      "a": 7,
+      "d": 0
+    },
+    "doc/Makefile": {
+      "a": 7,
+      "d": 7
+    },
+    "doc/changes/dev/14157.apichange.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14157.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 226,
+      "d": 1
+    },
+    "doc/documentation/datasets.rst": {
+      "a": 14,
+      "d": 11
+    },
+    "doc/jupyterlite_contents/.gitkeep": {
+      "a": 0,
+      "d": 0
+    },
+    "doc/sphinxext/_lite_setup_cell.py": {
+      "a": 0,
+      "d": 460
+    },
+    "doc/sphinxext/jupyterlite_cell_notes.py": {
+      "a": 108,
+      "d": 0
+    },
+    "doc/sphinxext/jupyterlite_data.py": {
+      "a": 183,
+      "d": 0
+    },
+    "doc/sphinxext/jupyterlite_setup_cell.py": {
+      "a": 21,
+      "d": 27
+    },
+    "mne/datasets/config.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/datasets/lite_data/lite_data.py": {
+      "a": 11,
+      "d": 11
+    },
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 7,
+      "d": 0
+    },
+    "mne/viz/backends/_jupyterlite.py": {
+      "a": 442,
+      "d": 0
+    },
+    "mne/viz/backends/_lite.py": {
+      "a": 11,
+      "d": 9
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 3,
+      "d": 13
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 16,
+      "d": 0
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 72,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 7,
+      "d": 2
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

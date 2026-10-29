@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from .._fiff._digitization import (
+    DigPoint,
     _coord_frame_const,
     _count_points_by_type,
     _ensure_fiducials_head,
@@ -845,6 +846,10 @@ class DigMontage:
         self.dig = fids_mni + self.dig
         return self
 
+    def _remove_dig_points(self, mask):
+        self.dig = [d for d, m in zip(self.dig, mask) if not m]
+        return self
+
     @verbose_static()
     def remove_fiducials(self, verbose=None):
         """Remove the fiducial points from a montage.
@@ -871,9 +876,44 @@ class DigMontage:
         with intracranial data to BIDS format, the coordinate frame
         should not be changed by removing fiducials.
         """
-        for d in self.dig.copy():
-            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
-                self.dig.remove(d)
+        mask = [d["kind"] == FIFF.FIFFV_POINT_CARDINAL for d in self.dig]
+        return self._remove_dig_points(mask)
+
+    @fill_doc_static("on_missing_ch_names")
+    def drop_channels(self, ch_names, on_missing="raise"):
+        """Drop channel(s).
+
+        Parameters
+        ----------
+        ch_names : iterable or str
+            Iterable (e.g. list) of channel name(s) or channel name to remove.
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The modified instance.
+
+        See Also
+        --------
+        rename_channels
+        remove_fiducials
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        from .channels import _check_drop_ch_names
+
+        drop_chs = set(_check_drop_ch_names(ch_names, self.ch_names, on_missing))
+        mask = [name in drop_chs for name in self._get_dig_names()]
+        self._remove_dig_points(mask)
+        self.ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
         return self
 
 
@@ -1557,13 +1597,20 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
     del ch_pos
 
-    # XXX this is probably wrong as it uses the order from the montage
-    # rather than the order of our info['ch_names'] ...
     digpoints = [
-        mnt_head.dig[ii]
+        mnt_head.dig[ii] if name is None else DigPoint(mnt_head.dig[ii], ident=0)
         for ii, name in enumerate(dig_names_use)
-        if name in (info_names_use + ref_names)
+        if name in ref_names
     ]
+    # renumber so enforce_order (which sorts by ident) keeps info["ch_names"] order
+    dig_idx = {name: ii for ii, name in enumerate(dig_names_use)}
+    ch_names_dig = [
+        name
+        for name in dict.fromkeys(info_names_use)
+        if name in dig_idx and name not in ref_names
+    ]
+    for ident, name in enumerate(ch_names_dig, 1):
+        digpoints.append(DigPoint(mnt_head.dig[dig_idx[name]], ident=ident))
 
     # get a copy of the old dig
     if info["dig"] is not None:

@@ -110,7 +110,7 @@ class RawEximia(BaseRaw):
             0.0015259021896696422,
             0.0015259021896696422,
             0.0015259021896696422,
-            0.3814755474174106,
+            0.3814755474174106e-6,
         ]
         ch_names += (
             "Fp1 Fpz Fp2 AF1 AFz AF2 "
@@ -122,7 +122,7 @@ class RawEximia(BaseRaw):
             "P10 PO3 POz PO4 O1 Oz O2 Iz".split()
         )
         n_eeg = len(ch_names) - len(cals)
-        cals += [0.07629510948348212] * n_eeg
+        cals += [0.07629510948348212e-6] * n_eeg
         ch_types += ["eeg"] * n_eeg
         assert len(ch_names) == n_chan
         info = create_info(ch_names, sfreq, ch_types)

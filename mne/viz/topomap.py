@@ -3350,6 +3350,8 @@ def _plot_evoked_topomap(
     mask_label_params = _handle_default("mask_label_params", mask_label_params)
     mask_params["markersize"] *= size / 2.0
     mask_params["markeredgewidth"] *= size / 2.0
+    sphere = _check_sphere(sphere, evoked.info)
+    origin = sphere[:3]  # head frame, before the MEG adjustment below
     # setup various parameters, and prepare outlines
     (
         picks,
@@ -3390,7 +3392,7 @@ def _plot_evoked_topomap(
     if proj is True and not evoked.proj:
         evoked.apply_proj()
     elif proj == "reconstruct":
-        evoked.reconstruct_proj()
+        evoked.reconstruct_proj(origin=origin)
 
     # remove compensation matrices (safe: only plotting & already made copy)
     with evoked.info._unlock():

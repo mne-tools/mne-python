@@ -1,0 +1,1 @@
+Fix bug where hovering over a figure containing several butterfly plots, e.g. from repeated calls to :meth:`mne.Evoked.plot` or :meth:`mne.time_frequency.Spectrum.plot` with ``axes``, redrew the entire figure once per plot on every mouse movement, by `Eric Larson`_.

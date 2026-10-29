@@ -1,0 +1,1 @@
+Fixed a memory leak where :class:`mne.io.RawArray` retained the original data array in ``_init_kwargs`` after operations like resampling or cropping, by :newcontrib:`Aditya`.

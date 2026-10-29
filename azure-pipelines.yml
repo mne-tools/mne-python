@@ -79,10 +79,12 @@ stages:
               restoreKeys: '"uv" | "$(Agent.OS)"'
               path: $(UV_CACHE_DIR)
             displayName: Cache uv
+            continueOnError: true  # saving can run out of disk space on a cache miss
           - bash: |
               set -xeo pipefail
               python -m pip install --progress-bar off --upgrade "uv>=0.9"
               uv pip install --upgrade --only-binary=":all:" --no-binary=mne --no-binary=mne-qt-browser -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef openmeeg
+              uv cache prune --ci  # keep the saved cache small
             displayName: Install dependencies with uv
           - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
@@ -199,7 +201,9 @@ stages:
           AZURE_CI_WINDOWS: 'true'
           # Mesa's llvmpipe rasterizer threads can deadlock at process exit on
           # Windows (pyvista/setup-headless-display-action#55); the action sets
-          # this itself on GHA, but here we only run its install script
+          # this itself on GHA, but here we only run its install script. Mesa
+          # otherwise picks its D3D12 driver here, so force llvmpipe as well.
+          GALLIUM_DRIVER: 'llvmpipe'
           LP_NUM_THREADS: '0'
           MNE_CI_KIND: $(TEST_MODE)
           MNE_TEST_ALLOW_SKIP: $(MNE_TEST_ALLOW_SKIP)
@@ -248,9 +252,13 @@ stages:
               restoreKeys: '"uv" | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(TEST_MODE)"'
               path: $(UV_CACHE_DIR)
             displayName: Cache uv
+            continueOnError: true  # saving can run out of disk space on a cache miss
           - bash: ./tools/azure_dependencies.sh
             displayName: Install dependencies
-          - script: uv pip install --only-binary=":all:" --no-binary=mne -e .
+          - bash: |
+              set -xeo pipefail
+              uv pip install --only-binary=":all:" --no-binary=mne -e .
+              uv cache prune --ci  # keep the saved cache small
             displayName: Install mne
           - script: mne sys_info -pd
             displayName: Print config

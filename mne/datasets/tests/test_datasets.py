@@ -88,6 +88,9 @@ def test_datasets_basic(tmp_path, monkeypatch):
     monkeypatch.setattr(mne.datasets._fsaverage.base, "_manifest_check_download", noop)
     sd_2 = datasets.fetch_fsaverage()
     assert sd / "fsaverage" == sd_2
+    # a str for a not-yet-existing subjects_dir
+    sd_3 = datasets.fetch_fsaverage(str(tmp_path / "new_sd"))
+    assert sd_3 == tmp_path / "new_sd" / "fsaverage"
 
 
 def test_erp_core_fetch_file(tmp_path, monkeypatch):
@@ -289,6 +292,14 @@ def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     assert (destination).is_dir()
     for fname in _zip_fnames:
         assert (destination / fname).is_file()
+    if n_have == 0:
+        manifest_path.write_text("foo/foo.txt\nmissing.txt\n")
+        msg = (
+            "Zip file did not have correct names:\n"
+            "foo/bar.txt\nfoo/baz.txt\nmissing.txt"
+        )
+        with pytest.raises(RuntimeError, match=msg):
+            _manifest_check_download(manifest_path, destination / "sub", url, hash_)
 
 
 def _fake_mcd(manifest_path, destination, url, hash_, name=None, fake_files=False):

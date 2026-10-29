@@ -5,7 +5,7 @@
 from ..utils import get_config, verbose_static
 
 
-@verbose_static("subjects_dir", "interaction_scene_none", "fullscreen")
+@verbose_static("subjects_dir", "interaction_scene_none", "fullscreen", "theme_3d")
 def coregistration(
     *,
     width=None,
@@ -21,6 +21,7 @@ def coregistration(
     mark_inside=None,
     interaction=None,
     fullscreen=None,
+    theme=None,
     show=True,
     block=False,
     verbose=None,
@@ -101,6 +102,16 @@ def coregistration(
         (which defaults to ``False``).
 
         .. versionadded:: 1.1
+    theme : str | path-like
+        Can be "auto", "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+        `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+        respectively, are required.
+        If None (default), the config option MNE_3D_OPTION_THEME will be used,
+        defaulting to "auto" if it's not found.
+
+        .. versionadded:: 1.14
     show : bool
         Show the GUI if True.
     block : bool
@@ -178,6 +189,7 @@ def coregistration(
         block=block,
         interaction=interaction,
         fullscreen=fullscreen,
+        theme=theme,
         verbose=verbose,
     )
 

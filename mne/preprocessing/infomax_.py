@@ -32,6 +32,7 @@ def infomax(
     use_bias=True,
     verbose=None,
     return_n_iter=False,
+    return_converged=False,
     *,
     rng=None,
     random_state=None,
@@ -105,6 +106,12 @@ def infomax(
     return_n_iter : bool
         Whether to return the number of iterations performed. Defaults to
         False.
+    return_converged : bool
+        Whether to additionally return whether the algorithm converged, i.e.
+        whether it stopped because its own tolerance was met rather than
+        because ``max_iter`` was reached.
+
+        .. versionadded:: 1.13
     rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
         The random number generator (RNG). If ``None`` (default), a new
         :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
@@ -126,7 +133,13 @@ def infomax(
     unmixing_matrix : np.ndarray, shape (n_features, n_features)
         The linear unmixing operator.
     n_iter : int
-        The number of iterations. Only returned if ``return_max_iter=True``.
+        The number of iterations actually performed. Only returned if
+        ``return_n_iter=True``.
+    converged : bool
+        Whether the algorithm converged. Only returned if
+        ``return_converged=True``.
+
+        .. versionadded:: 1.13
 
     References
     ----------
@@ -200,6 +213,7 @@ def infomax(
 
     # trainings loop
     olddelta, oldchange = 1.0, 0.0
+    converged = False
     while step < max_iter:
         # shuffle data at each step
         permute = _random_permutation(n_samples, rng)
@@ -310,11 +324,13 @@ def infomax(
                 if n_small_angle is not None:
                     count_small_angle += 1
                     if count_small_angle > n_small_angle:
-                        max_iter = step
+                        converged = True
+                        break
 
             # apply stopping rule
             if step > 2 and change < w_change:
-                step = max_iter
+                converged = True
+                break
             elif change > blowup:
                 l_rate *= blowup_fac
 
@@ -350,7 +366,9 @@ def infomax(
                 )
 
     # prepare return values
+    out = (weights.T,)
     if return_n_iter:
-        return weights.T, step
-    else:
-        return weights.T
+        out += (step,)
+    if return_converged:
+        out += (converged,)
+    return out[0] if len(out) == 1 else out

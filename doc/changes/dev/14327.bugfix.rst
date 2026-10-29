@@ -1,0 +1,1 @@
+Fix mixed-up feature and output axes in multi-output :class:`mne.decoding.ReceptiveField` inverse patterns, by `Daria Agafonova`_.

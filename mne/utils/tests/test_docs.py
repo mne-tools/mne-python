@@ -395,7 +395,8 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(hook, "docdict", dict(_HOOK_DOCDICT))
     monkeypatch.setattr(hook, "DOCS_PY", docs_py)
     monkeypatch.setattr(hook, "_old_docdict", lambda: dict(_HOOK_DOCDICT))
-    path = tmp_path / "mod.py"
+    path = tmp_path / "mne" / "mod.py"  # where _files_using looks
+    path.parent.mkdir()
     path.write_text(_HOOK_MODULE)
 
     # 1. migration: placeholders are expanded and keys added to the decorator
@@ -422,7 +423,8 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     hook.docdict["notes_shared"] = "\nFirst shared paragraph, edited.\n\nSecond.\n"
     errors = hook.process_file(path, False, {})
     assert len(errors) == 1 and "out of sync" in errors[0]
-    assert hook.process_file(path, True, {}) == []
+    # ... also when only docs.py is passed (staged)
+    assert hook.main(["--fix", str(docs_py)]) == 0
     source = path.read_text()
     assert "It changed." in source and "It is shared." not in source
     assert "    Second.\n\n    This line is specific to func.\n" in source
@@ -508,6 +510,15 @@ def test_check_static_docs(tmp_path, monkeypatch, capsys):
     hook.docdict["notes_shared"] = "\nFirst shared paragraph, edited.\n\nSecond.\nMore."
     assert hook.process_file(path, True, {}) == []
     assert "    Second.\n    More.\n\n" + own in path.read_text()
+    # (g) a copy differing from docdict with neither changed is flagged, not guessed
+    fixed = path.read_text()
+    path.write_text(source)
+    monkeypatch.setattr(hook, "_old_docdict", lambda: dict(hook.docdict))
+    reverse = {}
+    errors = hook.process_file(path, True, reverse)
+    assert len(errors) == 1 and "neither changed" in errors[0] and not reverse
+    assert path.read_text() == source
+    path.write_text(fixed)
 
     # 5. the E501 suppression comment follows the need for it
     source = path.read_text()

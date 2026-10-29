@@ -1,0 +1,76 @@
+{
+  "merge_commit_sha": "fa2bdefba9866dc26f61425196d4ab60bdb25f14",
+  "authors": [
+    {
+      "n": "Natneal.B",
+      "e": "nati.new77@gmail.com",
+      "l": "natinew77-creator"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14150.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/_lite_setup_cell.py": {
+      "a": 460,
+      "d": 0
+    },
+    "doc/sphinxext/jupyterlite_lite_renderer.py": {
+      "a": 0,
+      "d": 23
+    },
+    "doc/sphinxext/jupyterlite_setup_cell.py": {
+      "a": 46,
+      "d": 0
+    },
+    "mne/event.py": {
+      "a": 1,
+      "d": 2
+    },
+    "mne/label.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/transforms.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/_brain/surface.py": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/viz/backends/_lite.py": {
+      "a": 76,
+      "d": 31
+    },
+    "mne/viz/backends/renderer.py": {
+      "a": 5,
+      "d": 4
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 45,
+      "d": 17
+    },
+    "mne/viz/ui_events.py": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

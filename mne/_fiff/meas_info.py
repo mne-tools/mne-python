@@ -15,7 +15,7 @@ from functools import partial
 from io import BytesIO
 from os import PathLike
 from textwrap import shorten
-from typing import IO, TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import IO, TYPE_CHECKING, Any, Literal, Self
 
 import numpy as np
 
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from mpl_toolkits.mplot3d.axes3d import Axes3D
 
-    from ..bem import ConductorModel
     from ..channels.montage import DigMontage
 
 from ..defaults import _handle_default
@@ -48,7 +47,7 @@ from ..utils import (
     warn,
 )
 from ..utils._bunch import NamedFloat, NamedInt
-from ..utils._typing import CoordFrameStr, LogLevel, RaiseWarnIgnore
+from ..utils._typing import CoordFrameStr, LogLevel, RaiseWarnIgnore, SphereT
 from ._digitization import (
     DigPoint,
     _dig_kind_ints,
@@ -484,7 +483,7 @@ class MontageMixin:
     @fill_doc_static("sphere_topomap_auto")
     def set_head_sphere(
         self,
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
     ) -> Self:
         """Store the head sphere used to draw topomaps in the measurement info.
 
@@ -546,15 +545,13 @@ class MontageMixin:
         return self
 
 
-channel_type_constants: dict[str, dict[str, NamedInt]] = get_channel_type_constants(
-    include_defaults=True
-)
+channel_type_constants = get_channel_type_constants(include_defaults=True)
 _human2fiff = {
     k: v.get("kind", FIFF.FIFFV_COIL_NONE) for k, v in channel_type_constants.items()
 }
-_human2unit = {
+_human2unit: dict[str, NamedInt] = {
     k: v.get("unit", FIFF.FIFF_UNIT_NONE) for k, v in channel_type_constants.items()
-}
+}  # type: ignore (chpi has `kind: list[NamedInt]` but here we only take `unit`)
 _unit2human = {
     FIFF.FIFF_UNIT_V: "V",
     FIFF.FIFF_UNIT_T: "T",
@@ -844,7 +841,7 @@ class SetChannelsMixin(MontageMixin):
         axes: "Axes | Axes3D | None" = None,
         block: bool | None = None,
         show: bool = True,
-        sphere: "float | Annotated[Sequence[float], 4] | np.ndarray[tuple[Literal[4]], np.dtype[np.floating]] | ConductorModel | Literal['auto', 'cardinal', 'eeg', 'extra', 'hpi', 'eeglab'] | list[Literal['cardinal', 'eeg', 'extra', 'hpi']] | None" = None,  # noqa E501
+        sphere: SphereT = None,
         *,
         verbose: LogLevel = None,
     ) -> "Any":
@@ -1066,7 +1063,9 @@ class SetChannelsMixin(MontageMixin):
         ----------
         meas_date : datetime | float | tuple | None
             The new measurement date.
-            If datetime object, it must be timezone-aware and in UTC.
+            If datetime object, it must be timezone-aware. If not in UTC,
+            it will be converted to UTC and ``info['utc_offset']`` will be
+            set accordingly.
             A tuple of (seconds, microseconds) or float (alias for
             ``(meas_date, 0)``) can also be passed and a datetime
             object will be automatically created. If None, will remove
@@ -1097,9 +1096,21 @@ class SetChannelsMixin(MontageMixin):
 
         info = _get_info_or_self(self)
 
+        # Determine UTC offset string (sHH:MM) if non-UTC timezone-aware datetime
+        utc_offset = None
+        if isinstance(meas_date, datetime.datetime) and meas_date.tzinfo is not None:
+            offset = meas_date.utcoffset()
+            if offset is not None and offset != datetime.timedelta(0):
+                total_seconds = int(offset.total_seconds())
+                sign = "+" if total_seconds >= 0 else "-"
+                total_seconds = abs(total_seconds)
+                hours, minutes = divmod(total_seconds // 60, 60)
+                utc_offset = f"{sign}{hours:02d}:{minutes:02d}"
+
         meas_date = _handle_meas_date(meas_date)
         with info._unlock():
             info["meas_date"] = meas_date
+            info["utc_offset"] = utc_offset
 
         # clear file_id and meas_id if needed
         if meas_date is None:
@@ -2300,6 +2311,14 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
                     f'{prepend_error}info["meas_date"] must be a datetime object in UTC'
                     f" or None, got {repr(self['meas_date'])!r}"
                 )
+        utc_offset = self.get("utc_offset")
+        if utc_offset is not None and not (
+            isinstance(utc_offset, str) and re.fullmatch(r"[+-]\d{2}:\d{2}", utc_offset)
+        ):
+            raise RuntimeError(
+                f'{prepend_error}info["utc_offset"] must be a str of the form sHH:MM '
+                f"or None, got {repr(utc_offset)}"
+            )
 
         chs = [ch["ch_name"] for ch in self["chs"]]
         if (
@@ -2617,7 +2636,7 @@ def read_fiducials(
 @verbose_static("overwrite")
 def write_fiducials(
     fname: str | PathLike,
-    pts: Iterable[dict[Literal["kind", "ident", "r"], Any]],
+    pts: Iterable[dict[str, Any]],
     coord_frame: CoordFrameStr | int = "unknown",
     *,
     overwrite: bool = False,
@@ -2802,6 +2821,9 @@ def read_meas_info(
         elif kind == FIFF.FIFF_UTC_OFFSET:
             tag = read_tag(fid, pos)
             utc_offset = str(tag.data)
+            # MNE < 1.14 wrote sHHMM instead of sHH:MM for EGI and MEF data
+            if re.fullmatch(r"[+-]\d{4}", utc_offset):
+                utc_offset = f"{utc_offset[:3]}:{utc_offset[3:]}"
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data

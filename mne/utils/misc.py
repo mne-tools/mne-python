@@ -19,6 +19,7 @@ from queue import Empty, Queue
 from string import Formatter
 from textwrap import dedent
 from threading import Thread
+from typing import IO, TypeGuard
 
 import numpy as np
 from decorator import FunctionMaker
@@ -159,7 +160,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    out = out.decode("utf-8")
+                    out = out.decode("utf-8", errors="replace")
                     log_out = out.removesuffix("\n")
                     logger.info(log_out)
                     all_out += out
@@ -170,7 +171,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    err = err.decode("utf-8")
+                    err = err.decode("utf-8", errors="replace")
                     err_out = err.removesuffix("\n")
 
                     # Leave this as logger.warning rather than warn(...) to
@@ -350,7 +351,7 @@ def sizeof_fmt(num):
         return "1 byte"
 
 
-def _file_like(obj):
+def _file_like(obj: object) -> TypeGuard[IO]:
     # An alternative would be::
     #
     #   isinstance(obj, (TextIOBase, BufferedIOBase, RawIOBase, IOBase))

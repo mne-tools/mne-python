@@ -121,7 +121,7 @@ def _apply_rap_music(
             logger.info("ori = {} {} {}".format(*tuple(oris[k])))
 
         projection = _compute_proj(A[:, : k + 1])
-        G_proj = np.einsum("ab,bso->aso", projection, G)
+        G_proj = (projection @ G.reshape(len(G), -1)).reshape(G.shape)
         phi_sig_proj = np.dot(projection, phi_sig)
         if use_trap:
             phi_sig_proj = phi_sig_proj[:, -(n_dipoles - k) :]

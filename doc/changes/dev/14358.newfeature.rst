@@ -1,0 +1,1 @@
+Speed up :func:`mne.preprocessing.maxwell_filter` with head movement compensation by avoiding repeated computations when computing the SSS basis, by `Eric Larson`_.

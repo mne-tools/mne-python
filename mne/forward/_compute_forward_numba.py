@@ -11,11 +11,9 @@ Kept in its own module so that importing the forward machinery -- which happens 
 import numpy as np
 
 from .._numba import bincount, jit
-from .._surface_numba import _jit_cross
-from ._compute_forward import _MAG_FACTOR, _MIN_DIST_LIMIT
+from ._compute_forward import _MAG_FACTOR, _MIN_DIST_LIMIT, _bin_starts, _rr_bounds
 
 
-@jit()
 def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
     """Compute field coefficients (parallel-friendly).
 
@@ -46,42 +44,18 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
     coeff : ndarray, shape (n_MEG_sensors, n_BEM_vertices)
         Linear coefficients with effect of each BEM vertex on each sensor (?)
     """
-    n_bem_rr = len(bem_rr)
-    coeff = np.zeros((bins[-1] + 1, n_bem_rr))
-    w_cosmags = ws.reshape(-1, 1) * cosmags
-    # Store as (n_BEM_vertices, n_sensor_pts, 3): below we repeatedly index
-    # a single BEM vertex out of this array, and this layout makes that a
-    # contiguous slice along the leading axis instead of a strided gather
-    # along a middle axis, which is ~2x faster in practice.
-    diff = rmags.reshape(1, -1, 3) - bem_rr.reshape(n_bem_rr, 1, 3)
-    den = np.sum(diff * diff, axis=-1)
-    den *= np.sqrt(den)
-    den *= 3
-    for ti in range(len(tris)):
-        tri, tri_nn, tri_area = tris[ti], tn[ti], ta[ti]
-        # Accumulate the coefficients for each triangle node and add to the
-        # corresponding coefficient matrix
+    from scipy.spatial.distance import cdist
 
-        # Simple version (bem_lin_field_coeffs_simple)
-        # The following is equivalent to:
-        # tri_rr = bem_rr[tri]
-        # for j, coil in enumerate(coils['coils']):
-        #     x = func(coil['rmag'], coil['cosmag'],
-        #              tri_rr, tri_nn, tri_area)
-        #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
-        #     coeff[j][tri + off] += mult * res
-        for vi in range(3):
-            idx = tri[vi]
-            c = np.empty((diff.shape[1], 3))
-            _jit_cross(c, diff[idx], tri_nn)
-            c *= w_cosmags
-            x = np.sum(c, axis=-1)
-            x /= den[idx] / tri_area
-            coeff[:, idx] += bincount(bins, weights=x, minlength=bins[-1] + 1)
-    return coeff
+    from .._surface_numba import _accumulate_normals
+
+    # cross(rmag - rr, tri_nn) . cosmag is linear in tri_nn, so sum per vertex first
+    nn = _accumulate_normals(tris, ta[:, np.newaxis] * tn, len(bem_rr))
+    wc = ws[:, np.newaxis] * cosmags
+    x = nn @ np.cross(wc, rmags).T - np.cross(bem_rr, nn) @ wc.T
+    x /= 3 * cdist(bem_rr, rmags) ** 3
+    return np.add.reduceat(x, _bin_starts(bins), axis=1).T
 
 
-@jit()
 def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     """Compute the infinite medium potential in all 3 directions.
 
@@ -100,18 +74,13 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     """
     # NOTE: the (μ_0 / (4π) factor has been moved to _prep_field_communication
     # Get position difference vector between BEM vertex and dipole
-    diff = np.empty((len(mri_rr), 3, len(bem_rr)))
-    for ri in range(mri_rr.shape[0]):
-        rr = mri_rr[ri]
-        this_diff = bem_rr - rr
-        diff_norm = np.sum(this_diff * this_diff, axis=1)
-        diff_norm *= np.sqrt(diff_norm)
-        diff_norm[diff_norm == 0] = 1.0
-        if mri_Q is not None:
-            this_diff = np.dot(this_diff, mri_Q.T)
-        this_diff /= diff_norm.reshape(-1, 1)
-        diff[ri] = this_diff.T
-
+    diff = bem_rr.T - mri_rr[:, :, np.newaxis]
+    diff_norm = np.einsum("rkb,rkb->rb", diff, diff)
+    diff_norm *= np.sqrt(diff_norm)
+    diff_norm[diff_norm == 0] = 1.0
+    if mri_Q is not None:
+        diff = mri_Q @ diff
+    diff /= diff_norm[:, np.newaxis]
     return diff
 
 
@@ -158,109 +127,72 @@ def _bem_inf_fields(rr, rmag, cosmag):
     return x
 
 
-@jit()
 def _do_sphere_field(rrs, rmags, cosmags, ws, bins, r0):
-    n_coils = bins[-1] + 1
+    starts = _bin_starts(bins)
     # Shift to the sphere model coordinates
     rrs = rrs - r0
-    # this_poss and r don't depend on the dipole (ri), so compute once
     this_poss = rmags - r0
-    r = np.sqrt(np.sum(this_poss * this_poss, axis=1))
-    B = np.zeros((3 * len(rrs), n_coils))
-    for ri in range(len(rrs)):
-        rr = rrs[ri]
-        # Check for a dipole at the origin
-        if np.sqrt(np.dot(rr, rr)) <= 1e-10:
-            continue
+    r = np.linalg.norm(this_poss, axis=1)
+    re = np.sum(this_poss * cosmags, axis=1)
+    B = np.zeros((len(rrs), 3, len(starts)))
+    for start, stop in _rr_bounds(rrs, chunk=max(2**15 // len(rmags), 1)):
+        rr = rrs[start:stop, np.newaxis]  # (n_rr, 1, 3)
         # Vector from dipole to the field point
-        a_vec = this_poss - rr
-        a = np.sqrt(np.sum(a_vec * a_vec, axis=1))
-        rr0 = np.sum(this_poss * rr, axis=1)
-        ar = (r * r) - rr0
+        a = np.linalg.norm(this_poss - rr, axis=-1)
+        rr0 = rrs[start:stop] @ this_poss.T
+        ar = r * r - rr0
         ar0 = ar / a
         F = a * (r * a + ar)
-        gr = (a * a) / r + ar0 + 2.0 * (a + r)
+        gr = a * a / r + ar0 + 2.0 * (a + r)
         g0 = a + 2 * r + ar0
-        # Compute the dot products needed
-        re = np.sum(this_poss * cosmags, axis=1)
-        r0e = np.sum(rr * cosmags, axis=1)
-        g = (g0 * r0e - gr * re) / (F * F)
+        g = (g0 * (rrs[start:stop] @ cosmags.T) - gr * re) / (F * F)
         good = (a > 0) | (r > 0) | ((a * r) + 1 > 1e-5)
-        rr_ = rr.reshape(1, 3)
-        v1 = np.empty((cosmags.shape[0], 3))
-        _jit_cross(v1, rr_, cosmags)
-        v2 = np.empty((cosmags.shape[0], 3))
-        _jit_cross(v2, rr_, this_poss)
-        xx = (good * ws).reshape(-1, 1) * (
-            v1 / F.reshape(-1, 1) + v2 * g.reshape(-1, 1)
-        )
-        for jj in range(3):
-            zz = bincount(bins, xx[:, jj], n_coils)
-            B[3 * ri + jj, :] = zz
+        # cross(rr, cosmags) / F + cross(rr, this_poss) * g, with one cross product
+        xx = np.cross(rr, cosmags / F[..., np.newaxis] + this_poss * g[..., np.newaxis])
+        xx *= (good * ws)[..., np.newaxis]
+        B[start:stop] = np.add.reduceat(xx, starts, axis=1).transpose(0, 2, 1)
+    # dipoles at the origin produce no field
+    B[np.linalg.norm(rrs, axis=1) <= 1e-10] = 0.0
     B *= _MAG_FACTOR
-    return B
+    return B.reshape(-1, len(starts))
 
 
-@jit()
 def _do_eeg_spherepot_coil(rrs, rmags, ws, bins, r0, rad, mu, lams):
-    n_coils = bins[-1] + 1
-
-    # Shift to the sphere model coordinates. This part (unlike the Berg-Scherg
-    # equivalent-dipole loop below) does not depend on the dipole or fit
-    # term, so it is computed only once rather than on every (ri, eq) pair.
+    starts = _bin_starts(bins)
+    # Shift to the sphere model coordinates
     rrs = rrs - r0
     this_pos = rmags - r0
     r2 = np.sum(this_pos * this_pos, axis=1)
     r = np.sqrt(r2)
-
-    B = np.zeros((3 * len(rrs), n_coils))
-    for ri in range(len(rrs)):
-        rr = rrs[ri]
-        # Only process dipoles inside the innermost sphere
-        if np.sqrt(np.dot(rr, rr)) >= rad:
-            continue
-        # fwd_eeg_spherepot_vec
-        vval_one = np.zeros((len(rmags), 3))
-
-        # Make a weighted sum over the equivalence parameters
-        for eq in range(len(mu)):
+    B = np.zeros((len(rrs), 3, len(starts)))
+    for start, stop in _rr_bounds(rrs, chunk=max(2**15 // len(rmags), 1)):
+        # fwd_eeg_spherepot_vec: weighted sum over the equivalence parameters
+        vval = np.zeros((stop - start, len(rmags), 3))
+        for mu_, lam in zip(mu, lams):
             # Scale the dipole position
-            rd = mu[eq] * rr
-            rd2 = np.sum(rd * rd)
-            rd2_inv = 1.0 / rd2
-
+            rd = mu_ * rrs[start:stop]
+            rd2 = np.sum(rd * rd, axis=1, keepdims=True)
             # Vector from dipole to the field point
-            a_vec = this_pos - rd
-
-            # Compute the dot products needed
-            a = np.sqrt(np.sum(a_vec * a_vec, axis=1))
+            a = np.linalg.norm(this_pos - rd[:, np.newaxis], axis=-1)
             a3 = 2.0 / (a * a * a)
-            rrd = np.sum(this_pos * rd, axis=1)
+            rrd = rd @ this_pos.T
             ra = r2 - rrd
             rda = rrd - rd2
-
             # The main ingredients
             F = a * (r * a + ra)
             c1 = a3 * rda + 1.0 / a - 1.0 / r
             c2 = a3 + (a + r) / (r * F)
-
             # Mix them together and scale by lambda/(rd*rd)
-            m1 = c1 - c2 * rrd
-            m2 = c2 * rd2
-
-            vval_one += (
-                lams[eq]
-                * rd2_inv
-                * (m1.reshape(-1, 1) * rd + m2.reshape(-1, 1) * this_pos)
-            )
-
-        # compute total result
-        xx = vval_one * ws.reshape(-1, 1)
-        for jj in range(3):
-            B[3 * ri + jj] = bincount(bins, xx[:, jj], n_coils)
-    # finishing by scaling by 1/(4*M_PI)
+            m1 = (c1 - c2 * rrd) * (lam / rd2)
+            m2 = c2 * lam
+            vval += m1[..., np.newaxis] * rd[:, np.newaxis]
+            vval += m2[..., np.newaxis] * this_pos
+        vval *= ws[:, np.newaxis]
+        B[start:stop] = np.add.reduceat(vval, starts, axis=1).transpose(0, 2, 1)
+    # Only dipoles inside the innermost sphere
+    B[np.linalg.norm(rrs, axis=1) >= rad] = 0.0
     B *= 0.25 / np.pi
-    return B
+    return B.reshape(-1, len(starts))
 
 
 @jit()

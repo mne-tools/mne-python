@@ -4,7 +4,9 @@
 
 from gzip import GzipFile
 from io import SEEK_SET, BytesIO
+from os import PathLike
 from pathlib import Path
+from typing import IO, Any
 
 import numpy as np
 
@@ -16,6 +18,7 @@ from ..utils import (
     verbose_static,
     warn,
 )
+from ..utils._typing import LogLevel
 from .constants import FIFF
 from .tag import Tag, _call_dict_names, _matrix_info, _read_tag_header, read_tag
 from .tree import dir_tree_find, make_dir_tree
@@ -111,7 +114,9 @@ def _get_next_fname(fid, fname, tree):
 
 
 @verbose_static()
-def fiff_open(fname, preload=False, verbose=None):
+def fiff_open(
+    fname: Path | IO[bytes], preload: bool = False, verbose: LogLevel = None
+) -> tuple[IO[bytes], dict[str, Any], list[Tag]]:
     """Open a FIF file.
 
     Parameters
@@ -213,16 +218,16 @@ def _fiff_open(fname, fid, preload):
 
 @verbose_static()
 def show_fiff(
-    fname,
-    indent="    ",
-    read_limit=np.inf,
-    max_str=30,
-    output=str,
-    tag=None,
+    fname: str | PathLike,
+    indent: str = "    ",
+    read_limit: int | float = np.inf,
+    max_str: int = 30,
+    output: type[str] | type[list] = str,
+    tag: int | None = None,
     *,
-    show_bytes=False,
-    verbose=None,
-):
+    show_bytes: bool = False,
+    verbose: LogLevel = None,
+) -> str | list[str]:
     """Show FIFF information.
 
     This function is similar to mne_show_fiff.
@@ -254,7 +259,7 @@ def show_fiff(
 
     Returns
     -------
-    contents : str
+    contents : str | list of str
         The contents of the file.
     """
     if output not in [list, str]:

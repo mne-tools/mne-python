@@ -223,9 +223,10 @@ def test_interpolation_meg():
     raw.crop(0, 0.1).load_data().pick(epochs_meg.ch_names)
     raw.info.normalize_proj()
     raw.set_channel_types({raw.ch_names[0]: "stim"}, on_unit_change="ignore")
-    raw.info["bads"] = [raw.ch_names[1]]
+    raw.info["bads"] = raw.ch_names[:2]
     raw.load_data()
     raw.interpolate_bads(mode="fast")
+    assert raw.info["bads"] == raw.ch_names[:1]  # stim not interpolated, stays bad
     del raw
 
     # check that interpolation works for MEG
@@ -267,6 +268,7 @@ def test_interpolation_meg():
     data2 = evoked.interpolate_bads(origin="auto", exclude=["MEG 0121"]).data[pick]
     assert np.corrcoef(data1[0], data2[0])[0, 1] > thresh
     assert np.all(data2[1] == 1e10)
+    assert evoked.info["bads"] == ["MEG 0121"]
 
 
 def _this_interpol(inst, ref_meg=False):
@@ -285,6 +287,10 @@ def test_interpolate_meg_ctf():
 
     raw = read_raw_fif(raw_fname_ctf).crop(0, 1.0).load_data()  # 3 secs
     raw.apply_gradient_compensation(3)
+    # speed up self-dots by keeping only nearby sensors (plus refs)
+    raw.pick(
+        [ch for ch in raw.ch_names if not ch.startswith(("MR", "MZ", "MLO", "MLT"))]
+    )
 
     # Show that we have to exclude ref_meg for interpolating CTF MEG-channels
     # (fixed in #5965):
@@ -379,10 +385,12 @@ def test_interpolation_nirs_reordered_picks():
     """Test NIRS interpolation uses the closest donor in raw channel space."""
     raw = _nirs_raw()
     raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
-    raw.interpolate_bads(
-        method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
-    )
+    kwargs = dict(method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False)
+    raw.interpolate_bads(reset_bads=False, **kwargs)
     _assert_nirs_donor(raw)
+    assert raw.info["bads"] == ["S2_D2 760", "S2_D2 850"]
+    raw.interpolate_bads(**kwargs)
+    assert raw.info["bads"] == []
 
 
 def test_interpolation_nirs_epochs():
@@ -395,6 +403,38 @@ def test_interpolation_nirs_epochs():
         method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
     )
     _assert_nirs_donor(epochs)
+
+
+@pytest.mark.parametrize("missing", [np.nan, 0.0])
+def test_interpolation_nirs_missing_positions(missing):
+    """Test NIRS interpolation with channels lacking positions (NaN or all zero)."""
+    kwargs = dict(method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0))
+    bads = ["S2_D2 760", "S2_D2 850"]
+
+    # Good channels without positions are not used as donors
+    raw = _nirs_raw()
+    for ch in ["S1_D1 760", "S1_D1 850"]:
+        raw.info["chs"][raw.ch_names.index(ch)]["loc"][:3] = missing
+    raw.info["bads"] = bads
+    raw.interpolate_bads(**kwargs)
+    assert_allclose(
+        raw.get_data(picks=bads), raw.get_data(picks=["S3_D3 760", "S3_D3 850"])
+    )
+
+    # Bad channels without positions are set to NaN
+    raw = _nirs_raw()
+    for ch in raw.info["chs"]:
+        ch["loc"][:3] = missing
+    raw.info["bads"] = bads
+    with pytest.warns(RuntimeWarning, match="will be all NaN"):
+        raw.interpolate_bads(**kwargs)
+    assert np.isnan(raw.get_data(picks=bads)).all()
+
+    # No good channel left to interpolate from
+    raw = _nirs_raw()
+    raw.info["bads"] = raw.ch_names
+    with pytest.raises(ValueError, match="No good fNIRS channel"):
+        raw.interpolate_bads(**kwargs)
 
 
 @testing.requires_testing_data

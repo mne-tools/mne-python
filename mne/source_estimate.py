@@ -409,7 +409,7 @@ def _get_src_type(src, vertices, warn_text=None):
             src_type = "mixed"
     else:
         src_type = src.kind
-    assert src_type in ("surface", "volume", "mixed", "discrete")
+    assert src_type in ("surface", "volume", "mixed", "discrete", "subcortical_surf")
     return src_type
 
 
@@ -437,7 +437,7 @@ def _make_stc(
     # infer Klass from src_type
     if src_type == "surface":
         Klass = VectorSourceEstimate if vector else SourceEstimate
-    elif src_type in ("volume", "discrete"):
+    elif src_type in ("volume", "discrete", "subcortical_surf"):
         Klass = VolVectorSourceEstimate if vector else VolSourceEstimate
     elif src_type == "mixed":
         Klass = MixedVectorSourceEstimate if vector else MixedSourceEstimate
@@ -1592,7 +1592,10 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         """
         stc = self.copy()
         stc._remove_kernel_sens_data_()
-        stc._data = abs(stc._data)
+        if np.iscomplexobj(stc._data):
+            stc._data = abs(stc._data)
+        else:
+            np.abs(stc._data, out=stc._data)
         return stc
 
     def sqrt(self):

@@ -487,6 +487,7 @@ def expected_fill(body, keys, reverse, old_body=lambda: None, where=""):
                 old_body if index == 0 else lambda: None,
                 reverse,
                 where,
+                lambda: old_body() == body,
             )
     new = "\n".join(lines)
     if body.endswith("\n"):
@@ -494,14 +495,23 @@ def expected_fill(body, keys, reverse, old_body=lambda: None, where=""):
     return new, keys
 
 
-def _sync_block(lines, start, stop, key, entry, old_body, reverse, where):
-    """Rewrite the block at ``start`` in place so its shared text matches ``entry``."""
+def _sync_block(lines, start, stop, key, entry, old_body, reverse, where, unedited):
+    """Rewrite the block at ``start`` in place so its shared text matches ``entry``.
+
+    ``unedited()`` tells whether the whole docstring is unchanged since ``git HEAD``.
+    """
     indent = _indent_of(lines[start])
     current = _deindent(lines[start:stop], indent)
     if current == entry:
         return  # in sync, whatever the previous version looked like
     old_entry = _old_docdict().get(key)
     old_entry = _entry_lines(old_entry) if old_entry is not None else None
+    if old_entry == entry and current[: len(entry)] != entry and unedited():
+        raise DocError(
+            f"docstring differs from docdict[{key!r}], but neither changed since "
+            "git HEAD, so which one is out of date cannot be told; edit whichever "
+            "side is wrong to match the other (an edit to docdict is propagated)"
+        )
     old_info = _old_block_info(old_body(), key, entry, old_entry)
     old_own = old_info[0] if old_info is not None else None
     knowns = [k for k in (entry, old_entry) if k is not None]
@@ -856,6 +866,12 @@ def main(argv=None):
         if path.suffix == ".py":
             errors.extend(_dynamic_decorator_errors(path))
     files = [p for p in args.files if p.suffix == ".py" and "_static(" in p.read_text()]
+    # a docdict edit must reach every user of the entry, not only the staged ones
+    old = _old_docdict()
+    changed = [key for key, value in docdict.items() if old and old.get(key) != value]
+    if changed:
+        seen = {p.resolve() for p in files}
+        files += [p for p in _files_using(changed) if p.resolve() not in seen]
     # fill sites first, so that copies of them (processed second) see fixed text
     for path in files:
         errors.extend(process_file(path, args.fix, reverse, kinds=_FILL_DECORATORS))

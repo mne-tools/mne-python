@@ -133,6 +133,18 @@ def test_plot_topomap_interactive(layout):
     corr = np.corrcoef(image_proj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.85 < corr < 0.9
 
+    # proj="reconstruct" uses the head-frame sphere origin
+    kwargs["sphere"] = sphere = np.array([0.0, 0.01, 0.04, 0.09])
+    ax.clear()
+    evoked.copy().reconstruct_proj(origin=sphere[:3]).plot_topomap(**kwargs)
+    canvas.draw()
+    image_want = np.array(canvas.buffer_rgba())
+    ax.clear()
+    evoked.copy().plot_topomap(proj="reconstruct", **kwargs)
+    canvas.draw()
+    assert_array_equal(np.array(canvas.buffer_rgba()), image_want)
+    assert_array_equal(sphere, [0.0, 0.01, 0.04, 0.09])  # not modified in place
+
 
 @testing.requires_testing_data
 def test_plot_projs_topomap():

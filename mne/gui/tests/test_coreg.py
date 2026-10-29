@@ -324,6 +324,36 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     assert "<span style=" in fit_label_html
     assert any(word in fit_label_html for word in ("Good", "Fair", "Poor"))
 
+    # stopping ICP (Stop button / Esc) after the first iteration
+    assert not coreg._widgets["stop_icp"].is_enabled()
+    process_events = coreg._renderer._process_events
+
+    def _press_stop():
+        assert coreg._widgets["stop_icp"].is_enabled()
+        coreg._stop_icp()
+        process_events()
+
+    monkeypatch.setattr(coreg._renderer, "_process_events", _press_stop)
+    coreg._fit_icp()
+    monkeypatch.setattr(coreg._renderer, "_process_events", process_events)
+    assert "stopped after 1 iteration " in coreg._widgets["status_message"].get_value()
+    assert not coreg._widgets["stop_icp"].is_enabled()
+    assert coreg._widgets["status_progress"].get_value() == 1  # where it stopped
+    # toolbar (interface toggle, help) and the head shape point checkbox
+    coreg._save_screenshot(tmp_path / "coreg.png")
+    assert (tmp_path / "coreg.png").is_file()
+    coreg._toggle_interface()
+    assert not coreg._interface_visible
+    coreg._toggle_interface()
+    assert coreg._interface_visible
+    coreg._widgets["head_shape_points"].set_value(False)
+    assert not coreg._head_shape_points
+    coreg._widgets["head_shape_points"].set_value(True)
+    assert coreg._head_shape_points
+    coreg._show_help()
+    assert coreg._help_canvas.isVisible()
+    coreg._help_canvas.hide()
+
     # visualization
     assert not coreg._helmet
     assert coreg._actors["helmet"] is None
@@ -437,11 +467,14 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_fullscreen(renderer_interactive_pyvistaqt):
-    """Test fullscreen mode."""
+    """Test fullscreen mode and an explicit theme."""
     from mne.gui import coregistration
 
     # Fullscreen mode
-    coreg = coregistration(subject="sample", subjects_dir=subjects_dir, fullscreen=True)
+    coreg = coregistration(
+        subject="sample", subjects_dir=subjects_dir, fullscreen=True, theme="dark"
+    )
+    assert coreg._renderer._window._mne_theme == "dark"
     coreg._accept_close_event = True
     coreg.close()
 

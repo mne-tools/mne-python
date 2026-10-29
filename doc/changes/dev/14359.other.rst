@@ -1,0 +1,1 @@
+Move the interactive time-viewer code of :class:`mne.viz.Brain` into a separate private module by `Payam Sadeghi-Shabestari`_.

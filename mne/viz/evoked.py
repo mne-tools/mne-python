@@ -283,6 +283,7 @@ def _plot_evoked(
     import matplotlib.pyplot as plt
 
     _check_option("spatial_colors", spatial_colors, [True, False, "auto"])
+    sphere = _check_sphere(sphere, info=evoked.info)
     # For evoked.plot_image ...
     # First input checks for group_by and axes if any of them is not None.
     # Either both must be dicts, or neither.
@@ -460,7 +461,7 @@ def _plot_evoked(
     if projector is not None:
         evoked.data[:] = np.dot(projector, evoked.data)
     if proj == "reconstruct":
-        evoked = evoked.reconstruct_proj()
+        evoked = evoked.reconstruct_proj(origin=sphere[:3])
 
     if plot_type == "butterfly":
         _plot_lines(
@@ -590,7 +591,11 @@ def _plot_lines(
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w", alpha=0.75)]
     # The time cursors and the hover label are the only artists that move, so draw
     # them on top of a cached background rather than redrawing every channel's trace.
-    blit_manager = _BlitManager(fig)
+    # Plots sharing a figure (via ``axes``) share one manager, as each manager's full
+    # redraw would otherwise invalidate the others' backgrounds.
+    blit_manager = getattr(fig, "_mne_blit_manager", None)
+    if blit_manager is None:
+        blit_manager = fig._mne_blit_manager = _BlitManager(fig)
 
     if selectable:
         selectables = np.ones(len(ch_types_used), dtype=bool)
@@ -608,7 +613,7 @@ def _plot_lines(
     if selectable:
 
         def _on_hover(event):
-            if not event.inaxes:
+            if event.inaxes not in axes:  # another plot sharing the figure
                 return
 
             # pop up channel name on hover
@@ -656,10 +661,12 @@ def _plot_lines(
             blit_manager.update()
 
         def _rm_cursor(event):
-            for ax in axes:
-                if getattr(ax, "_cursorline", None) is not None:
-                    ax._cursorline.set_visible(False)
-            blit_manager.update()
+            cursors = [getattr(ax, "_cursorline", None) for ax in axes]
+            cursors = [line for line in cursors if line and line.get_visible()]
+            for line in cursors:
+                line.set_visible(False)
+            if cursors:  # only blit if something changed
+                blit_manager.update()
 
         def _select_time(event):
             for ax in axes:
@@ -669,6 +676,7 @@ def _plot_lines(
 
         fig.canvas.mpl_connect("motion_notify_event", _on_hover)
         fig.canvas.mpl_connect("figure_leave_event", _rm_cursor)
+        fig.canvas.mpl_connect("axes_leave_event", _rm_cursor)
         fig.canvas.mpl_connect("button_press_event", _select_time)
 
     for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
@@ -2203,10 +2211,12 @@ def plot_evoked_joint(
         )
     _check_option('topomap_args["proj"]', proj, (True, False, "reconstruct"))
     evoked = evoked.copy()
+    sphere = _check_sphere(topomap_args.get("sphere"), evoked.info)
+    topomap_args["sphere"] = sphere
     if proj:
         evoked.apply_proj()
         if proj == "reconstruct":
-            evoked.reconstruct_proj()
+            evoked.reconstruct_proj(origin=sphere[:3])
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
     evoked.pick(picks, exclude=exclude)
     info = evoked.info

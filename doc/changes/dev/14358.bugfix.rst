@@ -1,0 +1,1 @@
+Fix bug where Artemis123 axial gradiometers were treated as magnetometers when building SSS external bases, which made the head position estimated by :func:`mne.io.read_raw_artemis123` (``add_head_trans=True``) noisier, by `Eric Larson`_.

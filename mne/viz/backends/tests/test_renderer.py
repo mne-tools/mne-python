@@ -292,6 +292,8 @@ def test_renderer(renderer, monkeypatch):
     cmd = [
         sys.executable,
         "-uc",
+        # dump tracebacks if we hang, before the timeout below kills us
+        "import faulthandler; faulthandler.dump_traceback_later(50); "
         "import sys, mne; mne.viz.create_3d_figure((800, 600), show=True); "
         "backend = mne.viz.get_3d_backend(); "
         f"assert backend == {repr(backend)}, backend; "
@@ -299,7 +301,10 @@ def test_renderer(renderer, monkeypatch):
         f"assert backend != 'jupyterlite_notebook' or 'vtk' not in sys.modules",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired as exc:  # show where it hung
+        pytest.fail(f"{exc}\nstdout:\n{exc.stdout}\nstderr:\n{exc.stderr}")
     assert proc.returncode == 0, proc.stderr
 
 
@@ -333,24 +338,24 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
     monkeypatch.setenv("MNE_IS_OSMESA", "false")
 
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setattr(plotter.render_window, "ReportCapabilities", lambda: good)
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     assert _pyvista._is_osmesa(plotter)
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
+    monkeypatch.setattr(plotter.render_window, "ReportCapabilities", lambda: bad)
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):
         assert _pyvista._is_osmesa(plotter)
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setattr(plotter.render_window, "ReportCapabilities", lambda: good)
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     monkeypatch.setattr(
-        plotter.ren_win,
+        plotter.render_window,
         "ReportCapabilities",
         lambda: f"{pre}OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n",
     )
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     assert not _pyvista._is_osmesa(plotter)
     monkeypatch.setattr(
-        plotter.ren_win,
+        plotter.render_window,
         "ReportCapabilities",
         lambda: f"{pre}OpenGL 4.5 (Core Profile) Mesa 24.2.3-1ubuntu1 via NVE6\n",
     )

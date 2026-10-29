@@ -372,9 +372,12 @@ def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
     bad = []
+    # CI tests an installed wheel from site-packages, where examples/ (if any)
+    # belongs to other packages (e.g. trame-vuetify), not to us
+    installed = root.name in ("site-packages", "dist-packages")
     for sub in ("mne", "examples", "tutorials"):
         base = root / sub
-        if not base.is_dir():  # e.g. examples/tutorials absent from a wheel
+        if not base.is_dir() or (installed and sub != "mne"):
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
@@ -534,6 +537,10 @@ def _annotation_to_str(ann, *, expand_literals=False):
     # unions and ``Literal["a", "b"]`` both flatten to their ``a | b`` members
     if origin in (typing.Union, types.UnionType, typing.Literal):
         lst = []
+        # for Literals, also include the type of each listed literal. This allows cases
+        # where the type hint says `Literal["a", "b"]` but the docstring just says `str`
+        # (happens when the docstring expands on "allowed strings" later in the
+        # parameter description).
         if expand_literals and origin is typing.Literal:
             lst.extend(list(set(type(x).__name__ for x in typing.get_args(ann))))
         return " | ".join(
@@ -551,6 +558,12 @@ def _annotation_to_str(ann, *, expand_literals=False):
         if args:
             return f"{name}[{', '.join(_annotation_to_str(a) for a in args)}]"
         return name
+    if isinstance(ann, typing.TypeVar):
+        if ann.__name__ == "RawEpoEvkT":
+            # technically `BaseRaw | BaseEpochs | Evoked` but docstring doesn't say that
+            return "Raw | Epochs | Evoked"
+    # prevent things like `ForwardRef('ConductorModel')`
+    ann = getattr(ann, "__forward_arg__", ann)
     if isinstance(ann, str):  # unevaluated forward reference, e.g. "EpochsFIF"
         return ann
     if ann is type(None):

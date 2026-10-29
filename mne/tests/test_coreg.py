@@ -21,10 +21,12 @@ from mne._fiff.constants import FIFF
 from mne.channels import DigMontage
 from mne.coreg import (
     Coregistration,
+    _find_head_bem,
     _is_mri_subject,
     coregister_fiducials,
     create_default_subject,
     get_mni_fiducials,
+    read_mri_cfg,
     scale_bem,
     scale_labels,
     scale_mri,
@@ -165,6 +167,9 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
         mri_fiducials=mri_fiducials,
     )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
+    cfg = read_mri_cfg("flachkopf", tmp_path)
+    assert cfg["n_params"] == np.size(scale)
+    assert_array_equal(cfg["scale"], scale)
     spath = tmp_path / "flachkopf" / "bem"
     spath_fname = "flachkopf-%s-src.fif"
 
@@ -439,6 +444,8 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials, fid_match):
     coreg = Coregistration(
         info, subject=subject, subjects_dir=subjects_dir, fiducials=fiducials
     )
+    # the subject's own head file is preferred over the watershed outer_skin.surf
+    assert _find_head_bem(subject, subjects_dir).endswith("sample-head.fif")
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     assert len(coreg.fiducials.dig) == 3
     for dig_point in coreg.fiducials.dig:
@@ -527,6 +534,15 @@ def test_coreg_fitting_invariants():
         assert (kept <= distance).all()
         assert len(kept) <= prev_n_kept
         prev_n_kept = len(kept)
+    # a new info with a different number of points resets the mask (gh-14420)
+    info_fewer = info.copy()
+    extra = [d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in info["dig"]]
+    with info_fewer._unlock():
+        info_fewer["dig"].pop(np.where(extra)[0][-1])
+    coreg.set_info(info_fewer)
+    assert coreg._extra_points_filter is None
+    assert len(coreg._filtered_extra_points) == sum(extra) - 1
+    coreg.set_info(info)
 
     # fit_fiducials / fit_icp
     for _ in range(5):

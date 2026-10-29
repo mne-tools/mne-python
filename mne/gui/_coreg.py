@@ -69,6 +69,10 @@ from ..viz.backends._utils import _qt_block, _qt_safe_window
 from ..viz.utils import safe_event
 
 
+class _ICPStopped(Exception):
+    """Raised from the ICP callback to stop a running fit."""
+
+
 class _WorkerData:
     def __init__(self, name, params=None):
         self._name = name
@@ -85,7 +89,7 @@ def _fit_quality(mean_dist):
     if mean_dist <= 5.0:
         return "Good", "forestgreen"
     elif mean_dist <= 10.0:
-        return "Fair", "orange"
+        return "Fair", "darkgoldenrod"
     else:
         return "Poor", "chocolate"
 
@@ -120,7 +124,13 @@ def _get_subjects(sdir):
 
 
 @fill_doc_static(
-    "subject", "subjects_dir", "fiducials", "fullscreen", "interaction_scene", "verbose"
+    "subject",
+    "subjects_dir",
+    "fiducials",
+    "fullscreen",
+    "interaction_scene",
+    "theme_3d",
+    "verbose",
 )
 class CoregistrationUI(HasTraits):
     """Class for coregistration assisted by graphical interface.
@@ -179,7 +189,8 @@ class CoregistrationUI(HasTraits):
     bgcolor : tuple of float | str
         The background color as a tuple (red, green, blue) of float
         values between ``0`` and ``1`` or a valid color name (i.e. ``'white'``
-        or ``'w'``). Defaults to ``'grey'``.
+        or ``'w'``). Defaults to ``'#19232D'``, a dark blue-grey that keeps
+        the head, digitization points, and legend readable.
     show : bool
         Display the window as soon as it is ready. Defaults to ``True``.
     block : bool
@@ -201,6 +212,16 @@ class CoregistrationUI(HasTraits):
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.0
+    theme : str | path-like
+        Can be "auto", "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle <https://github.com/ColinDuquesnoy/QDarkStyleSheet>`__ and
+        `darkdetect <https://github.com/albertosottile/darkdetect>`__,
+        respectively, are required.
+        If None (default), the config option MNE_3D_OPTION_THEME will be used,
+        defaulting to "auto" if it's not found.
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -264,8 +285,11 @@ class CoregistrationUI(HasTraits):
         block=False,
         fullscreen=False,
         interaction="terrain",
+        theme=None,
         verbose=None,
     ):
+        from matplotlib.colors import to_rgb
+
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -281,7 +305,6 @@ class CoregistrationUI(HasTraits):
         self._redraws_pending = set()
         self._parameter_mutex = threading.Lock()
         self._redraw_mutex = threading.Lock()
-        self._job_queue = queue.Queue()
         self._parameter_queue = queue.Queue()
         self._head_geo = None
         self._check_inside = None
@@ -296,12 +319,15 @@ class CoregistrationUI(HasTraits):
         self._mri_fids_modified = False
         self._mri_scale_modified = False
         self._accept_close_event = True
-        self._fid_colors = tuple(
-            DEFAULTS["coreg"][f"{key}_color"] for key in ("lpa", "nasion", "rpa")
+        # the default pure-blue RPA is barely visible on the dark background
+        self._fid_colors = (
+            DEFAULTS["coreg"]["lpa_color"],
+            DEFAULTS["coreg"]["nasion_color"],
+            to_rgb("mediumslateblue"),
         )
         self._defaults = dict(
             size=_get_default(size, (800, 600)),
-            bgcolor=_get_default(bgcolor, "grey"),
+            bgcolor=_get_default(bgcolor, "#19232D"),
             orient_glyphs=_get_default(orient_glyphs, True),
             scale_by_distance=_get_default(scale_by_distance, True),
             mark_inside=_get_default(mark_inside, True),
@@ -344,6 +370,7 @@ class CoregistrationUI(HasTraits):
         subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
+        _validate_type(theme, (str, None), "theme")
         splash = "Initializing coregistration GUI..." if show else False
         self._renderer = _get_renderer(
             size=self._defaults["size"],
@@ -353,6 +380,7 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_close_connect(self._close_callback, after=False)
+        self._renderer._window_set_theme(theme)
         self._renderer.set_interaction(interaction)
 
         # coregistration model setup
@@ -396,6 +424,7 @@ class CoregistrationUI(HasTraits):
         self._reset_fitting_parameters()
         self._configure_dialogs()
         self._configure_status_bar()
+        self._configure_tool_bar()
         self._configure_dock()
         self._configure_picking()
         self._configure_legend()
@@ -756,6 +785,7 @@ class CoregistrationUI(HasTraits):
             # MRI fiducials
             "save_mri_fids",
             # View options
+            "head_shape_points",
             "helmet",
             "meg",
             "head_opacity",
@@ -952,7 +982,6 @@ class CoregistrationUI(HasTraits):
 
     def _configure_worker(self):
         work_plan = {
-            "_job_queue": dict(save_subject=self._save_subject),
             "_parameter_queue": dict(set_parameter=self._set_parameter),
         }
         for queue_name, jobs in work_plan.items():
@@ -975,17 +1004,14 @@ class CoregistrationUI(HasTraits):
         )
 
     def _configure_legend(self):
-        colors = [
-            np.array(DEFAULTS["coreg"][f"{fid.lower()}_color"]).astype(float)
-            for fid in self._defaults["fiducials"]
-        ]
+        colors = [np.array(color, float) for color in self._fid_colors]
         labels = list(zip(self._defaults["fiducials"], colors))
         if self._mark_inside:
             labels += [
                 ("HSP outside", np.array(_HSP_OUTSIDE_COLOR)),
                 ("HSP inside", np.array(_HSP_INSIDE_COLOR)),
             ]
-        mri_fids_legend_actor = self._renderer.legend(labels=labels)
+        mri_fids_legend_actor = self._renderer.legend(labels=labels, size=0.15)
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @safe_event
@@ -1509,45 +1535,74 @@ class CoregistrationUI(HasTraits):
     def _fits_icp(self):
         self._fit_icp_real(update_head=True)
 
+    def _stop_icp(self):
+        self._icp_stop_requested = True
+
     def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
+            self._icp_stop_requested = False
             updates = ["hsp", "hpi", "sensors", "head_fids", "helmet"]
             if update_head:
                 updates.insert(0, "head")
+            n_iterations = self._icp_n_iterations
+            # set_range takes one [min, max] value, not one per widget name
+            self._widgets["status_progress"].set_range([0, n_iterations])
+            self._forward_widget_command("status_progress", "set_value", 0)
+            self._forward_widget_command(
+                "status_progress", "show", value=None, input_value=False
+            )
+            self._forward_widget_command("stop_icp", "set_enabled", True)
 
             def callback(iteration, n_iterations):
-                self._display_message(f"Fitting ICP - iteration {iteration + 1}")
+                self._display_message(
+                    f"Fitting ICP - iteration {iteration + 1} (max {n_iterations}), "
+                    "Esc to stop"
+                )
+                self._forward_widget_command(
+                    "status_progress", "set_value", iteration + 1
+                )
                 self._update_plot(updates)
                 self._current_icp_iterations += 1
                 self._update_distance_estimation()
                 self._update_parameters()
-                self._renderer._process_events()  # allow a draw or cancel
+                self._renderer._process_events()  # allow a draw or a Stop click
+                if self._icp_stop_requested:
+                    raise _ICPStopped
 
             start = time.time()
-            self.coreg.fit_icp(
-                n_iterations=self._icp_n_iterations,
-                lpa_weight=self._lpa_weight,
-                nasion_weight=self._nasion_weight,
-                rpa_weight=self._rpa_weight,
-                callback=callback,
-                verbose=self._verbose,
-            )
-            end = time.time()
+            stopped = False
+            try:
+                self.coreg.fit_icp(
+                    n_iterations=n_iterations,
+                    lpa_weight=self._lpa_weight,
+                    nasion_weight=self._nasion_weight,
+                    rpa_weight=self._rpa_weight,
+                    callback=callback,
+                    verbose=self._verbose,
+                )
+            except _ICPStopped:  # keep the alignment from the last iteration
+                stopped = True
+            finally:
+                self._forward_widget_command("stop_icp", "set_enabled", False)
+            duration = time.time() - start
+            n_done = self._current_icp_iterations
+            its = f"{n_done} iteration{'s' if n_done != 1 else ''}"
+            # the bar stays until the next fit: full when ICP is done (it usually
+            # converges before the maximum), or where it was when stopped
+            if stopped:
+                msg = f"Fitting ICP stopped after {its}"
+            else:
+                self._forward_widget_command(
+                    "status_progress", "set_value", n_iterations
+                )
+                if n_done < n_iterations:
+                    msg = f"Fitting ICP converged in {its}"
+                else:
+                    msg = f"Fitting ICP reached the maximum of {its}"
             self._display_message()
-            self._display_message(
-                f"Fitting ICP finished in {end - start:.2f} seconds and "
-                f"{self._current_icp_iterations} iterations."
-            )
+            self._display_message(f"{msg} ({duration:.2f} s).")
             del self._current_icp_iterations
-
-    def _task_save_subject(self):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-
-        if MNE_3D_BACKEND_TESTING:
-            self._save_subject()
-        else:
-            self._job_queue.put(_WorkerData("save_subject", None))
 
     def _task_set_parameter(self, value, mode_name, coord):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -1898,6 +1953,14 @@ class CoregistrationUI(HasTraits):
             name="View Options",
             collapse=collapse,
         )
+        self._widgets["head_shape_points"] = self._renderer._dock_add_check_box(
+            name="Show head shape points",
+            value=self._head_shape_points,
+            callback=self._set_head_shape_points,
+            tooltip="Show/hide the digitized head shape points",
+            layout=view_options_layout,
+            shortcut="h",
+        )
         self._widgets["helmet"] = self._renderer._dock_add_check_box(
             name="Show MEG helmet",
             value=self._helmet,
@@ -2007,7 +2070,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save scaled anatomy",
-            callback=self._task_save_subject,
+            callback=lambda: self._save_subject(),
             tooltip="Save the scaled MRI anatomy as a new FreeSurfer subject",
             layout=subject_to_layout,
         )
@@ -2058,6 +2121,14 @@ class CoregistrationUI(HasTraits):
             tooltip="Find rotation and translation to match the head shape points",
             layout=fit_layout,
         )
+        self._widgets["stop_icp"] = self._renderer._dock_add_button(
+            name="Stop",
+            callback=self._stop_icp,
+            tooltip="Stop the running ICP fit, keeping the alignment so far",
+            layout=fit_layout,
+            shortcut="Esc",
+        )
+        self._forward_widget_command("stop_icp", "set_enabled", False)
         self._renderer._layout_add_widget(param_layout, fit_layout)
         trans_layout = self._renderer._dock_add_group_box(
             name="HEAD <> MRI Transform",
@@ -2168,6 +2239,60 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command(
             "status_message", "hide", value=None, input_value=False
         )
+        self._widgets["status_progress"] = self._renderer._status_bar_add_progress_bar()
+        self._forward_widget_command(
+            "status_progress", "hide", value=None, input_value=False
+        )
+
+    def _configure_tool_bar(self):
+        self._renderer._tool_bar_initialize(name="Toolbar")
+        self._renderer._tool_bar_add_file_button(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._save_screenshot,
+        )
+        self._renderer._tool_bar_add_button(
+            name="visibility",
+            desc="Toggle Controls",
+            func=self._toggle_interface,
+            icon_name="visibility_on",
+            shortcut="i",
+        )
+        self._renderer._tool_bar_add_spacer()
+        self._renderer._tool_bar_add_button(
+            name="help", desc="Help", func=self._show_help, shortcut="?"
+        )
+        self._interface_visible = True
+        self._help_canvas = self._renderer._window_get_help_canvas(
+            [
+                ("?", "Display help window"),
+                ("i", "Toggle interface"),
+                ("h", "Show/hide head shape points"),
+                ("Esc", "Stop the running ICP fit"),
+            ],
+            [
+                ("Left-click-and-drag", "Rotate the view"),
+                ("Middle-click-and-drag", "Pan the view"),
+                ("Right-click-and-drag / scroll", "Zoom the view"),
+                ("Left-click on the head", "Place the current MRI fiducial (unlocked)"),
+            ],
+        )
+
+    def _save_screenshot(self, filename):
+        self._renderer.screenshot(filename=filename)
+
+    def _toggle_interface(self):
+        self._interface_visible = not self._interface_visible
+        with self._renderer._window_ensure_minimum_sizes():
+            if self._interface_visible:
+                self._renderer._dock_show()
+            else:
+                self._renderer._dock_hide()
+        icon = "visibility_on" if self._interface_visible else "visibility_off"
+        self._renderer._tool_bar_update_button_icon(name="visibility", icon_name=icon)
+
+    def _show_help(self):
+        self._help_canvas.show()
 
     def _clean(self):
         if not self._accept_close_event:

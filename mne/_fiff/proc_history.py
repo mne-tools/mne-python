@@ -2,11 +2,14 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from functools import partial
 
 import numpy as np
 
 from ..utils import _check_fname, logger, warn
+from ..utils._bunch import NamedInt
 from .constants import FIFF
 from .open import fiff_open, read_tag
 from .tag import _float_item, _int_item, find_tag
@@ -262,29 +265,42 @@ _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
 _sss_cal_writers = (write_int_matrix, write_float_matrix)
 _sss_cal_casters = (np.array, np.array)
 
+
+@dataclass
+class IOMap:
+    keys: tuple[str, ...]
+    ids: tuple[NamedInt, ...]
+    casters: tuple[Callable, ...]
+    writers: tuple[Callable, ...]
+    block: NamedInt
+
+    def __iter__(self):
+        return iter((self.keys, self.ids, self.casters, self.writers, self.block))
+
+
 _io_map = dict(
-    sss_info=dict(
+    sss_info=IOMap(
         keys=_sss_info_keys,
         ids=_sss_info_ids,
         casters=_sss_info_casters,
         writers=_sss_info_writers,
         block=FIFF.FIFFB_SSS_INFO,
     ),
-    max_st=dict(
+    max_st=IOMap(
         keys=_max_st_keys,
         ids=_max_st_ids,
         casters=_max_st_casters,
         writers=_max_st_writers,
         block=FIFF.FIFFB_SSS_ST_INFO,
     ),
-    sss_ctc=dict(
+    sss_ctc=IOMap(
         keys=_sss_ctc_keys,
         ids=_sss_ctc_ids,
         casters=_sss_ctc_casters,
         writers=_sss_ctc_writers,
         block=FIFF.FIFFB_CHANNEL_DECOUPLER,
     ),
-    sss_cal=dict(
+    sss_cal=IOMap(
         keys=_sss_cal_keys,
         ids=_sss_cal_ids,
         casters=_sss_cal_casters,
@@ -301,7 +317,7 @@ def _write_mf_data(fid, info, *, kind, key=None):
         return
     del info, key
     logger.debug("Writing %s info with keys: %s", kind, list(this_data))
-    keys, ids, _, writers, block = _io_map[kind].values()
+    keys, ids, _, writers, block = _io_map[kind]
     start_block(fid, block)
     for key, id_, writer in zip(keys, ids, writers):
         if key in this_data:
@@ -319,11 +335,19 @@ def _read_ctc(fname):
         if len(sss_ctc) == 0:
             raise ValueError(bad_str)
         node = dir_tree_find(tree, FIFF.FIFFB_DATA_CORRECTION)[0]
-        comment = find_tag(fid, node, FIFF.FIFF_COMMENT).data
-        if comment != "cross-talk compensation matrix":
+        # comment
+        comment_tag = find_tag(fid, node, FIFF.FIFF_COMMENT)
+        assert comment_tag is not None  # for type checking
+        if comment_tag.data != "cross-talk compensation matrix":
             raise ValueError(bad_str)
-        sss_ctc["creator"] = find_tag(fid, node, FIFF.FIFF_CREATOR).data
-        sss_ctc["date"] = find_tag(fid, node, FIFF.FIFF_MEAS_DATE).data
+        # creator
+        creator_tag = find_tag(fid, node, FIFF.FIFF_CREATOR)
+        assert creator_tag is not None  # for type checking
+        sss_ctc["creator"] = creator_tag.data
+        # date
+        date_tag = find_tag(fid, node, FIFF.FIFF_MEAS_DATE)
+        assert date_tag is not None  # for type checking
+        sss_ctc["date"] = date_tag.data
     return sss_ctc
 
 
@@ -337,7 +361,7 @@ def _read_maxfilter_record(fid, tree):
 
 
 def _read_mf_data(fid, tree, *, kind):
-    keys, ids, casters, _, block = _io_map[kind].values()
+    keys, ids, casters, _, block = _io_map[kind]
     sss_kind_block = dir_tree_find(tree, block)
     sss_out = dict()
     if len(sss_kind_block) > 0:
@@ -346,10 +370,10 @@ def _read_mf_data(fid, tree, *, kind):
         for i_ent in range(sss_kind_block["nent"]):
             kind = sss_kind_block["directory"][i_ent].kind
             pos = sss_kind_block["directory"][i_ent].pos
-            for key, id_, cast in zip(keys, ids, casters):
+            for key, id_, cast_ in zip(keys, ids, casters):
                 if kind == id_:
                     tag = read_tag(fid, pos)
-                    sss_out[key] = cast(tag.data)
+                    sss_out[key] = cast_(tag.data)
                     break
     return sss_out
 

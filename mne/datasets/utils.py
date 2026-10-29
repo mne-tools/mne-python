@@ -848,8 +848,9 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                 members = set(f for f in ff.namelist() if not f.endswith("/"))
                 missing = sorted(members.symmetric_difference(set(names)))
                 if len(missing):
+                    missing_str = "\n".join(missing)
                     raise RuntimeError(
-                        "Zip file did not have correct names:\n{'\n'.join(missing)}"
+                        f"Zip file did not have correct names:\n{missing_str}"
                     )
                 for name in need:
                     ff.extract(name, path=destination)

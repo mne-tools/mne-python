@@ -1,0 +1,68 @@
+{
+  "merge_commit_sha": "2ceb25ba8c6a710a95964332d225d1cd727315f4",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14313.newfeature.rst": {
+      "a": 4,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/constants.py": {
+      "a": 17,
+      "d": 2
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 83,
+      "d": 0
+    },
+    "mne/_fiff/tag.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/_fiff/tests/test_meas_info.py": {
+      "a": 27,
+      "d": 2
+    },
+    "mne/_fiff/write.py": {
+      "a": 17,
+      "d": 0
+    },
+    "mne/utils/check.py": {
+      "a": 14,
+      "d": 9
+    },
+    "mne/utils/docs.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/utils/tests/test_check.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 4,
+      "d": 2
+    },
+    "tutorials/intro/40_sensor_locations.py": {
+      "a": 20,
+      "d": 1
+    }
+  }
+}

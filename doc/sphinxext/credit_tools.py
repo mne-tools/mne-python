@@ -369,9 +369,12 @@ def _append_commit_mailmap_entries(emails, logins, urls):
 
     The PR JSON knows a contributor by their GitHub profile, git by whatever
     their commits carry, so without a .mailmap line ``git shortlog`` credits
-    e.g. "kalomak" where the credit page says "Kalle Mäkelä". Only addresses we
-    can tie to a credited name (the same address, or the login in a GitHub
-    noreply address) are matched; the rest need a human.
+    e.g. "kalomak" where the credit page says "Kalle Mäkelä". Someone who
+    committed from several addresses is likewise listed once per address until
+    they all map to one, so those get routed to the address with the most
+    commits. Only addresses we can tie to a credited name (the same address, the
+    login in a GitHub noreply address, or already the same name) are matched;
+    the rest need a human.
     """
     by_email = {email: name for name, these in emails.items() for email in these}
     by_login = dict()
@@ -388,16 +391,26 @@ def _append_commit_mailmap_entries(emails, logins, urls):
         )
     except Exception:
         return entries  # best-effort, e.g. a shallow checkout with no history
+    rows = defaultdict(list)  # credited name -> [(count, git name, email), ...]
     for line in shortlog.splitlines():
-        name, email = line.split("\t", maxsplit=1)[1].rstrip(">").split(" <", 1)
+        count, identity = line.split("\t", maxsplit=1)
+        name, email = identity.rstrip(">").split(" <", 1)
         if _is_bot(name, email):
             continue
         credited = by_email.get(email)
         if credited is None:
             login = _github_login(dict(e=email))
             credited = by_login.get(login.lower()) if login else None
-        if credited is not None and credited != name:
-            entries.append(f"{credited} <{email}>")
+        if credited is None and name in logins:
+            credited = name
+        if credited is not None:
+            rows[credited].append((int(count), name, email))
+    for credited, these in rows.items():
+        canonical = max(these)[2]
+        for _, name, email in these:
+            if (name, email) != (credited, canonical):
+                alias = f" <{email}>" if email != canonical else ""
+                entries.append(f"{credited} <{canonical}>{alias}")
     if entries:
         _append_mailmap_entries(entries)
         sphinx_logger.info(f"Added {len(entries)} commit .mailmap entries")

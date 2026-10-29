@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "ae90522cc64e9ddccfa50f29a3699e0bd24bfdae",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/viz/_3d_overlay.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/viz/backends/_lite.py": {
+      "a": 21,
+      "d": 1
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

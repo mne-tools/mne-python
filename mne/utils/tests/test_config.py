@@ -15,6 +15,7 @@ from functools import partial
 from pathlib import Path
 from urllib.error import URLError
 
+import numpy as np
 import pytest
 
 import mne
@@ -109,7 +110,7 @@ def test_config(tmp_path):
     pytest.raises(TypeError, _get_stim_channel, [1], None)
 
 
-def test_sys_info_basic():
+def test_sys_info_basic(monkeypatch):
     """Test info-showing utility."""
     out = ClosingStringIO()
     sys_info(fid=out, check_version=False)
@@ -122,6 +123,18 @@ def test_sys_info_basic():
         assert "Platform macOS-" in out
     elif platform.system() == "Linux":
         assert "Platform Linux" in out
+    assert isinstance(mne.utils.config._get_runtime_blas_path(), str)
+    # conda's generic libblas interface resolved to its runtime provider
+    blas = dict(name="blas", version="3.9.0")
+    monkeypatch.setattr(
+        np, "show_config", lambda mode: {"Build Dependencies": {"blas": blas}}
+    )
+    for path, want in (
+        ("/x/vecLib.framework/Versions/A/libBLAS.dylib", "Accelerate"),
+        ("", "blas 3.9.0"),
+    ):
+        monkeypatch.setattr(mne.utils.config, "_get_runtime_blas_path", lambda: path)
+        assert mne.utils.config._get_numpy_build_blas().startswith(f"{want}, ")
 
 
 def test_sys_info_windowing_system(monkeypatch):
@@ -305,7 +318,7 @@ def _worker_update_config_loop(home_dir, worker_id, iterations=10):
         # Update the configuration (our set_config holds the lock over the full cycle)
         with _record_warnings():  # ignore non-standard key warning
             set_config(new_key, new_value, home_dir=home_dir)
-        time.sleep(random.uniform(0, 0.05))
+        time.sleep(random.uniform(0, 0.01))
     return worker_id
 
 
@@ -340,11 +353,11 @@ def test_parallel_get_set_config(tmp_path: Path):
     with open(config_file, "w") as f:
         json.dump(initial_config, f)
 
-    n_workers = 50
+    n_workers = 8
     iterations = 10
 
     # Launch multiple workers concurrently using joblib.
-    Parallel(n_jobs=10)(
+    Parallel(n_jobs=4)(
         delayed(_worker_update_config_loop)(home_dir, worker_id, iterations)
         for worker_id in range(n_workers)
     )

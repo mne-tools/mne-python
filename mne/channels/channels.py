@@ -347,7 +347,7 @@ class ReferenceMixin(MontageMixin):
             ``projection=False``, the average reference is directly applied to
             the data. If ``ref_channels`` is not ``'average'``, ``projection``
             must be set to ``False`` (the default in this case).
-        ch_type : list of str | str
+        ch_type : "auto" | "eeg" | "ecog" | "seeg" | "dbs" | sequence of str
             The name of the channel type to apply the reference to.
             Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
             ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
@@ -463,6 +463,31 @@ class ReferenceMixin(MontageMixin):
         )[0]
 
 
+def _check_drop_ch_names(ch_names, current_ch_names, on_missing="raise"):
+    if isinstance(ch_names, str):
+        ch_names = [ch_names]
+
+    try:
+        all_str = all([isinstance(ch, str) for ch in ch_names])
+    except TypeError:
+        raise ValueError(
+            f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
+        )
+
+    if not all_str:
+        raise ValueError(
+            "Each element in 'ch_names' must be str, got "
+            f"{[type(ch) for ch in ch_names]}."
+        )
+
+    missing = [ch for ch in ch_names if ch not in current_ch_names]
+    if len(missing) > 0:
+        msg = "Channel(s) {0} not found, nothing dropped."
+        _on_missing(on_missing, msg.format(", ".join(missing)))
+
+    return [ch for ch in ch_names if ch in current_ch_names]
+
+
 class UpdateChannelsMixin:
     """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
@@ -563,13 +588,13 @@ class UpdateChannelsMixin:
             (default) include none. If string it can be 'eyegaze' (to include
             eye position channels) or 'pupil' (to include pupil-size
             channels).
-        include : list of str
+        include : sequence of str
             List of additional channels to include. If empty do not include
             any.
-        exclude : list of str | str
+        exclude : sequence of str | str
             List of channels to exclude. If 'bads' (default), exclude channels
             in ``info['bads']``.
-        selection : list of str
+        selection : sequence of str
             Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
@@ -800,28 +825,8 @@ class UpdateChannelsMixin:
         -----
         .. versionadded:: 0.9.0
         """
-        if isinstance(ch_names, str):
-            ch_names = [ch_names]
-
-        try:
-            all_str = all([isinstance(ch, str) for ch in ch_names])
-        except TypeError:
-            raise ValueError(
-                f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
-            )
-
-        if not all_str:
-            raise ValueError(
-                "Each element in 'ch_names' must be str, got "
-                f"{[type(ch) for ch in ch_names]}."
-            )
-
-        missing = [ch for ch in ch_names if ch not in self.ch_names]
-        if len(missing) > 0:
-            msg = "Channel(s) {0} not found, nothing dropped."
-            _on_missing(on_missing, msg.format(", ".join(missing)))
-
-        bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
+        drop_chs = _check_drop_ch_names(ch_names, self.ch_names, on_missing)
+        bad_idx = [self.ch_names.index(ch) for ch in drop_chs]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         if len(idx) == 0:
             raise ValueError("All channels would be dropped.")
@@ -1062,7 +1067,9 @@ class InterpolationMixin:
         Parameters
         ----------
         reset_bads : bool
-            If True, remove the bads from info.
+            If True, remove the interpolated channels from ``info["bads"]``.
+            Bad channels that were not interpolated (e.g., those in ``exclude``
+            or of a channel type not handled by ``method``) are kept.
         mode : str
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of channels
@@ -1190,6 +1197,10 @@ class InterpolationMixin:
             idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
             if len(pick_info(self.info, idx)["bads"]) == 0:
                 method.pop(ch_type)
+        picks = _picks_to_idx(
+            self.info, list(method), exclude=exclude, allow_empty=True
+        )
+        interpolated = set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
         logger.info("Interpolating bad channels.")
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):
@@ -1226,7 +1237,9 @@ class InterpolationMixin:
                     "nan-containing channels can be easily excluded from later "
                     "computations."
                 )
-            self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
+            self.info["bads"] = [
+                ch for ch in self.info["bads"] if ch not in interpolated
+            ]
 
         return self
 

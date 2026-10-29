@@ -2,15 +2,20 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from ..utils import fill_doc_static
 from .constants import FIFF
 
+if TYPE_CHECKING:
+    from .meas_info import Info
 
-def get_current_comp(info):
+
+def get_current_comp(info: "Info") -> int:
     """Get the current compensation in effect in the data."""
-    comp = None
+    comp = 0
     first_comp = -1
     for k, chan in enumerate(info["chs"]):
         if chan["kind"] == FIFF.FIFFV_MEG_CH:
@@ -22,7 +27,7 @@ def get_current_comp(info):
     return comp
 
 
-def set_current_comp(info, comp):
+def set_current_comp(info: "Info", comp: int) -> None:
     """Set the current compensation in effect in the data."""
     comp_now = get_current_comp(info)
     for k, chan in enumerate(info["chs"]):
@@ -65,7 +70,9 @@ def _make_compensator(info, grade):
 
 
 @fill_doc_static("info_not_none")
-def make_compensator(info, from_, to, exclude_comp_chs=False):
+def make_compensator(
+    info: "Info", from_: int, to: int, exclude_comp_chs: bool = False
+) -> np.ndarray[tuple[int, int], np.dtype[np.floating]] | None:
     """Return compensation matrix eg. for CTF system.
 
     Create a compensation matrix to bring the data from one compensation

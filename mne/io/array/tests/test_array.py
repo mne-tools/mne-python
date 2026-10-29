@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import gc
+import weakref
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -73,6 +75,16 @@ def test_array_copy():
     with pytest.raises(ValueError, match="data copying was not .* copy=None"):
         RawArray(data.astype(np.float32), info, copy=None)
 
+    # _init_kwargs should not retain data to avoid memory leaks
+    data = np.zeros((1, 100))
+    ref = weakref.ref(data)
+    raw = RawArray(data, info)
+    assert "data" not in raw._init_kwargs
+    del data
+    raw._data = np.zeros((1, 50))
+    gc.collect()
+    assert ref() is None
+
 
 @pytest.mark.slowtest
 def test_array_raw():
@@ -117,6 +129,7 @@ def test_array_raw():
     raw2 = _test_raw_reader(
         RawArray,
         test_preloading=False,
+        test_kwargs=False,
         data=data,
         info=info,
         first_samp=2 * data.shape[1],

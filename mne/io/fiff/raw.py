@@ -258,6 +258,7 @@ class Raw(BaseRaw):
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
+            assert isinstance(raw_node, dict)  # for type checker
 
             #   Process the directory
             directory = raw_node["directory"]

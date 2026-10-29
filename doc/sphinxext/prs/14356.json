@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "e2c5757ccec8172aa6f9dca8551f6c77ce8aa40c",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    ".extended_metadata.yaml": {
+      "a": 14,
+      "d": 0
+    },
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 4,
+      "d": 1
+    },
+    "tools/dev/spec_zero_update_versions.py": {
+      "a": 0,
+      "d": 304
+    }
+  }
+}

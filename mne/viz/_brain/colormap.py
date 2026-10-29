@@ -4,6 +4,8 @@
 
 import numpy as np
 
+_CORTEX_PRESETS = ("classic", "high_contrast", "low_contrast", "bone")
+
 
 def create_lut(cmap, n_colors=256, center=None):
     """Return a colormap suitable for setting as a LUT."""

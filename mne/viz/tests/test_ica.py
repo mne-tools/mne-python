@@ -14,6 +14,7 @@ from mne import (
     Annotations,
     Epochs,
     create_info,
+    make_fixed_length_epochs,
     make_fixed_length_events,
     pick_types,
     read_cov,
@@ -369,6 +370,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     if sys.platform == "darwin":  # unknown transformation bug
         monkeypatch.setenv("MNE_BROWSE_RAW_SIZE", "20,20")
     fig = ica.plot_sources(raw)
+    assert repr(fig).endswith(" | ICA of Raw, browsing 2 components, 1.0 s>")
     assert browser_backend._get_n_figs() == 1
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)
@@ -579,9 +581,7 @@ def test_plot_ica_overlay():
         rng=0,
     )
     ica.fit(raw, picks=picks)
-    with pytest.warns(RuntimeWarning, match="longer than"):
-        ecg_epochs = create_ecg_epochs(raw)
-    ica.plot_overlay(ecg_epochs.average())
+    ica.plot_overlay(make_fixed_length_epochs(raw, duration=1.0).average())
 
 
 def _get_geometry(fig):
