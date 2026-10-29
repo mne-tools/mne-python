@@ -14,7 +14,12 @@ from scipy.interpolate import interp1d
 from ..._fiff.constants import FIFF
 from ..._freesurfer import _estimate_talxfm_rigid
 from ...defaults import _handle_default
-from ...surface import _decimate_surface_ico_oct, _mesh_borders, mesh_edges
+from ...surface import (
+    _decimate_surface_ico_oct,
+    _mesh_borders,
+    mesh_edges,
+    read_surface,
+)
 from ...transforms import apply_trans, fit_matched_points
 from ...utils import (
     Bunch,
@@ -1288,11 +1293,11 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         scale = 1000.0 if self._units == "mm" else 1.0
         if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD:  # e.g., fwd["src"]
             for hemi, s in zip(("lh", "rh"), self._data["src"][:2]):
-                if hemi in self.geo and s["np"] == len(self.geo[hemi].coords):
+                fname = op.join(self._subjects_dir, self._subject, "surf", hemi)
+                mri_rr = read_surface(f"{fname}.white")[0] / 1000.0
+                if s["np"] == len(mri_rr):
                     try:
-                        head_mri_t = fit_matched_points(
-                            s["rr"], self.geo[hemi].coords / scale, tol=1e-4
-                        )
+                        head_mri_t = fit_matched_points(s["rr"], mri_rr, tol=1e-4)
                         break
                     except RuntimeError:  # not the same surface
                         pass
