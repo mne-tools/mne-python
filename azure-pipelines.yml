@@ -51,22 +51,20 @@ stages:
           # See tools/github_actions_env_vars.sh for why these are set (this job
           # is on Python 3.14, so sys.monitoring can measure branches)
           COVERAGE_CORE: 'sysmon'
+          UV_CACHE_DIR: '/home/runner/.cache/uv'
           UV_SYSTEM_PYTHON: 'true'  # UsePythonVersion gives us a bare interpreter, not a venv
           UV_NO_PROGRESS: 'true'
         steps:
           - bash: |
               set -xeo pipefail
               git clone --depth 1 https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
-              # HOME differs between ubuntu images
-              echo "##vso[task.setvariable variable=HOME_DIR]$HOME"
-              echo "##vso[task.setvariable variable=UV_CACHE_DIR]$HOME/.cache/uv"
             displayName: Clone mne-tools
           - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
           - task: Cache@2
             inputs:
               key: '"minimal-cmds" | "$(Agent.OS)" | $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh'
-              path: $(HOME_DIR)/minimal_cmds
+              path: /home/runner/minimal_cmds
             displayName: Cache minimal commands
           - bash: $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh
             displayName: Get minimal commands
@@ -100,7 +98,7 @@ stages:
           - task: Cache@2
             inputs:
               key: mne_data-testing-$(testing_version)-misc-$(misc_version)
-              path: $(HOME_DIR)/mne_data
+              path: /home/runner/mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
@@ -128,8 +126,6 @@ stages:
           - bash: |
               set -xeo pipefail
               git clone --depth 1 https://github.com/mne-tools/mne-tools.git "$MNE_TOOLS_DIR"
-              # HOME differs between ubuntu images
-              echo "##vso[task.setvariable variable=HOME_DIR]$HOME"
             displayName: Clone mne-tools
           - bash: $(MNE_TOOLS_DIR)/tools/setup_xvfb.sh
             displayName: Setup up Xvfb
@@ -155,7 +151,7 @@ stages:
           - task: Cache@2
             inputs:
               key: mne_data-testing-$(testing_version)-misc-$(misc_version)
-              path: $(HOME_DIR)/mne_data
+              path: /home/runner/mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
