@@ -1,0 +1,1 @@
+Fix :meth:`mne.Evoked.plot_joint` interactive plots, where the axes shrank to zero when moving the cursor over the figure (the connection lines between the time series and topomaps were inflating the constrained layout, shrinking the axes on every redraw), by `Akhil Gopu`_.
