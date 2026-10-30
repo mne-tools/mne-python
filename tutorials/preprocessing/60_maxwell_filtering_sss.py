@@ -77,6 +77,7 @@ raw.crop(tmax=60)
 # - tSSS
 # - Coordinate frame translation
 # - Regularization of internal components using information theory
+# - Noise-weighted estimation of internal components using Foster's inverse
 # - Raw movement compensation (using head positions estimated by MaxFilter)
 # - cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
 # - Handling of 3D (in addition to 1D) fine calibration files
@@ -104,9 +105,13 @@ crosstalk_file = os.path.join(sample_data_folder, "SSS", "ct_sparse_mgh.fif")
 #
 # .. warning::
 #
-#     It is critical to mark bad channels in ``raw.info['bads']`` *before*
-#     calling :func:`~mne.preprocessing.maxwell_filter` in order to prevent
-#     bad channel noise from spreading.
+#     It is critical to mark bad (noisy or flat) channels in
+#     ``raw.info['bads']`` *before* calling
+#     :func:`~mne.preprocessing.maxwell_filter` in order to prevent bad channel
+#     noise from spreading. Flat channels are particularly important to mark
+#     when using a noise covariance (see "Noise-weighted SSS" below), because a
+#     channel that is flat in the data used to compute the covariance is treated
+#     as noise-free.
 #
 # Let's see if we can automatically detect it.
 
@@ -335,6 +340,50 @@ raw_sss.pick(["meg"]).plot(duration=2, butterfly=True)
 # An external example using spatiotemporal extended SSS (teSSS) with movement
 # compensation can be found at
 # `github.com/ilabsbrainteam/2022-Best-Practices-Infant-MEG`_.
+#
+#
+# Noise-weighted SSS (Foster's inverse)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# SSS estimates the multipole moments using a pseudoinverse, which does not
+# account for sensor noise. Passing a sensor noise covariance as ``noise_cov``
+# instead estimates the internal moments with Foster's inverse
+# :footcite:`McPherson2026`, which weights each channel by its noise level. This
+# can reduce sensor noise, the spread of artifacts across channels, and
+# low-frequency interference, which is particularly useful for :term:`OPM` data.
+# Only the internal basis is used, so the noise covariance should capture sensor
+# noise and external interference but not brain activity, such as from an
+# empty-room recording or (e.g., for OPMs) from data before the first stimulus.
+#
+# .. warning::
+#
+#     Bad channels should still be marked. In particular, a channel that is flat
+#     in the data used to compute the noise covariance (like ``MEG 2443`` in the
+#     empty-room recording here) is treated as noise-free, so its noise in the
+#     recording would spread even more than with standard SSS.
+#
+# Here we compare the auditory responses using both approaches:
+
+events = mne.read_events(
+    os.path.join(sample_data_folder, "MEG", "sample", "sample_audvis_raw-eve.fif")
+)
+events = events[events[:, 0] <= raw.last_samp]  # we cropped the data
+erm = mne.io.read_raw_fif(
+    os.path.join(sample_data_folder, "MEG", "sample", "ernoise_raw.fif")
+)
+noise_cov = mne.compute_raw_covariance(erm, method="empirical")
+for title, this_cov in (("SSS", None), ("Foster's inverse", noise_cov)):
+    raw_sss = mne.preprocessing.maxwell_filter(
+        raw, cross_talk=crosstalk_file, calibration=fine_cal_file, noise_cov=this_cov
+    )
+    epochs = mne.Epochs(raw_sss, events, event_id=dict(aud_l=1, aud_r=2))
+    fig = epochs.average().plot()
+    fig.suptitle(title)
+
+# %%
+# With the bad channels marked, the two responses are similar, with Foster's
+# inverse giving somewhat lower noise. The benefit is larger for noisier
+# sensors such as OPMs :footcite:`McPherson2026`.
 #
 #
 # Movement compensation
