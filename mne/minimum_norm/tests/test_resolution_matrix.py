@@ -261,3 +261,220 @@ def test_resolution_matrix_fixed():
     assert_array_equal(stc_psf_label.data, stc_psf_label2[0].data)
     assert_array_equal(stc_psf_label.data, stc_psf_label2[1].data)
     assert_array_equal(stc_psf_label.data, stc_psf_idx.data)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_noisy_resolution_matrix():
+    """Test noisy resolution matrix."""
+    forward = mne.read_forward_solution(fname_fwd)
+    forward_fxd = mne.convert_forward_solution(forward, surf_ori=True, force_fixed=True)
+    noise_cov = mne.read_cov(fname_cov)
+    evoked = mne.read_evokeds(fname_evoked, 0)
+    inverse_operator_fxd = mne.minimum_norm.make_inverse_operator(
+        info=evoked.info,
+        forward=forward,
+        noise_cov=noise_cov,
+        loose=0.0,
+        depth=None,
+        fixed=True,
+    )
+    # regularisation parameter based on SNR
+    snr = 3.0
+    lambda2 = 1.0 / snr**2
+    # resmats without noise
+    rm_mne1 = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="MNE",
+        lambda2=lambda2,
+        noise_cov=None,
+        snr=None,
+    )
+    rm_mne2 = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="dSPM",
+        lambda2=lambda2,
+        noise_cov=None,
+        snr=None,
+    )
+    rm_mne3 = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="sLORETA",
+        lambda2=lambda2,
+        noise_cov=None,
+        snr=None,
+    )
+    rm_mne4 = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="eLORETA",
+        lambda2=lambda2,
+        noise_cov=None,
+        snr=None,
+    )
+
+    # same resmats with noise but very high SNR
+    rm_mne1h = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="MNE",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=1e20,
+    )
+    rm_mne2h = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="dSPM",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=1e20,
+    )
+    rm_mne3h = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="sLORETA",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=1e20,
+    )
+    rm_mne4h = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="eLORETA",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=1e20,
+    )
+
+    # same resmats with noise and realistic/medium SNR
+    rm_mne1m = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="MNE",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=3,
+    )
+    rm_mne2m = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="dSPM",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=3,
+    )
+    rm_mne3m = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="sLORETA",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=3,
+    )
+    rm_mne4m = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="eLORETA",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=3,
+    )
+
+    # same resmats with noise and very low SNR
+    rm_mne1l = make_inverse_resolution_matrix(
+        forward_fxd,
+        inverse_operator_fxd,
+        method="MNE",
+        lambda2=lambda2,
+        noise_cov=noise_cov,
+        snr=1e-20,
+    )
+
+    # resolution matrices should be very close without noise and at high SNR
+    assert_array_almost_equal(np.abs(rm_mne1), rm_mne1h)
+    assert_array_almost_equal(np.abs(rm_mne2), rm_mne2h)
+    assert_array_almost_equal(np.abs(rm_mne3), rm_mne3h)
+    assert_array_almost_equal(np.abs(rm_mne4), rm_mne4h)
+
+    # rows of resmats (CTFs) should be similar between methods
+    row_corrs = [
+        np.corrcoef(rm_mne1[i, :], rm_mne2[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [
+        np.corrcoef(rm_mne1[i, :], rm_mne3[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [
+        np.corrcoef(rm_mne1[i, :], rm_mne4[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1, 0.2)  # eLORETA is different
+
+    # for noisy resmats:
+    row_corrs = [
+        np.corrcoef(rm_mne1h[i, :], rm_mne2h[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [
+        np.corrcoef(rm_mne1h[i, :], rm_mne3h[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [
+        np.corrcoef(rm_mne1h[i, :], rm_mne4h[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1, 0.2)  # eLORETA is different
+
+    row_corrs = [
+        np.corrcoef(rm_mne1m[i, :], rm_mne2m[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [
+        np.corrcoef(rm_mne1m[i, :], rm_mne3m[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [
+        np.corrcoef(rm_mne1m[i, :], rm_mne4m[i, :])[0, 1]
+        for i in np.arange(rm_mne1.shape[0])
+    ]
+    assert_allclose(row_corrs, 1, 0.2)  # eLORETA is different
+
+    # for very low SNR, resmat should be equal to noise power (except for scaling)
+    inv = mne.minimum_norm.prepare_inverse_operator(
+        inverse_operator_fxd, 1, lambda2, "MNE", copy="non-src"
+    )
+    # compute noise power in source space (what you get at very low SNR)
+    stc = mne.minimum_norm.apply_inverse_cov(
+        noise_cov,
+        evoked.info,
+        inv,
+        nave=1,
+        lambda2=lambda2,
+        method="MNE",
+        pick_ori=None,
+        prepared=True,
+        label=None,
+        method_params=None,
+        use_cps=True,
+        verbose=None,
+    )
+
+    # scale and compare noise power to all PSFs
+    x = np.sqrt(stc.data)
+    y = rm_mne1l
+    x = x / x.max()
+    x = np.tile(x, x.shape[0])
+    y = y / y.max()
+
+    assert_array_almost_equal(x, y)
