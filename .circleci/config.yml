@@ -5,6 +5,7 @@
 # Tagging a commit with the following overrides these behaviors:
 # - [circle front] will run the front page examples and perform test-doc
 # - [circle full] will run all examples and perform test-doc
+# - [circle lite] will also build the JupyterLite site in a partial build
 # - [circle linkcheck] will run our linkcheck job
 # - [circle deploy] on a main or maint/* commit will try to immediately build
 #   and deploy docs rather than waiting for the nightly build
