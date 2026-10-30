@@ -162,7 +162,7 @@ class PyVistaFigure(Figure3D):
         return self.plotter
 
     def _is_active(self):
-        return self.plotter.render_window is not None
+        return self.plotter is not None and self.plotter.render_window is not None
 
 
 class _Projection:
