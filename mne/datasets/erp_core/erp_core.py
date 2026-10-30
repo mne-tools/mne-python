@@ -14,7 +14,10 @@ from ..utils import (
     _version_doc,
 )
 
-_N170_BASE_URL = "https://data.nemar.org/nm000132/v1.1.1/"
+# Mirrored from https://nemar.org/dataset/nm000132 (v1.1.1), which can be slow
+_N170_BASE_URL = (
+    "https://github.com/mne-tools/mne-data/releases/download/erp_core_n170-1/"
+)
 _N170_REGISTRY = {
     "sub-001/eeg/sub-001_task-N170_eeg.fdt": (
         "sha256:08406f3c6b4a869dc8f67c9acc233a91993bae1b04b7dee5bc0521677ed8949b"
@@ -71,6 +74,8 @@ def fetch_file(fname, path=None):
         path=path / "ERP-CORE-N170",
         base_url=_N170_BASE_URL,
         registry=_N170_REGISTRY,
+        # GitHub release assets are flat, so drop the BIDS subdirectories
+        urls={key: _N170_BASE_URL + key.split("/")[-1] for key in _N170_REGISTRY},
         retry_if_failed=2,
     )
     pooch.get_logger().setLevel(logger.getEffectiveLevel())

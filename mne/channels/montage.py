@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from .._fiff._digitization import (
+    DigPoint,
     _coord_frame_const,
     _count_points_by_type,
     _ensure_fiducials_head,
@@ -1596,13 +1597,20 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
     del ch_pos
 
-    # XXX this is probably wrong as it uses the order from the montage
-    # rather than the order of our info['ch_names'] ...
     digpoints = [
-        mnt_head.dig[ii]
+        mnt_head.dig[ii] if name is None else DigPoint(mnt_head.dig[ii], ident=0)
         for ii, name in enumerate(dig_names_use)
-        if name in (info_names_use + ref_names)
+        if name in ref_names
     ]
+    # renumber so enforce_order (which sorts by ident) keeps info["ch_names"] order
+    dig_idx = {name: ii for ii, name in enumerate(dig_names_use)}
+    ch_names_dig = [
+        name
+        for name in dict.fromkeys(info_names_use)
+        if name in dig_idx and name not in ref_names
+    ]
+    for ident, name in enumerate(ch_names_dig, 1):
+        digpoints.append(DigPoint(mnt_head.dig[dig_idx[name]], ident=ident))
 
     # get a copy of the old dig
     if info["dig"] is not None:

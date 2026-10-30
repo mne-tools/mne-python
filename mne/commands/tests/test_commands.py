@@ -455,7 +455,6 @@ def test_flash_bem(tmp_path):
     ):
         mne_flash_bem.run()
 
-    kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ("outer_skin", "outer_skull", "inner_skull"):
         rr, tris = read_surface(op.join(subject_path_new, "bem", f"{s}.surf"))
         assert_equal(len(tris), 5120)
@@ -463,8 +462,9 @@ def test_flash_bem(tmp_path):
         assert_equal(rr.shape[0], tris.max() + 1)
         # compare to the testing flash surfaces
         rr_c, tris_c = read_surface(op.join(subjects_dir, "sample", "bem", f"{s}.surf"))
-        assert_allclose(rr, rr_c, **kwargs)
-        assert_allclose(tris, tris_c, **kwargs)
+        # up to ~0.07 mm deviation from atan2f with glibc 2.43 vs. 2.39
+        assert_allclose(rr, rr_c, rtol=0, atol=0.1)
+        assert_allclose(tris, tris_c, rtol=1e-5, atol=1e-5)
 
 
 @testing.requires_testing_data

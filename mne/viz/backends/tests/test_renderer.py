@@ -338,24 +338,24 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     monkeypatch.setattr(platform, "system", lambda: "Linux")  # avoid short-circuit
     monkeypatch.setenv("MNE_IS_OSMESA", "false")
 
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setattr(plotter.render_window, "ReportCapabilities", lambda: good)
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     assert _pyvista._is_osmesa(plotter)
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: bad)
+    monkeypatch.setattr(plotter.render_window, "ReportCapabilities", lambda: bad)
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     with pytest.warns(RuntimeWarning, match=r"18\.3\.4 is too old"):
         assert _pyvista._is_osmesa(plotter)
-    monkeypatch.setattr(plotter.ren_win, "ReportCapabilities", lambda: good)
+    monkeypatch.setattr(plotter.render_window, "ReportCapabilities", lambda: good)
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     monkeypatch.setattr(
-        plotter.ren_win,
+        plotter.render_window,
         "ReportCapabilities",
         lambda: f"{pre}OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n",
     )
     monkeypatch.setattr(_pyvista, "_GPU_REPORT", None)
     assert not _pyvista._is_osmesa(plotter)
     monkeypatch.setattr(
-        plotter.ren_win,
+        plotter.render_window,
         "ReportCapabilities",
         lambda: f"{pre}OpenGL 4.5 (Core Profile) Mesa 24.2.3-1ubuntu1 via NVE6\n",
     )
