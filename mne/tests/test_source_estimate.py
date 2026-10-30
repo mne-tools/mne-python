@@ -277,6 +277,24 @@ def test_save_stc_as_gifti(tmp_path):
     assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
 
+    for image, data in ((img_timelh, stc.lh_data), (img_timerh, stc.rh_data)):
+        assert_allclose(float(image.meta["TimeStart"]), stc.tmin)
+        assert_allclose(float(image.meta["TimeStep"]), stc.tstep)
+        assert image.meta["TimeUnits"] == "s"
+        assert image.meta["TimeSamples"] == str(len(stc.times))
+        assert len(image.darrays) == len(stc.times)
+        for idx, (darray, time) in enumerate(
+            zip(image.darrays, stc.times, strict=True)
+        ):
+            assert darray.meta["TimeIndex"] == str(idx)
+            assert_allclose(float(darray.meta["TimeValue"]), time)
+            assert darray.meta["TimeUnits"] == "s"
+            assert darray.meta["Name"] == f"{time:g} s"
+            assert_array_equal(darray.data, data[:, idx].astype(np.float32))
+
+    for key in ("TimeStart", "TimeStep", "TimeUnits", "TimeSamples"):
+        assert img_timelh.meta[key] == img_timerh.meta[key]
+
 
 @testing.requires_testing_data
 def test_stc_as_volume():
