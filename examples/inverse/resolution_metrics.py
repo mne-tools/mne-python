@@ -127,7 +127,7 @@ brain_ple_diff = diff_ple.plot(
 brain_ple_diff.add_text(0.1, 0.9, "PLE MNE-dSPM", "title", font_size=16)
 
 # %%
-# These plots show that  dSPM has generally lower peak localization error (red
+# These plots show that dSPM has generally lower peak localization error (red
 # color) than MNE in deeper brain areas, but higher error (blue color) in more
 # superficial areas.
 #

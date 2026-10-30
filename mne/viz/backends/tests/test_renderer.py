@@ -277,6 +277,13 @@ def test_renderer_internal_helpers(renderer_pyvistaqt):
     # _trigger_pick should not raise
     rend._trigger_pick(1, 1)
 
+    # a closed figure stored under an int is replaced rather than reused
+    first = renderer._get_renderer(fig=1, size=(300, 300))
+    first.close()
+    second = renderer._get_renderer(fig=1, size=(300, 300))
+    assert second.figure is not first.figure
+    second.close()
+
 
 def test_get_3d_backend(renderer):
     """Test get_3d_backend function call for side-effects."""
