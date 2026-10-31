@@ -2801,6 +2801,17 @@ def _cluster_mass(stat_obs, cluster, t_power):
     return (np.sign(vals) * np.abs(vals) ** t_power).sum()
 
 
+def _mask_to_time_spans(time_mask, times, sfreq):
+    """Convert a 1D boolean time mask to a list of (start, end) spans in s."""
+    padded = np.concatenate([[False], time_mask, [False]]).astype(int)
+    edges = np.diff(padded)
+    starts = np.flatnonzero(edges == 1)
+    stops = np.flatnonzero(edges == -1) - 1
+    # pad by half a sample so single-sample clusters are still visible
+    half = 0.5 / sfreq
+    return [(times[s] - half, times[e] + half) for s, e in zip(starts, stops)]
+
+
 class ClusterResult:
     """Object containing the results of the cluster permutation test.
 
@@ -2915,6 +2926,18 @@ class ClusterResult:
             return "F"
         return default
 
+    def _get_significant_cluster_masks(self, cluster_alpha):
+        """Return one boolean mask (shape of stat_obs) per cluster with p < alpha."""
+        masks = []
+        if cluster_alpha is None:
+            return masks
+        for cluster, p_val in zip(self.clusters, self.cluster_p_values):
+            if p_val < cluster_alpha:
+                mask = np.zeros(self.stat_obs.shape, dtype=bool)
+                mask[cluster] = True
+                masks.append(mask)
+        return masks
+
     def plot_joint(
         self,
         info,
@@ -2923,6 +2946,7 @@ class ClusterResult:
         title=None,
         picks=None,
         exclude="bads",
+        cluster_alpha=0.05,
         show=True,
         ts_args=None,
         topomap_args=None,
@@ -2931,7 +2955,8 @@ class ClusterResult:
 
         Visualizes test statistics as a time series (butterfly plot) with
         topographic maps at selected time points, preserving spatial relationships
-        between channels.
+        between channels. Clusters with a p-value below ``cluster_alpha`` are
+        highlighted.
 
         .. note::
             Only results of shape ``(n_channels, n_times)`` (e.g. from
@@ -2956,6 +2981,16 @@ class ClusterResult:
             Channels to include. Defaults to ``None`` (all channels).
         exclude : list of str | "bads"
             Channels to exclude. Defaults to ``"bads"``.
+        cluster_alpha : float | None
+            Highlight all clusters with a p-value below this threshold. In the
+            time course, the time windows covered by these clusters are shaded;
+            in the topomaps, sensors inside them are marked. If ``None``, no
+            clusters are highlighted. Defaults to ``0.05``.
+
+            .. note::
+            The highlighted region shows the extent of significant clusters.
+            A cluster-level test does not establish that the effect is located
+            at any individual channel or time point within a cluster.
         show : bool
             Show figure if ``True``. Defaults to ``True``.
         ts_args : dict | None
@@ -2973,6 +3008,8 @@ class ClusterResult:
         from mne import EvokedArray
         from mne.viz.evoked import plot_evoked_joint
 
+        from .._fiff.pick import _picks_to_idx  # NEW
+
         # for now only supports 2D clusters
         if self.stat_obs.ndim != 2:
             raise ValueError(
@@ -2985,6 +3022,10 @@ class ClusterResult:
                 f"info has {len(info['ch_names'])} channels, but stat_obs has "
                 f"{self.stat_obs.shape[0]}."
             )
+
+        _validate_type(cluster_alpha, (None, "numeric"), "cluster_alpha")
+        if cluster_alpha is not None and not 0 < cluster_alpha <= 1:
+            raise ValueError(f"cluster_alpha must be in (0, 1], got {cluster_alpha}.")
 
         times_sec = np.asarray(times_sec, float)
 
@@ -3015,8 +3056,42 @@ class ClusterResult:
         scalings = {ch_type: 1.0 for ch_type in ch_types}
         units = {ch_type: unit for ch_type in ch_types}
 
-        ts_args = {"scalings": scalings, "units": units, **(ts_args or {})}
-        topomap_args = {"scalings": scalings, "units": units, **(topomap_args or {})}
+        ts_defaults = {"scalings": scalings, "units": units}
+        topo_defaults = {"scalings": scalings, "units": units}
+
+        cluster_masks = self._get_significant_cluster_masks(cluster_alpha)
+        if cluster_alpha is not None and not cluster_masks:
+            logger.info(f"No clusters with p < {cluster_alpha}; nothing to highlight.")
+        if cluster_masks:
+            # plot_evoked_joint drops channels via picks/exclude; match that
+            keep = _picks_to_idx(info, picks, exclude=exclude)
+            cluster_masks = [m[keep] for m in cluster_masks]
+            stat_kept = self.stat_obs[keep]
+            mask = np.any(cluster_masks, axis=0)
+
+            # time course: shade the time windows covered by significant clusters
+            ts_defaults["highlight"] = _mask_to_time_spans(
+                mask.any(axis=0), times_sec, info["sfreq"]
+            )
+            # topomaps: mark sensors inside a significant cluster
+            topo_defaults["mask"] = mask
+            topo_defaults["mask_params"] = dict(
+                marker="o",
+                markerfacecolor="w",
+                markeredgecolor="k",
+                linewidth=0,
+                markersize=6,
+            )
+            # topomaps at the |t| peak of each significant cluster
+            if isinstance(times, str) and times == "peaks":
+                peak_idx = {
+                    int(np.argmax(np.abs(np.where(m, stat_kept, 0)).max(axis=0)))
+                    for m in cluster_masks
+                }
+                times = times_sec[sorted(peak_idx)]
+
+        ts_args = {**ts_defaults, **(ts_args or {})}
+        topomap_args = {**topo_defaults, **(topomap_args or {})}
 
         return plot_evoked_joint(
             stat_evoked,
