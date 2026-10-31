@@ -24,7 +24,7 @@ def test_nihon_eeg():
     fname = data_path / "NihonKohden" / "MB0400FU.EEG"
     raw = read_raw_nihon(fname.as_posix(), preload=True)
     assert "RawNihon" in repr(raw)
-    _test_raw_reader(read_raw_nihon, fname=fname, test_scaling=False)
+    _test_raw_reader(read_raw_nihon, fname=fname)
     fname_edf = data_path / "NihonKohden" / "MB0400FU.EDF"
     raw_edf = read_raw_edf(fname_edf, preload=True)
     raw_edf.drop_channels(["Events/Markers"])

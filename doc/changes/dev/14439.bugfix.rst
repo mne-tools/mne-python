@@ -1,0 +1,1 @@
+Fix :meth:`mne.io.Raw.crop` with ``reset_first_samp=True`` misaligning annotations with the data, reading wrong data from files not preloaded, and setting a wrong :term:`first_samp` on concatenated raws, by `Mathieu Scheltienne`_.

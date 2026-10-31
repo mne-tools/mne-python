@@ -1935,25 +1935,35 @@ def _handle_meas_date(meas_date):
     if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = "%Y-%m-%d %H:%M:%S.%f"
         try:
-            meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+            dt = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+            meas_date = dt.replace(tzinfo=UTC)
         except ValueError:
-            meas_date = None
-        else:
-            meas_date = meas_date.replace(tzinfo=UTC)
+            try:
+                dt = datetime.strptime(meas_date, "%Y-%m-%d %H:%M:%S.%f%z")
+                meas_date = dt.astimezone(UTC)
+            except ValueError:
+                meas_date = None
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
+    elif isinstance(meas_date, datetime):
+        # Non-UTC timezone-aware datetimes are converted to UTC for internal storage
+        if meas_date.tzinfo is None:
+            raise ValueError(
+                f"Date must be a timezone-aware datetime object: {repr(meas_date)}"
+            )
+        meas_date = meas_date.astimezone(UTC)
+    elif np.isscalar(meas_date):
+        # It would be nice just to do:
+        #
+        #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+        #
+        # But Windows does not like timestamps < 0. So we'll use
+        # our specialized wrapper instead:
+        meas_date = np.array(np.modf(meas_date)[::-1])
+        meas_date *= [1, 1e6]
+        meas_date = _stamp_to_dt(np.round(meas_date))
     if meas_date is not None:
-        if np.isscalar(meas_date):
-            # It would be nice just to do:
-            #
-            #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
-            #
-            # But Windows does not like timestamps < 0. So we'll use
-            # our specialized wrapper instead:
-            meas_date = np.array(np.modf(meas_date)[::-1])
-            meas_date *= [1, 1e6]
-            meas_date = _stamp_to_dt(np.round(meas_date))
         _check_dt(meas_date)  # run checks
     return meas_date
 
@@ -2604,6 +2614,11 @@ def events_from_annotations(
           - Other raw formats: Behaves like None.
 
           .. versionadded:: 0.18
+
+        Several descriptions may map to the same event code (e.g., to merge
+        conditions), but the returned ``event_id`` then cannot be passed to
+        :class:`~mne.Epochs` as-is, because it requires each event code to map to
+        exactly one name.
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match. The default ignores descriptions beginning

@@ -356,7 +356,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     epoch_data[y == 1, informative_ch_idx, :] += target_template
 
     mixing_mat = _safe_svd(rng.standard_normal((n_channels, n_channels)))[0]
-    mixed_epoch_data = np.dot(mixing_mat.T, epoch_data).transpose((1, 0, 2))
+    mixed_epoch_data = mixing_mat.T @ epoch_data
 
     events = np.zeros((n_epochs, 3), dtype=int)
     events[:, 0] = np.arange(0, n_epochs * n_times, n_times)

@@ -2595,8 +2595,7 @@ def cluster_test(
     # repeated-measures ANOVA or an interaction)
     n_groups = df[factor_names].drop_duplicates().shape[0]
     if within_id and (is_interaction or n_groups >= 2):
-        df = df.copy(deep=False)  # Don't mutate input dataframe row order!
-        df.sort_values([*factor_names, within_id], inplace=True)
+        df = df.sort_values([*factor_names, within_id])
         counts = df[within_id].value_counts()
 
         iv_names = iv_name.split(":")

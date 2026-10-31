@@ -293,19 +293,19 @@ processing across subjects.
 
 2D visualization
 ^^^^^^^^^^^^^^^^
-`This goal <https://mne.tools/0.22/overview/roadmap.html#2d-visualization>`__
+`This goal <https://github.com/mne-tools/mne-python/blob/maint/0.22/doc/overview/roadmap.rst#2d-visualization>`__
 was completed under CZI `EOSS2`_. Some additional enhancements that could also
 be implemented are listed in :gh:`7751`.
 
 Tutorial / example overhaul
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-`This goal <https://mne.tools/0.22/overview/roadmap.html#tutorial-example-overhaul>`__
+`This goal <https://github.com/mne-tools/mne-python/blob/maint/0.22/doc/overview/roadmap.rst#tutorial-example-overhaul>`__
 was completed under CZI `EOSS2`_. Ongoing documentation needs are listed in
 :ref:`documentation-updates`.
 
 Cluster computing images
 ^^^^^^^^^^^^^^^^^^^^^^^^
-As part of `this goal <https://mne.tools/0.22/overview/roadmap.html#cluster-computing>`__,
+As part of `this goal <https://github.com/mne-tools/mne-python/blob/maint/0.22/doc/overview/roadmap.rst#cluster-computing>`__,
 we created docker images suitable for cloud computing via `MNE-Docker <https://github.com/mne-tools/mne-docker>`__.
 
 .. _I-LABS: http://ilabs.washington.edu/
