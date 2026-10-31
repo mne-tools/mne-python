@@ -109,7 +109,6 @@ venv/
 doc/jupyterlite_contents/*
 !doc/jupyterlite_contents/.gitkeep
 doc/_contents/
-doc/lite_extra/
 
 /.claude/
 uv.lock

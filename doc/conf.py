@@ -151,7 +151,6 @@ exclude_patterns = [
     "changes/dev",
     "jupyterlite_contents",
     "_contents",  # where jupyterlite-sphinx stages what it mounts
-    "lite_extra",
     "pypi",
 ]
 
@@ -493,11 +492,11 @@ if sys.platform.startswith("win"):
         compress_images = ()
 
 sphinx_gallery_parallel = int(os.getenv("MNE_DOC_BUILD_N_JOBS", "1"))
-# The JupyterLite site, and the data it serves (about 1 GB), only belong in a
-# full build: `make html` turns this on, pattern and noplot builds leave it off.
+# `make html` turns the JupyterLite site on, as do [circle front] and
+# [circle lite] on CircleCI; other pattern and noplot builds leave it off.
 build_jupyterlite = os.getenv("MNE_DOC_BUILD_JUPYTERLITE", "0") == "1"
 if build_jupyterlite:
-    from jupyterlite_data import stage_lite_data  # noqa: E402
+    from build_lite_wheel import build_wheel, find_wheels  # noqa: E402
 
     extensions.append("jupyterlite_sphinx")
     # the two gallery folders rather than their parent: jupyterlite-sphinx
@@ -507,8 +506,8 @@ if build_jupyterlite:
     jupyterlite_bind_ipynb_suffix = False
     # bakes the browser's extra packages into the Pyodide lock at build time
     jupyterlite_config = "jupyter_lite_config.py"
-    # served at the docs root (/mne_data/...) through html_extra_path below
-    stage_lite_data(curpath / "lite_extra" / "mne_data")
+    # `make html` builds the wheel first; this is for a bare sphinx-build
+    find_wheels() or build_wheel()
 
 sphinx_gallery_conf = {
     "doc_module": ("mne",),
@@ -728,10 +727,10 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/inverse/70_eeg_mri_coords.py",
     # mne_bids is not installable in the browser kernel
     "tutorials/inverse/95_phantom_KIT.py",
-    # Tier 7: served size. Every file below is copied into every docs deploy,
-    # so a dataset that only one or two pages read has to earn its place;
-    # these did not (sizes are what the staging step copied). Restoring a page
-    # means adding what it reads to DATASET_FILES in jupyterlite_data.py.
+    # Tier 7: served size. The mne-data Pages site is capped at 1 GB, so a
+    # dataset that only one or two pages read has to earn its place; these
+    # did not. Restoring a page means adding what it reads to mne-data's
+    # gh-pages branch (under lite/).
     # somato: 404 MB (the raw alone is 344 MB) for six pages
     "examples/inverse/dics_epochs.py",
     "examples/inverse/dics_source_power.py",
@@ -752,8 +751,7 @@ JUPYTERLITE_EXCLUDE = (
     "tutorials/preprocessing/60_maxwell_filtering_sss.py",
     "tutorials/intro/20_events_from_raw.py",
     "examples/visualization/roi_erpimage_by_rt.py",
-    # single recordings well past MAX_FILE_MB, 379 MB and 251 MB, so the
-    # staging step skips them and the badge would have nothing to load
+    # single recordings of 379 MB and 251 MB, too big to serve from mne-data
     "examples/datasets/kernel_phantom.py",
     "examples/io/elekta_epochs.py",
     # These want EEGBCI runs 1 and 2, which tools/circleci_download.sh never
@@ -1122,8 +1120,6 @@ html_extra_path = [
     "getting_started.html",
     "install_mne_python.html",
 ]
-if build_jupyterlite:  # the served data, at /mne_data/...
-    html_extra_path.append("lite_extra")
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
