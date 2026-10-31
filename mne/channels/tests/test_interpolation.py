@@ -688,3 +688,91 @@ def test_interpolate_to_meg(monkeypatch):
         evoked_rt.interpolate_to("ctf151", **kwargs)
     with pytest.raises(ValueError, match="Invalid value"):
         evoked_rt.interpolate_to("foo", **kwargs)
+
+
+def test_cached_interpolation_matrix():
+    """Test caching bad channel interpolation matrix for EEG & MEG (gh-4651)."""
+    from mne.channels import (
+        InterpolationMatrix,
+        compute_bad_channel_interpolation_matrix,
+    )
+
+    # Load shared dataset once
+    raw = read_raw_fif(raw_fname).crop(0, 0.2).del_proj().load_data()
+
+    # 1. EEG interpolation caching
+    raw_eeg = raw.copy().pick(pick_types(raw.info, meg=False, eeg=True)[:10])
+    raw_eeg.info["bads"] = [raw_eeg.ch_names[2]]
+    interp_eeg = compute_bad_channel_interpolation_matrix(raw_eeg)
+    assert isinstance(interp_eeg, InterpolationMatrix)
+    assert repr(interp_eeg) == "<InterpolationMatrix | 1 bad channels, 1 steps (eeg)>"
+    assert interp_eeg.copy() == interp_eeg
+    assert compute_bad_channel_interpolation_matrix(raw_eeg.info) == interp_eeg
+
+    # Numerical parity across Raw, Epochs, Evoked
+    epochs_eeg = make_fixed_length_epochs(raw_eeg, duration=0.1, preload=True)
+    for inst in (raw_eeg, epochs_eeg, epochs_eeg.average()):
+        assert_allclose(
+            inst.copy().interpolate_bads(interpolation=interp_eeg).get_data(),
+            inst.copy().interpolate_bads().get_data(),
+            atol=1e-15,
+        )
+
+    # Input validation and compatibility checks
+    with pytest.raises(TypeError, match="interpolation must be an instance of"):
+        raw_eeg.interpolate_bads(interpolation="invalid")
+    with pytest.raises(TypeError, match="inst_or_info must be an instance of"):
+        compute_bad_channel_interpolation_matrix("invalid")
+    raw_bad = raw_eeg.copy()
+    raw_bad.info["bads"] = [raw_eeg.ch_names[0]]
+    for bad_inst in (raw_eeg.copy().drop_channels([raw_eeg.ch_names[0]]), raw_bad):
+        with pytest.raises(ValueError, match="not compatible"):
+            bad_inst.interpolate_bads(interpolation=interp_eeg)
+
+    # Empty bads and reset_bads=False
+    info_no_bads = raw_eeg.info.copy()
+    info_no_bads["bads"] = []
+    with pytest.warns(RuntimeWarning, match="No bad channels to interpolate"):
+        assert len(compute_bad_channel_interpolation_matrix(info_no_bads)["steps"]) == 0
+    assert (
+        raw_eeg.copy()
+        .interpolate_bads(interpolation=interp_eeg, reset_bads=False)
+        .info["bads"]
+        == raw_eeg.info["bads"]
+    )
+
+    # Excluded bad channels remain bad
+    raw_multi = raw_eeg.copy()
+    raw_multi.info["bads"] = [raw_eeg.ch_names[2], raw_eeg.ch_names[3]]
+    interp_ex = compute_bad_channel_interpolation_matrix(
+        raw_multi, exclude=[raw_eeg.ch_names[3]]
+    )
+    raw_multi.interpolate_bads(interpolation=interp_ex)
+    assert raw_multi.info["bads"] == [raw_eeg.ch_names[3]]
+
+    # 2. MEG interpolation caching
+    raw_meg = raw.copy().pick(pick_types(raw.info, meg=True, eeg=False)[:25])
+    raw_meg.info["bads"] = [raw_meg.ch_names[3]]
+    interp_meg = compute_bad_channel_interpolation_matrix(raw_meg, mode="fast")
+    assert repr(interp_meg) == "<InterpolationMatrix | 1 bad channels, 1 steps (meg)>"
+    epochs_meg = make_fixed_length_epochs(raw_meg, duration=0.1, preload=True)
+    for inst in (raw_meg, epochs_meg, epochs_meg.average()):
+        assert_allclose(
+            inst.copy().interpolate_bads(interpolation=interp_meg).get_data(),
+            inst.copy().interpolate_bads(mode="fast").get_data(),
+            atol=1e-15,
+        )
+
+    # 3. Combined EEG + MEG interpolation caching
+    raw_both = raw.copy().pick(
+        np.r_[pick_types(raw.info, meg=True)[:20], pick_types(raw.info, eeg=True)[:10]]
+    )
+    raw_both.info["bads"] = [raw_both.ch_names[2], raw_both.ch_names[22]]
+    interp_both = compute_bad_channel_interpolation_matrix(raw_both, mode="fast")
+    assert len(interp_both["steps"]) == 2
+    assert {s["ch_type"] for s in interp_both["steps"]} == {"eeg", "meg"}
+    assert_allclose(
+        raw_both.copy().interpolate_bads(interpolation=interp_both).get_data(),
+        raw_both.copy().interpolate_bads(mode="fast").get_data(),
+        atol=1e-15,
+    )
