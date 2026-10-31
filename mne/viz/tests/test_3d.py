@@ -24,6 +24,7 @@ from mne import (
     read_evokeds,
     read_forward_solution,
     read_trans,
+    setup_subcortical_source_space,
     setup_volume_source_space,
     use_coil_def,
 )
@@ -1555,6 +1556,38 @@ def test_mixed_sources_plot_surface(renderer_interactive):
         subjects_dir=subjects_dir,
         colorbar=False,
     )
+    brain.close()
+    del brain
+
+    # cortex + subcortical surface source space
+    src += setup_subcortical_source_space(
+        "sample", label="Left-Amygdala", aseg="aseg", subjects_dir=subjects_dir
+    )
+    assert src.kind == "mixed"
+    vertno = [s["vertno"] for s in src]
+    data = rng.standard_normal((sum(len(v) for v in vertno), T))
+    stc = MixedSourceEstimate(data, vertno, 0, 1, subject="sample")
+    src_head = src.copy()._transform_to("head", read_trans(trans_fname))
+    brain = stc.plot(
+        src=src_head,
+        surface="white",
+        subjects_dir=subjects_dir,
+        colorbar=False,
+        alpha=0.1,
+    )
+    mesh = brain._data["vol"]["subcortical_mesh"]
+    assert_allclose(mesh._polydata.points, src[2]["rr"] * 1000, atol=1e-2)
+    # gray base layer with the cortex alpha, data layer with the volume alpha
+    assert mesh._overlays["curv"]._opacity == 0.1
+    assert mesh._overlays[brain._active_data_key]._opacity == 1.0
+    brain.set_cortex_alpha(0.5)
+    assert mesh._overlays["curv"]._opacity == 0.5
+    colors = mesh._current_colors.copy()
+    brain.set_data_smoothing(-1)
+    assert not np.array_equal(colors, mesh._current_colors)
+    colors = mesh._current_colors.copy()
+    brain.set_time_point(1)
+    assert not np.array_equal(colors, mesh._current_colors)
     brain.close()
     del brain
 

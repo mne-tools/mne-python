@@ -11,10 +11,16 @@ from io import BytesIO
 import numpy as np
 from scipy.interpolate import interp1d
 
+from ..._fiff.constants import FIFF
 from ..._freesurfer import _estimate_talxfm_rigid
 from ...defaults import _handle_default
-from ...surface import _decimate_surface_ico_oct, _mesh_borders, mesh_edges
-from ...transforms import apply_trans
+from ...surface import (
+    _decimate_surface_ico_oct,
+    _mesh_borders,
+    mesh_edges,
+    read_surface,
+)
+from ...transforms import apply_trans, fit_matched_points
 from ...utils import (
     Bunch,
     _auto_weakref,
@@ -1141,7 +1147,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         from ..backends._pyvista import _hide_testing_actor
 
         _validate_type(src, SourceSpaces, "src")
-        _check_option("src.kind", src.kind, ("volume",))
+        _check_option("src.kind", src.kind, ("volume", "subcortical_surf"))
         _validate_type(volume_options, (dict, "numeric", None), "volume_options")
         assert hemi == "vol"
         if not isinstance(volume_options, dict):
@@ -1177,6 +1183,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         if alpha is None:
             alpha = 0.4 if self._data[hemi]["array"].ndim == 3 else 1.0
         alpha = np.clip(float(alpha), 0.0, 1.0)
+        if src.kind == "subcortical_surf":
+            self._data[hemi]["alpha"] = alpha
+            return self._add_subcortical_surf_data(hemi, src), None
         resolution = volume_options["resolution"]
         surface_alpha = volume_options["surface_alpha"]
         if surface_alpha is None:
@@ -1268,6 +1277,68 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 _hide_testing_actor(actor)
 
         return actor_pos, actor_neg
+
+    def _add_subcortical_surf_data(self, hemi, src):
+        hemi_data = self._data[hemi]
+        mesh = hemi_data.get("subcortical_mesh")
+        if mesh is not None:  # already created in another view
+            self._renderer.plotter.add_actor(mesh._actor, render=False)
+            return mesh._actor
+        # all meshes go in one LayeredMesh, so offset each one's vertex numbers
+        offsets = np.cumsum([0] + [s["np"] for s in src])[:-1]
+        rr = np.concatenate([s["rr"] for s in src])
+        nn = np.concatenate([s["nn"] for s in src])
+        scale = 1000.0 if self._units == "mm" else 1.0
+        if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD:  # e.g., fwd["src"]
+            for hemi, s in zip(("lh", "rh"), self._data["src"][:2]):
+                fname = op.join(self._subjects_dir, self._subject, "surf", hemi)
+                mri_rr = read_surface(f"{fname}.white")[0] / 1000.0
+                if s["np"] == len(mri_rr):
+                    try:
+                        head_mri_t = fit_matched_points(s["rr"], mri_rr, tol=1e-4)
+                        break
+                    except RuntimeError:  # not the same surface
+                        pass
+            else:
+                raise ValueError(
+                    "The subcortical source spaces are in head coordinates, and "
+                    "the head to MRI transform could not be determined from the "
+                    "cortical source spaces. Transform them to MRI coordinates "
+                    "first, e.g. with mne.transform_surface_to(s, 'mri', trans) "
+                    "for each source space."
+                )
+            rr = apply_trans(head_mri_t, rr)
+            nn = apply_trans(head_mri_t, nn, move=False)
+        rr = rr * scale
+        tris = np.concatenate([s["tris"] + off for s, off in zip(src, offsets)])
+        vertices = np.concatenate([s["vertno"] + off for s, off in zip(src, offsets)])
+        if len(vertices) != len(hemi_data["vertices"]):
+            raise ValueError(
+                f"The stc has {len(hemi_data['vertices'])} subcortical vertices but "
+                f"src has {len(vertices)}, they must match"
+            )
+        mesh = LayeredMesh(self._renderer, vertices=rr, triangles=tris, normals=nn)
+        mesh._map()
+        # gray base layer like the cortex has, so the mesh stays visible where the
+        # data is transparent; the data overlay is added by _update_current_time_idx
+        mesh.add_overlay(
+            scalars=np.zeros(len(rr)),
+            colormap=np.array([self._brain_color]) * 255,
+            rng=[0, 1],
+            opacity=self._alpha,
+            name="curv",
+        )
+        hemi_data["subcortical_vertno"] = vertices  # smoothed by set_data_smoothing
+        hemi_data["subcortical_mesh"] = mesh
+        return mesh._actor
+
+    @property
+    def _subcortical_meshes(self):
+        return [
+            key_data["vol"]["subcortical_mesh"]
+            for key_data in self._all_data.values()
+            if "subcortical_mesh" in key_data.get("vol", {})
+        ]
 
     def add_label(
         self,
@@ -1976,8 +2047,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             The opacity of the cortical surface, between 0 and 1.
         """
         self._alpha = float(alpha)
-        for hemi in self._hemis:
-            self.layered_meshes[hemi].update_overlay("curv", opacity=self._alpha)
+        meshes = [self.layered_meshes[hemi] for hemi in self._hemis]
+        for mesh in meshes + self._subcortical_meshes:
+            mesh.update_overlay("curv", opacity=self._alpha)
         self._renderer._update()
 
     def set_cortex_colormap(self, cortex):
@@ -2007,6 +2079,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 colormap=geo_kwargs["colormap"],
                 rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
             )
+        for mesh in self._subcortical_meshes:
+            mesh.update_overlay("curv", colormap=np.array([self._brain_color]) * 255)
         self._renderer._update()
 
     def set_surf(self, surf):
@@ -2215,12 +2289,13 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         for hemi in ["lh", "rh", "vol"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi in self.layered_meshes:
-                    mesh = self.layered_meshes[hemi]
+                mesh = self.layered_meshes.get(hemi, hemi_data.get("subcortical_mesh"))
+                if mesh is not None:
                     mesh.update_overlay(
                         name=self._active_data_key,
                         colormap=self._data["ctable"],
-                        opacity=alpha,
+                        # like volumes, subcortical meshes use volume_options alpha
+                        opacity=alpha if hemi != "vol" else hemi_data["alpha"],
                         rng=rng,
                     )
                     self._renderer._set_colormap_range(
@@ -2263,6 +2338,20 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         """
         from ...morph import _hemi_morph
 
+        morph_n_steps = "nearest" if n_steps == -1 else n_steps
+        for key_data in self._all_data.values():
+            hemi_data = key_data.get("vol", {})
+            if "subcortical_mesh" in hemi_data:
+                mesh = hemi_data["subcortical_mesh"]
+                with use_log_level(False):
+                    hemi_data["smooth_mat"] = _hemi_morph(
+                        mesh._triangles,
+                        np.arange(len(mesh._vertices)),
+                        hemi_data["subcortical_vertno"],
+                        morph_n_steps,
+                        maps=None,
+                        warn=False,
+                    )
         for hemi in ["lh", "rh"]:
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
@@ -2277,7 +2366,6 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         f"{self.geo[hemi].x.shape[0]}): the vertices "
                         "parameter must not be None"
                     )
-                morph_n_steps = "nearest" if n_steps == -1 else n_steps
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
                         self.geo[hemi].orig_faces,
@@ -2396,8 +2484,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         #     grid.point_data["values"][21334] = values.max()
 
                 # update the mesh scalar values
-                if hemi in self.layered_meshes:
-                    mesh = self.layered_meshes[hemi]
+                mesh = self.layered_meshes.get(hemi, hemi_data.get("subcortical_mesh"))
+                if mesh is not None:
                     mesh.smooth_mat = hemi_data.get("smooth_mat")
                     key_rng = [
                         (
@@ -2407,7 +2495,10 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         ),
                         key_data["fmax"],
                     ]
-                    if data_key in mesh._overlays:
+                    if data_key in mesh._overlays and hemi not in self.layered_meshes:
+                        # a subcortical mesh holds only this key's overlay
+                        mesh.update_overlay(data_key, scalars=act_data)
+                    elif data_key in mesh._overlays:
                         # Stage without recomposing; a single update below handles
                         # all overlays in O(N) instead of O(N²).
                         mesh.update_overlay(data_key, scalars=act_data, update=False)
