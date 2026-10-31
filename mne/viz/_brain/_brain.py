@@ -1279,8 +1279,6 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         return actor_pos, actor_neg
 
     def _add_subcortical_surf_data(self, hemi, src):
-        from ...morph import _hemi_morph
-
         hemi_data = self._data[hemi]
         mesh = hemi_data.get("subcortical_mesh")
         if mesh is not None:  # already created in another view
@@ -1330,9 +1328,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             opacity=self._alpha,
             name="curv",
         )
-        hemi_data["smooth_mat"] = _hemi_morph(
-            tris, np.arange(len(rr)), vertices, "nearest", maps=None, warn=False
-        )
+        hemi_data["subcortical_vertno"] = vertices  # smoothed by set_data_smoothing
         hemi_data["subcortical_mesh"] = mesh
         return mesh._actor
 
@@ -2342,6 +2338,20 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         """
         from ...morph import _hemi_morph
 
+        morph_n_steps = "nearest" if n_steps == -1 else n_steps
+        for key_data in self._all_data.values():
+            hemi_data = key_data.get("vol", {})
+            if "subcortical_mesh" in hemi_data:
+                mesh = hemi_data["subcortical_mesh"]
+                with use_log_level(False):
+                    hemi_data["smooth_mat"] = _hemi_morph(
+                        mesh._triangles,
+                        np.arange(len(mesh._vertices)),
+                        hemi_data["subcortical_vertno"],
+                        morph_n_steps,
+                        maps=None,
+                        warn=False,
+                    )
         for hemi in ["lh", "rh"]:
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
@@ -2356,7 +2366,6 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         f"{self.geo[hemi].x.shape[0]}): the vertices "
                         "parameter must not be None"
                     )
-                morph_n_steps = "nearest" if n_steps == -1 else n_steps
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
                         self.geo[hemi].orig_faces,

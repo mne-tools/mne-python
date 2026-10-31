@@ -1581,6 +1581,9 @@ def test_mixed_sources_plot_surface(renderer_interactive):
     brain.set_cortex_alpha(0.5)
     assert mesh._overlays["curv"]._opacity == 0.5
     colors = mesh._current_colors.copy()
+    brain.set_data_smoothing(-1)
+    assert not np.array_equal(colors, mesh._current_colors)
+    colors = mesh._current_colors.copy()
     brain.set_time_point(1)
     assert not np.array_equal(colors, mesh._current_colors)
     brain.close()
