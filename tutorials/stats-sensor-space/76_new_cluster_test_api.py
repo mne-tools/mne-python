@@ -169,19 +169,39 @@ print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 # Inspect the results
 # -------------------
 #
-# The result object carries the observed cluster-level statistics. We plot the
-# observed t-values as a joint plot: a butterfly plot of the t-value time course
-# of every channel, with topographic maps at the time points of the largest
-# peaks. Because the contrast is target minus non-target, positive t-values mean
-# a stronger response to targets, matching the difference plotted earlier.
-# Note that this shows the test statistic itself, not which channels and time
-# points belong to a significant cluster.
+# The result object carries the observed test statistic for every channel and
+# time point, the clusters found in the data, and one p-value per cluster.
+# Each p-value says how often a cluster at least this large appeared when the
+# condition labels were shuffled.
 
 print(f"Number of permutations run: {cluster_result.n_permutations}")
+print(f"Cluster p-values: {cluster_result.cluster_p_values}")
 
-# Plot cluster result statistic (for now without the actual cluster highlighted)
+# %%
+# We plot the observed t-values as a joint plot: a butterfly plot of the
+# t-value time course of every channel, with topographic maps below.
+# Because the contrast is target minus non-target, positive t-values mean a
+# stronger response to targets, matching the difference plotted earlier.
+#
+# Clusters with a p-value below ``cluster_alpha`` (0.05 by default) are
+# highlighted. In the butterfly plot, the time windows covered by
+# significant clusters are shaded. One topomap is placed at the peak of each
+# significant cluster, and the sensors that belong to that cluster at that
+# time point are marked. Pass ``cluster_alpha=None`` to plot the test
+# statistic without highlighting; the topomaps are then placed at the
+# largest peaks of the global field power instead.
+#
+# .. warning::
+#    The cluster test tells us that the two conditions differ, but not
+#    *where* or *when*. The highlighted region shows the extent of the
+#    significant clusters. It does not mean that every highlighted channel
+#    and time point shows a significant effect, nor that the effect starts
+#    or ends exactly at the cluster's edges
+#    :footcite:`SassenhagenDraschkow2019`.
+
 fig = cluster_result.plot_joint(
     info=df["evoked"][0].info,
     times_sec=df["evoked"][0].times,
     show=False,
+    cluster_alpha=0.07,
 )
