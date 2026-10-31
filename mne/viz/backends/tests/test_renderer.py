@@ -574,7 +574,7 @@ import nibabel
 import mne
 
 root, served = Path(sys.argv[1]), Path(sys.argv[2])
-prefix = "http://x/mne_data/MNE-testing-data/"
+prefix = "https://mne.tools/mne-data/lite/MNE-testing-data/"
 
 
 class XMLHttpRequest:
@@ -585,13 +585,18 @@ class XMLHttpRequest:
         self.path = served / url.removeprefix(prefix)
 
     def send(self):
-        self.status = 200 if self.path.is_file() else 404
-        data = self.path.read_bytes() if self.status == 200 else b""
+        # a part of a split file is that half of the whole one
+        path, part = self.path, None
+        if path.suffix in (".000", ".001"):
+            path, part = path.with_suffix(""), int(path.suffix[1:])
+        self.status = 200 if path.is_file() else 404
+        data = path.read_bytes() if self.status == 200 else b""
+        if part is not None:
+            data = data[: len(data) // 2] if part == 0 else data[len(data) // 2 :]
         self.response = types.SimpleNamespace(to_py=lambda: data)
 
 
 js = types.ModuleType("js")
-js.location = types.SimpleNamespace(href="http://x/lite/lab/index.html")
 js.XMLHttpRequest = XMLHttpRequest
 sys.modules["js"] = js
 from mne.viz.backends._jupyterlite import setup_notebook
@@ -604,6 +609,10 @@ assert _jupyterlite._orig["read_raw_kit"] is not mne.io.read_raw_kit
 assert mne.viz.get_3d_backend() == "jupyterlite_notebook"
 assert mne.datasets.sample.data_path() == root / "MNE-sample-data"
 data = root / "MNE-testing-data"
+raw_rel = "MEG/sample/sample_audvis_trunc_raw.fif"
+_jupyterlite._SPLIT_FILES[f"MNE-testing-data/{raw_rel}"] = 2
+mne.io.read_raw_fif(data / raw_rel)  # stitched from its two parts
+assert (data / raw_rel).read_bytes() == (served / raw_rel).read_bytes()
 ave = data / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 assert not ave.exists()
 mne.read_evokeds(ave)  # fetched by the _check_fname hook

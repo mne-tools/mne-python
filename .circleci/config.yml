@@ -5,11 +5,21 @@
 # Tagging a commit with the following overrides these behaviors:
 # - [circle front] will run the front page examples and perform test-doc
 # - [circle full] will run all examples and perform test-doc
+# - [circle lite] will build the JupyterLite site ([circle front] does too)
 # - [circle linkcheck] will run our linkcheck job
 # - [circle deploy] on a main or maint/* commit will try to immediately build
 #   and deploy docs rather than waiting for the nightly build
+#
+# Triggering a pipeline on main with the `linkcheck` parameter set to true runs
+# only the linkcheck, and counts toward the scheduled-failure issue like the
+# monthly run does.
 
 version: 2.1
+
+parameters:
+  linkcheck:
+    type: boolean
+    default: false
 
 _check_skip: &check_skip
   name: Check-skip
@@ -631,6 +641,7 @@ jobs:
 
 workflows:
   default:
+    unless: << pipeline.parameters.linkcheck >>
     jobs:
       - build_docs:
           name: build_docs
@@ -685,6 +696,13 @@ workflows:
             branches:
               only:
                 - /maint\/.*/
+
+  linkcheck:
+    when: << pipeline.parameters.linkcheck >>
+    jobs:
+      - linkcheck:
+          name: linkcheck_manual
+          scheduled: "true"
 
   monthly:
     jobs:
