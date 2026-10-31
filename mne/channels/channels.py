@@ -1058,6 +1058,8 @@ class InterpolationMixin:
         method=None,
         exclude=(),
         on_bad_position="warn",
+        *,
+        interpolation=None,
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -1111,6 +1113,19 @@ class InterpolationMixin:
             filled with :data:`~numpy.nan`.
 
             .. versionadded:: 1.12
+        interpolation : dict | None
+            Precomputed interpolation data, e.g. from
+            :func:`mne.channels.compute_interpolation_data`.
+            Can be a dictionary keyed by channel type mapping to precomputed data
+            (e.g., ``dict(eeg=interp['eeg'])``) or an
+            :class:`~mne.channels.InterpolationData` instance.
+            If provided for a channel type, the bads-independent geometry
+            is used to compute the interpolation on the fly, and other
+            parameters (such as ``origin``, ``method``, and ``mode``) are
+            ignored for that channel type. Channel names and sensor positions
+            must match the precomputed data.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -1131,7 +1146,9 @@ class InterpolationMixin:
         from .interpolation import (
             _interpolate_bads_ecog,
             _interpolate_bads_eeg,
+            _interpolate_bads_eeg_from_data,
             _interpolate_bads_meeg,
+            _interpolate_bads_meg_from_data,
             _interpolate_bads_nan,
             _interpolate_bads_nirs,
             _interpolate_bads_seeg,
@@ -1139,6 +1156,36 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
+
+        interpolated = set()
+        if interpolation is not None:
+            _validate_type(interpolation, (dict,), "interpolation")
+            for ch_type, interp_step in interpolation.items():
+                _check_option("interpolation channel type", ch_type, ("eeg", "meg"))
+                _validate_type(interp_step, (dict,), f"interpolation['{ch_type}']")
+                if ch_type == "eeg":
+                    done = _interpolate_bads_eeg_from_data(
+                        self, interp_step, exclude=exclude
+                    )
+                else:
+                    assert ch_type == "meg"
+                    done = _interpolate_bads_meg_from_data(
+                        self, interp_step, exclude=exclude
+                    )
+                interpolated.update(done)
+
+        if interpolation is not None:
+            remaining_bads = {
+                ch
+                for ch in set(self.info["bads"]) - interpolated
+                if self.get_channel_types(picks=[ch])[0] not in interpolation
+            }
+            if not remaining_bads:
+                if reset_bads is True:
+                    self.info["bads"] = [
+                        ch for ch in self.info["bads"] if ch not in interpolated
+                    ]
+                return self
 
         # check for channels with invalid position(s)
         invalid_chs = []
@@ -1178,6 +1225,9 @@ class InterpolationMixin:
         keys2delete = set(method) - set(ch_types)
         for key in keys2delete:
             del method[key]
+        if interpolation is not None:
+            for key in interpolation:
+                method.pop(key, None)
         valids = {
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
@@ -1200,7 +1250,9 @@ class InterpolationMixin:
         picks = _picks_to_idx(
             self.info, list(method), exclude=exclude, allow_empty=True
         )
-        interpolated = set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
+        interpolated.update(
+            set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
+        )
         logger.info("Interpolating bad channels.")
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):

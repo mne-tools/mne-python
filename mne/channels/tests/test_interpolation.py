@@ -688,3 +688,130 @@ def test_interpolate_to_meg(monkeypatch):
         evoked_rt.interpolate_to("ctf151", **kwargs)
     with pytest.raises(ValueError, match="Invalid value"):
         evoked_rt.interpolate_to("foo", **kwargs)
+
+
+def test_precomputed_interpolation_data():
+    """Test precomputed bads-independent interpolation data (gh-4651)."""
+    from mne.channels import (
+        InterpolationData,
+        compute_interpolation_data,
+    )
+
+    # Setup raw EEG data
+    raw = read_raw_fif(raw_fname).crop(0, 0.5).del_proj().load_data()
+    raw.pick(pick_types(raw.info, meg=False, eeg=True)[:10])
+
+    interp = compute_interpolation_data(raw, ch_types="eeg")
+    assert isinstance(interp, InterpolationData)
+    assert repr(interp) == "<InterpolationData | eeg (10 channels)>"
+    assert repr(InterpolationData()) == "<InterpolationData | empty>"
+    assert "eeg" in interp
+    assert interp.copy()["eeg"]["G"].shape == (10, 10)
+    assert_allclose(
+        compute_interpolation_data(raw.info)["eeg"]["G"],
+        interp["eeg"]["G"],
+    )
+
+    # Leave-One-Out (autoreject use case): same interp object used for each channel
+    for bad_ch in [raw.ch_names[0], raw.ch_names[2], raw.ch_names[5]]:
+        raw_loo = raw.copy()
+        raw_loo.info["bads"] = [bad_ch]
+        data_pre = raw_loo.copy().interpolate_bads(interpolation=interp).get_data()
+        data_fly = raw_loo.copy().interpolate_bads().get_data()
+        assert_allclose(data_pre, data_fly, atol=1e-15)
+
+    # Parity across Raw, Epochs, Evoked with multiple bad channels
+    raw_bad = raw.copy()
+    raw_bad.info["bads"] = [raw.ch_names[1], raw.ch_names[4]]
+    epochs = make_fixed_length_epochs(raw_bad, duration=0.2, preload=True)
+    for inst in (raw_bad, epochs, epochs.average()):
+        for arg in (interp, dict(eeg=interp["eeg"])):
+            assert_allclose(
+                inst.copy().interpolate_bads(interpolation=arg).get_data(),
+                inst.copy().interpolate_bads().get_data(),
+                atol=1e-15,
+            )
+
+    # MEG interpolation with precomputed coil dots
+    raw_meg = read_raw_fif(raw_fname).crop(0, 0.2).del_proj().load_data()
+    raw_meg.pick(pick_types(raw_meg.info, meg=True, ref_meg=False)[:20])
+    raw_meg.info["bads"] = [raw_meg.ch_names[2], raw_meg.ch_names[7]]
+    interp_meg = compute_interpolation_data(raw_meg, ch_types="meg", mode="fast")
+    assert repr(interp_meg) == "<InterpolationData | meg (20 channels)>"
+    assert_allclose(
+        raw_meg.copy().interpolate_bads(interpolation=interp_meg).get_data(),
+        raw_meg.copy().interpolate_bads(mode="fast").get_data(),
+        atol=1e-11,
+    )
+
+    # Combined EEG + MEG with precomputed interpolation
+    raw_both = read_raw_fif(raw_fname).crop(0, 0.2).del_proj().load_data()
+    raw_both.pick(
+        np.r_[
+            pick_types(raw_both.info, meg=True)[:10],
+            pick_types(raw_both.info, eeg=True)[:10],
+        ]
+    )
+    raw_both.info["bads"] = [raw_both.ch_names[2], raw_both.ch_names[12]]
+    interp_both = compute_interpolation_data(raw_both, mode="fast")
+    assert "eeg" in interp_both and "meg" in interp_both
+    assert_allclose(
+        raw_both.copy().interpolate_bads(interpolation=interp_both).get_data(),
+        raw_both.copy().interpolate_bads(mode="fast").get_data(),
+        atol=1e-11,
+    )
+
+    # Partial precomputed: EEG precomputed, MEG on the fly
+    interp_only_eeg = dict(eeg=interp_both["eeg"])
+    assert_allclose(
+        raw_both.copy().interpolate_bads(interpolation=interp_only_eeg).get_data(),
+        raw_both.copy().interpolate_bads().get_data(),
+        atol=1e-11,
+    )
+
+    # Input validations
+    with pytest.raises(TypeError, match="interpolation must be an instance of"):
+        raw.interpolate_bads(interpolation="invalid")
+    with pytest.raises(TypeError, match=r"interpolation\['eeg'\]"):
+        raw.interpolate_bads(interpolation=dict(eeg="invalid"))
+    with pytest.raises(TypeError, match="inst_or_info must be an instance of"):
+        compute_interpolation_data("invalid")
+    with pytest.raises(ValueError, match="Invalid value for.*ch_types"):
+        compute_interpolation_data(raw, ch_types="unknown")
+    with pytest.raises(RuntimeError, match="No MEG channels found"):
+        compute_interpolation_data(raw, ch_types="meg")
+    with pytest.raises(
+        ValueError, match="Invalid value for.*interpolation channel type"
+    ):
+        raw.interpolate_bads(interpolation=dict(unknown=interp["eeg"]))
+    with pytest.raises(
+        ValueError, match="Invalid value for.*interpolation channel type"
+    ):
+        raw.interpolate_bads(interpolation=interp["eeg"])
+
+    # Mismatched channel names and positions
+    with pytest.raises(ValueError, match="Channel names do not match"):
+        raw.copy().drop_channels([raw.ch_names[0]]).interpolate_bads(
+            interpolation=interp
+        )
+    raw_bad_pos = raw.copy()
+    raw_bad_pos.info["chs"][2]["loc"][:3] += 0.05
+    with pytest.raises(ValueError, match="Channel positions do not match"):
+        raw_bad_pos.interpolate_bads(interpolation=interp)
+
+    # Mismatched dev_head_t for MEG
+    raw_bad_head = raw_meg.copy()
+    raw_bad_head.info["dev_head_t"]["trans"][0, 3] += 0.05
+    with pytest.raises(ValueError, match="dev_head_t does not match"):
+        raw_bad_head.interpolate_bads(interpolation=interp_meg)
+
+    # reset_bads=False and exclude
+    assert (
+        raw_bad.copy()
+        .interpolate_bads(interpolation=interp, reset_bads=False)
+        .info["bads"]
+        == raw_bad.info["bads"]
+    )
+    raw_ex = raw_bad.copy()
+    raw_ex.interpolate_bads(interpolation=interp, exclude=[raw_bad.ch_names[4]])
+    assert raw_ex.info["bads"] == [raw_bad.ch_names[4]]
