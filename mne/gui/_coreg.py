@@ -434,6 +434,7 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_scale_mode(self._defaults["scale_mode"])
         self._set_subject_to(self._defaults["subject_to"])
+        self._update_load_scaling()
         if trans is not None:
             self._load_trans(trans)
         self._redraw()  # we need the elements to be present now
@@ -675,36 +676,49 @@ class CoregistrationUI(HasTraits):
         else:
             style = dict(border="initial")
         self._forward_widget_command("subject_to", "set_style", style)
+
+    def _read_scaling_cfg(self):
+        """Read the scaling of the current subject, if it is a scaled subject.
+
+        Returns the cfg (or None) and a tooltip that says why it can't be loaded.
+        """
+        try:
+            cfg = read_mri_cfg(self._subject, self._subjects_dir)
+        except OSError:
+            return None, f"{self._subject} is not a scaled subject"
+        template = cfg["subject_from"]
+        # without the template, its scaling would be applied to this subject again
+        if template not in _get_subjects(self._subjects_dir):
+            return None, f"{template} ({self._subject} was scaled from it) is missing"
+        return cfg, f"Load the scaling of {self._subject} relative to {template}"
+
+    def _update_load_scaling(self):
         cfg, tooltip = self._read_scaling_cfg()
         self._forward_widget_command("load_scaling", "set_enabled", cfg is not None)
         self._forward_widget_command("load_scaling", "set_tooltip", tooltip)
 
-    def _read_scaling_cfg(self):
-        """Read the scaling of subject-to, if it was scaled from this subject.
-
-        Returns the cfg (or None) and a tooltip that says why it can't be loaded.
-        """
-        name = self._subject_to
-        if not self._check_subject_exists():
-            return None, "Type the name of a subject scaled from this one"
-        try:
-            cfg = read_mri_cfg(name, self._subjects_dir)
-        except OSError:
-            return None, f"{name} is not a scaled subject"
-        if cfg["subject_from"] != self._subject:
-            return None, f"{name} was scaled from {cfg['subject_from']}"
-        return cfg, f"Load the scaling saved with {name}"
-
     def _load_scaling(self):
         cfg, _ = self._read_scaling_cfg()
+        scaled_subject = self._subject
+        rotation = self.coreg._rotation.copy()
+        translation = self.coreg._translation.copy()
+        trans_modified = self._trans_modified
+        self._set_subject(cfg["subject_from"])
+        self._forward_widget_command("subject", "set_value", cfg["subject_from"])
+        self._forward_widget_command("subject_to", "set_value", scaled_subject)
         mode = "uniform" if cfg["n_params"] == 1 else "3-axis"
         self._forward_widget_command("scaling_mode", "set_value", mode)
+        self.coreg.set_rotation(rotation)
+        self.coreg.set_translation(translation)
         self.coreg.set_scale(np.broadcast_to(cfg["scale"], 3))
         self._update_plot(["head", "hsp", "hpi", "sensors", "head_fids", "helmet"])
         self._update_parameters()
+        self._trans_modified = trans_modified
         self._mri_scale_modified = False
         self._update_distance_estimation()
-        self._display_message(f"Loaded the scaling of {self._subject_to}")
+        self._display_message(
+            f"Loaded the scaling of {scaled_subject} relative to {self._subject}"
+        )
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
@@ -809,6 +823,7 @@ class CoregistrationUI(HasTraits):
         self._set_fiducials_file(fname)
         self._reset_fiducials()
         self._set_subject_to(self._subject_to)  # revalidate against the new subject
+        self._update_load_scaling()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -1745,7 +1760,6 @@ class CoregistrationUI(HasTraits):
         if scaled:
             self._display_message(f"Saving {self._subject_to}... Done!")
             self._mri_scale_modified = False  # still unsaved if scaling failed
-            self._set_subject_to(self._subject_to)  # it exists now
         else:
             self._display_message(f"Saving {self._subject_to}... Failed!")
         self._renderer._window_set_cursor(default_cursor)
@@ -2103,7 +2117,6 @@ class CoregistrationUI(HasTraits):
         self._widgets["load_scaling"] = self._renderer._dock_add_button(
             name="Load scaling",
             callback=self._load_scaling,
-            tooltip="Type the name of a subject scaled from this one",
             layout=subject_to_layout,
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
