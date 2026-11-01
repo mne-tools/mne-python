@@ -13,9 +13,10 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
+from .._fiff.pick import _picks_to_idx
 from ..channels import find_ch_adjacency
 from ..epochs import BaseEpochs
-from ..evoked import Evoked, combine_evoked
+from ..evoked import Evoked, EvokedArray, combine_evoked
 from ..parallel import parallel_func
 from ..source_estimate import MixedSourceEstimate, SourceEstimate, VolSourceEstimate
 from ..source_space import SourceSpaces
@@ -2988,9 +2989,9 @@ class ClusterResult:
             clusters are highlighted. Defaults to ``0.05``.
 
             .. note::
-            The highlighted region shows the extent of significant clusters.
-            A cluster-level test does not establish that the effect is located
-            at any individual channel or time point within a cluster.
+                The highlighted region shows the extent of significant clusters.
+                A cluster-level test does not establish that the effect is located
+                at any individual channel or time point within a cluster.
         show : bool
             Show figure if ``True``. Defaults to ``True``.
         ts_args : dict | None
@@ -3005,10 +3006,7 @@ class ClusterResult:
         fig : instance of matplotlib.figure.Figure | list
             The figure object(s) containing the plot.
         """
-        from mne import EvokedArray
         from mne.viz.evoked import plot_evoked_joint
-
-        from .._fiff.pick import _picks_to_idx  # NEW
 
         # for now only supports 2D clusters
         if self.stat_obs.ndim != 2:
