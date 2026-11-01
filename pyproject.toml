@@ -232,7 +232,7 @@ full-no-qt = [
   "threadpoolctl",
   "traitlets",
   "trame < 4",  # trame-vtk and trame-pyvista do not support trame 4 yet
-  "trame-pyvista",
+  "trame-pyvista[jupyter]",
   "trame-vtk",
   "trame-vuetify != 3.2.3",
   "vtk >= 9.2",

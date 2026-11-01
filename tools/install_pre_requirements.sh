@@ -77,7 +77,7 @@ uv pip install $STD_ARGS \
 	"joblib @ https://github.com/joblib/joblib/archive/refs/heads/main.zip" \
 	"h5io @ https://github.com/h5io/h5io/archive/refs/heads/main.zip" \
 	"snirf @ https://github.com/BUNPC/pysnirf2/archive/refs/heads/main.zip" \
-	"trame<4" trame-vtk "trame-vuetify!=3.2.3" trame-pyvista nest-asyncio2 jupyter ipyevents ipympl \
+	"trame<4" trame-vtk "trame-vuetify!=3.2.3" "trame-pyvista[jupyter]" nest-asyncio2 jupyter ipyevents ipympl \
 	openmeeg imageio-ffmpeg xlrd mffpy traitlets pybv defusedxml antio curryreader \
 	jamica filelock
 echo "::endgroup::"
