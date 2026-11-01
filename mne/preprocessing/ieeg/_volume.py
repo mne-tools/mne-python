@@ -62,8 +62,8 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     _validate_type(sdr_morph, (DiffeomorphicMap, None), "sdr_morph")
     _validate_type(montage, DigMontage, "montage")
 
-    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32), moving.affine)
-    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32), static.affine)
+    moving_mgh = MGHImage(np.asarray(moving.dataobj).astype(np.float32), moving.affine)
+    static_mgh = MGHImage(np.asarray(static.dataobj).astype(np.float32), static.affine)
     del moving, static
 
     # get montage channel coordinates
@@ -119,7 +119,7 @@ def _warn_missing_chs(info, dig_image, after_warp=False):
     """Warn that channels are missing."""
     # ensure that each electrode contact was marked in at least one voxel
     missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj)))
+        set(np.unique(np.asarray(dig_image.dataobj)))
     )
     missing_ch = [info.ch_names[idx - 1] for idx in missing]
     if missing_ch:
@@ -198,7 +198,7 @@ def make_montage_volume(
         base_image = nib.load(base_image)
 
     base_image_mgh = nib.MGHImage(
-        np.array(base_image.dataobj).astype(np.float32), base_image.affine
+        np.asarray(base_image.dataobj).astype(np.float32), base_image.affine
     )
     del base_image
 

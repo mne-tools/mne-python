@@ -975,6 +975,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._dock, self._dock_layout = _create_dock_widget(
             window, name, qt_area, max_width=max_width
         )
+        self._docks = getattr(self, "_docks", []) + [self._dock]
         self._dock_collapsibles = []
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
@@ -990,10 +991,12 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._dock_add_stretch(self._dock_layout)
 
     def _dock_show(self):
-        self._dock.show()
+        for dock in self._docks:
+            dock.show()
 
     def _dock_hide(self):
-        self._dock.hide()
+        for dock in self._docks:
+            dock.hide()
 
     def _dock_add_stretch(self, layout=None):
         layout = self._dock_layout if layout is None else layout
@@ -1033,6 +1036,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         icon=None,
         tooltip=None,
         layout=None,
+        shortcut=None,
     ):
         _check_option(
             parameter="style", value=style, allowed_values=("toolbutton", "pushbutton")
@@ -1047,7 +1051,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         if icon is not None:
             widget.setIcon(self._icons[icon])
 
-        _set_widget_tooltip(widget, tooltip)
+        _set_widget_shortcut(widget, shortcut, tooltip)
         widget.clicked.connect(callback)
 
         layout = self._dock_layout if layout is None else layout
@@ -1093,11 +1097,20 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_check_box(
-        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+        self,
+        name,
+        value,
+        callback,
+        *,
+        tooltip=None,
+        layout=None,
+        row=None,
+        col=None,
+        shortcut=None,
     ):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
-        _set_widget_tooltip(widget, tooltip)
+        _set_widget_shortcut(widget, shortcut, tooltip)
         widget.setChecked(value)
         widget.stateChanged.connect(callback)
         self._layout_add_widget(layout, widget, row=row, col=col)
@@ -1376,6 +1389,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self.actions = dict()
         window = self._window if window is None else window
         self._tool_bar = window.addToolBar(name)
+        self._tool_bar.setMovable(False)
         self._tool_bar_layout = self._tool_bar.layout()
 
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None, shortcut=None):
@@ -1454,12 +1468,18 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
                 on_click()
 
             widget.mousePressEvent = mousePressEvent
-        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        self._status_bar.addWidget(widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = QProgressBar()
-        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        widget.setFixedWidth(150)
+        policy = widget.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        widget.setSizePolicy(policy)
+        # QStatusBar's own API keeps widgets in its row; adding them to its layout()
+        # stacked them below that row, where they got clipped or dropped
+        self._status_bar.addPermanentWidget(widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_update(self):
@@ -2025,8 +2045,9 @@ class _QtWidget(_AbstractWdgt):
             stylesheet = stylesheet + f"{key}:{val};"
         self._widget.setStyleSheet(stylesheet)
         # Restyling a QLineEdit can scroll it to the end of its text; scroll back so
-        # the beginning of the text stays visible.
-        if hasattr(self._widget, "setCursorPosition"):
+        # the beginning of the text stays visible. Not while the user is typing,
+        # though, or each keystroke would be inserted at the start (gh-14463).
+        if hasattr(self._widget, "setCursorPosition") and not self._widget.isModified():
             self._widget.setCursorPosition(0)
 
     def set_hover_callbacks(self, enter, leave):
@@ -2161,6 +2182,14 @@ def _qt_activate_layouts(window, widget):
 def _set_widget_tooltip(widget, tooltip):
     if tooltip is not None:
         widget.setToolTip(tooltip)
+
+
+def _set_widget_shortcut(widget, shortcut, tooltip):
+    """Bind a window-wide shortcut (whatever has focus) and show it in the tooltip."""
+    if shortcut is not None:
+        widget.setShortcut(shortcut)
+        tooltip = f"{tooltip} ({shortcut})" if tooltip else shortcut
+    _set_widget_tooltip(widget, tooltip)
 
 
 def _create_dock_widget(window, name, area, *, max_width=None):

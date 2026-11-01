@@ -1,0 +1,1 @@
+Fix bugs with :func:`mne.gui.coregistration` where typing in the scaled subject name field entered the text in reverse, and saving a scaled subject could crash the GUI, by `Eric Larson`_.

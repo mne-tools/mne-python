@@ -2103,8 +2103,8 @@ def apply_volume_registration_points(
     _check_option("reg_affine.shape", reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), "sdr_morph")
 
-    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32), moving.affine)
-    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32), static.affine)
+    moving_mgh = MGHImage(np.asarray(moving.dataobj).astype(np.float32), moving.affine)
+    static_mgh = MGHImage(np.asarray(static.dataobj).astype(np.float32), static.affine)
 
     montage = info.get_montage()
     montage_kwargs = montage.get_positions()

@@ -1,0 +1,1 @@
+Fix :meth:`mne.preprocessing.ICA.get_sources` assigning the wrong channel names and types to ``add_channels`` that are not in the order of the instance's channels, by `Stefan Appelhoff`_.

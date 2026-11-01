@@ -50,6 +50,14 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     the zip file is downloaded and files are updated. No files will
     be overwritten.
 
+    The head surface ``bem/fsaverage-head.fif`` is the smooth head surface
+    packaged with MNE-Python (the one :func:`mne.create_default_subject`
+    installs) rather than the watershed outer skin surface. To update an
+    existing copy of fsaverage, delete the file and call this function again.
+
+    .. versionchanged:: 1.14
+       The smooth head surface is used for ``bem/fsaverage-head.fif``.
+
     .. versionadded:: 0.18
     """
     # Code used to create the BEM (other files taken from MNE-sample-data):
@@ -70,21 +78,24 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     # with open('fsaverage.txt', 'w') as fid:
     #     fid.write('\n'.join(names))
     #
+    # In fsaverage-1.1, bem/fsaverage-head.fif in both zip files was replaced
+    # with mne/data/fsaverage/fsaverage-head.fif.
+    #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
-    subjects_dir = subjects_dir.expanduser().absolute()
+    subjects_dir = Path(subjects_dir).expanduser().absolute()
     fs_dir = subjects_dir / "fsaverage"
     fs_dir.mkdir(parents=True, exist_ok=True)
     _manifest_check_download(
         manifest_path=FSAVERAGE_MANIFEST_PATH / "root.txt",
         destination=subjects_dir,
-        url="https://github.com/mne-tools/mne-data/releases/download/fsaverage-1.0/fsaverage-root.zip",
-        hash_="5133fe92b7b8f03ae19219d5f46e4177",
+        url="https://github.com/mne-tools/mne-data/releases/download/fsaverage-1.1/fsaverage-root.zip",
+        hash_="edad902f15196bdd0c98521e657f41b6",
     )
     _manifest_check_download(
         manifest_path=FSAVERAGE_MANIFEST_PATH / "bem.txt",
         destination=subjects_dir / "fsaverage",
-        url="https://github.com/mne-tools/mne-data/releases/download/fsaverage-1.0/fsaverage-bem.zip",
-        hash_="b31509cdcf7908af6a83dc5ee8f49fb1",
+        url="https://github.com/mne-tools/mne-data/releases/download/fsaverage-1.1/fsaverage-bem.zip",
+        hash_="cdf3de397b02ca7f055a6d62dbfac1ff",
     )
     return fs_dir
 

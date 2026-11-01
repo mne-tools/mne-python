@@ -26,7 +26,7 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from .._fiff.meas_info import Info, read_info
-from .._fiff.pick import _DATA_CH_TYPES_SPLIT
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT, _picks_to_idx, pick_types
 from .._freesurfer import _mri_orientation, _reorient_image
 from ..cov import Covariance, read_cov
 from ..defaults import _handle_default
@@ -35,7 +35,7 @@ from ..event import read_events
 from ..evoked import Evoked, read_evokeds
 from ..forward import Forward, read_forward_solution
 from ..html_templates import _get_html_template
-from ..io import BaseRaw, read_raw
+from ..io import BaseRaw, RawArray, read_raw
 from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..minimum_norm import InverseOperator, read_inverse_operator
 from ..parallel import parallel_func
@@ -2329,22 +2329,129 @@ class Report:
             )
 
     def _add_ica_sources(
-        self, *, ica, inst, picks, n_components, image_format, section, tags, replace
+        self,
+        *,
+        ica,
+        inst,
+        picks,
+        n_components,
+        source_segments,
+        source_duration,
+        image_format,
+        section,
+        tags,
+        replace,
     ):
-        with use_browser_backend("matplotlib"):
-            fig = ica.plot_sources(
-                inst=inst, picks=picks, n_components=n_components, show=False
-            )
-        self._add_figure(
-            fig=fig,
-            title="Sources",
-            caption=None,
-            image_format=image_format,
-            tags=tags,
-            section=section,
-            replace=replace,
-            own_figure=True,
+        import matplotlib.pyplot as plt
+
+        picks = np.sort(_picks_to_idx(ica.n_components_, picks, picks_on="components"))
+        # plot_sources appends EOG/ECG channels, so leave room for them
+        n_extra = len(
+            pick_types(inst.info, meg=False, eog=True, ecg=True, ref_meg=False)
         )
+        is_raw = isinstance(inst, BaseRaw)
+        insts, captions, duration = [inst], None, None
+        if is_raw:
+            # Sample evenly spaced segments; the copies carry no annotations, so
+            # these do not obscure the traces
+            duration = min(source_duration, inst.times[-1])
+            n_segments = 1 if source_segments is None else source_segments
+            if n_segments > 1 and inst.times[-1] > source_duration:
+                centers = np.linspace(0, inst.times[-1], n_segments + 2)[1:-1]
+                t_starts = np.clip(
+                    centers - duration / 2.0, 0, inst.times[-1] - duration
+                )
+            else:
+                t_starts = [0.0]
+            insts, captions = list(), list()
+            for ii, t_start in enumerate(t_starts):
+                start, stop = inst.time_as_index([t_start, t_start + duration])
+                # first_samp=start plus show_first_samp=True below keeps the time
+                # axis relative to the start of the recording
+                insts.append(
+                    RawArray(
+                        inst.get_data(start=start, stop=stop + 1),
+                        inst.info,
+                        first_samp=int(start),
+                        verbose=False,
+                    )
+                )
+                captions.append(
+                    f"Segment {ii + 1} of {len(t_starts)} "
+                    f"({t_start:.1f} – {t_start + duration:.1f} s)"
+                )
+        chunks = [
+            picks[ii : ii + n_components] for ii in range(0, len(picks), n_components)
+        ]
+        sources = [ica.get_sources(this_inst).get_data() for this_inst in insts[1:]]
+        with use_browser_backend("matplotlib"):
+            for chunk in chunks:
+                title = "Sources"
+                if len(chunks) > 1:
+                    title += f" (ICs {chunk[0]}–{chunk[-1]})"
+                fig = ica.plot_sources(
+                    inst=insts[0],
+                    picks=chunk,
+                    stop=duration,
+                    n_components=len(chunk) + n_extra,
+                    show_first_samp=is_raw,
+                    show_scrollbars=False,
+                    show=False,
+                )
+                if len(insts) == 1:
+                    self._add_figure(
+                        fig=fig,
+                        title=title,
+                        caption=None,
+                        image_format=image_format,
+                        tags=tags,
+                        section=section,
+                        replace=replace,
+                        own_figure=True,
+                    )
+                else:
+                    # Building a browser per segment is slow, so redraw this one with
+                    # each segment's data
+                    _constrain_fig_resolution(
+                        fig, max_width=self.img_max_width, max_res=self.img_max_res
+                    )
+                    extra = [
+                        inst.ch_names.index(name)
+                        for name in fig.mne.info["ch_names"][len(chunk) :]
+                    ]
+                    imgs = list()
+                    for ii, this_inst in enumerate(insts):
+                        if ii:
+                            data = np.concatenate(
+                                [sources[ii - 1][chunk], this_inst.get_data()[extra]]
+                            )
+                            fig.mne.inst = RawArray(
+                                data,
+                                fig.mne.info,
+                                first_samp=this_inst.first_samp,
+                                verbose=False,
+                            )
+                            fig.mne.first_time = fig.mne.t_start = this_inst._first_time
+                            # _redraw() would also draw the canvas, as savefig does
+                            fig._update_data()
+                            fig._draw_traces()
+                        imgs.append(
+                            self._fig_to_img(
+                                fig=fig, image_format=image_format, own_figure=False
+                            )
+                        )
+                    plt.close(fig)
+                    self._add_slider(
+                        figs=None,
+                        imgs=imgs,
+                        title=title,
+                        captions=captions,
+                        start_idx=0,
+                        image_format=image_format,
+                        tags=tags,
+                        section=section,
+                        replace=replace,
+                    )
 
     def _add_ica(
         self,
@@ -2364,7 +2471,21 @@ class Report:
         n_jobs,
         replace,
         plot_sources=False,
+        source_segments=None,
+        source_duration=20.0,
     ):
+        _validate_type(source_segments, ("int-like", None), "source_segments")
+        if source_segments is not None and source_segments < 1:
+            raise ValueError(
+                f"source_segments must be at least 1, got {source_segments}"
+            )
+        _validate_type(source_duration, "numeric", "source_duration")
+        if source_duration <= 0:
+            raise ValueError(f"source_duration must be positive, got {source_duration}")
+        _validate_type(n_components, "int-like", "n_components")
+        if n_components < 1:
+            raise ValueError(f"n_components must be at least 1, got {n_components}")
+
         if _path_like(ica):
             ica = read_ica(ica)
 
@@ -2509,6 +2630,8 @@ class Report:
                 inst=inst,
                 picks=picks,
                 n_components=n_components,
+                source_segments=source_segments,
+                source_duration=source_duration,
                 image_format=image_format,
                 section=section,
                 tags=tags,
@@ -2532,6 +2655,8 @@ class Report:
         tags=("ica",),
         replace=False,
         plot_sources=False,
+        source_segments=None,
+        source_duration=20.0,
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
 
@@ -2554,7 +2679,9 @@ class Report:
             This only affects the behavior of the component
             topography and properties plots.
         n_components : int
-            Maximum number of ICA components to plot. Defaults to 20.
+            Maximum number of ICA components to display per figure or slider.
+            If the number of components exceeds this value, they will be
+            paginated across multiple figures/sliders. Defaults to 20.
 
             .. versionadded:: 1.13
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
@@ -2585,6 +2712,18 @@ class Report:
             to be provided. Defaults to ``False``.
 
             .. versionadded:: 1.12
+        source_segments : int | None
+            Number of temporal segments to sample evenly across the recording
+            timeline. If ``None`` or ``1``, a single segment is plotted. If
+            greater than 1 and ``inst`` is an instance of :class:`~mne.io.Raw`,
+            multiple segments are captured and rendered as an interactive
+            slider. Defaults to ``None``.
+
+            .. versionadded:: 1.14
+        source_duration : float
+            Duration of each temporal segment in seconds. Defaults to ``20.0``.
+
+            .. versionadded:: 1.14
 
         Notes
         -----
@@ -2607,6 +2746,8 @@ class Report:
             n_jobs=n_jobs,
             replace=replace,
             plot_sources=plot_sources,
+            source_segments=source_segments,
+            source_duration=source_duration,
         )
 
     def remove(self, *, title=None, tags=None, remove_all=False):
@@ -4718,6 +4859,41 @@ class Report:
             replace=replace,
         )
 
+    def _add_epochs_reject(self, *, epochs, section, tags, replace):
+        reject = epochs.reject or dict()
+        flat = epochs.flat or dict()
+        scalings = _handle_default("scalings")
+        units = _handle_default("units")
+
+        def _fmt(thresholds, ch_type):
+            if ch_type not in thresholds:
+                return "–"
+            value = thresholds[ch_type]
+            if callable(value):
+                return "custom function"
+            scaled = value * scalings.get(ch_type, 1.0)
+            return f"{scaled:g} {units.get(ch_type, '')}".strip()
+
+        rows = "\n".join(
+            f"<tr><td>{ch_type}</td><td>{_fmt(reject, ch_type)}</td>"
+            f"<td>{_fmt(flat, ch_type)}</td></tr>"
+            for ch_type in sorted(set(reject) | set(flat))
+        )
+        html = (
+            '<table class="table table-hover table-striped table-sm small">\n'
+            "<thead><tr><th>Channel type</th><th>Reject (peak-to-peak max)</th>"
+            "<th>Flat (peak-to-peak min)</th></tr></thead>\n"
+            f"<tbody>\n{rows}\n</tbody>\n</table>"
+        )
+        self._add_html_element(
+            div_klass="epochs",
+            tags=tags,
+            title="Rejection thresholds",
+            html=html,
+            section=section,
+            replace=replace,
+        )
+
     @_use_agg
     def _add_epochs(
         self,
@@ -4801,6 +4977,11 @@ class Report:
 
         # Drop log
         if epochs._bad_dropped:
+            if epochs.reject is not None or epochs.flat is not None:
+                self._add_epochs_reject(
+                    epochs=epochs, tags=tags, section=section, replace=replace
+                )
+
             title = "Drop log"
 
             if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops

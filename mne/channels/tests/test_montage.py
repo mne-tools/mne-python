@@ -1044,6 +1044,17 @@ def test_set_dig_montage():
         ],
     )
 
+    # EEG dig follows info["ch_names"] order, with the reference first as ident 0
+    montage_rev = make_dig_montage(
+        ch_pos=dict(**dict(reversed(ch_pos.items())), REF=np.full(3, 42)),
+        coord_frame="head",
+    )
+    info = create_info(ch_names, sfreq=1, ch_types="eeg")
+    info.set_montage(montage_rev)
+    eeg_dig = [d for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_EEG]
+    assert [d["ident"] for d in eeg_dig] == [0, 1, 2, 3]
+    assert_allclose([d["r"] for d in eeg_dig], np.r_[[[42] * 3], list(ch_pos.values())])
+
 
 def test_set_dig_montage_with_nan_positions():
     """Test that fiducials are not NaN.

@@ -1015,10 +1015,12 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         pass
 
     def _dock_show(self):
-        self._dock_layout.layout.visibility = "visible"
+        for _, layout in self._docks.values():
+            layout.layout.visibility = "visible"
 
     def _dock_hide(self):
-        self._dock_layout.layout.visibility = "hidden"
+        for _, layout in self._docks.values():
+            layout.layout.visibility = "hidden"
 
     def _dock_add_stretch(self, layout=None):
         layout = self._dock_layout if layout is None else layout
@@ -1055,6 +1057,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         icon=None,
         tooltip=None,
         layout=None,
+        shortcut=None,  # no window-wide shortcuts in a notebook
     ):
         layout = self._dock_layout if layout is None else layout
         kwargs = dict()
@@ -1105,7 +1108,16 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_check_box(
-        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+        self,
+        name,
+        value,
+        callback,
+        *,
+        tooltip=None,
+        layout=None,
+        row=None,
+        col=None,
+        shortcut=None,  # no window-wide shortcuts in a notebook
     ):
         layout = self._dock_layout if layout is None else layout
         widget = Checkbox(value=value, description=name, indent=False, disabled=False)

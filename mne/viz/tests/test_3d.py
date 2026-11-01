@@ -795,6 +795,8 @@ def test_plot_alignment_eeg(renderer, evoked):
     assert "ecog: 1" in log
     assert "seeg: 1" in log
     assert "eeg: 10" in log
+    # the subject's own head file is preferred over the watershed outer_skin.surf
+    assert "Using sample-head.fif for head surface." in log
     # check number of actors
     # 4 surfs (both hemis, skin, skull), 1 ECoG, 1 sEEG,
     # 5 orig EEG + 1 projected EEG

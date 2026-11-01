@@ -1,0 +1,1 @@
+Fix bug where :meth:`mne.coreg.Coregistration.set_info` did not clear the omitted head shape points from a previous digitization, by :newcontrib:`Badri Vishal Pandey`.

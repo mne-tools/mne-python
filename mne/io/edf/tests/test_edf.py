@@ -214,16 +214,12 @@ def test_subject_info(tmp_path):
 
 def test_bdf_data():
     """Test reading raw bdf files."""
-    # XXX BDF data for these is around 0.01 when it should be in the uV range,
-    # probably some bug
-    test_scaling = False
     raw_py = _test_raw_reader(
         read_raw_bdf,
         input_fname=bdf_path,
         eog=eog,
         misc=misc,
         exclude=["M2", "IEOG"],
-        test_scaling=test_scaling,
     )
     assert len(raw_py.ch_names) == 71
     raw_py = _test_raw_reader(
@@ -233,7 +229,6 @@ def test_bdf_data():
         eog=eog,
         misc=misc,
         exclude=["M2", "IEOG"],
-        test_scaling=test_scaling,
     )
     assert len(raw_py.ch_names) == 71
     assert "RawBDF" in repr(raw_py)
