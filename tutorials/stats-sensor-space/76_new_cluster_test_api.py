@@ -197,7 +197,7 @@ print(f"Cluster p-values: {cluster_result.cluster_p_values}")
 #    significant clusters. It does not mean that every highlighted channel
 #    and time point shows a significant effect, nor that the effect starts
 #    or ends exactly at the cluster's edges
-#    :footcite:`SassenhagenDraschkow2019`.
+#    :footcite:`Sassenhagen2019`.
 
 fig = cluster_result.plot_joint(
     info=df["evoked"][0].info,
@@ -205,3 +205,7 @@ fig = cluster_result.plot_joint(
     show=False,
     cluster_alpha=0.07,
 )
+# %%
+# References
+# ----------
+# .. footbibliography::
