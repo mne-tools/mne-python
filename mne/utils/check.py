@@ -294,6 +294,28 @@ def _check_event_id(event_id, events):
     return event_id
 
 
+def _check_event_id_unique(event_id, on_duplicate="raise", extra=""):
+    """Check that no two names in an event_id dict map to the same event code."""
+    if not isinstance(event_id, dict):
+        return
+    event_id = _check_event_id(event_id, None)
+    names = dict()
+    for key, val in event_id.items():
+        names.setdefault(val, []).append(key)
+    duplicates = ", ".join(
+        f"{val}: {keys}" for val, keys in names.items() if len(keys) > 1
+    )
+    if duplicates:
+        msg = (
+            "The event_id dictionary maps several names to the same event code "
+            f"({duplicates}), but each event code must map to exactly one name. To "
+            "group conditions, give them distinct event codes and names separated by "
+            "'/' (e.g., 'go/left' and 'go/right'), then select them together with "
+            f"epochs['go'].{extra}"
+        )
+        _on_missing(on_duplicate, msg, name="on_duplicate")
+
+
 @_verbose_control
 def _check_fname(
     fname,

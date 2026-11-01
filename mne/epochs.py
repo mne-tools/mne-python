@@ -81,6 +81,7 @@ from .utils import (
     _build_data_frame,
     _check_combine,
     _check_event_id,
+    _check_event_id_unique,
     _check_fname,
     _check_on_missing,
     _check_option,
@@ -450,12 +451,13 @@ class BaseEpochs(
         ``IGNORED`` in the drop log.
     event_id : int | list of int | dict | str | list of str | None
         The id of the :term:`events` to consider. If dict, the keys can later be used to
-        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
-        dict will be created with the id as string. If a list of int, all :term:`events`
-        with the IDs specified in the list are used. If a str or list of str, ``events``
-        must be ``None`` to use annotations and then the IDs must be the name(s) of the
-        annotations to use. If None, all :term:`events` will be used and a dict is
-        created with string integer names corresponding to the event id integers.
+        access associated :term:`events`, and each value must be unique. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with the id as
+        string. If a list of int, all :term:`events` with the IDs specified in the list
+        are used. If a str or list of str, ``events`` must be ``None`` to use
+        annotations and then the IDs must be the name(s) of the annotations to use. If
+        None, all :term:`events` will be used and a dict is created with string integer
+        names corresponding to the event id integers.
     tmin, tmax : float
         Start and end time of the epochs in seconds, relative to the time-locked
         event. The closest or matching samples corresponding to the start and end
@@ -4941,12 +4943,13 @@ class Epochs(BaseEpochs):
             epoch times.
     event_id : int | list of int | dict | str | list of str | None
         The id of the :term:`events` to consider. If dict, the keys can later be used to
-        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
-        dict will be created with the id as string. If a list of int, all :term:`events`
-        with the IDs specified in the list are used. If a str or list of str, ``events``
-        must be ``None`` to use annotations and then the IDs must be the name(s) of the
-        annotations to use. If None, all :term:`events` will be used and a dict is
-        created with string integer names corresponding to the event id integers.
+        access associated :term:`events`, and each value must be unique. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with the id as
+        string. If a list of int, all :term:`events` with the IDs specified in the list
+        are used. If a str or list of str, ``events`` must be ``None`` to use
+        annotations and then the IDs must be the name(s) of the annotations to use. If
+        None, all :term:`events` will be used and a dict is created with string integer
+        names corresponding to the event id integers.
     tmin, tmax : float
         Start and end time of the epochs in seconds, relative to the time-locked
         event. The closest or matching samples corresponding to the start and end
@@ -5237,10 +5240,11 @@ class Epochs(BaseEpochs):
                 if metadata is None:
                     metadata = extras_df
                 else:
-                    extras_df.set_index(metadata.index, inplace=True)
+                    extras_df = extras_df.set_index(metadata.index)
                     metadata = pd.concat(
                         [metadata, extras_df], axis=1, ignore_index=False
                     )
+        _check_event_id_unique(event_id)
 
         # call BaseEpochs constructor
         super().__init__(
@@ -5363,12 +5367,13 @@ class EpochsArray(BaseEpochs):
         Start time before event. If nothing provided, defaults to 0.
     event_id : int | list of int | dict | str | list of str | None
         The id of the :term:`events` to consider. If dict, the keys can later be used to
-        access associated :term:`events`. Example: dict(auditory=1, visual=3). If int, a
-        dict will be created with the id as string. If a list of int, all :term:`events`
-        with the IDs specified in the list are used. If a str or list of str, ``events``
-        must be ``None`` to use annotations and then the IDs must be the name(s) of the
-        annotations to use. If None, all :term:`events` will be used and a dict is
-        created with string integer names corresponding to the event id integers.
+        access associated :term:`events`, and each value must be unique. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with the id as
+        string. If a list of int, all :term:`events` with the IDs specified in the list
+        are used. If a str or list of str, ``events`` must be ``None`` to use
+        annotations and then the IDs must be the name(s) of the annotations to use. If
+        None, all :term:`events` will be used and a dict is created with string integer
+        names corresponding to the event id integers.
     reject : dict | None
         Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
         i.e. the absolute difference between the lowest and the highest signal
@@ -5549,6 +5554,7 @@ class EpochsArray(BaseEpochs):
             events = _gen_events(n_epochs)
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info["sfreq"] + tmin
+        _check_event_id_unique(event_id)
 
         super().__init__(
             info,
@@ -6278,6 +6284,12 @@ class EpochsFIF(BaseEpochs):
                 if a == ("IGNORED",) and b != ("IGNORED",):
                     drop_log[k] = b
         drop_log = tuple(drop_log[:step])
+        _check_event_id_unique(
+            event_id,
+            on_duplicate="warn",
+            extra=" Set epochs.event_id (and if needed epochs.events[:, 2]) to a "
+            "one-to-one mapping before selecting epochs.",
+        )
 
         # call BaseEpochs constructor
         # again, ensure we're retaining the baseline period originally loaded

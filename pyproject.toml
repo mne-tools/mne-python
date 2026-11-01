@@ -509,7 +509,7 @@ name = "Other changes"
 showcontent = true
 
 [tool.ty.environment]
-python-version = "3.11"  # minimum supported, keep in sync with requires-python
+python-version = "3.14"  # keep in sync with latest available version
 
 # Files that are strictly type-checked with no rule overrides. A file is added
 # here only once it passes ty cleanly; grow this list as more of the codebase is

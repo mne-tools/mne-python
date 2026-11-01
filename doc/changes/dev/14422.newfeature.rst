@@ -1,0 +1,1 @@
+Add component pagination and temporal sampling sliders for ICA source timecourses in :meth:`mne.Report.add_ica`, by `Stefan Appelhoff`_.

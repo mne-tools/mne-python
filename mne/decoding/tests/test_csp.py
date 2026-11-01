@@ -51,7 +51,7 @@ def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
     S[:, 0] *= np.atleast_2d(np.sqrt(target)).T
     S[:, 1:] *= 0.01  # less noise
 
-    X = np.dot(mixing_mat, S).transpose((1, 0, 2))
+    X = mixing_mat @ S
 
     return X, mixing_mat
 

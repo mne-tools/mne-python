@@ -1,0 +1,55 @@
+name: CircleCI scheduled
+
+on:  # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '0 10 * * *'  # 10:00 UTC, after the 04:00 and 06:00 UTC CircleCI scheduled runs finish
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: Open or close failure issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check the latest scheduled CircleCI workflows
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -eo pipefail
+          maint=$(gh api "repos/$GH_REPO/branches" --paginate --jq '.[].name | select(startswith("maint/"))' | sort -V | tail -n 1)
+          failures=""
+          successes=0
+          # the scheduled workflows in .circleci/config.yml, as "name branch"
+          for workflow in "main main" "maint $maint" "monthly main"; do
+            read -r name branch <<< "$workflow"
+            # Insights lists completed runs only, newest first, however long ago
+            # they ran (the monthly linkcheck would fall off a pipeline listing)
+            run=$(curl -fsS --max-time 30 --retry 3 "https://circleci.com/api/v2/insights/gh/$GH_REPO/workflows/$name?branch=$branch" | jq -r '.items[0] // empty | [.status, .id] | @tsv')
+            IFS=$'\t' read -r status id <<< "$run"
+            url="https://app.circleci.com/pipelines/workflows/$id"
+            echo "$name on $branch: ${status:-no runs} $url"
+            case "$status" in
+              success) successes=$((successes + 1)) ;;
+              failed|error) failures+="- \`$name\` on \`$branch\`: $url"$'\n' ;;
+            esac
+          done
+          # leave the issue alone if no workflow has run to completion
+          if [[ -n "$failures" ]]; then
+            echo "failing=true" >> "$GITHUB_OUTPUT"
+            { echo "body<<EOF"; echo "Scheduled CircleCI workflows failed:"; echo; echo -n "$failures"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          elif [[ "$successes" -gt 0 ]]; then
+            echo "failing=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: mne-tools/mne-tools/actions/auto-issue@main
+        if: steps.check.outputs.failing != ''
+        with:
+          title: CircleCI scheduled workflows failing
+          failing: ${{ steps.check.outputs.failing }}
+          body: ${{ steps.check.outputs.body }}
+          comment: The latest scheduled CircleCI workflows all succeeded.
+          label: auto-issue

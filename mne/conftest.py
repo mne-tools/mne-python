@@ -174,30 +174,16 @@ def pytest_configure(config: pytest.Config):
     # numpy distutils used by SciPy
     ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
     ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
-    ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
-    # Windows CIs using MESA get this
-    ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
     # Matplotlib->tz
     ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning
-    # joblib
-    ignore:ast\.Num is deprecated.*:DeprecationWarning
-    ignore:Attribute n is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
-    # numpydoc
-    ignore:ast\.NameConstant is deprecated and will be removed in Python 3\.14.*:DeprecationWarning
-    # pooch
-    ignore:Python 3\.14 will, by default, filter extracted tar archives.*:DeprecationWarning
     # pandas
-    ignore:\n*Pyarrow will become a required dependency of pandas.*:DeprecationWarning
-    ignore:np\.find_common_type is deprecated.*:DeprecationWarning
     ignore:Python binding for RankQuantileOptions.*:
     # pyvista <-> NumPy 2.0
     ignore:__array_wrap__ must accept context and return_scalar arguments.*:DeprecationWarning
     # pyvista <-> VTK dev
     ignore:Call to deprecated method Get.*:DeprecationWarning
-    # nibabel <-> NumPy 2.0
-    ignore:__array__ implementation doesn't accept a copy.*:DeprecationWarning
     # quantities via neo
     ignore:The 'copy' argument in Quantity is deprecated.*:
     # debugpy uses deprecated matplotlib API
@@ -206,7 +192,6 @@ def pytest_configure(config: pytest.Config):
     ignore:.*builtin type swigvarlink has no.*:DeprecationWarning
     # eeglabio
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
-    ignore:Starting field name with a underscore.*:
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
     # sklearn
@@ -242,7 +227,7 @@ def pytest_configure(config: pytest.Config):
                 "filterwarnings",
                 "ignore:"
                 ".+ is deprecated and will be removed in a future version.*:"
-                "pandas.errors.Pandas4Warning",
+                "pandas.errors.Pandas4Warning:statsmodels",
             )
 
     # Deal with pytest-qt -- everything should already be skipped for example by not

@@ -1,0 +1,1 @@
+Add support for higher-resolution image exports via a ``scale`` parameter in :meth:`mne.viz.Brain.screenshot` and :meth:`mne.viz.Brain.save_image`, by `Ishaan Maheshwari`_.

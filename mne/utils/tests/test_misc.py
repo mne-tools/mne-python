@@ -165,6 +165,18 @@ print('bar', file=sys.{kind})
     assert std == want
     assert other == ""
 
+    if not do_raise:
+        # Ensure non-UTF-8 bytes don't cause UnicodeDecodeError
+        fname_non_utf8 = tmp_path / f"non_utf8_{kind}.py"
+        fname_non_utf8.write_text(
+            f"import sys\nsys.{kind}.buffer.write('bøfsandwich'.encode('latin-1'))",
+            encoding="utf-8",
+        )
+        stdout, stderr = run_subprocess([sys.executable, fname_non_utf8], verbose=False)
+        out = stdout if kind == "stdout" else stderr
+        # \ufffd is the unicode replacement character
+        assert out == "b\ufffdfsandwich"
+
 
 def test_clean_names():
     """Test cleaning names on OPM dataset.

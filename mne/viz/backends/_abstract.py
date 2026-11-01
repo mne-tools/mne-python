@@ -674,7 +674,7 @@ class _AbstractRenderer(ABC):
 
     @classmethod
     @abstractmethod
-    def screenshot(self, mode="rgb", filename=None):
+    def screenshot(self, mode="rgb", filename=None, *, scale=1):
         """Take a screenshot of the scene.
 
         Parameters
@@ -684,6 +684,11 @@ class _AbstractRenderer(ABC):
             Default is 'rgb'.
         filename : str | None
             If not None, save the figure to the disk.
+        scale : int
+            The scale factor for the screenshot. Larger values produce higher
+            resolution images. Default is 1.
+
+            .. versionadded:: 1.14
         """
         pass
 
@@ -1149,6 +1154,7 @@ class _AbstractDock(ABC):
         icon=None,
         tooltip=None,
         layout=None,
+        shortcut=None,
     ):
         pass
 
@@ -1175,7 +1181,16 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_check_box(
-        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+        self,
+        name,
+        value,
+        callback,
+        *,
+        tooltip=None,
+        layout=None,
+        row=None,
+        col=None,
+        shortcut=None,
     ):
         pass
 

@@ -1059,6 +1059,26 @@ def test_image_screenshot(
     assert not np.array_equal(img1, img2)
     assert_array_equal(img1, img3)
 
+    # Test scaled screenshot and save_image (issue #14385)
+    img_scaled = brain.screenshot(mode="rgba", scale=2)
+    assert_allclose(img_scaled.shape[:2], [s * 2 for s in img1.shape[:2]])
+    from PIL import Image
+
+    img_downscaled = np.array(
+        Image.fromarray(img_scaled).resize(
+            (img1.shape[1], img1.shape[0]), resample=Image.Resampling.BILINEAR
+        )
+    )
+    corr = np.corrcoef(img1[..., :3].ravel(), img_downscaled[..., :3].ravel())[0, 1]
+    assert corr > 0.95
+
+    fname_scaled = tmp_path / "test_scaled.png"
+    brain.save_image(fname_scaled, scale=2)
+    assert fname_scaled.is_file()
+
+    with pytest.raises(TypeError, match="scale must be an int"):
+        brain.screenshot(scale=1.5)
+
     brain.close()
 
 

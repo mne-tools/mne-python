@@ -330,9 +330,9 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
             "Filename base must end with an underscore followed "
             f"by the modality (e.g., _eeg or _meg), got {base}"
         )
-    suffix = deconstructed_base[-1]
-    base = "_".join(deconstructed_base[:-1])
-    use_fname = f"{base}_split-{part_idx + 1:02}_{suffix}{ext}"
+    idx = -2 if deconstructed_base[-2].startswith("desc-") else -1
+    deconstructed_base.insert(idx, f"split-{part_idx + 1:02}")
+    use_fname = "_".join(deconstructed_base) + ext
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

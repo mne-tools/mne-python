@@ -1027,7 +1027,7 @@ def _complete_info(info):
     with info._unlock():
         info["proj_id"] = 1
         info["proj_name"] = "h"
-        info["utc_offset"] = "i"
+        info["utc_offset"] = "+01:00"
         d = (1717707794, 2)
         info["proc_history"] = [
             dict(
@@ -1298,6 +1298,74 @@ def test_invalid_set_meas_date():
     info = create_info(1, 1000, "eeg")
     with pytest.raises(TypeError, match=r"meas_date must be an instance of"):
         info.set_meas_date("2025-01-01 00:00:00.000000")
+
+
+def test_set_meas_date_timezone(tmp_path, monkeypatch):
+    """Test set_meas_date with timezone-aware datetime and utc_offset (#9953)."""
+    from datetime import datetime, timedelta, timezone
+
+    info = create_info(1, 1000, "eeg")
+
+    # Timezone-naive datetime should raise ValueError
+    naive_dt = datetime(2021, 11, 4, 11, 50, 49)
+    with pytest.raises(ValueError, match="timezone-aware"):
+        info.set_meas_date(naive_dt)
+
+    # Positive UTC offset (e.g. Europe/Berlin +02:00)
+    tz_plus2 = timezone(timedelta(hours=2))
+    dt_plus2 = datetime(2021, 11, 4, 11, 50, 49, 123456, tzinfo=tz_plus2)
+    info.set_meas_date(dt_plus2)
+    assert info["utc_offset"] == "+02:00"
+    expected_utc = datetime(2021, 11, 4, 9, 50, 49, 123456, tzinfo=UTC)
+    assert info["meas_date"] == expected_utc
+
+    # Negative UTC offset (e.g. America/New_York -05:00)
+    tz_minus5 = timezone(timedelta(hours=-5))
+    dt_minus5 = datetime(2021, 11, 4, 6, 30, 0, tzinfo=tz_minus5)
+    info.set_meas_date(dt_minus5)
+    assert info["utc_offset"] == "-05:00"
+    with info._unlock():
+        info["utc_offset"] = "-0500"
+    with pytest.raises(RuntimeError, match="sHH:MM"):
+        info._check_consistency()
+    assert info["meas_date"] == datetime(2021, 11, 4, 11, 30, 0, tzinfo=UTC)
+
+    # UTC datetime should clear / not set utc_offset
+    dt_utc = datetime(2021, 11, 4, 11, 50, 49, tzinfo=UTC)
+    info.set_meas_date(dt_utc)
+    assert info["utc_offset"] is None
+    assert info["meas_date"] == dt_utc
+
+    # None should clear both
+    info.set_meas_date(None)
+    assert info["meas_date"] is None
+    assert info["utc_offset"] is None
+
+    # Test RawArray set_meas_date and FIFF I/O round-trip
+    from ...io import RawArray, read_raw_fif
+
+    raw = RawArray(np.zeros((1, 100)), create_info(1, 1000, "eeg"))
+    raw.set_meas_date(dt_plus2)
+    assert raw.info["utc_offset"] == "+02:00"
+    assert raw.info["meas_date"] == expected_utc
+
+    fname = tmp_path / "test_raw.fif"
+    raw.save(fname, overwrite=True)
+    raw_loaded = read_raw_fif(fname)
+    assert raw_loaded.info["utc_offset"] == "+02:00"
+    assert raw_loaded.info["meas_date"] == expected_utc
+
+    # Legacy sHHMM offsets written by MNE < 1.14 are converted on read
+    with raw.info._unlock():
+        raw.info["utc_offset"] = "+0200"
+    with monkeypatch.context() as m:
+        m.setattr(Info, "_check_consistency", lambda *args, **kwargs: None)
+        raw.save(fname, overwrite=True)
+    assert read_raw_fif(fname).info["utc_offset"] == "+02:00"
+
+    # Anonymization should clear utc_offset
+    raw_loaded.anonymize()
+    assert raw_loaded.info["utc_offset"] is None
 
 
 @pytest.mark.slowtest

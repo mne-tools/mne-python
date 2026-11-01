@@ -312,7 +312,7 @@ def _read_header(input_fname):
     info = dict(
         version=version,
         meas_dt_local=time_n,
-        utc_offset=time_n.strftime("%z"),
+        utc_offset=time_n.isoformat()[-6:],  # sHH:MM
     )
     info.update(
         n_categories=0,

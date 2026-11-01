@@ -433,7 +433,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     if long_format:
         grouping_cols.append("channel")
         drop_cols.append("ch_type")
-        orig_df.drop(columns="ch_type", inplace=True)
+        orig_df = orig_df.drop(columns="ch_type")
     # only do a couple freq bins, otherwise test takes forever for multitaper
     subset = partial(np.isin, test_elements=spectrum.freqs[:2])
     df = df.loc[subset(df["freq"])]
@@ -459,8 +459,8 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
-    agg_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
-    orig_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
+    agg_df = agg_df.sort_values(by=grouping_cols, ignore_index=True)
+    orig_df = orig_df.sort_values(by=grouping_cols, ignore_index=True)
     # One can have categorical dtype and the other plain object, so don't check that
     assert_frame_equal(agg_df, orig_df, check_categorical=False, check_dtype=False)
 

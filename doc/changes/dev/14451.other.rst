@@ -1,0 +1,1 @@
+Accelerate electrical distance computation in :func:`mne.preprocessing.compute_bridged_electrodes` via vectorized sample covariance, by `Ishaan Maheshwari`_.

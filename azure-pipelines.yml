@@ -51,7 +51,7 @@ stages:
           # See tools/github_actions_env_vars.sh for why these are set (this job
           # is on Python 3.14, so sys.monitoring can measure branches)
           COVERAGE_CORE: 'sysmon'
-          UV_CACHE_DIR: '/home/vsts/.cache/uv'
+          UV_CACHE_DIR: '/home/runner/.cache/uv'
           UV_SYSTEM_PYTHON: 'true'  # UsePythonVersion gives us a bare interpreter, not a venv
           UV_NO_PROGRESS: 'true'
         steps:
@@ -64,7 +64,7 @@ stages:
           - task: Cache@2
             inputs:
               key: '"minimal-cmds" | "$(Agent.OS)" | $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh'
-              path: /home/vsts/minimal_cmds
+              path: /home/runner/minimal_cmds
             displayName: Cache minimal commands
           - bash: $(MNE_TOOLS_DIR)/tools/get_minimal_commands.sh
             displayName: Get minimal commands
@@ -79,10 +79,12 @@ stages:
               restoreKeys: '"uv" | "$(Agent.OS)"'
               path: $(UV_CACHE_DIR)
             displayName: Cache uv
+            continueOnError: true  # saving can run out of disk space on a cache miss
           - bash: |
               set -xeo pipefail
               python -m pip install --progress-bar off --upgrade "uv>=0.9"
               uv pip install --upgrade --only-binary=":all:" --no-binary=mne --no-binary=mne-qt-browser -e . --group=test "mne-qt-browser @ https://github.com/mne-tools/mne-qt-browser/archive/refs/heads/main.zip" pyvista scikit-learn python-picard qtpy nibabel sphinx-gallery "PySide6!=6.8.0,!=6.8.0.1,!=6.8.1.1,!=6.9.1" pandas neo pymatreader antio defusedxml curryreader pymef openmeeg
+              uv cache prune --ci  # keep the saved cache small
             displayName: Install dependencies with uv
           - bash: $(MNE_TOOLS_DIR)/tools/check_qt_import.sh PySide6
             displayName: Check Qt import
@@ -96,7 +98,7 @@ stages:
           - task: Cache@2
             inputs:
               key: mne_data-testing-$(testing_version)-misc-$(misc_version)
-              path: /home/vsts/mne_data
+              path: /home/runner/mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
@@ -149,7 +151,7 @@ stages:
           - task: Cache@2
             inputs:
               key: mne_data-testing-$(testing_version)-misc-$(misc_version)
-              path: /home/vsts/mne_data
+              path: /home/runner/mne_data
             displayName: Cache testing data
           - bash: ./tools/github_actions_download.sh
             displayName: Download testing data
@@ -250,9 +252,13 @@ stages:
               restoreKeys: '"uv" | "$(Agent.OS)" | "$(PYTHON_VERSION)" | "$(TEST_MODE)"'
               path: $(UV_CACHE_DIR)
             displayName: Cache uv
+            continueOnError: true  # saving can run out of disk space on a cache miss
           - bash: ./tools/azure_dependencies.sh
             displayName: Install dependencies
-          - script: uv pip install --only-binary=":all:" --no-binary=mne -e .
+          - bash: |
+              set -xeo pipefail
+              uv pip install --only-binary=":all:" --no-binary=mne -e .
+              uv cache prune --ci  # keep the saved cache small
             displayName: Install mne
           - script: mne sys_info -pd
             displayName: Print config

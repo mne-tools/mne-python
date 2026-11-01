@@ -1500,7 +1500,7 @@ class ICA(ContainsMixin):
             ch_names += add_channels
             # re-append additionally picked ch_info
             ch_info += [
-                k for k in container.info["chs"] if k["ch_name"] in add_channels
+                container.info["chs"][container.ch_names.index(k)] for k in add_channels
             ]
         with info._unlock(update_redundant=True, check_after=True):
             info["chs"] = ch_info

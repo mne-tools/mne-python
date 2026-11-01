@@ -88,6 +88,9 @@ def test_datasets_basic(tmp_path, monkeypatch):
     monkeypatch.setattr(mne.datasets._fsaverage.base, "_manifest_check_download", noop)
     sd_2 = datasets.fetch_fsaverage()
     assert sd / "fsaverage" == sd_2
+    # a str for a not-yet-existing subjects_dir
+    sd_3 = datasets.fetch_fsaverage(str(tmp_path / "new_sd"))
+    assert sd_3 == tmp_path / "new_sd" / "fsaverage"
 
 
 def test_erp_core_fetch_file(tmp_path, monkeypatch):

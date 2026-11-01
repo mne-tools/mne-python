@@ -2237,6 +2237,11 @@ class BaseRaw(
             self._data = self._data[:, smin : smax + 1].copy()
 
         annotations = self.annotations
+        if reset_first_samp:
+            # onsets include first_time, shift them to stay aligned with the data;
+            # _first_samps and _last_samps index the files and must stay untouched
+            annotations.onset -= self.first_time
+            self._cropped_samp = 0
         # now call setter to filter out annotations outside of interval
         if annotations.orig_time is None:
             assert self.info["meas_date"] is None
@@ -2247,11 +2252,6 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
-        if reset_first_samp:
-            delta = self._first_samps[0]
-            self._first_samps -= delta
-            self._last_samps -= delta
-            self._cropped_samp -= delta
         return self
 
     @verbose_static()

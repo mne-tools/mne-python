@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.preprocessing.annotate_muscle_zscore` where channels in ``raw.info["bads"]`` were included in the computation of the muscle artifact scores, by `Hamza Abdelhedi`_.

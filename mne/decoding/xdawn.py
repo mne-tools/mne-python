@@ -281,7 +281,7 @@ class XdawnTransformer(_GEDTransformer):
             )
         pick_patterns = self._subset_multi_components(name="patterns")
         # Transform
-        return np.dot(pick_patterns.T, X).transpose(1, 0, 2)
+        return pick_patterns.T @ X
 
 
 @verbose_static()
