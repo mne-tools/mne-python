@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "cf3c2ab6ed47021c77bd5757e3cea18f9420f9d0",
+  "authors": [
+    {
+      "n": "Aditya Pandey",
+      "e": "297672600+adi-coderr@users.noreply.github.com",
+      "l": "adi-coderr"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14360.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/array/_array.py": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/io/array/tests/test_array.py": {
+      "a": 13,
+      "d": 0
+    }
+  }
+}

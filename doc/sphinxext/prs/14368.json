@@ -1,0 +1,40 @@
+{
+  "merge_commit_sha": "55477b7ca6e216cbfba63266cbfe9c83ece5d7f1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14368.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14368.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/evoked.py": {
+      "a": 13,
+      "d": 6
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/viz/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

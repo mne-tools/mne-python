@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "349e64dc5b446e489352d07d61df807b5f78ec9c",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com",
+      "l": "BabaSanfour"
+    },
+    {
+      "n": "Erica R Peterson",
+      "e": "38704848+nordme@users.noreply.github.com"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14434.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/utils.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

@@ -4,6 +4,7 @@
 .. _Adam Li: https://github.com/adam2392
 .. _Adeline Fecker: https://github.com/adelinefecker
 .. _Adina Wagner: https://github.com/adswa
+.. _Aditya Pandey: https://github.com/adi-coderr
 .. _Aditya: https://github.com/adi-coderr
 .. _Adonay Nunes: https://github.com/AdoNunes
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
@@ -49,6 +50,7 @@
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
 .. _Aslan Satary Dizaji: https://github.com/aslansd
+.. _Aslan: https://github.com/aslansd
 .. _Athish M: https://github.com/athishio
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
@@ -230,6 +232,7 @@
 .. _Joshua Bear: https://github.com/joshbear
 .. _Joshua Calder-Travis: https://github.com/jCalderTravis
 .. _Joshua Teves: https://github.com/jbteves
+.. _Judith Schepers: https://github.com/jschepers
 .. _Judy D Zhu: https://github.com/JD-Zhu
 .. _Juergen Dammers: https://github.com/jdammers
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
