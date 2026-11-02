@@ -18,13 +18,18 @@ from ..utils import (
 )
 
 
-def _max_stat(X, X2, perms, dof_scaling):
+def _max_stat(X, X2, perms, dof_scaling, tail):
     """Aux function for permutation_t_test (for parallel comp)."""
     n_samples = len(X)
     mus = np.dot(perms, X) / float(n_samples)
     stds = np.sqrt(X2[None, :] - mus * mus) * dof_scaling  # std with splitting
-    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1)  # t-max
-    return max_abs
+    return _t_max(mus / (stds / sqrt(n_samples)), tail)
+
+
+def _t_max(T, tail):
+    """Get the t-max statistic in the direction(s) of the tail."""
+    T = np.abs(T) if tail == 0 else T * tail  # tail == -1 -> positive for min(T)
+    return np.max(T, axis=-1)
 
 
 @_legacy_rng("seed")
@@ -58,7 +63,8 @@ def permutation_t_test(
         Number of permutations. If n_permutations is 'all' all possible
         permutations are tested. It's the exact test, that
         can be untractable when the number of samples is big (e.g. > 20).
-        If n_permutations >= 2**n_samples then the exact test is performed.
+        If ``n_permutations >= 2 ** (n_samples - (tail == 0))`` then the exact
+        test is performed.
     tail : -1 | 0 | 1
         If tail is 1, the alternative hypothesis is that the
         mean of the data is greater than 0 (upper tailed test).  If tail is 0,
@@ -101,7 +107,8 @@ def permutation_t_test(
         P-values for all the tests (a.k.a. variables).
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
-        comparison.
+        comparison, i.e., the max of ``abs(T)`` (``tail=0``), ``T`` (``tail=1``),
+        or ``-T`` (``tail=-1``) across tests.
 
     Notes
     -----
@@ -126,13 +133,13 @@ def permutation_t_test(
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
     logger.info(f"Permuting {len(orders)} times{extra}...")
     parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
-    max_abs = np.concatenate(
+    H0 = np.concatenate(
         parallel(
-            my_max_stat(X, X2, p, dof_scaling) for p in np.array_split(perms, n_jobs)
+            my_max_stat(X, X2, p, dof_scaling, tail)
+            for p in np.array_split(perms, n_jobs)
         )
     )
-    max_abs = np.concatenate((max_abs, [np.abs(T_obs).max()]))
-    H0 = np.sort(max_abs)
+    H0 = np.sort(np.concatenate((H0, [_t_max(T_obs, tail)])))
     if tail == 0:
         p_values = (H0 >= np.abs(T_obs[:, np.newaxis])).mean(-1)
     elif tail == 1:
