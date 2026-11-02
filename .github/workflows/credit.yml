@@ -21,7 +21,7 @@ jobs:
         with:
           persist-credentials: true
           fetch-depth: 0  # git shortlog needs the history to map commit names
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@v7.1.0
       - run: pip install pygithub sphinx codespell -e .
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json
