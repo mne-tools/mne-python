@@ -1,1 +1,1 @@
-Fixed a memory leak where :class:`mne.io.RawArray` retained the original data array in ``_init_kwargs`` after operations like resampling or cropping, by :newcontrib:`Aditya`.
+Fix bug where :class:`mne.io.RawArray` kept a reference to the original data array after operations like resampling or cropping, which wasted memory, by :newcontrib:`Aditya Pandey`.

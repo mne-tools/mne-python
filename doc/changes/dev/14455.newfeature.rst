@@ -1,0 +1,1 @@
+Add :func:`mne.channels.compute_interpolation_data` and support for passing precomputed interpolation data in :meth:`~mne.io.Raw.interpolate_bads`, :meth:`~mne.Epochs.interpolate_bads`, and :meth:`~mne.Evoked.interpolate_bads`, by `Ishaan Maheshwari`_.

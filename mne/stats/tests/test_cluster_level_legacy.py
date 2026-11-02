@@ -371,7 +371,7 @@ def test_cluster_permutation_with_adjacency(
         # test spatio-temporal w/o time adjacency (repeat spatial pattern)
         adjacency_2 = sparse.coo_array(
             linalg.block_diag(
-                adjacency.asfptype().todense(), adjacency.asfptype().todense()
+                adjacency.asfptype().toarray(), adjacency.asfptype().toarray()
             )
         )
         # nesting here is time then space:
@@ -672,7 +672,7 @@ def test_spatio_temporal_cluster_chain_merge():
     assert len(clusters) == 1
     t_idx, s_idx = clusters[0]
     assert_equal(sorted(zip(t_idx.tolist(), s_idx.tolist())), active)
-    assert_allclose(cluster_pv, [1 / 4])
+    assert_allclose(cluster_pv, [1 / 2**n_subjects])  # only the identity is as big
 
 
 def test_ttest_reordered():
@@ -881,13 +881,16 @@ def test_permutation_test_H0(numba_conditional):
         )
         assert_equal(len(h0), min(n_permutations, 64))
         assert isinstance(clust[0], tuple)  # sets of indices
+    h0s = dict()
     for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
-        t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
+        t, clust, p, h0s[tail] = spatio_temporal_cluster_1samp_test(
             data, threshold=thresh, rng=rng, tail=tail, out_type="mask"
         )
         assert isinstance(clust[0], np.ndarray)  # bool mask
         # same as "128 if tail else 64"
-        assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
+        assert_equal(len(h0s[tail]), 2 ** (7 - (tail == 0)))  # exact test
+    # all sign flips (each used once) are symmetric across the two tails
+    assert_allclose(np.sort(h0s[1]), np.sort(-h0s[-1]))
 
 
 def test_tfce_thresholds(numba_conditional):

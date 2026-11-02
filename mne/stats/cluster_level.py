@@ -784,17 +784,18 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
     if isinstance(n_permutations, str):
         if n_permutations != "all":
             raise ValueError('n_permutations as a string must be "all"')
-        n_permutations = max_perms
+        n_permutations = max_perms + 1  # including the identity
     n_permutations = int(n_permutations)
+    # Orders are used as signs via 2 * order - 1, so the identity (all ones) is
+    # omitted here b/c it's accounted for in H0.append() later. For tail == 0 the
+    # first sample is never flipped, so each +/- pair of patterns is used once.
     if max_perms < n_permutations:
-        # omit first perm b/c accounted for in H0.append() later;
-        # convert to binary array representation
         extra = " (exact test)"
-        orders = bin_perm_rep(n_samples)[1 : max_perms + 1]
+        orders = 1 - bin_perm_rep(n_samples)[1 : max_perms + 1]
     elif n_samples <= 20:  # fast way to do it for small(ish) n_samples
         orders = rng.choice(max_perms, n_permutations - 1, replace=False)
         orders = [
-            np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int) for s in orders
+            1 - np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int) for s in orders
         ]
     else:  # n_samples >= 64
         # Here we can just use the hash-table (w/collision detection)

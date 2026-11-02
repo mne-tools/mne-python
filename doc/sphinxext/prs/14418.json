@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "0616647f51c5ce62fcf0facafa4d34e0ace808f2",
+  "authors": [
+    {
+      "n": "Hamza Abdelhedi",
+      "e": "hamza.abdelhedii@gmail.com",
+      "l": "BabaSanfour"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14418.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/artifact_detection.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_artifact_detection.py": {
+      "a": 6,
+      "d": 0
+    }
+  }
+}

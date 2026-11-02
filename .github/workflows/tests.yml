@@ -101,7 +101,7 @@ jobs:
           pyvista: false
           wm: false
       # Python (if pip)
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ matrix.python }}
         if: startswith(matrix.kind, 'pip') || matrix.kind == 'minimal'
@@ -141,7 +141,7 @@ jobs:
         if: matrix.kind == 'conda'
         timeout-minutes: 20
       # Python (if old)
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           version: ">=0.9"
           activate-environment: true

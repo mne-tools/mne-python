@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "3b3eebdfd5bb0f98131b4029bab27753608f8be5",
+  "authors": [
+    {
+      "n": "Badri Vishal Pandey",
+      "e": "240858953+badrisatyam1-ctrl@users.noreply.github.com",
+      "l": "badrisatyam1-ctrl"
+    }
+  ],
+  "changes": {
+    ".github/ISSUE_TEMPLATE/config.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

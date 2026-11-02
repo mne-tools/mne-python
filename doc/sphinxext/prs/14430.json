@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "ad78c986bb747730c326c8b1eb93e88add801433",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org",
+      "l": "sappelhoff"
+    }
+  ],
+  "changes": {
+    "mne/channels/_dig_montage_utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}
