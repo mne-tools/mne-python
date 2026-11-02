@@ -63,7 +63,8 @@ def permutation_t_test(
         Number of permutations. If n_permutations is 'all' all possible
         permutations are tested. It's the exact test, that
         can be untractable when the number of samples is big (e.g. > 20).
-        If ``n_permutations >= 2 ** (n_samples - (tail == 0))`` then the exact
+        If ``n_permutations >= 2 ** (n_samples - 1)`` (for two-tailed tests) or
+        ``n_permutations >= 2 ** n_samples`` (for one-tailed tests) then the exact
         test is performed.
     tail : -1 | 0 | 1
         If tail is 1, the alternative hypothesis is that the
