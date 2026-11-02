@@ -14,13 +14,7 @@ from .._fiff.pick import pick_channels, pick_info, pick_types
 from .._fiff.proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from ..bem import _check_origin
 from ..surface import _normalize_vectors
-from ..utils import (
-    _check_option,
-    _validate_type,
-    _verbose_control,
-    logger,
-    warn,
-)
+from ..utils import _validate_type, _verbose_control, logger, warn
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -68,26 +62,6 @@ def _calc_g(cosang, stiffness=4, n_legendre_terms=50):
     return legval(cosang, [0] + factors)
 
 
-def _make_interpolation_matrix_from_g(G_from, G_to_from, alpha=1e-5):
-    """Compute interpolation matrix based on spherical splines from G matrices."""
-    n_from = G_from.shape[0]
-    n_to = G_to_from.shape[0]
-    G_from = G_from.copy()
-    if alpha is not None:
-        G_from.flat[:: n_from + 1] += alpha
-
-    C = np.vstack(
-        [
-            np.hstack([G_from, np.ones((n_from, 1))]),
-            np.hstack([np.ones((1, n_from)), [[0]]]),
-        ]
-    )
-    C_inv = pinv(C)
-    interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
-    assert interpolation.shape == (n_to, n_from)
-    return interpolation
-
-
 def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     """Compute interpolation matrix based on spherical splines.
 
@@ -116,14 +90,40 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     """
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
+    n_from = pos_from.shape[0]
+    n_to = pos_to.shape[0]
+
+    # normalize sensor positions to sphere
     _normalize_vectors(pos_from)
     _normalize_vectors(pos_to)
 
+    # cosine angles between source positions
     cosang_from = pos_from.dot(pos_from.T)
     cosang_to_from = pos_to.dot(pos_from.T)
     G_from = _calc_g(cosang_from)
     G_to_from = _calc_g(cosang_to_from)
+    assert G_from.shape == (n_from, n_from)
+    assert G_to_from.shape == (n_to, n_from)
     return _make_interpolation_matrix_from_g(G_from, G_to_from, alpha=alpha)
+
+
+def _make_interpolation_matrix_from_g(G_from, G_to_from, alpha=1e-5):
+    n_from, n_to = len(G_from), len(G_to_from)
+    if alpha is not None:
+        G_from = G_from.copy()
+        G_from.flat[:: len(G_from) + 1] += alpha
+
+    C = np.vstack(
+        [
+            np.hstack([G_from, np.ones((n_from, 1))]),
+            np.hstack([np.ones((1, n_from)), [[0]]]),
+        ]
+    )
+    C_inv = pinv(C)
+
+    interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
+    assert interpolation.shape == (n_to, n_from)
+    return interpolation
 
 
 def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
@@ -138,76 +138,32 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     )
 
 
-class InterpolationData(dict):
-    """Channel interpolation data and geometry.
-
-    This dictionary contains precomputed bads-independent interpolation data
-    keyed by channel type (e.g. ``'eeg'``, ``'meg'``).
-
-    Parameters
-    ----------
-    eeg : dict | None
-        Precomputed EEG interpolation geometry.
-    meg : dict | None
-        Precomputed MEG interpolation geometry.
-    """
-
-    def __init__(
-        self,
-        *,
-        eeg=None,
-        meg=None,
-    ):
-        super().__init__()
-        if eeg is not None:
-            self["eeg"] = eeg
-        if meg is not None:
-            self["meg"] = meg
-
-    def __repr__(self):  # noqa: D105
-        types = list(self.keys())
-        if not types:
-            return "<InterpolationData | empty>"
-        info_strs = []
-        for t in types:
-            val = self[t]
-            if isinstance(val, dict) and "ch_names" in val:
-                info_strs.append(f"{t} ({len(val['ch_names'])} channels)")
-            else:
-                info_strs.append(str(t))
-        return f"<InterpolationData | {', '.join(info_strs)}>"
-
-    def copy(self):
-        """Return a copy of the InterpolationData.
-
-        Returns
-        -------
-        inst : instance of InterpolationData
-            A copy of the interpolation data.
-        """
-        return deepcopy(self)
-
-
-def _compute_spline_interpolation(info, origin, exclude=(), ecog=False):
-    """Compute spherical spline interpolation matrix for EEG or ECoG."""
+@_verbose_control
+def _interpolate_bads_eeg(
+    inst, origin, exclude=None, ecog=False, *, data=None, verbose=None
+):
     if exclude is None:
         exclude = list()
-    bads_idx = np.zeros(len(info["ch_names"]), dtype=bool)
-    goods_idx = np.zeros(len(info["ch_names"]), dtype=bool)
+    bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
+    goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
-    picks = pick_types(info, meg=False, eeg=not ecog, ecog=ecog, exclude=exclude)
-    info._check_consistency()
-    bads_idx[picks] = [info["ch_names"][ch] in info["bads"] for ch in picks]
+    picks = pick_types(inst.info, meg=False, eeg=not ecog, ecog=ecog, exclude=exclude)
+    inst.info._check_consistency()
+    bads_idx[picks] = [inst.ch_names[ch] in inst.info["bads"] for ch in picks]
 
     if len(picks) == 0 or bads_idx.sum() == 0:
-        return None
+        return
 
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    pos = info._get_channel_positions(picks)
+    pos = inst._get_channel_positions(picks)
+
+    # Make sure only EEG are used
     bads_idx_pos = bads_idx[picks]
     goods_idx_pos = goods_idx[picks]
+    if data is not None:
+        origin = data["origin"]
 
     # test spherical fit
     distance = np.linalg.norm(pos - origin, axis=-1)
@@ -221,85 +177,72 @@ def _compute_spline_interpolation(info, origin, exclude=(), ecog=False):
     pos_good = pos[goods_idx_pos] - origin
     pos_bad = pos[bads_idx_pos] - origin
     logger.info(f"Computing interpolation matrix from {len(pos_good)} sensor positions")
-    interpolation = _make_interpolation_matrix(pos_good, pos_bad)
-    return goods_idx, bads_idx, interpolation
-
-
-def _compute_eeg_interpolation_data(info, origin="auto"):
-    origin = _check_origin(origin, info)
-    picks = pick_types(info, meg=False, eeg=True, exclude=())
-    if len(picks) == 0:
-        return None
-    ch_names = [info["ch_names"][p] for p in picks]
-    pos = info._get_channel_positions(picks)
-    distance = np.linalg.norm(pos - origin, axis=-1)
-    distance = np.mean(distance / np.mean(distance))
-    if np.abs(1.0 - distance) > 0.1:
-        warn(
-            "Your spherical fit is poor, interpolation results are "
-            "likely to be inaccurate."
+    if data is None:
+        interpolation = _make_interpolation_matrix(pos_good, pos_bad)
+    else:
+        sel = _get_interp_sel(data, inst.info, picks)
+        sel_good, sel_bad = sel[goods_idx_pos], sel[bads_idx_pos]
+        interpolation = _make_interpolation_matrix_from_g(
+            data["G"][np.ix_(sel_good, sel_good)], data["G"][np.ix_(sel_bad, sel_good)]
         )
-    pos_norm = (pos - origin).copy()
-    _normalize_vectors(pos_norm)
-    cosang = pos_norm.dot(pos_norm.T)
-    G = _calc_g(cosang)
-    return {
-        "kind": "eeg",
-        "G": G,
-        "pos": pos,
-        "origin": origin,
-        "ch_names": ch_names,
-    }
+
+    logger.info(f"Interpolating {len(pos_bad)} sensors")
+    _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
-def _compute_meg_interpolation_data(info, origin="auto", mode="accurate"):
-    from ..forward._field_interpolation import _setup_dots
-    from ..forward._lead_dots import _do_self_dots
-    from ..forward._make_forward import _create_meg_coils, _read_coil_defs
+class InterpolationData(dict):
+    """Precomputed bad-channel interpolation data for one channel type.
 
-    picks = pick_types(info, meg=True, ref_meg=False, exclude=())
-    if len(picks) == 0:
-        return None
-    ch_names = [info["ch_names"][p] for p in picks]
-    origin = _check_origin(origin, info)
-    chs = [info["chs"][p] for p in picks]
-    templates = _read_coil_defs(verbose=False)
-    coils = _create_meg_coils(chs, "normal", info["dev_head_t"], templates)
-    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info, coils, "meg")
-    dots = _do_self_dots(
-        int_rad, False, coils, origin, "meg", leg_fun, n_fact, n_jobs=None
-    )
-    return {
-        "kind": "meg",
-        "dots": dots,
-        "dev_head_t": deepcopy(info["dev_head_t"]),
-        "origin": origin,
-        "mode": mode,
-        "ch_names": ch_names,
-        "int_rad": int_rad,
-    }
+    This should be created using :func:`mne.channels.compute_interpolation_data`.
+
+    .. versionadded:: 1.14
+    """
+
+    def __repr__(self):  # noqa: D105
+        n_ch = len(self["ch_names"])
+        return f"<InterpolationData | {n_ch} {self['kind'].upper()} channels>"
+
+
+def _interp_locs(info, picks, kind):
+    n_loc = 12 if kind == "meg" else 3  # MEG coil geometry needs the orientation
+    return np.array([info["chs"][pick]["loc"][:n_loc] for pick in picks])
+
+
+def _get_interp_sel(data, info, picks):
+    """Get indices into precomputed data, checking that the geometry matches."""
+    ch_names = [info["ch_names"][pick] for pick in picks]
+    lookup = {ch_name: ii for ii, ch_name in enumerate(data["ch_names"])}
+    missing = [ch_name for ch_name in ch_names if ch_name not in lookup]
+    if missing:
+        raise ValueError(
+            f"Channel(s) {missing} not found in the precomputed interpolation data"
+        )
+    sel = np.array([lookup[ch_name] for ch_name in ch_names], int)
+    kind = data["kind"]
+    if not np.allclose(
+        _interp_locs(info, picks, kind), data["locs"][sel], rtol=0, atol=1e-6
+    ):
+        raise ValueError(
+            f"Channel positions do not match the precomputed {kind.upper()} "
+            "interpolation data"
+        )
+    if kind == "meg" and not np.allclose(
+        info["dev_head_t"]["trans"], data["dev_head_t"]["trans"], rtol=0, atol=1e-6
+    ):
+        raise ValueError(
+            'info["dev_head_t"] does not match the precomputed MEG interpolation data'
+        )
+    return sel
 
 
 @_verbose_control
-def compute_interpolation_data(
-    inst_or_info,
-    *,
-    ch_types=("eeg", "meg"),
-    origin="auto",
-    mode="accurate",
-    verbose=None,
-):
-    """Precompute bads-independent interpolation data for EEG and/or MEG.
+def compute_interpolation_data(info, *, origin="auto", mode="accurate", verbose=None):
+    """Precompute data to speed up bad channel interpolation.
 
     Parameters
     ----------
-    inst_or_info : instance of Raw | Epochs | Evoked | Info
-        The data instance or Info containing channel positions.
-    ch_types : str | tuple of str
-        Channel type(s) to compute interpolation data for. Can be ``'eeg'``,
-        ``'meg'``, or a sequence containing any combination of them.
-        Defaults to ``('eeg', 'meg')``. Only channel types present in the
-        provided instance/info will be computed.
+    info : instance of Info
+        The measurement info containing the channel positions.
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'`` (default), which means a head-digitization-based
@@ -308,163 +251,71 @@ def compute_interpolation_data(
         Either ``'accurate'`` (default) or ``'fast'``, determines the quality
         of the Legendre polynomial expansion used for MEG.
     verbose : bool | str | int | None
-        Control verbosity of the logging output.
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    interpolation_data : instance of InterpolationData
-        Dictionary containing precomputed interpolation data keyed by channel type
-        (e.g., ``'eeg'`` and/or ``'meg'``). Can be passed to
-        :meth:`~mne.io.Raw.interpolate_bads`, :meth:`~mne.Epochs.interpolate_bads`,
-        or :meth:`~mne.Evoked.interpolate_bads` via ``interpolation=...``.
+    interpolation : dict
+        Maps ``'eeg'`` and/or ``'meg'`` (whichever channel types are present) to
+        :class:`~mne.channels.InterpolationData` instances, for use as the
+        ``interpolation`` argument of :meth:`mne.io.Raw.interpolate_bads`,
+        :meth:`mne.Epochs.interpolate_bads`, or :meth:`mne.Evoked.interpolate_bads`.
 
     Notes
     -----
-    For EEG, this precomputes the full spherical spline :math:`G` matrix evaluated
-    via Legendre polynomials between all EEG sensor positions.
-    For MEG, this precomputes the coil lead field dot products matrix across all
-    MEG channels.
-    Because these precomputations depend only on channel geometry and not on
-    the set of bad channels, they can be reused across different sets of bad
-    channels (such as in leave-one-out cross-validation or per-epoch artifact
-    rejection) with minimal computation per iteration.
+    The precomputed data does not depend on which channels are bad: for EEG it
+    holds the spherical spline Legendre series evaluated between all pairs of
+    sensors, and for MEG the lead field dot products between all pairs of sensors.
+    It can thus be reused for any set of bad channels, e.g., when interpolating
+    different channels in different epochs, as long as the sensor positions (and
+    for MEG, ``info['dev_head_t']``) are unchanged.
 
     .. versionadded:: 1.14
     """
-    info = getattr(inst_or_info, "info", inst_or_info)
-    _validate_type(info, (Info,), "inst_or_info", "Raw, Epochs, Evoked, or Info")
+    from ..forward._field_interpolation import _setup_dots
+    from ..forward._lead_dots import _do_self_dots
+    from ..forward._make_forward import _create_meg_coils, _read_coil_defs
 
-    if isinstance(ch_types, str):
-        ch_types = (ch_types,)
-    for ct in ch_types:
-        _check_option("ch_types", ct, ("eeg", "meg"))
-
-    data = InterpolationData()
-    has_eeg = len(pick_types(info, meg=False, eeg=True, exclude=())) > 0
-    has_meg = len(pick_types(info, meg=True, ref_meg=False, exclude=())) > 0
-
-    for ct in ch_types:
-        if ct == "eeg":
-            if has_eeg:
-                data["eeg"] = _compute_eeg_interpolation_data(info, origin=origin)
-            elif len(ch_types) == 1:
-                raise RuntimeError("No EEG channels found in info.")
-        elif ct == "meg":
-            if has_meg:
-                data["meg"] = _compute_meg_interpolation_data(
-                    info, origin=origin, mode=mode
-                )
-            elif len(ch_types) == 1:
-                raise RuntimeError("No MEG channels found in info.")
-
-    if not data:
-        warn("No EEG or MEG channels found to compute interpolation data.")
-    return data
-
-
-def _interpolate_bads_eeg_from_data(inst, interp_data, exclude=()):
-    picks_type = pick_types(inst.info, meg=False, eeg=True, exclude=())
-    curr_names = [inst.info["ch_names"][p] for p in picks_type]
-    if (
-        interp_data.get("ch_names") is not None
-        and interp_data["ch_names"] != curr_names
-    ):
-        raise ValueError("Channel names do not match precomputed data for eeg.")
-    if interp_data.get("pos") is not None:
-        curr_pos = inst.info._get_channel_positions(picks_type)
-        if not np.allclose(curr_pos, interp_data["pos"], atol=1e-5):
-            raise ValueError("Channel positions do not match precomputed data for eeg.")
-
-    bads_type = [
-        ch for ch in inst.info["bads"] if ch in curr_names and ch not in exclude
-    ]
-    if not bads_type:
-        return set()
-    goods_type = [
-        ch for ch in curr_names if ch not in inst.info["bads"] and ch not in exclude
-    ]
-    if not goods_type:
-        raise RuntimeError("No good EEG channels available for interpolation.")
-
-    idx_from = [curr_names.index(ch) for ch in goods_type]
-    idx_to = [curr_names.index(ch) for ch in bads_type]
-    G = interp_data["G"]
-    G_from = G[idx_from, :][:, idx_from]
-    G_to_from = G[idx_to, :][:, idx_from]
-    mapping = _make_interpolation_matrix_from_g(G_from, G_to_from)
-
-    picks_good = pick_channels(inst.info["ch_names"], goods_type)
-    picks_bad = pick_channels(inst.info["ch_names"], bads_type)
-    _do_interp_dots(inst, mapping, picks_good, picks_bad)
-    return set(bads_type)
-
-
-def _interpolate_bads_meg_from_data(inst, interp_data, exclude=()):
-    from ..forward._field_interpolation import (
-        _compute_mapping_matrix,
-        _make_field_mapping_noise,
+    _validate_type(info, Info, "info")
+    out = dict()
+    picks = dict(
+        eeg=pick_types(info, meg=False, eeg=True, exclude=()),
+        meg=pick_types(info, meg=True, ref_meg=False, exclude=()),
     )
-
-    picks_type = pick_types(inst.info, meg=True, ref_meg=False, exclude=())
-    curr_names = [inst.info["ch_names"][p] for p in picks_type]
-    if (
-        interp_data.get("ch_names") is not None
-        and interp_data["ch_names"] != curr_names
-    ):
-        raise ValueError("Channel names do not match precomputed data for meg.")
-    if interp_data.get("dev_head_t") is not None:
-        if not np.allclose(
-            inst.info["dev_head_t"]["trans"],
-            interp_data["dev_head_t"]["trans"],
-            atol=1e-5,
-        ):
-            raise ValueError("dev_head_t does not match precomputed data for meg.")
-
-    bads_type = [
-        ch for ch in inst.info["bads"] if ch in curr_names and ch not in exclude
-    ]
-    if not bads_type:
-        return set()
-    goods_type = [
-        ch for ch in curr_names if ch not in inst.info["bads"] and ch not in exclude
-    ]
-    if not goods_type:
-        raise RuntimeError("No good MEG channels available for interpolation.")
-
-    idx_from = [curr_names.index(ch) for ch in goods_type]
-    idx_to = [curr_names.index(ch) for ch in bads_type]
-    dots = interp_data["dots"]
-    self_dots = dots[idx_from, :][:, idx_from]
-    surface_dots = dots[idx_to, :][:, idx_from]
-
-    picks_good = pick_channels(inst.info["ch_names"], goods_type)
-    picks_bad = pick_channels(inst.info["ch_names"], bads_type)
-    info_from = pick_info(inst.info, picks_good)
-
-    fmd = dict(
-        kind="meg",
-        ch_names=goods_type,
-        origin=interp_data["origin"],
-        noise=_make_field_mapping_noise(info_from),
-        self_dots=self_dots,
-        surface_dots=surface_dots,
-        int_rad=interp_data.get("int_rad", 0.06),
-        miss=1e-4,
-        pinv_method="tsvd",
-    )
-    mapping = _compute_mapping_matrix(fmd, info_from)
-    _do_interp_dots(inst, mapping, picks_good, picks_bad)
-    return set(bads_type)
-
-
-@_verbose_control
-def _interpolate_bads_eeg(inst, origin, exclude=None, ecog=False, verbose=None):
-    res = _compute_spline_interpolation(inst.info, origin, exclude=exclude, ecog=ecog)
-    if res is None:
-        return
-    goods_idx, bads_idx, interpolation = res
-    logger.info(f"Interpolating {bads_idx.sum()} sensors")
-    _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
+    if not sum(len(p) for p in picks.values()):
+        raise ValueError("No EEG or MEG channels found in info")
+    origin = _check_origin(origin, info)
+    for kind, these_picks in picks.items():
+        if len(these_picks) == 0:
+            continue
+        data = InterpolationData(
+            kind=kind,
+            ch_names=[info["ch_names"][pick] for pick in these_picks],
+            locs=_interp_locs(info, these_picks, kind),
+            origin=origin,
+        )
+        if kind == "eeg":
+            pos = data["locs"] - origin
+            _normalize_vectors(pos)
+            data["G"] = _calc_g(pos @ pos.T)
+        else:
+            coils = _create_meg_coils(
+                [info["chs"][pick] for pick in these_picks],
+                "normal",
+                info["dev_head_t"],
+                _read_coil_defs(verbose=False),
+            )
+            int_rad, _, leg_fun, n_fact = _setup_dots(mode, info, coils, "meg")
+            data["dots"] = _do_self_dots(
+                int_rad, False, coils, origin, "meg", leg_fun, n_fact, n_jobs=None
+            )
+            data["dev_head_t"] = deepcopy(info["dev_head_t"])
+            data["mode"] = mode
+        out[kind] = data
+    return out
 
 
 @_verbose_control
@@ -511,6 +362,7 @@ def _interpolate_bads_meeg(
     exclude=(),
     origin,
     method=None,
+    meg_data=None,
     verbose=None,
 ):
     from ..forward import _map_meg_or_eeg_channels
@@ -542,7 +394,20 @@ def _interpolate_bads_meeg(
             bad_sel = slice(None)
         info_from = pick_info(inst.info, picks_good)
         info_to = pick_info(inst.info, picks_to)
-        mapping = _map_meg_or_eeg_channels(info_from, info_to, mode=mode, origin=origin)
+        kw = dict(mode=mode, origin=origin)
+        if ch_type == "meg" and meg_data is not None:
+            sel_from = _get_interp_sel(meg_data, inst.info, picks_good)
+            sel_to = _get_interp_sel(meg_data, inst.info, picks_to)
+            dots = meg_data["dots"]
+            kw = dict(
+                mode=meg_data["mode"],
+                origin=meg_data["origin"],
+                precomputed_dots=(
+                    dots[np.ix_(sel_from, sel_from)],
+                    dots[np.ix_(sel_to, sel_from)],
+                ),
+            )
+        mapping = _map_meg_or_eeg_channels(info_from, info_to, **kw)
         mapping = mapping[bad_sel]
         _do_interp_dots(inst, mapping, picks_good, picks_bad)
 

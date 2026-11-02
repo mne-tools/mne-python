@@ -117,7 +117,15 @@ def _pinv_tikhonov(x, reg):
 
 
 def _map_meg_or_eeg_channels(
-    info_from, info_to, mode, *, origin, miss=None, forward=None, rank=None
+    info_from,
+    info_to,
+    mode,
+    *,
+    origin,
+    miss=None,
+    forward=None,
+    rank=None,
+    precomputed_dots=None,
 ):
     """Find mapping from one set of channels to another.
 
@@ -141,6 +149,8 @@ def _map_meg_or_eeg_channels(
         Rank specification for Forward-based reconstruction, where ``None``
         estimates it from the projected field covariance. Must be ``None`` for
         the geometry-based path, which uses its own truncation instead.
+    precomputed_dots : tuple of ndarray | None
+        Precomputed self and cross dot products for the geometry-based path.
 
     Returns
     -------
@@ -220,20 +230,23 @@ def _map_meg_or_eeg_channels(
     # Step 2. Calculate the dot products
     #
     int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info_from, coils_from, kind)
-    logger.info(
-        f"    Computing dot products for {len(coils_from)} "
-        f"{kind.upper()} channel{_pl(coils_from)}..."
-    )
-    self_dots = _do_self_dots(
-        int_rad, False, coils_from, origin, kind, leg_fun, n_fact, n_jobs=None
-    )
-    logger.info(
-        f"    Computing cross products for {len(coils_from)} → "
-        f"{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}..."
-    )
-    cross_dots = _do_cross_dots(
-        int_rad, False, coils_from, coils_to, origin, kind, leg_fun, n_fact
-    ).T
+    if precomputed_dots is not None:
+        self_dots, cross_dots = precomputed_dots
+    else:
+        logger.info(
+            f"    Computing dot products for {len(coils_from)} "
+            f"{kind.upper()} channel{_pl(coils_from)}..."
+        )
+        self_dots = _do_self_dots(
+            int_rad, False, coils_from, origin, kind, leg_fun, n_fact, n_jobs=None
+        )
+        logger.info(
+            f"    Computing cross products for {len(coils_from)} → "
+            f"{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}..."
+        )
+        cross_dots = _do_cross_dots(
+            int_rad, False, coils_from, coils_to, origin, kind, leg_fun, n_fact
+        ).T
 
     ch_names = [c["ch_name"] for c in info_from["chs"]]
     fmd = dict(
