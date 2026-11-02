@@ -18,18 +18,22 @@ from ..utils import (
 )
 
 
-def _max_stat(X, X2, perms, dof_scaling, tail):
+def _extreme_stat(X, X2, perms, dof_scaling, tail):
     """Aux function for permutation_t_test (for parallel comp)."""
     n_samples = len(X)
     mus = np.dot(perms, X) / float(n_samples)
     stds = np.sqrt(X2[None, :] - mus * mus) * dof_scaling  # std with splitting
-    return _t_max(mus / (stds / sqrt(n_samples)), tail)
+    return _t_extreme(mus / (stds / sqrt(n_samples)), tail)
 
 
-def _t_max(T, tail):
-    """Get the t-max statistic in the direction(s) of the tail."""
-    T = np.abs(T) if tail == 0 else T * tail  # tail == -1 -> positive for min(T)
-    return np.max(T, axis=-1)
+def _t_extreme(T, tail):
+    """Get the most extreme t-statistic in the direction(s) of the tail."""
+    if tail == 0:
+        return np.max(np.abs(T), axis=-1)
+    elif tail == 1:
+        return np.max(T, axis=-1)
+    else:
+        return np.min(T, axis=-1)
 
 
 @_legacy_rng("seed")
@@ -108,12 +112,13 @@ def permutation_t_test(
         P-values for all the tests (a.k.a. variables).
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
-        comparison, i.e., the max of ``abs(T)`` (``tail=0``), ``T`` (``tail=1``),
-        or ``-T`` (``tail=-1``) across tests.
+        comparison, i.e., the max of ``abs(T)`` (``tail=0``), the max of ``T``
+        (``tail=1``), or the min of ``T`` (``tail=-1``) across tests.
 
     Notes
     -----
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
+    If ``n_permutations >= 2 ** (n_samples - 1)`` (for two-tailed tests) or
+    ``n_permutations >= 2 ** n_samples`` (for one-tailed tests),
     ``n_permutations``, ``seed``, and ``rng`` will be ignored since an exact
     test (full permutation test) will be performed.
 
@@ -133,20 +138,20 @@ def permutation_t_test(
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
     logger.info(f"Permuting {len(orders)} times{extra}...")
-    parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
+    parallel, my_extreme_stat, n_jobs = parallel_func(_extreme_stat, n_jobs)
     H0 = np.concatenate(
         parallel(
-            my_max_stat(X, X2, p, dof_scaling, tail)
+            my_extreme_stat(X, X2, p, dof_scaling, tail)
             for p in np.array_split(perms, n_jobs)
         )
     )
-    H0 = np.sort(np.concatenate((H0, [_t_max(T_obs, tail)])))
+    H0 = np.sort(np.concatenate((H0, [_t_extreme(T_obs, tail)])))
     if tail == 0:
         p_values = (H0 >= np.abs(T_obs[:, np.newaxis])).mean(-1)
     elif tail == 1:
         p_values = (H0 >= T_obs[:, np.newaxis]).mean(-1)
     elif tail == -1:
-        p_values = (-H0 <= T_obs[:, np.newaxis]).mean(-1)
+        p_values = (H0 <= T_obs[:, np.newaxis]).mean(-1)
     return T_obs, p_values, H0
 
 
