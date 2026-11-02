@@ -5,7 +5,6 @@
 .. _Adeline Fecker: https://github.com/adelinefecker
 .. _Adina Wagner: https://github.com/adswa
 .. _Aditya Pandey: https://github.com/adi-coderr
-.. _Aditya: https://github.com/adi-coderr
 .. _Adonay Nunes: https://github.com/AdoNunes
 .. _Akhilesh S. Yadav: https://github.com/YadavAkhileshh
 .. _Akshay: https://github.com/Akshay0724
@@ -50,7 +49,6 @@
 .. _Ashley Drew: https://github.com/ashdrew
 .. _Asish Panda: https://github.com/kaichogami
 .. _Aslan Satary Dizaji: https://github.com/aslansd
-.. _Aslan: https://github.com/aslansd
 .. _Athish M: https://github.com/athishio
 .. _Austin Hurst: https://github.com/a-hurst
 .. _Ayushi Satodiya: https://github.com/ayuclan
