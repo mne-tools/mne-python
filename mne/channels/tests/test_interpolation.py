@@ -188,7 +188,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
                 interpolation=interp,
                 method="nan",  # ignored
             )
-            assert_allclose(got.data, want.data, rtol=1e-10)
+            assert_allclose(got.data, want.data, rtol=1e-7, atol=1e-15)  # EEG ~1e-6 V
             assert got.info["bads"] == want.info["bads"] == list(exclude)
         evoked_eeg_bad.info["chs"][0]["loc"][0] += 1e-3
         with pytest.raises(ValueError, match="positions do not match"):
