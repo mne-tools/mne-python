@@ -201,7 +201,19 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
         subject="sample", subjects_dir=tmp_subjects_dir, trans=fname_trans
     )
     assert coreg._lock_fids
+    assert coreg._trans_file == fname_trans
     coreg._reset_fiducials()
+    coreg.close()
+
+    # a trans path that does not exist yet is used as the default path for saving
+    new_trans = tmp_path / "new-trans.fif"
+    coreg = coregistration(
+        subject="sample", subjects_dir=tmp_subjects_dir, trans=new_trans
+    )
+    assert coreg._trans_file == new_trans
+    assert_allclose(coreg.coreg.trans["trans"], np.eye(4))
+    coreg._save_trans(new_trans)
+    assert new_trans.is_file()
     coreg.close()
 
     # make it always log the distances

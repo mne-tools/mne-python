@@ -65,6 +65,11 @@ def coregistration(
         (which defaults to True).
     trans : path-like | Transform | None
         The Head<->MRI transform or the path to its FIF file (``"-trans.fif"``).
+        A path is also used as the default file name when saving the transform.
+        If the file does not exist yet, it is only used for saving.
+
+        .. versionchanged:: 1.14
+           A path to a file that does not exist yet is accepted.
     orient_to_surface : bool | None
         If True (default), orient EEG electrode and head shape points to the head
         surface.
