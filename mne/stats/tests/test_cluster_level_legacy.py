@@ -371,7 +371,7 @@ def test_cluster_permutation_with_adjacency(
         # test spatio-temporal w/o time adjacency (repeat spatial pattern)
         adjacency_2 = sparse.coo_array(
             linalg.block_diag(
-                adjacency.asfptype().todense(), adjacency.asfptype().todense()
+                adjacency.asfptype().toarray(), adjacency.asfptype().toarray()
             )
         )
         # nesting here is time then space:
