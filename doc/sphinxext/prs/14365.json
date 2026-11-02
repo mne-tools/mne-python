@@ -1,0 +1,256 @@
+{
+  "merge_commit_sha": "8127a66c9671582a6167da73d1d5c20e522d192f",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 2,
+      "d": 0
+    },
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/documentation/cited.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "doc/sphinxext/prs/12663.json": {
+      "a": 136,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13682.json": {
+      "a": 60,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13704.json": {
+      "a": 52,
+      "d": 0
+    },
+    "doc/sphinxext/prs/13989.json": {
+      "a": 36,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14067.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14150.json": {
+      "a": 76,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14157.json": {
+      "a": 108,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14195.json": {
+      "a": 96,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14270.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14278.json": {
+      "a": 60,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14285.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14289.json": {
+      "a": 612,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14290.json": {
+      "a": 100,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14291.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14293.json": {
+      "a": 36,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14294.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14295.json": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14296.json": {
+      "a": 52,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14298.json": {
+      "a": 60,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14300.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14301.json": {
+      "a": 36,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14302.json": {
+      "a": 28,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14303.json": {
+      "a": 24,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14304.json": {
+      "a": 28,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14305.json": {
+      "a": 28,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14306.json": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14308.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14310.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14312.json": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14313.json": {
+      "a": 68,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14314.json": {
+      "a": 80,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14315.json": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14316.json": {
+      "a": 892,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14320.json": {
+      "a": 24,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14322.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14323.json": {
+      "a": 28,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14324.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14325.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14326.json": {
+      "a": 40,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14328.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14329.json": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14330.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14334.json": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14337.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14338.json": {
+      "a": 44,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14343.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14344.json": {
+      "a": 20,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14345.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14347.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14349.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14350.json": {
+      "a": 32,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14352.json": {
+      "a": 132,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14354.json": {
+      "a": 24,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14355.json": {
+      "a": 28,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14356.json": {
+      "a": 24,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14357.json": {
+      "a": 16,
+      "d": 0
+    },
+    "doc/sphinxext/prs/14362.json": {
+      "a": 16,
+      "d": 0
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "2bcd6f222bb4338d66d137c346bea067f9e1b4dd",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 3,
+      "d": 3
+    }
+  }
+}

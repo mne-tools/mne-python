@@ -1,0 +1,44 @@
+{
+  "merge_commit_sha": "5d448746d3b3ba7d0ffac0bc71ee7dea4d9331e0",
+  "authors": [
+    {
+      "n": "Christoph Dinh",
+      "e": "christoph.dinh@mne-cpp.org",
+      "l": "chdinh"
+    }
+  ],
+  "changes": {
+    ".mailmap": {
+      "a": 3,
+      "d": 2
+    },
+    "CITATION.cff": {
+      "a": 0,
+      "d": 2
+    },
+    "codemeta.json": {
+      "a": 1,
+      "d": 7
+    },
+    "doc/changes/dev/14372.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/changes/v0.7.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/evoked.py": {
+      "a": 4,
+      "d": 3
+    },
+    "mne/tests/test_evoked.py": {
+      "a": 38,
+      "d": 0
+    }
+  }
+}

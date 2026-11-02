@@ -26,9 +26,10 @@ jobs:
       - run: python tools/dev/update_credit_json.py
       - run: git add -f doc/sphinxext/prs/*.json
       # Resolve contributor names, appending .mailmap entries for any new
-      # contributors whose names need verification (listed in the PR body)
+      # contributors whose names need verification (listed in the PR body),
+      # plus names.inc links and changelog stubs
       - run: python doc/sphinxext/credit_tools.py --fix-mailmap --report $RUNNER_TEMP/credit-report.md
-      - run: git add .mailmap
+      - run: git add .mailmap doc/changes/
       # Citation counts are cheap to refresh here rather than at release time
       - run: python tools/dev/update_cited.py
       # GitHub Actions are skipped on this PR, so run the one check that new

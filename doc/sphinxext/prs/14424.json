@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "63132dade0c2ab1f3ecc966dc1fa2884350cf0b4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 19,
+      "d": 6
+    }
+  }
+}
