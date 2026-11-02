@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Tests | Runs the unit test suite across a range of Linux and macOS platforms, Python versions, and dependency versions | On pushes to pull requests; on merges to ``main`` and ``maint/*`` branches |
+
 name: 'Tests'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}

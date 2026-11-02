@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | autofix.ci | Applies automatic fixes like adding PR names to towncrier files, ensuring new Python files have headers, and keeping stated dependency versions consistent across multiple sources | On pushes to pull requests |
+
 name: autofix.ci
 
 on:  # yamllint disable-line rule:truthy
