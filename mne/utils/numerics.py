@@ -72,7 +72,7 @@ def sum_squared(X):
     value : float
         Sum of squares of the input array X.
     """
-    X_flat = X.ravel(order="F" if np.isfortran(X) else "C")
+    X_flat = X.ravel(order="K")
     return np.dot(X_flat, X_flat)
 
 
