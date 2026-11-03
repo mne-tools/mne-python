@@ -738,10 +738,10 @@ def pick_types(
 
     if not pick.any() and len(include) == 0:
         return np.array([], int)
-    # add include and then remove exclude (names not in info are ignored), like
-    # pick_channels(info["ch_names"], picked names + include, exclude,
-    # ordered=False) but without going from indices to names and back (and without
-    # its uniqueness check, as Info._check_consistency ensures unique names)
+    # add chs in `include`, then remove chs in `exclude`. Names not in info are ignored.
+    # Equivalent to `pick_channels(info["ch_names"], picked_names + include, exclude,
+    # ordered=False)` but avoids its uniqueness check (Info._check_consistency already
+    # ensures unique names) and avoids unnecessary indices → names → indices roundtrip.
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
     if len(include) or len(exclude):
