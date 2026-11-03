@@ -509,6 +509,10 @@ def test_io_stc(tmp_path):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    stc.save(tmp_path / "tmp-lh.stc", overwrite=True)
+    assert not (tmp_path / "tmp-lh.stc-lh.stc").exists()
+    assert_array_almost_equal(stc.data, read_source_estimate(tmp_path / "tmp.stc").data)
+
     # test warning for complex data
     stc2.data = stc2.data.astype(np.complex128)
     with pytest.raises(ValueError, match="Cannot save complex-valued STC"):
@@ -559,6 +563,9 @@ def test_io_w(tmp_path):
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
+    src.save(tmp_path / "tmp-lh.w", overwrite=True)
+    assert not (tmp_path / "tmp-lh.w-lh.w").exists()
+    assert_array_almost_equal(src.data, read_source_estimate(tmp_path / "tmp.w").data)
 
 
 def test_stc_arithmetic():

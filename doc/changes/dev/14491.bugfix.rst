@@ -1,0 +1,1 @@
+Avoid duplicate extension when saving source estimates with hemisphere tags, and support ``ftype='auto'`` to infer format in :meth:`mne.SourceEstimate.save` by `Shresth Keshari`_ and `Ishaan Maheshwari`_.
