@@ -236,7 +236,9 @@ def _get_interp_sel(data, info, picks):
 
 
 @_verbose_control
-def compute_interpolation_data(info, *, origin="auto", mode="accurate", verbose=None):
+def compute_interpolation_data(
+    info, *, origin="auto", mode="accurate", n_jobs=None, verbose=None
+):
     """Precompute data to speed up bad channel interpolation.
 
     Parameters
@@ -250,6 +252,13 @@ def compute_interpolation_data(info, *, origin="auto", mode="accurate", verbose=
     mode : str
         Either ``'accurate'`` (default) or ``'fast'``, determines the quality
         of the Legendre polynomial expansion used for MEG.
+    n_jobs : int | None
+        The number of jobs to run in parallel when computing the MEG dot
+        products. If ``-1``, it is set to the number of CPU cores. Requires the
+        :mod:`joblib` package. ``None`` (default) is a marker for 'unset' that
+        will be interpreted as ``n_jobs=1`` (sequential execution) unless the call
+        is performed under a :class:`joblib:joblib.parallel_config` context
+        manager that sets another value for ``n_jobs``.
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -310,7 +319,7 @@ def compute_interpolation_data(info, *, origin="auto", mode="accurate", verbose=
             )
             int_rad, _, leg_fun, n_fact = _setup_dots(mode, info, coils, "meg")
             data["dots"] = _do_self_dots(
-                int_rad, False, coils, origin, "meg", leg_fun, n_fact, n_jobs=None
+                int_rad, False, coils, origin, "meg", leg_fun, n_fact, n_jobs=n_jobs
             )
             data["dev_head_t"] = deepcopy(info["dev_head_t"])
             data["mode"] = mode

@@ -286,6 +286,8 @@ def test_interpolation_meg(monkeypatch):
 
     # MEG -- precomputed data matches and is reusable for any bads
     interp = compute_interpolation_data(evoked.info, mode="fast")
+    interp_par = compute_interpolation_data(evoked.info, mode="fast", n_jobs=2)
+    assert_array_equal(interp_par["meg"]["dots"], interp["meg"]["dots"])
     for bads in (["MEG 0141"], ["MEG 0121", evoked.ch_names[-1]]):
         evoked.info["bads"] = bads
         want = evoked.copy().interpolate_bads(mode="fast").data
