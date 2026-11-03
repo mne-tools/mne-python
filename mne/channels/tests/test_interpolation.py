@@ -27,6 +27,7 @@ from mne.channels import (
 )
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
+from mne.forward import _field_interpolation
 from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx
 from mne.preprocessing.nirs import (
     beer_lambert_law,
@@ -234,7 +235,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
 
 @pytest.mark.slowtest
-def test_interpolation_meg():
+def test_interpolation_meg(monkeypatch):
     """Test interpolation of MEG channels."""
     # speed accuracy tradeoff: channel subselection is faster but the
     # correlation drops
@@ -288,7 +289,9 @@ def test_interpolation_meg():
     for bads in (["MEG 0141"], ["MEG 0121", evoked.ch_names[-1]]):
         evoked.info["bads"] = bads
         want = evoked.copy().interpolate_bads(mode="fast").data
-        got = evoked.copy().interpolate_bads(interpolation=interp).data
+        with monkeypatch.context() as m:  # precomputed, so no coils are needed
+            m.setattr(_field_interpolation, "_create_meg_coils", None)
+            got = evoked.copy().interpolate_bads(interpolation=interp).data
         assert_allclose(got, want, rtol=1e-7, atol=1e-20)  # mags ~1e-13 T
     evoked.info["dev_head_t"]["trans"][0, 3] += 1e-3
     with pytest.raises(ValueError, match="dev_head_t"):
