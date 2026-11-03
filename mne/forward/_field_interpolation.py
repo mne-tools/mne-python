@@ -69,8 +69,10 @@ def _compute_mapping_matrix(fmd, info, *, rank=None):
     if fmd.get("pinv_method", "tsvd") == "tsvd":
         n = len(whitened_dots)
         if rank is None:
-            # truncate at most "miss" fraction of the singular value energy
-            s = np.linalg.svd(whitened_dots, compute_uv=False, hermitian=True)
+            # truncate at most "miss" fraction of the singular value energy, using
+            # the same decomposition for the rank and the pseudoinverse (what
+            # _reg_pinv(whitened_dots, reg=0, rank=rank) would compute)
+            U, s, Vh = np.linalg.svd(whitened_dots, hermitian=True)
             varexp = np.cumsum(s)
             varexp /= varexp[-1]
             rank = np.where(varexp >= 1.0 - fmd["miss"])[0][0] + 1
@@ -78,9 +80,14 @@ def _compute_mapping_matrix(fmd, info, *, rank=None):
                 f"    Truncating at {rank}/{n} components to omit less than "
                 f"{fmd['miss']:g} ({1.0 - varexp[rank - 1]:0.2g})"
             )
+            s_inv = np.zeros(rank)
+            nonzero = s[:rank] > 0
+            s_inv[nonzero] = 1.0 / s[:rank][nonzero]
+            inv = (U[:, :rank] * s_inv) @ Vh[:rank]
+            fmd["nest"] = rank
         else:
             logger.info(f"    Truncating at {rank}/{n} components")
-        inv, _, fmd["nest"] = _reg_pinv(whitened_dots, reg=0, rank=rank)
+            inv, _, fmd["nest"] = _reg_pinv(whitened_dots, reg=0, rank=rank)
     else:
         assert fmd["pinv_method"] == "tikhonov", fmd["pinv_method"]
         assert rank is None, rank  # only the tsvd path supports an explicit rank
