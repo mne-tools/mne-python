@@ -565,12 +565,21 @@ def test_nan_interpolation(raw):
     assert raw.info["bads"] == ch_to_interp
 
     store = raw.info["chs"][1]["loc"]
+    store3 = raw.info["chs"][3]["loc"]
     # for on_bad_position="raise"
     raw.info["bads"] = ch_to_interp
     raw.info["chs"][1]["loc"] = np.full(12, np.nan)
     with pytest.raises(ValueError, match="have invalid sensor position"):
         # DOES NOT interpolates at all. So raw.info["bads"] remains as is
         raw.interpolate_bads(on_bad_position="raise")
+    # all-zero positions are invalid too, and all such channels are named
+    raw.info["bads"] = ch_to_interp + raw.ch_names[2:4]
+    raw.info["chs"][3]["loc"] = np.zeros(12)
+    match = rf"\['{ch_to_interp[0]}', '{raw.ch_names[3]}'\] have invalid sensor"
+    with pytest.raises(ValueError, match=match):
+        raw.interpolate_bads(on_bad_position="raise")
+    raw.info["chs"][3]["loc"] = store3
+    raw.info["bads"] = ch_to_interp
 
     # for on_bad_position="warn"
     with pytest.warns(RuntimeWarning, match="have invalid sensor position"):

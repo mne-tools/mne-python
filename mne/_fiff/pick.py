@@ -338,7 +338,7 @@ def pick_channels(
     --------
     pick_channels_regexp, pick_types
     """
-    if len(np.unique(ch_names)) != len(ch_names):
+    if len(set(ch_names)) != len(ch_names):
         raise RuntimeError("ch_names is not a unique list, picking is unsafe")
     _validate_type(ordered, bool, "ordered")
     _check_excludes_includes(include)
