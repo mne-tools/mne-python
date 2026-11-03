@@ -1158,11 +1158,13 @@ class InterpolationMixin:
             _check_option(f"interpolation[{key!r}]['kind']", data["kind"], (key,))
 
         # check for channels with invalid position(s)
-        invalid_chs = []
-        for ch in self.info["bads"]:
-            loc = self.info["chs"][self.ch_names.index(ch)]["loc"][:3]
-            if np.allclose(loc, 0.0, rtol=0, atol=1e-16) or np.isnan(loc).any():
-                invalid_chs.append(ch)
+        # vectorized, as e.g. autoreject passes many bads on each call
+        name_to_idx = {name: ii for ii, name in enumerate(self.ch_names)}
+        locs = np.array(
+            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in self.info["bads"]]
+        ).reshape(-1, 3)
+        invalid = np.all(np.abs(locs) <= 1e-16, axis=1) | np.isnan(locs).any(axis=1)
+        invalid_chs = [ch for ch, inv in zip(self.info["bads"], invalid) if inv]
 
         if invalid_chs:
             if on_bad_position == "raise":

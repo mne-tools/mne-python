@@ -69,8 +69,10 @@ def _compute_mapping_matrix(fmd, info, *, rank=None):
     if fmd.get("pinv_method", "tsvd") == "tsvd":
         n = len(whitened_dots)
         if rank is None:
-            # truncate at most "miss" fraction of the singular value energy
-            s = np.linalg.svd(whitened_dots, compute_uv=False, hermitian=True)
+            # truncate at most "miss" fraction of the singular value energy, using
+            # the same decomposition for the rank and the pseudoinverse (what
+            # _reg_pinv(whitened_dots, reg=0, rank=rank) would compute)
+            U, s, Vh = np.linalg.svd(whitened_dots, hermitian=True)
             varexp = np.cumsum(s)
             varexp /= varexp[-1]
             rank = np.where(varexp >= 1.0 - fmd["miss"])[0][0] + 1
@@ -78,9 +80,14 @@ def _compute_mapping_matrix(fmd, info, *, rank=None):
                 f"    Truncating at {rank}/{n} components to omit less than "
                 f"{fmd['miss']:g} ({1.0 - varexp[rank - 1]:0.2g})"
             )
+            s_inv = np.zeros(rank)
+            nonzero = s[:rank] > 0
+            s_inv[nonzero] = 1.0 / s[:rank][nonzero]
+            inv = (U[:, :rank] * s_inv) @ Vh[:rank]
+            fmd["nest"] = rank
         else:
             logger.info(f"    Truncating at {rank}/{n} components")
-        inv, _, fmd["nest"] = _reg_pinv(whitened_dots, reg=0, rank=rank)
+            inv, _, fmd["nest"] = _reg_pinv(whitened_dots, reg=0, rank=rank)
     else:
         assert fmd["pinv_method"] == "tikhonov", fmd["pinv_method"]
         assert rank is None, rank  # only the tsvd path supports an explicit rank
@@ -200,22 +207,10 @@ def _map_meg_or_eeg_channels(
 
     assert origin is not None  # should be assured elsewhere
 
-    #
-    # Step 1. Prepare the coil definitions
-    #
     if kind == "meg":
-        templates = _read_coil_defs(verbose=False)
-        coils_from = _create_meg_coils(
-            info_from["chs"], "normal", info_from["dev_head_t"], templates
-        )
-        coils_to = _create_meg_coils(
-            info_to["chs"], "normal", info_to["dev_head_t"], templates
-        )
         pinv_method = "tsvd"
         miss = 1e-4
     else:
-        coils_from = _create_eeg_els(info_from["chs"])
-        coils_to = _create_eeg_els(info_to["chs"])
         pinv_method = "tikhonov"
         miss = 1e-1
         if _has_eeg_average_ref_proj(info_from) and not _has_eeg_average_ref_proj(
@@ -226,13 +221,27 @@ def _map_meg_or_eeg_channels(
                 "info_from has one"
             )
     origin = _check_origin(origin, info_from)
-    #
-    # Step 2. Calculate the dot products
-    #
-    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info_from, coils_from, kind)
+    int_rad, noise, leg_fun, n_fact = _setup_dots(mode, info_from, None, kind)
     if precomputed_dots is not None:
         self_dots, cross_dots = precomputed_dots
     else:
+        #
+        # Step 1. Prepare the coil definitions
+        #
+        if kind == "meg":
+            templates = _read_coil_defs(verbose=False)
+            coils_from = _create_meg_coils(
+                info_from["chs"], "normal", info_from["dev_head_t"], templates
+            )
+            coils_to = _create_meg_coils(
+                info_to["chs"], "normal", info_to["dev_head_t"], templates
+            )
+        else:
+            coils_from = _create_eeg_els(info_from["chs"])
+            coils_to = _create_eeg_els(info_to["chs"])
+        #
+        # Step 2. Calculate the dot products
+        #
         logger.info(
             f"    Computing dot products for {len(coils_from)} "
             f"{kind.upper()} channel{_pl(coils_from)}..."
