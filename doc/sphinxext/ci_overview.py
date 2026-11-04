@@ -1,3 +1,12 @@
+"""Sphinx directive that creates a table overview of CI jobs.
+
+Pulls information about job names, descriptions, and when they run from the workflow
+files, and converts this information into an overview of the CI jobs.
+
+That information should be kept up to date with the behaviour of the workflows, and new
+workflows must have this information added if they should be included in this table.
+"""
+
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
@@ -10,8 +19,15 @@ from sphinx.util.docutils import SphinxDirective
 
 import mne
 
+# What files to search
 TARGET_DIRS = [".circleci", ".github/workflows"]
-TARGET_FILES = ["azure-pipelines.yml"]
+TARGET_FILES = ["azure-pipelines.yml"]  # All YAML files in TARGET_DIRS get auto added
+
+# What needs to be at the top of the file to be added to the table
+COLUMNS = ["name", "description", "runs-when"]
+LINE_START, LINE_SEP, LINE_END = "# | ", " | ", " |\n"
+HEADER = LINE_START + LINE_SEP.join(COLUMNS) + LINE_END
+
 
 
 def setup(app):
@@ -62,9 +78,7 @@ def _get_ci_overview_rst():
                 target_files.append(os.path.join(target_dir, file))
 
     # Extract overview information from each file
-    columns = ["name", "description", "runs-when"]
-    expected_header = f"# | {' | '.join(columns)} |"
-    n_cols = len(columns)
+    n_cols = len(COLUMNS)
     data = []
     for file in target_files:
         with open(os.path.join(base_dir, file), encoding="utf-8") as f:
@@ -72,18 +86,20 @@ def _get_ci_overview_rst():
         has_table = True
         while has_table:
             for line in lines:
-                if line.startswith(expected_header):
+                if line.startswith(HEADER):
                     # Extract the table rows from the file
                     for row in lines[lines.index(line) + 1 :]:
-                        if row.startswith("# | "):
-                            this_row = row.removeprefix("# | ").removesuffix(" |\n")
-                            this_row = this_row.split(" | ")
+                        if row.startswith(LINE_START) and row.endswith(LINE_END):
+                            this_row = row.removeprefix(LINE_START).removesuffix(
+                                LINE_END
+                            )
+                            this_row = this_row.split(LINE_SEP)
                             if len(this_row) != n_cols:
                                 raise ValueError(
                                     f"Unexpected number of columns (got "
                                     f"{len(this_row)}, expected {n_cols}) in row: {row}"
                                 )
-                            this_row = dict(zip(columns, this_row))
+                            this_row = dict(zip(COLUMNS, this_row))
                             this_row["file"] = file
                             this_row["category"] = _get_category(file)
                             data.append(this_row)
