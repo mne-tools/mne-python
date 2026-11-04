@@ -578,9 +578,10 @@ def test_lite_brain(renderer_lite, monkeypatch):
     )
     brain.close()
     assert brain._cleaned  # close() ran the close callbacks (ui_events' too)
+    n_brains = len(mne.viz.Brain._instances)
     with pytest.raises(NotImplementedError, match="browser"):  # two columns
         mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})
-    assert list(mne.viz.Brain._instances) == [brain]  # the failed one died
+    assert len(mne.viz.Brain._instances) == n_brains  # the failed one died
 
     # time_viewer="auto" builds the ipywidgets GUI shared with the notebook backend
     brain = stc.plot(views="lat", initial_time=0.1, **kwargs)
