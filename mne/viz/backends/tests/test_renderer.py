@@ -379,11 +379,17 @@ _RR = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], float)
 _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 
-def _scene(rend):
-    """Return the scene as vtk.js will receive it, read back from the page."""
-    html = rend.plotter.generate_standalone_html()
-    start = html.index('id="scene-data">') + len('id="scene-data">')
-    return json.loads(html[start : html.index("</script>", start)])
+def _camera(rend):
+    """Return the camera as vtk.js will receive it."""
+    return rend.plotter.update_camera(send=False)["camera"]
+
+
+def _actor(rend, idx):
+    """Return an actor as vtk.js will receive it, serialized."""
+    from pyvista_js.rendering import scene_to_json
+
+    update = rend.plotter.update_actor(idx, add=True, send=False)
+    return json.loads(scene_to_json(update))["add"]
 
 
 def test_lite_camera(renderer_lite):
@@ -391,10 +397,10 @@ def test_lite_camera(renderer_lite):
     rend = renderer_lite._get_renderer()
     assert rend.get_camera()[2:4] == (0.0, 0.0)  # nothing set: vtk.js frames it
     rend.set_camera(azimuth=90, elevation=90)  # plot_alignment's view is from +y
-    assert_allclose(_scene(rend)["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
+    assert_allclose(_camera(rend)["viewVector"], [0, 1, 0], atol=1e-12)
     rend.set_camera(elevation=0)  # one angle keeps the other; poles flip view up
-    assert_allclose(_scene(rend)["camera"]["viewVector"], [0, 0, 1], atol=1e-12)
-    assert _scene(rend)["camera"]["viewUp"] == [0, 1, 0]
+    assert_allclose(_camera(rend)["viewVector"], [0, 0, 1], atol=1e-12)
+    assert _camera(rend)["viewUp"] == [0, 1, 0]
     rend.set_camera(azimuth=180)
     assert rend.get_camera()[2:4] == pytest.approx((180.0, 0.0))
     renderer_lite.set_3d_view(rend.scene(), elevation=45)
@@ -407,7 +413,7 @@ def test_lite_primitives(renderer_lite):
     _, mesh = rend.mesh(*_RR.T, _TRIS, color="red", opacity=0.5)
     assert_allclose(mesh.points, _RR, atol=1e-6)
     # faces reach vtk.js as one flat cell array; rows would draw nothing at all
-    assert _scene(rend)["actors"][-1]["source"]["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
+    assert _actor(rend, -1)["source"]["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
     _, mesh = rend.surface(dict(rr=_RR, tris=_TRIS), color="#0000ff")
     assert_allclose(mesh.points, _RR, atol=1e-6)
     # scale sizes a radius-0.5 sphere, and an explicit radius is used as-is
@@ -490,7 +496,7 @@ def test_lite_instanced_mesh(renderer_lite):
     with pytest.raises(AssertionError, match=r"\(3, 4\)"):  # (w, x, y, z)
         rend.instanced_mesh(_RR, _TRIS, positions, np.zeros((3, 4)), colors)
     rend.remove_mesh((actors, cloud))  # takes the whole color-split set out
-    assert len(rend.plotter.actors) == len(_scene(rend)["actors"]) == 1
+    assert len(rend.plotter.actors) == 1
 
 
 def test_lite_scenes(renderer_lite):
@@ -533,13 +539,14 @@ def test_lite_notebook_kernel(renderer_lite, nbexec):
     rr = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
     rend.mesh(*rr.T, [[0, 1, 2], [0, 2, 3]], color="red")
     renderer.set_3d_view(rend.scene(), azimuth=90, elevation=90)
-    html = rend.plotter.generate_standalone_html()  # what the page will run
-    start = html.index('id="scene-data">') + len('id="scene-data">')
-    scene = json.loads(html[start : html.index("</script>", start)])
-    source = scene["actors"][0]["source"]
+    from pyvista_js.rendering import scene_to_json
+
+    actor = rend.plotter.update_actor(0, add=True, send=False)  # what the page gets
+    source = json.loads(scene_to_json(actor))["add"]["source"]
     np.testing.assert_allclose(np.reshape(source["points"], (-1, 3)), rr, atol=1e-6)
     assert list(source["polys"]) == [3, 0, 1, 2, 3, 0, 2, 3]
-    np.testing.assert_allclose(scene["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
+    camera = rend.plotter.update_camera(send=False)["camera"]
+    np.testing.assert_allclose(camera["viewVector"], [0, 1, 0], atol=1e-12)
 
 
 @testing.requires_testing_data
@@ -564,8 +571,7 @@ def test_lite_brain(renderer_lite, monkeypatch):
     # curvature plus activation, as uint8 RGBA vtk.js uses directly
     assert colors.dtype == np.uint8 and colors.shape == (len(brain.geo["lh"].coords), 4)
     assert len(np.unique(colors, axis=0)) > 2
-    scene = _scene(brain._renderer)
-    assert scene["actors"][0]["scalars"]["direct"] is True
+    assert _actor(brain._renderer, 0)["scalars"]["direct"] is True
     # Brain's canonical rotation reaches the camera through `rigid`
     assert brain._renderer.get_camera(rigid=brain._rigid)[2:4] == pytest.approx(
         (180.0, 90.0)

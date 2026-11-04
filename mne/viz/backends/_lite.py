@@ -54,7 +54,7 @@ _DEFAULT_COLOR = (0.5, 0.5, 0.5)  # what color=None draws as
 # pyvista-js writes a 600x400 box into its page; this fills the frame instead
 _LITE_SIZE_CSS = """<style>
 html, body { margin: 0; height: 100%; }
-[id^="pyvista-container"] { width: 100% !important; height: 100% !important;
+#CONTAINER { width: 100% !important; height: 100% !important;
   box-sizing: border-box; }
 </style>
 """
@@ -70,7 +70,7 @@ requestAnimationFrame(function () { requestAnimationFrame(function () {
   box.querySelector(".mne-lite-labels").style.pointerEvents = "none";
   box.querySelector(".mne-lite-painted").click();
   var updates = box.querySelector(".mne-lite-update");
-  var scene = document.querySelector('[id^="pyvista-container"]').id;
+  var scene = "CONTAINER";
   new MutationObserver(function () {
     var node = updates.querySelector("[data-n]");
     if (!node || node.dataset.applied) return;
@@ -924,8 +924,12 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             self._page = self._versions()
             self._page_view = self._figure._view_vector
             page = self.plotter.generate_standalone_html()
-            page = page.replace("<head>", "<head>" + _LITE_SIZE_CSS, 1)
-            page = page.replace("</body>", _LITE_PAGE_JS + "</body>")
+            css, js = (
+                x.replace("CONTAINER", self.plotter.container_id)
+                for x in (_LITE_SIZE_CSS, _LITE_PAGE_JS)
+            )
+            page = page.replace("<head>", "<head>" + css, 1)
+            page = page.replace("</body>", js + "</body>")
             self._frame.value = (
                 f'<iframe srcdoc="{html.escape(page, quote=True)}" width="{width}" '
                 f'height="{height}" style="border: none"></iframe>'
