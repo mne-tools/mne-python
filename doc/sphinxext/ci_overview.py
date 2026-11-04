@@ -4,6 +4,10 @@
 
 import os
 
+from docutils import nodes
+from docutils.statemachine import StringList
+from sphinx.util.docutils import SphinxDirective
+
 import mne
 
 TARGET_DIRS = [".circleci", ".github/workflows"]
@@ -11,7 +15,7 @@ TARGET_FILES = ["azure-pipelines.yml"]
 
 
 def setup(app):
-    app.connect("builder-inited", make_ci_overview)
+    app.add_directive("ci-overview", CIOverviewDirective)
     return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 
@@ -31,25 +35,38 @@ def _get_category(file):
     raise ValueError(f"Unknown CI job file: {file}")
 
 
-def make_ci_overview(app=None):
-    """Make a CI overview table for the documentation."""
-    if app is None:
-        return
+class CIOverviewDirective(SphinxDirective):
+    """Insert a sortable table of the CI jobs."""
 
+    def run(self):
+        """Run the directive."""
+        rst, files = _get_ci_overview_rst()
+        # Re-read the page in incremental builds when any of the CI files change
+        for file in files:
+            self.env.note_dependency(file)
+        node = nodes.Element()
+        content = StringList(rst.splitlines(), source=self.get_source_info()[0])
+        self.state.nested_parse(content, self.content_offset, node)
+        return node.children
+
+
+def _get_ci_overview_rst():
+    """Get the rst for the CI overview table and the files it was built from."""
     # Get files to check for overview information
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    target_files = list(TARGET_FILES)
     for target_dir in TARGET_DIRS:
         files = os.listdir(os.path.join(base_dir, target_dir))
         for file in files:
             if file.endswith((".yml", ".yaml")):
-                TARGET_FILES.append(os.path.join(target_dir, file))
+                target_files.append(os.path.join(target_dir, file))
 
     # Extract overview information from each file
     columns = ["name", "description", "runs-when"]
     expected_header = f"# | {' | '.join(columns)} |"
     n_cols = len(columns)
     data = []
-    for file in TARGET_FILES:
+    for file in target_files:
         with open(os.path.join(base_dir, file), encoding="utf-8") as f:
             lines = f.readlines()
         has_table = True
@@ -85,24 +102,8 @@ def make_ci_overview(app=None):
     for item in data:
         item["url"] = f"{base_url}{item['file']}"
 
-    # Write the overview information to a file
-    with open(
-        os.path.join(app.srcdir, "development", "ci_overview.rst"),
-        "w",
-        encoding="utf-8",
-    ) as f:
-        f.write(
-            """\
-.. ci-overview:
-
-Overview of CI jobs
-===================
-
-"""
-        )
-
-        f.write(
-            """\
+    # Build the table
+    rst = """\
 .. container::
 
   .. raw:: html
@@ -129,14 +130,12 @@ Overview of CI jobs
      - File
      - Category
 """  # noqa: E501
-        )
-        for item in data:
-            f.write(
-                f"""\
+    for item in data:
+        rst += f"""\
    * - {item["name"]}
      - {item["description"]}
      - {item["runs-when"]}
      - `{item["file"]} <{item["url"]}>`_
      - {item["category"]}
 """
-            )
+    return rst, [os.path.join(base_dir, file) for file in target_files]
