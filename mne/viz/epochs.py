@@ -1092,7 +1092,6 @@ def plot_epochs(
     else:
         # make our own copy of the dict
         event_id = dict() if event_id is True else event_id.copy()  # to dict
-        # TODO: when min py=3.9, change to `epochs.event_id | event_id` (maybe).
         # Passed-in event_id should take precedence, i.e., not replace existing
         # keys *or* repeat existing values. For example, if epochs.event_id has
         # a=1 and passed-in event_id has f=1, the second takes precedence.

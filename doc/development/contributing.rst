@@ -1202,11 +1202,6 @@ down the road. Here are the guidelines:
       nicely formatted) and the resulting output and figures will be rendered
       as part of the tutorial/example.
 
-    - ``[circle lite]`` also builds the JupyterLite site in a partial
-      documentation build, so the "Open in JupyterLite" buttons work on the
-      tutorials/examples it renders (combine with ``[circle front]`` to
-      render the front page ones).
-
 - Examples and tutorials should execute as quickly and with as low memory usage as
   possible while still conveying necessary information. To see current execution
   times and memory usage, visit the `sg_execution_times page`_. To see unused API
@@ -1276,7 +1271,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. linting
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _ruff: https://beta.ruff.rs/docs
+.. _ruff: https://docs.astral.sh/ruff/
 
 .. misc
 

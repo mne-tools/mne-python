@@ -1,0 +1,1 @@
+Fix merging of overlapping left- and right-eye events in :func:`mne.io.read_raw_eyelink` with ``find_overlaps=True`` when the events were not already sorted by time, by :newcontrib:`Judith Schepers` and `Scott Huberty`_.

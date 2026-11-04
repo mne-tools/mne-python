@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "f872b775540a3c2e0e58ceb6b9812c5ac8156198",
+  "authors": [
+    {
+      "n": "Aslan",
+      "e": "45756533+aslansd@users.noreply.github.com",
+      "l": "aslansd"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14370.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 64,
+      "d": 10
+    },
+    "mne/preprocessing/infomax_.py": {
+      "a": 20,
+      "d": 3
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 88,
+      "d": 0
+    }
+  }
+}

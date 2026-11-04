@@ -161,6 +161,9 @@ def _get_raw_data(system, drop_extra_chs):
     if system in ["CNT"]:
         raw_data._data = raw_data._data * 1e6
 
+    if system == "eximia":
+        raw_data._data[mne.pick_types(raw_data.info, eeg=True, eog=True)] *= 1e6
+
     if system in ignore_channels_dict:
         raw_data.drop_channels(ignore_channels_dict[system])
 

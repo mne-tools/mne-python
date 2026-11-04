@@ -29,7 +29,13 @@ jobs:
             read -r name branch <<< "$workflow"
             # Insights lists completed runs only, newest first, however long ago
             # they ran (the monthly linkcheck would fall off a pipeline listing)
-            run=$(curl -fsS --max-time 30 --retry 3 "https://circleci.com/api/v2/insights/gh/$GH_REPO/workflows/$name?branch=$branch" | jq -r '.items[0] // empty | [.status, .id] | @tsv')
+            run=$(curl -fsS --max-time 30 --retry 3 "https://circleci.com/api/v2/insights/gh/$GH_REPO/workflows/$name?branch=$branch" | jq -c '.items[0] // empty')
+            if [[ "$name" == monthly ]]; then
+              # a manually triggered linkcheck stands in for the monthly one if newer
+              manual=$(curl -fsS --max-time 30 --retry 3 "https://circleci.com/api/v2/insights/gh/$GH_REPO/workflows/linkcheck?branch=$branch" | jq -c '.items[0] // empty')
+              run=$(jq -sc 'max_by(.stopped_at) // empty' <<< "$run $manual")
+            fi
+            run=$(jq -r '[.status, .id] | @tsv' <<< "$run")
             IFS=$'\t' read -r status id <<< "$run"
             url="https://app.circleci.com/pipelines/workflows/$id"
             echo "$name on $branch: ${status:-no runs} $url"

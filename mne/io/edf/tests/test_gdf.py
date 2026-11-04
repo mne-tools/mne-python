@@ -144,7 +144,6 @@ def test_gdf2_data():
         input_fname=gdf2_path.with_name(gdf2_path.name + ".gdf"),
         eog=None,
         misc=None,
-        test_scaling=False,  # XXX this should be True
     )
 
 

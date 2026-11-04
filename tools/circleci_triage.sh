@@ -44,9 +44,6 @@ else
         FNAMES="tutorials/inverse/30_mne_dspm_loreta.py tutorials/machine-learning/30_strf.py tutorials/machine-learning/50_decoding.py tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py tutorials/evoked/20_visualize_evoked.py "${FNAMES};
         want testing
     fi;
-    if [[ $(cat gitlog.txt) == *"[circle lite]"* ]]; then
-        echo "export MNE_DOC_BUILD_JUPYTERLITE=1" >> $BASH_ENV
-    fi;
     echo FNAMES="$FNAMES";
     for FNAME in $FNAMES; do
         if [[ $(echo "$FNAME" | grep -P '^(tutorials|examples)(/.*)?/((?!sgskip).)*\.py$') ]] ; then
@@ -61,6 +58,9 @@ else
     done;
     echo PATTERN="$PATTERN";
     echo html-pattern-memory > build.txt;
+    if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat gitlog.txt) == *"[circle lite]"* ]]; then
+        echo "export MNE_DOC_BUILD_JUPYTERLITE=1" >> $BASH_ENV
+    fi;
     if [[ $PATTERN ]]; then
         PATTERN="\(${PATTERN::-2}\)";
     else

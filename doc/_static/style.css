@@ -267,22 +267,22 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-.navbar-icon-links svg.fa-github {
+.navbar-icon-links .fa-github {
     color: var(--mne-color-github);
 }
-.navbar-icon-links svg.fa-discourse {
+.navbar-icon-links .fa-discourse {
     color: var(--mne-color-discourse);
 }
-.navbar-icon-links svg.fa-discord {
+.navbar-icon-links .fa-discord {
     color: var(--mne-color-discord);
 }
-.navbar-icon-links svg.fa-mastodon {
+.navbar-icon-links .fa-mastodon {
     color: var(--mne-color-mastodon);
 }
-.navbar-icon-links svg.fa-heart {
+.navbar-icon-links .fa-heart {
     color: var(--mne-color-sponsor);
 }
-.navbar-icon-links svg.fa-opencollective {
+.navbar-icon-links .fa-opencollective {
     color: var(--mne-color-opencollective);
 }
 
@@ -313,7 +313,8 @@ ul.quicklinks a {
     color: var(--pst-color-text-base);
     text-decoration: none;
 }
-ul.quicklinks a svg {
+ul.quicklinks a svg,
+ul.quicklinks a i {
     color: var(--pst-color-text-muted);
 }
 ul.quicklinks a:hover {
