@@ -17,7 +17,8 @@ from numpy.testing import (
 )
 
 import mne
-from mne import read_trans, write_trans
+from mne import pick_types, read_trans, write_trans
+from mne._fiff.tag import _loc_to_coil_trans
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
@@ -358,6 +359,15 @@ def test_quaternions():
         assert_allclose(rot, quat_to_rot(rot_to_quat(rot)), rtol=1e-5, atol=1e-5)
         rot = rot[np.newaxis, np.newaxis, :, :]
         assert_allclose(rot, quat_to_rot(rot_to_quat(rot)), rtol=1e-5, atol=1e-5)
+    # MEG coil orientations, orthonormal only to ~2e-4 and some near 180 degrees
+    info = read_info(test_fif_fname)
+    coil_rots = np.array(
+        [
+            _loc_to_coil_trans(info["chs"][pick]["loc"])[:3, :3]
+            for pick in pick_types(info, meg=True)
+        ]
+    )
+    assert_allclose(quat_to_rot(rot_to_quat(coil_rots, tol=2e-3)), coil_rots, atol=2e-4)
 
     # let's make sure our angle function works in some reasonable way
     for ii in range(3):
