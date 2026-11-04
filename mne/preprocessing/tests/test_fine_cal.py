@@ -106,9 +106,9 @@ def test_compute_fine_cal(kind):
         cal = cal_mf_fname
         err_limit = 5
         angle_limit = 5
-        gwoma = [66, 68]
-        ggoma = [55, 150]
-        ggwma = [52, 86]
+        gwoma = [1.3, 1.6]
+        ggoma = [1.3, 1.7]
+        ggwma = [0.3, 0.6]
         sfs = [26, 27, 61, 63, 61, 63, 68, 70]
         cl3 = [0.6, 0.7]
     else:
@@ -118,9 +118,9 @@ def test_compute_fine_cal(kind):
         err_limit = 10
         angle_limit = 10
         cl["grad"] = (0.0, 0.1)
-        gwoma = [48, 52]
-        ggoma = [10, 82]
-        ggwma = [13, 135]
+        gwoma = [2.1, 2.5]
+        ggoma = [3.4, 3.9]
+        ggwma = [3.0, 3.5]
         sfs = [34, 35, 27, 28, 50, 53, 75, 79]  # ours is better!
         cl3 = [-0.3, -0.1]
     raw = read_raw_fif(erm)
@@ -189,17 +189,9 @@ def test_compute_fine_cal(kind):
         want_orig_max_angle = want_orig_angles[p].max()
         got_orig_max_angle = got_orig_angles[p].max()
         got_want_max_angle = got_want_angles[p].max()
-        if key == "mag":
-            assert 8 < want_orig_max_angle < 11, want_orig_max_angle
-            assert 1 < got_orig_max_angle < 8, got_orig_max_angle
-            assert 8 < got_want_max_angle < 11, got_want_max_angle
-        else:
-            # Some of these angles are large, but mostly this has to do with
-            # processing a very short (one 10-s segment), downsampled (90 Hz)
-            # file
-            assert gwoma[0] < want_orig_max_angle < gwoma[1]
-            assert ggoma[0] < got_orig_max_angle < ggoma[1]
-            assert ggwma[0] < got_want_max_angle < ggwma[1]
+        assert gwoma[0] < want_orig_max_angle < gwoma[1], want_orig_max_angle
+        assert ggoma[0] < got_orig_max_angle < ggoma[1], got_orig_max_angle
+        assert ggwma[0] < got_want_max_angle < ggwma[1], got_want_max_angle
 
     kwargs = dict(bad_condition="warning", cross_talk=ctc, coord_frame="meg")
     raw_sss = maxwell_filter(raw, **kwargs)
