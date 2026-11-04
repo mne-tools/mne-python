@@ -10,6 +10,7 @@ from scipy import sparse, stats
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (
     _ci,
+    _extreme_stat,
     bootstrap_confidence_interval,
     permutation_t_test,
 )
@@ -46,6 +47,14 @@ def test_permutation_t_test():
     assert len(H0) == 999
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
+
+    # test chunked calculation in _extreme_stat
+    X2 = np.mean(X**2, axis=0)
+    perms = rng.choice([-1, 1], size=(100, n_samples))
+    dof_scaling = np.sqrt(n_samples / (n_samples - 1.0))
+    res_full = _extreme_stat(X, X2, perms, dof_scaling, 0, step=100)
+    res_chunked = _extreme_stat(X, X2, perms, dof_scaling, 0, step=37)
+    assert_allclose(res_full, res_chunked)
 
     # check equivalence with spatio_temporal_cluster_test
     for adjacency, tail in ((sparse.eye_array(n_tests), 0), (False, -1)):
