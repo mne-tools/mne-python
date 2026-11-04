@@ -20,6 +20,17 @@ def setup_module():
     pass
 
 
+def _get_category(file):
+    """Get the category of a CI job based on its file path."""
+    if file.startswith(".circleci"):
+        return "CircleCI"
+    if file.startswith(".github/workflows"):
+        return "GitHub Actions"
+    if file == "azure-pipelines.yml":
+        return "Azure Pipelines"
+    raise ValueError(f"Unknown CI job file: {file}")
+
+
 def make_ci_overview(app=None):
     """Make a CI overview table for the documentation."""
     if app is None:
@@ -57,6 +68,7 @@ def make_ci_overview(app=None):
                                 )
                             this_row = dict(zip(columns, this_row))
                             this_row["file"] = file
+                            this_row["category"] = _get_category(file)
                             data.append(this_row)
                         else:
                             has_table = False
@@ -73,26 +85,61 @@ def make_ci_overview(app=None):
     for item in data:
         item["url"] = f"{base_url}{item['file']}"
 
-    # Format overview information as a list
-    overview = [
-        """\
+    # Write the overview information to a file
+    with open(
+        os.path.join(app.srcdir, "development", "ci_overview.rst"),
+        "w",
+        encoding="utf-8",
+    ) as f:
+        f.write(
+            """\
 .. ci-overview:
 
 Overview of CI jobs
 ===================
-"""
-    ]
-    for item in data:
-        overview.append(f"""\
-| **Name**: {item["name"]}
-|   **Description**: {item["description"]}
-|   **When it runs**: {item["runs-when"]}
-|   **File**: `{item["file"]} <{item["url"]}>`_
-""")
-    # Combine into a single string
-    overview = "\n".join(overview)
 
-    # Write to file
-    out_file = os.path.join(app.srcdir, "development", "ci_overview.rst")
-    with open(out_file, "w", encoding="utf-8") as f:
-        f.write(overview)
+"""
+        )
+
+        f.write(
+            """\
+.. container::
+
+  .. raw:: html
+
+    <style scoped>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.sg-datatable').DataTable({
+            order: [[4, 'asc']], pageLength: 25
+        });
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table table-striped sg-datatable
+
+   * - Name
+     - Description
+     - When it runs
+     - File
+     - Category
+"""  # noqa: E501
+        )
+        for item in data:
+            f.write(
+                f"""\
+   * - {item["name"]}
+     - {item["description"]}
+     - {item["runs-when"]}
+     - `{item["file"]} <{item["url"]}>`_
+     - {item["category"]}
+"""
+            )
