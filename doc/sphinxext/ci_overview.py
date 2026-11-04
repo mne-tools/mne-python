@@ -56,7 +56,7 @@ def _get_ci_overview_rst():
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     target_files = list(TARGET_FILES)
     for target_dir in TARGET_DIRS:
-        files = os.listdir(os.path.join(base_dir, target_dir))
+        files = sorted(os.listdir(os.path.join(base_dir, target_dir)))
         for file in files:
             if file.endswith((".yml", ".yaml")):
                 target_files.append(os.path.join(target_dir, file))
@@ -114,7 +114,7 @@ def _get_ci_overview_rst():
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script type="text/javascript" class="init">
     $(document).ready( function () {
-        $('table.sg-datatable').DataTable({
+        $('table.ci-overview-table').DataTable({
             order: [[4, 'asc']], pageLength: 25
         });
     } );
@@ -122,7 +122,7 @@ def _get_ci_overview_rst():
 
   .. list-table::
    :header-rows: 1
-   :class: table table-striped sg-datatable
+   :class: table ci-overview-table
 
    * - Name
      - Description
