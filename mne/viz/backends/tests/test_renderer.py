@@ -11,6 +11,7 @@ import subprocess
 import sys
 from contextlib import nullcontext
 from functools import partial
+from html import unescape
 
 import numpy as np
 import pytest
@@ -580,7 +581,7 @@ def test_lite_brain(renderer_lite, monkeypatch):
     rend = brain._renderer
     assert "left" in rend._docks and "time_slider" in rend._widgets
     assert isinstance(rend._viewer, GridBox)  # the widget the scene is drawn into
-    assert rend._pages[rend._n_drawn % 2].value.startswith("<iframe srcdoc=")
+    assert rend._frame.value.startswith("<iframe srcdoc=")
     assert "srcdoc" not in repr(rend._viewer)  # what display() prints, sans kernel
     assert brain.mpl_canvas._in_layout  # the traces go under the scene, not below all
     assert "translateX(-50%)" in rend._labels.value  # time viewer centers it
@@ -594,6 +595,14 @@ def test_lite_brain(renderer_lite, monkeypatch):
     asyncio.run(_updates_coalesce(rend, draws))
     monkeypatch.undo()  # the real _draw_scene, to check it skips an unchanged scene
     _same_page_not_resent(rend)
+    # actors and the view change in place too, so the page is drawn only once
+    page = rend._frame.value
+    sphere = rend.sphere(np.zeros((1, 3)), "red", 1.0)
+    rend.set_camera(azimuth=0)  # draws by itself, as Brain.show_view relies on
+    assert _sent(rend) == [{"actor", "add"}, {"camera"}]
+    rend.remove_mesh(sphere)
+    rend._draw_scene()
+    assert _sent(rend) == [{"actor", "remove"}] and rend._frame.value == page
     brain.close()
     del brain, rend
     gc.collect()
@@ -629,11 +638,16 @@ def _same_page_not_resent(rend):
     """Check a redraw of an unchanged scene sends nothing and clears the overlay."""
     rend._draw_scene()  # the scene as it is now
     rend._busy.layout.visibility = "visible"
-    n_drawn = rend._n_drawn
-    page = rend._pages[n_drawn % 2].value
+    page, n_updates = rend._frame.value, rend._n_updates
     rend._draw_scene()  # the scene has not changed since
-    assert rend._n_drawn == n_drawn and rend._pages[n_drawn % 2].value == page
+    assert (rend._frame.value, rend._n_updates) == (page, n_updates)
     assert rend._busy.layout.visibility == "hidden"
+
+
+def _sent(rend):
+    """Return the keys of each update message last sent to the page."""
+    text = rend._updates.value.split(">", 1)[1].rsplit("<", 1)[0]
+    return [set(update) for update in json.loads(unescape(text))]
 
 
 _SETUP_SCRIPT = """

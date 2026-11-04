@@ -60,29 +60,20 @@ html, body { margin: 0; height: 100%; }
 """
 # Seconds to wait for a page to report it painted before giving up on it
 _LITE_ACK_TIMEOUT = 10.0
-# Appended to each page: once painted, show its frame (same origin, so it can
-# reach it) and hide the other, unless a newer page (SEQ) already did, then
-# tell the kernel by clicking its (hidden) button
-_LITE_SWAP_JS = """<script>
+# Appended to the page: once painted, tell the kernel by clicking its (hidden)
+# button (the frame is same origin, so it can reach it), then apply the updates
+# the kernel sends and report each one the same way
+_LITE_PAGE_JS = """<script>
 requestAnimationFrame(function () { requestAnimationFrame(function () {
-  var me = window.frameElement;
-  var box = me && me.closest(".widget-gridbox");
-  if (!box || +box.dataset.shown >= SEQ) return;
-  box.dataset.shown = SEQ;
-  box.querySelectorAll("iframe").forEach(function (other) {
-    other.style.opacity = other === me ? "1" : "0";
-    other.style.pointerEvents = other === me ? "auto" : "none";
-    other.closest(".jupyter-widgets").style.pointerEvents = "none";  // its widget
-  });
+  var box = window.frameElement && window.frameElement.closest(".widget-gridbox");
+  if (!box) return;
   box.querySelector(".mne-lite-labels").style.pointerEvents = "none";
   box.querySelector(".mne-lite-painted").click();
-  // from now on, apply the point-data updates the kernel sends instead of a
-  // new page, and report each one the same way
   var updates = box.querySelector(".mne-lite-update");
   var scene = document.querySelector('[id^="pyvista-container"]').id;
   new MutationObserver(function () {
     var node = updates.querySelector("[data-n]");
-    if (!node || node.dataset.applied || me.style.opacity !== "1") return;
+    if (!node || node.dataset.applied) return;
     node.dataset.applied = "1";
     JSON.parse(node.textContent).forEach(function (update) {
       window.pvjsApplyUpdate(scene, update);
@@ -753,6 +744,8 @@ class _LiteRenderer(_AbstractRenderer):
     ):
         # distance, focalpoint and roll go unused: vtk.js frames the scene
         _lite_set_view(self._figure, azimuth, elevation, rigid)
+        if update:
+            self._update()
 
 
 class _Renderer(_IpyRenderer, _LiteRenderer):
@@ -762,6 +755,7 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
     # rather than the no-ops _IpyWindow provides for a window-less backend
     _window_close_connect = _LiteRenderer._window_close_connect
     _window_close_disconnect = _LiteRenderer._window_close_disconnect
+    _page = None  # once drawn, the version of each actor's point data on it
 
     def __init__(self, *args, **kwargs):
         fullscreen = kwargs.pop("fullscreen", False)
@@ -777,12 +771,11 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
 
     def _viewer_widget(self):
         """Return the widget the scene is drawn into, as ``show`` asks for it."""
-        # Two frames in one grid cell, in HTML widgets: a redraw loads into the
-        # hidden one, which shows itself once painted (_LITE_SWAP_JS), so
-        # nothing blank is seen. Not Output widgets: the front end echoes what
+        # One frame, drawn once, in an HTML widget; later changes reach it in
+        # place (_LITE_PAGE_JS). Not an Output widget: the front end echoes what
         # those capture back to the kernel, and the server drops the websocket
         # for a message over 10 MiB, which a Brain surface is several times over
-        self._pages = [_LiteData(layout=Layout(grid_area="view")) for _ in range(2)]
+        self._frame = _LiteData(layout=Layout(grid_area="view"))
         self._busy = HTML(  # last, so on top
             _LITE_BUSY_HTML, layout=Layout(grid_area="view", visibility="hidden")
         )
@@ -794,13 +787,13 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         self._labels = HTML(layout=Layout(grid_area="view"))  # 2D text, on top
         self._labels.add_class("mne-lite-labels")
         self._viewer = GridBox(
-            [*self._pages, self._labels, self._busy, self._painted, self._updates],
+            [self._frame, self._labels, self._busy, self._painted, self._updates],
             layout=Layout(grid_template_areas='"view"'),
         )
         self._dirty = False  # a change since the last draw
         self._in_flight = None  # the timeout handle while a page is on its way
-        self._n_drawn = self._n_updates = 0
-        self._page_key = None  # what the page on screen was drawn from
+        self._n_updates = 0
+        self._removed = []  # removal messages for actors on the page
         self._draw_scene()
         return self._viewer
 
@@ -843,25 +836,45 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             f"{''.join(spans)}</div>"
         )
 
-    def _scene_key(self):
-        """Return what a page depends on besides point data, plus mesh versions."""
-        actors = self.plotter.actors
-        key = tuple(
-            (id(info["mesh"]), tuple(info.get("color") or ()), info.get("opacity"))
-            for info in actors
-        ) + (self._figure._view_vector, tuple(self.plotter.background_color))
-        versions = tuple(getattr(info["mesh"], "_lite_version", 0) for info in actors)
-        return key, versions
-
-    def _send_updates(self, changed):
-        """Send the recolored meshes' point data to the page shown."""
-        actors = self.plotter.actors
-        updates = [
-            self.plotter.update_actor(
-                idx, point_data=dict(actors[idx]["mesh"].point_data.items()), send=False
+    def remove_mesh(self, mesh_data):
+        actor, _ = mesh_data  # instanced_mesh hands back one actor per color
+        for this_actor in actor if isinstance(actor, list) else [actor]:
+            if id(this_actor) not in (self._page or ()):  # not on a page (yet)
+                self.plotter.remove_actor(this_actor)
+                continue
+            actors = [info["actor"] for info in self.plotter.actors]
+            idx = next(ii for ii, a in enumerate(actors) if a is this_actor)
+            self._removed.append(
+                self.plotter.update_actor(idx, remove=True, send=False)
             )
-            for idx in changed
-        ]
+
+    def _versions(self):
+        """Return the version of each actor's point data, by actor."""
+        return {
+            id(info["actor"]): getattr(info["mesh"], "_lite_version", 0)
+            for info in self.plotter.actors
+        }
+
+    def _diff_page(self):
+        """Return the update messages that bring the page up to date."""
+        updates, self._removed = self._removed, []
+        versions = self._versions()
+        for idx, (key, version) in enumerate(versions.items()):
+            if key not in self._page:
+                updates.append(self.plotter.update_actor(idx, add=True, send=False))
+            elif version != self._page[key]:
+                point_data = dict(self.plotter.actors[idx]["mesh"].point_data.items())
+                updates.append(
+                    self.plotter.update_actor(idx, point_data=point_data, send=False)
+                )
+        self._page = versions
+        if self._figure._view_vector != self._page_view:
+            self._page_view = self._figure._view_vector
+            updates.append(self.plotter.update_camera(send=False))
+        return updates
+
+    def _send_updates(self, updates):
+        """Send update messages to the page."""
         self._n_updates += 1
         self._updates.value = (
             f'<div hidden data-n="{self._n_updates}">'
@@ -895,35 +908,28 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             self._busy.layout.visibility = "hidden"
 
     def _draw_scene(self):
-        # the page pyvista-js writes for a browser, framed so the vtk.js it
-        # loads and the scene data it embeds stay out of the notebook document
-        width, height = self._size
         self._dirty = False
         self._draw_labels()
-        key, versions = self._scene_key()
-        if self._page_key is not None and self._page_key[0] == key:
-            changed = [i for i, v in enumerate(versions) if v != self._page_key[1][i]]
-            if not changed:  # Brain asks again for the same time
+        if self._page is not None:
+            updates = self._diff_page()
+            if not updates:  # Brain asks again for the same time
                 if self._in_flight is None:
                     self._busy.layout.visibility = "hidden"
                 return
-            self._send_updates(changed)
-            self._page_key = (key, versions)
-            loop = self._loop()
-            if loop is not None:
-                self._in_flight = loop.call_later(_LITE_ACK_TIMEOUT, self._on_painted)
-            return
-        self._page_key = (key, versions)
-        page = self.plotter.generate_standalone_html()
-        self._n_drawn += 1
-        page = page.replace("<head>", "<head>" + _LITE_SIZE_CSS, 1)
-        swap = _LITE_SWAP_JS.replace("SEQ", str(self._n_drawn))
-        page = html.escape(page.replace("</body>", swap + "</body>"), quote=True)
-        # into the frame that is hidden (or not yet drawn), until it has painted
-        self._pages[self._n_drawn % 2].value = (
-            f'<iframe srcdoc="{page}" width="{width}" height="{height}" '
-            'style="border: none; opacity: 0; pointer-events: none"></iframe>'
-        )
+            self._send_updates(updates)
+        else:
+            # the page pyvista-js writes for a browser, framed so the vtk.js it
+            # loads and the scene data it embeds stay out of the notebook document
+            width, height = self._size
+            self._page = self._versions()
+            self._page_view = self._figure._view_vector
+            page = self.plotter.generate_standalone_html()
+            page = page.replace("<head>", "<head>" + _LITE_SIZE_CSS, 1)
+            page = page.replace("</body>", _LITE_PAGE_JS + "</body>")
+            self._frame.value = (
+                f'<iframe srcdoc="{html.escape(page, quote=True)}" width="{width}" '
+                f'height="{height}" style="border: none"></iframe>'
+            )
         loop = self._loop()  # no kernel, no browser to hear back from
         if loop is not None:
             self._in_flight = loop.call_later(_LITE_ACK_TIMEOUT, self._on_painted)
@@ -932,10 +938,8 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         return self._size
 
     def _update(self):
-        # pyvista-js serializes the whole scene into the page once, with no way
-        # to update it afterward, so a change means drawing it again: now, or
-        # once the page on its way has painted (_on_painted), so that the frame
-        # on screen is never the one drawn into
+        # send the change now, or once the page or update on its way has
+        # painted (_on_painted), so that the page applies one batch at a time
         if self._viewer is None or self._dirty:  # a draw is already coming
             return
         self._dirty = True
