@@ -4,7 +4,7 @@ platforms:
   subdir: osx-64
   virtual-packages:
   - __osx=13.3
-  - __unix=0=0
+  - __unix=0
   - __archspec=0=x86_64
 environments:
   default:
@@ -187,7 +187,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.13-9_cp313.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3.post1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-0.49.0-pyhd8ed1ab_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.18.0-pyhc364b38_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.20.0-pyhc364b38_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-validation-0.2.2-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyvistaqt-0.13.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/qdarkstyle-3.2.3-pyhd8ed1ab_1.conda
@@ -592,7 +592,7 @@ packages:
   license: BSD-2-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/appnope?source=hash-mapping
+  - pkg:pypi/appnope?source=compressed-mapping
   size: 12232
   timestamp: 1787337124448
 - conda: https://conda.anaconda.org/conda-forge/noarch/argon2-cffi-25.1.0-pyhd8ed1ab_0.conda
@@ -1379,7 +1379,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/imagesize?source=compressed-mapping
+  - pkg:pypi/imagesize?source=hash-mapping
   size: 21467
   timestamp: 1787649248672
 - conda: https://conda.anaconda.org/conda-forge/noarch/importlib-metadata-9.0.1-pyhcf101f3_0.conda
@@ -2744,7 +2744,7 @@ packages:
   license: BSD-2-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/python-json-logger?source=compressed-mapping
+  - pkg:pypi/python-json-logger?source=hash-mapping
   size: 19367
   timestamp: 1786872772907
 - conda: https://conda.anaconda.org/conda-forge/noarch/python-neo-0.14.5-pyhd8ed1ab_0.conda
@@ -2832,9 +2832,9 @@ packages:
   - pkg:pypi/pyvista?source=compressed-mapping
   size: 2332487
   timestamp: 1790023231927
-- conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.18.0-pyhc364b38_0.conda
-  sha256: b299e69149bc253314616989cb43b441103be01d40a8c0eec030e5e296777c32
-  md5: c63fb97f32cbac6a88d0914db7b2a4cc
+- conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.20.0-pyhc364b38_0.conda
+  sha256: aeb05a791816b01a9ce55d14bb6667ac90cad3714b811ab21e0487b211579455
+  md5: d68be3f1a27456648839e91e389a9915
   depends:
   - python >=3.12,<3.15
   - jinja2 >=3.0.1,<4.0.1
@@ -2843,11 +2843,12 @@ packages:
   - typer >=0.9.1,<1.0.1
   - python
   license: BSD-3-Clause
+  license_family: BSD
   purls:
   - pkg:pypi/pyvista-js?source=hash-mapping
   run_exports: {}
-  size: 80544
-  timestamp: 1791322215282
+  size: 93109
+  timestamp: 1793688321062
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-validation-0.2.2-pyh5ded981_0.conda
   sha256: d3f75c3a2004b969db2099a18031349447925a91f01479a1d7667fcb1a9d7ba7
   md5: e06843d2fd3ed2b0472c7f11b52e7f3e
@@ -6088,7 +6089,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/nh3?source=compressed-mapping
+  - pkg:pypi/nh3?source=hash-mapping
   size: 669167
   timestamp: 1787526901132
 - conda: https://conda.anaconda.org/conda-forge/osx-64/nitime-0.12.1-np2h2c0851f_0.conda
