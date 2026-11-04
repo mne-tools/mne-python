@@ -5,6 +5,8 @@ files, and converts this information into an overview of the CI jobs.
 
 That information should be kept up to date with the behaviour of the workflows, and new
 workflows must have this information added if they should be included in this table.
+
+Footnotes can also be added to the table.
 """
 
 # Authors: The MNE-Python contributors.
@@ -12,6 +14,7 @@ workflows must have this information added if they should be included in this ta
 # Copyright the MNE-Python contributors.
 
 import os
+import re
 
 from docutils import nodes
 from docutils.statemachine import StringList
@@ -28,6 +31,12 @@ COLUMNS = ["name", "description", "runs-when"]
 LINE_START, LINE_SEP, LINE_END = "# | ", " | ", " |\n"
 HEADER = LINE_START + LINE_SEP.join(COLUMNS) + LINE_END
 
+# What footnotes to consider
+FOOTNOTE_REGEX = r"\[note [a-z,-]*\]"
+NOTE_LABELS = {
+    "skip-on-pr": "This job starts on pushes to pull requests, but the full run is skipped and it is immediately marked as completed.",  # noqa: E501
+    "skip-on-merge": "This job starts on merges to ``main`` and ``maint/*`` branches, but the full run is skipped and it is immediately marked as completed.",  # noqa: E501
+}
 
 
 def setup(app):
@@ -49,6 +58,22 @@ def _get_category(file):
     if file == "azure-pipelines.yml":
         return "Azure Pipelines"
     raise ValueError(f"Unknown CI job file: {file}")
+
+
+def _parse_footnotes(col: str, footnotes: dict):
+    """Parse footnotes in a column and add them to the footnotes dict."""
+    footnote_matches = re.findall(FOOTNOTE_REGEX, col)
+    for match in footnote_matches:
+        label = match[6:-1]
+        if label not in NOTE_LABELS:
+            raise ValueError(
+                f"Expected footnote label to be one of {list(NOTE_LABELS.keys())}, got "
+                f"{label}"
+            )
+        if label not in footnotes:
+            footnotes[label] = len(footnotes) + 1
+        col = col.replace(match, f"\\ [{footnotes[label]}]_")
+    return col
 
 
 class CIOverviewDirective(SphinxDirective):
@@ -80,6 +105,7 @@ def _get_ci_overview_rst():
     # Extract overview information from each file
     n_cols = len(COLUMNS)
     data = []
+    footnotes = dict()
     for file in target_files:
         with open(os.path.join(base_dir, file), encoding="utf-8") as f:
             lines = f.readlines()
@@ -99,6 +125,8 @@ def _get_ci_overview_rst():
                                     f"Unexpected number of columns (got "
                                     f"{len(this_row)}, expected {n_cols}) in row: {row}"
                                 )
+                            for idx, col in enumerate(this_row):
+                                this_row[idx] = _parse_footnotes(col, footnotes)
                             this_row = dict(zip(COLUMNS, this_row))
                             this_row["file"] = file
                             this_row["category"] = _get_category(file)
@@ -153,5 +181,10 @@ def _get_ci_overview_rst():
      - {item["runs-when"]}
      - `{item["file"]} <{item["url"]}>`_
      - {item["category"]}
+"""
+    rst += "\n"
+    for label, label_num in footnotes.items():
+        rst += f"""\
+.. [{label_num}] {NOTE_LABELS[label]}
 """
     return rst, [os.path.join(base_dir, file) for file in target_files]
