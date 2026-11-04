@@ -307,9 +307,10 @@ def read_source_estimate(fname, subject=None):
             raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
-        # strip extension unless legacy file (e.g., fname.stc-rh.stc) exists
+        # "foo.stc" -> "foo" if "foo-rh.stc" exists, but keep legacy stems
+        # like "foo.w" (for "foo.w-rh.stc") intact
         for ext in (".stc", ".w"):
-            if fname.endswith(ext) and not op.exists(fname + f"-rh{ext}"):
+            if fname.endswith(ext) and op.exists(fname[: -len(ext)] + f"-rh{ext}"):
                 fname = fname[: -len(ext)]
         stc_exist = [op.exists(f) for f in [fname + "-rh.stc", fname + "-lh.stc"]]
         w_exist = [op.exists(f) for f in [fname + "-rh.w", fname + "-lh.w"]]
@@ -392,6 +393,14 @@ def read_source_estimate(fname, subject=None):
     if kwargs["data"].ndim < 3:
         klass = klass._scalar_class
     return klass(**kwargs)
+
+
+def _check_save_ftype(fname, ftype):
+    if ftype == "auto":
+        ext = op.splitext(fname)[1][1:]
+        ftype = ext if ext in ("h5", "w") else "stc"
+    _check_option("ftype", ftype, ["stc", "w", "h5"])
+    return ftype
 
 
 def _get_src_type(src, vertices, warn_text=None):
@@ -2435,10 +2444,13 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
         ftype : "auto" | "stc" | "w" | "h5"
-            File format to use. If ``"auto"`` (default), the format will be
-            inferred from the file extension if possible, otherwise ``"stc"``
-            is used. Allowed values are ``"auto"``, ``"stc"``, ``"w"``, and
-            ``"h5"``. The ``"w"`` format only supports a single time point.
+            File format to use. If ``"auto"`` (default), the format is
+            inferred from the extension of ``fname`` (``".h5"`` or ``".w"``),
+            falling back to ``"stc"``. The ``"w"`` format only supports a
+            single time point.
+
+            .. versionchanged:: 1.14
+               Added and defaulted to ``"auto"``.
         overwrite : bool
             If True (default False), overwrite the destination file if it
             exists.
@@ -2451,10 +2463,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             argument.
         """
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
-        if ftype == "auto":
-            ext = op.splitext(fname)[1][1:]
-            ftype = ext if ext in ("h5", "w") else "stc"
-        _check_option("ftype", ftype, ["stc", "w", "h5"])
+        ftype = _check_save_ftype(fname, ftype)
 
         lh_data = self.data[: len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno) :]
@@ -3802,7 +3811,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     """
 
     @verbose_static("overwrite")
-    def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -3810,10 +3819,14 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         fname : path-like
             The stem of the file name. The stem is extended with ``"-vl.stc"``
             or ``"-vl.w"``.
-        ftype : str
-            File format to use. Allowed values are ``"stc"`` (default),
-            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
-            time point.
+        ftype : "auto" | "stc" | "w" | "h5"
+            File format to use. If ``"auto"`` (default), the format is
+            inferred from the extension of ``fname`` (``".h5"`` or ``".w"``),
+            falling back to ``"stc"``. The ``"w"`` format only supports a
+            single time point.
+
+            .. versionchanged:: 1.14
+               Added and defaulted to ``"auto"``.
         overwrite : bool
             If True (default False), overwrite the destination file if it
             exists.
@@ -3827,7 +3840,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         """
         # check overwrite individually below
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
-        _check_option("ftype", ftype, ["stc", "w", "h5"])
+        ftype = _check_save_ftype(fname, ftype)
         if ftype != "h5" and len(self.vertices) != 1:
             raise ValueError(
                 "Can only write to .stc or .w if a single volume "
