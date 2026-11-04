@@ -307,6 +307,7 @@ def read_source_estimate(fname, subject=None):
             raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
+        # strip extension unless legacy file (e.g., fname.stc-rh.stc) exists
         for ext in (".stc", ".w"):
             if fname.endswith(ext) and not op.exists(fname + f"-rh{ext}"):
                 fname = fname[: -len(ext)]
@@ -2459,6 +2460,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         rh_data = self.data[-len(self.rh_vertno) :]
 
         if ftype in ("stc", "w"):
+            # strip existing tags to avoid duplicate extensions
             for tag in (f"-lh.{ftype}", f"-rh.{ftype}", f".{ftype}"):
                 if fname.endswith(tag):
                     fname = fname[: -len(tag)]
