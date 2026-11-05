@@ -435,6 +435,10 @@ def test_average_quats():
     assert_allclose(rot_0, rot_1, atol=1e-7)
     for lim, ex in enumerate(expected):
         assert_allclose(_average_quats(quats[: lim + 1]), ex, atol=1e-7)
+    # Weights should enter linearly (not squared): 0.75 * 0.2 rad ~= 0.15 rad
+    z_quats = np.array([[0, 0, np.sin(angle / 2)] for angle in (0.0, 0.2)])
+    avg = _average_quats(z_quats, weights=np.array([0.25, 0.75]))
+    assert_allclose(2 * np.arcsin(avg[2]), 0.15, atol=2e-4)
     # Assert some symmetry
     count = 0
     extras = [[sq2, sq2, 0]] + list(np.eye(3))
