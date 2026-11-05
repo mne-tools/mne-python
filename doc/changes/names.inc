@@ -285,6 +285,7 @@
 .. _Marian Dovgialo: https://github.com/mdovgialo
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 .. _Mark Alexander Henney: https://github.com/henneysq
+.. _Mark Kuang: https://github.com/iis-MarkKuang
 .. _Mark Wronkiewicz: https://github.com/wronk
 .. _Marmaduke Woodman: https://github.com/maedoc
 .. _Martin BaBer: https://github.com/MartinBaBer

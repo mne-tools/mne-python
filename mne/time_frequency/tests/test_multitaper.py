@@ -4,10 +4,10 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_allclose, assert_array_almost_equal
 
 from mne.time_frequency import psd_array_multitaper
-from mne.time_frequency.multitaper import dpss_windows
+from mne.time_frequency.multitaper import _psd_from_mt, dpss_windows
 from mne.utils import _record_warnings
 
 
@@ -78,3 +78,30 @@ def test_adaptive_weights_convergence():
     ):
         psd_array_multitaper(data, sfreq, adaptive=True, max_iter=2)
     psd_array_multitaper(data, sfreq, adaptive=True, max_iter=200)
+
+
+def test_multitaper_complex_full_normalization():
+    """Test full normalization of complex multitaper coefficients."""
+    sfreq = 100.0
+    data = np.random.default_rng(0).standard_normal((1, 1000))
+    psd_length, freqs = psd_array_multitaper(
+        data, sfreq, normalization="length", output="power", verbose=False
+    )
+    psd_full, freqs_full = psd_array_multitaper(
+        data, sfreq, normalization="full", output="power", verbose=False
+    )
+    assert_allclose(freqs, freqs_full)
+    assert_allclose(psd_full, psd_length / sfreq)
+
+    coefs_length, _, _ = psd_array_multitaper(
+        data, sfreq, normalization="length", output="complex", verbose=False
+    )
+    for normalization, scale in (("length", 1.0), ("full", np.sqrt(sfreq))):
+        coefs, _, weights = psd_array_multitaper(
+            data, sfreq, normalization=normalization, output="complex", verbose=False
+        )
+        psd, _ = psd_array_multitaper(
+            data, sfreq, normalization=normalization, output="power", verbose=False
+        )
+        assert_allclose(_psd_from_mt(coefs, weights), psd)
+        assert_allclose(np.abs(coefs), np.abs(coefs_length) / scale)
