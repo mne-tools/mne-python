@@ -194,6 +194,38 @@ def _median_bias(n):
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
 
 
+def test_psd_array_welch_complex_not_aggregated():
+    """Test that complex Welch coefficients are not averaged across segments."""
+    sfreq = 100.0
+    data = np.random.default_rng(0).standard_normal((2, 1000))
+    kwargs = dict(n_fft=128, verbose=False)
+    for average in ("mean", "median"):
+        with pytest.raises(ValueError, match='output="complex"'):
+            psd_array_welch(data, sfreq, average=average, output="complex", **kwargs)
+
+    coefs, freqs = psd_array_welch(
+        data, sfreq, average=None, output="complex", **kwargs
+    )
+    coefs_false, freqs_false = psd_array_welch(
+        data, sfreq, average=False, output="complex", **kwargs
+    )
+    power, freqs_power = psd_array_welch(
+        data, sfreq, average="mean", output="power", **kwargs
+    )
+    assert coefs.shape[-1] > 1
+    assert_array_equal(coefs, coefs_false)
+    assert_array_equal(freqs, freqs_false)
+    assert_array_equal(freqs, freqs_power)
+    # One-sided power: double every bin except DC and Nyquist, then average
+    # segments. Averaging the complex coefficients first does not match.
+    scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
+    segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
+    assert_allclose(segment_power.mean(axis=-1), power)
+    aggregated = coefs.mean(axis=-1)
+    aggregated_power = (aggregated * np.conj(aggregated)).real * scale
+    assert not np.allclose(aggregated_power, power)
+
+
 @pytest.mark.parametrize("crop", (False, True))
 def test_psd_array_welch_average_kwarg(crop):
     """Test `average` kwarg of psd_array_welch()."""

@@ -480,9 +480,7 @@ def test_spectrum_proj(inst, request):
     assert has_proj == no_proj
 
 
-@pytest.mark.parametrize(
-    "method, average", [("welch", False), ("welch", "mean"), ("multitaper", None)]
-)
+@pytest.mark.parametrize("method, average", [("welch", False), ("multitaper", None)])
 def test_spectrum_complex(method, average):
     """Test output='complex' support."""
     sfreq = 100

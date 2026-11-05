@@ -142,7 +142,8 @@ def psd_array_welch(
         How to average the segments. If ``mean`` (default), calculate the
         arithmetic mean. If ``median``, calculate the median, corrected for
         its bias relative to the mean. If ``None``, returns the unaggregated
-        segments.
+        segments. Must be ``None`` when ``output="complex"``, because
+        averaging the coefficients across segments mixes their phases.
 
         .. versionadded:: 0.19.0
     window : str | float | tuple
@@ -158,8 +159,8 @@ def psd_array_welch(
         ``'power'``:
 
         * ``'power'`` : the power spectral density is returned.
-        * ``'complex'`` : the complex fourier coefficients are returned per
-          window.
+        * ``'complex'`` : the complex Fourier coefficients are returned per
+          segment. ``average`` must be ``None``.
 
         .. versionadded:: 1.4.0
     verbose : bool | str | int | None
@@ -200,6 +201,12 @@ def psd_array_welch(
         n_per_seg = _ensure_int(n_per_seg, "n_per_seg")
     if average is False:
         average = None
+    if output == "complex" and average is not None:
+        raise ValueError(
+            f'average must be None when output="complex", got {average!r}. '
+            "Averaging the coefficients mixes segment phases; convert each "
+            "segment to power before aggregating."
+        )
 
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
