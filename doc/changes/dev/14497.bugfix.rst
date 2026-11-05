@@ -1,0 +1,1 @@
+Scale complex coefficients from :func:`mne.time_frequency.psd_array_multitaper` by the square root of the sampling rate when ``normalization="full"``, so the PSD formed from them matches ``output="power"``, by :newcontrib:`Mark Kuang`.
