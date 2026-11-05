@@ -104,7 +104,7 @@ def test_interpolate_bridged_electrodes(kind, bridged):
 
 
 def test_interpolate_bridged_electrodes_bads():
-    """Pre-existing bads are preserved and do not contaminate the result."""
+    """Pre-existing bads are preserved; bridged bads retained."""
     raw = _load_data()[0]
     bridged = ["EEG 001", "EEG 002"]
     pairs = [tuple(raw.ch_names.index(ch) for ch in bridged)]
@@ -118,11 +118,18 @@ def test_interpolate_bridged_electrodes_bads():
     assert_array_equal(out.get_data(picks="EEG 003"), 1.0)
     assert out.info["bads"] == ["EEG 001", "EEG 003"]
 
-    # a bridged bad must be repaired, with no trace of its 1 V bad data
+    # a bridged bad is *not* excluded from the virtual channel, so marking a
+    # bridged channel as bad must not change the result
     raw.apply_function(lambda x: np.full_like(x, 1.0), picks="EEG 001")
-    out = interpolate_bridged_electrodes(raw.copy(), pairs)
-    assert np.abs(out.get_data(picks="EEG 001")).max() < 1e-3
-    assert out.info["bads"] == ["EEG 001", "EEG 003"]
+    out_bad = interpolate_bridged_electrodes(raw.copy(), pairs)
+    raw_good = raw.copy()
+    raw_good.info["bads"] = ["EEG 003"]  # same data, EEG 001 no longer marked bad
+    out_good = interpolate_bridged_electrodes(raw_good, pairs)
+    assert_array_equal(
+        out_bad.get_data(picks=bridged), out_good.get_data(picks=bridged)
+    )
+    # original bads are preserved
+    assert out_bad.info["bads"] == ["EEG 001", "EEG 003"]
 
 
 def test_interpolate_bridged_electrodes_bad_limit():
