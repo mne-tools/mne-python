@@ -301,6 +301,14 @@ def test_crop(tmp_path):
             getattr(raw_copied.annotations, attr), getattr(raw_loaded.annotations, attr)
         )
 
+    # Dropping annotations at or outside cropped data range (#9383)
+    raw.set_annotations(Annotations([0, 5, 10], [0, 0, 0], ["a", "b", "c"]))
+    assert len(raw.copy().crop(0, 10, include_tmax=False).annotations) == 2
+    assert len(raw.copy().crop(0, 10, include_tmax=True).annotations) == 3
+    # Preserve full-duration annotations
+    raw.set_annotations(Annotations([0], [20], ["full"]))
+    assert raw.annotations.duration[0] == 20
+
 
 @first_samps
 def test_chunk_duration(first_samp):

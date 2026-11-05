@@ -2191,6 +2191,9 @@ class BaseRaw(
             0
         """
         max_time = (self.n_times - 1) / self.info["sfreq"]
+        cropped_end = (
+            tmax is not None and tmax < max_time - 0.5 / self.info["sfreq"]
+        ) or not include_tmax
         if tmax is None:
             tmax = max_time
 
@@ -2252,6 +2255,14 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
+        if cropped_end:
+            last_time = (self.n_times - 1) / self.info["sfreq"]
+            bad = np.where(
+                self.annotations.onset - self._first_time
+                > last_time + 0.5 / self.info["sfreq"]
+            )[0]
+            if len(bad):
+                self.annotations.delete(bad)
         return self
 
     @verbose_static()
