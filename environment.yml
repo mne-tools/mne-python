@@ -16,7 +16,7 @@ dependencies:
   - ffmpeg ==8.1.2
   - filelock >=3.18.0
   - formulaic
-  - h5io >=0.2.4
+  - h5io >=0.2.6
   - h5py >=2.4
   - imageio >=2.6.1
   - imageio-ffmpeg >=0.4.1
