@@ -877,10 +877,16 @@ def test_add_or_replace_section():
     data = np.random.default_rng(0).normal(size=(2, 10, 100)) * 1e-6
     epochs = EpochsArray(data, raw.info)
     r.add_epochs(epochs, "c", section="A", psd=False, projs=False, replace=True)
-    r.add_evokeds(epochs.average(), titles="d", section="A", replace=True)
+    r.add_evokeds(
+        epochs.average(), titles="d", section="A", replace=True, n_time_points=2
+    )
+    with pytest.warns(RuntimeWarning, match="high-pass"):
+        ica = ICA(n_components=2, method="infomax", random_state=0).fit(epochs)
+    r.add_ica(ica, "e", inst=None, section="A", replace=True)
     names = [c.name for c in r._content]
     assert names[:3] == ["a: Info", "b: Info", "c: Info"]
     assert "d: Info" in names
+    assert "e: Info" in names
 
 
 def test_scraper(tmp_path):

@@ -2260,7 +2260,9 @@ class Report:
             joint=joint,
         )
 
-    def _add_ica_overlay(self, *, ica, inst, image_format, section, tags, replace):
+    def _add_ica_overlay(
+        self, *, ica, inst, image_format, section, tags, replace, title_prefix=""
+    ):
         if isinstance(inst, BaseRaw):
             inst_ = inst
         else:  # Epochs
@@ -2270,7 +2272,7 @@ class Report:
         del inst_
         self._add_figure(
             fig=fig,
-            title="Original and cleaned signal",
+            title=f"{title_prefix}Original and cleaned signal",
             caption=None,
             image_format=image_format,
             section=section,
@@ -2280,7 +2282,17 @@ class Report:
         )
 
     def _add_ica_properties(
-        self, *, ica, picks, inst, n_jobs, image_format, section, tags, replace
+        self,
+        *,
+        ica,
+        picks,
+        inst,
+        n_jobs,
+        image_format,
+        section,
+        tags,
+        replace,
+        title_prefix="",
     ):
         ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
@@ -2309,7 +2321,7 @@ class Report:
             caption = f"ICA component {picks[idx]}."
             captions.append(caption)
 
-        title = "ICA component properties"
+        title = f"{title_prefix}ICA component properties"
         # Only render a slider if we have more than 1 component.
         if len(figs) == 1:
             self._add_figure(
@@ -2337,13 +2349,22 @@ class Report:
             )
 
     def _add_ica_artifact_sources(
-        self, *, ica, inst, artifact_type, image_format, section, tags, replace
+        self,
+        *,
+        ica,
+        inst,
+        artifact_type,
+        image_format,
+        section,
+        tags,
+        replace,
+        title_prefix="",
     ):
         with use_browser_backend("matplotlib"):
             fig = ica.plot_sources(inst=inst, show=False)
         self._add_figure(
             fig=fig,
-            title=f"Original and cleaned {artifact_type} epochs",
+            title=f"{title_prefix}Original and cleaned {artifact_type} epochs",
             caption=None,
             image_format=image_format,
             tags=tags,
@@ -2353,7 +2374,16 @@ class Report:
         )
 
     def _add_ica_artifact_scores(
-        self, *, ica, scores, artifact_type, image_format, section, tags, replace
+        self,
+        *,
+        ica,
+        scores,
+        artifact_type,
+        image_format,
+        section,
+        tags,
+        replace,
+        title_prefix="",
     ):
         assert artifact_type in ("EOG", "ECG")
         fig = ica.plot_scores(
@@ -2361,7 +2391,7 @@ class Report:
         )
         self._add_figure(
             fig=fig,
-            title=f"Scores for matching {artifact_type} patterns",
+            title=f"{title_prefix}Scores for matching {artifact_type} patterns",
             caption=None,
             image_format=image_format,
             tags=tags,
@@ -2370,7 +2400,9 @@ class Report:
             own_figure=True,
         )
 
-    def _add_ica_components(self, *, ica, picks, image_format, section, tags, replace):
+    def _add_ica_components(
+        self, *, ica, picks, image_format, section, tags, replace, title_prefix=""
+    ):
         ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
@@ -2384,7 +2416,7 @@ class Report:
         if not isinstance(figs, list):
             figs = [figs]
 
-        title = "ICA component topographies"
+        title = f"{title_prefix}ICA component topographies"
         if len(figs) == 1:
             fig = figs[0]
             self._add_figure(
@@ -2423,6 +2455,7 @@ class Report:
         section,
         tags,
         replace,
+        title_prefix="",
     ):
         import matplotlib.pyplot as plt
 
@@ -2468,7 +2501,7 @@ class Report:
         sources = [ica.get_sources(this_inst).get_data() for this_inst in insts[1:]]
         with use_browser_backend("matplotlib"):
             for chunk in chunks:
-                title = "Sources"
+                title = f"{title_prefix}Sources"
                 if len(chunks) > 1:
                     title += f" (ICs {chunk[0]}–{chunk[-1]})"
                 fig = ica.plot_sources(
@@ -2555,6 +2588,7 @@ class Report:
         plot_sources=False,
         source_segments=None,
         source_duration=20.0,
+        title_prefix="",
     ):
         _validate_type(source_segments, ("int-like", None), "source_segments")
         if source_segments is not None and source_segments < 1:
@@ -2612,7 +2646,7 @@ class Report:
         # Summary table
         self._add_html_repr(
             inst=ica,
-            title="Info",
+            title=f"{title_prefix}Info",
             tags=tags,
             section=section,
             replace=replace,
@@ -2628,6 +2662,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
 
         # ECG artifact
@@ -2640,6 +2675,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
         if ecg_evoked:
             self._add_ica_artifact_sources(
@@ -2650,6 +2686,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
 
         # EOG artifact
@@ -2662,6 +2699,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
         if eog_evoked:
             self._add_ica_artifact_sources(
@@ -2672,6 +2710,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
 
         # Component topography plots
@@ -2682,6 +2721,7 @@ class Report:
             section=section,
             tags=tags,
             replace=replace,
+            title_prefix=title_prefix,
         )
 
         # Properties plots
@@ -2695,6 +2735,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
 
         # Sources plot
@@ -2718,9 +2759,12 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
 
-    @fill_doc_static("picks_ica", "n_jobs", "tags_report", "replace_report")
+    @fill_doc_static(
+        "picks_ica", "n_jobs", "tags_report", "replace_report", "section_report"
+    )
     def add_ica(
         self,
         ica,
@@ -2736,6 +2780,7 @@ class Report:
         n_jobs=None,
         tags=("ica",),
         replace=False,
+        section=None,
         plot_sources=False,
         source_segments=None,
         source_duration=20.0,
@@ -2788,6 +2833,21 @@ class Report:
             ``section`` will be replaced. Defaults to ``False``, which will cause
             duplicate entries in the table of contents if an entry for ``title``
             already exists.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+
+            If ``None`` (default), ``title`` is used as the section name. Otherwise,
+            ``title`` is prepended to the name of each element added, e.g.
+            ``"my ica: Info"``.
+
+            .. versionadded:: 1.14
         plot_sources : bool
             Whether to add a plot of the ICA source time-courses using
             :meth:`mne.preprocessing.ICA.plot_sources`. Requires ``inst``
@@ -2812,6 +2872,10 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
+        if section is None:
+            section, title_prefix = title, ""
+        else:
+            title_prefix = f"{title}: "
         self._add_ica(
             ica=ica,
             inst=inst,
@@ -2824,7 +2888,8 @@ class Report:
             title=title,
             image_format=self.image_format,
             tags=tags,
-            section=title,
+            section=section,
+            title_prefix=title_prefix,
             n_jobs=n_jobs,
             replace=replace,
             plot_sources=plot_sources,
