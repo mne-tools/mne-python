@@ -96,14 +96,14 @@ def test_compute_psd_errors(raw):
             256,
             0,
             None,
-            "mean",
+            None,
             "hamming",
             None,
             False,
             True,
             "length",
             "complex",
-        ],  # complex (testing with non-defaults doesn't increase coverage)
+        ],  # complex; Welch cannot average the coefficients
     ],
 )
 def test_spectrum_params(
