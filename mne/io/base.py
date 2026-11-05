@@ -2252,6 +2252,16 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
+        # Drop annotations starting after the last data sample (#9383).
+        # We prune here rather than in set_annotations() because file readers
+        # (e.g. EDF/BDF) legitimately store end-of-recording annotations at
+        # n_times / sfreq that must be preserved on read.
+        bad = np.where(
+            self.annotations.onset - self._first_time
+            > (self.n_times - 0.5) / self.info["sfreq"]
+        )[0]
+        if len(bad):
+            self.annotations.delete(bad)
         return self
 
     @verbose_static()
