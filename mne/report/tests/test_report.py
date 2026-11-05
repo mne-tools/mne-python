@@ -865,6 +865,12 @@ def test_add_or_replace_section():
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
+    # add_raw with a section prefixes the element names instead of overwriting
+    raw = RawArray(np.zeros((2, 1000)), create_info(2, 100.0, "eeg"))
+    r = Report()
+    for title in ("a", "b"):
+        r.add_raw(raw, title, section="A", psd=False, butterfly=False, replace=True)
+    assert [c.name for c in r._content] == ["a: Info", "b: Info"]
 
 
 def test_scraper(tmp_path):

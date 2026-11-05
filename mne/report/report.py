@@ -1580,7 +1580,12 @@ class Report:
             )
 
     @fill_doc_static(
-        "projs_report", "scalings", "tags_report", "replace_report", "topomap_kwargs"
+        "projs_report",
+        "scalings",
+        "tags_report",
+        "replace_report",
+        "section_report",
+        "topomap_kwargs",
     )
     def add_raw(
         self,
@@ -1593,6 +1598,7 @@ class Report:
         scalings=None,
         tags=("raw",),
         replace=False,
+        section=None,
         topomap_kwargs=None,
     ):
         """Add `~mne.io.Raw` objects to the report.
@@ -1642,6 +1648,21 @@ class Report:
             ``section`` will be replaced. Defaults to ``False``, which will cause
             duplicate entries in the table of contents if an entry for ``title``
             already exists.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+
+            If ``None`` (default), ``title`` is used as the section name. Otherwise,
+            ``title`` is prepended to the name of each element added, e.g.
+            ``"my raw: Info"``.
+
+            .. versionadded:: 1.14
         topomap_kwargs : dict | None
             Keyword arguments to pass to the topomap-generating functions.
 
@@ -1660,6 +1681,11 @@ class Report:
 
         add_projs = self.projs if projs is None else projs
 
+        if section is None:
+            section, title_prefix = title, ""
+        else:
+            title_prefix = f"{title}: "
+
         self._add_raw(
             raw=raw,
             add_psd=add_psd,
@@ -1669,7 +1695,8 @@ class Report:
             image_format=self.image_format,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
-            section=title,
+            section=section,
+            title_prefix=title_prefix,
             replace=replace,
         )
 
@@ -4054,6 +4081,7 @@ class Report:
         tags,
         section,
         replace,
+        title_prefix="",
     ):
         # Pick n_segments + 2 equally-spaced 1-second time slices, but omit
         # the first and last slice, so we end up with n_segments slices
@@ -4100,7 +4128,7 @@ class Report:
         self._add_slider(
             figs=None,
             imgs=images,
-            title="Time series",
+            title=f"{title_prefix}Time series",
             captions=captions,
             start_idx=0,
             image_format=image_format,
@@ -4122,6 +4150,7 @@ class Report:
         topomap_kwargs,
         section,
         replace,
+        title_prefix="",
     ):
         """Render raw."""
         if isinstance(raw, BaseRaw):
@@ -4136,7 +4165,7 @@ class Report:
         # Summary table
         self._add_html_repr(
             inst=raw,
-            title="Info",
+            title=f"{title_prefix}Info",
             tags=tags,
             section=section,
             replace=replace,
@@ -4154,6 +4183,7 @@ class Report:
                 tags=tags,
                 replace=replace,
                 section=section,
+                title_prefix=title_prefix,
             )
 
         # PSD
@@ -4175,7 +4205,7 @@ class Report:
                 fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             self._add_figure(
                 fig=fig,
-                title="PSD",
+                title=f"{title_prefix}PSD",
                 caption=None,
                 image_format=image_format,
                 tags=tags,
@@ -4189,7 +4219,7 @@ class Report:
             self._add_projs(
                 info=raw,
                 projs=None,
-                title="Projectors",
+                title=f"{title_prefix}Projectors",
                 image_format=image_format,
                 tags=tags,
                 topomap_kwargs=topomap_kwargs,
