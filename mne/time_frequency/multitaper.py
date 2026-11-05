@@ -374,12 +374,9 @@ def psd_array_multitaper(
         Only use tapers with more than 90% spectral concentration within
         bandwidth.
     normalization : 'full' | 'length'
-        Normalization strategy. If ``"full"``, the PSD is divided by the
-        sampling rate, in addition to the length normalization from the
-        unit-energy tapers (as in :ref:`Nitime <nitime:users-guide>`).
-        With ``output="complex"``, coefficients are divided by the square
-        root of the sampling rate, so the PSD formed from them matches
-        ``output="power"``. Default is ``'length'``.
+        Normalization strategy. If "full", the PSD will be normalized by the
+        sampling rate as well as the length of the signal (as in
+        :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.
     remove_dc : bool
         If ``True``, the mean is subtracted from each segment before computing
         its spectrum.
@@ -388,9 +385,8 @@ def psd_array_multitaper(
         ``'power'``:
 
         * ``'power'`` : the power spectral density is returned.
-        * ``'complex'`` : the complex Fourier coefficients are returned per
-          taper. Under ``normalization="full"`` they are scaled by
-          ``1/sqrt(sfreq)``.
+        * ``'complex'`` : the complex fourier coefficients are returned per
+          taper.
     n_jobs : int | None
         The number of jobs to run in parallel. If ``-1``, it is set
         to the number of CPU cores. Requires the :mod:`joblib` package.
@@ -484,8 +480,8 @@ def psd_array_multitaper(
             psd[start:stop] = x_mt[:, :, freq_mask]
 
     if normalization == "full":
-        # Power is a density (signal^2/Hz). Coefficients are amplitudes, so
-        # the same convention scales them by 1/sqrt(sfreq) and power by 1/sfreq.
+        # Power is quadratic in complex coeffs, so needs the sqrt of the plain
+        # power output's scaling factor
         psd /= sfreq if output == "power" else np.sqrt(sfreq)
 
     # Combining/reshaping to original data shape
