@@ -867,13 +867,20 @@ def test_add_or_replace_section():
     assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
     # add_raw with a section prefixes the element names instead of overwriting
-    raw = RawArray(np.zeros((2, 1000)), create_info(2, 100.0, "eeg"))
+    # add_* methods with a section prefix the element names instead of overwriting
+    ch_names = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
+    info = create_info(ch_names, 100.0, "eeg")
+    raw = RawArray(np.zeros((10, 1000)), info).set_montage("spherical_1020")
     r = Report()
     for title in ("a", "b"):
         r.add_raw(raw, title, section="A", psd=False, butterfly=False, replace=True)
-    epochs = EpochsArray(np.zeros((2, 2, 100)), raw.info)
+    data = np.random.default_rng(0).normal(size=(2, 10, 100)) * 1e-6
+    epochs = EpochsArray(data, raw.info)
     r.add_epochs(epochs, "c", section="A", psd=False, projs=False, replace=True)
-    assert [c.name for c in r._content][:3] == ["a: Info", "b: Info", "c: Info"]
+    r.add_evokeds(epochs.average(), titles="d", section="A", replace=True)
+    names = [c.name for c in r._content]
+    assert names[:3] == ["a: Info", "b: Info", "c: Info"]
+    assert "d: Info" in names
 
 
 def test_scraper(tmp_path):

@@ -1498,7 +1498,12 @@ class Report:
         )
 
     @fill_doc_static(
-        "projs_report", "tags_report", "replace_report", "topomap_kwargs", "n_jobs"
+        "projs_report",
+        "tags_report",
+        "replace_report",
+        "section_report",
+        "topomap_kwargs",
+        "n_jobs",
     )
     def add_evokeds(
         self,
@@ -1510,6 +1515,7 @@ class Report:
         n_time_points=None,
         tags=("evoked",),
         replace=False,
+        section=None,
         topomap_kwargs=None,
         n_jobs=None,
     ):
@@ -1543,6 +1549,23 @@ class Report:
             ``section`` will be replaced. Defaults to ``False``, which will cause
             duplicate entries in the table of contents if an entry for ``title``
             already exists.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+
+            If ``None`` (default), each title in ``titles`` is used as the name of its
+            own section. Otherwise, all evokeds are added to ``section``, and each
+            title is prepended to the names of the elements added for that evoked,
+            e.g. ``"my evoked: Info"``.
+
+            .. versionadded:: 1.14
+        topomap_kwargs : dict | None
         topomap_kwargs : dict | None
             Keyword arguments to pass to the topomap-generating functions.
         n_jobs : int | None
@@ -1594,6 +1617,10 @@ class Report:
         add_projs = self.projs if projs is None else projs
 
         for evoked, title in zip(evokeds, titles):
+            if section is None:
+                this_section, title_prefix = title, ""
+            else:
+                this_section, title_prefix = section, f"{title}: "
             self._add_evoked(
                 evoked=evoked,
                 noise_cov=noise_cov,
@@ -1601,7 +1628,8 @@ class Report:
                 add_projs=add_projs,
                 n_time_points=n_time_points,
                 tags=tags,
-                section=title,
+                section=this_section,
+                title_prefix=title_prefix,
                 topomap_kwargs=topomap_kwargs,
                 replace=replace,
             )
@@ -4471,7 +4499,16 @@ class Report:
         )
 
     def _add_evoked_joint(
-        self, *, evoked, ch_types, image_format, section, tags, topomap_kwargs, replace
+        self,
+        *,
+        evoked,
+        ch_types,
+        image_format,
+        section,
+        tags,
+        topomap_kwargs,
+        replace,
+        title_prefix="",
     ):
         for ch_type in ch_types:
             if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
@@ -4494,7 +4531,7 @@ class Report:
                     )
                 )
 
-            title = f"Time course ({_handle_default('titles')[ch_type]})"
+            title = f"{title_prefix}Time course ({_handle_default('titles')[ch_type]})"
             self._add_figure(
                 fig=fig,
                 title=title,
@@ -4572,6 +4609,7 @@ class Report:
         tags,
         topomap_kwargs,
         replace,
+        title_prefix="",
     ):
         if n_time_points is None:
             n_time_points = min(len(evoked.times), 21)
@@ -4632,7 +4670,7 @@ class Report:
                 figs=fig_arrays,
                 imgs=None,
                 captions=captions,
-                title="Topographies",
+                title=f"{title_prefix}Topographies",
                 image_format=image_format,
                 start_idx=t_zero_idx,
                 section=section,
@@ -4641,7 +4679,7 @@ class Report:
             )
 
     def _add_evoked_gfp(
-        self, *, evoked, ch_types, image_format, section, tags, replace
+        self, *, evoked, ch_types, image_format, section, tags, replace, title_prefix=""
     ):
         # Make legend labels shorter by removing the multiplicative factors
         pattern = r"\d\.\d* × "
@@ -4673,7 +4711,7 @@ class Report:
             if idx < len(ch_types) - 1:
                 ax[idx].set_xlabel(None)
 
-        title = "Global field power"
+        title = f"{title_prefix}Global field power (GFP)"
         self._add_figure(
             fig=fig,
             title=title,
@@ -4686,11 +4724,19 @@ class Report:
         )
 
     def _add_evoked_whitened(
-        self, *, evoked, noise_cov, image_format, section, tags, replace
+        self,
+        *,
+        evoked,
+        noise_cov,
+        image_format,
+        section,
+        tags,
+        replace,
+        title_prefix="",
     ):
         """Render whitened evoked."""
         fig = evoked.plot_white(noise_cov=noise_cov, show=False)
-        title = "Whitened"
+        title = f"{title_prefix}Whitened"
 
         self._add_figure(
             fig=fig,
@@ -4716,11 +4762,12 @@ class Report:
         tags,
         topomap_kwargs,
         replace,
+        title_prefix="",
     ):
         # Summary table
         self._add_html_repr(
             inst=evoked,
-            title="Info",
+            title=f"{title_prefix}Info",
             tags=tags,
             section=section,
             replace=replace,
@@ -4737,6 +4784,7 @@ class Report:
             tags=tags,
             topomap_kwargs=topomap_kwargs,
             replace=replace,
+            title_prefix=title_prefix,
         )
 
         # Topomaps
@@ -4749,6 +4797,7 @@ class Report:
             tags=tags,
             topomap_kwargs=topomap_kwargs,
             replace=replace,
+            title_prefix=title_prefix,
         )
 
         # GFP
@@ -4759,6 +4808,7 @@ class Report:
             section=section,
             tags=tags,
             replace=replace,
+            title_prefix=title_prefix,
         )
 
         # Whitened evoked
@@ -4770,6 +4820,7 @@ class Report:
                 section=section,
                 tags=tags,
                 replace=replace,
+                title_prefix=title_prefix,
             )
 
         # SSP projectors
