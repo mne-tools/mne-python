@@ -24,14 +24,6 @@ def equalize_bads(insts, interp_thresh=1.0, copy=True):
 
     Parameters
     ----------
-    ----------Notes
-    -----
-    Channels listed in ``inst.info["bads"]`` are treated as follows. Bad channels
-    that are *not* part of a bridge are ignored and left unchanged. Bad channels
-    that *are* part of a bridge are not excluded when the virtual channel is
-    computed, since a channel can be marked bad for reasons unrelated to bridging.
-    They are repaired like any other bridged channel, and the original
-    ``inst.info["bads"]`` is preserved.
     insts : list
         The list of instances (Evoked, Epochs or Raw) to consider
         for interpolation. Each instance should have marked channels.
