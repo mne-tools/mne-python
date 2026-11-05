@@ -1386,7 +1386,13 @@ class Report:
         self.include += script
         self._unsaved_changes = True
 
-    @fill_doc_static("projs_report", "topomap_kwargs", "tags_report", "replace_report")
+    @fill_doc_static(
+        "projs_report",
+        "topomap_kwargs",
+        "tags_report",
+        "replace_report",
+        "section_report",
+    )
     def add_epochs(
         self,
         epochs,
@@ -1399,6 +1405,7 @@ class Report:
         drop_log_ignore=("IGNORED",),
         tags=("epochs",),
         replace=False,
+        section=None,
     ):
         """Add `~mne.Epochs` to the report.
 
@@ -1450,6 +1457,21 @@ class Report:
             ``section`` will be replaced. Defaults to ``False``, which will cause
             duplicate entries in the table of contents if an entry for ``title``
             already exists.
+        section : str | None
+            The name of the section (or content block) to add the content to. This
+            feature is useful for grouping multiple related content elements
+            together under a single, collapsible section. Each content element will
+            retain its own title and functionality, but not appear separately in the
+            table of contents. Hence, using sections is a way to declutter the table
+            of contents, and to easy navigation of the report.
+
+            .. versionadded:: 1.1
+
+            If ``None`` (default), ``title`` is used as the section name. Otherwise,
+            ``title`` is prepended to the name of each element added, e.g.
+            ``"my epochs: Info"``.
+
+            .. versionadded:: 1.14
 
         Notes
         -----
@@ -1457,6 +1479,10 @@ class Report:
         """
         tags = _check_tags(tags)
         add_projs = self.projs if projs is None else projs
+        if section is None:
+            section, title_prefix = title, ""
+        else:
+            title_prefix = f"{title}: "
         self._add_epochs(
             epochs=epochs,
             psd=psd,
@@ -1464,7 +1490,8 @@ class Report:
             image_kwargs=image_kwargs,
             topomap_kwargs=topomap_kwargs,
             drop_log_ignore=drop_log_ignore,
-            section=title,
+            section=section,
+            title_prefix=title_prefix,
             tags=tags,
             image_format=self.image_format,
             replace=replace,
@@ -4799,7 +4826,9 @@ class Report:
         )
 
     @_use_agg
-    def _add_epochs_psd(self, *, epochs, psd, image_format, tags, section, replace):
+    def _add_epochs_psd(
+        self, *, epochs, psd, image_format, tags, section, replace, title_prefix=""
+    ):
         epoch_duration = epochs.tmax - epochs.tmin
 
         if psd is True:  # Entire time range -> all epochs
@@ -4844,7 +4873,7 @@ class Report:
         self._add_figure(
             fig=fig,
             image_format=image_format,
-            title="PSD",
+            title=f"{title_prefix}PSD",
             caption=caption,
             tags=tags,
             section=section,
@@ -4869,7 +4898,7 @@ class Report:
             replace=replace,
         )
 
-    def _add_epochs_metadata(self, *, epochs, section, tags, replace):
+    def _add_epochs_metadata(self, *, epochs, section, tags, replace, title_prefix=""):
         metadata = epochs.metadata.copy()
 
         # Ensure we have a named index
@@ -4883,13 +4912,13 @@ class Report:
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
-            title="Metadata",
+            title=f"{title_prefix}Metadata",
             html=html,
             section=section,
             replace=replace,
         )
 
-    def _add_epochs_reject(self, *, epochs, section, tags, replace):
+    def _add_epochs_reject(self, *, epochs, section, tags, replace, title_prefix=""):
         reject = epochs.reject or dict()
         flat = epochs.flat or dict()
         scalings = _handle_default("scalings")
@@ -4918,7 +4947,7 @@ class Report:
         self._add_html_element(
             div_klass="epochs",
             tags=tags,
-            title="Rejection thresholds",
+            title=f"{title_prefix}Rejection thresholds",
             html=html,
             section=section,
             replace=replace,
@@ -4938,6 +4967,7 @@ class Report:
         section,
         tags,
         replace,
+        title_prefix="",
     ):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
@@ -4949,7 +4979,7 @@ class Report:
         # Summary table
         self._add_html_repr(
             inst=epochs,
-            title="Info",
+            title=f"{title_prefix}Info",
             tags=tags,
             section=section,
             replace=replace,
@@ -4959,7 +4989,11 @@ class Report:
         # Metadata table
         if epochs.metadata is not None:
             self._add_epochs_metadata(
-                epochs=epochs, tags=tags, section=section, replace=replace
+                epochs=epochs,
+                tags=tags,
+                section=section,
+                replace=replace,
+                title_prefix=title_prefix,
             )
 
         # ERP/ERF image(s)
@@ -4986,7 +5020,9 @@ class Report:
                 assert "eeg" in ch_type
                 title_start = "ERP image"
 
-            title = f"{title_start} ({_handle_default('titles')[ch_type]})"
+            title = (
+                f"{title_prefix}{title_start} ({_handle_default('titles')[ch_type]})"
+            )
 
             self._add_figure(
                 fig=fig,
@@ -5009,10 +5045,14 @@ class Report:
         if epochs._bad_dropped:
             if epochs.reject is not None or epochs.flat is not None:
                 self._add_epochs_reject(
-                    epochs=epochs, tags=tags, section=section, replace=replace
+                    epochs=epochs,
+                    tags=tags,
+                    section=section,
+                    replace=replace,
+                    title_prefix=title_prefix,
                 )
 
-            title = "Drop log"
+            title = f"{title_prefix}Drop log"
 
             if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops
                 self._add_html_element(
@@ -5047,12 +5087,13 @@ class Report:
                 tags=tags,
                 section=section,
                 replace=replace,
+                title_prefix=title_prefix,
             )
         if add_projs:
             self._add_projs(
                 info=epochs,
                 projs=None,
-                title="Projections",
+                title=f"{title_prefix}Projections",
                 image_format=image_format,
                 tags=tags,
                 topomap_kwargs=topomap_kwargs,

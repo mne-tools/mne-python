@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 
 from mne import (
     Epochs,
+    EpochsArray,
     create_info,
     pick_channels_cov,
     read_cov,
@@ -870,7 +871,9 @@ def test_add_or_replace_section():
     r = Report()
     for title in ("a", "b"):
         r.add_raw(raw, title, section="A", psd=False, butterfly=False, replace=True)
-    assert [c.name for c in r._content] == ["a: Info", "b: Info"]
+    epochs = EpochsArray(np.zeros((2, 2, 100)), raw.info)
+    r.add_epochs(epochs, "c", section="A", psd=False, projs=False, replace=True)
+    assert [c.name for c in r._content][:3] == ["a: Info", "b: Info", "c: Info"]
 
 
 def test_scraper(tmp_path):
