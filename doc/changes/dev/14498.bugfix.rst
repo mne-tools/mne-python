@@ -1,1 +1,1 @@
-Prevent ``average="mean"`` and ``average="median"`` being used with `output="complex"` in :func:`mne.time_frequency.psd_array_welch`, which incorrectly mixes phases across segments, by :newcontrib:`Mark Kuang`.
+Prevent ``average="mean"`` and ``average="median"`` being used with ``output="complex"`` in :func:`mne.time_frequency.psd_array_welch`, which incorrectly mixes phases across segments, by :newcontrib:`Mark Kuang`.
