@@ -500,6 +500,7 @@
 .. _Wouter Kroot: https://github.com/WouterKroot
 .. _Xabier de Zuazo: https://github.com/zuazo
 .. _Xiaokai Xia: https://github.com/dddd1007
+.. _Xuzhou Qin: https://github.com/qxzzxq
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 .. _Yiping Zuo: https://github.com/frostime
 .. _Yixiao Shen: https://github.com/SYXiao2002
