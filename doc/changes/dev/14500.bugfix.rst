@@ -1,0 +1,1 @@
+Fix bug where :meth:`mne.io.Raw.crop` retained annotations starting after the last data sample when ``include_tmax=False``, by `Ishaan Maheshwari`_.
