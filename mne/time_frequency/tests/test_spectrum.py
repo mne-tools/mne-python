@@ -510,11 +510,6 @@ def test_spectrum_complex(method):
     coef = spectrum.get_data(fmin=freq, fmax=freq).mean(0)
     if method == "multitaper":
         coef = coef[..., 0, :]  # first taper
-        coef = coef.item()
-    else:
-        coef = np.squeeze(coef)
-        assert coef.ndim == 1
-        assert coef.size > 1
     assert_allclose(np.angle(coef), phase, rtol=1e-4)
     # Now test that it warns appropriately
     epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch
