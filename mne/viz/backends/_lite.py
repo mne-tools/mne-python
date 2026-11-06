@@ -51,13 +51,6 @@ _TITLE_POSITIONS = {
     "upper_right": (0.65, 0.90),
 }
 _DEFAULT_COLOR = (0.5, 0.5, 0.5)  # what color=None draws as
-# pyvista-js writes a 600x400 box into its page; this fills the frame instead
-_LITE_SIZE_CSS = """<style>
-html, body { margin: 0; height: 100%; }
-#CONTAINER { width: 100% !important; height: 100% !important;
-  box-sizing: border-box; }
-</style>
-"""
 # Seconds to wait for a page to report it painted before giving up on it
 _LITE_ACK_TIMEOUT = 10.0
 # Appended to the page: once painted, tell the kernel by clicking its (hidden)
@@ -145,11 +138,10 @@ class _LiteText(pv.Text):
         self.bold = True
 
 
-def _lite_add_text(plotter, text, position, size, color):
+def _lite_text(text, position, size, color):
     actor = _LiteText(str(text), position=tuple(float(coord) for coord in position))
     actor.prop.font_size = 14 if size is None else int(size)  # Brain passes None
     actor.prop.color = _rgb(color)
-    plotter.add_text(actor)
     return actor
 
 
@@ -282,11 +274,12 @@ class _LiteFigure(Figure3D):
         return self
 
 
-class _LiteRenderer(_AbstractRenderer):
-    """MNE 3D renderer backed by pyvista-js."""
+class _Renderer(_IpyRenderer, _AbstractRenderer):
+    """pyvista-js drawing with the ipywidgets GUI of the notebook backend."""
 
     # not "notebook": that backend has VTK, a filesystem and OS threads
     _kind = "notebook_js"
+    _page = None  # once drawn, the version of each actor's point data on it
 
     def __init__(
         self,
@@ -301,6 +294,7 @@ class _LiteRenderer(_AbstractRenderer):
         smooth_shading=True,
         splash=False,
         multi_samples=None,
+        fullscreen=False,
     ):
         # _PyVistaRenderer's signature, but shape, name and show cannot be
         # honored: the page is written only when show() runs
@@ -309,23 +303,24 @@ class _LiteRenderer(_AbstractRenderer):
         self._size = (size, size) if np.isscalar(size) else tuple(size)
         self._close_callbacks = {False: [], True: []}  # keyed by ``after``
         self._viewer = None  # the widget the scene is drawn into, once shown
-        self._texts = []  # 2D text the GUI renderer draws over the frames
+        self._texts = []  # 2D text drawn over the frames
         if isinstance(fig, _LiteFigure):  # plot_alignment(fig=...) composites into it
             self._figure = fig
-            return
-        self._figure = _LiteFigure()._init(pv.Plotter())
-        _lite_live_plotters.append(weakref.ref(self.plotter))
-        while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
-            _lite_release_plotter(_lite_live_plotters[0]())
-        self.plotter.background_color = _rgb(bgcolor)
-        for azimuth, elevation, intensity in LIGHTS:  # lit like _pyvista.py
-            self.plotter.add_light(
-                pv.Light(
-                    position=_to_pos(azimuth, elevation),
-                    light_type="CameraLight",
-                    intensity=intensity,
+        else:
+            self._figure = _LiteFigure()._init(pv.Plotter())
+            _lite_live_plotters.append(weakref.ref(self.plotter))
+            while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
+                _lite_release_plotter(_lite_live_plotters[0]())
+            self.plotter.background_color = _rgb(bgcolor)
+            for azimuth, elevation, intensity in LIGHTS:  # lit like _pyvista.py
+                self.plotter.add_light(
+                    pv.Light(
+                        position=_to_pos(azimuth, elevation),
+                        light_type="CameraLight",
+                        intensity=intensity,
+                    )
                 )
-            )
+        self._window_initialize(fullscreen=fullscreen)
 
     @property
     def plotter(self):
@@ -625,23 +620,6 @@ class _LiteRenderer(_AbstractRenderer):
             matrices = matrices * scales[idx % len(scales)][:, np.newaxis, np.newaxis]
         return self._glyphs(rr, tris, positions, matrices, colors, opacity)
 
-    def text2d(
-        self,
-        x_window,
-        y_window,
-        text,
-        size=14,
-        color="white",
-        justification=None,
-        font_file=None,
-    ):
-        # justification and font_file only place and style the text, and vtk.js
-        # draws at a point in the page font; Brain's time label passes both
-        return _lite_add_text(self.plotter, text, (x_window, y_window), size, color)
-
-    def remove_mesh(self, mesh_data):
-        self.plotter.remove_actor(mesh_data[0])
-
     # -- nothing to do in a browser -----------------------------------------
     def set_interaction(self, interaction):
         pass  # vtk.js ships one trackball style
@@ -700,6 +678,7 @@ class _LiteRenderer(_AbstractRenderer):
         self._run_close_callbacks(after=False)
         _lite_release_plotter(self.plotter)
         self._run_close_callbacks(after=True)
+        self._close_widgets()  # after the close callbacks, which still use them
 
     # -- things pyvista-js cannot do ----------------------------------------
     def contour(self, *args, **kwargs):
@@ -736,27 +715,8 @@ class _LiteRenderer(_AbstractRenderer):
         if update:
             self._update()
 
-
-class _Renderer(_IpyRenderer, _LiteRenderer):
-    """pyvista-js drawing with the ipywidgets GUI of the notebook backend."""
-
-    # an HTML widget has no close event, so keep _LiteRenderer's real callbacks
-    # rather than the no-ops _IpyWindow provides for a window-less backend
-    _window_close_connect = _LiteRenderer._window_close_connect
-    _window_close_disconnect = _LiteRenderer._window_close_disconnect
-    _page = None  # once drawn, the version of each actor's point data on it
-
-    def __init__(self, *args, **kwargs):
-        fullscreen = kwargs.pop("fullscreen", False)
-        super().__init__(*args, **kwargs)
-        self._window_initialize(fullscreen=fullscreen)
-
     def _display_default_tool_bar(self):
         pass  # its one button takes a screenshot, which pyvista-js cannot
-
-    def close(self):
-        super().close()  # after the close callbacks, which still use the widgets
-        self._close_widgets()
 
     def _viewer_widget(self):
         """Return the widget the scene is drawn into, as ``show`` asks for it."""
@@ -797,9 +757,7 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         font_file=None,
     ):
         _check_option("justification", justification, (None, *_LITE_TEXT_SHIFT))
-        actor = _LiteText(str(text), position=(float(x_window), float(y_window)))
-        actor.prop.font_size = 14 if size is None else int(size)
-        actor.prop.color = _rgb(color)
+        actor = _lite_text(text, (x_window, y_window), size, color)
         actor.justification = justification or "left"
         self._texts.append(actor)
         return actor
@@ -910,11 +868,7 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
             self._page = self._versions()
             self._page_view = self._figure._view_vector
             page = self.plotter.generate_standalone_html()
-            css, js = (
-                x.replace("CONTAINER", self.plotter.container_id)
-                for x in (_LITE_SIZE_CSS, _LITE_PAGE_JS)
-            )
-            page = page.replace("<head>", "<head>" + css, 1)
+            js = _LITE_PAGE_JS.replace("CONTAINER", self.plotter.container_id)
             page = page.replace("</body>", js + "</body>")
             self._frame.value = (
                 f'<iframe srcdoc="{html.escape(page, quote=True)}" width="{width}" '
@@ -959,7 +913,9 @@ def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left
     if isinstance(position, str):
         _check_option("position", position, sorted(_TITLE_POSITIONS))
         position = _TITLE_POSITIONS[position]
-    return _lite_add_text(figure.plotter, title, position, size, color)
+    actor = _lite_text(title, position, size, color)
+    figure.plotter.add_text(actor)
+    return actor
 
 
 def _check_3d_figure(figure):
