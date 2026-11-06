@@ -2255,15 +2255,16 @@ def _read_annotations_csv(fname):
             "onsets in seconds."
         )
     except ValueError:
-        # remove nanoseconds for ISO8601 (microsecond) compliance
-        timestamp = pd.Timestamp(orig_time)
-        timespec = "microseconds"
-        if timestamp == pd.Timestamp(_handle_meas_date(0)).astimezone(None):
-            timespec = "auto"  # use default timespec for `orig_time=None`
-        orig_time = timestamp.isoformat(sep=" ", timespec=timespec)
+        # remove nanoseconds for ISO8601 (microsecond) compliance; orig_time is None
+        # when CSV onsets are relative to the 1970-01-01 epoch (gh-8573)
+        ts = pd.Timestamp(orig_time)
+        orig_time = (
+            None if ts.year == 1970 else ts.isoformat(sep=" ", timespec="microseconds")
+        )
 
     onset_dt = pd.to_datetime(df["onset"])
-    onset = (onset_dt - onset_dt[0]).dt.total_seconds()
+    ref = pd.Timestamp(0, tz=onset_dt.dt.tz) if orig_time is None else onset_dt[0]
+    onset = (onset_dt - ref).dt.total_seconds()
     duration = df["duration"].values.astype(float)
     description = df["description"].values
     ch_names = None

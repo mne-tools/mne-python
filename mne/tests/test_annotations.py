@@ -1089,6 +1089,12 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
 
+    # With non-zero onsets (gh-8573)
+    annot.onset += 2.5
+    annot.save(fname, overwrite=True)
+    annot2 = read_annotations(fname)
+    _assert_annotations_equal(annot, annot2)
+
 
 def test_read_annotations_txt_single_channel_specific(tmp_path):
     """Read a .txt with a SINGLE channel-specific annotation (gh-13961)."""
