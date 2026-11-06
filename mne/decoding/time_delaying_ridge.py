@@ -4,6 +4,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from ._check import _check_sklearn  # isort: skip  # noqa: F401
+
 import numpy as np
 from scipy import linalg
 from scipy.signal import fftconvolve

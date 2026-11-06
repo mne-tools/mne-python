@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from ._check import _check_sklearn  # isort: skip  # noqa: F401
+
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin, check_array, clone
 from sklearn.preprocessing import RobustScaler, StandardScaler

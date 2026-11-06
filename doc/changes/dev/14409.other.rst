@@ -1,0 +1,1 @@
+Raise an informative error message when importing from :mod:`mne.decoding` without ``scikit-learn`` installed, by :newcontrib:`Soham Mitra`.
