@@ -175,13 +175,19 @@ def test_psd_array_welch_nperseg_kwarg():
         psd_array_welch(data, sfreq, fmin=10, fmax=1)
 
 
-def test_complex_multitaper():
+@pytest.mark.parametrize("normalization", ("length", "full"))
+def test_complex_multitaper(normalization):
     """Test complex-valued multitaper output."""
     data, sfreq, _ = _make_psd_data()
     psd_complex, freq_complex, weights = psd_array_multitaper(
-        data[:4, :500], sfreq, output="complex"
+        data[:4, :500],
+        sfreq,
+        output="complex",
+        normalization=normalization,
     )
-    psd, freq = psd_array_multitaper(data[:4, :500], sfreq, output="power")
+    psd, freq = psd_array_multitaper(
+        data[:4, :500], sfreq, output="power", normalization=normalization
+    )
     assert_array_equal(freq_complex, freq)
     assert psd_complex.ndim == 3  # channels x tapers x freqs
     psd_from_complex = _psd_from_mt(psd_complex, weights)

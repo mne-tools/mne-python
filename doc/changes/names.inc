@@ -510,5 +510,6 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zahra M. Aghajan: https://github.com/Zahra-M-Aghajan
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+.. _Ziqi Chen: https://github.com/ChenziqiAdam/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz

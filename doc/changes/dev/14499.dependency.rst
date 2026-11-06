@@ -1,0 +1,1 @@
+Updated minimum for optional dependency ``h5io >= 0.2.6``, which fixes arbitrary code execution when reading crafted HDF5 files with functions such as :func:`mne.read_bem_solution` and :func:`mne.time_frequency.read_tfrs` (`CVE-2026-120499 <https://github.com/h5io/h5io/security/advisories/GHSA-vwvw-f6v4-w737>`__), by `Eric Larson`_.
