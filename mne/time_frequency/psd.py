@@ -204,9 +204,7 @@ def psd_array_welch(
     if average is False:
         average = None
     if output == "complex" and average is not None:
-        raise ValueError(
-            f'average must be None when output="complex", got {average}.'
-        )
+        raise ValueError(f'average must be None when output="complex", got {average}.')
 
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
