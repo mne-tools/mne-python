@@ -34,5 +34,6 @@ experience.
    whats_new
    roadmap
    governance
+   ci_overview
 
 .. include:: ../links.inc

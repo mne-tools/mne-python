@@ -1,0 +1,190 @@
+"""Sphinx directive that creates a table overview of CI jobs.
+
+Pulls information about job names, descriptions, and when they run from the workflow
+files, and converts this information into an overview of the CI jobs.
+
+That information should be kept up to date with the behaviour of the workflows, and new
+workflows must have this information added if they should be included in this table.
+
+Footnotes can also be added to the table.
+"""
+
+# Authors: The MNE-Python contributors.
+# License: BSD-3-Clause
+# Copyright the MNE-Python contributors.
+
+import os
+import re
+
+from docutils import nodes
+from docutils.statemachine import StringList
+from sphinx.util.docutils import SphinxDirective
+
+import mne
+
+# What files to search
+TARGET_DIRS = [".circleci", ".github/workflows"]
+TARGET_FILES = ["azure-pipelines.yml"]  # All YAML files in TARGET_DIRS get auto added
+
+# What needs to be at the top of the file to be added to the table
+COLUMNS = ["name", "description", "runs-when"]
+LINE_START, LINE_SEP, LINE_END = "# | ", " | ", " |\n"
+HEADER = LINE_START + LINE_SEP.join(COLUMNS) + LINE_END
+
+# What footnotes to consider
+FOOTNOTE_REGEX = r"\[note [a-z,-]*\]"
+NOTE_LABELS = {
+    "skip-on-pr": "This job starts on pushes to pull requests, but the full run is skipped and it is immediately marked as completed.",  # noqa: E501
+    "skip-on-merge": "This job starts on merges to ``main`` and ``maint/*`` branches, but the full run is skipped and it is immediately marked as completed.",  # noqa: E501
+}
+
+
+def setup(app):
+    app.add_directive("ci-overview", CIOverviewDirective)
+    return {"parallel_read_safe": True, "parallel_write_safe": True}
+
+
+def setup_module():
+    # HACK: Stop nosetests running setup() above
+    pass
+
+
+def _get_category(file):
+    """Get the category of a CI job based on its file path."""
+    if file.startswith(".circleci"):
+        return "CircleCI"
+    if file.startswith(".github/workflows"):
+        return "GitHub Actions"
+    if file == "azure-pipelines.yml":
+        return "Azure Pipelines"
+    raise ValueError(f"Unknown CI job file: {file}")
+
+
+def _parse_footnotes(col: str, footnotes: dict):
+    """Parse footnotes in a column and add them to the footnotes dict."""
+    footnote_matches = re.findall(FOOTNOTE_REGEX, col)
+    for match in footnote_matches:
+        label = match[6:-1]
+        if label not in NOTE_LABELS:
+            raise ValueError(
+                f"Expected footnote label to be one of {list(NOTE_LABELS.keys())}, got "
+                f"{label}"
+            )
+        if label not in footnotes:
+            footnotes[label] = len(footnotes) + 1
+        col = col.replace(match, f"\\ [{footnotes[label]}]_")
+    return col
+
+
+class CIOverviewDirective(SphinxDirective):
+    """Insert a sortable table of the CI jobs."""
+
+    def run(self):
+        """Run the directive."""
+        rst, files = _get_ci_overview_rst()
+        # Re-read the page in incremental builds when any of the CI files change
+        for file in files:
+            self.env.note_dependency(file)
+        node = nodes.Element()
+        content = StringList(rst.splitlines(), source=self.get_source_info()[0])
+        self.state.nested_parse(content, self.content_offset, node)
+        return node.children
+
+
+def _get_ci_overview_rst():
+    """Get the rst for the CI overview table and the files it was built from."""
+    # Get files to check for overview information
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    target_files = list(TARGET_FILES)
+    for target_dir in TARGET_DIRS:
+        files = sorted(os.listdir(os.path.join(base_dir, target_dir)))
+        for file in files:
+            if file.endswith((".yml", ".yaml")):
+                target_files.append(os.path.join(target_dir, file))
+
+    # Extract overview information from each file
+    n_cols = len(COLUMNS)
+    data = []
+    footnotes = dict()
+    for file in target_files:
+        with open(os.path.join(base_dir, file), encoding="utf-8") as f:
+            lines = f.readlines()
+        has_table = True
+        while has_table:
+            for line in lines:
+                if line.startswith(HEADER):
+                    # Extract the table rows from the file
+                    for row in lines[lines.index(line) + 1 :]:
+                        if row.startswith(LINE_START) and row.endswith(LINE_END):
+                            this_row = row.removeprefix(LINE_START).removesuffix(
+                                LINE_END
+                            )
+                            this_row = this_row.split(LINE_SEP)
+                            if len(this_row) != n_cols:
+                                raise ValueError(
+                                    f"Unexpected number of columns (got "
+                                    f"{len(this_row)}, expected {n_cols}) in row: {row}"
+                                )
+                            for idx, col in enumerate(this_row):
+                                this_row[idx] = _parse_footnotes(col, footnotes)
+                            this_row = dict(zip(COLUMNS, this_row))
+                            this_row["file"] = file
+                            this_row["category"] = _get_category(file)
+                            data.append(this_row)
+                        else:
+                            has_table = False
+                            break
+                else:
+                    has_table = False
+
+    # Convert file names to links
+    if "dev" in mne.__version__:
+        kind = "main"
+    else:
+        kind = "maint/" + ".".join(mne.__version__.split(".")[:2])
+    base_url = f"http://github.com/mne-tools/mne-python/blob/{kind}/"
+    for item in data:
+        item["url"] = f"{base_url}{item['file']}"
+
+    # Build the table
+    rst = """\
+.. container::
+
+  .. raw:: html
+
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.ci-overview-table').DataTable({
+            order: [[4, 'asc']], pageLength: 25
+        });
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table ci-overview-table
+
+   * - Name
+     - Description
+     - When it runs
+     - File
+     - Category
+"""  # noqa: E501
+    for item in data:
+        rst += f"""\
+   * - {item["name"]}
+     - {item["description"]}
+     - {item["runs-when"]}
+     - `{item["file"]} <{item["url"]}>`_
+     - {item["category"]}
+"""
+    rst += "\n"
+    for label, label_num in footnotes.items():
+        rst += f"""\
+.. [{label_num}] {NOTE_LABELS[label]}
+"""
+    return rst, [os.path.join(base_dir, file) for file in target_files]

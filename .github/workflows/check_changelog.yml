@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Changelog | Check that the towncrier changelog files are present and formatted correctly | On pushes to pull requests |
+
 name: Changelog
 
 on:  # yamllint disable-line rule:truthy
