@@ -16,7 +16,7 @@ from html import unescape
 import numpy as np
 import pytest
 from matplotlib.font_manager import findfont
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
 from mne.datasets import testing
@@ -392,6 +392,14 @@ def _actor(rend, idx):
     return json.loads(scene_to_json(update))["add"]
 
 
+def _glyph_points(rend, idx=-1):
+    """Return the points vtk.js draws for a glyph actor, shape (n_copies, n, 3)."""
+    mesh = rend.plotter.actors[idx]["mesh"]
+    template = np.reshape(mesh.to_scene_data()["geometryPoints"], (-1, 3))
+    matrices = np.reshape(mesh.point_data["matrices"], (-1, 3, 3)).transpose(0, 2, 1)
+    return mesh.points[:, np.newaxis] + np.einsum("nij,kj->nki", matrices, template)
+
+
 def test_lite_camera(renderer_lite):
     """Test the camera lands where _pyvista._set_3d_view would put it."""
     rend = renderer_lite._get_renderer()
@@ -419,12 +427,12 @@ def test_lite_primitives(renderer_lite):
     # scale sizes a radius-0.5 sphere, and an explicit radius is used as-is
     for kwargs, want in ((dict(scale=0.1), 0.05), (dict(scale=1, radius=0.02), 0.02)):
         rend.sphere(np.array([[1.0, 0, 0]]), "green", **kwargs)
-        pts = rend.plotter.actors[-1]["mesh"].points - [1, 0, 0]
+        pts = _glyph_points(rend)[0] - [1, 0, 0]
         assert np.linalg.norm(pts, axis=1).max() == pytest.approx(want, abs=1e-6)
     # tubes span origin to destination, stretched along their axis alone, and
     # default to white like PyVista's (gray would vanish into plot_alignment)
-    _, mesh = rend.tube([[0.0, 0, 0]] * 2, [[1.0, 0, 0], [0, 2.0, 0]], radius=0.01)
-    first, second = mesh.points.reshape(2, -1, 3)
+    rend.tube([[0.0, 0, 0]] * 2, [[1.0, 0, 0], [0, 2.0, 0]], radius=0.01)
+    first, second = _glyph_points(rend)
     assert (first[:, 0].max(), second[:, 1].max()) == pytest.approx((1.0, 2.0))
     assert np.linalg.norm(first[:, 1:], axis=1).max() == pytest.approx(0.01)
     assert np.linalg.norm(second[:, [0, 2]], axis=1).max() == pytest.approx(0.01)
@@ -445,7 +453,7 @@ def test_lite_glyphs(mode, renderer_lite):
     # rotation axis), sized by their scalars as plot_alignment's axes rely on
     dirs = np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0]], float)
     sizes = np.array([1.0, 2.0, 2.0])
-    _, mesh = rend.quiver3d(
+    rend.quiver3d(
         *np.zeros((3, 3)),
         *dirs.T,
         color="red",
@@ -460,7 +468,7 @@ def test_lite_glyphs(mode, renderer_lite):
         cylinder=((-0.5, 0.5), 0.15),
         sphere=((-0.5, 0.5), 0.5),
     )[mode]
-    for pts, d, size in zip(mesh.points.reshape(3, -1, 3), dirs, sizes):
+    for pts, d, size in zip(_glyph_points(rend), dirs, sizes):
         along = pts @ d
         across = np.linalg.norm(pts - np.outer(along, d), axis=1)
         assert (along.min(), along.max()) == pytest.approx(
@@ -474,28 +482,29 @@ def test_lite_glyphs(mode, renderer_lite):
 
 
 def test_lite_instanced_mesh(renderer_lite):
-    """Test instances merge per color, alpha becomes opacity, and the cloud."""
+    """Test instances are one glyph actor, one alpha becomes opacity, and the cloud."""
     rend = renderer_lite._get_renderer()
     positions = np.array([[0.0, 0, 0], [1.0, 0, 0], [2.0, 0, 0]])
-    colors = np.array([[1.0, 0, 0, 0.25], [0, 1.0, 0, 1.0], [1.0, 0, 0, 0.25]])
+    colors = np.array([[1.0, 0, 0, 0.25], [0, 1.0, 0, 0.25], [1.0, 0, 0, 0.25]])
     quats = np.zeros((3, 3))  # identity, in MNE's (x, y, z) convention
-    actors, cloud = rend.instanced_mesh(
-        _RR, _TRIS, positions, quats, colors, opacity=0.5
+    actor, cloud = rend.instanced_mesh(
+        _RR, _TRIS, positions, quats, colors, opacity=0.5, scales=[1.0, 2.0, 1.0]
     )
-    # vtk.js has no per-instance color: one solid mesh per distinct color, with
-    # its alpha (how plot_alignment fades MEG coils) folded into the opacity
-    got = {a["color"]: a["opacity"] for a in actors}
-    assert got == {(1.0, 0.0, 0.0): 0.125, (0.0, 1.0, 0.0): 0.5}
+    # the shared alpha (how plot_alignment fades MEG coils) is the opacity
+    assert actor["opacity"] == 0.125
+    assert_array_equal(actor["mesh"].point_data["Data"][:, 1], [0, 255, 0])
+    assert_allclose(_glyph_points(rend)[1], positions[1] + 2 * _RR)
     assert_allclose(cloud.points, positions)  # what _3d.py hangs names on
     cloud.field_data["ch_names"] = np.array(["a", "b", "c"])
-    # one color hands back the actor itself, as sphere's callers expect
-    actor, _ = rend.instanced_mesh(_RR, _TRIS, positions[:1], colors=(0, 0, 1.0))
-    assert not isinstance(actor, list)
+    colors[1, 3] = 1.0  # mixed alphas stay per instance
+    mixed, _ = rend.instanced_mesh(_RR, _TRIS, positions, colors=colors)
+    assert mixed["opacity"] == 1.0
+    assert_array_equal(mixed["mesh"].point_data["Data"][:, 3], [64, 255, 64])
     actor, cloud = rend.instanced_mesh(_RR, _TRIS, np.zeros((0, 3)))
     assert actor is None and cloud.points.shape == (0, 3)
     with pytest.raises(AssertionError, match=r"\(3, 4\)"):  # (w, x, y, z)
         rend.instanced_mesh(_RR, _TRIS, positions, np.zeros((3, 4)), colors)
-    rend.remove_mesh((actors, cloud))  # takes the whole color-split set out
+    rend.remove_mesh((mixed, cloud))
     assert len(rend.plotter.actors) == 1
 
 

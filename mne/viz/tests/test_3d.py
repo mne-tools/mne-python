@@ -578,12 +578,7 @@ def test_plot_alignment_meg(renderer, system):
             eeg=False,
             sensor_colors=dict(meg=rng.random((n_meg, 4))),
         )
-        # ... except in the browser, which cannot color per instance and so
-        # draws one solid mesh per distinct color
-        if renderer.get_3d_backend() == "notebook_js":
-            _assert_n_actors(fig2, renderer, n_meg + 2)
-        else:
-            _assert_n_actors(fig2, renderer, n_shapes + 2)
+        _assert_n_actors(fig2, renderer, n_shapes + 2)
 
     # check error raising for wrong meg value:
     info = read_info(evoked_fname)

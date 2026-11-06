@@ -210,7 +210,7 @@ def _lite_release_plotter(plotter):
 
 
 def _lite_opacity(color, opacity):
-    """Fold RGBA alpha into the opacity, since each mesh here is one solid color.
+    """Fold an RGBA alpha into the opacity, as vtk.js draws a mesh opaque or not.
 
     _PyVistaRenderer draws instance colors as RGBA scalars, and the alpha is
     how plot_alignment fades the MEG coils.
@@ -366,31 +366,42 @@ class _LiteRenderer(_AbstractRenderer):
             rr = rr + np.array([-center[1], center[0], center[2]], float)
         return rr, tris
 
-    def _tile(self, rr, tris, positions, scales=None, rots=None, axis_scales=None):
-        """Stamp a template at every position into one mesh, as VTK's glyph filter does.
+    def _glyphs(self, rr, tris, positions, matrices=None, colors=None, opacity=1.0):
+        """Draw the template at every position as one vtk.js glyph actor.
 
-        One mesh per position runs the tab out of memory for an oct-6 source
-        space. ``axis_scales`` stretches the template along x alone (tubes).
+        ``matrices`` (n, 3, 3) turn, size and stretch each copy, and ``colors``
+        is one color or one per position.
         """
-        rr = np.asarray(rr, float)
         positions = np.atleast_2d(np.asarray(positions, float))[:, :3]
         n_pos = len(positions)
         idx = np.arange(n_pos)
-        points = np.repeat(rr[np.newaxis], n_pos, axis=0)
-        if axis_scales is not None:
-            axis_scales = np.atleast_1d(np.asarray(axis_scales, float))
-            points[:, :, 0] *= axis_scales[idx % len(axis_scales)][:, np.newaxis]
-        if scales is not None:
-            scales = np.atleast_1d(np.asarray(scales, float))
-            points *= scales[idx % len(scales)][:, np.newaxis, np.newaxis]
-        if rots is not None:
-            points = np.einsum(
-                "nij,nkj->nki", np.asarray(rots)[idx % len(rots)], points
-            )
-        points += positions[:, np.newaxis]
-        offsets = (idx * len(rr))[:, np.newaxis, np.newaxis]
-        tris = np.asarray(tris, int)[np.newaxis] + offsets
-        return points.reshape(-1, 3), tris.reshape(-1, 3)
+        cloud = _LitePolyData(points=positions.astype(np.float32))
+        cloud.field_data = dict()  # _3d.py writes channel names here
+        if matrices is None:
+            matrices = np.eye(3)[np.newaxis]
+        matrices = np.asarray(matrices, np.float32)[idx % len(matrices)]
+        cloud["matrices"] = matrices.transpose(0, 2, 1).reshape(-1, 9)  # column-major
+        kwargs = dict()
+        if colors is not None and np.ndim(colors) > 1:
+            colors = np.asarray(colors, float)[idx % len(colors)]
+            if colors.shape[1] == 4 and np.ptp(colors[:, 3]) == 0:
+                opacity = _lite_opacity(colors[0], opacity)
+                colors = colors[:, :3]
+            cloud["Data"] = colors
+            kwargs["scalars"] = "Data"
+        else:
+            kwargs["color"] = _rgb(colors)
+            opacity = _lite_opacity(colors, opacity)
+        geometry = pv.PolyData(
+            points=np.asarray(rr, np.float32), faces=_vtk_faces(tris).ravel()
+        )
+        actor = self.plotter.add_mesh(
+            cloud.glyph(orient="matrices", scale=False, geometry=geometry),
+            opacity=opacity,
+            smooth_shading=True,
+            **kwargs,
+        )
+        return actor, cloud
 
     def _add(self, points, tris, color, opacity=1.0, colors=None):
         """Draw one mesh, solid or colored per vertex, and return (actor, mesh)."""
@@ -504,10 +515,8 @@ class _LiteRenderer(_AbstractRenderer):
         # a unit cylinder stretched along its axis to each segment
         rr, tris = self._glyph_template("cylinder", radius=radius, resolution=20)
         rots = _find_vector_rotation(np.array([1.0, 0, 0]), vec / length[:, np.newaxis])
-        points, faces = self._tile(
-            rr, tris, origin + vec / 2, rots=rots, axis_scales=length
-        )
-        return self._add(points, faces, color, opacity)
+        rots[:, :, 0] *= length[:, np.newaxis]
+        return self._glyphs(rr, tris, origin + vec / 2, rots, color, opacity)
 
     def quiver3d(
         self,
@@ -576,11 +585,14 @@ class _LiteRenderer(_AbstractRenderer):
             rr = rr @ solid_transform[:3, :3].T + solid_transform[:3, 3]
         # spheres look the same however turned, and the fiducial "oct" is
         # always asked for along +x, so neither needs rotations
-        rots = None
+        rots = np.eye(3)[np.newaxis]
         if mode not in ("sphere", "oct"):
             rots = _find_vector_rotation(np.array([1.0, 0, 0]), dirs)
-        points, faces = self._tile(rr, tris, np.column_stack([x, y, z]), sizes, rots)
-        return self._add(points, faces, color, opacity)
+        sizes = np.broadcast_to(sizes, n_pos)
+        matrices = rots * sizes[:, np.newaxis, np.newaxis]
+        return self._glyphs(
+            rr, tris, np.column_stack([x, y, z]), matrices, color, opacity
+        )
 
     def instanced_mesh(
         self,
@@ -595,44 +607,23 @@ class _LiteRenderer(_AbstractRenderer):
         *,
         name=None,
     ):
-        """Stamp the template at every position, one merged mesh per distinct color.
-
-        vtk.js cannot color per instance, so several colors give a list of
-        actors. The cloud handed back second is what _3d.py writes channel
-        names onto, and is always one object.
-        """
         positions = np.atleast_2d(np.asarray(positions, float))[:, :3]
         n_pos = len(positions)
-        cloud = pv.PolyData(points=positions)
-        cloud.field_data = dict()
         if not n_pos:
+            cloud = pv.PolyData(points=positions)
+            cloud.field_data = dict()
             return None, cloud
-        rots = None
+        matrices = np.eye(3)[np.newaxis]
         if quats is not None:
             quats = np.atleast_2d(np.asarray(quats, float))
             assert quats.shape[-1] == 3, quats.shape  # (w, x, y, z) would misread
-            rots = quat_to_rot(quats)
+            matrices = quat_to_rot(quats)
         idx = np.arange(n_pos)
-        if colors is not None and np.ndim(colors) > 1:
-            colors = np.asarray(colors, float)[idx % len(colors)]
-            uniq, inverse = np.unique(colors, axis=0, return_inverse=True)
-            groups = [(uniq[k], idx[np.ravel(inverse) == k]) for k in range(len(uniq))]
-        else:
-            groups = [(colors, idx)]
-        actors = list()
-        for color, sel in groups:
-            group_scales = None
-            if scales is not None:
-                scales = np.atleast_1d(np.asarray(scales, float))
-                group_scales = scales[sel % len(scales)]
-            group_rots = None if rots is None else rots[sel % len(rots)]
-            points, faces = self._tile(
-                rr, tris, positions[sel], group_scales, group_rots
-            )
-            actors.append(
-                self._add(points, faces, color, _lite_opacity(color, opacity))[0]
-            )
-        return (actors[0] if len(actors) == 1 else actors), cloud
+        matrices = matrices[idx % len(matrices)]
+        if scales is not None:
+            scales = np.atleast_1d(np.asarray(scales, float))
+            matrices = matrices * scales[idx % len(scales)][:, np.newaxis, np.newaxis]
+        return self._glyphs(rr, tris, positions, matrices, colors, opacity)
 
     def text2d(
         self,
@@ -649,9 +640,7 @@ class _LiteRenderer(_AbstractRenderer):
         return _lite_add_text(self.plotter, text, (x_window, y_window), size, color)
 
     def remove_mesh(self, mesh_data):
-        actor, _ = mesh_data  # instanced_mesh hands back one actor per color
-        for this_actor in actor if isinstance(actor, list) else [actor]:
-            self.plotter.remove_actor(this_actor)
+        self.plotter.remove_actor(mesh_data[0])
 
     # -- nothing to do in a browser -----------------------------------------
     def set_interaction(self, interaction):
@@ -837,16 +826,13 @@ class _Renderer(_IpyRenderer, _LiteRenderer):
         )
 
     def remove_mesh(self, mesh_data):
-        actor, _ = mesh_data  # instanced_mesh hands back one actor per color
-        for this_actor in actor if isinstance(actor, list) else [actor]:
-            if id(this_actor) not in (self._page or ()):  # not on a page (yet)
-                self.plotter.remove_actor(this_actor)
-                continue
-            actors = [info["actor"] for info in self.plotter.actors]
-            idx = next(ii for ii, a in enumerate(actors) if a is this_actor)
-            self._removed.append(
-                self.plotter.update_actor(idx, remove=True, send=False)
-            )
+        actor, _ = mesh_data
+        if id(actor) not in (self._page or ()):  # not on a page (yet)
+            self.plotter.remove_actor(actor)
+            return
+        actors = [info["actor"] for info in self.plotter.actors]
+        idx = next(ii for ii, a in enumerate(actors) if a is actor)
+        self._removed.append(self.plotter.update_actor(idx, remove=True, send=False))
 
     def _versions(self):
         """Return the version of each actor's point data, by actor."""
