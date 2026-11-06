@@ -1091,6 +1091,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         compact=True,
         double=False,
         tooltip=None,
+        tick_labels=None,
+        tick_positions=None,
         layout=None,
         row=None,
         col=None,
