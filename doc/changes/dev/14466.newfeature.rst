@@ -1,0 +1,1 @@
+Add a "Load scaling" button to :func:`mne.gui.coregistration` to load the scaling saved with a scaled MRI subject, by `Payam Sadeghi-Shabestari`_.
