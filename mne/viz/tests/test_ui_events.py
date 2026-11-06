@@ -52,6 +52,15 @@ def test_get_event_channel(event_channels):
     fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
 
+    # Subfigures (#14481)
+    fig = plt.figure()
+    subfig = fig.subfigures(1, 2)[0]
+    ui_events._get_event_channel(subfig)
+    assert len(event_channels) == 1
+    assert subfig in event_channels
+    fig.canvas.callbacks.process("close_event", None)
+    assert len(event_channels) == 0
+
 
 def test_publish(event_channels):
     """Test publishing UI events."""
