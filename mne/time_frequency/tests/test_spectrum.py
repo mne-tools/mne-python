@@ -96,14 +96,14 @@ def test_compute_psd_errors(raw):
             256,
             0,
             None,
-            "mean",
+            None,
             "hamming",
             None,
             False,
             True,
             "length",
             "complex",
-        ],  # complex (testing with non-defaults doesn't increase coverage)
+        ],  # complex; Welch cannot average the coefficients
     ],
 )
 def test_spectrum_params(
@@ -480,10 +480,8 @@ def test_spectrum_proj(inst, request):
     assert has_proj == no_proj
 
 
-@pytest.mark.parametrize(
-    "method, average", [("welch", False), ("welch", "mean"), ("multitaper", None)]
-)
-def test_spectrum_complex(method, average):
+@pytest.mark.parametrize("method", ("welch", "multitaper"))
+def test_spectrum_complex(method):
     """Test output='complex' support."""
     sfreq = 100
     n = 10 * sfreq
@@ -496,16 +494,10 @@ def test_spectrum_complex(method, average):
     assert len(epochs.times) == 2 * sfreq
     kwargs = dict(output="complex", method=method)
     if method == "welch":
-        kwargs["n_fft"] = sfreq
-        want_dims = ("epoch", "channel", "freq")
-        want_shape = (5, 1, sfreq // 2 + 1)
-        if not average:
-            want_dims = want_dims + ("segment",)
-            want_shape = want_shape + (2,)
-            kwargs["average"] = average
+        kwargs.update(n_fft=sfreq, average=None)
+        want_dims = ("epoch", "channel", "freq", "segment")
+        want_shape = (5, 1, sfreq // 2 + 1, 2)
     else:
-        assert method == "multitaper"
-        assert not average
         want_dims = ("epoch", "channel", "taper", "freq")
         want_shape = (5, 1, 7, sfreq + 1)
     spectrum = epochs.compute_psd(**kwargs)
@@ -518,10 +510,6 @@ def test_spectrum_complex(method, average):
     coef = spectrum.get_data(fmin=freq, fmax=freq).mean(0)
     if method == "multitaper":
         coef = coef[..., 0, :]  # first taper
-    elif not average:
-        coef = coef.mean(-1)  # over segments
-    coef = coef.item()
-    # Test phase matches what was simulated
     assert_allclose(np.angle(coef), phase, rtol=1e-4)
     # Now test that it warns appropriately
     epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch

@@ -200,6 +200,35 @@ def _median_bias(n):
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
 
 
+def test_complex_welch():
+    """Test complex-valued Welch output."""
+    data, sfreq, _ = _make_psd_data()
+    data = data[:4]
+    kwargs = dict(n_fft=256, n_overlap=0, verbose=False)
+    for average in ("mean", "median"):
+        with pytest.raises(ValueError, match='output="complex"'):
+            psd_array_welch(data, sfreq, average=average, output="complex", **kwargs)
+
+    coefs, freqs = psd_array_welch(
+        data, sfreq, average=None, output="complex", **kwargs
+    )
+    assert coefs.shape[-1] > 1
+    scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
+    segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
+    for average in ("mean", "median"):
+        power, freqs_power = psd_array_welch(
+            data, sfreq, average=average, output="power", **kwargs
+        )
+        assert_array_equal(freqs, freqs_power)
+        if average == "mean":
+            converted = segment_power.mean(axis=-1)
+        else:
+            converted = np.median(segment_power, axis=-1) / _median_bias(
+                segment_power.shape[-1]
+            )
+        assert_allclose(converted, power)
+
+
 @pytest.mark.parametrize("crop", (False, True))
 def test_psd_array_welch_average_kwarg(crop):
     """Test `average` kwarg of psd_array_welch()."""
