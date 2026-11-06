@@ -3,27 +3,32 @@
 MNE's 3D functions do their geometry and coordinate-frame work in numpy and only
 hand the result to a renderer, so swapping that last step is enough to draw in
 a browser kernel, where VTK cannot load. Selected with
-``mne.viz.set_3d_backend("jupyterlite_notebook")``.
+``mne.viz.set_3d_backend("notebook_js")``.
 
 Supported: meshes, surfaces, spheres, tubes and glyphs, plus per-vertex RGB(A)
 colors, which is how :class:`mne.viz.Brain` paints its surface, so ``stc.plot()``
-gives a static picture (one time point, no time viewer, colorbar or split
-layout). Not supported: scalar colormaps and contours, subplots (``hemi="split"``,
-several views), volume source estimates, vector glyphs, time labels, screenshots,
-and figure size (pyvista-js writes a 600x400 canvas).
+gives a picture of one time point, and the ipywidgets GUI of the ``notebook``
+backend (``_notebook.py``), which the scene is drawn into as a whole whenever
+it changes. Not supported: scalar colormaps and contours, subplots
+(``hemi="split"``, several views), volume source estimates, vector glyphs,
+screenshots, and mouse and key events.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import asyncio
+import html
 import inspect
 import weakref
 from contextlib import nullcontext
 
 import numpy as np
 import pyvista_js as pv
+from ipywidgets import HTML, Button, GridBox, Layout
 from matplotlib.colors import to_rgb
+from pyvista_js.rendering import scene_to_json
 
 from ...surface import _tessellate_sphere
 from ...transforms import (
@@ -35,6 +40,7 @@ from ...transforms import (
 )
 from ...utils import _check_option, _validate_type
 from ._abstract import Figure3D, _AbstractRenderer
+from ._notebook import _IpyRenderer
 from ._utils import ALLOWED_QUIVER_MODES, LIGHTS, _to_pos, _vtk_faces
 
 # vtk.js places text in normalized window coordinates; PyVista takes these names
@@ -45,6 +51,51 @@ _TITLE_POSITIONS = {
     "upper_right": (0.65, 0.90),
 }
 _DEFAULT_COLOR = (0.5, 0.5, 0.5)  # what color=None draws as
+# Seconds to wait for a page to report it painted before giving up on it
+_LITE_ACK_TIMEOUT = 10.0
+# Appended to the page: once painted, tell the kernel by clicking its (hidden)
+# button (the frame is same origin, so it can reach it), then apply the updates
+# the kernel sends and report each one the same way
+_LITE_PAGE_JS = """<script>
+requestAnimationFrame(function () { requestAnimationFrame(function () {
+  var box = window.frameElement && window.frameElement.closest(".widget-gridbox");
+  if (!box) return;
+  box.querySelector(".mne-lite-labels").style.pointerEvents = "none";
+  box.querySelector(".mne-lite-painted").click();
+  var updates = box.querySelector(".mne-lite-update");
+  var scene = "CONTAINER";
+  new MutationObserver(function () {
+    var node = updates.querySelector("[data-n]");
+    if (!node || node.dataset.applied) return;
+    node.dataset.applied = "1";
+    JSON.parse(node.textContent).forEach(function (update) {
+      window.pvjsApplyUpdate(scene, update);
+    });
+    box.querySelector(".mne-lite-painted").click();
+  }).observe(updates, {childList: true, subtree: true});
+}); });
+</script>
+"""
+# 2D text as a DOM overlay rather than in the page: a time label that changes
+# every step must not cost a new page (bottom-left origin, like vtk.js)
+_LITE_TEXT_HTML = (
+    '<span style="position: absolute; left: {x}%; bottom: {y}%; transform: '
+    "translateX(-{shift}%); font: {weight} {size}px Arial, sans-serif; "
+    'color: rgb({r}, {g}, {b}); white-space: nowrap">{text}</span>'
+)
+_LITE_TEXT_SHIFT = dict(left=0, center=50, right=100)  # % of the text's width
+# Dims the frames with a spinner from a redraw request until the page paints
+_LITE_BUSY_HTML = """<style>
+@keyframes mne-lite-spin { to { transform: rotate(360deg); } }
+</style>
+<div class="mne-lite-busy" style="position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5);
+  pointer-events: none">
+  <div style="width: 32px; height: 32px; border-radius: 50%; border: 4px solid
+    rgba(255, 255, 255, 0.3); border-top-color: white;
+    animation: mne-lite-spin 1s linear infinite"></div>
+</div>
+"""
 # Nothing in a notebook closes figures, and each live scene holds its meshes in
 # the WASM heap, JS and GPU buffers (20_source_alignment makes six, enough to run
 # the tab out of memory), so only the newest few stay live
@@ -61,16 +112,41 @@ def _lite_unsupported(what):
     raise NotImplementedError(f"{what} is not supported in the browser.")
 
 
-def _lite_add_text(plotter, text, position, size, color):
-    actor = pv.Text(str(text), position=tuple(float(coord) for coord in position))
+class _LiteText(pv.Text):
+    """A text actor answering the VTK calls Brain makes on its time label.
+
+    Brain reaches into VTK to place, style and update that label (see the TODO in
+    ``_brain.py``); the GUI's DOM overlay draws what these calls set.
+    """
+
+    justification = "left"
+    bold = False
+
+    def SetInput(self, text):
+        self.input = str(text)
+
+    def SetPosition(self, x, y):
+        self.position = (float(x), float(y))
+
+    def GetTextProperty(self):
+        return self  # the style calls below are no-ops, so they can land here
+
+    def SetJustificationToCentered(self):
+        self.justification = "center"
+
+    def BoldOn(self):
+        self.bold = True
+
+
+def _lite_text(text, position, size, color):
+    actor = _LiteText(str(text), position=tuple(float(coord) for coord in position))
     actor.prop.font_size = 14 if size is None else int(size)  # Brain passes None
     actor.prop.color = _rgb(color)
-    plotter.add_text(actor)
     return actor
 
 
-def _lite_view_angles(plotter, rigid=None):
-    """Return the (azimuth, elevation) in degrees the plotter looks from, or None.
+def _lite_view_angles(figure, rigid=None):
+    """Return the (azimuth, elevation) in degrees the figure looks from, or None.
 
     The view is kept as ``view_vector``, a camera position that vtk.js aims at
     the origin and then frames with ``resetCamera()``, rather than as a camera
@@ -78,7 +154,7 @@ def _lite_view_angles(plotter, rigid=None):
     ``rigid`` is the frame the angles are expressed in (Brain's canonical
     rotation), as in ``_pyvista._get_user_camera_direction``.
     """
-    view_vector = plotter._renderer._view_vector  # pyvista-js 0.15
+    view_vector = figure._view_vector  # pyvista-js takes a view but has no getter
     if view_vector is None:  # nothing set yet, so vtk.js chooses
         return None
     position = np.asarray(view_vector, float)
@@ -88,11 +164,11 @@ def _lite_view_angles(plotter, rigid=None):
     return float(np.rad2deg(phi)) % 360, float(np.rad2deg(theta)) % 180
 
 
-def _lite_set_view(plotter, azimuth=None, elevation=None, rigid=None):
-    """Point the plotter, keeping the angle not given as _pyvista._set_3d_view does."""
+def _lite_set_view(figure, azimuth=None, elevation=None, rigid=None):
+    """Point the figure, keeping the angle not given as _pyvista._set_3d_view does."""
     if azimuth is None and elevation is None:
         return
-    current = _lite_view_angles(plotter, rigid) or (90.0, 90.0)  # plot_alignment
+    current = _lite_view_angles(figure, rigid) or (90.0, 90.0)  # plot_alignment
     phi = np.deg2rad(current[0] if azimuth is None else azimuth)
     theta = np.deg2rad(current[1] if elevation is None else elevation)
     # view up flips near the poles, matching _set_3d_view
@@ -106,12 +182,13 @@ def _lite_set_view(plotter, azimuth=None, elevation=None, rigid=None):
         rigid_inv = np.linalg.inv(rigid)
         position = apply_trans(rigid_inv, position, move=False)
         up = apply_trans(rigid_inv, up, move=False)
-    plotter.view_vector(tuple(position), viewup=tuple(up))
+    figure._view_vector = tuple(position)
+    figure.plotter.view_vector(figure._view_vector, viewup=tuple(up))
 
 
-def _lite_get_view(plotter, rigid=None):
+def _lite_get_view(figure, rigid=None):
     """Return (roll, distance, azimuth, elevation, focalpoint) as _get_3d_view does."""
-    azimuth, elevation = _lite_view_angles(plotter, rigid) or (0.0, 0.0)
+    azimuth, elevation = _lite_view_angles(figure, rigid) or (0.0, 0.0)
     return (0.0, 1.0, azimuth, elevation, np.zeros(3))
 
 
@@ -125,7 +202,7 @@ def _lite_release_plotter(plotter):
 
 
 def _lite_opacity(color, opacity):
-    """Fold RGBA alpha into the opacity, since each mesh here is one solid color.
+    """Fold an RGBA alpha into the opacity, as vtk.js draws a mesh opaque or not.
 
     _PyVistaRenderer draws instance colors as RGBA scalars, and the alpha is
     how plot_alignment fades the MEG coils.
@@ -161,17 +238,47 @@ def _lite_revolve(profile, n_side):
 
 
 class _LitePolyData(pv.PolyData):
-    """A mesh whose ``mesh["Data"] = colors`` also takes float RGB(A) in [0, 1].
+    """A mesh that keeps count of its changes and takes Brain's LayeredMesh calls.
 
-    Brain's LayeredMesh recolors its surface that way, which PyVista accepts;
-    vtk.js only uses an array as colors directly when it is uint8.
+    LayeredMesh recolors with ``mesh["Data"] = colors`` in float RGB(A), which
+    PyVista accepts but vtk.js only uses as colors when uint8, and switches
+    surfaces by assigning ``points`` (and ``faces``, for the flat map).
     """
+
+    # bumped by each change to point data, points and faces, so a redraw can
+    # send just that
+    _lite_versions = (0, 0, 0)
+
+    def _lite_bump(self, which):
+        versions = list(self._lite_versions)
+        versions[which] += 1
+        super().__setattr__("_lite_versions", tuple(versions))
 
     def __setitem__(self, name, array):
         array = np.asarray(array)
         if array.ndim == 2 and array.shape[1] in (3, 4) and array.dtype != np.uint8:
             array = np.round(np.clip(array, 0, 1) * 255).astype(np.uint8)
         super().__setitem__(name, array)
+        self._lite_bump(0)
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in ("points", "faces"):
+            self._lite_bump(1 if name == "points" else 2)
+
+    def GetPointData(self):
+        return self  # LayeredMesh.update_geometry marks its normals active
+
+    def SetActiveNormals(self, name):
+        pass  # vtk.js computes its own
+
+
+class _LiteData(HTML):
+    """An HTML widget whose repr leaves out its value, a page or its point data."""
+
+    def _repr_keys(self):
+        # megabytes of mesh data, which a display() outside a kernel prints
+        return (key for key in super()._repr_keys() if key != "value")
 
 
 class _LiteFigure(Figure3D):
@@ -182,14 +289,16 @@ class _LiteFigure(Figure3D):
 
     def _init(self, plotter):
         self._plotter = plotter
+        self._view_vector = None  # the camera position last set, see _lite_set_view
         return self
 
 
-class _LiteRenderer(_AbstractRenderer):
-    """MNE 3D renderer backed by pyvista-js."""
+class _Renderer(_IpyRenderer, _AbstractRenderer):
+    """pyvista-js drawing with the ipywidgets GUI of the notebook backend."""
 
     # not "notebook": that backend has VTK, a filesystem and OS threads
-    _kind = "jupyterlite_notebook"
+    _kind = "notebook_js"
+    _page = None  # once drawn, the versions of each actor's mesh on it
 
     def __init__(
         self,
@@ -204,28 +313,33 @@ class _LiteRenderer(_AbstractRenderer):
         smooth_shading=True,
         splash=False,
         multi_samples=None,
+        fullscreen=False,
     ):
-        # _PyVistaRenderer's signature, but size, shape, name and show cannot
-        # be honored: the canvas is fixed and written only when show() runs
+        # _PyVistaRenderer's signature, but shape, name and show cannot be
+        # honored: the page is written only when show() runs
         # an int is a figure number, which just means a new figure here
         _validate_type(fig, (None, int, _LiteFigure), "fig")
+        self._size = (size, size) if np.isscalar(size) else tuple(size)
         self._close_callbacks = {False: [], True: []}  # keyed by ``after``
+        self._viewer = None  # the widget the scene is drawn into, once shown
+        self._texts = []  # 2D text drawn over the frames
         if isinstance(fig, _LiteFigure):  # plot_alignment(fig=...) composites into it
             self._figure = fig
-            return
-        self._figure = _LiteFigure()._init(pv.Plotter())
-        _lite_live_plotters.append(weakref.ref(self.plotter))
-        while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
-            _lite_release_plotter(_lite_live_plotters[0]())
-        self.plotter.background_color = _rgb(bgcolor)
-        for azimuth, elevation, intensity in LIGHTS:  # lit like _pyvista.py
-            self.plotter.add_light(
-                pv.Light(
-                    position=_to_pos(azimuth, elevation),
-                    light_type="CameraLight",
-                    intensity=intensity,
+        else:
+            self._figure = _LiteFigure()._init(pv.Plotter())
+            _lite_live_plotters.append(weakref.ref(self.plotter))
+            while len(_lite_live_plotters) > _LITE_MAX_LIVE_SCENES:
+                _lite_release_plotter(_lite_live_plotters[0]())
+            self.plotter.background_color = _rgb(bgcolor)
+            for azimuth, elevation, intensity in LIGHTS:  # lit like _pyvista.py
+                self.plotter.add_light(
+                    pv.Light(
+                        position=_to_pos(azimuth, elevation),
+                        light_type="CameraLight",
+                        intensity=intensity,
+                    )
                 )
-            )
+        self._window_initialize(fullscreen=fullscreen)
 
     @property
     def plotter(self):
@@ -237,9 +351,6 @@ class _LiteRenderer(_AbstractRenderer):
 
     def scene(self):
         return self._figure
-
-    def show(self):
-        self.plotter.show()
 
     # -- geometry -----------------------------------------------------------
     def _glyph_template(
@@ -269,31 +380,42 @@ class _LiteRenderer(_AbstractRenderer):
             rr = rr + np.array([-center[1], center[0], center[2]], float)
         return rr, tris
 
-    def _tile(self, rr, tris, positions, scales=None, rots=None, axis_scales=None):
-        """Stamp a template at every position into one mesh, as VTK's glyph filter does.
+    def _glyphs(self, rr, tris, positions, matrices=None, colors=None, opacity=1.0):
+        """Draw the template at every position as one vtk.js glyph actor.
 
-        One mesh per position runs the tab out of memory for an oct-6 source
-        space. ``axis_scales`` stretches the template along x alone (tubes).
+        ``matrices`` (n, 3, 3) turn, size and stretch each copy, and ``colors``
+        is one color or one per position.
         """
-        rr = np.asarray(rr, float)
         positions = np.atleast_2d(np.asarray(positions, float))[:, :3]
         n_pos = len(positions)
         idx = np.arange(n_pos)
-        points = np.repeat(rr[np.newaxis], n_pos, axis=0)
-        if axis_scales is not None:
-            axis_scales = np.atleast_1d(np.asarray(axis_scales, float))
-            points[:, :, 0] *= axis_scales[idx % len(axis_scales)][:, np.newaxis]
-        if scales is not None:
-            scales = np.atleast_1d(np.asarray(scales, float))
-            points *= scales[idx % len(scales)][:, np.newaxis, np.newaxis]
-        if rots is not None:
-            points = np.einsum(
-                "nij,nkj->nki", np.asarray(rots)[idx % len(rots)], points
-            )
-        points += positions[:, np.newaxis]
-        offsets = (idx * len(rr))[:, np.newaxis, np.newaxis]
-        tris = np.asarray(tris, int)[np.newaxis] + offsets
-        return points.reshape(-1, 3), tris.reshape(-1, 3)
+        cloud = _LitePolyData(points=positions.astype(np.float32))
+        cloud.field_data = dict()  # _3d.py writes channel names here
+        if matrices is None:
+            matrices = np.eye(3)[np.newaxis]
+        matrices = np.asarray(matrices, np.float32)[idx % len(matrices)]
+        cloud["matrices"] = matrices.transpose(0, 2, 1).reshape(-1, 9)  # column-major
+        kwargs = dict()
+        if colors is not None and np.ndim(colors) > 1:
+            colors = np.asarray(colors, float)[idx % len(colors)]
+            if colors.shape[1] == 4 and np.ptp(colors[:, 3]) == 0:
+                opacity = _lite_opacity(colors[0], opacity)
+                colors = colors[:, :3]
+            cloud["Data"] = colors
+            kwargs["scalars"] = "Data"
+        else:
+            kwargs["color"] = _rgb(colors)
+            opacity = _lite_opacity(colors, opacity)
+        geometry = pv.PolyData(
+            points=np.asarray(rr, np.float32), faces=_vtk_faces(tris).ravel()
+        )
+        actor = self.plotter.add_mesh(
+            cloud.glyph(orient="matrices", scale=False, geometry=geometry),
+            opacity=opacity,
+            smooth_shading=True,
+            **kwargs,
+        )
+        return actor, cloud
 
     def _add(self, points, tris, color, opacity=1.0, colors=None):
         """Draw one mesh, solid or colored per vertex, and return (actor, mesh)."""
@@ -407,10 +529,8 @@ class _LiteRenderer(_AbstractRenderer):
         # a unit cylinder stretched along its axis to each segment
         rr, tris = self._glyph_template("cylinder", radius=radius, resolution=20)
         rots = _find_vector_rotation(np.array([1.0, 0, 0]), vec / length[:, np.newaxis])
-        points, faces = self._tile(
-            rr, tris, origin + vec / 2, rots=rots, axis_scales=length
-        )
-        return self._add(points, faces, color, opacity)
+        rots[:, :, 0] *= length[:, np.newaxis]
+        return self._glyphs(rr, tris, origin + vec / 2, rots, color, opacity)
 
     def quiver3d(
         self,
@@ -479,11 +599,14 @@ class _LiteRenderer(_AbstractRenderer):
             rr = rr @ solid_transform[:3, :3].T + solid_transform[:3, 3]
         # spheres look the same however turned, and the fiducial "oct" is
         # always asked for along +x, so neither needs rotations
-        rots = None
+        rots = np.eye(3)[np.newaxis]
         if mode not in ("sphere", "oct"):
             rots = _find_vector_rotation(np.array([1.0, 0, 0]), dirs)
-        points, faces = self._tile(rr, tris, np.column_stack([x, y, z]), sizes, rots)
-        return self._add(points, faces, color, opacity)
+        sizes = np.broadcast_to(sizes, n_pos)
+        matrices = rots * sizes[:, np.newaxis, np.newaxis]
+        return self._glyphs(
+            rr, tris, np.column_stack([x, y, z]), matrices, color, opacity
+        )
 
     def instanced_mesh(
         self,
@@ -498,69 +621,23 @@ class _LiteRenderer(_AbstractRenderer):
         *,
         name=None,
     ):
-        """Stamp the template at every position, one merged mesh per distinct color.
-
-        vtk.js cannot color per instance, so several colors give a list of
-        actors. The cloud handed back second is what _3d.py writes channel
-        names onto, and is always one object.
-        """
         positions = np.atleast_2d(np.asarray(positions, float))[:, :3]
         n_pos = len(positions)
-        cloud = pv.PolyData(points=positions)
-        cloud.field_data = dict()
         if not n_pos:
+            cloud = pv.PolyData(points=positions)
+            cloud.field_data = dict()
             return None, cloud
-        rots = None
+        matrices = np.eye(3)[np.newaxis]
         if quats is not None:
             quats = np.atleast_2d(np.asarray(quats, float))
             assert quats.shape[-1] == 3, quats.shape  # (w, x, y, z) would misread
-            rots = quat_to_rot(quats)
+            matrices = quat_to_rot(quats)
         idx = np.arange(n_pos)
-        if colors is not None and np.ndim(colors) > 1:
-            colors = np.asarray(colors, float)[idx % len(colors)]
-            uniq, inverse = np.unique(colors, axis=0, return_inverse=True)
-            groups = [(uniq[k], idx[np.ravel(inverse) == k]) for k in range(len(uniq))]
-        else:
-            groups = [(colors, idx)]
-        actors = list()
-        for color, sel in groups:
-            group_scales = None
-            if scales is not None:
-                scales = np.atleast_1d(np.asarray(scales, float))
-                group_scales = scales[sel % len(scales)]
-            group_rots = None if rots is None else rots[sel % len(rots)]
-            points, faces = self._tile(
-                rr, tris, positions[sel], group_scales, group_rots
-            )
-            actors.append(
-                self._add(points, faces, color, _lite_opacity(color, opacity))[0]
-            )
-        return (actors[0] if len(actors) == 1 else actors), cloud
-
-    def text2d(
-        self,
-        x_window,
-        y_window,
-        text,
-        size=14,
-        color="white",
-        justification=None,
-        font_file=None,
-    ):
-        # justification and font_file only place and style the text, and vtk.js
-        # draws at a point in the page font; Brain's time label passes both
-        return _lite_add_text(self.plotter, text, (x_window, y_window), size, color)
-
-    def remove_mesh(self, mesh_data):
-        # the renderer keeps the actor dict and the plotter a dict pointing at
-        # it, so drop both; instanced_mesh hands back one actor per color
-        actor, _ = mesh_data
-        actors = actor if isinstance(actor, list) else [actor]
-        plotter = self.plotter
-        plotter.actors[:] = [a for a in plotter.actors if a["actor"] not in actors]
-        plotter._renderer.actors[:] = [
-            a for a in plotter._renderer.actors if a not in actors
-        ]
+        matrices = matrices[idx % len(matrices)]
+        if scales is not None:
+            scales = np.atleast_1d(np.asarray(scales, float))
+            matrices = matrices * scales[idx % len(scales)][:, np.newaxis, np.newaxis]
+        return self._glyphs(rr, tris, positions, matrices, colors, opacity)
 
     # -- nothing to do in a browser -----------------------------------------
     def set_interaction(self, interaction):
@@ -583,8 +660,16 @@ class _LiteRenderer(_AbstractRenderer):
         if (x, y) != (0, 0):
             _lite_unsupported("Subplots")  # one scene is one canvas
 
-    def _update(self):
-        pass  # the page paints after the cell finishes
+    def _index_to_loc(self, idx):
+        assert idx == 0, idx  # so there is only ever the one view
+        return (0, 0)
+
+    def _loc_to_index(self, loc):
+        assert tuple(loc) == (0, 0), loc
+        return 0
+
+    def _process_events(self, *args, **kwargs):
+        pass  # the page runs the event loop
 
     def _window_close_connect(self, func, *, after=True):
         # an output cell has no close event, so close() runs these; ui_events
@@ -612,6 +697,7 @@ class _LiteRenderer(_AbstractRenderer):
         self._run_close_callbacks(after=False)
         _lite_release_plotter(self.plotter)
         self._run_close_callbacks(after=True)
+        self._close_widgets()  # after the close callbacks, which still use them
 
     # -- things pyvista-js cannot do ----------------------------------------
     def contour(self, *args, **kwargs):
@@ -619,15 +705,6 @@ class _LiteRenderer(_AbstractRenderer):
 
     def legend(self, *args, **kwargs):
         _lite_unsupported("Drawing a legend")
-
-    def _process_events(self, *args, **kwargs):
-        _lite_unsupported("Draining the event loop")  # the page runs it
-
-    def _window_set_cursor(self, *args, **kwargs):
-        _lite_unsupported("Setting the cursor")
-
-    def _enable_time_interaction(self, *args, **kwargs):
-        _lite_unsupported("The time slider")  # needs dock widgets
 
     def project(self, xyz, ch_names):
         _lite_unsupported("Projecting 3D positions onto the scene")
@@ -639,7 +716,7 @@ class _LiteRenderer(_AbstractRenderer):
 
     # -- camera -------------------------------------------------------------
     def get_camera(self, *, rigid=None):
-        return _lite_get_view(self.plotter, rigid)
+        return _lite_get_view(self._figure, rigid)
 
     def set_camera(
         self,
@@ -653,11 +730,197 @@ class _LiteRenderer(_AbstractRenderer):
         update=True,
     ):
         # distance, focalpoint and roll go unused: vtk.js frames the scene
-        _lite_set_view(self.plotter, azimuth, elevation, rigid)
+        _lite_set_view(self._figure, azimuth, elevation, rigid)
+        if update:
+            self._update()
+
+    def _display_default_tool_bar(self):
+        pass  # its one button takes a screenshot, which pyvista-js cannot
+
+    def _viewer_widget(self):
+        """Return the widget the scene is drawn into, as ``show`` asks for it."""
+        # One frame, drawn once, in an HTML widget; later changes reach it in
+        # place (_LITE_PAGE_JS). Not an Output widget: the front end echoes what
+        # those capture back to the kernel, and the server drops the websocket
+        # for a message over 10 MiB, which a Brain surface is several times over
+        self._frame = _LiteData(layout=Layout(grid_area="view"))
+        self._busy = HTML(  # last, so on top
+            _LITE_BUSY_HTML, layout=Layout(grid_area="view", visibility="hidden")
+        )
+        self._painted = Button(layout=Layout(display="none"))  # the page's ack
+        self._painted.add_class("mne-lite-painted")
+        self._painted.on_click(self._on_painted)
+        self._updates = _LiteData(layout=Layout(display="none"))  # point data, to apply
+        self._updates.add_class("mne-lite-update")
+        self._labels = HTML(layout=Layout(grid_area="view"))  # 2D text, on top
+        self._labels.add_class("mne-lite-labels")
+        self._viewer = GridBox(
+            [self._frame, self._labels, self._busy, self._painted, self._updates],
+            layout=Layout(grid_template_areas='"view"'),
+        )
+        self._dirty = False  # a change since the last draw
+        self._in_flight = None  # the timeout handle while a page is on its way
+        self._n_updates = 0
+        self._removed = []  # removal messages for actors on the page
+        self._draw_scene()
+        return self._viewer
+
+    def text2d(
+        self,
+        x_window,
+        y_window,
+        text,
+        size=14,
+        color="white",
+        justification=None,
+        font_file=None,
+    ):
+        _check_option("justification", justification, (None, *_LITE_TEXT_SHIFT))
+        actor = _lite_text(text, (x_window, y_window), size, color)
+        actor.justification = justification or "left"
+        self._texts.append(actor)
+        return actor
+
+    def _draw_labels(self):
+        spans = [
+            _LITE_TEXT_HTML.format(
+                x=100 * actor.position[0],
+                y=100 * actor.position[1],
+                shift=_LITE_TEXT_SHIFT[actor.justification],
+                weight="bold" if actor.bold else "normal",
+                # PyVista's add_text, which _pyvista.py uses, doubles viewport text
+                size=2 * actor.prop.font_size,
+                r=int(255 * actor.prop.color[0]),
+                g=int(255 * actor.prop.color[1]),
+                b=int(255 * actor.prop.color[2]),
+                text=html.escape(actor.input),
+            )
+            for actor in self._texts
+        ]
+        self._labels.value = (  # clipped like VTK text, so it never scrolls the box
+            '<div style="position: absolute; inset: 0; overflow: hidden">'
+            f"{''.join(spans)}</div>"
+        )
+
+    def remove_mesh(self, mesh_data):
+        actor, _ = mesh_data
+        if id(actor) not in (self._page or ()):  # not on a page (yet)
+            self.plotter.remove_actor(actor)
+            return
+        actors = [info["actor"] for info in self.plotter.actors]
+        idx = next(ii for ii, a in enumerate(actors) if a is actor)
+        self._removed.append(self.plotter.update_actor(idx, remove=True, send=False))
+
+    def _versions(self):
+        """Return the version of each actor's point data, by actor."""
+        return {
+            id(info["actor"]): getattr(info["mesh"], "_lite_versions", (0, 0, 0))
+            for info in self.plotter.actors
+        }
+
+    def _diff_page(self):
+        """Return the update messages that bring the page up to date, or None.
+
+        None means a new page is needed, as an update cannot change triangles.
+        """
+        versions = self._versions()
+        if any(v[2] != self._page.get(key, v)[2] for key, v in versions.items()):
+            return None
+        updates, self._removed = self._removed, []
+        for idx, (key, version) in enumerate(versions.items()):
+            if key not in self._page:
+                updates.append(self.plotter.update_actor(idx, add=True, send=False))
+                continue
+            mesh, kwargs = self.plotter.actors[idx]["mesh"], dict()
+            if version[0] != self._page[key][0]:
+                kwargs["point_data"] = dict(mesh.point_data.items())
+            if version[1] != self._page[key][1]:
+                kwargs["points"] = mesh.points
+            if kwargs:
+                updates.append(self.plotter.update_actor(idx, **kwargs, send=False))
+        self._page = versions
+        if self._figure._view_vector != self._page_view:
+            self._page_view = self._figure._view_vector
+            updates.append(self.plotter.update_camera(send=False))
+        return updates
+
+    def _send_updates(self, updates):
+        """Send update messages to the page."""
+        self._n_updates += 1
+        self._updates.value = (
+            f'<div hidden data-n="{self._n_updates}">'
+            f"{html.escape(scene_to_json(updates))}</div>"
+        )
+
+    def _loop(self):
+        """Return the kernel's event loop, or None outside a kernel."""
+        try:
+            return asyncio.get_running_loop()
+        except RuntimeError:
+            return None
+
+    def _schedule_draw(self):
+        # once the kernel is done with the message (a cell or a widget event)
+        # that made the change, since Brain asks several times per change
+        loop = self._loop()
+        if loop is None:
+            self._draw_scene()
+        else:
+            loop.call_soon(self._draw_scene)
+
+    def _on_painted(self, *args):
+        """Take the page's report that it painted, or the timeout in its place."""
+        if self._in_flight is not None:
+            self._in_flight.cancel()
+            self._in_flight = None
+        if self._dirty:
+            self._schedule_draw()
+        else:
+            self._busy.layout.visibility = "hidden"
+
+    def _draw_scene(self):
+        self._dirty = False
+        self._draw_labels()
+        updates = None if self._page is None else self._diff_page()
+        if updates == []:  # Brain asks again for the same time
+            if self._in_flight is None:
+                self._busy.layout.visibility = "hidden"
+            return
+        if updates is not None:
+            self._send_updates(updates)
+        else:
+            # the page pyvista-js writes for a browser, framed so the vtk.js it
+            # loads and the scene data it embeds stay out of the notebook document
+            self._removed = []  # what is left is all a new page holds
+            width, height = self._size
+            self._page = self._versions()
+            self._page_view = self._figure._view_vector
+            page = self.plotter.generate_standalone_html()
+            js = _LITE_PAGE_JS.replace("CONTAINER", self.plotter.container_id)
+            page = page.replace("</body>", js + "</body>")
+            self._frame.value = (
+                f'<iframe srcdoc="{html.escape(page, quote=True)}" width="{width}" '
+                f'height="{height}" style="border: none"></iframe>'
+            )
+        loop = self._loop()  # no kernel, no browser to hear back from
+        if loop is not None:
+            self._in_flight = loop.call_later(_LITE_ACK_TIMEOUT, self._on_painted)
+
+    def _window_get_size(self):
+        return self._size
+
+    def _update(self):
+        # send the change now, or once the page or update on its way has
+        # painted (_on_painted), so that the page applies one batch at a time
+        if self._viewer is None or self._dirty:  # a draw is already coming
+            return
+        self._dirty = True
+        self._busy.layout.visibility = "visible"
+        if self._in_flight is None:
+            self._schedule_draw()
 
 
 # -- the module surface renderer.py expects of a 3D backend -----------------
-_Renderer = _LiteRenderer
 _testing_context = nullcontext  # nothing draws differently under test
 
 
@@ -671,14 +934,16 @@ def _set_3d_view(
     rigid=None,
     update=True,
 ):
-    _lite_set_view(figure.plotter, azimuth, elevation, rigid)
+    _lite_set_view(figure, azimuth, elevation, rigid)
 
 
 def _set_3d_title(figure, title, size=16, *, color="white", position="upper_left"):
     if isinstance(position, str):
         _check_option("position", position, sorted(_TITLE_POSITIONS))
         position = _TITLE_POSITIONS[position]
-    return _lite_add_text(figure.plotter, title, position, size, color)
+    actor = _lite_text(title, position, size, color)
+    figure.plotter.add_text(actor)
+    return actor
 
 
 def _check_3d_figure(figure):
