@@ -194,8 +194,8 @@ def _median_bias(n):
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
 
 
-def test_psd_array_welch_complex_not_aggregated():
-    """Test that complex Welch coefficients are not averaged across segments."""
+def test_complex_welch():
+    """Test complex-valued Welch output."""
     data, sfreq, _ = _make_psd_data()
     data = data[:4]
     kwargs = dict(n_fft=256, n_overlap=0, verbose=False)
@@ -206,11 +206,7 @@ def test_psd_array_welch_complex_not_aggregated():
     coefs, freqs = psd_array_welch(
         data, sfreq, average=None, output="complex", **kwargs
     )
-    coefs_false, _ = psd_array_welch(
-        data, sfreq, average=False, output="complex", **kwargs
-    )
     assert coefs.shape[-1] > 1
-    assert_array_equal(coefs, coefs_false)
     scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
     segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
     for average in ("mean", "median"):

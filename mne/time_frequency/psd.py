@@ -146,7 +146,7 @@ def psd_array_welch(
 
         .. versionadded:: 0.19.0
         .. versionchanged:: 1.14
-           ``"mean"`` and ``"median"`` are no longer supported when
+           ``"mean"`` and ``"median"`` are not supported when
            ``output="complex"``.
     window : str | float | tuple
         Windowing function to use. See :func:`scipy.signal.get_window`.
@@ -205,7 +205,7 @@ def psd_array_welch(
         average = None
     if output == "complex" and average is not None:
         raise ValueError(
-            f'average must be None when output="complex", got {average!r}.'
+            f'average must be None when output="complex", got {average}.'
         )
 
     dshape = x.shape[:-1]
