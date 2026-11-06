@@ -91,7 +91,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-@verbose_static("n_jobs", "average_psd", "window_psd", "remove_dc")
+@verbose_static("n_jobs", "window_psd", "remove_dc")
 def psd_array_welch(
     x,
     sfreq,

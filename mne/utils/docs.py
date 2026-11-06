@@ -335,14 +335,6 @@ average : bool
     drag) to plot a topomap.
 """
 
-docdict["average_psd"] = """\
-average : str | None
-    How to average the segments. If ``mean`` (default), calculate the
-    arithmetic mean. If ``median``, calculate the median, corrected for
-    its bias relative to the mean. If ``None``, returns the unaggregated
-    segments.
-"""
-
 docdict["average_tfr"] = """
 average : bool
     If ``False`` return an `EpochsTFR` containing separate TFRs for each
