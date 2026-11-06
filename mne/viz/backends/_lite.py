@@ -238,20 +238,39 @@ def _lite_revolve(profile, n_side):
 
 
 class _LitePolyData(pv.PolyData):
-    """A mesh whose ``mesh["Data"] = colors`` also takes float RGB(A) in [0, 1].
+    """A mesh that keeps count of its changes and takes Brain's LayeredMesh calls.
 
-    Brain's LayeredMesh recolors its surface that way, which PyVista accepts;
-    vtk.js only uses an array as colors directly when it is uint8.
+    LayeredMesh recolors with ``mesh["Data"] = colors`` in float RGB(A), which
+    PyVista accepts but vtk.js only uses as colors when uint8, and switches
+    surfaces by assigning ``points`` (and ``faces``, for the flat map).
     """
 
-    _lite_version = 0  # bumped by each recoloring, so a redraw can send just that
+    # bumped by each change to point data, points and faces, so a redraw can
+    # send just that
+    _lite_versions = (0, 0, 0)
+
+    def _lite_bump(self, which):
+        versions = list(self._lite_versions)
+        versions[which] += 1
+        super().__setattr__("_lite_versions", tuple(versions))
 
     def __setitem__(self, name, array):
         array = np.asarray(array)
         if array.ndim == 2 and array.shape[1] in (3, 4) and array.dtype != np.uint8:
             array = np.round(np.clip(array, 0, 1) * 255).astype(np.uint8)
         super().__setitem__(name, array)
-        self._lite_version += 1
+        self._lite_bump(0)
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in ("points", "faces"):
+            self._lite_bump(1 if name == "points" else 2)
+
+    def GetPointData(self):
+        return self  # LayeredMesh.update_geometry marks its normals active
+
+    def SetActiveNormals(self, name):
+        pass  # vtk.js computes its own
 
 
 class _LiteData(HTML):
@@ -279,7 +298,7 @@ class _Renderer(_IpyRenderer, _AbstractRenderer):
 
     # not "notebook": that backend has VTK, a filesystem and OS threads
     _kind = "notebook_js"
-    _page = None  # once drawn, the version of each actor's point data on it
+    _page = None  # once drawn, the versions of each actor's mesh on it
 
     def __init__(
         self,
@@ -795,22 +814,30 @@ class _Renderer(_IpyRenderer, _AbstractRenderer):
     def _versions(self):
         """Return the version of each actor's point data, by actor."""
         return {
-            id(info["actor"]): getattr(info["mesh"], "_lite_version", 0)
+            id(info["actor"]): getattr(info["mesh"], "_lite_versions", (0, 0, 0))
             for info in self.plotter.actors
         }
 
     def _diff_page(self):
-        """Return the update messages that bring the page up to date."""
-        updates, self._removed = self._removed, []
+        """Return the update messages that bring the page up to date, or None.
+
+        None means a new page is needed, as an update cannot change triangles.
+        """
         versions = self._versions()
+        if any(v[2] != self._page.get(key, v)[2] for key, v in versions.items()):
+            return None
+        updates, self._removed = self._removed, []
         for idx, (key, version) in enumerate(versions.items()):
             if key not in self._page:
                 updates.append(self.plotter.update_actor(idx, add=True, send=False))
-            elif version != self._page[key]:
-                point_data = dict(self.plotter.actors[idx]["mesh"].point_data.items())
-                updates.append(
-                    self.plotter.update_actor(idx, point_data=point_data, send=False)
-                )
+                continue
+            mesh, kwargs = self.plotter.actors[idx]["mesh"], dict()
+            if version[0] != self._page[key][0]:
+                kwargs["point_data"] = dict(mesh.point_data.items())
+            if version[1] != self._page[key][1]:
+                kwargs["points"] = mesh.points
+            if kwargs:
+                updates.append(self.plotter.update_actor(idx, **kwargs, send=False))
         self._page = versions
         if self._figure._view_vector != self._page_view:
             self._page_view = self._figure._view_vector
@@ -854,16 +881,17 @@ class _Renderer(_IpyRenderer, _AbstractRenderer):
     def _draw_scene(self):
         self._dirty = False
         self._draw_labels()
-        if self._page is not None:
-            updates = self._diff_page()
-            if not updates:  # Brain asks again for the same time
-                if self._in_flight is None:
-                    self._busy.layout.visibility = "hidden"
-                return
+        updates = None if self._page is None else self._diff_page()
+        if updates == []:  # Brain asks again for the same time
+            if self._in_flight is None:
+                self._busy.layout.visibility = "hidden"
+            return
+        if updates is not None:
             self._send_updates(updates)
         else:
             # the page pyvista-js writes for a browser, framed so the vtk.js it
             # loads and the scene data it embeds stay out of the notebook document
+            self._removed = []  # what is left is all a new page holds
             width, height = self._size
             self._page = self._versions()
             self._page_view = self._figure._view_vector

@@ -619,6 +619,14 @@ def test_lite_brain(renderer_lite, monkeypatch):
     rend.remove_mesh(sphere)
     rend._draw_scene()
     assert _sent(rend) == [{"actor", "remove"}] and rend._frame.value == page
+    # another surface moves the points in place, but new triangles need a new page
+    brain.set_surf("white")
+    rend._draw_scene()
+    assert _sent(rend) == [{"actor", "points"}] and rend._frame.value == page
+    mesh = brain.layered_meshes["lh"]._polydata
+    mesh.faces = mesh.faces  # as the flat map assigns them
+    rend._draw_scene()
+    assert rend._frame.value != page
     brain.close()
     del brain, rend
     gc.collect()
