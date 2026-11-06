@@ -57,7 +57,7 @@ filters have a transfer function that is given by:
 .. math::
 
     H(z) &= \frac{b_0 + b_1 z^{-1} + b_2 z^{-2} + \ldots + b_M z^{-M}}
-                 {1 + a_1 z^{-1} + a_2 z^{-2} + \ldots + a_N z^{-M}} \\
+                 {1 + a_1 z^{-1} + a_2 z^{-2} + \ldots + a_N z^{-N}} \\
          &= \frac{\sum_{k=0}^Mb_kz^{-k}}{1 + \sum_{k=1}^Na_kz^{-k}}
 
 In the time domain, the numerator coefficients :math:`b_k` and denominator

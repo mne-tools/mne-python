@@ -480,7 +480,9 @@ def psd_array_multitaper(
             psd[start:stop] = x_mt[:, :, freq_mask]
 
     if normalization == "full":
-        psd /= sfreq
+        # Power is quadratic in complex coeffs, so needs the sqrt of the plain
+        # power output's scaling factor
+        psd /= sfreq if output == "power" else np.sqrt(sfreq)
 
     # Combining/reshaping to original data shape
     last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)

@@ -285,6 +285,7 @@
 .. _Marian Dovgialo: https://github.com/mdovgialo
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 .. _Mark Alexander Henney: https://github.com/henneysq
+.. _Mark Kuang: https://github.com/iis-MarkKuang
 .. _Mark Wronkiewicz: https://github.com/wronk
 .. _Marmaduke Woodman: https://github.com/maedoc
 .. _Martin BaBer: https://github.com/MartinBaBer
@@ -500,6 +501,7 @@
 .. _Wouter Kroot: https://github.com/WouterKroot
 .. _Xabier de Zuazo: https://github.com/zuazo
 .. _Xiaokai Xia: https://github.com/dddd1007
+.. _Xuzhou Qin: https://github.com/qxzzxq
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 .. _Yiping Zuo: https://github.com/frostime
 .. _Yixiao Shen: https://github.com/SYXiao2002
@@ -508,5 +510,6 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 .. _Zahra M. Aghajan: https://github.com/Zahra-M-Aghajan
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+.. _Ziqi Chen: https://github.com/ChenziqiAdam/
 .. _Ziyi ZENG: https://github.com/ZiyiTsang
 .. _Zvi Baratz: https://github.com/ZviBaratz

@@ -18,12 +18,17 @@ from ..utils import (
 )
 
 
-def _extreme_stat(X, X2, perms, dof_scaling, tail):
+def _extreme_stat(X, X2, perms, dof_scaling, tail, step=1000):
     """Aux function for permutation_t_test (for parallel comp)."""
     n_samples = len(X)
-    mus = np.dot(perms, X) / float(n_samples)
-    stds = np.sqrt(X2[None, :] - mus * mus) * dof_scaling  # std with splitting
-    return _t_extreme(mus / (stds / sqrt(n_samples)), tail)
+    out = np.empty(len(perms))
+    denom_scale = dof_scaling / sqrt(n_samples)
+    for start in range(0, len(perms), step):
+        p = perms[start : start + step]
+        mus = np.dot(p, X) / float(n_samples)
+        stds = np.sqrt(X2 - mus * mus) * denom_scale  # std with splitting
+        out[start : start + step] = _t_extreme(mus / stds, tail)
+    return out
 
 
 def _t_extreme(T, tail):

@@ -73,7 +73,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/fqdn-1.5.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h11-0.16.0-pyhcf101f3_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h2-4.4.1-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.5-pyhc455866_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.6-pyhc455866_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/hedtools-1.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/hpack-4.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/httpcore-1.0.9-pyh29332c3_0.conda
@@ -187,7 +187,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.13-9_cp313.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3.post1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-0.49.0-pyhd8ed1ab_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.20.0-pyhc364b38_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.16.0-pyhc364b38_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-validation-0.2.2-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyvistaqt-0.13.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/qdarkstyle-3.2.3-pyhd8ed1ab_1.conda
@@ -1219,20 +1219,21 @@ packages:
   - pkg:pypi/h2?source=hash-mapping
   size: 100789
   timestamp: 1785796355216
-- conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.5-pyhc455866_1.conda
-  sha256: 56f66940d92c18aac5f329ce86cb06f8b8ca3158dc9a214f32761e5857c7740e
-  md5: a054accd53cde503ddda7b435b856920
+- conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.6-pyhc455866_0.conda
+  sha256: 062ab540580bb9f5051c49a1a397ffee810ac446c50af85ebc8a42fbbd88be4e
+  md5: 14792f026694307d2e4ffa082b3b6d89
   depends:
   - h5py
   - numpy
   - pip
-  - python >=3.10
+  - python >=3.11
   license: BSD-3-Clause
   license_family: BSD
   purls:
   - pkg:pypi/h5io?source=hash-mapping
-  size: 23663
-  timestamp: 1777475125376
+  run_exports: {}
+  size: 27107
+  timestamp: 1793896203573
 - conda: https://conda.anaconda.org/conda-forge/noarch/hedtools-1.2.0-pyhd8ed1ab_0.conda
   sha256: 5ccbfc8d98c46aea02d51efff20e851b56ce3d6dd45aef9ee159b54e2bc6354e
   md5: 274295fe599b6a3f41f3903856eac37b
@@ -1379,7 +1380,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/imagesize?source=hash-mapping
+  - pkg:pypi/imagesize?source=compressed-mapping
   size: 21467
   timestamp: 1787649248672
 - conda: https://conda.anaconda.org/conda-forge/noarch/importlib-metadata-9.0.1-pyhcf101f3_0.conda
@@ -2463,7 +2464,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/pre-commit?source=compressed-mapping
+  - pkg:pypi/pre-commit?source=hash-mapping
   size: 201879
   timestamp: 1786408353117
 - conda: https://conda.anaconda.org/conda-forge/noarch/prometheus_client-0.26.0-pyhd8ed1ab_0.conda
@@ -2744,7 +2745,7 @@ packages:
   license: BSD-2-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/python-json-logger?source=hash-mapping
+  - pkg:pypi/python-json-logger?source=compressed-mapping
   size: 19367
   timestamp: 1786872772907
 - conda: https://conda.anaconda.org/conda-forge/noarch/python-neo-0.14.5-pyhd8ed1ab_0.conda
@@ -2832,9 +2833,9 @@ packages:
   - pkg:pypi/pyvista?source=compressed-mapping
   size: 2332487
   timestamp: 1790023231927
-- conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.20.0-pyhc364b38_0.conda
-  sha256: aeb05a791816b01a9ce55d14bb6667ac90cad3714b811ab21e0487b211579455
-  md5: d68be3f1a27456648839e91e389a9915
+- conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-js-0.16.0-pyhc364b38_0.conda
+  sha256: 730d4112fc2e768b25ecd4a755d6878427eabc82df6264e3be5c0b5102b210a0
+  md5: 778a90ba2cb821164a235ab47264c819
   depends:
   - python >=3.12,<3.15
   - jinja2 >=3.0.1,<4.0.1
@@ -2845,10 +2846,9 @@ packages:
   license: BSD-3-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/pyvista-js?source=hash-mapping
-  run_exports: {}
-  size: 93109
-  timestamp: 1793688321062
+  - pkg:pypi/pyvista-js?source=compressed-mapping
+  size: 75842
+  timestamp: 1789142404852
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-validation-0.2.2-pyh5ded981_0.conda
   sha256: d3f75c3a2004b969db2099a18031349447925a91f01479a1d7667fcb1a9d7ba7
   md5: e06843d2fd3ed2b0472c7f11b52e7f3e
@@ -3698,7 +3698,7 @@ packages:
   license: Apache-2.0
   license_family: APACHE
   purls:
-  - pkg:pypi/websocket-client?source=compressed-mapping
+  - pkg:pypi/websocket-client?source=hash-mapping
   size: 78254
   timestamp: 1788531123810
 - conda: https://conda.anaconda.org/conda-forge/noarch/widgetsnbextension-4.0.16-pyhd8ed1ab_0.conda
