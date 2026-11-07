@@ -39,6 +39,7 @@
 ##
 ## PACKAGES THAT CAN'T BE PIP-INSTALLED FOR VARIOUS REASONS
 ## ========================================================
+# auto-eeg-analysis # categories: organization
 # best-python # categories: io
 # conpy # categories: connectivity
 # eelbrain # categories: stats, visu
