@@ -44,6 +44,13 @@ PYPI_PACKAGES = {
 
 # 3. If it's not available on PyPI, add it to this dict:
 MANUAL_PACKAGES = {
+    "auto-eeg-analysis": {
+        "Home-page": "https://github.com/dengzhe-hou/auto-eeg-analysis",
+        "Summary": (
+            "Shareable EEG analysis procedures and study recipes for AI coding "
+            "assistants using MNE-Python."
+        ),
+    },
     # TODO: These packages are not pip-installable as of 2025/11/19, so we have to
     # manually populate them -- should open issues on their package repos.
     "best-python": {
