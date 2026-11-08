@@ -2343,12 +2343,14 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             hemi_data = key_data.get("vol", {})
             if "subcortical_mesh" in hemi_data:
                 mesh = hemi_data["subcortical_mesh"]
+                vertno = hemi_data["subcortical_vertno"]
+                full = len(vertno) == len(mesh._vertices)
                 with use_log_level(False):
                     hemi_data["smooth_mat"] = _hemi_morph(
                         mesh._triangles,
                         np.arange(len(mesh._vertices)),
-                        hemi_data["subcortical_vertno"],
-                        morph_n_steps,
+                        vertno,
+                        "nearest" if full else morph_n_steps,
                         maps=None,
                         warn=False,
                     )

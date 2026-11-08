@@ -1562,6 +1562,9 @@ def test_mixed_sources_plot_surface(renderer_interactive):
         "sample", label="Left-Amygdala", aseg="aseg", subjects_dir=subjects_dir
     )
     assert src.kind == "mixed"
+    src[2]["inuse"][1::2] = 0
+    src[2]["vertno"] = np.where(src[2]["inuse"])[0]
+    src[2]["nuse"] = len(src[2]["vertno"])
     vertno = [s["vertno"] for s in src]
     data = rng.standard_normal((sum(len(v) for v in vertno), T))
     stc = MixedSourceEstimate(data, vertno, 0, 1, subject="sample")
@@ -1581,7 +1584,7 @@ def test_mixed_sources_plot_surface(renderer_interactive):
     brain.set_cortex_alpha(0.5)
     assert mesh._overlays["curv"]._opacity == 0.5
     colors = mesh._current_colors.copy()
-    brain.set_data_smoothing(-1)
+    brain.set_data_smoothing(-1)  # nearest instead of filling the gaps smoothly
     assert not np.array_equal(colors, mesh._current_colors)
     colors = mesh._current_colors.copy()
     brain.set_time_point(1)
