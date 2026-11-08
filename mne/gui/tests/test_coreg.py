@@ -430,18 +430,15 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     )
     assert_allclose(fids[1]["r"], want, atol=1e-6)
 
-    # opening the scaled subject, its scaling can be loaded relative to sample
-    saved_scale = coreg.coreg._scale.copy()
-    rotation = coreg.coreg._rotation.copy()
+    # opening the scaled subject, its scaling relative to sample can be shown
+    saved_scale = coreg.coreg._scale[0] * 1e2
     coreg._set_subject(subject_to)
     assert coreg._widgets["load_scaling"].is_enabled()
-    coreg.coreg.set_rotation(rotation)
     coreg._load_scaling()
-    assert (coreg._subject, coreg._subject_to) == ("sample", subject_to)
-    assert coreg._scale_mode == "uniform"
-    assert_allclose(coreg.coreg._scale, saved_scale)
-    assert_allclose(coreg.coreg._rotation, rotation)
-    assert not coreg._mri_scale_modified
+    assert coreg._subject == subject_to
+    assert_allclose(coreg.coreg._scale, 1.0)
+    message = coreg._widgets["status_message"].get_value()
+    assert f"{subject_to} is sample scaled by {saved_scale:.2f} %" in message
 
     # and when scaling fails, the log should say why -- and not claim success
     monkeypatch.setattr("mne.gui._coreg.scale_mri", _raise_scale_mri)

@@ -687,10 +687,7 @@ class CoregistrationUI(HasTraits):
         except OSError:
             return None, f"{self._subject} is not a scaled subject"
         template = cfg["subject_from"]
-        # without the template, its scaling would be applied to this subject again
-        if template not in _get_subjects(self._subjects_dir):
-            return None, f"{template} ({self._subject} was scaled from it) is missing"
-        return cfg, f"Load the scaling of {self._subject} relative to {template}"
+        return cfg, f"Show the scaling of {self._subject} relative to {template}"
 
     def _update_load_scaling(self):
         cfg, tooltip = self._read_scaling_cfg()
@@ -699,25 +696,11 @@ class CoregistrationUI(HasTraits):
 
     def _load_scaling(self):
         cfg, _ = self._read_scaling_cfg()
-        scaled_subject = self._subject
-        rotation = self.coreg._rotation.copy()
-        translation = self.coreg._translation.copy()
-        trans_modified = self._trans_modified
-        self._set_subject(cfg["subject_from"])
-        self._forward_widget_command("subject", "set_value", cfg["subject_from"])
-        self._forward_widget_command("subject_to", "set_value", scaled_subject)
-        mode = "uniform" if cfg["n_params"] == 1 else "3-axis"
-        self._forward_widget_command("scaling_mode", "set_value", mode)
-        self.coreg.set_rotation(rotation)
-        self.coreg.set_translation(translation)
-        self.coreg.set_scale(np.broadcast_to(cfg["scale"], 3))
-        self._update_plot(["head", "hsp", "hpi", "sensors", "head_fids", "helmet"])
-        self._update_parameters()
-        self._trans_modified = trans_modified
-        self._mri_scale_modified = False
-        self._update_distance_estimation()
+        # the scale fields apply to the open subject, which is already scaled,
+        # so only report its scaling relative to the template
+        scale = " / ".join(f"{s:.2f}" for s in np.atleast_1d(cfg["scale"]) * 1e2)
         self._display_message(
-            f"Loaded the scaling of {scaled_subject} relative to {self._subject}"
+            f"{self._subject} is {cfg['subject_from']} scaled by {scale} %"
         )
 
     def _set_scale_mode(self, mode):
