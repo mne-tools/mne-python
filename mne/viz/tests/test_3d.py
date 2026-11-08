@@ -14,6 +14,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
     MixedSourceEstimate,
+    MixedVectorSourceEstimate,
     SourceEstimate,
     convert_forward_solution,
     make_field_map,
@@ -1566,21 +1567,19 @@ def test_mixed_sources_plot_surface(renderer_interactive):
     src[2]["vertno"] = np.where(src[2]["inuse"])[0]
     src[2]["nuse"] = len(src[2]["vertno"])
     vertno = [s["vertno"] for s in src]
-    data = rng.standard_normal((sum(len(v) for v in vertno), T))
-    stc = MixedSourceEstimate(data, vertno, 0, 1, subject="sample")
+    data = rng.standard_normal((sum(len(v) for v in vertno), 3, T))
+    stc = MixedVectorSourceEstimate(data, vertno, 0, 1, subject="sample")
     src_head = src.copy()._transform_to("head", read_trans(trans_fname))
     brain = stc.plot(
-        src=src_head,
-        surface="white",
-        subjects_dir=subjects_dir,
-        colorbar=False,
-        alpha=0.1,
+        src=src_head, subjects_dir=subjects_dir, colorbar=False, brain_alpha=0.1
     )
     mesh = brain._data["vol"]["subcortical_mesh"]
     assert_allclose(mesh._polydata.points, src[2]["rr"] * 1000, atol=1e-2)
+    glyphs = brain._data["vol"]["glyph_dataset"]
+    assert_allclose(glyphs.points, src[2]["rr"][src[2]["vertno"]] * 1000, atol=1e-2)
     # gray base layer with the cortex alpha, data layer with the volume alpha
     assert mesh._overlays["curv"]._opacity == 0.1
-    assert mesh._overlays[brain._active_data_key]._opacity == 1.0
+    assert mesh._overlays[brain._active_data_key]._opacity == 0.4  # for vectors
     brain.set_cortex_alpha(0.5)
     assert mesh._overlays["curv"]._opacity == 0.5
     colors = mesh._current_colors.copy()

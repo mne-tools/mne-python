@@ -1290,8 +1290,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         nn = np.concatenate([s["nn"] for s in src])
         scale = 1000.0 if self._units == "mm" else 1.0
         if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD:  # e.g., fwd["src"]
-            for hemi, s in zip(("lh", "rh"), self._data["src"][:2]):
-                fname = op.join(self._subjects_dir, self._subject, "surf", hemi)
+            for cortex_hemi, s in zip(("lh", "rh"), self._data["src"][:2]):
+                fname = op.join(self._subjects_dir, self._subject, "surf", cortex_hemi)
                 mri_rr = read_surface(f"{fname}.white")[0] / 1000.0
                 if s["np"] == len(mri_rr):
                     try:
@@ -1310,6 +1310,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             rr = apply_trans(head_mri_t, rr)
             nn = apply_trans(head_mri_t, nn, move=False)
         rr = rr * scale
+        self.geo[hemi] = Bunch(coords=rr)  # e.g., for vector glyphs
         tris = np.concatenate([s["tris"] + off for s, off in zip(src, offsets)])
         vertices = np.concatenate([s["vertno"] + off for s, off in zip(src, offsets)])
         if len(vertices) != len(hemi_data["vertices"]):
@@ -2572,7 +2573,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
     def _update_glyphs(self, hemi, vectors):
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
-        vertices = hemi_data["vertices"]
+        # subcortical meshes are combined, so use their offset vertex numbers
+        vertices = hemi_data.get("subcortical_vertno", hemi_data["vertices"])
         vector_alpha = self._data["vector_alpha"]
         scale_factor = self._data["scale_factor"]
         vertices = slice(None) if vertices is None else vertices
