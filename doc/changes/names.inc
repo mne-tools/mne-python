@@ -121,6 +121,7 @@
 .. _Dominik Welke: https://github.com/dominikwelke/
 .. _Dominik Wetzel: https://github.com/schmetzler
 .. _Dominique Makowski: https://dominiquemakowski.github.io/
+.. _Don Yin: https://github.com/Don-Yin
 .. _Eberhard Eich: https://github.com/ebeich
 .. _Eduard Ort: https://github.com/eort
 .. _Elizabeth DuPre: https://github.com/emdupre
