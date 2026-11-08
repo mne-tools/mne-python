@@ -437,8 +437,10 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     coreg._load_scaling()
     assert coreg._subject == subject_to
     assert_allclose(coreg.coreg._scale, 1.0)
-    message = coreg._widgets["status_message"].get_value()
-    assert f"{subject_to} is sample scaled by {saved_scale:.2f} %" in message
+    scaled_from = coreg._widgets["scaled_from"].get_value()
+    assert scaled_from == f"Scaled from sample: {saved_scale:.2f} %"
+    coreg._set_subject("sample")
+    assert coreg._widgets["scaled_from"].get_value() == ""
 
     # and when scaling fails, the log should say why -- and not claim success
     monkeypatch.setattr("mne.gui._coreg.scale_mri", _raise_scale_mri)

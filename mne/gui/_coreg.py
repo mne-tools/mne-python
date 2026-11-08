@@ -693,14 +693,15 @@ class CoregistrationUI(HasTraits):
         cfg, tooltip = self._read_scaling_cfg()
         self._forward_widget_command("load_scaling", "set_enabled", cfg is not None)
         self._forward_widget_command("load_scaling", "set_tooltip", tooltip)
+        self._forward_widget_command("scaled_from", "set_value", "")
 
     def _load_scaling(self):
         cfg, _ = self._read_scaling_cfg()
         # the scale fields apply to the open subject, which is already scaled,
         # so only report its scaling relative to the template
         scale = " / ".join(f"{s:.2f}" for s in np.atleast_1d(cfg["scale"]) * 1e2)
-        self._display_message(
-            f"{self._subject} is {cfg['subject_from']} scaled by {scale} %"
+        self._forward_widget_command(
+            "scaled_from", "set_value", f"Scaled from {cfg['subject_from']}: {scale} %"
         )
 
     def _set_scale_mode(self, mode):
@@ -2046,6 +2047,11 @@ class CoregistrationUI(HasTraits):
             tooltip="Select the scaling mode",
             compact=True,
             layout=mri_scaling_layout,
+        )
+        self._widgets["scaled_from"] = self._renderer._dock_add_label(
+            value="",
+            layout=mri_scaling_layout,
+            selectable=True,
         )
         scale_params_layout = self._renderer._dock_add_group_box(
             name="Scaling Parameters",
