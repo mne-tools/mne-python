@@ -696,7 +696,7 @@ class SourceMorph:
                     # not sure...
                     if not np.allclose(self.zooms, to_zooms, atol=1e-3):
                         img_real, affine = reslice(
-                            img_real, self.affine, self.zooms, to_zooms
+                            img_real, self.affine, self.zooms, new_zooms=to_zooms
                         )
                     _debug_img(img_real, affine, "From-reslice-transform-src")
                     if resamp_2 is None:
@@ -973,7 +973,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
             _get_img_fdata(img),
             img.affine,  # MRI to world registration
             zooms,  # old voxel size in mm
-            new_zooms,
+            new_zooms=new_zooms,
         )  # new voxel size in mm
         with warnings.catch_warnings():  # nibabel<->numpy warning
             img = NiftiImage(img, affine)
@@ -1147,7 +1147,9 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     # if a specific voxel size was targeted (only possible after morphing)
     if voxel_size_defined:
         # reslice mri
-        vols, affine = reslice(vols, affine, _get_zooms_orig(morph), voxel_size)
+        vols, affine = reslice(
+            vols, affine, _get_zooms_orig(morph), new_zooms=voxel_size
+        )
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         vols = NiftiImage(vols, affine, header=header)

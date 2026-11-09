@@ -1719,7 +1719,7 @@ def _reslice_normalize(img, zooms):
     img_affine = img.affine
     img = _get_img_fdata(img)
     if zooms is not None:
-        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
+        img, img_affine = reslice(img, img_affine, img_zooms, new_zooms=zooms)
     img /= img.max()  # normalize
     return img, img_affine
 
