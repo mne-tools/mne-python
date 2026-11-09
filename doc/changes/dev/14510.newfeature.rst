@@ -1,0 +1,1 @@
+Preserve parent-mesh vertex correspondence in :meth:`mne.SourceEstimate.save_as_surface` GIFTI metadata and reject mismatched source-estimate vertices, by `Peter Molfese`_.
