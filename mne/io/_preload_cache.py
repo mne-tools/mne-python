@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .. import __version__ as MNE_VERSION  # ty: ignore[unresolved-import]
+from .. import __version__ as MNE_VERSION  # ty: ignore[import-not-found]
 from ..utils import get_config, logger
 
 _RAW_PRELOAD_CACHE_VERSION = 1
