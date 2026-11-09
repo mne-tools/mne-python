@@ -4362,12 +4362,12 @@ def test_make_metadata(all_event_id, row_events, tmin, tmax, keep_first, keep_la
         assert event_name in metadata.columns
 
     # Check the time-locked event's metadata
-    for _, row in metadata.iterrows():
+    for row in metadata.to_dict("records"):
         event_name = row["event_name"]
         assert np.isclose(row[event_name], 0)
 
     # Check non-time-locked events' metadata
-    for row_idx, row in metadata.iterrows():
+    for row_idx, row in zip(metadata.index, metadata.to_dict("records")):
         event_names = sorted(
             set(event_id.keys())
             | set(keep_first)
