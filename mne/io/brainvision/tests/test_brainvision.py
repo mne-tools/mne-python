@@ -1172,3 +1172,15 @@ def test_read_block_size_does_not_change_data(max_block_samples, monkeypatch):
     got = raw.load_data().get_data()
     assert max(counts) == max_block_samples * n_channels
     assert_array_equal(want, got)
+
+
+def test_vhdr_comment_table_without_filter_columns(tmp_path):
+    """Test [Comment] channel tables lacking filter columns (gh-12134)."""
+    shutil.copy(eeg_path, tmp_path / eeg_path.name)
+    shutil.copy(vmrk_path, tmp_path / vmrk_path.name)
+    text = vhdr_path.read_bytes().decode("utf-8")
+    text = re.sub(r"(#\s+Name.*?Resolution / Unit).*", r"\1", text)
+    (tmp_path / vhdr_path.name).write_bytes(text.encode("utf-8"))
+    raw = read_raw_brainvision(tmp_path / vhdr_path.name)
+    assert raw.info["highpass"] == 0.0
+    assert raw.info["lowpass"] == raw.info["sfreq"] / 2
