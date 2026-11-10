@@ -110,6 +110,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     See Also
     --------
     mne.preprocessing.compute_bridged_electrodes
+
+    Notes
+    -----
+    Marked bad channels that are *not* part of a bridge are ignored and left unchanged.
+    Bad channels that *are* part are included in virtual channel creation
+    since a channel can be marked bad for reasons unrelated to bridging.
     """
     from scipy.sparse.csgraph import connected_components
 
