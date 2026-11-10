@@ -1,0 +1,1 @@
+Add noise-weighted SSS via Foster's inverse with a new ``noise_cov`` parameter in :func:`mne.preprocessing.maxwell_filter`, by `Antonio Elias Sánchez Soto`_.
