@@ -2,6 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
+from unittest import mock
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -12,10 +15,13 @@ from mne.stats import (
     cluster_test,
     combine_adjacency,
     f_mway_rm,
+    f_oneway,
     f_threshold_mway_rm,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
+    ttest_1samp_no_p,
 )
+from mne.stats.cluster_level import ClusterResult, _rm_anova_stat_fun
 from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
 from mne.utils import GetEpochsMixin
 
@@ -419,3 +425,57 @@ def test_cluster_test_adjacency():
     )
     with pytest.raises(ValueError, match='"auto" could not infer sensor adjacency'):
         cluster_test(df_no_montage, "data ~ condition", **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("stat_fun", "unit"),
+    [
+        (ttest_1samp_no_p, "t"),
+        (f_oneway, "F"),
+        pytest.param(
+            partial(_rm_anova_stat_fun, factor_levels=[2, 2], effects="A:B"),
+            "F",
+            id="rm_anova-F",
+        ),
+    ],
+)
+def test_cluster_result_plot_joint_units(stat_fun, unit):
+    """Test plot_joint labels the statistic and does not rescale it to µV."""
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
+    result = ClusterResult(
+        stat_obs=np.zeros((4, 10)),  # required keywords
+        clusters=[],
+        cluster_p_values=np.array([]),
+        H0=np.array([]),
+        stat_fun=stat_fun,
+        n_permutations=1,
+    )
+    # mock a figure
+    with mock.patch("mne.viz.evoked.plot_evoked_joint") as plot:
+        result.plot_joint(info, np.arange(10) / 100, times=[0.02])
+    for key in ("ts_args", "topomap_args"):
+        assert plot.call_args.kwargs[key]["units"]["eeg"] == unit
+        assert plot.call_args.kwargs[key]["scalings"] == dict(eeg=1.0)
+
+
+def test_cluster_result_plot_joint_errors():
+    """Test plot_joint rejects input it cannot plot."""
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
+    kwargs = dict(
+        clusters=[],
+        cluster_p_values=np.array([]),
+        H0=np.array([]),
+        stat_fun=ttest_1samp_no_p,
+        n_permutations=1,
+    )
+    times = np.arange(10) / 100.0
+    tfr = ClusterResult(stat_obs=np.zeros((4, 3, 10)), **kwargs)
+    with pytest.raises(ValueError, match="Time-frequency results"):
+        tfr.plot_joint(info, times)
+    result = ClusterResult(stat_obs=np.zeros((4, 10)), **kwargs)
+    with pytest.raises(ValueError, match="info has 2 channels"):
+        result.plot_joint(create_info(["Fz", "Cz"], 100, "eeg"), times)
+    with pytest.raises(ValueError, match="times_sec does not match"):
+        result.plot_joint(info, times[:5])
+    with pytest.raises(ValueError, match="times_sec does not match"):
+        result.plot_joint(info, np.arange(10) / 50.0)  # wrong sfreq
