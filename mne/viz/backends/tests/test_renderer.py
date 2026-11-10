@@ -2,30 +2,35 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import asyncio
+import gc
+import json
 import os
 import platform
 import subprocess
 import sys
 from contextlib import nullcontext
+from functools import partial
+from html import unescape
 
 import numpy as np
 import pytest
 from matplotlib.font_manager import findfont
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
 from mne.datasets import testing
 from mne.transforms import quat_to_rot, rot_to_quat
 from mne.viz import Figure3D, get_3d_backend, set_3d_backend
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
-from mne.viz.backends.renderer import _get_renderer
+from mne.viz.backends.renderer import _check_3d_backend_name, _get_renderer
 
 _data_path = testing.data_path(download=False)
 
 
 def _unsupported(renderer):
     """Return a context for what the browser backend says it cannot draw."""
-    if renderer.get_3d_backend() == "jupyterlite_notebook":
+    if renderer.get_3d_backend() == "notebook_js":
         return pytest.raises(NotImplementedError, match="browser")
     return nullcontext()
 
@@ -185,7 +190,7 @@ def test_3d_backend(renderer):
     # highlighting/hover) without rebuilding the actor or its geometry; the
     # browser backend merges instances into solid meshes, so it has no such
     # per-instance colors to update
-    if renderer.get_3d_backend() != "jupyterlite_notebook":
+    if renderer.get_3d_backend() != "notebook_js":
         inst_cloud.point_data["colors"][0] = [0, 0, 255, 255]
         inst_cloud.Modified()
 
@@ -298,7 +303,7 @@ def test_renderer(renderer, monkeypatch):
         "backend = mne.viz.get_3d_backend(); "
         f"assert backend == {repr(backend)}, backend; "
         # the browser backend must never import VTK, since there is none there
-        f"assert backend != 'jupyterlite_notebook' or 'vtk' not in sys.modules",
+        f"assert backend != 'notebook_js' or 'vtk' not in sys.modules",
     ]
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     try:
@@ -310,9 +315,13 @@ def test_renderer(renderer, monkeypatch):
 
 def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'notebook', and 'jupyterlite_notebook'"
+    match = "Allowed values are 'pyvistaqt', 'notebook', and 'notebook_js'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend("invalid")
+    with pytest.warns(
+        FutureWarning, match='renamed "notebook_js"'
+    ):  # TODO VERSION: 1.16
+        assert _check_3d_backend_name("jupyterlite_notebook") == "notebook_js"
 
     # gh-9607
     def fail(x):
@@ -363,16 +372,32 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     assert not _pyvista._is_osmesa(plotter)
 
 
-# -- jupyterlite_notebook (pyvista-js) backend --------------------------------
+# -- notebook_js (pyvista-js) backend --------------------------------
 # What the shared tests above cannot pin down, mostly geometry, since nothing
 # here can be screenshotted. A unit square, split into two triangles:
 _RR = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], float)
 _TRIS = np.array([[0, 1, 2], [0, 2, 3]])
 
 
-def _scene(rend):
-    """Return the scene as vtk.js will receive it."""
-    return rend.plotter._renderer._build_scene_data()
+def _camera(rend):
+    """Return the camera as vtk.js will receive it."""
+    return rend.plotter.update_camera(send=False)["camera"]
+
+
+def _actor(rend, idx):
+    """Return an actor as vtk.js will receive it, serialized."""
+    from pyvista_js.rendering import scene_to_json
+
+    update = rend.plotter.update_actor(idx, add=True, send=False)
+    return json.loads(scene_to_json(update))["add"]
+
+
+def _glyph_points(rend, idx=-1):
+    """Return the points vtk.js draws for a glyph actor, shape (n_copies, n, 3)."""
+    mesh = rend.plotter.actors[idx]["mesh"]
+    template = np.reshape(mesh.to_scene_data()["geometryPoints"], (-1, 3))
+    matrices = np.reshape(mesh.point_data["matrices"], (-1, 3, 3)).transpose(0, 2, 1)
+    return mesh.points[:, np.newaxis] + np.einsum("nij,kj->nki", matrices, template)
 
 
 def test_lite_camera(renderer_lite):
@@ -380,10 +405,10 @@ def test_lite_camera(renderer_lite):
     rend = renderer_lite._get_renderer()
     assert rend.get_camera()[2:4] == (0.0, 0.0)  # nothing set: vtk.js frames it
     rend.set_camera(azimuth=90, elevation=90)  # plot_alignment's view is from +y
-    assert_allclose(_scene(rend)["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
+    assert_allclose(_camera(rend)["viewVector"], [0, 1, 0], atol=1e-12)
     rend.set_camera(elevation=0)  # one angle keeps the other; poles flip view up
-    assert_allclose(_scene(rend)["camera"]["viewVector"], [0, 0, 1], atol=1e-12)
-    assert _scene(rend)["camera"]["viewUp"] == [0, 1, 0]
+    assert_allclose(_camera(rend)["viewVector"], [0, 0, 1], atol=1e-12)
+    assert _camera(rend)["viewUp"] == [0, 1, 0]
     rend.set_camera(azimuth=180)
     assert rend.get_camera()[2:4] == pytest.approx((180.0, 0.0))
     renderer_lite.set_3d_view(rend.scene(), elevation=45)
@@ -396,18 +421,18 @@ def test_lite_primitives(renderer_lite):
     _, mesh = rend.mesh(*_RR.T, _TRIS, color="red", opacity=0.5)
     assert_allclose(mesh.points, _RR, atol=1e-6)
     # faces reach vtk.js as one flat cell array; rows would draw nothing at all
-    assert _scene(rend)["actors"][-1]["source"]["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
+    assert _actor(rend, -1)["source"]["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
     _, mesh = rend.surface(dict(rr=_RR, tris=_TRIS), color="#0000ff")
     assert_allclose(mesh.points, _RR, atol=1e-6)
     # scale sizes a radius-0.5 sphere, and an explicit radius is used as-is
     for kwargs, want in ((dict(scale=0.1), 0.05), (dict(scale=1, radius=0.02), 0.02)):
         rend.sphere(np.array([[1.0, 0, 0]]), "green", **kwargs)
-        pts = rend.plotter.actors[-1]["mesh"].points - [1, 0, 0]
+        pts = _glyph_points(rend)[0] - [1, 0, 0]
         assert np.linalg.norm(pts, axis=1).max() == pytest.approx(want, abs=1e-6)
     # tubes span origin to destination, stretched along their axis alone, and
     # default to white like PyVista's (gray would vanish into plot_alignment)
-    _, mesh = rend.tube([[0.0, 0, 0]] * 2, [[1.0, 0, 0], [0, 2.0, 0]], radius=0.01)
-    first, second = mesh.points.reshape(2, -1, 3)
+    rend.tube([[0.0, 0, 0]] * 2, [[1.0, 0, 0], [0, 2.0, 0]], radius=0.01)
+    first, second = _glyph_points(rend)
     assert (first[:, 0].max(), second[:, 1].max()) == pytest.approx((1.0, 2.0))
     assert np.linalg.norm(first[:, 1:], axis=1).max() == pytest.approx(0.01)
     assert np.linalg.norm(second[:, [0, 2]], axis=1).max() == pytest.approx(0.01)
@@ -428,7 +453,7 @@ def test_lite_glyphs(mode, renderer_lite):
     # rotation axis), sized by their scalars as plot_alignment's axes rely on
     dirs = np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0]], float)
     sizes = np.array([1.0, 2.0, 2.0])
-    _, mesh = rend.quiver3d(
+    rend.quiver3d(
         *np.zeros((3, 3)),
         *dirs.T,
         color="red",
@@ -443,7 +468,7 @@ def test_lite_glyphs(mode, renderer_lite):
         cylinder=((-0.5, 0.5), 0.15),
         sphere=((-0.5, 0.5), 0.5),
     )[mode]
-    for pts, d, size in zip(mesh.points.reshape(3, -1, 3), dirs, sizes):
+    for pts, d, size in zip(_glyph_points(rend), dirs, sizes):
         along = pts @ d
         across = np.linalg.norm(pts - np.outer(along, d), axis=1)
         assert (along.min(), along.max()) == pytest.approx(
@@ -457,29 +482,30 @@ def test_lite_glyphs(mode, renderer_lite):
 
 
 def test_lite_instanced_mesh(renderer_lite):
-    """Test instances merge per color, alpha becomes opacity, and the cloud."""
+    """Test instances are one glyph actor, one alpha becomes opacity, and the cloud."""
     rend = renderer_lite._get_renderer()
     positions = np.array([[0.0, 0, 0], [1.0, 0, 0], [2.0, 0, 0]])
-    colors = np.array([[1.0, 0, 0, 0.25], [0, 1.0, 0, 1.0], [1.0, 0, 0, 0.25]])
+    colors = np.array([[1.0, 0, 0, 0.25], [0, 1.0, 0, 0.25], [1.0, 0, 0, 0.25]])
     quats = np.zeros((3, 3))  # identity, in MNE's (x, y, z) convention
-    actors, cloud = rend.instanced_mesh(
-        _RR, _TRIS, positions, quats, colors, opacity=0.5
+    actor, cloud = rend.instanced_mesh(
+        _RR, _TRIS, positions, quats, colors, opacity=0.5, scales=[1.0, 2.0, 1.0]
     )
-    # vtk.js has no per-instance color: one solid mesh per distinct color, with
-    # its alpha (how plot_alignment fades MEG coils) folded into the opacity
-    got = {a["color"]: a["opacity"] for a in actors}
-    assert got == {(1.0, 0.0, 0.0): 0.125, (0.0, 1.0, 0.0): 0.5}
+    # the shared alpha (how plot_alignment fades MEG coils) is the opacity
+    assert actor["opacity"] == 0.125
+    assert_array_equal(actor["mesh"].point_data["Data"][:, 1], [0, 255, 0])
+    assert_allclose(_glyph_points(rend)[1], positions[1] + 2 * _RR)
     assert_allclose(cloud.points, positions)  # what _3d.py hangs names on
     cloud.field_data["ch_names"] = np.array(["a", "b", "c"])
-    # one color hands back the actor itself, as sphere's callers expect
-    actor, _ = rend.instanced_mesh(_RR, _TRIS, positions[:1], colors=(0, 0, 1.0))
-    assert not isinstance(actor, list)
+    colors[1, 3] = 1.0  # mixed alphas stay per instance
+    mixed, _ = rend.instanced_mesh(_RR, _TRIS, positions, colors=colors)
+    assert mixed["opacity"] == 1.0
+    assert_array_equal(mixed["mesh"].point_data["Data"][:, 3], [64, 255, 64])
     actor, cloud = rend.instanced_mesh(_RR, _TRIS, np.zeros((0, 3)))
     assert actor is None and cloud.points.shape == (0, 3)
     with pytest.raises(AssertionError, match=r"\(3, 4\)"):  # (w, x, y, z)
         rend.instanced_mesh(_RR, _TRIS, positions, np.zeros((3, 4)), colors)
-    rend.remove_mesh((actors, cloud))  # takes the whole color-split set out
-    assert len(rend.plotter.actors) == len(_scene(rend)["actors"]) == 1
+    rend.remove_mesh((mixed, cloud))
+    assert len(rend.plotter.actors) == 1
 
 
 def test_lite_scenes(renderer_lite):
@@ -517,42 +543,44 @@ def test_lite_notebook_kernel(renderer_lite, nbexec):
 
     from mne.viz.backends import renderer
 
-    renderer.set_3d_backend("jupyterlite_notebook")
+    renderer.set_3d_backend("notebook_js")
     rend = renderer._get_renderer(bgcolor="white")
     rr = np.array([[0.0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
     rend.mesh(*rr.T, [[0, 1, 2], [0, 2, 3]], color="red")
     renderer.set_3d_view(rend.scene(), azimuth=90, elevation=90)
-    scene = rend.plotter._renderer._build_scene_data()
-    source = scene["actors"][0]["source"]
-    points = source["points"]
-    if hasattr(points, "tolist"):  # pyvista-js >= 0.17 wraps it in a _Float32Array
-        points = points.tolist()
-    np.testing.assert_allclose(np.reshape(points, (-1, 3)), rr, atol=1e-6)
-    assert source["polys"] == [3, 0, 1, 2, 3, 0, 2, 3]
-    np.testing.assert_allclose(scene["camera"]["viewVector"], [0, 1, 0], atol=1e-12)
-    html = rend.plotter.generate_standalone_html()  # what the page will run
-    assert json.dumps(points).replace(" ", "") in html.replace(" ", "")
+    from pyvista_js.rendering import scene_to_json
+
+    actor = rend.plotter.update_actor(0, add=True, send=False)  # what the page gets
+    source = json.loads(scene_to_json(actor))["add"]["source"]
+    np.testing.assert_allclose(np.reshape(source["points"], (-1, 3)), rr, atol=1e-6)
+    assert list(source["polys"]) == [3, 0, 1, 2, 3, 0, 2, 3]
+    camera = rend.plotter.update_camera(send=False)["camera"]
+    np.testing.assert_allclose(camera["viewVector"], [0, 1, 0], atol=1e-12)
 
 
 @testing.requires_testing_data
-def test_lite_brain(renderer_lite):
+def test_lite_brain(renderer_lite, monkeypatch):
     """Test Brain draws a static, per-vertex-colored surface through the backend."""
+    from ipywidgets import GridBox
+
     import mne
 
     stc = mne.read_source_estimate(
         _data_path / "MEG" / "sample" / "sample_audvis_trunc-meg", "sample"
     )
     kwargs = dict(subject="sample", subjects_dir=_data_path / "subjects", hemi="lh")
-    brain = stc.plot(views="lat", initial_time=0.1, **kwargs)  # time_viewer="auto"
+    brain = stc.plot(views="lat", initial_time=0.1, time_viewer=False, **kwargs)
     assert isinstance(brain, mne.viz.Brain)
     assert brain.time_viewer is False and brain._scalar_bar is None
+    # the time label ends at x=0.95, in PyVista's font and doubled size
+    assert "translateX(-100%)" in brain._renderer._labels.value
+    assert "28px Arial" in brain._renderer._labels.value
     (actor,) = brain._renderer.plotter.actors
     colors = actor["mesh"].point_data["Data"]
     # curvature plus activation, as uint8 RGBA vtk.js uses directly
     assert colors.dtype == np.uint8 and colors.shape == (len(brain.geo["lh"].coords), 4)
     assert len(np.unique(colors, axis=0)) > 2
-    scene = brain._renderer.plotter._renderer._build_scene_data()
-    assert scene["actors"][0]["scalars"]["direct"] is True
+    assert _actor(brain._renderer, 0)["scalars"]["direct"] is True
     # Brain's canonical rotation reaches the camera through `rigid`
     assert brain._renderer.get_camera(rigid=brain._rigid)[2:4] == pytest.approx(
         (180.0, 90.0)
@@ -563,6 +591,87 @@ def test_lite_brain(renderer_lite):
     with pytest.raises(NotImplementedError, match="browser"):  # two columns
         mne.viz.Brain(surf="inflated", **{**kwargs, "hemi": "split"})
     assert len(mne.viz.Brain._instances) == n_brains  # the failed one died
+
+    # time_viewer="auto" builds the ipywidgets GUI shared with the notebook backend
+    brain = stc.plot(views="lat", initial_time=0.1, **kwargs)
+    rend = brain._renderer
+    assert "left" in rend._docks and "time_slider" in rend._widgets
+    assert isinstance(rend._viewer, GridBox)  # the widget the scene is drawn into
+    assert rend._frame.value.startswith("<iframe srcdoc=")
+    assert "srcdoc" not in repr(rend._viewer)  # what display() prints, sans kernel
+    assert brain.mpl_canvas._in_layout  # the traces go under the scene, not below all
+    assert "translateX(-50%)" in rend._labels.value  # time viewer centers it
+    assert "bold" in rend._labels.value
+    colors = rend.plotter.actors[0]["mesh"].point_data["Data"].copy()
+    draws, label = list(), brain.time_actor.input
+    monkeypatch.setattr(rend, "_draw_scene", partial(_count_draw, draws, rend))
+    rend._widgets["time_slider"].set_value(0)  # drag the slider back to the start
+    assert brain._current_time == 0 and len(draws) and brain.time_actor.input != label
+    assert not np.array_equal(colors, rend.plotter.actors[0]["mesh"].point_data["Data"])
+    asyncio.run(_updates_coalesce(rend, draws))
+    monkeypatch.undo()  # the real _draw_scene, to check it skips an unchanged scene
+    _same_page_not_resent(rend)
+    # actors and the view change in place too, so the page is drawn only once
+    page = rend._frame.value
+    sphere = rend.sphere(np.zeros((1, 3)), "red", 1.0)
+    rend.set_camera(azimuth=0)  # draws by itself, as Brain.show_view relies on
+    assert _sent(rend) == [{"actor", "add"}, {"camera"}]
+    rend.remove_mesh(sphere)
+    rend._draw_scene()
+    assert _sent(rend) == [{"actor", "remove"}] and rend._frame.value == page
+    # another surface moves the points in place, but new triangles need a new page
+    brain.set_surf("white")
+    rend._draw_scene()
+    assert _sent(rend) == [{"actor", "points"}] and rend._frame.value == page
+    mesh = brain.layered_meshes["lh"]._polydata
+    mesh.faces = mesh.faces  # as the flat map assigns them
+    rend._draw_scene()
+    assert rend._frame.value != page
+    brain.close()
+    del brain, rend
+    gc.collect()
+    assert not list(mne.viz.Brain._instances)  # its widgets no longer pin it
+
+
+def _count_draw(draws, rend):
+    """Stand in for _draw_scene: count, and clear what it clears."""
+    draws.append(1)
+    rend._dirty = False
+
+
+async def _updates_coalesce(rend, draws):
+    """Check changes in one kernel message draw once, and the next waits for the ack."""
+    draws.clear()
+    rend._update()
+    rend._update()
+    assert draws == [] and rend._busy.layout.visibility == "visible"
+    await asyncio.sleep(0)  # the loop runs what is scheduled
+    assert draws == [1]
+    rend._in_flight = asyncio.get_running_loop().call_later(60, rend._on_painted)
+    rend._update()  # while the page is on its way: nothing until it reports
+    await asyncio.sleep(0)
+    assert draws == [1]
+    rend._on_painted()  # the click of the page's button
+    await asyncio.sleep(0)
+    assert draws == [1, 1] and rend._in_flight is None
+    rend._on_painted()  # nothing changed since, so the overlay goes
+    assert rend._busy.layout.visibility == "hidden"
+
+
+def _same_page_not_resent(rend):
+    """Check a redraw of an unchanged scene sends nothing and clears the overlay."""
+    rend._draw_scene()  # the scene as it is now
+    rend._busy.layout.visibility = "visible"
+    page, n_updates = rend._frame.value, rend._n_updates
+    rend._draw_scene()  # the scene has not changed since
+    assert (rend._frame.value, rend._n_updates) == (page, n_updates)
+    assert rend._busy.layout.visibility == "hidden"
+
+
+def _sent(rend):
+    """Return the keys of each update message last sent to the page."""
+    text = rend._updates.value.split(">", 1)[1].rsplit("<", 1)[0]
+    return [set(update) for update in json.loads(unescape(text))]
 
 
 _SETUP_SCRIPT = """
@@ -607,7 +716,7 @@ setup_notebook(str(root))  # running the cell twice must not wrap the wrappers
 from mne.viz.backends import _jupyterlite
 
 assert _jupyterlite._orig["read_raw_kit"] is not mne.io.read_raw_kit
-assert mne.viz.get_3d_backend() == "jupyterlite_notebook"
+assert mne.viz.get_3d_backend() == "notebook_js"
 assert mne.datasets.sample.data_path() == root / "MNE-sample-data"
 data = root / "MNE-testing-data"
 raw_rel = "MEG/sample/sample_audvis_trunc_raw.fif"
