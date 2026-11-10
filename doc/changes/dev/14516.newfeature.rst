@@ -1,1 +1,1 @@
-Add support for binary file-like objects (such as :class:`io.BytesIO`) in :meth:`mne.io.BaseRaw.save` and :func:`mne.io.read_raw`, by `Bruno Aristimunha`_.
+Add support for binary file-like objects (such as :class:`io.BytesIO`) in :meth:`mne.io.BaseRaw.save`, by `Bruno Aristimunha`_.

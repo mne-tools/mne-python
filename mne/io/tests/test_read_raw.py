@@ -4,12 +4,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from io import BytesIO
 from pathlib import Path
 from shutil import copyfile
 
 import pytest
-from numpy.testing import assert_allclose
 
 from mne.datasets import testing
 from mne.io import read_raw, read_raw_bci2k
@@ -167,40 +165,3 @@ def test_bci2k():
     read_raw_bci2k(bci2k_fname, preload=True)  # smoke test: if this works, below should
     raw = read_raw(bci2k_fname, preload=True)
     assert "RawBCI2k" in repr(raw)
-
-
-@pytest.mark.filterwarnings("ignore:Channels contain different")
-@pytest.mark.parametrize(
-    "fpath",
-    [
-        base / "tests/data/test_raw.fif",
-        base / "edf/tests/data/test.edf",
-        pytest.param(base / "edf/tests/data/test.bdf", marks=_testing_mark),
-    ],
-)
-def test_read_raw_save_file_like(fpath):
-    """Test reading and saving raw data via file-like objects."""
-    expected = read_raw(fpath, preload=True)
-    with open(fpath, "rb") as fid:
-        for stream in (BytesIO(fpath.read_bytes()), fid):
-            raw = read_raw(stream, preload=True)
-            assert not stream.closed
-            assert_allclose(raw.get_data(), expected.get_data())
-
-    if fpath.suffix == ".fif":
-        cropped = expected.copy().crop(0, 1).pick(expected.ch_names[:2])
-        out = BytesIO()
-        assert cropped.save(out) == []
-        assert not out.closed
-        assert_allclose(
-            read_raw(out, preload=True).get_data(),
-            cropped.get_data(),
-            rtol=1e-6,
-            atol=1e-20,
-        )
-        with pytest.raises(ValueError, match="preload must be used"):
-            read_raw(out, preload=False)
-        with pytest.raises(ValueError, match="Cannot split file-like output"):
-            expected.save(BytesIO(), buffer_size_sec=0.5, split_size="5MB")
-        with pytest.raises(ValueError, match="Unsupported file type"):
-            read_raw(BytesIO(b"invalid"), preload=True)
