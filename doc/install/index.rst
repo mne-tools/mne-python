@@ -16,58 +16,61 @@ Installing MNE-Python
     .. grid-item-card::
         :text-align: center
 
-        .. rst-class:: font-weight-bold mb-0
+        .. card-header::
 
-            Standalone installers
+            .. rst-class:: font-weight-bold mb-0
 
-        .. rst-class:: card-subtitle text-muted mt-0
+                Standalone installers
 
-            For Beginners
+            .. rst-class:: card-subtitle text-muted mt-0
 
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                For Beginners
+
         .. image:: ../_static/mne_installer_macOS.png
            :alt: MNE-Python Installer
 
         **New to Python?** Use our standalone installers that include
         everything to get you started!
-        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+        .. card-footer::
 
-        .. button-ref:: installers
-            :ref-type: ref
-            :color: primary
-            :shadow:
-            :class: font-weight-bold
+            .. button-ref:: installers
+                :ref-type: ref
+                :color: primary
+                :shadow:
+                :class: font-weight-bold
 
-            Download Installers
+                Download Installers
 
 
     .. grid-item-card::
         :text-align: center
 
-        .. rst-class:: font-weight-bold mb-0
+        .. card-header::
 
-            Install via ``pip`` or ``conda``
+            .. rst-class:: font-weight-bold mb-0
 
-        .. rst-class:: card-subtitle text-muted mt-0
+                Install via ``pip`` or ``conda``
 
-            For Advanced Users
+            .. rst-class:: card-subtitle text-muted mt-0
 
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                For Advanced Users
+
         .. image:: ../_static/mne_installer_console.png
            :alt: Terminal Window
 
         **Already familiar with Python?**
         Follow our advanced setup instructions for ``pip`` and ``conda``!
-        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        .. button-ref:: manual-install
-            :ref-type: ref
-            :color: primary
-            :shadow:
-            :class: font-weight-bold
+        .. card-footer::
 
-            Setup Instructions
+            .. button-ref:: manual-install
+                :ref-type: ref
+                :color: primary
+                :shadow:
+                :class: font-weight-bold
+
+                Setup Instructions
 
 
 .. toctree::

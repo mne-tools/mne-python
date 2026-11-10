@@ -857,6 +857,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             else:
                 resolution = 1.0  # for files with units specified, but not res
         unit = unit.replace("\xc2", "")  # Remove unwanted control characters
+        unit = unit.replace("\u03bc", "\xb5")  # Greek mu -> micro sign
         orig_units[name] = unit  # Save the original units to expose later
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, 1) * scale
