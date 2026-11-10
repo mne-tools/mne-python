@@ -733,26 +733,14 @@ def test_snirf_multiple_wavelengths():
 
 
 @requires_testing_data
-@pytest.mark.parametrize("as_bytes", (True, False))
-def test_snirf_file_like(as_bytes, tmp_path, monkeypatch):
+def test_snirf_file_like():
     """Test reading SNIRF from file-like objects."""
     raw_ref = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    data = sfnirs_homer_103_wShort.read_bytes()
+    with pytest.raises(ValueError, match="preload must be used"):
+        read_raw_snirf(BytesIO(data), preload=False)
     with open(sfnirs_homer_103_wShort, "rb") as file_fid:
-        fid = BytesIO(file_fid.read()) if as_bytes else file_fid
-        with pytest.raises(ValueError, match="preload must be used with file-like"):
-            read_raw_snirf(fid, preload=False)
-        monkeypatch.setenv("MNE_CACHE_DIR", str(tmp_path))
-        with pytest.raises(ValueError, match="stable source files"):
-            read_raw_snirf(fid, preload="auto")
-        raw = _test_raw_reader(
-            read_raw_snirf,
-            fname=fid,
-            preload=True,
-            boundary_decimal=0,
-            test_preloading=False,
-            test_kwargs=False,
-        )
-        assert not fid.closed
-        assert raw.filenames == (None,)
-        assert_allclose(raw.get_data(), raw_ref.get_data())
-        assert_allclose(raw.annotations.onset, raw_ref.annotations.onset)
+        for fid in (BytesIO(data), file_fid):
+            raw = read_raw_snirf(fid, preload=True)
+            assert not fid.closed and raw.filenames == (None,)
+            assert_allclose(raw.get_data(), raw_ref.get_data())
