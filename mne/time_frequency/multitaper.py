@@ -405,14 +405,20 @@ def psd_array_multitaper(
     n_per_seg : int | None
         Length of each segment (windowed with DPSS tapers). Defaults
         to None, which uses the entire signal length without segmentation.
+
+        .. versionadded:: 1.14
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
         to be < n_per_seg. The default value is 0.
-    average : 'mean' | 'median' | None
+
+        .. versionadded:: 1.14
+    average : str | None
         How to average the segments. If ``'mean'`` (default), calculate the
         arithmetic mean across segments. If ``'median'``, calculate the median,
         corrected for its bias relative to the mean. If ``None``, returns the
         unaggregated segments. Must be ``None`` when ``output="complex"``.
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -421,9 +427,12 @@ def psd_array_multitaper(
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs) or (..., n_tapers, n_freqs)
-        The power spectral densities. All dimensions up to the last (or the
-        last two if ``output='complex'``) will be the same as input.
+    psds : ndarray
+        The power spectral densities. If ``average='mean'`` or
+        ``average='median'``, the returned array will have the same shape
+        as the input data plus an additional frequency dimension (and tapers
+        dimension if ``output='complex'``). If ``average=None``, the returned
+        array will also include an additional segment dimension.
     freqs : array
         The frequency points in Hz of the PSD.
     weights : ndarray
@@ -474,6 +483,7 @@ def psd_array_multitaper(
         if n_overlap < 0:
             raise ValueError(f"n_overlap ({n_overlap}) must be non-negative.")
         if n_per_seg < n_times:
+            # Segment continuous data into overlapping windows (Issue #11383)
             n_seg_samples = n_per_seg
             step = n_per_seg - n_overlap
             n_segments = (n_times - n_overlap) // step
