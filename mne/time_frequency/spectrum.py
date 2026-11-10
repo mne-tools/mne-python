@@ -794,10 +794,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             "channel",
             "freq",
         )
-        if method_kw.get("average", "") in (None, False):
+        has_segments = self.method == "welch" or method_kw.get("n_per_seg") is not None
+        if has_segments and method_kw.get("average", "") in (None, False):
             self._dims += ("segment",)
         if self._returns_complex_tapers(**method_kw):
-            self._dims = self._dims[:-1] + ("taper",) + self._dims[-1:]
+            freq_idx = (
+                -2
+                if (has_segments and method_kw.get("average", "") in (None, False))
+                else -1
+            )
+            self._dims = self._dims[:freq_idx] + ("taper",) + self._dims[freq_idx:]
         # record data type (for repr and html_repr)
         self._data_type = (
             "Fourier Coefficients"
@@ -915,12 +921,20 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # (and then deleted afterwards)
         self._shape = (len(self.ch_names), len(self.freqs))
         # append n_welch_segments (use "" as .get() default since None considered valid)
-        if method_kw.get("average", "") in (None, False):
+        has_segments = self.method == "welch" or method_kw.get("n_per_seg") is not None
+        if has_segments and method_kw.get("average", "") in (None, False):
             n_welch_segments = _compute_n_welch_segments(data.shape[-1], method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
         if self._returns_complex_tapers(**method_kw):
-            self._shape = self._shape[:-1] + (self._weights.size,) + self._shape[-1:]
+            freq_idx = (
+                -2
+                if (has_segments and method_kw.get("average", "") in (None, False))
+                else -1
+            )
+            self._shape = (
+                self._shape[:freq_idx] + (self._weights.size,) + self._shape[freq_idx:]
+            )
         # we don't need these anymore, and they make save/load harder
         del self._picks
         del self._psd_func
@@ -2791,6 +2805,11 @@ def _check_ci(ci):
 
 
 def _compute_n_welch_segments(n_times, method_kw):
+    n_per_seg = method_kw.get("n_per_seg")
+    if n_per_seg is not None:
+        n_overlap = method_kw.get("n_overlap", 0)
+        step = max(int(n_per_seg) - int(n_overlap), 1)
+        return (n_times - n_overlap) // step
     # get default values from psd_array_welch
     _defaults = dict()
     for param in ("n_fft", "n_per_seg", "n_overlap"):
