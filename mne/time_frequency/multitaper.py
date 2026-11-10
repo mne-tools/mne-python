@@ -457,7 +457,7 @@ def psd_array_multitaper(
     n_times = x.shape[-1]
     dshape = x.shape[:-1]
     x_2d = x.reshape(-1, n_times)
-    n_signals = len(x_2d)
+    n_seg_samples, n_segments, x_flat = n_times, 1, x_2d
 
     if average is False:
         average = None
@@ -465,28 +465,21 @@ def psd_array_multitaper(
         raise ValueError(f'average must be None when output="complex", got {average}.')
 
     if n_per_seg is not None:
-        n_per_seg = _ensure_int(n_per_seg, "n_per_seg")
+        n_per_seg = min(_ensure_int(n_per_seg, "n_per_seg"), n_times)
         n_overlap = _ensure_int(n_overlap, "n_overlap")
-        if n_per_seg > n_times:
-            n_per_seg = n_times
         if n_overlap >= n_per_seg:
             raise ValueError(
                 f"n_overlap ({n_overlap}) must be less than n_per_seg ({n_per_seg})."
             )
         if n_overlap < 0:
             raise ValueError(f"n_overlap ({n_overlap}) must be non-negative.")
-
-    if n_per_seg is None or n_per_seg == n_times:
-        n_seg_samples, n_segments = n_times, 1
-        x_flat = x_2d
-    else:
-        n_seg_samples = n_per_seg
-        step = n_per_seg - n_overlap
-        n_segments = (n_times - n_overlap) // step
-        x_seg = np.lib.stride_tricks.sliding_window_view(x_2d, n_per_seg, axis=-1)[
-            :, : n_segments * step : step, :
-        ]
-        x_flat = x_seg.reshape(-1, n_per_seg)
+        if n_per_seg < n_times:
+            n_seg_samples = n_per_seg
+            step = n_per_seg - n_overlap
+            n_segments = (n_times - n_overlap) // step
+            x_flat = np.lib.stride_tricks.sliding_window_view(x_2d, n_per_seg, axis=-1)[
+                :, : n_segments * step : step
+            ].reshape(-1, n_per_seg)
 
     dpss, eigvals, adaptive = _compute_mt_params(
         n_seg_samples, sfreq, bandwidth, low_bias, adaptive
@@ -507,9 +500,8 @@ def psd_array_multitaper(
 
     # Let's go in up to 50 MB chunks of signals to save memory
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
-    offsets = np.concatenate(
-        (np.arange(0, x_flat.shape[0], n_chunk), [x_flat.shape[0]])
-    )
+    n_x = x_flat.shape[0]
+    offsets = np.concatenate((np.arange(0, n_x, n_chunk), [n_x]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
         x_mt = _mt_spectra(x_flat[start:stop], dpss, sfreq, remove_dc=remove_dc)[0]
         if output == "power":
@@ -535,6 +527,7 @@ def psd_array_multitaper(
 
     # Combining/reshaping to original data shape
     if n_segments > 1:
+        n_signals = len(x_2d)
         if output == "power":
             psd = psd.reshape(n_signals, n_segments, n_freqs)
             if average == "mean":
@@ -542,9 +535,8 @@ def psd_array_multitaper(
             elif average == "median":
                 from .psd import _median_biases
 
-                biases = _median_biases(n_segments)
                 idx = (~np.isnan(psd)).sum(axis=1)
-                psd = np.nanmedian(psd, axis=1) / biases[idx]
+                psd = np.nanmedian(psd, axis=1) / _median_biases(n_segments)[idx]
             else:  # average is None
                 psd = np.moveaxis(psd, 1, 2)
         else:  # output == "complex"
