@@ -315,7 +315,20 @@ def test_save_stc_as_gifti(tmp_path, scale, scale_rr, known_subject):
     assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
 
-    for image, data in ((img_timelh, stc.lh_data), (img_timerh, stc.rh_data)):
+    for image, anatomical, data in (
+        (img_timelh, img_lh, stc.lh_data),
+        (img_timerh, img_rh, stc.rh_data),
+    ):
+        parent_meta = {
+            key: value
+            for key, value in image.meta.items()
+            if key.startswith("MNEParent")
+        }
+        assert parent_meta == dict(anatomical.meta)
+        vertices = np.fromstring(
+            parent_meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert len(vertices) == data.shape[0]
         assert float(image.meta["TimeStart"]) == stc.tmin
         assert float(image.meta["TimeStep"]) == stc.tstep
         assert image.meta["TimeUnits"] == "s"
@@ -328,6 +341,7 @@ def test_save_stc_as_gifti(tmp_path, scale, scale_rr, known_subject):
             assert float(darray.meta["TimeValue"]) == time
             assert darray.meta["TimeUnits"] == "s"
             assert darray.meta["Name"] == f"{time:g} s"
+            assert not any(key.startswith("MNEParent") for key in darray.meta)
             assert darray.intent == nib.nifti1.intent_codes["pointset"]
             assert_array_equal(darray.data, (data[:, idx] * scale).astype(np.float32))
 

@@ -2155,14 +2155,23 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
-        Anatomical image metadata stores ``MNEParentVertexIndices`` as
-        space-separated, zero-based integers in exported coordinate order:
+        Both anatomical and time-series GIFTI files store the same parent mapping
+        in file-level image metadata (not per-array metadata).
+        ``MNEParentVertexIndices`` contains space-separated, zero-based integers
+        in exported coordinate and time-series row order:
         element ``i`` identifies the original source-space parent vertex for
-        exported vertex ``i``. ``MNEParentVertexCount`` gives the parent mesh's
+        exported vertex and data row ``i``. Thus, time-series files can be
+        interpreted without their anatomical companion files.
+        ``MNEParentVertexCount`` gives the parent mesh's
         vertex count, ``MNEParentHemisphere`` is ``lh`` or ``rh``, and
         ``MNEParentSubject`` contains ``src[hemi]['subject_his_id']`` when known.
         These IDs are local to the original parent mesh, not globally unique,
         and do not identify vertices on an independently resampled surface.
+        For FreeSurfer-derived cortical source spaces, they are the original
+        FreeSurfer surface vertex numbers, not new MNE vertex numbers. The
+        ``MNE`` prefix names the metadata convention; custom source spaces retain
+        their own parent-surface numbering. Matching subject, hemisphere, and
+        vertex count alone does not guarantee identical parent vertex numbering.
 
         These MNE-specific metadata keys must be read explicitly by consumers.
         They preserve the two-array geometry layout and local triangle indices;
@@ -2170,7 +2179,8 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         specifies sparse data indexing rather than parent-mesh provenance.
 
         .. versionchanged:: 1.14
-            Anatomical GIFTI files store parent-mesh vertex correspondence.
+            Anatomical and time-series GIFTI files store parent-mesh vertex
+            correspondence in file-level metadata.
             Source-estimate and source-space vertices must match.
             The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
             seconds as image metadata. Each data array also stores its zero-based
@@ -2232,6 +2242,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             data = getattr(self, f"{hemi}_data") * scale
             image_meta = nib.gifti.GiftiMetaData(
                 {
+                    **parent_meta,
                     "TimeStart": repr(float(self.tmin)),
                     "TimeStep": repr(float(self.tstep)),
                     "TimeUnits": "s",
