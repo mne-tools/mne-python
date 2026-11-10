@@ -425,7 +425,7 @@ class CoregistrationUI(HasTraits):
         # configure UI
         self._trans_file = None
         if trans is not None and not isinstance(trans, Transform):
-            self._trans_file = Path(trans)
+            self._trans_file = Path(trans).expanduser().absolute()
             if not self._trans_file.is_file():
                 trans = None  # only used as the default path for saving
         self._reset_fitting_parameters()
