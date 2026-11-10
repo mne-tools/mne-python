@@ -360,6 +360,9 @@ addopts = [
 testpaths = [
   "mne",
 ]
+# Delete each passing test's tmp_path to save disk space; to keep them for
+# inspection, run with: pytest -o tmp_path_retention_policy=all ...
+tmp_path_retention_policy = "failed"
 
 [tool.rstcheck]
 ignore_directives = [
