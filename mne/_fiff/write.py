@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from collections.abc import Generator, Iterable, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from gzip import GzipFile
 from os import PathLike
 from typing import IO, TYPE_CHECKING, Any, Literal
@@ -348,9 +348,11 @@ def start_and_end_file(
     overwrite: bool = True,
 ) -> Generator[IO[bytes], None, None]:
     """Start and (if successfully written) close the file."""
-    with start_file(fname, id_=id_, overwrite=overwrite) as fid:
+    close = not _file_like(fname)
+    fid = start_file(fname, id_=id_, overwrite=overwrite)
+    with fid if close else nullcontext(fid):
         yield fid
-        end_file(fid)  # we only hit this line if the yield does not err
+        end_file(fid, close=close)  # we only hit this line if the yield does not err
 
 
 def check_fiff_length(fid: IO[bytes], close: bool = True) -> None:
@@ -365,11 +367,12 @@ def check_fiff_length(fid: IO[bytes], close: bool = True) -> None:
         )
 
 
-def end_file(fid: IO[bytes]) -> None:
+def end_file(fid: IO[bytes], close: bool = True) -> None:
     """Write the closing tags to a fif file and closes the file."""
     write_nop(fid, last=True)
-    check_fiff_length(fid)
-    fid.close()
+    check_fiff_length(fid, close=close)
+    if close:
+        fid.close()
 
 
 def write_coord_trans(fid: IO[bytes], trans: "Transform") -> None:

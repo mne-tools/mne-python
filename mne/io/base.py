@@ -103,7 +103,7 @@ from ..utils import (
     verbose_static,
     warn,
 )
-from ..utils._typing import Color, Self
+from ..utils._typing import Color, FileLike, Self
 from ._preload_cache import _raw_preload_auto
 
 if TYPE_CHECKING:
@@ -2297,7 +2297,7 @@ class BaseRaw(
     @verbose_static("picks_all", "tmin_raw", "tmax_raw", "overwrite", "split_naming")
     def save(
         self,
-        fname: Path | str,
+        fname: Path | str | FileLike,
         picks: str | np.ndarray | slice | None = None,
         tmin: float = 0,
         tmax: float | None = None,
@@ -2314,8 +2314,9 @@ class BaseRaw(
 
         Parameters
         ----------
-        fname : path-like
-            File name of the new dataset. This has to be a new filename
+        fname : path-like | file-like
+            File name of the new dataset, or a binary file-like object. This
+            has to be a new filename
             unless data have been preloaded. Filenames should end with
             ``raw.fif`` (common raw data), ``raw_sss.fif``
             (Maxwell-filtered continuous data),
@@ -2323,6 +2324,9 @@ class BaseRaw(
             ``_meg.fif`` (common MEG data), ``_eeg.fif`` (common EEG data),
             or ``_ieeg.fif`` (common intracranial EEG data). You may also
             append an additional ``.gz`` suffix to enable gzip compression.
+
+            .. versionchanged:: 1.14
+               Added support for file-like objects.
         picks : str | array-like | slice | None
             Channels to include. Slices and lists of integers will be interpreted as
             channel indices. In lists, channel *type* strings (e.g., ``['meg',
@@ -2390,7 +2394,8 @@ class BaseRaw(
         Returns
         -------
         fnames : List of path-like
-            List of path-like objects containing the path to each file split.
+            List of path-like objects containing the path to each file split,
+            or an empty list if ``fname`` is file-like.
 
             .. versionadded:: 1.9
 
@@ -2417,15 +2422,16 @@ class BaseRaw(
         endings += tuple([f"{e}.gz" for e in endings])
         endings_err = (".fif", ".fif.gz")
 
-        # convert to str, check for overwrite a few lines later
-        fname = _check_fname(
-            fname,
-            overwrite=True,
-            verbose="error",
-            check_bids_split=True,
-            name="fname",
-        )
-        check_fname(fname, "raw", endings, endings_err=endings_err)
+        if not _file_like(fname):
+            # convert to str, check for overwrite a few lines later
+            fname = _check_fname(
+                fname,
+                overwrite=True,
+                verbose="error",
+                check_bids_split=True,
+                name="fname",
+            )
+            check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
         if not self.preload and fname in self.filenames:
@@ -2449,8 +2455,9 @@ class BaseRaw(
                 'Complex data must be saved as "single" or "double", not "short"'
             )
 
-        # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite, verbose="error")
+        if not _file_like(fname):
+            # check for file existence and expand `~` if present
+            fname = _check_fname(fname=fname, overwrite=overwrite, verbose="error")
 
         if proj:
             info = deepcopy(self.info)
@@ -2474,6 +2481,10 @@ class BaseRaw(
 
         cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
         raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
+        if _file_like(fname):
+            with start_and_end_file(fname) as fid:
+                raw_fid_writer.write(fid, 0, None, None)
+            return []
         filenames = _write_raw(raw_fid_writer, fname, split_naming, overwrite)
         return filenames
 
@@ -4238,6 +4249,11 @@ def _write_raw_data(
             pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
             and first + buffer_size < stop
         ):
+            if next_fname is None:
+                raise ValueError(
+                    "Cannot split file-like output; increase split_size or save to "
+                    "a path."
+                )
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, next_fname.name)

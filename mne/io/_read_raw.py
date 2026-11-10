@@ -7,12 +7,13 @@
 from functools import partial
 from pathlib import Path
 
-from ..utils import fill_doc_static
+from ..utils import _file_like, fill_doc_static
+from ..utils._typing import FileLike
 from .base import BaseRaw
 
 
 def _read_unsupported(fname, **kwargs):
-    ext = "".join(Path(fname).suffixes)
+    ext = "" if _file_like(fname) else "".join(Path(fname).suffixes)
     msg = f"Unsupported file type ({ext})."
     suggest = kwargs.get("suggest")
     if suggest is not None:
@@ -113,6 +114,22 @@ def _get_readers():
 
 def split_name_ext(fname):
     """Return name and supported file extension."""
+    if _file_like(fname):
+        pos = fname.tell()
+        fname.seek(0)
+        header = fname.read(8)
+        fname.seek(pos)
+        if isinstance(header, bytes):
+            for magic, ext in (
+                (b"\x00\x00\x00d", ".fif"),
+                (b"d\x00\x00\x00", ".fif"),
+                (b"\xffBIOSEMI", ".bdf"),
+                (b"GDF", ".gdf"),
+                (b"0       ", ".edf"),
+            ):
+                if header.startswith(magic):
+                    return "", ext
+        return "", None
     maxsuffixes = max(ext.count(".") for ext in _get_supported())
     suffixes = Path(fname).suffixes
     for si in range(-maxsuffixes, 0):
@@ -124,7 +141,7 @@ def split_name_ext(fname):
 
 @fill_doc_static("preload", "verbose")
 def read_raw(
-    fname: Path | str,
+    fname: Path | str | FileLike,
     *,
     preload: bool | str = False,
     verbose: bool | str | int | None = None,
@@ -168,8 +185,12 @@ def read_raw(
 
     Parameters
     ----------
-    fname : path-like
-        Name of the file to read.
+    fname : path-like | file-like
+        Name of the file to read, or a binary file-like object (supported for
+        FIF, EDF, BDF, and GDF when ``preload`` is used).
+
+        .. versionchanged:: 1.14
+           Added support for file-like objects.
     preload : bool | str
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
