@@ -1183,3 +1183,15 @@ def test_vhdr_greek_mu_unit(tmp_path):
     raw = read_raw_brainvision(tmp_path / vhdr_path.name)
     assert raw.get_channel_types(picks=["FP1"]) == ["eeg"]
     assert raw._orig_units["FP1"] == "\xb5V"
+
+
+def test_vhdr_comment_table_without_filter_columns(tmp_path):
+    """Test [Comment] channel tables lacking filter columns (gh-12134)."""
+    shutil.copy(eeg_path, tmp_path / eeg_path.name)
+    shutil.copy(vmrk_path, tmp_path / vmrk_path.name)
+    text = vhdr_path.read_bytes().decode("utf-8")
+    text = re.sub(r"(#\s+Name.*?Resolution / Unit).*", r"\1", text)
+    (tmp_path / vhdr_path.name).write_bytes(text.encode("utf-8"))
+    raw = read_raw_brainvision(tmp_path / vhdr_path.name)
+    assert raw.info["highpass"] == 0.0
+    assert raw.info["lowpass"] == raw.info["sfreq"] / 2
