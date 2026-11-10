@@ -794,15 +794,13 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             "channel",
             "freq",
         )
-        has_segments = self.method == "welch" or method_kw.get("n_per_seg") is not None
-        if has_segments and method_kw.get("average", "") in (None, False):
+        is_unagged = (
+            self.method == "welch" or method_kw.get("n_per_seg") is not None
+        ) and method_kw.get("average", "") in (None, False)
+        if is_unagged:
             self._dims += ("segment",)
         if self._returns_complex_tapers(**method_kw):
-            freq_idx = (
-                -2
-                if (has_segments and method_kw.get("average", "") in (None, False))
-                else -1
-            )
+            freq_idx = -2 if is_unagged else -1
             self._dims = self._dims[:freq_idx] + ("taper",) + self._dims[freq_idx:]
         # record data type (for repr and html_repr)
         self._data_type = (
@@ -921,17 +919,14 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # (and then deleted afterwards)
         self._shape = (len(self.ch_names), len(self.freqs))
         # append n_welch_segments (use "" as .get() default since None considered valid)
-        has_segments = self.method == "welch" or method_kw.get("n_per_seg") is not None
-        if has_segments and method_kw.get("average", "") in (None, False):
-            n_welch_segments = _compute_n_welch_segments(data.shape[-1], method_kw)
-            self._shape += (n_welch_segments,)
+        is_unagged = (
+            self.method == "welch" or method_kw.get("n_per_seg") is not None
+        ) and method_kw.get("average", "") in (None, False)
+        if is_unagged:
+            self._shape += (_compute_n_welch_segments(data.shape[-1], method_kw),)
         # insert n_tapers
         if self._returns_complex_tapers(**method_kw):
-            freq_idx = (
-                -2
-                if (has_segments and method_kw.get("average", "") in (None, False))
-                else -1
-            )
+            freq_idx = -2 if is_unagged else -1
             self._shape = (
                 self._shape[:freq_idx] + (self._weights.size,) + self._shape[freq_idx:]
             )
@@ -2808,8 +2803,7 @@ def _compute_n_welch_segments(n_times, method_kw):
     n_per_seg = method_kw.get("n_per_seg")
     if n_per_seg is not None:
         n_overlap = method_kw.get("n_overlap", 0)
-        step = max(int(n_per_seg) - int(n_overlap), 1)
-        return (n_times - n_overlap) // step
+        return (n_times - n_overlap) // (n_per_seg - n_overlap)
     # get default values from psd_array_welch
     _defaults = dict()
     for param in ("n_fft", "n_per_seg", "n_overlap"):

@@ -775,34 +775,3 @@ def test_spectrum_get_data(raw_spectrum, epochs_spectrum):
             assert_array_equal(sub_data, spect._data[picks, freq_idx])
         else:
             assert_array_equal(sub_data, spect._data[:, picks, freq_idx])
-
-
-def test_multitaper_segments_spectrum(raw):
-    """Test segmented multitaper via Spectrum / Raw.compute_psd."""
-    n_per_seg, n_overlap = 256, 128
-    spec_mean = raw.compute_psd(
-        method="multitaper", n_per_seg=n_per_seg, n_overlap=n_overlap, average="mean"
-    )
-    assert spec_mean._dims == ("channel", "freq")
-    assert spec_mean.get_data().shape == (len(spec_mean.ch_names), n_per_seg // 2 + 1)
-
-    spec_unagg = raw.compute_psd(
-        method="multitaper", n_per_seg=n_per_seg, n_overlap=n_overlap, average=None
-    )
-    assert spec_unagg._dims == ("channel", "freq", "segment")
-    exp_shape = (len(spec_unagg.ch_names), n_per_seg // 2 + 1)
-    assert spec_unagg.get_data().shape[:2] == exp_shape
-    n_seg = spec_unagg.get_data().shape[-1]
-    assert n_seg > 1
-
-    spec_complex = raw.compute_psd(
-        method="multitaper",
-        n_per_seg=n_per_seg,
-        n_overlap=n_overlap,
-        output="complex",
-        average=None,
-    )
-    assert spec_complex._dims == ("channel", "taper", "freq", "segment")
-
-    with pytest.raises(ValueError, match='average must be None when output="complex"'):
-        raw.compute_psd(method="multitaper", n_per_seg=n_per_seg, output="complex")

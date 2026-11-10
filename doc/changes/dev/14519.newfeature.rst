@@ -1,0 +1,1 @@
+Add support for continuous data segmentation in :func:`mne.time_frequency.psd_array_multitaper` and :meth:`mne.io.Raw.compute_psd` via ``n_per_seg``, ``n_overlap``, and ``average`` parameters (:issue:`11383`), by `Ishaan Maheshwari`_.

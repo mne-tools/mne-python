@@ -456,13 +456,13 @@ def psd_array_multitaper(
     x = np.atleast_2d(x)
     n_times = x.shape[-1]
     dshape = x.shape[:-1]
+    x_2d = x.reshape(-1, n_times)
+    n_signals = len(x_2d)
 
     if average is False:
         average = None
     if n_per_seg is not None and output == "complex" and average is not None:
-        raise ValueError(
-            f'average must be None when output="complex", got {average}.'
-        )
+        raise ValueError(f'average must be None when output="complex", got {average}.')
 
     if n_per_seg is not None:
         n_per_seg = _ensure_int(n_per_seg, "n_per_seg")
@@ -477,17 +477,15 @@ def psd_array_multitaper(
             raise ValueError(f"n_overlap ({n_overlap}) must be non-negative.")
 
     if n_per_seg is None or n_per_seg == n_times:
-        n_seg_samples = n_times
-        n_segments = 1
-        x_flat = x.reshape(-1, n_times)
+        n_seg_samples, n_segments = n_times, 1
+        x_flat = x_2d
     else:
         n_seg_samples = n_per_seg
-        step = max(int(n_per_seg) - int(n_overlap), 1)
-        n_segments = 1 + (n_times - n_per_seg) // step
-        x_2d = x.reshape(-1, n_times)
-        x_seg = np.lib.stride_tricks.sliding_window_view(
-            x_2d, n_per_seg, axis=-1
-        )[:, : n_segments * step : step, :]
+        step = n_per_seg - n_overlap
+        n_segments = (n_times - n_overlap) // step
+        x_seg = np.lib.stride_tricks.sliding_window_view(x_2d, n_per_seg, axis=-1)[
+            :, : n_segments * step : step, :
+        ]
         x_flat = x_seg.reshape(-1, n_per_seg)
 
     dpss, eigvals, adaptive = _compute_mt_params(
@@ -536,31 +534,25 @@ def psd_array_multitaper(
         psd /= sfreq if output == "power" else np.sqrt(sfreq)
 
     # Combining/reshaping to original data shape
-    n_signals = x.reshape(-1, n_times).shape[0]
     if n_segments > 1:
         if output == "power":
             psd = psd.reshape(n_signals, n_segments, n_freqs)
             if average == "mean":
                 psd = np.nanmean(psd, axis=1)
-                last_dims = (n_freqs,)
             elif average == "median":
                 from .psd import _median_biases
 
                 biases = _median_biases(n_segments)
                 idx = (~np.isnan(psd)).sum(axis=1)
                 psd = np.nanmedian(psd, axis=1) / biases[idx]
-                last_dims = (n_freqs,)
             else:  # average is None
                 psd = np.moveaxis(psd, 1, 2)
-                last_dims = (n_freqs, n_segments)
         else:  # output == "complex"
-            psd = psd.reshape(n_signals, n_segments, n_tapers, n_freqs)
-            psd = np.moveaxis(psd, 1, -1)
-            last_dims = (n_tapers, n_freqs, n_segments)
-    else:
-        last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
+            psd = np.moveaxis(
+                psd.reshape(n_signals, n_segments, n_tapers, n_freqs), 1, -1
+            )
 
-    psd = psd.reshape(dshape + last_dims, copy=False)
+    psd = psd.reshape(dshape + psd.shape[1:], copy=False)
     if ndim_in == 1:
         psd = psd[0]
 

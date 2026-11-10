@@ -125,6 +125,7 @@ def _make_psd_data():
     [
         (psd_array_welch, dict(n_fft=128, window="hann")),
         (psd_array_multitaper, dict(low_bias=True)),
+        (psd_array_multitaper, dict(low_bias=True, n_per_seg=256, n_overlap=64)),
     ],
 )
 def test_psd(psd_func, psd_kwargs):
@@ -170,28 +171,44 @@ def test_psd_array_welch_nperseg_kwarg():
     with pytest.raises(ValueError, match="n_overlap cannot be greater"):
         kwargs.update(n_per_seg=64)
         psd_array_welch(data, sfreq, n_fft=128, n_overlap=90, **kwargs)
+    with pytest.raises(ValueError, match="n_overlap .* must be less than n_per_seg"):
+        psd_array_multitaper(data, sfreq, n_per_seg=64, n_overlap=90)
+    with pytest.raises(ValueError, match="n_overlap .* must be non-negative"):
+        psd_array_multitaper(data, sfreq, n_per_seg=64, n_overlap=-1)
+    with pytest.raises(ValueError, match='average must be None when output="complex"'):
+        psd_array_multitaper(
+            data, sfreq, n_per_seg=64, output="complex", average="mean"
+        )
     # test bad fmin/fmax
     with pytest.raises(ValueError, match="No frequencies found"):
         psd_array_welch(data, sfreq, fmin=10, fmax=1)
 
 
 @pytest.mark.parametrize("normalization", ("length", "full"))
-def test_complex_multitaper(normalization):
+@pytest.mark.parametrize("n_per_seg", (None, 128))
+def test_complex_multitaper(normalization, n_per_seg):
     """Test complex-valued multitaper output."""
     data, sfreq, _ = _make_psd_data()
+    kwargs = dict(n_per_seg=n_per_seg, average=None) if n_per_seg else dict()
     psd_complex, freq_complex, weights = psd_array_multitaper(
         data[:4, :500],
         sfreq,
         output="complex",
         normalization=normalization,
+        **kwargs,
     )
     psd, freq = psd_array_multitaper(
-        data[:4, :500], sfreq, output="power", normalization=normalization
+        data[:4, :500], sfreq, output="power", normalization=normalization, **kwargs
     )
     assert_array_equal(freq_complex, freq)
-    assert psd_complex.ndim == 3  # channels x tapers x freqs
-    psd_from_complex = _psd_from_mt(psd_complex, weights)
-    assert_allclose(psd_from_complex, psd)
+    if n_per_seg is None:
+        assert psd_complex.ndim == 3  # channels x tapers x freqs
+        psd_from_complex = _psd_from_mt(psd_complex, weights)
+        assert_allclose(psd_from_complex, psd)
+    else:
+        assert psd_complex.ndim == 4  # channels x tapers x freqs x segments
+        for s in range(psd_complex.shape[-1]):
+            assert_allclose(_psd_from_mt(psd_complex[..., s], weights), psd[..., s])
 
 
 # Copied from SciPy
@@ -229,21 +246,24 @@ def test_complex_welch():
         assert_allclose(converted, power)
 
 
+@pytest.mark.parametrize("func", (psd_array_welch, psd_array_multitaper))
 @pytest.mark.parametrize("crop", (False, True))
-def test_psd_array_welch_average_kwarg(crop):
-    """Test `average` kwarg of psd_array_welch()."""
+def test_psd_array_welch_average_kwarg(func, crop):
+    """Test `average` kwarg of psd_array_welch() and psd_array_multitaper()."""
     data, sfreq, _ = _make_psd_data()
     # prepare kwargs
     n_per_seg = 32
-    kwargs = dict(fmin=0, fmax=np.inf, n_fft=64, n_per_seg=n_per_seg, n_overlap=0)
+    kwargs = dict(fmin=0, fmax=np.inf, n_per_seg=n_per_seg, n_overlap=0)
+    if func is psd_array_welch:
+        kwargs["n_fft"] = 64
     # optionally crop data by n_per_seg so that we are sure to test both an
     # odd number and an even number of estimates (for median bias)
     if crop:
         data = data[..., :-n_per_seg]
     # run with average=mean/median/None
-    psds_mean, freqs_mean = psd_array_welch(data, sfreq, average="mean", **kwargs)
-    psds_median, freqs_median = psd_array_welch(data, sfreq, average="median", **kwargs)
-    psds_unagg, freqs_unagg = psd_array_welch(data, sfreq, average=None, **kwargs)
+    psds_mean, freqs_mean = func(data, sfreq, average="mean", **kwargs)
+    psds_median, freqs_median = func(data, sfreq, average="median", **kwargs)
+    psds_unagg, freqs_unagg = func(data, sfreq, average=None, **kwargs)
     # Frequencies should be equal across all "average" types, as we feed in
     # the exact same data.
     assert_array_equal(freqs_mean, freqs_median)
@@ -343,81 +363,3 @@ def test_psd_misaligned_nan_across_channels():
 
     # Good channel retains finite values
     assert np.isfinite(psds[1]).any()
-
-
-def test_multitaper_segments():
-    """Test segmented multitaper PSD computation."""
-    rng = np.random.default_rng(0)
-    sfreq = 1000.0
-    x = rng.standard_normal(size=(3, 2048))
-    n_per_seg = 512
-    n_overlap = 256
-
-    # 1. average='mean' vs average=None
-    psd_mean, freqs = psd_array_multitaper(
-        x, sfreq, n_per_seg=n_per_seg, n_overlap=n_overlap, average="mean"
-    )
-    assert psd_mean.shape == (3, 257)
-
-    psd_unagg, freqs_unagg = psd_array_multitaper(
-        x, sfreq, n_per_seg=n_per_seg, n_overlap=n_overlap, average=None
-    )
-    assert psd_unagg.shape == (3, 257, 7)
-    assert_array_equal(freqs, freqs_unagg)
-    assert_allclose(psd_unagg.mean(axis=-1), psd_mean, rtol=1e-12)
-
-    # 2. average='median'
-    psd_med, _ = psd_array_multitaper(
-        x, sfreq, n_per_seg=n_per_seg, n_overlap=n_overlap, average="median"
-    )
-    assert psd_med.shape == (3, 257)
-    expected_median = np.median(psd_unagg, axis=-1) / _median_biases(7)[7]
-    assert_allclose(psd_med, expected_median, rtol=1e-12)
-
-    # 3. 1D array
-    psd_1d, _ = psd_array_multitaper(
-        x[0], sfreq, n_per_seg=n_per_seg, n_overlap=n_overlap, average="mean"
-    )
-    assert psd_1d.shape == (257,)
-    assert_allclose(psd_1d, psd_mean[0])
-
-    psd_1d_unagg, _ = psd_array_multitaper(
-        x[0], sfreq, n_per_seg=n_per_seg, n_overlap=n_overlap, average=None
-    )
-    assert psd_1d_unagg.shape == (257, 7)
-    assert_allclose(psd_1d_unagg, psd_unagg[0])
-
-    # 4. Complex output with segments
-    psd_complex, freqs_c, weights = psd_array_multitaper(
-        x,
-        sfreq,
-        n_per_seg=n_per_seg,
-        n_overlap=n_overlap,
-        output="complex",
-        average=None,
-    )
-    assert psd_complex.ndim == 4  # (n_channels, n_tapers, n_freqs, n_segments)
-    assert psd_complex.shape[0] == 3
-    assert psd_complex.shape[2] == 257
-    assert psd_complex.shape[3] == 7
-    for seg in range(7):
-        p_seg = _psd_from_mt(psd_complex[..., seg], weights)
-        assert_allclose(p_seg, psd_unagg[..., seg], rtol=1e-12)
-
-    # 5. Invalid parameters
-    with pytest.raises(ValueError, match="must be less than n_per_seg"):
-        psd_array_multitaper(x, sfreq, n_per_seg=256, n_overlap=256)
-
-    with pytest.raises(ValueError, match="must be non-negative"):
-        psd_array_multitaper(x, sfreq, n_per_seg=256, n_overlap=-1)
-
-    with pytest.raises(ValueError, match='average must be None when output="complex"'):
-        psd_array_multitaper(
-            x, sfreq, n_per_seg=256, n_overlap=128, output="complex", average="mean"
-        )
-
-    # 6. n_per_seg > n_times clips to n_times
-    psd_clip, freqs_clip = psd_array_multitaper(x, sfreq, n_per_seg=5000, n_overlap=0)
-    psd_full, freqs_full = psd_array_multitaper(x, sfreq, n_per_seg=None)
-    assert_allclose(psd_clip, psd_full)
-    assert_array_equal(freqs_clip, freqs_full)
