@@ -771,3 +771,10 @@ def test_invalid_meas_date(monkeypatch):
     log = log.getvalue()
     assert "No date or time found" in log
     assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=UTC)
+
+
+@pytest.mark.parametrize("date_str", ["14/10/1890", "14-Oct-1890", "14-10-1890"])
+def test_convert_time_formats(date_str):
+    """Test the date formats found in CTF headers, including dd-mm-YYYY."""
+    expected = datetime(1890, 10, 14, 10, 9, tzinfo=UTC).timestamp()
+    assert _convert_time(date_str, "10:09") == expected
