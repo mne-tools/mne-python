@@ -39,7 +39,7 @@ doc = [
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
-  "sphinx-design",
+  "sphinx-design >= 0.8",
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
