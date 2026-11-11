@@ -72,7 +72,10 @@ def test_datasets_basic(tmp_path, monkeypatch):
     # don't let it read from the config file to get the directory,
     # force it to look for the default
     monkeypatch.setenv("_MNE_FAKE_HOME_DIR", str(tmp_path))
-    monkeypatch.delenv("SUBJECTS_DIR", raising=False)
+    # setenv first so that monkeypatch also undoes the os.environ change that
+    # set_config makes below, even when SUBJECTS_DIR was not set to begin with
+    monkeypatch.setenv("SUBJECTS_DIR", "")
+    monkeypatch.delenv("SUBJECTS_DIR")
     assert datasets.utils._get_path(None, "foo", "bar") == tmp_path / "mne_data"
     assert get_subjects_dir(None) is None
     _set_montage_coreg_path()
