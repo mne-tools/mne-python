@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "d4ac0ebbeb1a5456fe58efb04d371b1dc5e896f7",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org",
+      "l": "sappelhoff"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14397.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 27,
+      "d": 22
+    },
+    "mne/channels/montage.py": {
+      "a": 42,
+      "d": 3
+    },
+    "mne/channels/tests/test_montage.py": {
+      "a": 15,
+      "d": 0
+    }
+  }
+}

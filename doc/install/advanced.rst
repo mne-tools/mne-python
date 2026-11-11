@@ -83,14 +83,16 @@ please follow :ref:`standard-instructions`.
 Installing to a headless Linux server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-First, follow the standard installation instructions. Next, you can choose
-to install the ``osmesa`` (off-screen MESA) VTK variant, which avoids the need
-to use Xvfb to start a virtual display (and have a sufficiently updated
-MESA to render properly):
+First, follow the standard installation instructions. VTK 9.4 and newer
+automatically falls back to EGL when no X display is available, so no virtual
+display (Xvfb) or special VTK build is needed as long as an EGL implementation
+is installed. GPU drivers typically provide one; on machines without a GPU,
+MESA provides software rendering via ``llvmpipe``, which you can get from your
+system package manager or with:
 
 .. code-block:: console
 
-    $ conda install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
+    $ conda install -c conda-forge mesalib
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,17 +183,7 @@ Off-screen rendering with MESA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On remote Linux systems, it might be possible to use MESA software rendering
-(such as ``llvmpipe`` or ``swr``) for 3D visualization (with some tweaks).
-For example, on CentOS 7.5 you might be able to use an environment variable
-to force MESA to use modern OpenGL by using this before executing
-``spyder`` or ``python``:
-
-.. code-block:: console
-
-    $ export MESA_GL_VERSION_OVERRIDE=3.3
-
-Also, it's possible that different software rending backends might perform
-better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
+(such as ``llvmpipe``) for 3D visualization (with some tweaks).
 In newer MESA (21+), rendering can be incorrect when using MSAA, so consider
 setting:
 
@@ -217,43 +209,6 @@ force software rendering instead with something like:
 .. code-block:: console
 
     $ export LIBGL_ALWAYS_SOFTWARE=true
-
-Another issue that may come up is that the MESA software itself may be out of date
-in certain operating systems, for example CentOS. This may lead to incomplete
-rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.
-It boils down to building a newer version (e.g., 18.3.6)
-locally following a variant of `these instructions <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
-If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/download/sp9qg>`_ we made.
-After downloading the files, untar them and add them to the appropriate library paths
-using the following commands:
-
-.. code-block:: console
-
-    $ tar xzvf mesa_18.3.6_centos_lib.tgz
-    $ export LIBGL_DRIVERS_PATH="${PWD}/lib"
-    $ export LD_LIBRARY_PATH="${PWD}/lib"
-
-To check that everything went well, type the following:
-
-.. code-block:: console
-
-    $ glxinfo | grep "OpenGL core profile version"
-
-which should give::
-
-    OpenGL core profile version string: 3.3 (Core Profile) Mesa 18.3.6
-
-Another way to check is to type:
-
-.. code-block:: console
-
-    $ mne sys_info
-
-and it should show the right version of MESA::
-
-    ...
-    pyvista:       0.27.4 {pyvistaqt=0.2.0, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 3.4, 256 bits)}
-    ...
 
 .. _troubleshoot_3d:
 

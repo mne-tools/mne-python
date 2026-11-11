@@ -20,9 +20,14 @@ from mne import (
 )
 from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
-from mne.channels import make_dig_montage, make_standard_montage
+from mne.channels import (
+    compute_interpolation_data,
+    make_dig_montage,
+    make_standard_montage,
+)
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
+from mne.forward import _field_interpolation
 from mne.io import RawArray, read_raw_ctf, read_raw_fif, read_raw_nirx
 from mne.preprocessing.nirs import (
     beer_lambert_law,
@@ -173,6 +178,26 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     interp_fit = evoked_eeg_bad.copy().interpolate_bads(**kw).data[bads_idx]
     assert_allclose(ave_before, interp_fit, atol=2.5e-6)
     assert ctol[1] < np.corrcoef(ave_before, interp_fit)[0, 1]  # better
+    if method is None:  # precomputed data matches and is reusable for any bads
+        interp = compute_interpolation_data(evoked_eeg_bad.info)
+        assert repr(interp["eeg"]) == "<InterpolationData | 15 EEG channels>"
+        for bads, exclude in ((["EEG 012"], ()), (["EEG 004", "EEG 012"], ["EEG 004"])):
+            evoked_eeg_bad.info["bads"] = bads
+            want = evoked_eeg_bad.copy().interpolate_bads(exclude=exclude)
+            got = evoked_eeg_bad.copy().interpolate_bads(
+                exclude=exclude,
+                interpolation=interp,
+                method="nan",  # ignored
+            )
+            assert_allclose(got.data, want.data, rtol=1e-7, atol=1e-15)  # EEG ~1e-6 V
+            assert got.info["bads"] == want.info["bads"] == list(exclude)
+        evoked_eeg_bad.info["chs"][0]["loc"][0] += 1e-3
+        with pytest.raises(ValueError, match="positions do not match"):
+            evoked_eeg_bad.copy().interpolate_bads(interpolation=interp)
+        with pytest.raises(ValueError, match="Invalid value.*kind"):
+            evoked_eeg_bad.interpolate_bads(interpolation=dict(meg=interp["eeg"]))
+        with pytest.raises(TypeError, match="InterpolationData"):
+            evoked_eeg_bad.interpolate_bads(interpolation=dict(eeg=dict()))
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
@@ -210,7 +235,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
 
 @pytest.mark.slowtest
-def test_interpolation_meg():
+def test_interpolation_meg(monkeypatch):
     """Test interpolation of MEG channels."""
     # speed accuracy tradeoff: channel subselection is faster but the
     # correlation drops
@@ -223,9 +248,10 @@ def test_interpolation_meg():
     raw.crop(0, 0.1).load_data().pick(epochs_meg.ch_names)
     raw.info.normalize_proj()
     raw.set_channel_types({raw.ch_names[0]: "stim"}, on_unit_change="ignore")
-    raw.info["bads"] = [raw.ch_names[1]]
+    raw.info["bads"] = raw.ch_names[:2]
     raw.load_data()
     raw.interpolate_bads(mode="fast")
+    assert raw.info["bads"] == raw.ch_names[:1]  # stim not interpolated, stays bad
     del raw
 
     # check that interpolation works for MEG
@@ -258,6 +284,22 @@ def test_interpolation_meg():
     data2 = evoked.interpolate_bads(origin="auto").data[pick]
     assert np.corrcoef(data1, data2)[0, 1] > thresh
 
+    # MEG -- precomputed data matches and is reusable for any bads
+    interp = compute_interpolation_data(evoked.info, mode="fast")
+    interp_par = compute_interpolation_data(evoked.info, mode="fast", n_jobs=2)
+    assert_array_equal(interp_par["meg"]["dots"], interp["meg"]["dots"])
+    for bads in (["MEG 0141"], ["MEG 0121", evoked.ch_names[-1]]):
+        evoked.info["bads"] = bads
+        want = evoked.copy().interpolate_bads(mode="fast").data
+        with monkeypatch.context() as m:  # precomputed, so no coils are needed
+            m.setattr(_field_interpolation, "_create_meg_coils", None)
+            got = evoked.copy().interpolate_bads(interpolation=interp).data
+        assert_allclose(got, want, rtol=1e-7, atol=1e-20)  # mags ~1e-13 T
+    evoked.info["dev_head_t"]["trans"][0, 3] += 1e-3
+    with pytest.raises(ValueError, match="dev_head_t"):
+        evoked.copy().interpolate_bads(interpolation=interp)
+    evoked.info["dev_head_t"]["trans"][0, 3] -= 1e-3
+
     # MEG -- with exclude
     evoked.info["bads"] = ["MEG 0141", "MEG 0121"]
     pick = pick_channels(evoked.ch_names, evoked.info["bads"], ordered=True)
@@ -267,6 +309,7 @@ def test_interpolation_meg():
     data2 = evoked.interpolate_bads(origin="auto", exclude=["MEG 0121"]).data[pick]
     assert np.corrcoef(data1[0], data2[0])[0, 1] > thresh
     assert np.all(data2[1] == 1e10)
+    assert evoked.info["bads"] == ["MEG 0121"]
 
 
 def _this_interpol(inst, ref_meg=False):
@@ -383,10 +426,12 @@ def test_interpolation_nirs_reordered_picks():
     """Test NIRS interpolation uses the closest donor in raw channel space."""
     raw = _nirs_raw()
     raw.info["bads"] = ["S2_D2 760", "S2_D2 850"]
-    raw.interpolate_bads(
-        method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False
-    )
+    kwargs = dict(method=dict(fnirs="nearest"), origin=(0.0, 0.0, 0.0), verbose=False)
+    raw.interpolate_bads(reset_bads=False, **kwargs)
     _assert_nirs_donor(raw)
+    assert raw.info["bads"] == ["S2_D2 760", "S2_D2 850"]
+    raw.interpolate_bads(**kwargs)
+    assert raw.info["bads"] == []
 
 
 def test_interpolation_nirs_epochs():
@@ -522,12 +567,21 @@ def test_nan_interpolation(raw):
     assert raw.info["bads"] == ch_to_interp
 
     store = raw.info["chs"][1]["loc"]
+    store3 = raw.info["chs"][3]["loc"]
     # for on_bad_position="raise"
     raw.info["bads"] = ch_to_interp
     raw.info["chs"][1]["loc"] = np.full(12, np.nan)
     with pytest.raises(ValueError, match="have invalid sensor position"):
         # DOES NOT interpolates at all. So raw.info["bads"] remains as is
         raw.interpolate_bads(on_bad_position="raise")
+    # all-zero positions are invalid too, and all such channels are named
+    raw.info["bads"] = ch_to_interp + raw.ch_names[2:4]
+    raw.info["chs"][3]["loc"] = np.zeros(12)
+    match = rf"\['{ch_to_interp[0]}', '{raw.ch_names[3]}'\] have invalid sensor"
+    with pytest.raises(ValueError, match=match):
+        raw.interpolate_bads(on_bad_position="raise")
+    raw.info["chs"][3]["loc"] = store3
+    raw.info["bads"] = ch_to_interp
 
     # for on_bad_position="warn"
     with pytest.warns(RuntimeWarning, match="have invalid sensor position"):

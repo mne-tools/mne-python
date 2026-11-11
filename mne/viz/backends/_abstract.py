@@ -1154,6 +1154,7 @@ class _AbstractDock(ABC):
         icon=None,
         tooltip=None,
         layout=None,
+        shortcut=None,
     ):
         pass
 
@@ -1180,7 +1181,16 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_check_box(
-        self, name, value, callback, *, tooltip=None, layout=None, row=None, col=None
+        self,
+        name,
+        value,
+        callback,
+        *,
+        tooltip=None,
+        layout=None,
+        row=None,
+        col=None,
+        shortcut=None,
     ):
         pass
 

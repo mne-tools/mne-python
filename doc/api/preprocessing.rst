@@ -34,6 +34,8 @@ Projections:
 
    Layout
    DigMontage
+   InterpolationData
+   compute_interpolation_data
    compute_native_head_t
    fix_mag_coil_types
    read_polhemus_fastscan

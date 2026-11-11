@@ -175,13 +175,19 @@ def test_psd_array_welch_nperseg_kwarg():
         psd_array_welch(data, sfreq, fmin=10, fmax=1)
 
 
-def test_complex_multitaper():
+@pytest.mark.parametrize("normalization", ("length", "full"))
+def test_complex_multitaper(normalization):
     """Test complex-valued multitaper output."""
     data, sfreq, _ = _make_psd_data()
     psd_complex, freq_complex, weights = psd_array_multitaper(
-        data[:4, :500], sfreq, output="complex"
+        data[:4, :500],
+        sfreq,
+        output="complex",
+        normalization=normalization,
     )
-    psd, freq = psd_array_multitaper(data[:4, :500], sfreq, output="power")
+    psd, freq = psd_array_multitaper(
+        data[:4, :500], sfreq, output="power", normalization=normalization
+    )
     assert_array_equal(freq_complex, freq)
     assert psd_complex.ndim == 3  # channels x tapers x freqs
     psd_from_complex = _psd_from_mt(psd_complex, weights)
@@ -192,6 +198,35 @@ def test_complex_multitaper():
 def _median_bias(n):
     ii_2 = 2 * np.arange(1.0, (n - 1) // 2 + 1)
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
+
+
+def test_complex_welch():
+    """Test complex-valued Welch output."""
+    data, sfreq, _ = _make_psd_data()
+    data = data[:4]
+    kwargs = dict(n_fft=256, n_overlap=0, verbose=False)
+    for average in ("mean", "median"):
+        with pytest.raises(ValueError, match='output="complex"'):
+            psd_array_welch(data, sfreq, average=average, output="complex", **kwargs)
+
+    coefs, freqs = psd_array_welch(
+        data, sfreq, average=None, output="complex", **kwargs
+    )
+    assert coefs.shape[-1] > 1
+    scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
+    segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
+    for average in ("mean", "median"):
+        power, freqs_power = psd_array_welch(
+            data, sfreq, average=average, output="power", **kwargs
+        )
+        assert_array_equal(freqs, freqs_power)
+        if average == "mean":
+            converted = segment_power.mean(axis=-1)
+        else:
+            converted = np.median(segment_power, axis=-1) / _median_bias(
+                segment_power.shape[-1]
+            )
+        assert_allclose(converted, power)
 
 
 @pytest.mark.parametrize("crop", (False, True))

@@ -4,7 +4,7 @@ platforms:
   subdir: osx-64
   virtual-packages:
   - __osx=13.3
-  - __unix=0=0
+  - __unix=0
   - __archspec=0=x86_64
 environments:
   default:
@@ -73,7 +73,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/fqdn-1.5.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h11-0.16.0-pyhcf101f3_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h2-4.4.1-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.5-pyhc455866_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.6-pyhc455866_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/hedtools-1.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/hpack-4.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/httpcore-1.0.9-pyh29332c3_0.conda
@@ -1219,20 +1219,21 @@ packages:
   - pkg:pypi/h2?source=hash-mapping
   size: 100789
   timestamp: 1785796355216
-- conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.5-pyhc455866_1.conda
-  sha256: 56f66940d92c18aac5f329ce86cb06f8b8ca3158dc9a214f32761e5857c7740e
-  md5: a054accd53cde503ddda7b435b856920
+- conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.6-pyhc455866_0.conda
+  sha256: 062ab540580bb9f5051c49a1a397ffee810ac446c50af85ebc8a42fbbd88be4e
+  md5: 14792f026694307d2e4ffa082b3b6d89
   depends:
   - h5py
   - numpy
   - pip
-  - python >=3.10
+  - python >=3.11
   license: BSD-3-Clause
   license_family: BSD
   purls:
   - pkg:pypi/h5io?source=hash-mapping
-  size: 23663
-  timestamp: 1777475125376
+  run_exports: {}
+  size: 27107
+  timestamp: 1793896203573
 - conda: https://conda.anaconda.org/conda-forge/noarch/hedtools-1.2.0-pyhd8ed1ab_0.conda
   sha256: 5ccbfc8d98c46aea02d51efff20e851b56ce3d6dd45aef9ee159b54e2bc6354e
   md5: 274295fe599b6a3f41f3903856eac37b
@@ -1356,7 +1357,7 @@ packages:
   license: BSD-2-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/imageio?source=compressed-mapping
+  - pkg:pypi/imageio?source=hash-mapping
   size: 310465
   timestamp: 1788865642221
 - conda: https://conda.anaconda.org/conda-forge/noarch/imageio-ffmpeg-0.6.0-pyhd8ed1ab_0.conda
@@ -2463,7 +2464,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/pre-commit?source=compressed-mapping
+  - pkg:pypi/pre-commit?source=hash-mapping
   size: 201879
   timestamp: 1786408353117
 - conda: https://conda.anaconda.org/conda-forge/noarch/prometheus_client-0.26.0-pyhd8ed1ab_0.conda
@@ -2845,7 +2846,7 @@ packages:
   license: BSD-3-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/pyvista-js
+  - pkg:pypi/pyvista-js?source=compressed-mapping
   size: 75842
   timestamp: 1789142404852
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyvista-validation-0.2.2-pyh5ded981_0.conda
@@ -2859,7 +2860,7 @@ packages:
   license: MIT
   license_family: MIT
   purls:
-  - pkg:pypi/pyvista-validation
+  - pkg:pypi/pyvista-validation?source=compressed-mapping
   size: 40640
   timestamp: 1789614540757
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyvistaqt-0.13.1-pyhd8ed1ab_0.conda
@@ -3697,7 +3698,7 @@ packages:
   license: Apache-2.0
   license_family: APACHE
   purls:
-  - pkg:pypi/websocket-client?source=compressed-mapping
+  - pkg:pypi/websocket-client?source=hash-mapping
   size: 78254
   timestamp: 1788531123810
 - conda: https://conda.anaconda.org/conda-forge/noarch/widgetsnbextension-4.0.16-pyhd8ed1ab_0.conda

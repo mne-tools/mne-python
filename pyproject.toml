@@ -39,7 +39,7 @@ doc = [
   "seaborn >= 0.5, != 0.11.2",
   "selenium >= 4.27.1",
   "sphinx >= 6",
-  "sphinx-design",
+  "sphinx-design >= 0.8",
   "sphinx-gallery >= 0.16",
   "sphinx_copybutton",
   "sphinxcontrib-bibtex >= 2.5",
@@ -232,7 +232,7 @@ full-no-qt = [
   "threadpoolctl",
   "traitlets",
   "trame < 4",  # trame-vtk and trame-pyvista do not support trame 4 yet
-  "trame-pyvista",
+  "trame-pyvista[jupyter]",
   "trame-vtk",
   "trame-vuetify != 3.2.3",
   "vtk >= 9.2",
@@ -241,7 +241,7 @@ full-no-qt = [
 full-pyqt6 = ["mne[full-no-qt]", "PyQt6 != 6.6.0", "PyQt6-Qt6 != 6.6.0, != 6.7.0"]
 full-pyside6 = ["mne[full]"]
 # Dependencies for MNE-Python functions that use HDF5 I/O
-hdf5 = ["h5io >= 0.2.4", "pymatreader"]
+hdf5 = ["h5io >= 0.2.6", "pymatreader"]
 
 [project.urls]
 "Bug Tracker" = "https://github.com/mne-tools/mne-python/issues/"
@@ -360,6 +360,9 @@ addopts = [
 testpaths = [
   "mne",
 ]
+# Delete each passing test's tmp_path to save disk space; to keep them for
+# inspection, run with: pytest -o tmp_path_retention_policy=all ...
+tmp_path_retention_policy = "failed"
 
 [tool.rstcheck]
 ignore_directives = [

@@ -1,11 +1,13 @@
 __all__ = [
     "DigMontage",
+    "InterpolationData",
     "Layout",
     "_EEG_SELECTIONS",
     "_SELECTIONS",
     "_divide_to_regions",
     "combine_channels",
     "compute_dev_head_t",
+    "compute_interpolation_data",
     "compute_native_head_t",
     "equalize_channels",
     "find_ch_adjacency",
@@ -51,6 +53,10 @@ from .channels import (
     read_vectorview_selection,
     rename_channels,
     unify_bad_channels,
+)
+from .interpolation import (
+    InterpolationData,
+    compute_interpolation_data,
 )
 from .layout import (
     Layout,

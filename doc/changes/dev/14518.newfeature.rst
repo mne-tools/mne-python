@@ -1,0 +1,1 @@
+Speed up :meth:`mne.Annotations.copy`, :meth:`mne.Annotations.crop`, and :meth:`mne.io.Raw.set_annotations` by about 10x for thousands of annotations, by `Eric Larson`_.

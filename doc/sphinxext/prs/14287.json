@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "3cdddfc75f17aefebcbaa293daedf3e214b24eaf",
+  "authors": [
+    {
+      "n": "Deepesh Sonar",
+      "e": "18deepnar@gmail.com",
+      "l": "Deepnar"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14287.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/interpolate.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_interpolate.py": {
+      "a": 34,
+      "d": 0
+    }
+  }
+}

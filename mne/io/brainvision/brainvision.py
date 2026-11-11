@@ -666,6 +666,16 @@ def _aux_hdr_info(hdr_fname, sfreq_override=None):
     return settings, cfg, cinfostr, info, cfg_sfreq
 
 
+def _find_filter_cols(header_line):
+    """Find the (highpass, lowpass) column indices in a ``[Comment]`` table header."""
+    header = re.split(r"\s\s+", header_line)
+    cols = [
+        next((i for i, col in enumerate(header) if col.startswith(name)), None)
+        for name in ("Low Cutoff", "High Cutoff")
+    ]
+    return None if None in cols else tuple(cols)
+
+
 @fill_doc_static("info_not_none")
 def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     """Extract all the information from the header file.
@@ -847,6 +857,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
             else:
                 resolution = 1.0  # for files with units specified, but not res
         unit = unit.replace("\xc2", "")  # Remove unwanted control characters
+        unit = unit.replace("\u03bc", "\xb5")  # Greek mu -> micro sign
         orig_units[name] = unit  # Save the original units to expose later
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, 1) * scale
@@ -943,12 +954,17 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     if "Channels" in settings:
         idx = settings.index("Channels")
         settings = settings[idx + 1 :]
-        hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match(r"#\s+Name", setting):
                 break
             else:
                 idx = None
+        # the Comment section is free text, so the table might lack filter columns
+        cols = None if idx is None else _find_filter_cols(settings[idx])
+        if cols is None:
+            idx = None
+        else:
+            hp_col, lp_col = cols
 
     # If software filters are active, then they override the hardware setup; we still
     # want to be able to double check the channel names for alignment purposes, we keep
@@ -959,8 +975,10 @@ def _get_hdr_info(hdr_fname, eog, misc, scale, overrides=None):
     if "S o f t w a r e  F i l t e r s" in settings:
         idx = settings.index("S o f t w a r e  F i l t e r s")
         for idx, setting in enumerate(settings[idx + 1 :], idx + 1):
-            if re.match(r"#\s+Low Cutoff", setting):
-                hp_col, lp_col = 1, 2
+            if re.match(r"#\s+Low Cutoff", setting) and (
+                cols := _find_filter_cols(setting)
+            ):
+                hp_col, lp_col = cols
                 filter_list_has_ch_name = False
                 warn(
                     "Online software filter detected. Using software filter settings "

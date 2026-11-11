@@ -58,6 +58,9 @@ else
     done;
     echo PATTERN="$PATTERN";
     echo html-pattern-memory > build.txt;
+    if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat gitlog.txt) == *"[circle lite]"* ]]; then
+        echo "export MNE_DOC_BUILD_JUPYTERLITE=1" >> $BASH_ENV
+    fi;
     if [[ $PATTERN ]]; then
         PATTERN="\(${PATTERN::-2}\)";
     else

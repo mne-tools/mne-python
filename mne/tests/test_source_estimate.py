@@ -241,9 +241,9 @@ def test_volume_stc(tmp_path):
     with pytest.raises(ValueError, match="'ftype' parameter"):
         stc.save(fname_vol, ftype="whatever", overwrite=True)
     for ftype in ["w", "h5"]:
-        for _ in range(2):
+        for save_ftype in (ftype, "auto"):
             fname_temp = tmp_path / f"temp-vol.{ftype}"
-            stc_new.save(fname_temp, ftype=ftype, overwrite=True)
+            stc_new.save(fname_temp, ftype=save_ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, VolSourceEstimate)
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
@@ -276,6 +276,24 @@ def test_save_stc_as_gifti(tmp_path):
     img_timerh = nib.load(f"{surf_fname}-rh.time.gii")
     assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
+
+    for image, data in ((img_timelh, stc.lh_data), (img_timerh, stc.rh_data)):
+        assert_allclose(float(image.meta["TimeStart"]), stc.tmin)
+        assert_allclose(float(image.meta["TimeStep"]), stc.tstep)
+        assert image.meta["TimeUnits"] == "s"
+        assert image.meta["TimeSamples"] == str(len(stc.times))
+        assert len(image.darrays) == len(stc.times)
+        for idx, (darray, time) in enumerate(
+            zip(image.darrays, stc.times, strict=True)
+        ):
+            assert darray.meta["TimeIndex"] == str(idx)
+            assert_allclose(float(darray.meta["TimeValue"]), time)
+            assert darray.meta["TimeUnits"] == "s"
+            assert darray.meta["Name"] == f"{time:g} s"
+            assert_array_equal(darray.data, data[:, idx].astype(np.float32))
+
+    for key in ("TimeStart", "TimeStep", "TimeUnits", "TimeSamples"):
+        assert img_timelh.meta[key] == img_timerh.meta[key]
 
 
 @testing.requires_testing_data
@@ -491,6 +509,16 @@ def test_io_stc(tmp_path):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    stc.save(tmp_path / "tmp-lh.stc", overwrite=True)
+    assert not (tmp_path / "tmp-lh.stc-lh.stc").exists()
+    assert_array_almost_equal(stc.data, read_source_estimate(tmp_path / "tmp.stc").data)
+    # legacy stem ending in another extension is not stripped on read
+    stc.save(tmp_path / "legacy.w", ftype="stc")
+    assert (tmp_path / "legacy.w-lh.stc").is_file()
+    assert_array_almost_equal(
+        stc.data, read_source_estimate(tmp_path / "legacy.w").data
+    )
+
     # test warning for complex data
     stc2.data = stc2.data.astype(np.complex128)
     with pytest.raises(ValueError, match="Cannot save complex-valued STC"):
@@ -516,6 +544,8 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
     with pytest.raises(FileExistsError, match="Destination file exists"):
         stc.save(out_name, ftype="h5")
     stc.save(out_name, ftype="h5", overwrite=True)
+    stc.save(tmp_path / "auto.h5")  # default ftype infers h5
+    assert (tmp_path / "auto.h5").is_file()
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name.with_name(out_name.name + "-stc"))
     stc5 = read_source_estimate(out_name.with_name(out_name.name + "-stc.h5"))
@@ -541,6 +571,9 @@ def test_io_w(tmp_path):
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
+    src.save(tmp_path / "tmp-lh.w", overwrite=True)
+    assert not (tmp_path / "tmp-lh.w-lh.w").exists()
+    assert_array_almost_equal(src.data, read_source_estimate(tmp_path / "tmp.w").data)
 
 
 def test_stc_arithmetic():

@@ -192,6 +192,17 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     with _check_widget_trigger(widget, mock, "foo", "bar"):
         widget.set_value("bar")
     widget.set_style(dict(border="2px solid #ff0000"))
+    if backend == "qt":  # restyling on each keystroke must not reverse text
+        from qtpy.QtTest import QTest
+
+        text_widget = renderer._dock_add_text(
+            name="",
+            value="",
+            placeholder="",
+            callback=lambda value: text_widget.set_style(dict(border="initial")),
+        )
+        QTest.keyClicks(text_widget._widget, "sub-01")
+        assert text_widget.get_value() == "sub-01"
 
     # file button
     renderer._dock_add_file_button(

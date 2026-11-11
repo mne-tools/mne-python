@@ -1,0 +1,1 @@
+Fix bug where saving annotations with ``orig_time=None`` to CSV files corrupted ``orig_time`` and shifted ``onset`` when loaded with :func:`mne.read_annotations`, by `Ishaan Maheshwari`_.
