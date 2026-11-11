@@ -972,6 +972,7 @@ def sys_info(
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "pynwb",
             "twine",
             "",
             "# Documentation",

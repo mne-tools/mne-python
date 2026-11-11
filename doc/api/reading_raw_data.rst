@@ -41,6 +41,7 @@ Reading raw data
    read_raw_nihon
    read_raw_nirx
    read_raw_nsx
+   read_raw_nwb
    read_raw_neuralynx
    read_raw_persyst
    read_raw_snirf

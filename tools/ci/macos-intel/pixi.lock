@@ -74,6 +74,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/h11-0.16.0-pyhcf101f3_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h2-4.4.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/h5io-0.2.6-pyhc455866_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/hdmf-6.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/hedtools-1.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/hpack-4.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/httpcore-1.0.9-pyh29332c3_0.conda
@@ -168,6 +169,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/pycparser-3.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pymatreader-1.3.1-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/pynwb-4.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pysocks-1.7.1-pyha55dd90_7.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-9.1.1-pyhc364b38_2.conda
@@ -205,6 +207,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/rich-15.0.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rich-rst-2.1.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/roman-numerals-4.1.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/ruamel.yaml-0.19.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/scooby-0.12.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/semantic_version-2.10.0-pyhd8ed1ab_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/send2trash-2.1.0-pyh5552912_1.conda
@@ -466,6 +469,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/re2-2025.11.05-hcc9a9c6_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/readline-8.3-h000c2f7_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/rpds-py-2026.6.3-py313hf695036_2.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-64/ruamel.yaml.clib-0.2.15-py313h4b81b55_5.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/ruff-0.16.8-haa00350_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/s2n-1.7.5-he8c8f02_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/scikit-learn-1.9.1-np2py313h9aaa567_1.conda
@@ -1234,6 +1238,23 @@ packages:
   run_exports: {}
   size: 27107
   timestamp: 1793896203573
+- conda: https://conda.anaconda.org/conda-forge/noarch/hdmf-6.2.0-pyhd8ed1ab_0.conda
+  sha256: f5e99d707178a2b897ddc32880c91d711c4da1edff9e112a155ca0fb0c6c63ad
+  md5: b26ede18566b362e3df7cec6dbbe3c7c
+  depends:
+  - h5py >=3.6.0
+  - jsonschema >=3.2.0
+  - numpy >=1.22.0
+  - pandas >=1.4.0
+  - python >=3.10
+  - ruamel.yaml >=0.16
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/hdmf?source=hash-mapping
+  run_exports: {}
+  size: 476314
+  timestamp: 1787174283749
 - conda: https://conda.anaconda.org/conda-forge/noarch/hedtools-1.2.0-pyhd8ed1ab_0.conda
   sha256: 5ccbfc8d98c46aea02d51efff20e851b56ce3d6dd45aef9ee159b54e2bc6354e
   md5: 274295fe599b6a3f41f3903856eac37b
@@ -2574,6 +2595,24 @@ packages:
   - pkg:pypi/pymatreader?source=hash-mapping
   size: 15214
   timestamp: 1788363325488
+- conda: https://conda.anaconda.org/conda-forge/noarch/pynwb-4.2.0-pyhd8ed1ab_0.conda
+  sha256: 6913b6d87c0149b7aed713cce4061af46d807f92f184997fd006d65aea7fbbc7
+  md5: 19a56c32e3cf76c06bebd1f06be95623
+  depends:
+  - h5py >=3.6.0
+  - hdmf >=6.2.0,<7
+  - numpy >=1.24.0
+  - pandas >=1.4.0
+  - platformdirs >=4.2.2
+  - python >=3.10
+  - python-dateutil >=2.8.2
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/pynwb?source=hash-mapping
+  run_exports: {}
+  size: 1469738
+  timestamp: 1788411989243
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda
   sha256: dc10d64d4b9a1310083b2f563416ab45560ee2a04fd6baab40f223f2b1ab37bc
   md5: 8bf43ae1312e9b966063459e04c20fa7
@@ -3069,6 +3108,20 @@ packages:
   - pkg:pypi/roman-numerals?source=hash-mapping
   size: 13814
   timestamp: 1766003022813
+- conda: https://conda.anaconda.org/conda-forge/noarch/ruamel.yaml-0.19.1-pyhcf101f3_0.conda
+  sha256: b48bebe297a63ae60f52e50be328262e880702db4d9b4e86731473ada459c2a1
+  md5: 06ad944772941d5dae1e0d09848d8e49
+  depends:
+  - python >=3.10
+  - ruamel.yaml.clib >=0.2.15
+  - python
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ruamel-yaml?source=hash-mapping
+  run_exports: {}
+  size: 98448
+  timestamp: 1767538149184
 - conda: https://conda.anaconda.org/conda-forge/noarch/scooby-0.12.0-pyhd8ed1ab_0.conda
   sha256: 09ed2efa8a107164e2724392408db48e0d7388251e57be73dd02d13669c5240d
   md5: 820b402968e73e94ae47ff322c3206a5
@@ -6729,6 +6782,20 @@ packages:
   - pkg:pypi/rpds-py?source=hash-mapping
   size: 301284
   timestamp: 1788577500423
+- conda: https://conda.anaconda.org/conda-forge/osx-64/ruamel.yaml.clib-0.2.15-py313h4b81b55_5.conda
+  sha256: 6e02e6b9d7e84763233f9aa87d1eaec002985d1f3b411669977edc47d912d88d
+  md5: 859f30480c62b74dabf9557f3e727002
+  depends:
+  - python
+  - __osx >=11.0
+  - python_abi 3.13.* *_cp313
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ruamel-yaml-clib?source=hash-mapping
+  run_exports: {}
+  size: 134702
+  timestamp: 1788881265892
 - conda: https://conda.anaconda.org/conda-forge/osx-64/ruff-0.16.8-haa00350_0.conda
   noarch: python
   sha256: e07c0f73f8098c51fdbe53ce8a2ab7f40ea5d016403bd61f9ee1b7dda9ccaa27

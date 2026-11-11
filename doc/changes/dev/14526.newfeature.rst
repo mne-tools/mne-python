@@ -1,0 +1,1 @@
+Add :func:`mne.io.read_raw_nwb` for lazy reading of a single NWB voltage series using h5py, with metadata preservation and timing/channel overrides, by `Bruno Aristimunha`_.
