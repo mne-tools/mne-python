@@ -162,6 +162,14 @@ def test_n_welch_windows(raw):
     raw.compute_psd(
         method="welch", n_fft=999, n_per_seg=999, n_overlap=250, average=None
     )
+    # n_per_seg gets clipped (to n_fft for welch, to n_times for multitaper)
+    raw.compute_psd(method="welch", n_fft=256, n_per_seg=512, average=None)
+    raw = raw.copy().crop(0, 0.5).pick(raw.ch_names[:2])
+    for n_per_seg in (len(raw.times), 2 * len(raw.times)):
+        spectrum = raw.compute_psd(
+            method="multitaper", n_per_seg=n_per_seg, average=None
+        )
+        assert spectrum.get_data().shape[-1] == 1  # one segment
 
 
 def _get_inst(inst, request, *, evoked=None, average_tfr=None):

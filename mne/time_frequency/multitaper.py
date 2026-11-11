@@ -536,7 +536,7 @@ def psd_array_multitaper(
         psd /= sfreq if output == "power" else np.sqrt(sfreq)
 
     # Combining/reshaping to original data shape
-    if n_segments > 1:
+    if n_per_seg is not None:  # even if n_segments == 1, for a consistent shape
         n_signals = len(x_2d)
         if output == "power":
             psd = psd.reshape(n_signals, n_segments, n_freqs)
