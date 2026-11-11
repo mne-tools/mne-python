@@ -464,6 +464,7 @@
 .. _Tanay Gahlot: https://github.com/TanayGahlot
 .. _Teemu Taivainen: https://github.com/ttaiv
 .. _Teon Brooks: https://github.com/teonbrooks
+.. _Thais Marchetti: https://github.com/thaismarchetti
 .. _Tharupahan Jayawardana: https://github.com/tharu-jwd
 .. _Théo Castillo: https://github.com/theosorus
 .. _Théodore Papadopoulo: https://github.com/papadop
