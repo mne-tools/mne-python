@@ -52,6 +52,7 @@ def _get_supported():
         read_raw_persyst,
         read_raw_snirf,
     )
+    from .nwb import read_raw_nwb
 
     return {
         ".edf": dict(EDF=read_raw_edf),
@@ -69,6 +70,7 @@ def _get_supported():
         ".nxe": dict(eximia=read_raw_eximia),
         ".hdr": dict(NIRx=read_raw_nirx),
         ".snirf": dict(SNIRF=read_raw_snirf),
+        ".nwb": dict(NWB=read_raw_nwb),
         ".mat": dict(fieldtrip=read_raw_fieldtrip),
         ".bin": {
             "ARTEMIS": read_raw_artemis123,
@@ -163,6 +165,7 @@ def read_raw(
     * `~mne.io.read_raw_nihon`
     * `~mne.io.read_raw_nirx`
     * `~mne.io.read_raw_nsx`
+    * `~mne.io.read_raw_nwb`
     * `~mne.io.read_raw_persyst`
     * `~mne.io.read_raw_snirf`
 
