@@ -1,0 +1,1 @@
+Clarify the layout of the MEG coil orientation matrix in ``info["chs"][i]["loc"]`` for multi-axis OPMs in :class:`mne.Info`, by :newcontrib:`Thais Marchetti`.
