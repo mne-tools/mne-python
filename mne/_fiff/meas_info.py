@@ -1790,8 +1790,13 @@ class Info(ValidatedDict, SetChannelsMixin, MontageMixin, ContainsMixin):
             information based on the channel type:
 
             MEG
-                Remaining 9 elements ``[3:]``, contain the EX, EY, and EZ normal
-                triplets (columns) of the coil rotation/orientation matrix.
+                Remaining 9 elements ``[3:]`` encode the coil orientation as a
+                3 × 3 rotation/orientation matrix. Its columns represent the local 
+                X, Y, and Z axes (``EX``, ``EY``, and ``EZ``, respectively), expressed 
+                in the same coordinate frame as the channel position. The local Z-axis
+                (``EZ``, stored in ``loc[9:12]``) corresponds to the channel's
+                sensitivity direction.
+
             EEG
                 Elements ``[3:6]`` contain the reference channel position.
             Eyetrack
