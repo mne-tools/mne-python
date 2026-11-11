@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | CodeQL | Identifies security vulnerabilities | On merges to ``main`` branch |
+
 # For most projects, this workflow file will not need changing; you simply need
 # to commit it to your repository.
 #

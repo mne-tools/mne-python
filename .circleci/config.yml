@@ -1,3 +1,7 @@
+# | name | description | runs-when |
+# | build_docs | Build the documentation (runs only changed examples for pull requests; runs all examples for the daily builds) | On pushes to pull requests; every day for ``main`` and ``maint/*`` branches [note skip-on-merge] |
+# | linkcheck | Check for dead links in the documentation | First day of the month for ``main`` branch [note skip-on-merge][note skip-on-pr] |
+
 # By default, for PRs CircleCI will build only examples that have changed.
 # For main commits, builds are skipped entirely, as we only do full builds
 # scheduled for one time daily.
