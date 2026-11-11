@@ -208,13 +208,16 @@ are `newfeature`, not `bugfix`) and keep the entry to one short sentence ending 
 contributor name link, e.g. "Speed up X by optimizing Y, by `Jane Doe`_"; read an existing
 fragment or two before writing yours.
 
-The `<PR-number>` for a not-yet-opened PR is one more than the highest number currently in use;
-issues and PRs share a single number sequence, so query the most recently created of either
-(the `issues` API endpoint includes PRs):
-```bash
-gh api "repos/mne-tools/mne-python/issues?state=all&per_page=1&sort=created&direction=desc" \
-    --jq '.[0].number'
-```
+The `<PR-number>` is not known yet. While it can be determined based off of the highest
+current issue or PR number, this may change between creating the changelog fragment, and
+opening the PR. As an alternative, the file can be created without `<PR-number>`, i.e.,
+`doc/changes/dev/<type>.rst`. In this case, the `.github/workflows/autofix.yml` workflow will
+run on the PR and rename the file to include the PR number.
+
+Where multiple distinct changes of the same type are made in one PR, it may be appropriate to
+create multiple fragments, which use the optional `<count>` suffix,
+`doc/changes/dev/<PR-number>.<type>.<count>.rst`. E.g., `doc/changes/dev/1234.bugfix.1.rst` and
+`doc/changes/dev/1234.bugfix.2.rst`.
 
 ## Code conventions (beyond what ruff enforces)
 
