@@ -7,7 +7,7 @@ import re
 import warnings
 from collections import Counter, OrderedDict, UserDict, UserList
 from collections.abc import Iterable
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import UTC, datetime, timedelta
 from itertools import takewhile
 from textwrap import shorten
@@ -109,6 +109,13 @@ class _AnnotationsExtrasList(UserList):
             if isinstance(value, _AnnotationsExtrasDict)
             else _AnnotationsExtrasDict(value or {})
         )
+
+    @classmethod
+    def _from_validated(cls, extras):
+        """Wrap already-validated extras dicts without re-validating them."""
+        inst = cls()
+        inst.data = list(extras)
+        return inst
 
     def __init__(self, initlist=None):
         if not (isinstance(initlist, _AnnotationsExtrasList) or initlist is None):
@@ -234,6 +241,16 @@ def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
 
     extras = _validate_extras(extras, len(onset))
     return onset, duration, description, ch_names, extras
+
+
+def _seconds_to_us(seconds):
+    """Convert float seconds to integer microseconds like datetime.timedelta does."""
+    # timedelta(seconds=x) splits off the whole seconds exactly and rounds the
+    # fraction to the nearest microsecond (ties to even), as does np.round
+    whole = np.trunc(seconds)
+    return whole.astype(np.int64) * 10**6 + np.round((seconds - whole) * 1e6).astype(
+        np.int64
+    )
 
 
 def _ndarray_ch_names(ch_names):
@@ -774,7 +791,17 @@ class Annotations:
         inst : instance of Annotations
             A copy of the object.
         """
-        return deepcopy(self)
+        # Much faster than deepcopy, which recurses into every annotation
+        inst = object.__new__(type(self))
+        inst.__dict__.update(self.__dict__)
+        for key in ("_onset", "_duration", "_description", "_ch_names"):
+            setattr(inst, key, getattr(self, key).copy())  # ch_names are tuples
+        # Extras values are immutable (str, int, float, or None), so a shallow copy
+        # (UserDict.__copy__) of each dict suffices and skips re-validation
+        inst._extras = _AnnotationsExtrasList._from_validated(
+            copy(extra) for extra in self._extras
+        )
+        return inst
 
     def __getstate__(self):
         """Get the state for pickling and copying."""
@@ -956,7 +983,9 @@ class Annotations:
         self._duration = self._duration[order]
         self._description = self._description[order]
         self._ch_names = self._ch_names[order]
-        self._extras = [self._extras[i] for i in order]
+        self._extras = _AnnotationsExtrasList._from_validated(
+            self._extras[i] for i in order
+        )
         return order
 
     def _get_crop_lims(self, tmin, tmax, use_orig_time):
@@ -1021,61 +1050,42 @@ class Annotations:
         del tmin, tmax
         logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
-        onsets, durations, descriptions, ch_names, extras = [], [], [], [], []
-        out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
-        for idx, (onset, duration, description, ch, extra) in enumerate(
-            zip(self.onset, self.duration, self.description, self.ch_names, self.extras)
-        ):
-            # if duration is NaN behave like a zero
-            if np.isnan(duration):
-                duration = 0.0
-            # convert to absolute times
-            absolute_onset = timedelta(seconds=onset) + offset
-            absolute_offset = absolute_onset + timedelta(seconds=duration)
-            out_of_bounds.append(
-                absolute_onset > absolute_tmax or absolute_offset < absolute_tmin
-            )
-            if out_of_bounds[-1]:
-                clip_left_elem.append(False)
-                clip_right_elem.append(False)
-                logger.debug(
-                    f"  [{idx}] Dropping "
-                    f"({absolute_onset} - {absolute_offset}: {description})"
-                )
-            else:
-                # clip the left side
-                clip_left_elem.append(absolute_onset < absolute_tmin)
-                if clip_left_elem[-1]:
-                    absolute_onset = absolute_tmin
-                clip_right_elem.append(absolute_offset > absolute_tmax)
-                if clip_right_elem[-1]:
-                    absolute_offset = absolute_tmax
-                if clip_left_elem[-1] or clip_right_elem[-1]:
-                    durations.append((absolute_offset - absolute_onset).total_seconds())
-                else:
-                    durations.append(duration)
-                onsets.append((absolute_onset - offset).total_seconds())
-                logger.debug(
-                    f"  [{idx}] Keeping  "
-                    f"({absolute_onset} - {absolute_offset} -> "
-                    f"{onset} - {onset + duration})"
-                )
-                descriptions.append(description)
-                ch_names.append(ch)
-                extras.append(extra)
-        logger.debug(f"Cropping complete (kept {len(onsets)})")
-        self._onset = np.array(onsets, float)
-        self._duration = np.array(durations, float)
+        # Work in integer microseconds relative to offset, which gives the same
+        # results as datetime/timedelta arithmetic (including kept onsets being
+        # rounded to whole microseconds)
+        one_us = timedelta(microseconds=1)
+        tmin_us = (absolute_tmin - offset) // one_us
+        tmax_us = (absolute_tmax - offset) // one_us
+        duration = np.nan_to_num(self.duration, nan=0.0)  # NaN behaves like zero
+        onset_us = _seconds_to_us(self.onset)
+        offset_us = onset_us + _seconds_to_us(duration)
+        out_of_bounds = (onset_us > tmax_us) | (offset_us < tmin_us)
+        keep = np.flatnonzero(~out_of_bounds)
+        onset_us, offset_us, duration = onset_us[keep], offset_us[keep], duration[keep]
+        clip_left = onset_us < tmin_us
+        clip_right = offset_us > tmax_us
+        clipped = clip_left | clip_right
+        onset_us[clip_left] = tmin_us
+        offset_us[clip_right] = tmax_us
+        duration[clipped] = (offset_us[clipped] - onset_us[clipped]) / 1e6
+        logger.debug(
+            f"Cropping complete (kept {len(keep)}, dropped {out_of_bounds.sum()}, "
+            f"clipped {clipped.sum()})"
+        )
+        self._onset = onset_us / 1e6
+        self._duration = duration
         assert (self._duration >= 0).all()
-        self._description = np.array(descriptions, dtype=np.dtypes.StringDType)
-        self._ch_names = _ndarray_ch_names(ch_names)
-        self._extras = extras
+        self._description = self._description[keep]
+        self._ch_names = self._ch_names[keep]
+        self._extras = _AnnotationsExtrasList._from_validated(
+            self._extras[i] for i in keep
+        )
 
         if emit_warning:
-            omitted = np.array(out_of_bounds).sum()
+            omitted = out_of_bounds.sum()
             if omitted > 0:
                 warn(f"Omitted {omitted} annotation(s) that were outside data range.")
-            limited = (np.array(clip_left_elem) | np.array(clip_right_elem)).sum()
+            limited = clipped.sum()
             if limited > 0:
                 warn(
                     f"Limited {limited} annotation(s) that were expanding outside the"
@@ -1408,6 +1418,16 @@ class HEDAnnotations(Annotations):
             ch_names=result.ch_names,
             extras=result.extras if with_extras else None,
         )
+
+    def copy(self):
+        """Return a copy of the HEDAnnotations.
+
+        Returns
+        -------
+        inst : instance of HEDAnnotations
+            A copy of the object.
+        """
+        return deepcopy(self)  # uses __getstate__ to drop the HED module reference
 
     def __getstate__(self):
         """Make serialization work, by removing module reference."""
@@ -2255,15 +2275,16 @@ def _read_annotations_csv(fname):
             "onsets in seconds."
         )
     except ValueError:
-        # remove nanoseconds for ISO8601 (microsecond) compliance
-        timestamp = pd.Timestamp(orig_time)
-        timespec = "microseconds"
-        if timestamp == pd.Timestamp(_handle_meas_date(0)).astimezone(None):
-            timespec = "auto"  # use default timespec for `orig_time=None`
-        orig_time = timestamp.isoformat(sep=" ", timespec=timespec)
+        # remove nanoseconds for ISO8601 (microsecond) compliance; orig_time is None
+        # when CSV onsets are relative to the 1970-01-01 epoch (gh-8573)
+        ts = pd.Timestamp(orig_time)
+        orig_time = (
+            None if ts.year == 1970 else ts.isoformat(sep=" ", timespec="microseconds")
+        )
 
     onset_dt = pd.to_datetime(df["onset"])
-    onset = (onset_dt - onset_dt[0]).dt.total_seconds()
+    ref = pd.Timestamp(0, tz=onset_dt.dt.tz) if orig_time is None else onset_dt[0]
+    onset = (onset_dt - ref).dt.total_seconds()
     duration = df["duration"].values.astype(float)
     description = df["description"].values
     ch_names = None
