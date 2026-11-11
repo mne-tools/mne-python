@@ -2155,28 +2155,13 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
-        Both anatomical and time-series GIFTI files store the same parent mapping
-        in file-level image metadata (not per-array metadata).
-        ``MNEParentVertexIndices`` contains space-separated, zero-based integers
-        in exported coordinate and time-series row order:
-        element ``i`` identifies the original source-space parent vertex for
-        exported vertex and data row ``i``. Thus, time-series files can be
-        interpreted without their anatomical companion files.
-        ``MNEParentVertexCount`` gives the parent mesh's
-        vertex count, ``MNEParentHemisphere`` is ``lh`` or ``rh``, and
-        ``MNEParentSubject`` contains ``src[hemi]['subject_his_id']`` when known.
-        These IDs are local to the original parent mesh, not globally unique,
-        and do not identify vertices on an independently resampled surface.
-        For FreeSurfer-derived cortical source spaces, they are the original
-        FreeSurfer surface vertex numbers, not new MNE vertex numbers. The
-        ``MNE`` prefix names the metadata convention; custom source spaces retain
-        their own parent-surface numbering. Matching subject, hemisphere, and
-        vertex count alone does not guarantee identical parent vertex numbering.
-
-        These MNE-specific metadata keys must be read explicitly by consumers.
-        They preserve the two-array geometry layout and local triangle indices;
-        no ``NIFTI_INTENT_NODE_INDEX`` array is added, because that intent
-        specifies sparse data indexing rather than parent-mesh provenance.
+        Both the anatomical and time-series GIFTI files store the mapping back to
+        the full-resolution parent surface as image metadata.
+        ``MNEParentVertexIndices`` holds space-separated, zero-based parent vertex
+        numbers (FreeSurfer vertex numbers for FreeSurfer-derived source spaces),
+        one per exported vertex and data row. ``MNEParentVertexCount``,
+        ``MNEParentHemisphere``, and (when known) ``MNEParentSubject`` describe
+        the parent surface.
 
         .. versionchanged:: 1.14
             Anatomical and time-series GIFTI files store parent-mesh vertex
@@ -2196,8 +2181,8 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
                 raise ValueError(
                     f"Source estimate vertices for {hemi} must match "
                     "src['vertno'] in values and order. Use the source space "
-                    "matching the estimate; sparse or restricted estimates "
-                    "with different vertices cannot be exported."
+                    "used to compute the estimate, e.g. fwd['src'] or "
+                    "inv['src'], rather than one read from disk."
                 )
         ss = get_decimated_surfaces(src)
         assert len(ss) == 2  # should be guaranteed by _check_option above
