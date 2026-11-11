@@ -14,13 +14,8 @@ from scipy.interpolate import interp1d
 from ..._fiff.constants import FIFF
 from ..._freesurfer import _estimate_talxfm_rigid
 from ...defaults import _handle_default
-from ...surface import (
-    _decimate_surface_ico_oct,
-    _mesh_borders,
-    mesh_edges,
-    read_surface,
-)
-from ...transforms import apply_trans, fit_matched_points
+from ...surface import _decimate_surface_ico_oct, _mesh_borders, mesh_edges
+from ...transforms import _get_trans, apply_trans
 from ...utils import (
     Bunch,
     _auto_weakref,
@@ -685,6 +680,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         "transparent",
         "time_label",
         "src_volume_options",
+        "trans_subcortical",
     )
     def add_data(
         self,
@@ -713,6 +709,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         volume_options=0.4,
         colorbar_kwargs=None,
         key="data",
+        trans=None,
         verbose=None,
     ):
         """Display data from a numpy array on the surface or volume.
@@ -857,6 +854,15 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             :meth:`setup_time_viewer`).
 
             .. versionadded:: 1.12
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -1035,7 +1041,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 actor = self.layered_meshes[hemi]._actor
             else:
                 src_vol = src[2:] if src.kind == "mixed" else src
-                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
+                actor, _ = self._add_volume_data(hemi, src_vol, volume_options, trans)
         assert actor is not None  # should have added one
         self._add_actor(key, actor)
 
@@ -1142,7 +1148,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             self._annots[hemi].clear()
         self._renderer._update()
 
-    def _add_volume_data(self, hemi, src, volume_options):
+    def _add_volume_data(self, hemi, src, volume_options, trans):
         from ...source_space import SourceSpaces
         from ..backends._pyvista import _hide_testing_actor
 
@@ -1185,7 +1191,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         alpha = np.clip(float(alpha), 0.0, 1.0)
         if src.kind == "subcortical_surf":
             self._data[hemi]["alpha"] = alpha
-            return self._add_subcortical_surf_data(hemi, src), None
+            return self._add_subcortical_surf_data(hemi, src, trans), None
         resolution = volume_options["resolution"]
         surface_alpha = volume_options["surface_alpha"]
         if surface_alpha is None:
@@ -1278,7 +1284,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
 
         return actor_pos, actor_neg
 
-    def _add_subcortical_surf_data(self, hemi, src):
+    def _add_subcortical_surf_data(self, hemi, src, trans):
         hemi_data = self._data[hemi]
         mesh = hemi_data.get("subcortical_mesh")
         if mesh is not None:  # already created in another view
@@ -1290,23 +1296,12 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         nn = np.concatenate([s["nn"] for s in src])
         scale = 1000.0 if self._units == "mm" else 1.0
         if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD:  # e.g., fwd["src"]
-            for cortex_hemi, s in zip(("lh", "rh"), self._data["src"][:2]):
-                fname = op.join(self._subjects_dir, self._subject, "surf", cortex_hemi)
-                mri_rr = read_surface(f"{fname}.white")[0] / 1000.0
-                if s["np"] == len(mri_rr):
-                    try:
-                        head_mri_t = fit_matched_points(s["rr"], mri_rr, tol=1e-4)
-                        break
-                    except RuntimeError:  # not the same surface
-                        pass
-            else:
+            if trans is None:
                 raise ValueError(
-                    "The subcortical source spaces are in head coordinates, and "
-                    "the head to MRI transform could not be determined from the "
-                    "cortical source spaces. Transform them to MRI coordinates "
-                    "first, e.g. with mne.transform_surface_to(s, 'mri', trans) "
-                    "for each source space."
+                    "The subcortical source spaces are in head coordinates, so the "
+                    "head<->MRI transform must be provided with the trans parameter"
                 )
+            head_mri_t = _get_trans(trans, "head", "mri")[0]
             rr = apply_trans(head_mri_t, rr)
             nn = apply_trans(head_mri_t, nn, move=False)
         rr = rr * scale
@@ -2440,7 +2435,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         time_actor = active.get("time_actor", None)
         time_label = active.get("time_label", None)
         for hemi in ["lh", "rh", "vol"]:
-            staged_keys = list()
+            staged_keys = dict()  # mesh -> keys (subcortical meshes are per key)
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
@@ -2498,14 +2493,11 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         ),
                         key_data["fmax"],
                     ]
-                    if data_key in mesh._overlays and hemi not in self.layered_meshes:
-                        # a subcortical mesh holds only this key's overlay
-                        mesh.update_overlay(data_key, scalars=act_data)
-                    elif data_key in mesh._overlays:
+                    if data_key in mesh._overlays:
                         # Stage without recomposing; a single update below handles
                         # all overlays in O(N) instead of O(N²).
                         mesh.update_overlay(data_key, scalars=act_data, update=False)
-                        staged_keys.append(data_key)
+                        staged_keys.setdefault(mesh, []).append(data_key)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
@@ -2520,15 +2512,15 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 if vectors is not None and data_key == self._active_data_key:
                     self._update_glyphs(hemi, vectors)
 
-            if staged_keys and hemi in self.layered_meshes:
-                if len(staged_keys) == 1:
+            for mesh, keys in staged_keys.items():
+                if len(keys) == 1:
                     # Let update_overlay pick the cached path when the overlay we
                     # staged is the topmost one: the layers below it (curvature,
                     # labels, ...) have not changed, so their composite can be
                     # reused instead of color-mapping them all again.
-                    self.layered_meshes[hemi].update_overlay(staged_keys[0])
+                    mesh.update_overlay(keys[0])
                 else:
-                    self.layered_meshes[hemi].update()
+                    mesh.update()
 
         active["time_idx"] = time_idx
         self._renderer._update()

@@ -2290,6 +2290,7 @@ def _check_volume(stc, src, surface, backend_name):
     "title_stc",
     "show_traces",
     "src_volume_options",
+    "trans_subcortical",
     "view_layout",
     "add_data_kwargs",
     "brain_kwargs",
@@ -2323,6 +2324,7 @@ def plot_source_estimates(
     show_traces="auto",
     src=None,
     volume_options=1.0,
+    trans=None,
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
@@ -2485,6 +2487,15 @@ def plot_source_estimates(
 
         A float input (default 1.) or None will be used for the ``'resolution'``
         entry.
+    trans : path-like | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        Only needed when ``src`` contains subcortical surface source spaces (see
+        :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+        ``fwd["src"]``.
+
+        .. versionadded:: 1.14
     view_layout : str
         Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
         the PyVista backend must be used and hemi cannot be "split".
@@ -2562,6 +2573,7 @@ def plot_source_estimates(
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -2601,6 +2613,7 @@ def _plot_stc(
     show_traces,
     src,
     volume_options,
+    trans,
     view_layout,
     add_data_kwargs,
     brain_kwargs,
@@ -2709,6 +2722,7 @@ def _plot_stc(
         "clim": clim,
         "src": src,
         "volume_options": volume_options,
+        "trans": trans,
         "verbose": None,
     }
     if add_data_kwargs is not None:
@@ -3321,6 +3335,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
     "title_stc",
     "show_traces",
     "src_volume_options",
+    "trans_subcortical",
     "view_layout",
     "add_data_kwargs",
     "brain_kwargs",
@@ -3354,6 +3369,7 @@ def plot_vector_source_estimates(
     show_traces="auto",
     src=None,
     volume_options=1.0,
+    trans=None,
     view_layout="vertical",
     add_data_kwargs=None,
     brain_kwargs=None,
@@ -3503,6 +3519,15 @@ def plot_vector_source_estimates(
 
         A float input (default 1.) or None will be used for the ``'resolution'``
         entry.
+    trans : path-like | instance of Transform | ``"fsaverage"`` | None
+        If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+        during coregistration. Can also be ``'fsaverage'`` to use the built-in
+        fsaverage transformation.
+        Only needed when ``src`` contains subcortical surface source spaces (see
+        :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+        ``fwd["src"]``.
+
+        .. versionadded:: 1.14
     view_layout : str
         Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
         the PyVista backend must be used and hemi cannot be "split".
@@ -3562,6 +3587,7 @@ def plot_vector_source_estimates(
         show_traces=show_traces,
         src=src,
         volume_options=volume_options,
+        trans=trans,
         view_layout=view_layout,
         add_data_kwargs=add_data_kwargs,
         brain_kwargs=brain_kwargs,
