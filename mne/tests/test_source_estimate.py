@@ -251,7 +251,10 @@ def test_volume_stc(tmp_path):
 
 
 @testing.requires_testing_data
-def test_save_stc_as_gifti(tmp_path):
+@pytest.mark.parametrize(
+    "scale, scale_rr, known_subject", [(1, 1e3, True), (2, 1, False)]
+)
+def test_save_stc_as_gifti(tmp_path, scale, scale_rr, known_subject):
     """Save the stc as a GIFTI file and export."""
     nib = pytest.importorskip("nibabel")
     surfpath_src = bem_path / "sample-oct-6-src.fif"
@@ -260,16 +263,51 @@ def test_save_stc_as_gifti(tmp_path):
     stc = read_source_estimate(surfpath_stc)  # need stc
     assert isinstance(src, SourceSpaces)
     assert isinstance(stc, SourceEstimate)
+    with pytest.raises(ValueError, match="vertices for lh must match"):
+        stc.save_as_surface(tmp_path / "mismatch", src)
+    assert not list(tmp_path.glob("mismatch*"))
+    vertices = [s["vertno"].copy() for s in src]
+    n_vertices = sum(map(len, vertices))
+    stc = SourceEstimate(
+        np.arange(n_vertices * 3).reshape(n_vertices, 3),
+        vertices,
+        tmin=-0.12345678901234567,
+        tstep=0.003456789012345678,
+        subject="sample",
+    )
+    if not known_subject:
+        src[0].pop("subject_his_id", None)
+        src[1]["subject_his_id"] = None
 
     surf_fname = tmp_path / "stc_write"
 
-    stc.save_as_surface(surf_fname, src)
+    stc.save_as_surface(surf_fname, src, scale=scale, scale_rr=scale_rr)
 
     # did structural get written?
     img_lh = nib.load(f"{surf_fname}-lh.gii")
     img_rh = nib.load(f"{surf_fname}-rh.gii")
     assert isinstance(img_lh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_rh, nib.gifti.gifti.GiftiImage)
+    for image, parent, hemi in zip((img_lh, img_rh), src, ("lh", "rh")):
+        assert len(image.darrays) == 2
+        vertices = np.fromstring(
+            image.meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert_array_equal(vertices, parent["vertno"])
+        assert image.meta["MNEParentHemisphere"] == hemi
+        assert int(image.meta["MNEParentVertexCount"]) == len(parent["rr"])
+        if known_subject:
+            assert image.meta["MNEParentSubject"] == parent["subject_his_id"]
+        else:
+            assert "MNEParentSubject" not in image.meta
+        coords, triangles = image.agg_data(("pointset", "triangle"))
+        assert_array_equal(
+            coords, (parent["rr"][vertices] * scale_rr).astype(np.float32)
+        )
+        assert triangles.dtype == np.int32
+        assert triangles.min() >= 0
+        assert triangles.max() < len(vertices)
+        assert_array_equal(vertices[triangles], parent["use_tris"])
 
     # did time series get written?
     img_timelh = nib.load(f"{surf_fname}-lh.time.gii")
@@ -277,7 +315,20 @@ def test_save_stc_as_gifti(tmp_path):
     assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
 
-    for image, data in ((img_timelh, stc.lh_data), (img_timerh, stc.rh_data)):
+    for image, anatomical, data in (
+        (img_timelh, img_lh, stc.lh_data),
+        (img_timerh, img_rh, stc.rh_data),
+    ):
+        parent_meta = {
+            key: value
+            for key, value in image.meta.items()
+            if key.startswith("MNEParent")
+        }
+        assert parent_meta == dict(anatomical.meta)
+        vertices = np.fromstring(
+            parent_meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert len(vertices) == data.shape[0]
         assert_allclose(float(image.meta["TimeStart"]), stc.tmin)
         assert_allclose(float(image.meta["TimeStep"]), stc.tstep)
         assert image.meta["TimeUnits"] == "s"
@@ -290,10 +341,18 @@ def test_save_stc_as_gifti(tmp_path):
             assert_allclose(float(darray.meta["TimeValue"]), time)
             assert darray.meta["TimeUnits"] == "s"
             assert darray.meta["Name"] == f"{time:g} s"
-            assert_array_equal(darray.data, data[:, idx].astype(np.float32))
+            assert not any(key.startswith("MNEParent") for key in darray.meta)
+            assert darray.intent == nib.nifti1.intent_codes["pointset"]
+            assert_array_equal(darray.data, (data[:, idx] * scale).astype(np.float32))
 
     for key in ("TimeStart", "TimeStep", "TimeUnits", "TimeSamples"):
         assert img_timelh.meta[key] == img_timerh.meta[key]
+
+    # Reject reordered vertices in rh before writing either hemi
+    stc.vertices[1] = stc.vertices[1][::-1]
+    with pytest.raises(ValueError, match="vertices for rh must match"):
+        stc.save_as_surface(tmp_path / "mismatch", src)
+    assert not list(tmp_path.glob("mismatch*"))
 
 
 @testing.requires_testing_data
