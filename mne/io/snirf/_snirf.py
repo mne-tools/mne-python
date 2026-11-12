@@ -726,7 +726,7 @@ def _get_dataunit_scaling(unit):
 
     MNE base units: mol/L for hemoglobin, V for amplitude/voltage.
     """
-    if unit == "":
+    if unit == "" or unit.lower() == "a.u.":
         return 1.0
 
     # Legacy shorthand: [prefix]M where M = mol/L
