@@ -166,6 +166,12 @@ def f_oneway(*args, sigma=0.0, method="relative"):
     _check_option("method", method, ["absolute", "relative"])
     if sigma < 0:
         raise ValueError(f"sigma must be >= 0, got {sigma}")
+    args = [
+        np.asarray(a, dtype=float)
+        if not np.issubdtype(np.asanyarray(a).dtype, np.inexact)
+        else np.asarray(a)
+        for a in args
+    ]
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
