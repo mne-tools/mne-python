@@ -5,6 +5,7 @@
 import datetime
 import shutil
 from contextlib import nullcontext
+from io import BytesIO
 
 import numpy as np
 import pytest
@@ -729,3 +730,17 @@ def test_snirf_multiple_wavelengths():
     assert_array_equal(freqs, [780, 805, 830])
     distances = source_detector_distances(raw.info)
     assert len(distances) == len(raw.ch_names)
+
+
+@requires_testing_data
+def test_snirf_file_like():
+    """Test reading SNIRF from file-like objects."""
+    raw_ref = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    data = sfnirs_homer_103_wShort.read_bytes()
+    with pytest.raises(ValueError, match="preload must be used"):
+        read_raw_snirf(BytesIO(data), preload=False)
+    with open(sfnirs_homer_103_wShort, "rb") as file_fid:
+        for fid in (BytesIO(data), file_fid):
+            raw = read_raw_snirf(fid, preload=True)
+            assert not fid.closed and raw.filenames == (None,)
+            assert_allclose(raw.get_data(), raw_ref.get_data())

@@ -19,6 +19,7 @@ from ...utils import (
     NamedInt,
     _check_fname,
     _check_option,
+    _file_like,
     _import_h5py,
     _validate_type,
     _verbose_control,
@@ -26,7 +27,8 @@ from ...utils import (
     logger,
     warn,
 )
-from ..base import BaseRaw
+from ...utils._typing import FileLike
+from ..base import BaseRaw, _get_fname_rep
 from ..nirx.nirx import _convert_fnirs_to_head
 
 SNIRF_CW_AMPLITUDE = NamedInt("SNIRF_CW_AMPLITUDE", 1)
@@ -71,7 +73,7 @@ _TD_MOMENT_ORDER_MAP = {
 
 @fill_doc_static("preload", "verbose")
 def read_raw_snirf(
-    fname: Path | str,
+    fname: Path | str | FileLike,
     optode_frame: str = "unknown",
     *,
     sfreq: float | None = None,
@@ -89,8 +91,12 @@ def read_raw_snirf(
 
     Parameters
     ----------
-    fname : path-like
-        Path to the SNIRF data file.
+    fname : path-like | file-like
+        Path to the SNIRF data file, or a file-like object. If a file-like
+        object is provided, preloading must be used.
+
+        .. versionchanged:: 1.14
+           Added support for file-like objects.
     optode_frame : str
         Coordinate frame used for the optode positions. The default is unknown,
         in which case the positions are not modified. If a known coordinate
@@ -144,8 +150,12 @@ class RawSNIRF(BaseRaw):
 
     Parameters
     ----------
-    fname : path-like
-        Path to the SNIRF data file.
+    fname : path-like | file-like
+        Path to the SNIRF data file, or a file-like object. If a file-like
+        object is provided, preloading must be used.
+
+        .. versionchanged:: 1.14
+           Added support for file-like objects.
     optode_frame : str
         Coordinate frame used for the optode positions. The default is unknown,
         in which case the positions are not modified. If a known coordinate
@@ -190,10 +200,15 @@ class RawSNIRF(BaseRaw):
 
         h5py = _import_h5py()
 
-        fname = str(_check_fname(fname, "read", True, "fname"))
-        logger.info(f"Loading {fname}")
+        if _file_like(fname):
+            if not preload:
+                raise ValueError("preload must be used with file-like objects")
+            fid, fname = fname, None
+        else:
+            fid = fname = str(_check_fname(fname, "read", True, "fname"))
+        logger.info(f"Loading {_get_fname_rep(fid)}")
 
-        with h5py.File(fname, "r") as dat:
+        with h5py.File(fid, "r") as dat:
             if "data2" in dat["nirs"]:
                 warn(
                     "File contains multiple recordings. "
@@ -649,9 +664,11 @@ class RawSNIRF(BaseRaw):
                 info,
                 preload,
                 filenames=[fname],
+                raw_extras=[{"dat": dat} if fname is None else {}],
                 last_samps=[last_samps],
                 verbose=verbose,
             )
+            self._raw_extras[0].pop("dat", None)
 
             # Extract annotations
             # As described at https://github.com/fNIRS/snirf/
@@ -678,8 +695,11 @@ class RawSNIRF(BaseRaw):
         """Read a segment of data from a file."""
         import h5py
 
-        with h5py.File(self.filenames[0], "r") as dat:
+        if (dat := self._raw_extras[fi].get("dat")) is not None:
             one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
+        else:
+            with h5py.File(self.filenames[fi], "r") as dat:
+                one = dat["/nirs/data1/dataTimeSeries"][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)
 
