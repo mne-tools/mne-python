@@ -365,9 +365,9 @@ def _get_event_channel(fig):
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
-        _validate_type(fig, (matplotlib.figure.Figure, Brain, EvokedField), "fig")
+        _validate_type(fig, (matplotlib.figure.FigureBase, Brain, EvokedField), "fig")
         this_delete_event_channel = partial(_delete_event_channel, weakfig=weakfig)
-        if isinstance(fig, matplotlib.figure.Figure):
+        if isinstance(fig, matplotlib.figure.FigureBase):
             fig.canvas.mpl_connect("close_event", this_delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
@@ -614,7 +614,7 @@ def _cleanup_agg():
     import matplotlib.figure
 
     for key in list(_event_channels):  # we might remove keys as we go
-        if isinstance(key, matplotlib.figure.Figure):
+        if isinstance(key, matplotlib.figure.FigureBase):
             for cb in key.canvas.callbacks.callbacks["close_event"].values():
                 cb = cb()  # get the true ref
                 if isinstance(cb, partial) and cb.func is _delete_event_channel:
