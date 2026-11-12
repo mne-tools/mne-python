@@ -185,6 +185,7 @@
 .. _Ilias Machairas: https://github.com/JungleHippo
 .. _Isaac Kinley: https://kinleyid.github.io/
 .. _Ishaan Maheshwari: https://github.com/ishaaaan17
+.. _Ishita Singh: https://github.com/ish1416
 .. _Ivan Skelin: https://github.com/ivan-skelin
 .. _Ivan Zubarev: https://github.com/zubara
 .. _Ivana Kojcic: https://github.com/ikojcic

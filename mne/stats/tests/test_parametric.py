@@ -229,3 +229,24 @@ def test_f_oneway_hat_input_validation():
 
     with pytest.raises(ValueError, match="method"):
         f_oneway(X1, X2, sigma=1e-3, method="invalid")
+
+
+@pytest.mark.parametrize("dtype", [np.int16, np.uint8, np.int32, np.int64])
+def test_f_oneway_integer_dtypes(dtype):
+    """Test that f_oneway does not suffer from integer overflow with integer inputs."""
+    a = np.array([[182], [180]], dtype=dtype)
+    b = np.array([[181], [178]], dtype=dtype)
+    f_int = f_oneway(a, b)
+    f_float = f_oneway(a.astype(float), b.astype(float))
+    assert np.all(f_int >= 0)
+    assert_allclose(f_int, f_float, rtol=1e-7, atol=1e-6)
+    f_scipy = scipy.stats.f_oneway(a[:, 0].astype(float), b[:, 0].astype(float))[0]
+    assert_allclose(f_int[0], f_scipy, rtol=1e-7, atol=1e-6)
+
+
+def test_f_oneway_complex_dtypes():
+    """Test that f_oneway handles complex dtypes without downcasting."""
+    X1 = np.array([[1.0 + 2.0j], [2.0 + 1.0j]])
+    X2 = np.array([[2.0 + 3.0j], [3.0 + 2.0j]])
+    f_val = f_oneway(X1, X2)
+    assert np.all(np.isfinite(f_val))
