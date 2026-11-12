@@ -1,0 +1,1 @@
+Animate switching between ``"pial"``, ``"white"``, and ``"inflated"`` surfaces in the :class:`mne.viz.Brain` GUI, by `Payam Sadeghi-Shabestari`_.
