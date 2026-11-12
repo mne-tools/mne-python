@@ -5114,6 +5114,16 @@ trans : str | dict | instance of Transform
     {_trans_base}
 """
 
+docdict["trans_subcortical"] = f"""
+trans : path-like | instance of Transform | ``"fsaverage"`` | None
+    {_trans_base}
+    Only needed when ``src`` contains subcortical surface source spaces (see
+    :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+    ``fwd["src"]``.
+
+    .. versionadded:: 1.14
+"""
+
 docdict["transparent"] = """
 transparent : bool | None
     If True: use a linear transparency between fmin and fmid
