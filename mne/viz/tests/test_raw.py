@@ -786,8 +786,9 @@ def test_plot_raw_traces(raw, events, browser_backend):
     assert_array_equal(fig.mne.picks, picks)
 
 
-def test_plot_annotation_span(browser_backend):
-    """Test plotting an annotation span in the Raw time reference."""
+@pytest.mark.parametrize("show_first_samp", (False, True))
+def test_plot_annotation_span(browser_backend, show_first_samp):
+    """Test plotting annotations and events in the Raw time reference."""
     raw = RawArray(
         np.arange(120.0)[np.newaxis],
         create_info(["EEG 001"], 10.0, "eeg"),
@@ -797,8 +798,18 @@ def test_plot_annotation_span(browser_backend):
     raw.set_annotations(Annotations(3.0, 1.0, "test"))
 
     tmin, tmax = raw.get_annotation_spans()
-    fig = raw.plot(start=tmin[0], duration=tmax[0] - tmin[0], show=False)
+    fig = raw.plot(
+        start=tmin[0],
+        duration=tmax[0] - tmin[0],
+        events=np.array([[raw.first_samp + 30, 0, 1]]),
+        show_first_samp=show_first_samp,
+        show=False,
+    )
     assert fig._get_start_stop() == (30, 40)
+    if browser_backend.name == "matplotlib":
+        event_time = tmin[0] + (raw.first_time if show_first_samp else 0)
+        assert_allclose(fig.mne.event_lines.get_segments()[0][:, 0], event_time)
+        assert_allclose(fig.mne.event_texts[0].xy[0], event_time)
     browser_backend._close_all()
 
 
