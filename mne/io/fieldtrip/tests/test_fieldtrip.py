@@ -74,7 +74,9 @@ def test_read_evoked(cur_system, version, use_info):
         info = None
         expected_comment = "test"
         with _record_warnings(), pytest.warns(**no_info_warning):
-            avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info, comment=expected_comment)
+            avg_ft = mne.io.read_evoked_fieldtrip(
+                cur_fname, info, comment=expected_comment
+            )
 
     mne_data = mne_avg.data[:, :-1]
     ft_data = avg_ft.data
