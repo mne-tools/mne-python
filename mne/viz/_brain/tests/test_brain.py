@@ -624,7 +624,12 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     vertex_id = sphere["vertex_id"]
     old_center = np.array(sphere["mesh"].center)
 
+    brain.show_view(azimuth=30, elevation=60)  # the morph keeps the user's view
+    view = brain._renderer.get_camera()[2:4]
+    focal_point = brain.plotter.camera.focal_point  # what the mouse rotates about
     brain.set_surf("white")
+    assert_allclose(brain._renderer.get_camera()[2:4], view, atol=1e-6)
+    assert_allclose(brain.plotter.camera.focal_point, focal_point, atol=1e-6)
     assert brain._surf == "white"
     assert not np.allclose(brain.geo["lh"].coords, old_coords)
     assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
