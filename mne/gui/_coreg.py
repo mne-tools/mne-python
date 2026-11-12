@@ -183,6 +183,8 @@ class CoregistrationUI(HasTraits):
         The opacity of the sensors between ``0`` and ``1``. Defaults to ``1.``.
     trans : path-like | Transform
         The Head<->MRI transform or the path to its FIF file (``"-trans.fif"``).
+        A path is also used as the default file name when saving the transform.
+        If the file does not exist yet, it is only used for saving.
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
         ``(800, 600)``.
@@ -421,6 +423,11 @@ class CoregistrationUI(HasTraits):
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
 
         # configure UI
+        self._trans_file = None
+        if trans is not None and not isinstance(trans, Transform):
+            self._trans_file = Path(trans).expanduser().absolute()
+            if not self._trans_file.is_file():
+                trans = None  # only used as the default path for saving
         self._reset_fitting_parameters()
         self._configure_dialogs()
         self._configure_status_bar()
@@ -2143,7 +2150,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=self._info_file.parent,
+            initial_directory=self._trans_file or self._info_file.parent,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
