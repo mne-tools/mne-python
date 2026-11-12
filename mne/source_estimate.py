@@ -2153,7 +2153,11 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
         src : instance of SourceSpaces
-            The source space of the forward solution.
+            The source space of the forward solution. For each hemisphere,
+            ``self.vertices[hemi]`` must equal ``src[hemi]['vertno']`` in both values
+            and order (``hemi=0`` for lh, ``hemi=1`` for rh).
+            Sparse or restricted estimates with different vertices
+            are not supported.
         scale : float
             Scale factor to apply to the data (functional) values.
         scale_rr : float
@@ -2162,7 +2166,18 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
+        Both the anatomical and time-series GIFTI files store the mapping back to
+        the full-resolution parent surface as image metadata.
+        ``MNEParentVertexIndices`` holds space-separated, zero-based parent vertex
+        numbers (FreeSurfer vertex numbers for FreeSurfer-derived source spaces),
+        one per exported vertex and data row. ``MNEParentVertexCount``,
+        ``MNEParentHemisphere``, and (when known) ``MNEParentSubject`` describe
+        the parent surface.
+
         .. versionchanged:: 1.14
+            Anatomical and time-series GIFTI files store parent-mesh vertex
+            correspondence in file-level metadata.
+            Source-estimate and source-space vertices must match.
             The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
             seconds as image metadata. Each data array also stores its zero-based
             sample index and time value in seconds.
@@ -2171,12 +2186,20 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         """
         nib = _import_nibabel()
         _check_option("src.kind", src.kind, ("surface", "mixed"))
+        hemis = ("lh", "rh")
+        for vertices, parent, hemi in zip(self.vertices, src, hemis):
+            if not np.array_equal(vertices, parent["vertno"]):
+                raise ValueError(
+                    f"Source estimate vertices for {hemi} must match "
+                    "src['vertno'] in values and order. Use the source space "
+                    "used to compute the estimate, e.g. fwd['src'] or "
+                    "inv['src'], rather than one read from disk."
+                )
         ss = get_decimated_surfaces(src)
         assert len(ss) == 2  # should be guaranteed by _check_option above
 
         # Create lists to put DataArrays into
-        hemis = ("lh", "rh")
-        for s, hemi in zip(ss, hemis):
+        for s, parent, hemi in zip(ss, src, hemis):
             darrays = list()
             darrays.append(
                 nib.gifti.gifti.GiftiDataArray(
@@ -2196,7 +2219,16 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             )
 
             # Make the output GIFTI for anatomicals
-            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays)
+            parent_meta = nib.gifti.GiftiMetaData(
+                {
+                    "MNEParentVertexIndices": " ".join(map(str, parent["vertno"])),
+                    "MNEParentVertexCount": str(len(parent["rr"])),
+                    "MNEParentHemisphere": hemi,
+                }
+            )
+            if parent.get("subject_his_id") is not None:
+                parent_meta["MNEParentSubject"] = parent["subject_his_id"]
+            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays, meta=parent_meta)
 
             # actually save the file
             nib.save(topo_gi_hemi, f"{fname}-{hemi}.gii")
@@ -2206,6 +2238,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             data = getattr(self, f"{hemi}_data") * scale
             image_meta = nib.gifti.GiftiMetaData(
                 {
+                    **parent_meta,
                     "TimeStart": repr(float(self.tmin)),
                     "TimeStep": repr(float(self.tstep)),
                     "TimeUnits": "s",

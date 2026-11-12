@@ -1,0 +1,1 @@
+Store parent-surface vertex numbers in the GIFTI files written by :meth:`mne.SourceEstimate.save_as_surface`, which now raises an error instead of writing misaligned data when the source estimate and source space vertices differ, by `Peter Molfese`_.

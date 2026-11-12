@@ -9,6 +9,7 @@ import numpy as np
 from ..parallel import parallel_func
 from ..utils import (
     _check_option,
+    _ensure_int,
     _verbose_control,
     logger,
     verbose_static,
@@ -346,6 +347,9 @@ def psd_array_multitaper(
     n_jobs=None,
     *,
     max_iter=150,
+    n_per_seg=None,
+    n_overlap=0,
+    average="mean",
     verbose=None,
 ):
     r"""Compute power spectral density (PSD) using a multi-taper method.
@@ -398,6 +402,23 @@ def psd_array_multitaper(
         Maximum number of iterations to reach convergence when combining the
         tapered spectra with adaptive weights (see argument ``adaptive``). This
         argument has not effect if ``adaptive`` is set to ``False``.
+    n_per_seg : int | None
+        Length of each segment (windowed with DPSS tapers). Defaults
+        to None, which uses the entire signal length without segmentation.
+
+        .. versionadded:: 1.14
+    n_overlap : int
+        The number of points of overlap between segments. Will be adjusted
+        to be < n_per_seg. The default value is 0.
+
+        .. versionadded:: 1.14
+    average : str | None
+        How to average the segments. If ``'mean'`` (default), calculate the
+        arithmetic mean across segments. If ``'median'``, calculate the median,
+        corrected for its bias relative to the mean. If ``None``, returns the
+        unaggregated segments. Must be ``None`` when ``output="complex"``.
+
+        .. versionadded:: 1.14
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -406,9 +427,12 @@ def psd_array_multitaper(
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs) or (..., n_tapers, n_freqs)
-        The power spectral densities. All dimensions up to the last (or the
-        last two if ``output='complex'``) will be the same as input.
+    psds : ndarray
+        The power spectral densities. If ``average='mean'`` or
+        ``average='median'``, the returned array will have the same shape
+        as the input data plus an additional frequency dimension (and tapers
+        dimension if ``output='complex'``). If ``average=None``, the returned
+        array will also include an additional segment dimension.
     freqs : array
         The frequency points in Hz of the PSD.
     weights : ndarray
@@ -432,6 +456,8 @@ def psd_array_multitaper(
     """
     from scipy.fft import rfftfreq
 
+    _check_option("average", average, (None, False, "mean", "median"))
+    _check_option("output", output, ("power", "complex"))
     _check_option("normalization", normalization, ["length", "full"])
 
     # Reshape data so its 2-D for parallelization
@@ -439,30 +465,55 @@ def psd_array_multitaper(
     x = np.atleast_2d(x)
     n_times = x.shape[-1]
     dshape = x.shape[:-1]
-    x = x.reshape(-1, n_times)
+    x_2d = x.reshape(-1, n_times)
+    n_seg_samples, n_segments, x_flat = n_times, 1, x_2d
+
+    if average is False:
+        average = None
+    if n_per_seg is not None and output == "complex" and average is not None:
+        raise ValueError(f'average must be None when output="complex", got {average}.')
+
+    if n_per_seg is not None:
+        n_per_seg = min(_ensure_int(n_per_seg, "n_per_seg"), n_times)
+        n_overlap = _ensure_int(n_overlap, "n_overlap")
+        if n_overlap >= n_per_seg:
+            raise ValueError(
+                f"n_overlap ({n_overlap}) must be less than n_per_seg ({n_per_seg})."
+            )
+        if n_overlap < 0:
+            raise ValueError(f"n_overlap ({n_overlap}) must be non-negative.")
+        if n_per_seg < n_times:
+            # Segment continuous data into overlapping windows (Issue #11383)
+            n_seg_samples = n_per_seg
+            step = n_per_seg - n_overlap
+            n_segments = (n_times - n_overlap) // step
+            x_flat = np.lib.stride_tricks.sliding_window_view(x_2d, n_per_seg, axis=-1)[
+                :, : n_segments * step : step
+            ].reshape(-1, n_per_seg)
 
     dpss, eigvals, adaptive = _compute_mt_params(
-        n_times, sfreq, bandwidth, low_bias, adaptive
+        n_seg_samples, sfreq, bandwidth, low_bias, adaptive
     )
     n_tapers = len(dpss)
     weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     # decide which frequencies to keep
-    freqs = rfftfreq(n_times, 1.0 / sfreq)
+    freqs = rfftfreq(n_seg_samples, 1.0 / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
     n_freqs = len(freqs)
 
     if output == "complex":
-        psd = np.zeros((x.shape[0], n_tapers, n_freqs), dtype="complex")
+        psd = np.zeros((x_flat.shape[0], n_tapers, n_freqs), dtype="complex")
     else:
-        psd = np.zeros((x.shape[0], n_freqs))
+        psd = np.zeros((x_flat.shape[0], n_freqs))
 
     # Let's go in up to 50 MB chunks of signals to save memory
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
-    offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
+    n_x = x_flat.shape[0]
+    offsets = np.concatenate((np.arange(0, n_x, n_chunk), [n_x]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
-        x_mt = _mt_spectra(x[start:stop], dpss, sfreq, remove_dc=remove_dc)[0]
+        x_mt = _mt_spectra(x_flat[start:stop], dpss, sfreq, remove_dc=remove_dc)[0]
         if output == "power":
             if not adaptive:
                 psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
@@ -472,8 +523,8 @@ def psd_array_multitaper(
                 )
                 n_splits = min(stop - start, n_jobs)
                 out = parallel(
-                    my_psd_from_mt_adaptive(x, eigvals, freq_mask, max_iter)
-                    for x in np.array_split(x_mt, n_splits)
+                    my_psd_from_mt_adaptive(row, eigvals, freq_mask, max_iter)
+                    for row in np.array_split(x_mt, n_splits)
                 )
                 psd[start:stop] = np.concatenate(out)
         else:
@@ -485,8 +536,25 @@ def psd_array_multitaper(
         psd /= sfreq if output == "power" else np.sqrt(sfreq)
 
     # Combining/reshaping to original data shape
-    last_dims = (n_freqs,) if output == "power" else (n_tapers, n_freqs)
-    psd = psd.reshape(dshape + last_dims, copy=False)
+    if n_per_seg is not None:  # even if n_segments == 1, for a consistent shape
+        n_signals = len(x_2d)
+        if output == "power":
+            psd = psd.reshape(n_signals, n_segments, n_freqs)
+            if average == "mean":
+                psd = np.nanmean(psd, axis=1)
+            elif average == "median":
+                from .psd import _median_biases
+
+                idx = (~np.isnan(psd)).sum(axis=1)
+                psd = np.nanmedian(psd, axis=1) / _median_biases(n_segments)[idx]
+            else:  # average is None
+                psd = np.moveaxis(psd, 1, 2)
+        else:  # output == "complex"
+            psd = np.moveaxis(
+                psd.reshape(n_signals, n_segments, n_tapers, n_freqs), 1, -1
+            )
+
+    psd = psd.reshape(dshape + psd.shape[1:], copy=False)
     if ndim_in == 1:
         psd = psd[0]
 

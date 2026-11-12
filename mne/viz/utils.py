@@ -803,7 +803,7 @@ class _BlitManager:
 
     def _draw_artists(self):
         for artist in sorted(self._artists, key=lambda artist: artist.get_zorder()):
-            self._fig.draw_artist(artist)
+            self._fig.figure.draw_artist(artist)
 
     def _on_draw(self, event=None):
         """Drop the cached background after a full redraw (draw_event callback)."""
