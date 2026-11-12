@@ -710,8 +710,10 @@ def test_get_dataunit_scaling():
     # Non-standard lowercase liter
     assert _get_dataunit_scaling("mol/l") == 1.0
     assert _get_dataunit_scaling("mmol/l") == 1e-3
-    # Empty string default
+    # Missing or arbitrary units leave the data unscaled.
     assert _get_dataunit_scaling("") == 1.0
+    assert _get_dataunit_scaling("A.U.") == 1.0
+    assert _get_dataunit_scaling("a.u.") == 1.0
     # Unsupported unit
     with pytest.raises(RuntimeError, match="not supported"):
         _get_dataunit_scaling("bad_unit")
