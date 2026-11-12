@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.read_evoked_fieldtrip` ignored times and caused :class:`mne.Evoked` to fail when ``comment=None``, by `Ishaan Maheshwari`_.

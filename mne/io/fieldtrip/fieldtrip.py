@@ -197,5 +197,9 @@ def read_evoked_fieldtrip(
     info = _create_info(ft_struct, info)  # create info structure
     data_evoked = ft_struct["avg"]  # create evoked data
 
-    evoked = EvokedArray(data_evoked, info, comment=comment)
-    return evoked
+    return EvokedArray(
+        data_evoked,
+        info,
+        tmin=float(np.asarray(ft_struct["time"]).flat[0]),
+        comment=comment or "",
+    )

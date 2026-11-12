@@ -627,11 +627,9 @@ class Evoked(
 
     def __repr__(self):  # noqa: D105
         max_comment_length = 1000
-        if len(self.comment) > max_comment_length:
-            comment = self.comment[:max_comment_length]
-            comment += "..."
-        else:
-            comment = self.comment
+        comment = self.comment or ""
+        if len(comment) > max_comment_length:
+            comment = comment[:max_comment_length] + "..."
         s = f"'{comment}' ({self.kind}, N={self.nave})"
         s += f", {self.times[0]:0.5g} – {self.times[-1]:0.5g} s"
         s += ", baseline "
