@@ -994,15 +994,18 @@ class _TimeViewerMixin:
             self.widgets["data_key"].show()
         self._refresh_colormap_widgets()
 
-    def _on_surface_updated(self, event):
-        # move the picked-vertex spheres onto the new geometry
+    def _move_picked_spheres(self):
+        """Move the picked-vertex spheres onto the surface as currently drawn."""
         for (hemi, vertex_id), spheres in self._picked_points.items():
             if hemi not in self._hemis:
                 continue
-            center = np.array(self.geo[hemi].coords[vertex_id])
+            center = np.array(self.layered_meshes[hemi]._vertices[vertex_id])
             for sphere in spheres:
                 mesh = sphere["mesh"]
                 mesh.points = mesh.points + (center - np.array(mesh.center))
+
+    def _on_surface_updated(self, event):
+        self._move_picked_spheres()
         if event.flat_change:  # the arrow keys and some controls differ for 2D
             self._configure_arrow_keys()
             self._update_flat_widgets()

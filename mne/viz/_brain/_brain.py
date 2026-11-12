@@ -2038,8 +2038,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             )
         flat_change = "flat" in (surf, self._surf)
         offset = _resolve_offset(self._offset_request, surf, self._hemi)
+        geos = dict()
         for h in self._hemis:
-            geo = _Surface(
+            geos[h] = _Surface(
                 self._subject,
                 h,
                 surf,
@@ -2048,8 +2049,34 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 units=self._units,
                 x_dir=self._rigid[0, :3],
             )
-            geo.load_geometry()
-            geo.load_curvature()
+            geos[h].load_geometry()
+            geos[h].load_curvature()
+        animate = self.time_viewer and not flat_change
+        if animate:
+            # morph between surfaces with the same triangles, keeping the user's view
+            old = np.concatenate([self.geo[h].coords for h in self._hemis])
+            new = np.concatenate([geos[h].coords for h in self._hemis])
+            size = np.ptp(old, axis=0).max()
+            renderers = self._renderer._all_renderers
+            cameras = [r.camera_position for r in renderers]
+            for t in np.linspace(0, 1, 22)[1:-1]:
+                frac = t * t * (3 - 2 * t)  # ease in and out
+                for h in self._hemis:
+                    self.layered_meshes[h].update_geometry(
+                        (1 - frac) * self.geo[h].coords + frac * geos[h].coords,
+                        (1 - frac) * self.geo[h].nn + frac * geos[h].nn,
+                    )
+                self._move_picked_spheres()
+                scale = np.ptp((1 - frac) * old + frac * new, axis=0).max() / size
+                for renderer, position in zip(renderers, cameras):
+                    renderer.camera_position = position
+                    renderer.camera.Dolly(1 / scale)
+                    renderer.reset_camera_clipping_range()
+                # pyvistaqt's render() is asynchronous on macOS
+                for plotter in self._renderer._all_plotters:
+                    getattr(plotter, "_render", plotter.render)()
+                self._renderer._process_events()
+        for h, geo in geos.items():
             self.geo[h] = geo
             self.layered_meshes[h].update_geometry(
                 geo.coords, geo.nn, geo.faces if flat_change else None
@@ -2088,7 +2115,15 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             for actor in self._silhouette_actors:
                 self.plotter.remove_actor(actor)
             self._add_silhouette()
-        self.reset_view()
+        if animate:  # _add_silhouette moves the camera
+            scale = np.ptp(new, axis=0).max() / size
+            for renderer, position in zip(renderers, cameras):
+                renderer.camera_position = position
+                renderer.camera.Dolly(1 / scale)
+                renderer.reset_camera_clipping_range()
+            self._renderer._update()
+        else:
+            self.reset_view()
 
     def _add_silhouette(self):
         self._silhouette_actors = []
