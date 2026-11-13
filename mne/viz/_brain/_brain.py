@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import copy
 import os
 import os.path as op
 import time
@@ -58,6 +59,13 @@ from ._time_viewer import _TimeViewerMixin
 from .colormap import _CORTEX_PRESETS, calculate_lut
 from .surface import _Surface
 from .view import views_dicts
+
+
+def _seen_radius(bounds, direction):
+    """Get the radius of a bounding box as seen along a unit direction."""
+    corners = np.array(np.meshgrid(*bounds.T)).reshape(3, -1).T - bounds.mean(axis=0)
+    corners -= np.outer(corners @ direction, direction)
+    return np.linalg.norm(corners, axis=1).max()
 
 
 def _resolve_offset(offset, surf, hemi):
@@ -179,6 +187,11 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         defaulting to "auto" if it's not found.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
+    unfold : float | None
+        How far to unfold the cortex, see :meth:`set_unfold`. ``None`` (default)
+        shows ``surf`` as it is.
+
+        .. versionadded:: 1.14
 
     Attributes
     ----------
@@ -311,12 +324,16 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         silhouette=False,
         theme=None,
         show=True,
+        unfold=None,
     ):
         from ..backends import renderer as _renderer_mod
         from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
         self._surf = surf
+        self._folded = "white" if surf in ("inflated", "flat") else surf
+        self._unfold = dict(inflated=1.0, flat=2.0).get(surf, 0.0)
+        self._geos = dict()
         self._offset_request = offset
         if hemi is None:
             hemi = "vol"
@@ -447,7 +464,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
-            self.geo[h] = geo
+            self.geo[h] = self._geos[(h, surf)] = geo
             for _, _, v in self._iter_views(h):
                 if self.layered_meshes.get(h) is None:
                     mesh = LayeredMesh(
@@ -490,6 +507,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             self._renderer.set_interaction("rubber_band_2d")
             self._fit_flat_camera()
 
+        if unfold is not None:
+            self.set_unfold(unfold)
         self._renderer._update()
 
     def _setup_canonical_rotation(self):
@@ -2089,15 +2108,57 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             ``'flat'`` needs the ``?h.cortex.patch.flat`` and ``?h.sphere``
             files in the subject's ``surf`` directory, and switches the view to
             a non-rotatable 2D one for as long as it is shown.
+
+        Notes
+        -----
+        This is the same as :meth:`set_unfold` with ``0`` (``'pial'`` and
+        ``'white'``, which also become the folded surface), ``1``
+        (``'inflated'``), or ``2`` (``'flat'``).
         """
-        surfs = ("pial", "white", "inflated", "flat")
-        _check_option("surf", surf, surfs)
-        if surf == "flat" and not self._has_flatmaps():
+        _check_option("surf", surf, ("pial", "white", "inflated", "flat"))
+        target = dict(inflated=1.0, flat=2.0).get(surf, 0.0)
+        if target == 0:
+            self._folded = surf
+        animate = self.time_viewer and target != self._unfold
+        if animate and (target < 2 or self._has_flatmaps()):
+            start = self._unfold
+            for t in np.linspace(0, 1, 22)[1:-1]:
+                self.set_unfold(start + (target - start) * t * t * (3 - 2 * t))
+                for plotter in self._renderer._all_plotters:
+                    getattr(plotter, "_render", plotter.render)()
+                self._renderer._process_events()
+        self.set_unfold(target)
+
+    def set_unfold(self, unfold):
+        """Set how far the cortical surface is unfolded.
+
+        Parameters
+        ----------
+        unfold : float
+            ``0`` shows the folded surface (``'pial'`` or ``'white'``), ``1``
+            the inflated one, and ``2`` the flat one. Values in between blend
+            the two neighboring surfaces, e.g. ``0.5`` is half-inflated. Values
+            above ``1`` need the ``?h.cortex.patch.flat`` and ``?h.sphere``
+            files in the subject's ``surf`` directory, and ``2`` switches the
+            view to a non-rotatable 2D one for as long as it is shown.
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        _validate_type(unfold, "numeric", "unfold")
+        if not 0 <= unfold <= 2:
+            raise ValueError(f"unfold must be between 0 and 2, got {unfold}")
+        if unfold > 1 and not self._has_flatmaps():
             raise FileNotFoundError(
                 f"Subject {self._subject} has no flatmap surface file "
                 f"({{hemi}}.cortex.patch.flat) in {self._subjects_dir}"
             )
-        if surf == self._surf:
+        if abs(unfold - self._unfold) < 1e-4 and self._surf in (
+            self._folded,
+            "inflated",
+            "flat",
+        ):
             return
         if any(self._labels[h] for h in self._hemis) or any(
             "foci" in self._foci_data.get(h, {}) for h in self._hemis
@@ -2106,23 +2167,47 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 "Foci and label/annotation outlines do not move when the "
                 "surface representation changes and may now be misaligned."
             )
-        flat_change = "flat" in (surf, self._surf)
-        offset = _resolve_offset(self._offset_request, surf, self._hemi)
-        for h in self._hemis:
-            geo = _Surface(
-                self._subject,
-                h,
-                surf,
-                self._subjects_dir,
-                offset,
-                units=self._units,
-                x_dir=self._rigid[0, :3],
-            )
-            geo.load_geometry()
-            geo.load_curvature()
+        previous = self._unfold
+        flat_change = 2 in (unfold, previous)
+        renderers = self._renderer._all_renderers
+        meshes = [self.layered_meshes[h] for h in self._hemis]
+        restore = previous > 1 and hasattr(self, "_view_3d")
+        if restore:
+            cameras, bounds = self._view_3d
+        else:
+            cameras = [renderer.camera_position for renderer in renderers]
+            bounds = np.concatenate([m._vertices for m in meshes])
+            bounds = np.array([bounds.min(axis=0), bounds.max(axis=0)])
+        idx = min(int(unfold), 1)
+        frac = unfold - idx
+        for h, mesh in zip(self._hemis, meshes):
+            ends = list()
+            for surf in (self._folded, "inflated", "flat")[idx : idx + 1 + (frac > 0)]:
+                if (h, surf) not in self._geos:
+                    self._geos[(h, surf)] = _Surface(
+                        self._subject,
+                        h,
+                        surf,
+                        self._subjects_dir,
+                        _resolve_offset(self._offset_request, surf, self._hemi),
+                        units=self._units,
+                        x_dir=self._rigid[0, :3],
+                    )
+                    self._geos[(h, surf)].load_geometry()
+                    self._geos[(h, surf)].load_curvature()
+                ends.append(self._geos[(h, surf)])
+            if frac in (0, 1):
+                geo = ends[-1]
+            else:
+                geo = copy.copy(ends[0])
+                geo.coords = (1 - frac) * ends[0].coords + frac * ends[1].coords
+                geo.nn = (1 - frac) * ends[0].nn + frac * ends[1].nn
+                geo.faces = ends[1].faces
             self.geo[h] = geo
-            self.layered_meshes[h].update_geometry(
-                geo.coords, geo.nn, geo.faces if flat_change else None
+            mesh.update_geometry(
+                geo.coords,
+                geo.nn,
+                geo.faces if len(geo.faces) != len(mesh._triangles) else None,
             )
             for data in self._all_data.values():
                 hemi_data = data.get(h)
@@ -2134,7 +2219,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 vertices = hemi_data["vertices"]
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
-        self._surf = surf
+        self._unfold = float(unfold)
+        self._surf = surf = (self._folded, "inflated", "flat")[int(unfold)]
         if flat_change:  # switch the camera and interaction to 2D/3D
             if surf == "flat":
                 self._pre_flat = (list(self._views), self._interaction)
@@ -2158,7 +2244,41 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             for actor in self._silhouette_actors:
                 self.plotter.remove_actor(actor)
             self._add_silhouette()
-        self.reset_view()
+        if flat_change:
+            self.reset_view()
+        if unfold == 2:
+            if previous <= 1:
+                self._view_3d = (cameras, bounds)
+            return
+        new_bounds = np.concatenate([m._vertices for m in meshes])
+        new_bounds = np.array([new_bounds.min(axis=0), new_bounds.max(axis=0)])
+        if previous == 2 and not restore:
+            cameras = [renderer.camera_position for renderer in renderers]
+            bounds = new_bounds
+        self._view_3d = (cameras, bounds)
+        turn = max(unfold - 1, 0)
+        flat_y, flat_z = self._rigid[1:3, :3]
+        for renderer, camera in zip(renderers, cameras):
+            position, focalpoint, view_up = map(np.array, camera)
+            direction = position - focalpoint
+            distance = np.linalg.norm(direction)
+            direction /= distance
+            new_direction = (1 - turn) * direction + turn * flat_z
+            new_direction /= np.linalg.norm(new_direction)
+            distance *= _seen_radius(new_bounds, new_direction)
+            distance /= _seen_radius(bounds, direction)
+            focalpoint += new_bounds.mean(axis=0) - bounds.mean(axis=0)
+            renderer.camera_position = [
+                focalpoint + distance * new_direction,
+                focalpoint,
+                (1 - turn) * view_up + turn * flat_y,
+            ]
+            if turn:
+                renderer.reset_camera()
+                framed = renderer.camera.distance
+                renderer.camera.Dolly(framed / ((1 - turn) * distance + turn * framed))
+            renderer.reset_camera_clipping_range()
+        self._renderer._update()
 
     def _add_silhouette(self):
         self._silhouette_actors = []

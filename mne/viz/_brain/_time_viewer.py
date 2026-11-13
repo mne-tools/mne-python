@@ -341,9 +341,18 @@ class _TimeViewerMixin:
                 name="Surf",
                 value=self._surf,
                 rng=surfs,
-                callback=self.set_surf,
+                callback=self._set_surf_from_dock,
                 layout=layout,
             )
+        self.widgets["unfold"] = self._renderer._dock_add_slider(
+            name="Unfold",
+            value=self._unfold,
+            rng=[0.0, 2.0 if self._has_flatmaps() else 1.0],
+            callback=self.set_unfold,
+            double=True,
+            tooltip="0: folded, 1: inflated, 2: flat",
+            layout=layout,
+        )
         self.widgets["cortex"] = self._renderer._dock_add_combo_box(
             name="Cortex",
             value=self._cortex_preset,
@@ -993,6 +1002,10 @@ class _TimeViewerMixin:
             self.widgets["data_key"].show()
         self._refresh_colormap_widgets()
 
+    def _set_surf_from_dock(self, surf):
+        if surf != self._surf:
+            self.set_surf(surf)
+
     def _on_surface_updated(self, event):
         # move the picked-vertex spheres onto the new geometry
         for (hemi, vertex_id), spheres in self._picked_points.items():
@@ -1002,6 +1015,9 @@ class _TimeViewerMixin:
             for sphere in spheres:
                 mesh = sphere["mesh"]
                 mesh.points = mesh.points + (center - np.array(mesh.center))
+        self.widgets["unfold"].set_value(self._unfold)
+        if "surf" in self.widgets:
+            self.widgets["surf"].set_value(self._surf)
         if event.flat_change:  # the arrow keys and some controls differ for 2D
             self._configure_arrow_keys()
             self._update_flat_widgets()
