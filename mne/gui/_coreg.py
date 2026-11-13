@@ -238,7 +238,7 @@ class CoregistrationUI(HasTraits):
     _subjects_dir = Unicode()
     _lock_fids = Bool()
     _current_fiducial = Unicode()
-    _info_file = Instance(Path, default_value=Path("."))
+    _info_file = Instance(Path, allow_none=True)
     _orient_glyphs = Bool()
     _scale_by_distance = Bool()
     _mark_inside = Bool()
@@ -316,6 +316,7 @@ class CoregistrationUI(HasTraits):
         self._distance_unit = "mm"
         self._fiducials_file = None
         self._trans_modified = False
+        self._trans_dir = None
         self._mri_fids_modified = False
         self._mri_scale_modified = False
         self._accept_close_event = True
@@ -759,6 +760,9 @@ class CoregistrationUI(HasTraits):
 
         if self._subject not in subjects:  # Just pick the first available one
             self._subject = subjects[0]
+        if "subject" in self._widgets:
+            self._widgets["subject"].set_items(subjects)
+            self._forward_widget_command("subject", "set_value", self._subject)
 
         self._reset()
 
@@ -1728,13 +1732,23 @@ class CoregistrationUI(HasTraits):
         self._display_message(f"Saving {fname}... Done!")
         self._mri_fids_modified = False
 
+    def _trans_directory(self):
+        """Start the trans file dialogs where trans files most likely are."""
+        if self._trans_dir is not None:
+            return self._trans_dir
+        if self._info_file is not None:
+            return self._info_file.parent
+        return self._subjects_dir
+
     def _save_trans(self, fname):
+        self._trans_dir = Path(fname).parent
         write_trans(fname, self.coreg.trans, overwrite=True)
         self._display_message(f"{fname} transform file is saved.")
         self._trans_modified = False
 
     def _load_trans(self, trans):
         if not isinstance(trans, Transform):
+            self._trans_dir = Path(trans).parent
             trans = read_trans(trans, return_all=True)
         mri_head_t = _ensure_trans(trans, "mri", "head")["trans"]
         rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
@@ -1791,7 +1805,9 @@ class CoregistrationUI(HasTraits):
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
-            func=self._set_subjects_dir,
+            func=partial(
+                self._forward_widget_command, "subjects_dir_field", "set_value"
+            ),
             is_directory=True,
             icon=True,
             tooltip="Load the path to the directory containing the FreeSurfer subjects",
@@ -1886,7 +1902,7 @@ class CoregistrationUI(HasTraits):
         info_file_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["info_file_field"] = self._renderer._dock_add_text(
             name="info_file_field",
-            value=self._info_file,
+            value="" if self._info_file is None else self._info_file,
             placeholder="Path to info",
             callback=self._set_info_file,
             layout=info_file_layout,
@@ -1894,7 +1910,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
-            func=self._set_info_file,
+            func=partial(self._forward_widget_command, "info_file_field", "set_value"),
             icon=True,
             tooltip="Load the FIFF file with digitization data for coregistration",
             layout=info_file_layout,
@@ -2143,7 +2159,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=self._info_file.parent,
+            initial_directory=self._trans_directory,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -2152,7 +2168,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
             filter_="Head->MRI transformation (*-trans.fif *_trans.fif)",
-            initial_directory=self._info_file.parent,
+            initial_directory=self._trans_directory,
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
         self._widgets["reset_trans"] = self._renderer._dock_add_button(

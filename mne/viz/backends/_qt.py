@@ -1268,24 +1268,27 @@ class _QtDock(_AbstractDock, _QtLayout):
     ):
         layout = self._dock_layout if layout is None else layout
         weakself = weakref.ref(self)
-        if initial_directory is not None:
-            initial_directory = str(initial_directory)
 
         def callback():
             self = weakself()
             if not self:
                 return
+            directory = initial_directory
+            if callable(directory):
+                directory = directory()
+            if directory is not None:
+                directory = str(directory)
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
-                    parent=self._window, directory=initial_directory
+                    parent=self._window, directory=directory
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
-                    parent=self._window, directory=initial_directory, filter=filter_
+                    parent=self._window, directory=directory, filter=filter_
                 )
             else:
                 name = QFileDialog.getOpenFileName(
-                    parent=self._window, directory=initial_directory, filter=filter_
+                    parent=self._window, directory=directory, filter=filter_
                 )
             name = name[0] if isinstance(name, tuple) else name
             # handle the cancel button
