@@ -758,6 +758,7 @@ def test_arithmetic():
     # default comment behavior if evoked.comment is None
     old_comment1 = ev20.comment
     ev20.comment = None
+    assert "''" in repr(ev20)
     ev = combine_evoked([ev20, -ev30], weights=[1, -1])
     assert_equal(ev.comment.count("unknown"), 2)
     assert ev.comment == "unknown + unknown"

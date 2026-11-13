@@ -69,16 +69,23 @@ def test_read_evoked(cur_system, version, use_info):
     if use_info:
         info = get_raw_info(cur_system)
         avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
+        expected_comment = ""
     else:
         info = None
+        expected_comment = "test"
         with _record_warnings(), pytest.warns(**no_info_warning):
-            avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
+            avg_ft = mne.io.read_evoked_fieldtrip(
+                cur_fname, info, comment=expected_comment
+            )
 
     mne_data = mne_avg.data[:, :-1]
     ft_data = avg_ft.data
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_avg, avg_ft, use_info)
+    np.testing.assert_allclose(avg_ft.times, mne_avg.times[:-1])
+    assert avg_ft.comment == expected_comment
+    assert repr(avg_ft.apply_baseline((None, 0)))
 
 
 @testing.requires_testing_data
