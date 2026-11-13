@@ -1,0 +1,1 @@
+Add a "Load scaling" button to :func:`mne.gui.coregistration` that shows the scaling of a scaled MRI subject relative to its template, by `Payam Sadeghi-Shabestari`_.
