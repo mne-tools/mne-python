@@ -1,1 +1,1 @@
-Fix bug where :func:`mne.read_evoked_fieldtrip` ignored times and caused :class:`mne.Evoked` to fail when ``comment=None``, by `Ishaan Maheshwari`_.
+Fix bug where :func:`mne.read_evoked_fieldtrip` ignored the starting time (tmin) of the FieldTrip data and caused :class:`mne.Evoked` to fail when ``comment=None``, by `Ishaan Maheshwari`_.

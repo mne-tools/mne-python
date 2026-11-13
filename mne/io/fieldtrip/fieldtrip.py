@@ -177,8 +177,8 @@ def read_evoked_fieldtrip(
         import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
-    comment : str
-        Comment on dataset. Can be the condition.
+    comment : str | None
+        Comment on dataset. Can be the condition. Default is None.
     data_name : str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
@@ -197,6 +197,8 @@ def read_evoked_fieldtrip(
     info = _create_info(ft_struct, info)  # create info structure
     data_evoked = ft_struct["avg"]  # create evoked data
 
+    # Timelocked (evoked) data has a single 1D time array, unlike the
+    # per-trial cell array _set_tmin() expects for epochs data.
     return EvokedArray(
         data_evoked,
         info,
