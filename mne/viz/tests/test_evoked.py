@@ -669,6 +669,36 @@ def test_plot_compare_evokeds(evoked):
     # now that we've cropped `red`:
     with pytest.raises(ValueError, match="not contain the same time instants"):
         plot_compare_evokeds(evoked_dict)
+    # test custom scalings and units (#8556)
+    eeg_evoked = evoked.copy().pick("eeg")
+    fig_default = plot_compare_evokeds(eeg_evoked, picks=[0])
+    fig_scaled = plot_compare_evokeds(
+        eeg_evoked,
+        picks=[0],
+        scalings=dict(eeg=1.0),
+        units=dict(eeg="AU"),
+    )
+    assert_allclose(
+        fig_scaled[0].axes[0].lines[0].get_ydata() * 1e6,
+        fig_default[0].axes[0].lines[0].get_ydata(),
+    )
+    assert fig_scaled[0].axes[0].get_ylabel() == "AU"
+    assert fig_default[0].axes[0].get_ylabel() == "µV"
+    # test default picks=None (combining channels) with custom scalings
+    fig_gfp = plot_compare_evokeds(
+        eeg_evoked, scalings=dict(eeg=1.0), units=dict(eeg="AU")
+    )
+    assert fig_gfp[0].axes[0].get_ylabel() == "AU"
+    # test multi-channel-type forwarding
+    evoked_multi = evoked.copy().pick(["MEG 0113", "EEG 001"])
+    figs_multi = plot_compare_evokeds(
+        evoked_multi,
+        scalings=dict(eeg=1.0, grad=1.0),
+        units=dict(eeg="AU", grad="fT/cm"),
+    )
+    assert len(figs_multi) == 2
+    ylabels = {f.axes[0].get_ylabel() for f in figs_multi}
+    assert ylabels == {"AU", "fT/cm"}
     plt.close("all")
 
 

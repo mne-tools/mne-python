@@ -2950,6 +2950,8 @@ def plot_compare_evokeds(
     combine=None,
     sphere=None,
     time_unit="s",
+    units=None,
+    scalings=None,
 ):
     """Plot evoked time courses for one or more conditions and/or channels.
 
@@ -3150,6 +3152,16 @@ def plot_compare_evokeds(
         The units for the time axis, can be "s" (default) or "ms".
 
         .. versionadded:: 1.1
+    units : dict | None
+        The units of the channel types used for axes labels. If None,
+        defaults to ``dict(eeg='µV', grad='fT/cm', mag='fT')``.
+
+        .. versionadded:: 1.14
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
+
+        .. versionadded:: 1.14
 
     Returns
     -------
@@ -3374,6 +3386,8 @@ def plot_compare_evokeds(
                     split_legend=split_legend,
                     show=show,
                     sphere=sphere,
+                    units=units,
+                    scalings=scalings,
                 )
             )
         return figs
@@ -3399,8 +3413,8 @@ def plot_compare_evokeds(
         )
     ch_type = ch_types[0]
     # some things that depend on ch_type:
-    units = _handle_default("units")[ch_type]
-    scalings = _handle_default("scalings")[ch_type]
+    units = _handle_default("units", units)[ch_type]
+    scalings = _handle_default("scalings", scalings)[ch_type]
     combine_func = combine_funcs[ch_type]
     # prep for topo
     pos_picks = picks  # need this version of picks for sensor location inset
@@ -3437,6 +3451,8 @@ def plot_compare_evokeds(
             split_legend=split_legend,
             picks=picks,
             combine=combine,
+            units=units,
+            scalings=scalings,
         ):
             plot_compare_evokeds(
                 evokeds=evokeds,
@@ -3458,6 +3474,8 @@ def plot_compare_evokeds(
                 axes=ax_,
                 show=True,
                 sphere=sphere,
+                units=units,
+                scalings=scalings,
             )
 
         layout = find_layout(info)
