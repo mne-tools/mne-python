@@ -222,8 +222,8 @@ def _public_module_members():
         try:
             members = inspect.getmembers(module, inspect.isclass)
             members += inspect.getmembers(module, inspect.isfunction)
-        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
-            if "'sklearn'" in str(exc):
+        except RuntimeError as exc:  # e.g., mne.decoding but no sklearn
+            if "module sklearn is needed" in str(exc):
                 continue
             raise
         for member_name, obj in members:
@@ -246,8 +246,8 @@ def _public_api_objects():
     for dotted in _documented_names():
         try:
             candidates.append((dotted, _resolve_dotted(dotted)))
-        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
-            if "'sklearn'" in str(exc):
+        except RuntimeError as exc:  # e.g., mne.decoding but no sklearn
+            if "module sklearn is needed" in str(exc):
                 continue
             raise
     candidates += [(where, obj) for where, _, obj in _public_module_members()]

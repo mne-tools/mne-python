@@ -2,7 +2,9 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from mne.utils import _soft_import
+from ._check import _check_sklearn  # isort: skip  # noqa: F401
+
+from ..utils import _soft_import
 
 
 def _get_array_namespace(X):
