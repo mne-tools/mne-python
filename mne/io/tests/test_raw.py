@@ -710,6 +710,15 @@ def test_crop_by_annotations(meas_date, first_samp):
     assert raws[1].times[-1] == pytest.approx(annot[1:2].duration[0], rel=5e-3)
     assert raws[1].annotations.description[0] == annot.description[1]
 
+    # filter by description
+    assert len(raw.crop_by_annotations(description="a")) == 1
+    assert len(raw.crop_by_annotations(description=["a", "b"])) == 2
+    assert len(raw.crop_by_annotations(description=("a",))) == 1
+    with pytest.warns(RuntimeWarning, match="No annotations found"):
+        assert len(raw.crop_by_annotations(description="c")) == 0
+    with pytest.raises(TypeError, match="description must be an instance of"):
+        raw.crop_by_annotations(description=123)
+
 
 @pytest.mark.parametrize("meas_date", [None, 0])
 @pytest.mark.parametrize("first_samp", [0, 50])

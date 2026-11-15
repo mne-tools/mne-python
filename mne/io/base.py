@@ -2258,6 +2258,7 @@ class BaseRaw(
     def crop_by_annotations(
         self,
         annotations: Annotations | None = None,
+        description: str | list[str] | tuple[str, ...] | None = None,
         *,
         verbose: bool | str | int | None = None,
     ) -> list:
@@ -2268,6 +2269,11 @@ class BaseRaw(
         annotations : instance of Annotations | None
             The annotations to use for cropping the raw file. If None,
             the annotations from the instance are used.
+        description : str | list of str | tuple of str | None
+            If not None, only annotations whose descriptions match will
+            be used for cropping. If None (default), all annotations are used.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -2281,6 +2287,18 @@ class BaseRaw(
         """
         if annotations is None:
             annotations = self.annotations
+
+        if description is not None:
+            _validate_type(description, (str, list, tuple), "description")
+            if isinstance(description, str):
+                description = [description]
+            # Filter annotations by matching description
+            annotations = annotations[np.isin(annotations.description, description)]
+            if len(annotations) == 0:
+                warn(
+                    f"No annotations found matching description(s): {description}",
+                    RuntimeWarning,
+                )
 
         raws = []
         for annot in annotations:
