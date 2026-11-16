@@ -40,7 +40,7 @@ from ._fiff.pick import (
 from ._fiff.proj import ProjMixin, setup_proj
 from ._fiff.tag import _read_tag_header, read_tag
 from ._fiff.tree import dir_tree_find
-from ._fiff.utils import _make_split_fnames
+from ._fiff.utils import _check_bids_path_split, _make_split_fnames
 from ._fiff.write import (
     _NEXT_FILE_BUFFER,
     INT32_MAX,
@@ -6105,6 +6105,7 @@ def read_epochs(
     epochs : instance of EpochsFIF
         The epochs.
     """
+    fname = _check_bids_path_split(fname)
     return EpochsFIF(fname, proj, preload, verbose)
 
 
@@ -6164,6 +6165,7 @@ class EpochsFIF(BaseEpochs):
     def __init__(self, fname, proj=True, preload=True, verbose=None):
         from .io.base import _get_fname_rep
 
+        fname = _check_bids_path_split(fname)
         if _path_like(fname):
             check_fname(
                 fname=fname,

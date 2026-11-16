@@ -733,6 +733,15 @@ def test_bids_split_files(tmp_path):
     raw.save(bids_path, **save_kwargs)
     for want_path in want_paths:
         assert want_path.is_file(), want_path
+    # Ensure round-trip reading works when passed a BIDSPath with split=None
+    # (Issue #11900)
+    raw_read = read_raw_fif(bids_path)
+    assert raw_read.n_times == raw.n_times
+    assert len(raw_read.filenames) == 4
+    from mne.io import read_raw
+
+    raw_read_gen = read_raw(bids_path)
+    assert raw_read_gen.n_times == raw.n_times
 
 
 def _err(*args, **kwargs):

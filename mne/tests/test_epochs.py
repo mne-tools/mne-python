@@ -1786,6 +1786,10 @@ def test_split_naming(
     split_fnames = epochs.save(bids_path, verbose=True, **save_kwargs)
     for split_fname in split_fnames:
         assert split_fname.is_file()
+    # Ensure round-trip reading works when passed a BIDSPath with split=None
+    # (Issue #11900)
+    epochs_read = read_epochs(bids_path)
+    assert len(epochs_read) == len(epochs)
 
 
 @pytest.mark.parametrize(

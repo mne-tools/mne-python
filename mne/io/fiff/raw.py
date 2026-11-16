@@ -14,7 +14,7 @@ from ..._fiff.meas_info import read_meas_info
 from ..._fiff.open import _fiff_get_fid, _get_next_fname, fiff_open
 from ..._fiff.tag import _call_dict, read_tag
 from ..._fiff.tree import dir_tree_find
-from ..._fiff.utils import _mult_cal_one
+from ..._fiff.utils import _check_bids_path_split, _mult_cal_one
 from ...annotations import Annotations, _read_annotations_fif
 from ...channels import fix_mag_coil_types
 from ...event import AcqParserFIF
@@ -128,6 +128,7 @@ class Raw(BaseRaw):
                     'preload="auto" requires stable source files and is not '
                     "supported for file-like FIF inputs"
                 )
+        fname = _check_bids_path_split(fname)
         raws = []
         do_check_ext = not _file_like(fname)
         next_fname = fname
@@ -598,6 +599,7 @@ def read_raw_fif(
     ``raw.n_times`` parameters but ``raw.first_samp`` and ``raw.first_time``
     are updated accordingly.
     """
+    fname = _check_bids_path_split(fname)
     return Raw(
         fname=fname,
         allow_maxshield=allow_maxshield,
