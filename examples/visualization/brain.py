@@ -238,7 +238,7 @@ coords = brain.geo["lh"].coords  # vertex positions in mm
 
 
 def gaussian_patch(coords, center, sigma=15.0):
-    """Gaussian blob of activity centred on a surface coordinate (mm)."""
+    """Gaussian blob of activity centered on a surface coordinate (mm)."""
     d = np.linalg.norm(coords - center, axis=1)
     return np.exp(-(d**2) / (2 * sigma**2))
 

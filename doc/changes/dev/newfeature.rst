@@ -1,0 +1,1 @@
+Enable screen-space ambient occlusion (SSAO) by default in 3D plots when VTK 9.7 or newer is installed, which can be controlled with :func:`mne.viz.set_3d_options` or the ``MNE_3D_OPTION_SSAO`` config variable, by `Eric Larson`_.
