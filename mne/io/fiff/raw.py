@@ -599,7 +599,6 @@ def read_raw_fif(
     ``raw.n_times`` parameters but ``raw.first_samp`` and ``raw.first_time``
     are updated accordingly.
     """
-    fname = _check_bids_path_split(fname)
     return Raw(
         fname=fname,
         allow_maxshield=allow_maxshield,

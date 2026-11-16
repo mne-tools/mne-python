@@ -6105,7 +6105,6 @@ def read_epochs(
     epochs : instance of EpochsFIF
         The epochs.
     """
-    fname = _check_bids_path_split(fname)
     return EpochsFIF(fname, proj, preload, verbose)
 
 
