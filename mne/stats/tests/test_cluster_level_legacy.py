@@ -481,7 +481,9 @@ def test_cluster_permutation_with_adjacency(
                 X1d_3, n_permutations=50, adjacency=bad_con, max_step=1, threshold=1.67
             )
         bad_con = adjacency.tocsr()[:-1, :-1].tocoo()
-        with pytest.raises(ValueError, match="adjacency.*the correct size"):
+        with pytest.raises(
+            ValueError, match=r"adjacency.*the correct size.*number of tests \(\d+\)"
+        ):
             spatio_temporal_func(
                 X1d_3, n_permutations=50, adjacency=bad_con, max_step=1, threshold=1.67
             )

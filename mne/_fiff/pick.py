@@ -1468,7 +1468,7 @@ def _picks_to_idx(
     if picks is None:
         if isinstance(info, int):  # special wrapper for no real info
             picks = np.arange(n_chan)
-            extra_repr = ", treated as range({n_chan})"
+            extra_repr = f", treated as range({n_chan})"
         else:
             picks = none  # let _picks_str_to_idx handle it
             extra_repr = f', treated as "{none}"'

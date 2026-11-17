@@ -509,7 +509,8 @@ def _setup_adjacency(adjacency, n_tests, n_times):
         if got_times != n_times or mod != 0:
             raise ValueError(
                 f"adjacency (len {adjacency.shape[0]}) must be of the correct size, "
-                "i.e. be equal to or evenly divide the number of tests ({n_tests}).\n\n"
+                "i.e. be equal to or evenly divide the number of tests "
+                f"({n_tests}).\n\n"
                 "If adjacency was computed for a source space, try using "
                 'the fwd["src"] or inv["src"] as some original source space '
                 "vertices can be excluded during forward computation"

@@ -447,7 +447,7 @@ def _read_annotations_curry(fname, sfreq="auto"):
         if float(sfreq) != float(sfreq_fromfile):
             warn(
                 f"provided sfreq ({sfreq} Hz) does not match freq from fileheader "
-                "({sfreq_fromfile} Hz)!"
+                f"({sfreq_fromfile} Hz)!"
             )
     else:
         raise ValueError("'sfreq' must be numeric or 'auto'")

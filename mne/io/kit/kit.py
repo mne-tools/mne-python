@@ -789,7 +789,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             if channel_type in KIT.CHANNELS_MEG:
                 if channel_type not in KIT.CH_TO_FIFF_COIL:
                     raise NotImplementedError(
-                        "KIT channel type {channel_type} can not be read. Please "
+                        f"KIT channel type {channel_type} can not be read. Please "
                         "contact the mne-python developers."
                     )
                 channels.append(
@@ -821,7 +821,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None, verbose=
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({"type": channel_type})
             else:
-                raise OSError("Unknown KIT channel type: {channel_type}")
+                raise OSError(f"Unknown KIT channel type: {channel_type}")
         exg_gains = np.array(exg_gains)
 
         #
