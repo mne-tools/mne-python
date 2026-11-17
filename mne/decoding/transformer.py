@@ -3,6 +3,8 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn.base import BaseEstimator, TransformerMixin, check_array, clone
 from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.utils import check_X_y
