@@ -1173,8 +1173,12 @@ def read_dig_hpts(fname, unit="mm"):
     xyz *= _scale
     del _scale
     fid_idx_to_label = {
-        "1": "lpa", "2": "nasion", "3": "rpa",
-        "lpa": "lpa", "nasion": "nasion", "rpa": "rpa",
+        "1": "lpa",
+        "2": "nasion",
+        "3": "rpa",
+        "lpa": "lpa",
+        "nasion": "nasion",
+        "rpa": "rpa",
     }
     fid = {
         fid_idx_to_label[label[ii].lower()]: this_xyz
