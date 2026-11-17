@@ -137,18 +137,18 @@ def _fit_lm(data, design_matrix, names):
         t_val[predictor] = np.empty_like(stderr[predictor])
 
         stderr_pos = stderr[predictor] > 0
-        beta_pos = beta[predictor] > 0
+        beta_nonzero = beta[predictor] != 0
         t_val[predictor][stderr_pos] = (
             beta[predictor][stderr_pos] / stderr[predictor][stderr_pos]
         )
         cdf = stats.t.cdf(np.abs(t_val[predictor][stderr_pos]), df)
         p_val[predictor][stderr_pos] = np.clip((1.0 - cdf) * 2.0, tiny, 1.0)
         # degenerate cases
-        mask = ~stderr_pos & beta_pos
+        mask = ~stderr_pos & beta_nonzero
         t_val[predictor][mask] = np.inf * np.sign(beta[predictor][mask])
         p_val[predictor][mask] = tiny
         # could do NaN here, but hopefully this is safe enough
-        mask = ~stderr_pos & ~beta_pos
+        mask = ~stderr_pos & ~beta_nonzero
         t_val[predictor][mask] = 0
         p_val[predictor][mask] = 1.0
         mlog10_p_val[predictor] = -np.log10(p_val[predictor])
