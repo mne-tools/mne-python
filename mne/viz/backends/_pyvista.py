@@ -1009,7 +1009,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             renderer.SetSSAORadius(radius)
             # VTK's default bias (0.01) is in world units too, so scale it as well
             renderer.SetSSAOBias(radius / 30)
-            # Without blur, the default 32-sample kernel is visibly grainy
+            # VTK's default of 32 samples looks mottled in close-ups
+            renderer.SetSSAOKernelSize(256)
+            # Smooths the remaining sampling noise (VTK's default is off)
             renderer.SetSSAOBlur(True)
             # SSAO renders to a single-sample buffer, losing MSAA, so use FXAA
             if self.antialias:
