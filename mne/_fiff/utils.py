@@ -9,6 +9,7 @@ from typing import IO
 
 import numpy as np
 
+from ..utils import logger
 from .constants import FIFF
 from .meas_info import _get_valid_units
 
@@ -368,5 +369,11 @@ def _check_bids_path_split(fname):
                 if not Path(fname.fpath).exists():
                     split_01 = fname.copy().update(split="01")
                     if Path(split_01.fpath).exists():
+                        logger.info(
+                            "BIDS file %s missing but adjacent split file %s found, "
+                            "loading that one.",
+                            fname.fpath,
+                            split_01.fpath,
+                        )
                         return split_01
     return fname
