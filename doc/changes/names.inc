@@ -139,6 +139,7 @@
 .. _Erik Hornberger: https://github.com/moppymopperson
 .. _Erkka Heinila: https://github.com/Teekuningas
 .. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+.. _Eva B: https://github.com/evadiva3
 .. _Evan Hathaway: https://github.com/ephathaway
 .. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
