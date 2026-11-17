@@ -1,0 +1,1 @@
+Accept list-valued covariates in :func:`mne.stats.linear_regression_raw`, by :newcontrib:`Eva B`.
