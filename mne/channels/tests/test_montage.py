@@ -2007,6 +2007,14 @@ def test_read_dig_hpts():
     )
 
 
+def test_read_dig_hpts_named_fiducials():
+    """BioSemi files use names instead of numeric fiducial identifiers."""
+    fname = io_dir / "edf" / "tests" / "data" / "biosemi.hpts"
+    montage = read_dig_hpts(fname)
+    positions = montage.get_positions()
+    assert all(positions[name] is not None for name in ("nasion", "lpa", "rpa"))
+
+
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
     EXPECTED_COUNT = 34

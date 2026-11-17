@@ -1172,9 +1172,12 @@ def read_dig_hpts(fname, unit="mm"):
     xyz = np.array([out[f"f{ii}"] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
-    fid_idx_to_label = {"1": "lpa", "2": "nasion", "3": "rpa"}
+    fid_idx_to_label = {
+        "1": "lpa", "2": "nasion", "3": "rpa",
+        "lpa": "lpa", "nasion": "nasion", "rpa": "rpa",
+    }
     fid = {
-        fid_idx_to_label[label[ii]]: this_xyz
+        fid_idx_to_label[label[ii].lower()]: this_xyz
         for ii, this_xyz in enumerate(xyz)
         if kind[ii] == "cardinal"
     }
