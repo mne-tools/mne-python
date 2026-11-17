@@ -2213,6 +2213,7 @@ class BaseRaw(
                 include_tmax=include_tmax,
             )
         )[0][[0, -1]]
+        end_cropped = smax < self.n_times - 1
         cumul_lens = np.concatenate(([0], np.array(self._raw_lengths, dtype="int")))
         cumul_lens = np.cumsum(cumul_lens)
         keepers = np.logical_and(
@@ -2252,6 +2253,16 @@ class BaseRaw(
             # set_annotations will put it back.
             annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
+        # When the end was cropped, drop annotations starting after the new last
+        # sample (#9383). This is not done in set_annotations() (or when the end is
+        # untouched) because file readers (e.g. EDF/BDF) legitimately store
+        # end-of-recording annotations at n_times / sfreq that must be preserved.
+        if end_cropped:
+            bad = np.where(
+                self.annotations.onset - self._first_time
+                > (self.n_times - 0.5) / self.info["sfreq"]
+            )[0]
+            self.annotations.delete(bad)
         return self
 
     @verbose_static()
