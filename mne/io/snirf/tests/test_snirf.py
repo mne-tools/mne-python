@@ -712,6 +712,8 @@ def test_get_dataunit_scaling():
     assert _get_dataunit_scaling("mmol/l") == 1e-3
     # Empty string default
     assert _get_dataunit_scaling("") == 1.0
+    assert _get_dataunit_scaling("A.U.") == 1.0
+    assert _get_dataunit_scaling("arbitrary units") == 1.0
     # Unsupported unit
     with pytest.raises(RuntimeError, match="not supported"):
         _get_dataunit_scaling("bad_unit")
