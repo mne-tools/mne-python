@@ -229,3 +229,15 @@ def test_f_oneway_hat_input_validation():
 
     with pytest.raises(ValueError, match="method"):
         f_oneway(X1, X2, sigma=1e-3, method="invalid")
+
+
+def test_f_oneway_promotes_integer_inputs():
+    """Integer values must not overflow while computing sums of squares."""
+    X1 = np.array([[182], [180]], dtype=np.int16)
+    X2 = np.array([[181], [178]], dtype=np.int16)
+
+    f_integer = f_oneway(X1, X2)
+    f_float = f_oneway(X1.astype(float), X2.astype(float))
+
+    assert np.allclose(f_integer, f_float)
+    assert np.all(f_integer >= 0)

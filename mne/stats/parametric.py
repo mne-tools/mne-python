@@ -166,6 +166,9 @@ def f_oneway(*args, sigma=0.0, method="relative"):
     _check_option("method", method, ["absolute", "relative"])
     if sigma < 0:
         raise ValueError(f"sigma must be >= 0, got {sigma}")
+    # Promote integer samples before squaring; otherwise NumPy wraps large
+    # integer products and can produce an invalid negative F statistic.
+    args = tuple(np.asarray(a, dtype=float) for a in args)
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
