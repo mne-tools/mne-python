@@ -1090,6 +1090,7 @@ def options_3d():
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+            "MNE_3D_OPTION_SSAO": "false",
             "MNE_3D_OPTION_THEME": "light",  # unify colors across setups
         },
     ):

@@ -259,6 +259,15 @@ def test_renderer_internal_helpers(renderer_pyvistaqt):
     )
     actors = rend.plotter.renderer.actors.values()
     assert actor1 in actors and actor2 in actors
+
+    # _update_ssao scales the SSAO radius with the scene size and adds FXAA
+    rend.ssao = rend.antialias = True  # off via the options_3d fixture
+    rend._update_ssao()
+    assert rend.plotter.renderer.GetUseSSAO()
+    assert rend.plotter.renderer.GetUseFXAA()
+    radius = rend.plotter.renderer.GetSSAORadius()
+    assert radius == pytest.approx(0.075 * rend.plotter.renderer.length)
+
     rend._remove_actors(actor1, render=False)
     rend._remove_actors([actor2], render=False)
     actors = rend.plotter.renderer.actors.values()
