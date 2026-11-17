@@ -4441,6 +4441,7 @@ class _3d_Options:
     depth_peeling: bool | None
     smooth_shading: bool | None
     multi_samples: int | None
+    ssao: bool | None
 
 
 _3d_options = _3d_Options(
@@ -4448,17 +4449,24 @@ _3d_options = _3d_Options(
     depth_peeling=None,
     smooth_shading=None,
     multi_samples=None,
+    ssao=None,
 )
 _3d_default = _3d_Options(
     antialias="true",
     depth_peeling="true",
     smooth_shading="true",
     multi_samples="4",
+    ssao="true",
 )
 
 
 def set_3d_options(
-    antialias=None, depth_peeling=None, smooth_shading=None, *, multi_samples=None
+    antialias=None,
+    depth_peeling=None,
+    smooth_shading=None,
+    *,
+    multi_samples=None,
+    ssao=None,
 ):
     """Set 3D rendering options.
 
@@ -4487,6 +4495,15 @@ def set_3d_options(
         to work properly.
 
         .. versionadded:: 1.1
+    ssao : bool | None
+        If bool, whether to enable or disable screen-space ambient occlusion
+        (SSAO), which darkens creases such as cortical sulci to give a better
+        sense of depth. It only affects opaque actors (translucent ones are
+        rendered as if it were off) and is only used with VTK 9.7 or newer.
+        This option can also be controlled using an environment variable,
+        e.g., ``MNE_3D_OPTION_SSAO=false``.
+
+        .. versionadded:: 1.14
 
     Notes
     -----
@@ -4500,6 +4517,8 @@ def set_3d_options(
         _3d_options.smooth_shading = bool(smooth_shading)
     if multi_samples is not None:
         _3d_options.multi_samples = int(multi_samples)
+    if ssao is not None:
+        _3d_options.ssao = bool(ssao)
 
 
 def _get_3d_option(key):

@@ -64,7 +64,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 #
 # Understanding coordinate frames
 # -------------------------------
-# For M/EEG source imaging, there are three **coordinate frames** must be
+# For M/EEG source imaging, three **coordinate frames** must be
 # brought into alignment using two 3D `transformation matrices <wiki_xform_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another. The three main coordinate frames are:
