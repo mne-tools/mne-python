@@ -54,7 +54,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> peak_mags # doctest: +SKIP
     array([0.36900026, 1.76007351]) # doctest: +SKIP
     """
-    x0 = np.asanyarray(x0, dtype=float)  # zero slopes get a float value below
+    x0 = np.asanyarray(x0, dtype=float)
     s = x0.size
 
     if x0.ndim >= 2 or s == 0:
