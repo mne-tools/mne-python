@@ -96,7 +96,7 @@ def _raw_preload_auto(raw):
             raw._read_segment(data_buffer=data)
             data.flush()
         finally:
-            data._mmap.close()  # ty: ignore[unresolved-attribute]
+            data._mmap.close()  # ty: ignore[missing-attribute]
         if _raw_preload_cache_info(raw)[1] != sources:
             raise RuntimeError(
                 "Source data changed while decoded cache was created; retry"

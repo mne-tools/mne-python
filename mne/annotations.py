@@ -68,18 +68,16 @@ class _AnnotationsExtrasDict(UserDict):
     strings, integers, floats, or None.
     """
 
-    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
-        self, key: str, value: str | int | float | None
-    ) -> None:
+    def __setitem__(self, key: str, item: str | int | float | None) -> None:
         _validate_type(key, str, "key")
         if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
-            value,
+            item,
             (str, int, float, None),
             "value",
         )
-        super().__setitem__(key, value)
+        super().__setitem__(key, item)
 
 
 class _AnnotationsExtrasList(UserList):
@@ -122,7 +120,7 @@ class _AnnotationsExtrasList(UserList):
             initlist = [self._validate_value(v) for v in initlist]
         super().__init__(initlist)
 
-    def __setitem__(  # ty: ignore[invalid-method-override]  # intentional narrowing
+    def __setitem__(  # ty: ignore[incompatible-method-override]  # intentional narrowing
         self,
         key: int | slice,
         value,
@@ -1875,8 +1873,8 @@ class EpochAnnotationsMixin:
             return self
 
         # get existing metadata DataFrame or instantiate an empty one
-        if self._metadata is not None:  # ty: ignore[unresolved-attribute]  # host pandas attr
-            metadata = self._metadata  # ty: ignore[unresolved-attribute]  # host pandas attr
+        if self._metadata is not None:  # ty: ignore[missing-attribute]  # host pandas attr
+            metadata = self._metadata  # ty: ignore[missing-attribute]  # host pandas attr
         else:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)

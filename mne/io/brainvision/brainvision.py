@@ -1363,7 +1363,7 @@ _AHDR_CHANNEL_NAME = "AHDR_CHANNEL"
 class _BVEventParser(_DefaultEventParser):
     """Parse standard brainvision events, accounting for non-standard ones."""
 
-    def __call__(self, description):  # ty: ignore[invalid-method-override]  # intentional
+    def __call__(self, description):  # ty: ignore[incompatible-method-override]  # intentional
         """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
         offsets = _BV_EVENT_IO_OFFSETS
 
