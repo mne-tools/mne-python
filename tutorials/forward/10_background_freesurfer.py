@@ -82,7 +82,9 @@ hemispheres separately; cf. :ref:`tut-source-estimate-class`).
 Below we show an example of the results of a FreeSurfer reconstruction for the
 left hemisphere of the :ref:`sample-dataset` dataset subject, including an
 overlay of an anatomical parcellation (in this case, the parcellation from
-:footcite:`DestrieuxEtAl2010`).
+:footcite:`DestrieuxEtAl2010`). With VTK 9.7 or newer, the cortical folds are
+shaded using screen-space ambient occlusion, which can be turned off with
+:func:`mne.viz.set_3d_options`.
 """
 
 # Authors: The MNE-Python contributors.

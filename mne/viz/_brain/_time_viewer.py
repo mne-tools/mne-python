@@ -753,8 +753,7 @@ class _TimeViewerMixin:
                     act_data = np.linalg.norm(act_data, axis=1)
                 smooth_mat = hemi_data.get("smooth_mat")
                 vertices = hemi_data["vertices"]
-                if hemi == "vol":
-                    assert smooth_mat is None
+                if hemi == "vol" and smooth_mat is None:  # not subcortical meshes
                     smooth_mat = csr_array(
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
                     )
@@ -1067,6 +1066,8 @@ class _TimeViewerMixin:
             hemi = "vol"
         if self.act_data_smooth[hemi][0] is None:  # no data to add for hemi
             return
+        if hemi == "vol" and "grid" not in self._data[hemi]:
+            return  # picking on subcortical surfaces is not supported yet
         pos = np.array(vtk_picker.GetPickPosition())
         if hemi == "vol":
             # VTK will give us the point closest to the viewer in the vol.

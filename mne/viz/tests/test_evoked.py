@@ -292,6 +292,11 @@ def test_plot_evoked_timechange():
     ui_events.publish(fig, ui_events.TimeChange(time=0.1))
     assert_allclose(ax._selectline.get_xdata()[0], 0.1, atol=1e-8)
 
+    # Subfigures (#14481)
+    subfig = plt.figure().subfigures(1, 2)[0]
+    evoked.plot(picks="mag", axes=subfig.subplots())
+    ui_events.publish(subfig, ui_events.TimeChange(time=0.1))
+
     plt.close("all")
 
 
