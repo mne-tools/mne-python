@@ -120,22 +120,21 @@ dip = mne.read_dipole(sample_dir / "sample_audvis_set1.dip")
 cmap = plt.colormaps["YlOrRd"]
 colors = [cmap(gof / dip.gof.max()) for gof in dip.gof]
 brain.add_dipole(dip, trans, colors=colors, scales=list(dip.amplitude * 1e8))
-brain.show_view(azimuth=-20, elevation=60, distance=300)
+brain.show_view(azimuth=-20, elevation=60, distance=400)
 img = brain.screenshot()  # for next section
 
 # %%
 # Create a screenshot for exporting the brain image
 # -------------------------------------------------
-# Also, we can a static image of the brain using ``screenshot`` (above),
+# Also, we can make a static image of the brain using ``screenshot`` (above),
 # which will allow us to add a colorbar. This is useful for figures in
 # publications.
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.imshow(img)
 ax.axis("off")
-cax = fig.add_axes([0.9, 0.1, 0.05, 0.8])
 norm = Normalize(vmin=0, vmax=dip.gof.max())
-fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), ax=ax)
 fig.suptitle("Dipole Fits Scaled by Amplitude and Colored by GOF")
 
 
