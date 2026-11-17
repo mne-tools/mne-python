@@ -305,8 +305,11 @@ def test_crop(tmp_path):
     raw.set_annotations(Annotations([0, 5, 10], [0, 0, 0], ["a", "b", "c"]))
     assert len(raw.copy().crop(0, 10, include_tmax=False).annotations) == 2
     assert len(raw.copy().crop(0, 10, include_tmax=True).annotations) == 3
+    # an annotation at n_times / sfreq is kept unless the end is cropped
     raw.set_annotations(Annotations([0, 20], [0, 0], ["a", "b"]))
-    assert len(raw.copy().crop(tmin=5).annotations) == 0
+    assert len(raw.copy().crop().annotations) == 2
+    assert_array_equal(raw.copy().crop(tmin=5).annotations.description, ["b"])
+    assert len(raw.copy().crop(tmin=5, tmax=19).annotations) == 0
     raw.set_annotations(Annotations([0], [20], ["full"]))
     assert_allclose(
         raw.copy().crop(0, 10, include_tmax=False).annotations.duration[0], 10.0
