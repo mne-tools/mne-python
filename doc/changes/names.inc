@@ -31,6 +31,7 @@
 .. _Andrew Quinn: https://github.com/ajquinn
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 .. _Aniket Singh Yadav: https://github.com/Aniketsy
+.. _Anish G: https://github.com/Anish-185
 .. _Anna Padee: https://github.com/apadee/
 .. _Annalisa Pascarella: https://github.com/annapasca
 .. _Anne-Sophie Dubarry: https://github.com/annesodub

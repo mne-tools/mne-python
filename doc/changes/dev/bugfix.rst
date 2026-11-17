@@ -1,0 +1,1 @@
+Fix :func:`mne.io.read_raw_persyst` ignoring recording gaps listed in the ``[SampleTimes]`` section of the ``.lay`` file, which are now filled with zeros and annotated as ``BAD_ACQ_SKIP`` so that times after a gap are correct, by :newcontrib:`Anish G`.
