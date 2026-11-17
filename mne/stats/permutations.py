@@ -134,6 +134,7 @@ def permutation_t_test(
     from .cluster_level import _get_1samp_orders
 
     _check_if_nan(X, msg="in the data array for permutations testing")
+    X = np.asarray(X, dtype=float)  # avoid overflow when squaring integer data
     n_samples, n_tests = X.shape
     X2 = np.mean(X**2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)

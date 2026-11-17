@@ -48,6 +48,15 @@ def test_permutation_t_test():
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
 
+    # integer data whose squares overflow the dtype (here int16)
+    X_int = (1000 + 50 * rng.standard_normal((n_samples, n_tests))).astype(np.int16)
+    t_obs, p_values, _ = permutation_t_test(X_int, n_permutations=99, rng=0)
+    t_obs_float, p_values_float, _ = permutation_t_test(
+        X_int.astype(float), n_permutations=99, rng=0
+    )
+    assert_allclose(t_obs, t_obs_float)
+    assert_allclose(p_values, p_values_float)
+
     # test chunked calculation in _extreme_stat
     X2 = np.mean(X**2, axis=0)
     perms = rng.choice([-1, 1], size=(100, n_samples))
