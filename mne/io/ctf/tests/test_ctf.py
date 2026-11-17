@@ -771,3 +771,9 @@ def test_invalid_meas_date(monkeypatch):
     log = log.getvalue()
     assert "No date or time found" in log
     assert raw.info["meas_date"] == datetime.fromtimestamp(0, tz=UTC)
+
+
+def test_convert_time_numeric_day_month_date():
+    """CTF headers may store anonymized dates as DD-MM-YYYY."""
+    value = _convert_time("14-10-1890", "10:09")
+    assert isinstance(value, float)
