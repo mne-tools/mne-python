@@ -170,7 +170,9 @@ def annotate_amplitude(
             flat_count = flat_.sum(axis=1)
             flat_count[np.nonzero(flat_count)] += 1  # offset by 1 due to diff
             flat_mean = flat_count / raw.times.size * 100
-            flat_ch_to_set_bad = picks_[np.where(flat_mean >= bad_percent)[0]]
+            flat_ch_to_set_bad = picks_[
+                np.where((flat_count > 0) & (flat_mean >= bad_percent))[0]
+            ]
             bads.extend(flat_ch_to_set_bad)
             # add onset/offset for annotations
             flat_ch_to_annotate = np.where((0 < flat_mean) & (flat_mean < bad_percent))[
@@ -188,7 +190,9 @@ def annotate_amplitude(
             peak_count = peak_.sum(axis=1)
             peak_count[np.nonzero(peak_count)] += 1  # offset by 1 due to diff
             peak_mean = peak_count / raw.times.size * 100
-            peak_ch_to_set_bad = picks_[np.where(peak_mean >= bad_percent)[0]]
+            peak_ch_to_set_bad = picks_[
+                np.where((peak_count > 0) & (peak_mean >= bad_percent))[0]
+            ]
             bads.extend(peak_ch_to_set_bad)
             # add onset/offset for annotations
             peak_ch_to_annotate = np.where((0 < peak_mean) & (peak_mean < bad_percent))[

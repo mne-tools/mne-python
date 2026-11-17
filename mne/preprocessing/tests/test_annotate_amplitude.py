@@ -35,7 +35,7 @@ def test_annotate_amplitude(meas_date, first_samp):
     raw.set_meas_date(meas_date)
 
     # -- test bad channels spatial marking --
-    for perc, dur in itertools.product((5, 99.9, 100.0), (0.005, 0.95, 0.99)):
+    for perc, dur in itertools.product((0, 5, 99.9, 100.0), (0.005, 0.95, 0.99)):
         kwargs = dict(bad_percent=perc, min_duration=dur)
 
         # test entire channel flat
