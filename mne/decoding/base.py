@@ -10,6 +10,8 @@ from functools import partial
 from inspect import Parameter, signature
 
 import numpy as np
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,

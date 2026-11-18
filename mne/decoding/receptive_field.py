@@ -5,6 +5,8 @@
 import numbers
 
 import numpy as np
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn.base import (
     BaseEstimator,
     MetaEstimatorMixin,

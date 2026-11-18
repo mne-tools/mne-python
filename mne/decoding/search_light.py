@@ -5,6 +5,8 @@
 import logging
 
 import numpy as np
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.metrics import check_scoring
 from sklearn.preprocessing import LabelEncoder
