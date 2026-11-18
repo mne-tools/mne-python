@@ -493,6 +493,76 @@ def test_resample_raw(method):
     assert data.shape == (1, 63)
 
 
+def test_resample_fft_nan():
+    """Test that FFT resampling handles NaN samples without contaminating valid data."""
+    sfreq = 200.0
+    times = np.arange(2000) / sfreq
+    sine = np.sin(2 * np.pi * 5 * times)
+    data = np.vstack([sine, sine, sine, np.full_like(sine, np.nan)])
+    data[0, -30:] = np.nan  # trailing NaNs
+    data[1, 500:520] = np.nan  # interior NaN gap (e.g. blink)
+    data[2, :20] = np.nan  # leading NaNs
+    data_orig = data.copy()
+
+    # Downsampling via resample() does not mutate input and keeps NaNs localized
+    res = resample(data, up=100.0, down=sfreq, method="fft")
+    assert_array_equal(data, data_orig)
+    assert res.shape == (4, 1000)
+    assert np.isnan(res[0, -15:]).all()
+    assert not np.isnan(res[0, :-16]).any()
+    assert np.isnan(res[1, 250:260]).all()
+    assert np.isnan(res[1]).sum() in (10, 11)
+    assert np.isnan(res[2, :10]).all()
+    assert not np.isnan(res[2, 11:]).any()
+    assert np.isnan(res[3]).all()
+
+    # Valid signal fidelity is preserved away from NaN boundaries
+    expected = np.sin(2 * np.pi * 5 * np.arange(1000) / 100.0)
+    valid = ~np.isnan(res[0])
+    assert np.abs(res[0, valid][100:-100] - expected[valid][100:-100]).max() < 0.1
+
+    # Upsampling and non-integer ratio
+    res_up = resample(data[:2, :200], up=400.0, down=sfreq, method="fft")
+    assert res_up.shape == (2, 400)
+    assert not np.isnan(res_up[0]).any()
+    res_nonint = resample(data[:2], up=128.0, down=sfreq, method="fft")
+    assert res_nonint.shape == (2, 1280)
+    assert np.isnan(res_nonint[0, -19:]).all()
+    assert not np.isnan(res_nonint[0, :-21]).any()
+
+    # Single valid sample in an otherwise all-NaN signal matches constant signal
+    single = np.full(100, np.nan)
+    single[40] = 3.5
+    res_single = resample(single, up=1, down=2, method="fft")
+    expected_const = resample(np.full(100, 3.5), up=1, down=2, method="fft")
+    assert res_single.shape == (50,)
+    assert_allclose(res_single[20], expected_const[20])
+    assert np.isnan(np.delete(res_single, 20)).all()
+
+    # Non-default axis=0 and 3D array (Epochs-like)
+    res_ax0 = resample(data.T, up=100.0, down=sfreq, axis=0, method="fft").T
+    assert_array_equal(res_ax0, res)
+    data_3d = np.stack([data, data], axis=0)
+    res_3d = resample(data_3d, up=100.0, down=sfreq, axis=-1, method="fft")
+    assert res_3d.shape == (2, 4, 1000)
+    assert_array_equal(res_3d[0], res)
+    assert_array_equal(res_3d[1], res)
+
+    # Parallel n_jobs=2 matches n_jobs=1
+    pytest.importorskip("joblib")
+    res_par = resample(data, up=100.0, down=sfreq, method="fft", n_jobs=2)
+    assert_array_equal(res_par, res)
+
+    # End-to-end RawArray.resample() reproducer from gh-14421
+    raw = RawArray(data.copy(), create_info(4, sfreq, "eeg"), verbose=False)
+    raw.resample(100.0, method="fft")
+    raw_data = raw.get_data()
+    assert raw_data.shape == (4, 1000)
+    assert np.isnan(raw_data[0, -15:]).all()
+    assert not np.isnan(raw_data[0, :-16]).any()
+    assert np.isnan(raw_data[3]).all()
+
+
 @resample_method_parametrize
 def test_resample_below_1_sample(method):
     """Test resampling doesn't yield datapoints."""

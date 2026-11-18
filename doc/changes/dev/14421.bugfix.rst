@@ -1,0 +1,1 @@
+Fix bug where FFT-based resampling in :func:`mne.filter.resample` and :meth:`mne.io.Raw.resample` turned entire channels into ``NaN`` when any sample was ``NaN``, by `Aditya Kumar Singh`_.
