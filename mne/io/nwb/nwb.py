@@ -12,6 +12,7 @@ import numpy as np
 
 from mne._fiff.meas_info import create_info
 from mne._fiff.utils import _mult_cal_one
+from mne.annotations import Annotations
 from mne.io.base import BaseRaw
 from mne.utils import (
     _check_fname,
@@ -31,7 +32,7 @@ _VOLTS = {
 
 
 @fill_doc_static("preload", "verbose")
-def read_raw_nwb(fname, *, ch_type="seeg", preload=False, verbose=None):
+def read_raw_nwb(fname, *, ch_type="seeg", series=None, preload=False, verbose=None):
     """Read an NWB voltage series using h5py.
 
     Parameters
@@ -41,6 +42,11 @@ def read_raw_nwb(fname, *, ch_type="seeg", preload=False, verbose=None):
     ch_type : str
         The channel type to use for all channels, e.g. ``"seeg"`` (default) or
         ``"ecog"``. NWB files do not store channel types.
+    series : str | None
+        The path of the series to read inside the file, e.g.
+        ``"processing/ecephys/LFP/lfp"``. If ``None`` (default), read the only
+        voltage series in ``acquisition``, or else the only ``ElectricalSeries``
+        in the file.
     preload : bool | str
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -72,14 +78,20 @@ def read_raw_nwb(fname, *, ch_type="seeg", preload=False, verbose=None):
 
     Notes
     -----
-    Requires :mod:`h5py`. Reads the single ``ElectricalSeries`` in the file's
-    ``acquisition`` group, or the single two-dimensional ``TimeSeries`` in volts
-    if there is no ``ElectricalSeries``. Channel names are the electrode IDs if
-    available, otherwise channel numbers. Timestamps must be uniformly sampled.
+    Requires :mod:`h5py`. Without ``series``, reads the single ``ElectricalSeries``
+    in the file's ``acquisition`` group, or the single two-dimensional
+    ``TimeSeries`` in volts if there is no ``ElectricalSeries``. Channel names are
+    the electrode IDs if available, otherwise channel numbers. Timestamps must be
+    uniformly sampled. Each table in ``intervals`` (e.g. ``trials``) becomes
+    annotations described as ``NWB/<table>``, except ``invalid_times``, which
+    becomes ``BAD_nwb_invalid``; rows scoped to other series are skipped. The
+    subject ID and sex are stored in ``raw.info["subject_info"]``.
 
     .. versionadded:: 1.14
     """
-    return RawNWB(fname, ch_type=ch_type, preload=preload, verbose=verbose)
+    return RawNWB(
+        fname, ch_type=ch_type, series=series, preload=preload, verbose=verbose
+    )
 
 
 def _str(value):
@@ -106,27 +118,69 @@ def _read_nwb_time(series, n_times):
     return float(sfreq), float(t_start)
 
 
-def _get_info(fname, ch_type):
+def _find_series(f, series):
+    """Return the NWB voltage series to read."""
+    h5py = _import_h5py()
+    if series is not None:
+        if not isinstance(f.get(series), h5py.Group) or "data" not in f[series]:
+            raise ValueError(f"No NWB series with data at {series!r}")
+        return f[series]
+    by_type = {}
+    for group in f.get("acquisition", {}).values():
+        if not isinstance(group, h5py.Group) or "data" not in group:
+            continue
+        kind = group.attrs.get("neurodata_type")
+        data = group["data"]
+        unit = _str(data.attrs.get("unit", "")).strip().lower()
+        if kind == "ElectricalSeries" or (
+            kind == "TimeSeries" and data.ndim == 2 and unit in _VOLTS
+        ):
+            by_type.setdefault(kind, []).append(group)
+    candidates = by_type.get("ElectricalSeries", by_type.get("TimeSeries", []))
+    if not candidates:  # e.g. only an LFP series in processing/ecephys
+        f.visititems(
+            lambda _, obj: (
+                candidates.append(obj)
+                if _str(obj.attrs.get("neurodata_type", "")) == "ElectricalSeries"
+                else None
+            )
+        )
+    if len(candidates) != 1:
+        raise ValueError(
+            f"Expected one voltage series, found {len(candidates)}: "
+            f"{[c.name for c in candidates]}; choose one with series="
+        )
+    return candidates[0]
+
+
+def _read_annotations(f, series, t_start, meas_date):
+    """Read each NWB interval table that applies to the series as annotations."""
+    onset, duration, description = [], [], []
+    for name, table in f.get("intervals", {}).items():
+        if "start_time" not in table or "stop_time" not in table:
+            continue
+        start, stop = table["start_time"][()], table["stop_time"][()]
+        keep = stop >= start  # also drops NaN
+        if "timeseries_index" in table:  # rows may be scoped to some series
+            refs = table["timeseries"]["timeseries"]
+            bounds = np.concatenate([[0], table["timeseries_index"][()]])
+            # one reference lookup per row, fine for typical interval tables
+            keep &= [
+                lo == hi or any(f[ref] == series for ref in refs[lo:hi])
+                for lo, hi in zip(bounds[:-1], bounds[1:])
+            ]
+        label = "BAD_nwb_invalid" if name == "invalid_times" else f"NWB/{name}"
+        onset.extend(start[keep] - t_start)
+        duration.extend(stop[keep] - start[keep])
+        description.extend([label] * int(keep.sum()))
+    return Annotations(onset, duration, description, orig_time=meas_date)
+
+
+def _get_info(fname, ch_type, series):
     """Read NWB header information without loading the voltage samples."""
     h5py = _import_h5py()
     with h5py.File(fname, "r") as f:
-        by_type = {}
-        for group in f.get("acquisition", {}).values():
-            if not isinstance(group, h5py.Group) or "data" not in group:
-                continue
-            kind = group.attrs.get("neurodata_type")
-            data = group["data"]
-            unit = _str(data.attrs.get("unit", "")).strip().lower()
-            if kind == "ElectricalSeries" or (
-                kind == "TimeSeries" and data.ndim == 2 and unit in _VOLTS
-            ):
-                by_type.setdefault(kind, []).append(group)
-        candidates = by_type.get("ElectricalSeries", by_type.get("TimeSeries", []))
-        if len(candidates) != 1:
-            raise ValueError(
-                f"Expected one acquisition voltage series, found {len(candidates)}"
-            )
-        series = candidates[0]
+        series = _find_series(f, series)
         signal = series["data"]
         if signal.ndim not in (1, 2) or signal.dtype.kind not in "fiu":
             raise ValueError("Expected 1-D or 2-D numeric voltage data")
@@ -159,6 +213,16 @@ def _get_info(fname, ch_type):
         if date is not None:
             date += timedelta(seconds=t_start)
         info.set_meas_date(date)
+        subject = f.get("general/subject", {})
+        subject_info = {}
+        if "subject_id" in subject:
+            subject_info["his_id"] = _str(subject["subject_id"][()])
+        if "sex" in subject:  # NWB uses M, F, U or O
+            sex = _str(subject["sex"][()]).strip().upper()[:1]
+            subject_info["sex"] = {"M": 1, "F": 2}.get(sex, 0)
+        if subject_info:
+            info["subject_info"] = subject_info
+        annotations = _read_annotations(f, series, t_start, info["meas_date"])
         nwb_info = dict(
             filename=signal.file.filename,
             n_samples=n_times,
@@ -168,17 +232,19 @@ def _get_info(fname, ch_type):
             ndim=signal.ndim,
         )
     orig_units = dict.fromkeys(names, {1.0: "V", 1e-3: "mV", 1e-6: "µV"}[unit_scale])
-    return info, nwb_info, orig_units
+    return info, nwb_info, orig_units, annotations
 
 
 class RawNWB(BaseRaw):
     """Raw object for a single NWB voltage series."""
 
     @_verbose_control
-    def __init__(self, fname, *, ch_type="seeg", preload=False, verbose=None):
+    def __init__(
+        self, fname, *, ch_type="seeg", series=None, preload=False, verbose=None
+    ):
         fname = _check_fname(fname, "read", True, "fname")
         logger.info(f"Extracting NWB parameters from {fname}...")
-        info, nwb_info, orig_units = _get_info(fname, ch_type)
+        info, nwb_info, orig_units, annotations = _get_info(fname, ch_type, series)
         super().__init__(
             info,
             preload=preload,
@@ -189,6 +255,7 @@ class RawNWB(BaseRaw):
             orig_format="double",
             verbose=verbose,
         )
+        self.set_annotations(annotations, emit_warning=False)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         h5py = _import_h5py()
