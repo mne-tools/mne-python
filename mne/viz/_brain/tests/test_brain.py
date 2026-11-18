@@ -624,7 +624,16 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     vertex_id = sphere["vertex_id"]
     old_center = np.array(sphere["mesh"].center)
 
+    brain.show_view(azimuth=30, elevation=60)  # the morph keeps the user's view
+    view = brain._renderer.get_camera()[2:4]
+    # what the mouse rotates about, relative to the center of the brain
+    focal_point = brain.plotter.camera.focal_point
+    focal_point -= (old_coords.min(axis=0) + old_coords.max(axis=0)) / 2
     brain.set_surf("white")
+    assert_allclose(brain._renderer.get_camera()[2:4], view, atol=1e-6)
+    coords = brain.geo["lh"].coords
+    center = (coords.min(axis=0) + coords.max(axis=0)) / 2
+    assert_allclose(brain.plotter.camera.focal_point - center, focal_point, atol=1e-4)
     assert brain._surf == "white"
     assert not np.allclose(brain.geo["lh"].coords, old_coords)
     assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
@@ -634,6 +643,19 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
 
     brain.set_surf("white")  # no-op, same surf
     assert brain._surf == "white"
+
+    white = brain.geo["lh"].coords
+    brain.widgets["unfold"].set_value(1.0)
+    assert brain.widgets["surf"].get_value() == brain._surf == "inflated"
+    inflated = brain.geo["lh"].coords
+    brain.set_unfold(0.5)
+    assert_allclose(brain.geo["lh"].coords, (white + inflated) / 2)
+    assert brain.widgets["unfold"].get_value() == 0.5
+    assert brain.widgets["surf"].get_value() == brain._surf == "white"
+    with pytest.raises(ValueError, match="between 0 and 2"):
+        brain.set_unfold(3)
+    with pytest.raises(FileNotFoundError, match="no flatmap surface file"):
+        brain.set_unfold(1.5)  # "sample" has no flat patch to unfold to
 
     assert not brain.silhouette
     brain.set_silhouette_line_width(3.0)
@@ -663,7 +685,7 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
 
     # start from a 3D surface: switching *to* flat is what has to reframe the
     # camera and retriangulate, so the checks below have to run after a switch
-    brain = Brain("fsaverage", surf="inflated", **kwargs)
+    brain = Brain("fsaverage", surf="white", unfold=1, **kwargs)  # i.e., inflated
     n_vertices = len(brain.geo["lh"].coords)
     brain.add_data(
         np.zeros((n_vertices, 3)),
@@ -679,6 +701,10 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     mesh = brain.layered_meshes["lh"]
     n_faces_3d = mesh._polydata.n_cells
     coords_3d = brain.geo["lh"].coords.copy()
+
+    brain.set_unfold(1.5)
+    assert mesh._polydata.n_cells < n_faces_3d
+    assert brain._surf == "inflated" and brain.interaction == "trackball"
 
     # a flat patch drops the triangles outside it, but keeps every vertex, so
     # the overlays stay valid
