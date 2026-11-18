@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | CircleCI scheduled | Opens issues as alerts for failed scheduled CircleCI workflows | Every day |
+
 name: CircleCI scheduled
 
 on:  # yamllint disable-line rule:truthy

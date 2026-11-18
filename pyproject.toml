@@ -373,6 +373,7 @@ ignore_directives = [
   "autosummary",
   "bibliography",
   "card",
+  "ci-overview",
   "cssclass",
   "currentmodule",
   "dropdown",

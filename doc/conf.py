@@ -136,6 +136,7 @@ extensions = [
     "unit_role",
     "related_software",
     "directive_formatting",
+    "ci_overview",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

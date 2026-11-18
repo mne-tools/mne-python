@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Contributor credit | Opens pull requests to update information about who has contributed to the package, and how many people have cited the package in publications | First day of the month |
+
 name: Contributor credit
 
 on:  # yamllint disable-line rule:truthy

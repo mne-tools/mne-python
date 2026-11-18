@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Sponsor review | Opens issues as reminders to check whether the current sponsors and supporting institutions listed on the website are up to date | 1st February, June, and October |
+
 name: Sponsor review
 
 on:  # yamllint disable-line rule:truthy

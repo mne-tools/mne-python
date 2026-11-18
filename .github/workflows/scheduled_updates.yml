@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Scheduled updates | Opens pull requests to keep selected package dependencies and pre-commit hooks up to date | Every Monday |
+
 name: Scheduled updates
 
 on:  # yamllint disable-line rule:truthy
