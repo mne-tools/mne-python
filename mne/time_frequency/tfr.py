@@ -4569,7 +4569,9 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             "drop_log",
             tuple(
                 () if k in self.selection else ("IGNORED",)
-                for k in range(max(len(self.events), max(self.selection) + 1))
+                for k in range(
+                    max(len(self.events), max(self.selection, default=-1) + 1)
+                )
             ),
         )
         self._bad_dropped = True  # always true, need for `equalize_event_counts()`

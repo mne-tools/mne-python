@@ -1330,6 +1330,27 @@ def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
         tfr = EpochsTFRArray(
             info=tfr.info, data=tfr.data, times=tfr.times, freqs=tfr.freqs
         )
+    first, second = tfr[:2], tfr[2:]
+    joined = mne.concatenate_epochs([first, second], add_offset=False)
+    assert_array_equal(mne.concatenate_epochs([tfr[[]], tfr]).data, tfr.data)
+    assert isinstance(joined, EpochsTFR)
+    assert_array_equal(joined.data, tfr.data)
+    assert_array_equal(joined.events, tfr.events)
+    assert_array_equal(
+        joined.selection, np.r_[first.selection, second.selection + len(first.drop_log)]
+    )
+    assert joined.drop_log == first.drop_log + second.drop_log
+    if tfr.metadata is not None:
+        assert_frame_equal(
+            joined.metadata.reset_index(drop=True), tfr.metadata.reset_index(drop=True)
+        )
+    shifted = mne.concatenate_epochs([first, second])
+    offset = first.events[:, 0].max() + len(tfr.times)
+    assert_array_equal(shifted.events[2:, 0], second.events[:, 0] + offset)
+    with pytest.raises(ValueError, match="times"):
+        mne.concatenate_epochs([first, second.copy().shift_time(0.1)])
+    with pytest.raises(ValueError, match="Baseline"):
+        mne.concatenate_epochs([first, second.copy().apply_baseline((None, 0))])
     # test integer and slice
     subset_ints = tfr[[0, 1, 2]]
     subset_slice = tfr[:3]
@@ -1666,6 +1687,12 @@ def test_epochs_compute_tfr_multitaper_complex_phase(epochs, output):
     tfr = epochs.compute_tfr("multitaper", freqs_linspace, output=output)
     assert len(tfr.shape) == 5  # epoch x channel x taper x freq x time
     assert tfr.weights.shape == tfr.shape[2:4]  # check weights and coeffs shapes match
+    other = tfr[:1]
+    joined = mne.concatenate_epochs([tfr, other])
+    assert_array_equal(joined.data, np.concatenate([tfr.data, other.data]))
+    other.weights[:] *= 2
+    with pytest.raises(ValueError, match="weights"):
+        mne.concatenate_epochs([tfr, other])
 
 
 @pytest.mark.parametrize("copy", (False, True))
