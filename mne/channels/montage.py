@@ -1362,7 +1362,7 @@ def _set_montage_fnirs(info, montage):
     stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
     place.
     """
-    from ..preprocessing.nirs import _validate_nirs_info
+    from ..preprocessing.nirs import _parse_nirs_ch_name, _validate_nirs_info
 
     # Validate that the fNIRS info is correctly formatted
     picks = _validate_nirs_info(info)
@@ -1370,8 +1370,8 @@ def _set_montage_fnirs(info, montage):
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
     for ch_idx in picks:
-        ch = info["chs"][ch_idx]["ch_name"]
-        source, detector = ch.split(" ")[0].split("_")
+        source, detector, _ = _parse_nirs_ch_name(info["chs"][ch_idx]["ch_name"])
+        source, detector = f"S{source}", f"D{detector}"
         source_pos = montage.dig[montage.ch_names.index(source) + num_ficiduals]["r"]
         detector_pos = montage.dig[montage.ch_names.index(detector) + num_ficiduals][
             "r"
