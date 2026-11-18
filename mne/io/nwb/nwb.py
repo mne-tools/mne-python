@@ -78,7 +78,7 @@ def read_raw_nwb(fname, *, ch_type="seeg", series=None, preload=False, verbose=N
 
     Notes
     -----
-    Requires :mod:`h5py`. Without ``series``, reads the single ``ElectricalSeries``
+    Requires ``h5py``. Without ``series``, reads the single ``ElectricalSeries``
     in the file's ``acquisition`` group, or the single two-dimensional
     ``TimeSeries`` in volts if there is no ``ElectricalSeries``. Channel names are
     the electrode IDs if available, otherwise channel numbers. Timestamps must be
