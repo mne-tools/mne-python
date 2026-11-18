@@ -458,6 +458,11 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
 
+    # Single chromophore data is valid
+    for chroma in ("hbo", "hbr"):
+        info_single = raw.copy().pick(chroma).info
+        assert len(_validate_nirs_info(info_single)) == 3
+
     # Test block creation fails
     ch_names = [
         "S1_D1 hbo",

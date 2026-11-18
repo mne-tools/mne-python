@@ -425,7 +425,7 @@ def _interpolate_bads_meeg(
 def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     from scipy.spatial.distance import pdist, squareform
 
-    from ..preprocessing.nirs import _validate_nirs_info
+    from ..preprocessing.nirs import _parse_nirs_ch_name, _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
         return
@@ -451,6 +451,9 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
     dist = pdist(locs3d)
     dist = squareform(dist)
 
+    # Wavelength or chromophore of each channel
+    values = np.array([_parse_nirs_ch_name(inst.ch_names[p])[2] for p in picks_nirs])
+
     for bad_raw_idx in picks_bad:
         # `bad_raw_idx` is the index of the bad channel in `inst`
         # `bad_dist_idx` is the index of the bad channel in `dist`
@@ -465,8 +468,10 @@ def _interpolate_bads_nirs(inst, exclude=(), verbose=None):
         dists_to_bad[bads_mask] = np.inf
         # Ignore channels without valid positions
         dists_to_bad[invalid_mask] = np.inf
-        # Find closest remaining channels for same frequency
-        closest_dist_idx = np.argmin(dists_to_bad) + (bad_dist_idx % 2)
+        # Ignore channels of a different wavelength or chromophore
+        dists_to_bad[values != values[bad_dist_idx]] = np.inf
+        # Find closest remaining channel
+        closest_dist_idx = np.argmin(dists_to_bad)
         closest_raw_idx = picks_nirs[closest_dist_idx]
         inst._data[..., bad_raw_idx, :] = inst._data[..., closest_raw_idx, :]
 

@@ -386,6 +386,17 @@ def test_interpolation_nirs():
     raw_haemo.interpolate_bads()
     assert raw_haemo.info["bads"] == []
 
+    # Single chromophore data copies the nearest good channel
+    raw_hbo = raw_haemo.copy().pick("hbo")
+    raw_hbo.info["bads"] = ["S14_D14 hbo"]
+    bad = raw_hbo.ch_names.index("S14_D14 hbo")
+    locs = np.array([ch["loc"][:3] for ch in raw_hbo.info["chs"]])
+    dists = np.linalg.norm(locs - locs[bad], axis=1)
+    dists[bad] = np.inf
+    donor = raw_hbo.get_data(picks=[np.argmin(dists)])
+    raw_hbo.interpolate_bads(method=dict(fnirs="nearest"))
+    assert_allclose(raw_hbo.get_data(picks=[bad]), donor)
+
 
 def _nirs_raw():
     """Build a small fNIRS raw with pairs at known distances along x."""
