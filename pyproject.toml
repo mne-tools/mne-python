@@ -92,6 +92,7 @@ test_extra = [
   "nbclient",  # requires jupyter_client
   "nitime >= 0.7",
   "pymef",
+  "pynwb >= 3.1",
   # drawing backend for the browser docs, see mne/viz/backends/_lite.py. The
   # marker is pyvista-js's own requires-python (>= 3.12, < 3.15) rather than
   # anything about JupyterLite: without it this group cannot resolve at all on
