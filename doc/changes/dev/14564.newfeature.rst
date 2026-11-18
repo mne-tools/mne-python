@@ -1,1 +1,1 @@
-Allow :func:`mne.concatenate_epochs` to concatenate :class:`~mne.time_frequency.EpochsSpectrum` instances, by `Ishaan Maheshwari`_.
+Allow :func:`mne.concatenate_epochs` to concatenate :class:`~mne.time_frequency.EpochsSpectrum` instances, by `Aman Srivastava`_ and `Ishaan Maheshwari`_.

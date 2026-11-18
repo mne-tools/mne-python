@@ -6456,21 +6456,22 @@ def _concatenate_epochs(
         offsets.append(len(out))
     events = [out.events]
     metadata = [out.metadata]
-    baseline = tmin = tmax = raw_sfreq = None
-    if not spectrum:
+    if spectrum:
+        baseline = tmin = tmax = raw_sfreq = None
+        shift = len(out.freqs)
+    else:
         baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
         raw_sfreq = out._raw_sfreq
+        shift = np.int64((10 + tmax) * out.info["sfreq"])
     info = deepcopy(out.info)
     drop_log = out.drop_log
     event_id = deepcopy(out.event_id) or {}
     selection = out.selection
-    shift = len(out.freqs) if spectrum else np.int64((10 + tmax) * out.info["sfreq"])
     # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
     if out.events is None or not len(out.events) or getattr(out, "_allow_empty", False):
         events_offset = 0
     else:
-        samples = out.events[:, 0]
-        events_offset = int(samples[-1] if spectrum else samples.max()) + shift
+        events_offset = int(out.events[:, 0].max()) + shift
     events_offset = np.int64(events_offset)
     events_overflow = False
     warned = False
@@ -6555,7 +6556,7 @@ def _concatenate_epochs(
         events.append(evs)
     events = None if out.events is None else np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_overflow:
+    if events_overflow and events is not None:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
