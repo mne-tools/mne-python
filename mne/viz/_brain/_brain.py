@@ -333,6 +333,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         self._folded = "white" if surf in ("inflated", "flat") else surf
         self._unfold = dict(inflated=1.0, flat=2.0).get(surf, 0.0)
         self._geos = dict()
+        self._warned_misaligned = False  # warn once, not per unfold step
         self._offset_request = offset
         if hemi is None:
             hemi = "vol"
@@ -2054,9 +2055,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             start = self._unfold
             for t in np.linspace(0, 1, 22)[1:-1]:
                 self.set_unfold(start + (target - start) * t * t * (3 - 2 * t))
-                for plotter in self._renderer._all_plotters:
-                    getattr(plotter, "_render", plotter.render)()
-                self._renderer._process_events()
+                self._renderer._process_events()  # set_unfold already rendered
         self.set_unfold(target)
 
     def set_unfold(self, unfold):
@@ -2090,13 +2089,15 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             "flat",
         ):
             return
-        if any(self._labels[h] for h in self._hemis) or any(
-            "foci" in self._foci_data.get(h, {}) for h in self._hemis
+        if not self._warned_misaligned and (
+            any(self._labels[h] for h in self._hemis)
+            or any("foci" in self._foci_data.get(h, {}) for h in self._hemis)
         ):
             warn(
                 "Foci and label/annotation outlines do not move when the "
                 "surface representation changes and may now be misaligned."
             )
+            self._warned_misaligned = True
         previous = self._unfold
         flat_change = 2 in (unfold, previous)
         renderers = self._renderer._all_renderers
