@@ -403,12 +403,15 @@ def _fnirs_optode_names(info):
 
 def _optode_position(info, optode):
     """Find the position of an optode."""
-    idx = [optode in a for a in info.ch_names].index(True)
-
     if "S" in optode:
-        loc_idx = range(3, 6)
+        group, loc_idx = 0, range(3, 6)
     elif "D" in optode:
-        loc_idx = range(6, 9)
+        group, loc_idx = 1, range(6, 9)
+    # Compare optode numbers, so that e.g. D1 does not match D13
+    number = int(optode[1:])
+    idx = [
+        int(_S_D_H_RE.match(ch).groups()[group]) == number for ch in info.ch_names
+    ].index(True)
 
     return info["chs"][idx]["loc"][loc_idx]
 
