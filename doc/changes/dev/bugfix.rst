@@ -1,0 +1,1 @@
+Fix the scaling of complex Welch coefficients in :func:`mne.time_frequency.psd_array_welch` so their squared magnitudes, multiplied by two, give the per-segment power at all frequencies, by :newcontrib:`Arham Begani`.

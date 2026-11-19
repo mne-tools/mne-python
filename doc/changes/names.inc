@@ -43,6 +43,7 @@
 .. _Apoorva Karekal: https://github.com/apoorva6262
 .. _Apoorva Verma: https://github.com/apoorva-01
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
+.. _Arham Begani: https://github.com/Arham-Begani
 .. _Ariel Rokem: https://github.com/arokem
 .. _Arnav Kumar: https://github.com/Arnav1709
 .. _Arne Pelzer: https://github.com/aplzr

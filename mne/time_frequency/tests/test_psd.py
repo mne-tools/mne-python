@@ -40,24 +40,35 @@ def test_psd_nan():
     assert "hamming window" in log
 
 
-def test_bad_annot_handling():
+@pytest.mark.parametrize(
+    "average, output", [("mean", "power"), (None, "power"), (None, "complex")]
+)
+def test_bad_annot_handling(average, output):
     """Make sure results equivalent with/without Annotations."""
     n_per_seg = 256
     n_chan = 3
     n_times = 5 * n_per_seg
     x = np.random.default_rng(seed=42).standard_normal(size=(n_chan, n_times))
-    want = psd_array_welch(x, sfreq=100)
+    kwargs = dict(sfreq=100, average=average, output=output)
+    want = psd_array_welch(x, **kwargs)
     # now simulate an annotation that breaks up the array into unequal spans. Using
     # `n_per_seg` as the cut point is unrealistic/idealized, but it allows us to test
     # whether we get results ~identical to `want` (which we should in this edge case)
     x2 = np.concatenate(
-        (x[..., :n_per_seg], np.full((n_chan, 1), np.nan), x[..., n_per_seg:]), axis=-1
+        (x[..., :n_per_seg], np.full((n_chan, n_per_seg), np.nan), x[..., n_per_seg:]),
+        axis=-1,
     )
-    got = psd_array_welch(x2, sfreq=100)
+    got = psd_array_welch(x2, **kwargs)
     # freqs should be identical
     np.testing.assert_array_equal(got[1], want[1])
     # powers should be very very close
     np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
+    if average is None:
+        raw = RawArray(x2, create_info(n_chan, 100, "eeg"))
+        spectrum = raw.compute_psd(
+            method="welch", n_fft=n_per_seg, average=None, output=output
+        )
+        assert_allclose(spectrum.get_data(), want[0])
 
 
 def test_psd_welch_short_spans():
@@ -217,11 +228,19 @@ def _median_bias(n):
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
 
 
-def test_complex_welch():
+@pytest.mark.parametrize("n_fft", (255, 256))
+@pytest.mark.parametrize("fmin, fmax", [(0, np.inf), (5, 100)])
+@pytest.mark.parametrize("complex_input", (False, True))
+@pytest.mark.filterwarnings(
+    "ignore:Input data is complex, switching to return_onesided"
+)
+def test_complex_welch(n_fft, fmin, fmax, complex_input):
     """Test complex-valued Welch output."""
     data, sfreq, _ = _make_psd_data()
     data = data[:4]
-    kwargs = dict(n_fft=256, n_overlap=0, verbose=False)
+    if complex_input:
+        data = data + 1j * data[::-1]
+    kwargs = dict(n_fft=n_fft, fmin=fmin, fmax=fmax, remove_dc=False, verbose=False)
     for average in ("mean", "median"):
         with pytest.raises(ValueError, match='output="complex"'):
             psd_array_welch(data, sfreq, average=average, output="complex", **kwargs)
@@ -230,8 +249,9 @@ def test_complex_welch():
         data, sfreq, average=None, output="complex", **kwargs
     )
     assert coefs.shape[-1] > 1
-    scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
-    segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
+    segment_power = 2 * np.abs(coefs) ** 2
+    power, _ = psd_array_welch(data, sfreq, average=None, **kwargs)
+    assert_allclose(segment_power, power)
     for average in ("mean", "median"):
         power, freqs_power = psd_array_welch(
             data, sfreq, average=average, output="power", **kwargs

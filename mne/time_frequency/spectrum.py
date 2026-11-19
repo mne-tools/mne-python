@@ -789,6 +789,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # assign some attributes
         self.preload = True  # needed for __getitem__, never False
         self._method = method
+        self._welch_scaled = method == "welch" and method_kw.get("output") == "complex"
         # self._dims may also get updated by child classes
         self._dims = (
             "channel",
@@ -830,6 +831,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             nave=self.nave,
             weights=self.weights,
         )
+        if self._welch_scaled:
+            out["welch_scaled"] = True
         return out
 
     def __setstate__(self, state):
@@ -843,6 +846,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = state["freqs"]
         self._dims = state["dims"]
         self._sfreq = state["sfreq"]
+        # Older files contain the original SciPy coefficients.
+        self._welch_scaled = state.get("welch_scaled", False)
         self.info = Info(**_convert_old_birthday_format(state["info"]))
         self._data_type = state["data_type"]
         self._nave = state.get("nave")  # objs saved before #11282 won't have `nave`
@@ -923,7 +928,11 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             self.method == "welch" or method_kw.get("n_per_seg") is not None
         ) and method_kw.get("average", "") in (None, False)
         if is_unagged:
-            n_segments = _compute_n_segments(data.shape[-1], self.method, method_kw)
+            if self.method == "welch" and np.isnan(data).any():
+                # Annotation boundaries split the data into separate Welch windows.
+                n_segments = self._data.shape[-1]
+            else:
+                n_segments = _compute_n_segments(data.shape[-1], self.method, method_kw)
             self._shape += (n_segments,)
         # insert n_tapers
         if self._returns_complex_tapers(**method_kw):
@@ -1717,6 +1726,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         )
 
     def _prepare_data_for_plot(self, data):
+        if self._welch_scaled:
+            data = 2 * np.abs(data) ** 2
         # handle unaggregated Welch
         if "segment" in self._dims:
             logger.info("Aggregating Welch estimates (median) before plotting...")
@@ -1726,9 +1737,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             logger.info("Aggregating multitaper estimates before plotting...")
             data = _psd_from_mt(data, self.weights)
 
-        # handle complex data (should only be Welch remaining)
+        # Handle legacy Welch spectra and other complex SpectrumArray data.
         if np.iscomplexobj(data):
-            data = (data * data.conj()).real  # Scaling may be slightly off
+            data = (data * data.conj()).real
 
         # handle epochs
         if "epoch" in self._dims:
@@ -2247,6 +2258,9 @@ class SpectrumArray(Spectrum):
     coefficients. Downstream plotting methods will treat the data as such, attempting to
     convert this to power before visualisation. If you pass in complex-valued data that
     is not Fourier coefficients, axis labels will be incorrect.
+    For complex data with a ``'segment'`` dimension, supply coefficients scaled as in
+    :func:`mne.time_frequency.psd_array_welch`, so each segment's power is
+    ``2 * abs(data) ** 2``.
 
         .. versionadded:: 1.6
     """
@@ -2275,6 +2289,7 @@ class SpectrumArray(Spectrum):
                 dims=dim_names,
                 freqs=freqs,
                 inst_type_str="Array",
+                welch_scaled="segment" in dim_names and np.iscomplexobj(data),
                 data_type=(
                     "Fourier Coefficients"
                     if np.iscomplexobj(data)
@@ -2626,6 +2641,9 @@ class EpochsSpectrumArray(EpochsSpectrum):
     coefficients. Downstream plotting methods will treat the data as such, attempting to
     convert this to power before visualisation. If you pass in complex-valued data that
     is not Fourier coefficients, axis labels will be incorrect.
+    For complex data with a ``'segment'`` dimension, supply coefficients scaled as in
+    :func:`mne.time_frequency.psd_array_welch`, so each segment's power is
+    ``2 * abs(data) ** 2``.
 
         .. versionadded:: 1.6
     """
@@ -2664,6 +2682,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 dims=dim_names,
                 freqs=freqs,
                 inst_type_str="Array",
+                welch_scaled="segment" in dim_names and np.iscomplexobj(data),
                 data_type=(
                     "Fourier Coefficients"
                     if np.iscomplexobj(data)
@@ -2765,6 +2784,12 @@ def read_spectrum(fname):
     See Also
     --------
     mne.time_frequency.Spectrum.save
+
+    Notes
+    -----
+    Complex Welch spectra saved before version 1.14 retain their original
+    coefficient scaling. Recompute the spectrum from the time series to use the
+    scaling described in :func:`~mne.time_frequency.psd_array_welch`.
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, "path-like", "fname")

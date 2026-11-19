@@ -3122,6 +3122,9 @@ If the data passed in is complex-valued, it is assumed to represent Fourier
 coefficients. Downstream plotting methods will treat the data as such, attempting to
 convert this to power before visualisation. If you pass in complex-valued data that
 is not Fourier coefficients, axis labels will be incorrect.
+For complex data with a ``'segment'`` dimension, supply coefficients scaled as in
+:func:`mne.time_frequency.psd_array_welch`, so each segment's power is
+``2 * abs(data) ** 2``.
 """
 
 docdict["notes_timefreqs_tfr_plot_joint"] = """

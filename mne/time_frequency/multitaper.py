@@ -389,8 +389,10 @@ def psd_array_multitaper(
         ``'power'``:
 
         * ``'power'`` : the power spectral density is returned.
-        * ``'complex'`` : the complex fourier coefficients are returned per
-          taper.
+        * ``'complex'`` : the complex Fourier coefficients are returned per
+          taper. The DC coefficient and the Nyquist coefficient (for even-length
+          FFTs) are divided by the square root of two. Thus, the one-sided power for
+          each taper is ``2 * abs(coefs) ** 2`` at every frequency.
     n_jobs : int | None
         The number of jobs to run in parallel. If ``-1``, it is set
         to the number of CPU cores. Requires the :mod:`joblib` package.
