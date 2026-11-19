@@ -61,7 +61,7 @@ def annotate_amplitude(
     bad_percent : float
         The percentage of the time a channel can be above or below thresholds.
         Below this percentage, :class:`~mne.Annotations` are created.
-        Above this percentage, the channel involved is return in ``bads``. Note
+        Above this percentage, the channel involved is returned in ``bads``. Note
         the returned ``bads`` are not automatically added to
         :class:`info['bads'] <mne.Info>`.
         Defaults to ``5``, i.e. 5%.
