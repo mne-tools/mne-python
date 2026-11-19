@@ -799,9 +799,9 @@ class DigMontage:
         self.dig = fids_mri + self.dig
         return self
 
-    @verbose_static("trans_not_none", "subject", "subjects_dir")
-    def project_to_head(self, trans, subject, subjects_dir=None, verbose=None):
-        """Project EEG channel positions onto the scalp surface.
+    @verbose_static("trans_not_none")
+    def project_onto_scalp(self, trans, bem, verbose=None):
+        """Project EEG channel positions onto the scalp surface of a BEM.
 
         Parameters
         ----------
@@ -809,12 +809,10 @@ class DigMontage:
             If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
             during coregistration. Can also be ``'fsaverage'`` to use the built-in
             fsaverage transformation.
-        subject : str
-            The FreeSurfer subject name.
-        subjects_dir : path-like | None
-            The path to the directory containing the FreeSurfer subjects
-            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
-            variable.
+        bem : path-like | ConductorModel
+            Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
+            use, or a loaded :class:`~mne.bem.ConductorModel`. Sphere models are not
+            supported, since they have no scalp surface.
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -828,28 +826,34 @@ class DigMontage:
 
         See Also
         --------
+        mne.make_forward_solution
         mne.viz.plot_alignment
 
         Notes
         -----
-        The channel positions are projected onto the closest point of the head
-        surface loaded by :func:`mne.get_head_surf`, which uses the scalp surface
-        of the BEM model when available, like :func:`mne.make_forward_solution`.
-        :func:`mne.viz.plot_alignment` applies the same projection for
-        ``eeg="projected"``, onto the head surface it plots.
+        The channel positions are projected onto the closest point of the scalp
+        surface of ``bem``, as done by :func:`mne.make_forward_solution` when it is
+        given the same ``bem``.
 
         .. versionadded:: 1.14
         """
-        from ..surface import _project_onto_surface, get_head_surf
+        from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
+        from ..surface import _project_onto_surface
 
         head_mri_t = _get_trans(trans, "head", "mri", allow_none=False)[0]
+        _validate_type(bem, ("path-like", ConductorModel), "bem")
+        bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel,))
+        if bem["is_sphere"]:
+            raise ValueError(
+                "Cannot project onto the scalp of a sphere model, use a BEM instead"
+            )
+        scalp = _bem_find_surface(bem, "head")
         self.dig = transform_to_head(self).dig
         eeg = [d for d in self.dig if d["kind"] == FIFF.FIFFV_POINT_EEG]
         if not eeg:
             return self
-        surf = get_head_surf(subject, subjects_dir=subjects_dir)
         rrs = apply_trans(head_mri_t, np.array([d["r"] for d in eeg]))
-        rrs = _project_onto_surface(rrs, surf, project_rrs=True)[2]
+        rrs = _project_onto_surface(rrs, scalp, project_rrs=True)[2]
         for d, rr in zip(eeg, apply_trans(invert_transform(head_mri_t), rrs)):
             d["r"] = rr
         return self

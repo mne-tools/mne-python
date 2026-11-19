@@ -75,9 +75,10 @@ mne.viz.plot_alignment(
 # The forward model uses the EEG positions projected onto the scalp
 # (``eeg="projected"`` above). These positions can be obtained as a
 # :class:`~mne.channels.DigMontage` with
-# :meth:`~mne.channels.DigMontage.project_to_head`:
+# :meth:`~mne.channels.DigMontage.project_onto_scalp`, using the
+# same BEM as the forward model:
 
-montage_proj = raw.get_montage().project_to_head(trans, subject, subjects_dir)
+montage_proj = raw.get_montage().project_onto_scalp(trans, bem)
 montage_proj.plot()
 
 # %%
