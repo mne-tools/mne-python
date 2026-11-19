@@ -5,9 +5,9 @@
 Computing various MNE solutions
 ===============================
 
-This example shows example fixed- and free-orientation source localizations
-produced by the minimum-norm variants implemented in MNE-Python:
-MNE, dSPM, sLORETA, and eLORETA.
+This example shows example fixed-, loose-, and free-orientation source
+localizations produced by the minimum-norm variants implemented in
+MNE-Python: MNE, dSPM, sLORETA, and eLORETA.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -84,6 +84,22 @@ brain.add_text(0.1, 0.9, "eLORETA", "title", font_size=14)
 del inv
 
 # %%
+# Loose orientation
+# -----------------
+# Next let's create a loose-orientation inverse, which allows the dipoles to
+# deviate from the surface normal but penalizes tangential components (see
+# :ref:`tut-dipole-orientations` for details). ``loose=0.2`` is the default for
+# surface source spaces, and the solutions vary smoothly between the fixed
+# (``loose=0``) and free (``loose=1``) cases:
+
+inv = make_inverse_operator(evoked.info, fwd, cov, loose=0.2, depth=0.8, verbose=True)
+for method in ("MNE", "dSPM", "sLORETA", "eLORETA"):
+    stc = apply_inverse(evoked, inv, lambda2, method, verbose=True)
+    brain = stc.plot(**kwargs)
+    brain.add_text(0.1, 0.9, f"{method} (loose)", "title", font_size=14)
+del inv
+
+# %%
 # Free orientation
 # ----------------
 # Now let's not constrain the orientation of the dipoles at all by creating
@@ -126,7 +142,7 @@ brain.add_text(0.1, 0.9, "eLORETA", "title", font_size=14)
 # %%
 # And one interesting property to note is the noise normalization of dSPM
 # can be easily seen by visualizing the source reconstruction of the noise
-# covariance used to compute the inverse operator -- it's takes on the
+# covariance used to compute the inverse operator -- it takes on the
 # value of 1. (orange in the colormap here) across the entire brain:
 
 stc_baseline = apply_inverse_cov(
