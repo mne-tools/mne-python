@@ -7,11 +7,12 @@ import numpy as np
 from .utils import (
     _check_option,
     _explain_exception,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_config,
     logger,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -41,7 +42,7 @@ def get_cuda_memory(kind="available"):
     return sizeof_fmt(mem)
 
 
-@verbose
+@verbose_static()
 def init_cuda(ignore_config=False, verbose=None):
     """Initialize CUDA functionality.
 
@@ -58,7 +59,11 @@ def init_cuda(ignore_config=False, verbose=None):
     ----------
     ignore_config : bool
         If True, ignore the config value MNE_USE_CUDA and force init.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     global _cuda_capable
     if _cuda_capable:
@@ -89,7 +94,7 @@ def init_cuda(ignore_config=False, verbose=None):
     logger.info(f"Enabling CUDA with {get_cuda_memory()} available memory")
 
 
-@verbose
+@verbose_static()
 def set_cuda_device(device_id, verbose=None):
     """Set the CUDA device temporarily for the current session.
 
@@ -97,7 +102,11 @@ def set_cuda_device(device_id, verbose=None):
     ----------
     device_id : int
         Numeric ID of the CUDA-capable device you want MNE-Python to use.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     if _cuda_capable:
         _set_cuda_device(device_id, verbose)
@@ -112,7 +121,7 @@ def set_cuda_device(device_id, verbose=None):
         )
 
 
-@verbose
+@_verbose_control
 def _set_cuda_device(device_id, verbose=None):
     """Set the CUDA device."""
     import cupy
@@ -375,7 +384,7 @@ def _cuda_irfft_get(x, n, axis=-1):
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
 
-@fill_doc
+@fill_doc_static("pad_resample")
 def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_limited"):
     """Do FFT resampling with a filter function (possibly using CUDA).
 
@@ -392,7 +401,13 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_li
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    %(pad_resample)s
+    pad : str
+        The type of padding to use. When ``method="fft"``, supports
+        all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+        which pads with a reflected version of each vector mirrored on the first
+        and last values of the vector, followed by zeros.
+        When ``method="polyphase"``, supports all modes of
+        :func:`scipy.signal.upfirdn`.
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15

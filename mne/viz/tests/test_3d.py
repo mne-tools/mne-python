@@ -14,6 +14,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (
     MixedSourceEstimate,
+    MixedVectorSourceEstimate,
     SourceEstimate,
     convert_forward_solution,
     make_field_map,
@@ -24,6 +25,7 @@ from mne import (
     read_evokeds,
     read_forward_solution,
     read_trans,
+    setup_subcortical_source_space,
     setup_volume_source_space,
     use_coil_def,
 )
@@ -52,9 +54,10 @@ from mne.viz import (
     plot_sparse_source_estimates,
     set_3d_view,
     snapshot_brain_montage,
+    ui_events,
 )
 from mne.viz._3d import _get_map_ticks, _linearize_map, _process_clim
-from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
+from mne.viz.utils import _fake_keypress, _fake_scroll, _get_cmap
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -184,6 +187,7 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
     evoked.pick(evoked.ch_names[::10])  # speed
+    lite = renderer.get_3d_backend() == "jupyterlite_notebook"
     for t, n_contours, up in zip(["meg", None], [21, 0], [2, 1]):
         with pytest.warns(RuntimeWarning, match="projection"), catch_logging() as log:
             maps = make_field_map(
@@ -202,8 +206,14 @@ def test_plot_evoked_field(renderer):
             assert "Upsampling" not in log
         else:
             assert "Upsampling" in log
+        if lite:  # field maps need contours, which the browser cannot color
+            with pytest.raises(NotImplementedError, match="browser"):
+                evoked.plot_field(maps, time=0.1, n_contours=n_contours)
+            continue
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
     renderer.backend._close_all()
+    if lite:  # and Brain needs the dock widgets the browser does not draw
+        return
 
     # Test plotting inside an existing Brain figure. Check that units are taken into
     # account.
@@ -219,21 +229,65 @@ def test_plot_evoked_field(renderer):
         )
         renderer.backend._close_all()
 
-    # Test some methods
-    fig = evoked.plot_field(maps, time_viewer=True)
-    assert isinstance(fig, EvokedField)
+    # Test some methods. Not all parameters are exposed through `plot_field`, so
+    # construct the `EvokedField` object directly.
+    fig = EvokedField(
+        evoked,
+        maps,
+        time_viewer=True,
+        contour_line_width=2,
+        contour_line_opacity=0.5,
+        background="white",
+        foreground="black",
+    )
+    assert fig._contour_line_width == 2
+    assert fig._widgets["contour_line_width"].get_value() == 2
+    assert fig._contour_line_opacity == 0.5
+    assert fig._widgets["contour_line_opacity"].get_value() == 0.5
+    fig.set_contour_line_opacity(0.8)
+    assert fig._contour_line_opacity == 0.8
+    assert fig._widgets["contour_line_opacity"].get_value() == 0.8
     fig._rescale()
     fig.set_time(0.05)
     assert fig._current_time == 0.05
     fig.set_contours(10)
     assert fig._n_contours == 10
     assert fig._widgets["contours"].get_value() == 10
+    fig.set_contour_line_width(3)
+    assert fig._contour_line_width == 3
+    assert fig._widgets["contour_line_width"].get_value() == 3
+
+    # Moving through time pushes new values into the contour filter that is still
+    # connected to the surface, rather than building a new actor.
+    from vtkmodules.util.numpy_support import vtk_to_numpy
+
+    surf_map = fig._surf_maps[1]  # the MEG map
+    actor = surf_map["contours_actor"]
+    mesh = surf_map["contours_alg"].GetInputDataObject(0, 0)
+    scalars = vtk_to_numpy(mesh.GetPointData().GetArray("scalars"))
+    fig.set_time(0.06)
+    assert surf_map["contours_actor"] is actor  # reused, not rebuilt
+    assert_allclose(scalars, surf_map["data_interp"](0.06))
+    fig.set_time(0.08)
+    assert_allclose(scalars, surf_map["data_interp"](0.08))
     fig.set_vmax(2e-12, kind="meg")
     assert fig._surf_maps[1]["contours"][-1] == 2e-12
     assert (
         fig._widgets["vmax_slider_meg"].get_value()
         == DEFAULTS["scalings"]["grad"] * 2e-12
     )
+
+    # The contours (and their line width) can also be set through a UI event.
+    contours = [-2e-12, 0, 2e-12]
+    ui_events.publish(
+        fig, ui_events.Contours("field_strength_meg", contours, line_width=4)
+    )
+    assert fig._n_contours == 3
+    assert fig._contour_line_width == 4
+    ui_events.publish(
+        fig, ui_events.Contours("field_strength_meg", contours, line_width=None)
+    )
+    assert fig._contour_line_width == 4  # line_width=None keeps the current value
 
     fig = evoked.plot_field(maps, time_viewer=False)
     assert isinstance(fig, Figure3D)
@@ -286,7 +340,7 @@ def test_plot_evoked_field_notebook(renderer_notebook, nbexec):
 def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
     assert isinstance(fig, Figure3D)
-    assert len(fig.plotter.renderer.actors) == n_actors
+    assert len(fig.plotter.actors) == n_actors
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -475,6 +529,9 @@ def test_plot_alignment_meg(renderer, system):
         ]
     elif system == "CTF":
         this_info = read_raw_ctf(ctf_fname).info
+        # EEG with no digitized positions (bst_auditory) must be skipped, not crash
+        for idx in pick_types(this_info, eeg=True):
+            this_info["chs"][idx]["loc"][:] = np.nan
     elif system == "BTi":
         this_info = read_raw_bti(
             pdf_fname, config_fname, hs_fname, convert=True, preload=False
@@ -491,13 +548,15 @@ def test_plot_alignment_meg(renderer, system):
             plot_alignment(this_info, meg=meg, sensor_colors=sensor_colors)
         sensor_colors = dict(meg=sensor_colors)
         sensor_colors["ref_meg"] = ["r"] * len(pick_types(this_info, ref_meg=True))
+    elif system == "CTF":  # meg + (unplottable) eeg types means a dict is required
+        sensor_colors = dict(meg=sensor_colors)
     fig = plot_alignment(
         this_info,
         read_trans(trans_fname),
         subject="sample",
         subjects_dir=subjects_dir,
         meg=meg,
-        eeg=False,
+        eeg=system == "CTF",
         sensor_colors=sensor_colors,
     )
     assert isinstance(fig, Figure3D)
@@ -521,7 +580,12 @@ def test_plot_alignment_meg(renderer, system):
             eeg=False,
             sensor_colors=dict(meg=rng.random((n_meg, 4))),
         )
-        _assert_n_actors(fig2, renderer, n_shapes + 2)
+        # ... except in the browser, which cannot color per instance and so
+        # draws one solid mesh per distinct color
+        if renderer.get_3d_backend() == "jupyterlite_notebook":
+            _assert_n_actors(fig2, renderer, n_meg + 2)
+        else:
+            _assert_n_actors(fig2, renderer, n_shapes + 2)
 
     # check error raising for wrong meg value:
     info = read_info(evoked_fname)
@@ -543,18 +607,16 @@ def test_plot_alignment_meg_coil_orientation(renderer, monkeypatch):
     so the per-instance quaternion must encode the full rotation from
     ``_loc_to_coil_trans``, not just the coil normal direction.
     """
-    from mne.viz.backends._pyvista import _PyVistaRenderer
-
     info = read_info(evoked_fname)
     info = pick_info(info, pick_types(info, meg="grad")[:4])
     calls = list()
-    orig = _PyVistaRenderer.instanced_mesh
+    orig = renderer.backend._Renderer.instanced_mesh
 
     def capture(self, *args, **kwargs):
         calls.append((kwargs["positions"], kwargs["quats"]))
         return orig(self, *args, **kwargs)
 
-    monkeypatch.setattr(_PyVistaRenderer, "instanced_mesh", capture)
+    monkeypatch.setattr(renderer.backend._Renderer, "instanced_mesh", capture)
     plot_alignment(info, meg="sensors", coord_frame="meg")
     # all four grads share one coil shape, so they form a single instanced
     # actor whose instance order follows the channel order
@@ -647,11 +709,12 @@ def test_plot_alignment_info(renderer, evoked):
     fig = plot_alignment(info)  # works: surfaces='auto' default
     # set_view=False keeps the view of the figure it is given, True resets it
     set_3d_view(fig, azimuth=11, elevation=22, distance=0.33)
-    pos = np.array(fig.plotter.camera.position, float)
+    view = renderer.backend._Renderer(fig=fig).get_camera()[2:4]
+    assert_allclose(view, (11, 22), atol=1e-4)
     plot_alignment(info, fig=fig, set_view=False)
-    assert_allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    assert_allclose(renderer.backend._Renderer(fig=fig).get_camera()[2:4], view)
     plot_alignment(info, fig=fig)
-    assert not np.allclose(fig.plotter.camera.position, pos, atol=1e-4)
+    assert not np.allclose(renderer.backend._Renderer(fig=fig).get_camera()[2:4], view)
     # check error raised if incorrect info provided
     with pytest.raises(TypeError, match="instance of Info"):
         plot_alignment("foo", trans_fname, subject="sample", subjects_dir=subjects_dir)
@@ -734,6 +797,8 @@ def test_plot_alignment_eeg(renderer, evoked):
     assert "ecog: 1" in log
     assert "seeg: 1" in log
     assert "eeg: 10" in log
+    # the subject's own head file is preferred over the watershed outer_skin.surf
+    assert "Using sample-head.fif for head surface." in log
     # check number of actors
     # 4 surfs (both hemis, skin, skull), 1 ECoG, 1 sEEG,
     # 5 orig EEG + 1 projected EEG
@@ -930,8 +995,22 @@ def test_plot_alignment_mixed_src(renderer, evoked, mixed_fwd_cov_evoked):
         subject="sample",
         subjects_dir=subjects_dir,
         src=mixed_src,
+        show_channel_names=True,
     )
     assert isinstance(fig, Figure3D)
+    if renderer.get_3d_backend() != "jupyterlite_notebook":  # no 3D text in vtk.js
+        from vtkmodules.vtkRenderingCore import vtkActor2D
+
+        # one batched label actor covering every plotted (non-bad MEG/EEG) channel
+        label_actors = [
+            a for a in fig.plotter.renderer.actors.values() if isinstance(a, vtkActor2D)
+        ]
+        assert len(label_actors) == 1
+        mapper = label_actors[0].GetMapper()
+        assert mapper.GetPlaceAllLabels()
+        labels = mapper.GetInputAlgorithm().GetInput()["labels"]
+        want = [info["ch_names"][pi] for pi in pick_types(info, meg=True, eeg=True)]
+        assert_array_equal(labels, want)
     renderer.backend._close_all()
 
 
@@ -1104,6 +1183,8 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     brain = stc.plot(**kwargs)
     assert brain.data["center"] is None
     brain.close()
+    with pytest.raises(TypeError, match="block must be an instance of bool"):
+        stc.plot(block="yes", **kwargs)
     brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
     assert brain.data["center"] == 0.0
     brain.close()
@@ -1208,70 +1289,6 @@ def test_process_clim_round_trip():
     _linearize_map(out)
     ticks = _get_map_ticks(out)
     assert_allclose(ticks, [-1, -0.5, -0.25, 0, 0.25, 0.5, 1])
-
-
-@testing.requires_testing_data
-def test_stc_mpl():
-    """Test plotting source estimates with matplotlib."""
-    pytest.importorskip("nibabel")
-    sample_src = read_source_spaces(src_fname)
-    vertices = [s["vertno"] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.ones(n_verts * n_time)
-    stc_data = stc_data.reshape((n_verts, n_time), copy=False)
-    stc = SourceEstimate(stc_data, vertices, 1, 1, "sample")
-    dep_match = "matplotlib 3D backend is deprecated"
-    with pytest.warns(FutureWarning, match=dep_match):
-        stc.plot(
-            subjects_dir=subjects_dir,
-            time_unit="s",
-            views="ven",
-            hemi="rh",
-            smoothing_steps=7,
-            subject="sample",
-            backend="matplotlib",
-            spacing="oct1",
-            initial_time=0.001,
-            colormap="Reds",
-        )
-    with pytest.warns(FutureWarning, match=dep_match):
-        fig = stc.plot(
-            subjects_dir=subjects_dir,
-            time_unit="ms",
-            views="dor",
-            hemi="lh",
-            smoothing_steps=7,
-            subject="sample",
-            backend="matplotlib",
-            spacing="ico2",
-            time_viewer=True,
-            colormap="mne",
-        )
-    time_viewer = fig.time_viewer
-    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
-    _fake_keypress(time_viewer, "ctrl+right")
-    _fake_keypress(time_viewer, "left")
-    with (
-        pytest.warns(FutureWarning, match=dep_match),
-        pytest.raises(ValueError, match="Invalid value for the 'hemi'"),
-    ):
-        stc.plot(
-            subjects_dir=subjects_dir,
-            hemi="both",
-            subject="sample",
-            backend="matplotlib",
-        )
-    with (
-        pytest.warns(FutureWarning, match=dep_match),
-        pytest.raises(ValueError, match="time_unit must be 's' or 'ms'"),
-    ):
-        stc.plot(
-            subjects_dir=subjects_dir,
-            time_unit="ss",
-            subject="sample",
-            backend="matplotlib",
-        )
 
 
 @pytest.mark.slowtest
@@ -1540,6 +1557,48 @@ def test_mixed_sources_plot_surface(renderer_interactive):
         subjects_dir=subjects_dir,
         colorbar=False,
     )
+    brain.close()
+    del brain
+
+    # cortex + subcortical surface source space
+    src += setup_subcortical_source_space(
+        "sample", label="Left-Amygdala", aseg="aseg", subjects_dir=subjects_dir
+    )
+    assert src.kind == "mixed"
+    src[2]["inuse"][1::2] = 0
+    src[2]["vertno"] = np.where(src[2]["inuse"])[0]
+    src[2]["nuse"] = len(src[2]["vertno"])
+    vertno = [s["vertno"] for s in src]
+    data = rng.standard_normal((sum(len(v) for v in vertno), 3, T))
+    stc = MixedVectorSourceEstimate(data, vertno, 0, 1, subject="sample")
+    src_head = src.copy()._transform_to("head", read_trans(trans_fname))
+    brain = stc.plot(
+        src=src_head,
+        trans=trans_fname,
+        subjects_dir=subjects_dir,
+        colorbar=False,
+        brain_alpha=0.1,
+    )
+    mesh = brain._data["vol"]["subcortical_mesh"]
+    assert_allclose(mesh._polydata.points, src[2]["rr"] * 1000, atol=1e-2)
+    glyphs = brain._data["vol"]["glyph_dataset"]
+    assert_allclose(glyphs.points, src[2]["rr"][src[2]["vertno"]] * 1000, atol=1e-2)
+    # gray base layer with the cortex alpha, data layer with the volume alpha
+    assert mesh._overlays["curv"]._opacity == 0.1
+    assert mesh._overlays[brain._active_data_key]._opacity == 0.4  # for vectors
+    brain.set_cortex_alpha(0.5)
+    assert mesh._overlays["curv"]._opacity == 0.5
+    colors = mesh._current_colors.copy()
+    brain.set_data_smoothing(-1)  # nearest instead of filling the gaps smoothly
+    assert not np.array_equal(colors, mesh._current_colors)
+    colors = mesh._current_colors.copy()
+    brain.set_time_point(1)
+    assert not np.array_equal(colors, mesh._current_colors)
+    vol_data = data[-len(vertno[2]) :]
+    with pytest.raises(ValueError, match="must be provided with the trans"):
+        brain.add_data(
+            vol_data, hemi="vol", vertices=vertno[2], src=src_head[2:], key="no_trans"
+        )
     brain.close()
     del brain
 

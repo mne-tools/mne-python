@@ -13,7 +13,7 @@ from scipy.io import loadmat
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_neuralynx
-from mne.io.neuralynx.neuralynx import _exclude_kwarg
+from mne.io.neuralynx.neuralynx import _neo_kwargs
 from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
@@ -150,7 +150,7 @@ def test_neuralynx():
     mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
-    nlx_reader = NeuralynxIO(dirname=testing_path, **_exclude_kwarg(excluded_ncs_files))
+    nlx_reader = NeuralynxIO(dirname=testing_path, **_neo_kwargs(excluded_ncs_files))
     bl = nlx_reader.read(
         lazy=False
     )  # read a single block which contains the data split in segments

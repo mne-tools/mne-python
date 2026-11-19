@@ -1,0 +1,1 @@
+Add ``unfold`` to :class:`mne.viz.Brain` and :meth:`mne.viz.Brain.set_unfold` to partially inflate or flatten the cortex, with a matching GUI slider and animated surface switching, by `Payam Sadeghi-Shabestari`_.

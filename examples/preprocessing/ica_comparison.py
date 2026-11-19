@@ -50,7 +50,7 @@ def run_ica(method, fit_params=None):
         method=method,
         fit_params=fit_params,
         max_iter="auto",
-        random_state=0,
+        rng=29,
     )
     t0 = time()
     ica.fit(raw, reject=reject)

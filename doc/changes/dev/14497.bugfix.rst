@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.time_frequency.psd_array_multitaper` where ``normalization="full"`` incorrectly scaled results by ``1/sfreq`` when ``output="complex"``, by :newcontrib:`Mark Kuang`.

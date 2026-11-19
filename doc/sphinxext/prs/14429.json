@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "87105f4dd8562f3a526306307c6b8d6c8df32252",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 8,
+      "d": 1018
+    },
+    "mne/viz/_brain/_movie.py": {
+      "a": 269,
+      "d": 0
+    },
+    "mne/viz/_brain/_scene.py": {
+      "a": 767,
+      "d": 0
+    }
+  }
+}

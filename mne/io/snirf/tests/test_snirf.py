@@ -146,6 +146,9 @@ def test_snirf_gowerlabs():
 
     assert raw._data.shape == (216, 274)
     assert raw.info["dig"][0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD
+    # File stores landmark in mm, which should be converted to m
+    nasion = raw.get_montage().get_positions()["nasion"]
+    assert_allclose(nasion, [0.0888, 0.2144, 0.0218], atol=1e-4)
     assert len(raw.ch_names) == 216
     assert_allclose(raw.info["sfreq"], 10.0)
     # we don't force them to be sorted according to a naive split
@@ -707,8 +710,10 @@ def test_get_dataunit_scaling():
     # Non-standard lowercase liter
     assert _get_dataunit_scaling("mol/l") == 1.0
     assert _get_dataunit_scaling("mmol/l") == 1e-3
-    # Empty string default
+    # Missing or arbitrary units leave the data unscaled.
     assert _get_dataunit_scaling("") == 1.0
+    assert _get_dataunit_scaling("A.U.") == 1.0
+    assert _get_dataunit_scaling("a.u.") == 1.0
     # Unsupported unit
     with pytest.raises(RuntimeError, match="not supported"):
         _get_dataunit_scaling("bad_unit")

@@ -1,3 +1,0 @@
-Fixed bug in :meth:`mne.io.Raw.plot` where, with the matplotlib backend and
-``group_by="selection"``, the channel-selection radio buttons no longer all appeared
-selected while in butterfly mode, by `Eric Larson`_.

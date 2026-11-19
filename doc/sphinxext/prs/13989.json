@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "028207bb296085ec175b631dd9b0bbba270c6b08",
+  "authors": [
+    {
+      "n": "Lau Møller Andersen",
+      "e": "lmandersen@cfin.au.dk",
+      "l": "ualsbombe"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13989.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_3d.py": {
+      "a": 13,
+      "d": 5
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 30,
+      "d": 0
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

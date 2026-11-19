@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "e275bbcaa231a072dc59cf962d62e3483c902dff",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org",
+      "l": "sappelhoff"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14422.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/report/report.py": {
+      "a": 153,
+      "d": 17
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 16,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 8,
+      "d": 1
+    }
+  }
+}

@@ -301,6 +301,20 @@ def test_crop(tmp_path):
             getattr(raw_copied.annotations, attr), getattr(raw_loaded.annotations, attr)
         )
 
+    # Dropping annotations at or outside cropped data range (#9383)
+    raw.set_annotations(Annotations([0, 5, 10], [0, 0, 0], ["a", "b", "c"]))
+    assert len(raw.copy().crop(0, 10, include_tmax=False).annotations) == 2
+    assert len(raw.copy().crop(0, 10, include_tmax=True).annotations) == 3
+    # an annotation at n_times / sfreq is kept unless the end is cropped
+    raw.set_annotations(Annotations([0, 20], [0, 0], ["a", "b"]))
+    assert len(raw.copy().crop().annotations) == 2
+    assert_array_equal(raw.copy().crop(tmin=5).annotations.description, ["b"])
+    assert len(raw.copy().crop(tmin=5, tmax=19).annotations) == 0
+    raw.set_annotations(Annotations([0], [20], ["full"]))
+    assert_allclose(
+        raw.copy().crop(0, 10, include_tmax=False).annotations.duration[0], 10.0
+    )
+
 
 @first_samps
 def test_chunk_duration(first_samp):
@@ -738,6 +752,24 @@ def test_annotations_crop():
     with pytest.warns(RuntimeWarning, match="Limited .* expanding outside"):
         a.copy().crop(tmin=0, tmax=12, emit_warning=True)
 
+    # onsets are rounded to whole microseconds (like timedelta), NaN durations
+    # become 0, and annotations can be clipped on either or both ends
+    onset = [0.1234564, 0.2, 0.5, 0.7000004, 1.0000005, 2.0, 5.0]
+    a = Annotations(
+        onset, [0.1, 5, np.nan, 0, 10, 0.5, 1], "x", extras=[{"i": i} for i in range(7)]
+    )
+    assert isinstance(a.extras, _AnnotationsExtrasList)  # also after _sort
+    with pytest.warns(RuntimeWarning) as w:
+        a.crop(tmin=0.3, tmax=2.2, emit_warning=True)
+    assert [str(ww.message)[:9] for ww in w] == ["Omitted 2", "Limited 3"]
+    assert_array_equal(a.onset, [0.3, 0.5, 0.7, 1.000001, 2.0])
+    assert_array_equal(a.duration, [1.9, 0, 0, 1.199999, 0.2])
+    assert [e["i"] for e in a.extras] == [1, 2, 3, 4, 5]
+    assert isinstance(a.extras, _AnnotationsExtrasList)
+    with pytest.raises(TypeError, match="value must be an instance"):
+        a.extras.append({"i": [1]})  # still validated after crop
+    assert a.description.dtype == np.dtypes.StringDType()
+
 
 @testing.requires_testing_data
 def test_events_from_annot_in_raw_objects():
@@ -969,6 +1001,8 @@ def test_event_id_function_using_custom_function():
 
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
+    with pytest.raises(ValueError, match=r"same event code \(42: \['a', 'b'"):
+        Epochs(raw, events, event_id)
 
 
 # Test for IO with .csv files
@@ -1083,6 +1117,12 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names, with_extr
 
     # Now without an orig_time
     annot._orig_time = None
+    annot.save(fname, overwrite=True)
+    annot2 = read_annotations(fname)
+    _assert_annotations_equal(annot, annot2)
+
+    # With non-zero onsets (gh-8573)
+    annot.onset += 2.5
     annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
@@ -1243,6 +1283,11 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmp_path_factory, ch_names
         pytest.param((3, 140000), 3.14, id="Scalar tuple"),
         pytest.param(
             "2002-12-03 19:01:11.720100", 1038942071.7201, id="valid iso8601 string"
+        ),
+        pytest.param(
+            "2002-12-03 19:01:11.720100+03:00",
+            1038931271.7201,
+            id="valid iso8601 string with tz",
         ),
         pytest.param("2002-12-03T19:01:11.720100", None, id="invalid iso8601 string"),
     ],
@@ -1751,9 +1796,14 @@ def test_description_assignment_not_truncated(tmp_path, fmt):
     annot = Annotations([1.0, 2.0], [1.0, 1.0], ["short", "b"], extras=[dict(a=1)] * 2)
     _assert_no_truncation(annot.copy())
     # the copy must be independent (and not crash: numpy/numpy#28609)
-    annot_copy = deepcopy(annot)
-    annot_copy.description[0] = "changed"
-    assert annot.description[0] == "short"
+    for annot_copy in (deepcopy(annot), annot.copy()):
+        assert type(annot_copy.extras) is type(annot.extras)
+        annot_copy.description[0] = "changed"
+        annot_copy.extras[0]["a"] = 2
+        with pytest.raises(TypeError, match="value must be an instance"):
+            annot_copy.extras[0]["a"] = [2]
+        assert annot.description[0] == "short"
+        assert annot.extras[0]["a"] == 1
     annot.append(3.0, 1.0, "c", extras=[dict(a=1)])
     annot.rename({"b": "b_renamed"})
     other = annot.copy()

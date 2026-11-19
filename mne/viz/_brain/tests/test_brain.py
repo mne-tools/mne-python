@@ -12,6 +12,7 @@ from shutil import copyfile
 import numpy as np
 import pytest
 from matplotlib import image
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -190,6 +191,21 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
             opacity=np.array([0.1, 0.2, 0.3]),
             name="bad-opacity",
         )
+
+    # alpha compositing: transparent top keeps the bottom color, opaque top wins,
+    # and a half-transparent white over opaque black is grey
+    bottom = np.array([[0.0, 0, 0, 1]] * 3)
+    top = np.array([[1.0, 1, 1, 0], [1, 1, 1, 1], [1, 1, 1, 0.5]])
+    assert_allclose(
+        mesh._compute_over(bottom, top),
+        [[0, 0, 0, 1], [1, 1, 1, 1], [0.5, 0.5, 0.5, 1]],
+    )
+    # a fully transparent result is black, and the inputs are left alone
+    bottom, top = np.zeros((1, 4)), np.zeros((1, 4))
+    assert_allclose(mesh._compute_over(bottom, top), [[0, 0, 0, 0]])
+    assert_allclose(bottom, 0)
+    assert_allclose(top, 0)
+
     mesh._clean()
 
 
@@ -208,9 +224,9 @@ def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_routines(renderer, brain_gc):
+def test_brain_routines(renderer_pyvistaqt, brain_gc):
     """Test backend agnostic Brain routines."""
-    brain_klass = renderer.get_brain_class()
+    brain_klass = renderer_pyvistaqt.get_brain_class()
     from mne.viz._brain import Brain
 
     assert brain_klass == Brain
@@ -608,7 +624,16 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     vertex_id = sphere["vertex_id"]
     old_center = np.array(sphere["mesh"].center)
 
+    brain.show_view(azimuth=30, elevation=60)  # the morph keeps the user's view
+    view = brain._renderer.get_camera()[2:4]
+    # what the mouse rotates about, relative to the center of the brain
+    focal_point = brain.plotter.camera.focal_point
+    focal_point -= (old_coords.min(axis=0) + old_coords.max(axis=0)) / 2
     brain.set_surf("white")
+    assert_allclose(brain._renderer.get_camera()[2:4], view, atol=1e-6)
+    coords = brain.geo["lh"].coords
+    center = (coords.min(axis=0) + coords.max(axis=0)) / 2
+    assert_allclose(brain.plotter.camera.focal_point - center, focal_point, atol=1e-4)
     assert brain._surf == "white"
     assert not np.allclose(brain.geo["lh"].coords, old_coords)
     assert brain.layered_meshes["lh"]._vertices is brain.geo["lh"].coords
@@ -618,6 +643,19 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
 
     brain.set_surf("white")  # no-op, same surf
     assert brain._surf == "white"
+
+    white = brain.geo["lh"].coords
+    brain.widgets["unfold"].set_value(1.0)
+    assert brain.widgets["surf"].get_value() == brain._surf == "inflated"
+    inflated = brain.geo["lh"].coords
+    brain.set_unfold(0.5)
+    assert_allclose(brain.geo["lh"].coords, (white + inflated) / 2)
+    assert brain.widgets["unfold"].get_value() == 0.5
+    assert brain.widgets["surf"].get_value() == brain._surf == "white"
+    with pytest.raises(ValueError, match="between 0 and 2"):
+        brain.set_unfold(3)
+    with pytest.raises(FileNotFoundError, match="no flatmap surface file"):
+        brain.set_unfold(1.5)  # "sample" has no flat patch to unfold to
 
     assert not brain.silhouette
     brain.set_silhouette_line_width(3.0)
@@ -633,6 +671,102 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     brain.set_silhouette_line_width(5.0)
     assert brain._silhouette_actors is actors
     assert all(a.GetVisibility() for a in actors)
+
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
+    """Test flat surfaces: switching to and from them, and the 2D-only GUI."""
+    # "sample" has no patch files, but fsaverage ships the ones a flat map needs
+    kwargs = dict(hemi="lh", subjects_dir=subjects_dir, size=300)
+    with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
+        Brain("fsaverage", surf="flat", silhouette=True, **kwargs)
+
+    # start from a 3D surface: switching *to* flat is what has to reframe the
+    # camera and retriangulate, so the checks below have to run after a switch
+    brain = Brain("fsaverage", surf="white", unfold=1, **kwargs)  # i.e., inflated
+    n_vertices = len(brain.geo["lh"].coords)
+    brain.add_data(
+        np.zeros((n_vertices, 3)),
+        vertices=np.arange(n_vertices),
+        hemi="lh",
+        colormap="hot",
+        fmin=0,
+        fmax=1,
+        time=[0, 1, 2],
+        smoothing_steps=1,
+    )
+    brain.setup_time_viewer(show_traces="label")
+    mesh = brain.layered_meshes["lh"]
+    n_faces_3d = mesh._polydata.n_cells
+    coords_3d = brain.geo["lh"].coords.copy()
+
+    brain.set_unfold(1.5)
+    assert mesh._polydata.n_cells < n_faces_3d
+    assert brain._surf == "inflated" and brain.interaction == "trackball"
+
+    # a flat patch drops the triangles outside it, but keeps every vertex, so
+    # the overlays stay valid
+    brain.set_surf("flat")
+    assert brain._surf == "flat"
+    assert mesh._polydata.n_points == n_vertices
+    assert mesh._polydata.n_cells < n_faces_3d
+    assert_allclose(np.ptp(brain.geo["lh"].coords[:, 2]), 0, atol=1e-6)  # planar
+    assert mesh._vertices is brain.geo["lh"].coords
+    assert brain.views == ["flat"]
+    n_faces_flat = mesh._polydata.n_cells
+
+    # NB the camera reframing that switching to flat does (see
+    # Brain._fit_flat_camera) is deliberately not asserted here: the offscreen
+    # camera never leaves its default state under this fixture, so any check of
+    # it passes whether or not the reframing happened
+
+    # a flat map is 2D, so it gets the rubber-band style rather than a 3D one
+    assert brain.interaction == "rubber_band_2d"
+    with pytest.warns(RuntimeWarning, match='ignored for surf="flat"'):
+        brain.interaction = "trackball"
+    assert brain.interaction == "rubber_band_2d"
+
+    # every views dict holds all the 3D view names, so a flat map could
+    # otherwise be rotated edge-on
+    camera = brain._renderer.get_camera()
+    with pytest.warns(RuntimeWarning, match='view="lateral" is ignored'):
+        brain.show_view("lateral")
+    assert_allclose(brain._renderer.get_camera()[2], camera[2], atol=1e-6)  # azimuth
+    brain.show_view("flat")  # the one valid view still works
+    brain.reset_view()
+
+    # controls that cannot act on a flat patch are greyed out, not dropped,
+    # because the surface can be switched back and forth live
+    assert not brain.widgets["orientation"].is_enabled()
+    assert not brain.widgets["silhouette"].is_enabled()
+    keys = brain.plotter.iren._key_press_event_callbacks
+    assert "Left" not in keys  # a flat map cannot be rotated
+    with pytest.raises(ValueError, match='silhouette is not supported for surf="flat"'):
+        brain.set_silhouette_line_width(3.0)
+
+    # picking a parcel must not compute adjacency from the patch-restricted
+    # triangles, which are only a subset of the full surface
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=10000))
+    assert len(brain._picked_patches["lh"]) == 1
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=10000))
+    assert len(brain._picked_patches["lh"]) == 0
+
+    # switching back to 3D restores the triangulation, geometry and controls
+    # (it warns because the annotation picked above does not move with it)
+    with pytest.warns(RuntimeWarning, match="Foci and label"):
+        brain.set_surf("inflated")
+    assert mesh._polydata.n_cells == n_faces_3d
+    assert mesh._polydata.n_cells > n_faces_flat
+    assert_allclose(brain.geo["lh"].coords, coords_3d, atol=0)
+    assert np.ptp(coords_3d[:, 2]) > 1  # was not planar to begin with
+    assert brain.views == ["lateral"]
+    assert brain.interaction == "trackball"
+    assert brain.widgets["orientation"].is_enabled()
+    assert brain.widgets["silhouette"].is_enabled()
+    assert "Left" in keys
+    brain.show_view("medial")  # no longer ignored
 
     brain.close()
 
@@ -916,7 +1050,9 @@ def test_image_screenshot(
     """Test screenshot and image saving."""
     size = (300, 300)
     brain = _create_testing_brain(hemi="rh", show_traces=False, size=size)
-    azimuth, elevation = 180.0, 90.0
+    for mesh in brain.layered_meshes.values():
+        mesh._actor.SetVisibility(True)
+    azimuth, elevation = 360.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
     brain.save_image(fname)
@@ -938,6 +1074,37 @@ def test_image_screenshot(
     div = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.0, atol=15) else 1
     want_size[:2] /= div
     assert_allclose(img.shape, want_size, atol=15)
+
+    # Test whether the renderer has properly updated before the screenshot was taken.
+    brain.set_time(1)
+    img1 = brain.screenshot(mode="rgba")
+    brain.set_time(2)
+    img2 = brain.screenshot(mode="rgba")
+    brain.set_time(1)
+    img3 = brain.screenshot(mode="rgba")
+    assert not np.array_equal(img1, img2)
+    assert_array_equal(img1, img3)
+
+    # Test scaled screenshot and save_image (issue #14385)
+    img_scaled = brain.screenshot(mode="rgba", scale=2)
+    assert_allclose(img_scaled.shape[:2], [s * 2 for s in img1.shape[:2]])
+    from PIL import Image
+
+    img_downscaled = np.array(
+        Image.fromarray(img_scaled).resize(
+            (img1.shape[1], img1.shape[0]), resample=Image.Resampling.BILINEAR
+        )
+    )
+    corr = np.corrcoef(img1[..., :3].ravel(), img_downscaled[..., :3].ravel())[0, 1]
+    assert corr > 0.95
+
+    fname_scaled = tmp_path / "test_scaled.png"
+    brain.save_image(fname_scaled, scale=2)
+    assert fname_scaled.is_file()
+
+    with pytest.raises(TypeError, match="scale must be an int"):
+        brain.screenshot(scale=1.5)
+
     brain.close()
 
 
@@ -968,7 +1135,7 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize("interactive_state", (False, True))
-def test_brain_save_movie(tmp_path, renderer, brain_gc, interactive_state):
+def test_brain_save_movie(tmp_path, renderer_pyvistaqt, brain_gc, interactive_state):
     """Test saving a movie of a Brain instance."""
     pytest.importorskip("imageio")
     imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
@@ -1101,6 +1268,12 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.show_view("medial")
     brain.set_data_smoothing(1)
     _assert_brain_range(brain, [0.1, 0.3])
+    # the dock follows limits that get bumped to keep fmin <= fmid <= fmax
+    brain.update_lut(fmin=0.25)
+    for key, val in dict(fmin=0.25, fmid=0.25, fmax=0.3).items():
+        val *= brain._data["fscale"]
+        assert brain.widgets[key].get_value() == pytest.approx(val)
+        assert brain.widgets[f"entry_{key}"].get_value() == pytest.approx(val)
     from mne.utils import use_log_level
 
     with use_log_level("debug"):
@@ -1193,6 +1366,7 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
         remove_existing=False,
     )
     assert brain.widgets["data_key"].is_visible()
+    assert brain.widgets["data_key"].get_value() == "overlay2"
     assert brain._active_data_key == "overlay2"
 
     # switching the dropdown updates the active key and refreshes sliders
@@ -1202,6 +1376,38 @@ def test_brain_overlay_selector(renderer_interactive_pyvistaqt, brain_gc):
     brain.widgets["data_key"].set_value("overlay2")
     assert brain._active_data_key == "overlay2"
 
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_overlay_switch_label_mode(renderer_interactive_pyvistaqt, brain_gc):
+    """Overlay switching in label-traces mode must not auto-pick labels.
+
+    Regression: _update_peak_vertices published VertexSelect events in label
+    mode, toggling the label containing each hemi's peak on every switch (and
+    crashing outright for overlays added without an src).
+    """
+    brain = _create_testing_brain(hemi="lh", show_traces="label", initial_time=0)
+    assert brain.traces_mode == "label"
+    vertices = brain._all_data["data"]["lh"]["vertices"]
+    time = brain._all_data["data"]["time"]
+    array2 = np.zeros((len(vertices), len(time)))
+    array2[0] = 1.0
+    brain.add_data(
+        array2,
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=vertices,
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data2",
+        smoothing_steps=0,
+        remove_existing=False,
+    )
+    assert brain._active_data_key == "data2"
+    assert sum(len(v) for v in brain._picked_patches.values()) == 0
     brain.close()
 
 
@@ -1271,7 +1477,13 @@ def test_brain_traces_basic(renderer_interactive_pyvistaqt, hemi, src, brain_gc)
     else:  # volume
         assert "annotation" not in brain.widgets
         assert "extract_mode" not in brain.widgets
+    # closing a linked figure must not tear down this one's time viewer
+    fig = Figure()
+    ui_events.link(fig, brain)
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert brain.widgets and brain.mpl_canvas is not None
     brain.close()
+    assert brain.widgets is None and brain.mpl_canvas is None
 
 
 @testing.requires_testing_data
@@ -1452,6 +1664,204 @@ something
         assert_allclose(img.shape[0], screenshot_all.shape[0], atol=1)
 
 
+@testing.requires_testing_data
+def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
+    """Test the native Qt trace-list sidebar that replaces the mpl legend."""
+    from qtpy.QtWidgets import QLabel
+
+    brain = _create_testing_brain(hemi="lh", show_traces=True, initial_time=0)
+    canvas = brain.mpl_canvas
+    assert canvas._legend_in_figure is False
+    trace_list = canvas._trace_list
+    assert trace_list is not None
+
+    def row_text(row):
+        return row.findChild(QLabel, "trace_label").text()
+
+    rows = trace_list._rows_layout
+    row_lines = [rows.itemAt(i).widget()._line for i in range(rows.count())]
+    assert row_lines == [
+        line for line in canvas.axes.get_lines() if line is not brain.time_line
+    ]
+
+    # the auto-picked peak-activation vertex gets a friendly display label,
+    # distinct from the underlying matplotlib line label
+    peak_line = next(
+        ln for ln in row_lines if brain._trace_meta.get(ln, (None,))[0] == "lh"
+    )
+    peak_row = rows.itemAt(row_lines.index(peak_line)).widget()
+    assert row_text(peak_row) == f"Peak (LH) {brain._peak_vertices['lh']}"
+    assert row_text(peak_row) != peak_line.get_label()
+
+    # picking a new vertex should grow the sidebar to match, and the new
+    # row's displayed label must be correct immediately -- this guards
+    # against a real bug where the label lookup ran before the line was
+    # tagged with its hemi/vertex_id, showing the raw label for one redraw
+    picked = set(brain.get_picked_points()["lh"])
+    n_verts = len(brain.geo["lh"].coords)
+    vertex_id = next(v for v in range(n_verts) if v not in picked)
+    # a removed trace's data limits linger until relim(), so picking must
+    # rescale the y-axis to only the traces that are still there
+    canvas.axes.plot([0], [1e6])[0].remove()
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=vertex_id))
+    assert canvas.axes.get_ylim()[1] < 1e6
+    assert rows.count() == len(row_lines) + 1
+    row = rows.itemAt(rows.count() - 1).widget()
+    line = row._line
+    assert str(vertex_id) in line.get_label()
+    assert row_text(row) == f"LH {vertex_id}"
+
+    # toggling a row hides the trace and its 3D glyph together, without
+    # rebuilding the row list (sync() must skip unchanged trace sets --
+    # the whole point of the native list was to stop rebuilding on every
+    # update, which is what caused the original matplotlib-legend lag)
+    assert line.get_visible()
+    row._on_toggle()
+    assert not line.get_visible()
+    assert rows.itemAt(rows.count() - 1).widget() is row  # not rebuilt
+    sphere = next(s[0] for s in brain._picked_points.values() if s[0]["line"] is line)
+    assert not sphere["actor"].GetVisibility()
+    row._on_toggle()
+    assert line.get_visible()
+    assert sphere["actor"].GetVisibility()
+    assert rows.itemAt(rows.count() - 1).widget() is row  # still not rebuilt
+
+    # hovering a row dims the other traces without disturbing the RMS
+    # curve's own (deliberately non-default) alpha
+    rms_line = next(
+        ln for ln in canvas.axes.get_lines() if ln.get_label().startswith("RMS")
+    )
+    assert rms_line.get_alpha() == 0.5
+    canvas.set_trace_highlight(line)
+    assert line.get_alpha() == 1.0
+    assert rms_line.get_alpha() == 0.25
+    canvas.set_trace_highlight(None)
+    assert rms_line.get_alpha() == 0.5  # restored, not clobbered to 1.0
+
+    # hovering a *hidden* trace must not dim its still-visible siblings
+    row._on_toggle()  # hide it again
+    assert not line.get_visible()
+    canvas.set_trace_highlight(line)
+    assert rms_line.get_alpha() == 0.5  # untouched, not dimmed to 0.25
+    row._on_toggle()
+
+    # switching to Atlas/label mode and back to "None" must not shift trace
+    # colors -- regression: clear_glyphs() used to drop RMS lines without
+    # returning their color to brain.color_cycle, leaking a color (and
+    # shifting every subsequent one) on each round trip. Only RMS/peak are
+    # compared: the manually-added second pick above is legitimately not
+    # restored by a mode switch, only the auto-picked peak vertex is.
+    rms_colors = [ln.get_color() for ln in brain.rms]
+    peak_color = peak_line.get_color()
+    brain.widgets["annotation"].set_value("aparc")
+    brain.widgets["annotation"].set_value("None")
+    assert [ln.get_color() for ln in brain.rms] == rms_colors
+    new_peak_line = next(iter(brain._picked_points.values()))[0]["line"]
+    assert new_peak_line.get_color() == peak_color
+
+    # the auto-picked "Peak" trace must follow the active overlay; use
+    # decimated data with the same smoothing as the current widget value so
+    # that select_data_key cannot rely on a smooth_mat computed as a side
+    # effect of the smoothing spin box changing (regression: add_data updated
+    # the data_key widget before set_data_smoothing, crashing on decimated
+    # overlays)
+    peak1 = brain._peak_vertices["lh"]
+    vertices2 = brain._all_data["data"]["lh"]["vertices"]
+    peak2 = int(vertices2[-1] if peak1 != vertices2[-1] else vertices2[-2])
+    manual_vertex = next(v for v in (0, 1, 2) if v not in (peak1, peak2))
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=manual_vertex))
+    assert ("lh", manual_vertex) in brain._picked_points
+    time = brain._all_data["data"]["time"]
+    array2 = np.zeros((len(vertices2), len(time)))
+    array2[np.searchsorted(vertices2, peak2)] = 1.0
+    brain.add_data(
+        array2,
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=vertices2,
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data2",
+        smoothing_steps=0,  # match the smoothing widget's current value
+        remove_existing=False,  # keep "data" around so we can switch back
+    )
+    assert brain._active_data_key == "data2"
+    assert brain._peak_vertices["lh"] == peak2
+    assert ("lh", peak2) in brain._picked_points
+    assert ("lh", peak1) not in brain._picked_points
+    assert ("lh", manual_vertex) in brain._picked_points  # manual pick untouched
+
+    # switching back to the original overlay restores its peak
+    brain.widgets["data_key"].set_value("data")
+    assert brain._peak_vertices["lh"] == peak1
+    assert ("lh", peak1) in brain._picked_points
+    assert ("lh", peak2) not in brain._picked_points
+    assert ("lh", manual_vertex) in brain._picked_points  # still untouched
+    row_lines2 = [rows.itemAt(i).widget()._line for i in range(rows.count())]
+    peak_row2 = next(
+        rows.itemAt(i).widget()
+        for i, ln in enumerate(row_lines2)
+        if brain._trace_meta.get(ln, (None,))[0] == "lh"
+        and brain._trace_meta[ln][1] == peak1
+    )
+    assert row_text(peak_row2) == f"Peak (LH) {peak1}"
+
+    # an overlay peaking at the *same* vertex must still refresh the trace
+    # data (regression: the unchanged-peak branch skipped the re-plot)
+    peak_line1 = brain._picked_points[("lh", peak1)][0]["line"]
+    y1 = peak_line1.get_ydata().copy()
+    brain.add_data(
+        2.0 * brain._all_data["data"]["lh"]["array"],
+        fmin=0.0,
+        fmid=0.5,
+        fmax=1.0,
+        vertices=vertices2,
+        time=time,
+        hemi="lh",
+        colormap="hot",
+        key="data3",
+        smoothing_steps=0,
+        initial_time=0,  # match "data" so the peak vertex is the same
+        remove_existing=False,
+    )
+    assert brain._peak_vertices["lh"] == peak1
+    peak_line3 = brain._picked_points[("lh", peak1)][0]["line"]
+    assert peak_line3 is peak_line1  # refreshed in place, not re-added
+    assert_allclose(peak_line3.get_ydata(), 2.0 * y1)
+
+
+@testing.requires_testing_data
+def test_brain_time_line_blitting(renderer_interactive_pyvistaqt, brain_gc):
+    """Test that moving the time line blits instead of redrawing the traces."""
+    brain = _create_testing_brain(hemi="lh", show_traces=True, initial_time=0)
+    canvas = brain.mpl_canvas
+    assert canvas.canvas.supports_blit
+    assert brain.time_line in canvas._blit._artists
+
+    n_draws = list()
+    canvas.canvas.mpl_connect("draw_event", lambda event: n_draws.append(event))
+    brain.set_time(brain._times[-1])  # one redraw caches the background ...
+    assert brain.time_line.get_xdata()[0] == brain._times[-1]
+    assert canvas._blit._background is not None
+    assert len(n_draws) == 1
+
+    brain.set_time(brain._times[len(brain._times) // 2])  # ... then it only blits
+    assert len(n_draws) == 1
+
+    # a full redraw invalidates the background, and anything can be blitted
+    text = canvas.axes.text(0, 0, "hello")
+    canvas.add_blit_artist(text)
+    canvas.update_blit_artists()  # the background was dropped, so this redraws
+    assert len(n_draws) == 2
+
+    canvas.remove_blit_artist(text)
+    assert text not in canvas._blit._artists
+    assert len(n_draws) == 3  # restored to the background by a full redraw
+    brain.close()
+
+
 def _send_mouse_move(widget, point, buttons=None):
     """Deliver a synthetic Qt mouse move (QTest.mouseMove warps the real cursor)."""
     from qtpy.QtCore import QEvent, QPointF, Qt
@@ -1585,6 +1995,17 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
     point = _world_to_widget_point(brain, widget, center)
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert list(brain._picked_points) == [peak_key]
+    if src == "surface":
+        # label mode must work with directly-passed data too: an stc gets
+        # synthesized for extract_label_time_course, and the default extract
+        # mode must be valid (not None) with src=None
+        assert brain.label_extract_mode is not None
+        brain.widgets["annotation"].set_value("aparc")
+        assert brain.traces_mode == "label"
+        assert brain.widgets["extract_mode"].get_value() == brain.label_extract_mode
+        _, point = _closest_vertex_point(brain, widget)
+        QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
+        assert len(brain._picked_patches[hemi]) == 1
     brain.close()
 
 
@@ -1612,12 +2033,42 @@ def test_brain_click_picking_label(renderer_interactive_pyvistaqt, brain_gc, qtb
         brain.show()
     widget = brain.plotter.interactor
     _, point = _closest_vertex_point(brain, widget)
+    # hovering with no prior click must not pick labels: the hover handlers
+    # used to Pick() with the picker carrying the EndPickEvent observer, so
+    # every hover movement acted like a click
+    for dx in range(-40, 41, 10):
+        _send_mouse_move(widget, point + QPoint(dx, 0))
     assert len(brain._picked_patches["lh"]) == 0
+    brain.mpl_canvas.axes.plot([0], [1e6])[0].remove()  # stale limits, see above
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1
+    assert brain.mpl_canvas.axes.get_ylim()[1] < 1e6
+
+    # the picked label's trace-list row gets a friendly display name/subtitle
+    # instead of the raw internal label name (still available as the tooltip)
+    label_id = brain._picked_patches["lh"][0]
+    label = brain._annotation_labels["lh"][label_id]
+    line = label._line
+    assert brain._trace_display_label(line) == f"{label.name[:-3]} (LH)"
+    # only the (decimated) source vertices within the label count
+    n_vertices = np.intersect1d(label.vertices, brain._data["stc"].vertices[0]).size
+    assert 0 < n_vertices < len(label.vertices)
+    assert brain._trace_display_subtitle(line) == (
+        f"{n_vertices} vertices, mode: {brain.label_extract_mode}"
+    )
+    # only picking plots a trace: adding a label directly keeps its own color
+    n_lines = len(brain.mpl_canvas.axes.get_lines())
+    other = brain._annotation_labels["lh"][label_id - 1]
+    brain.add_label(other, color="red")
+    assert len(brain.mpl_canvas.axes.get_lines()) == n_lines
+    overlay = brain.layered_meshes["lh"]._overlays[other.name]
+    assert_array_equal(overlay._colormap[1], [255, 0, 0, 255])
+    brain.layered_meshes["lh"].remove_overlay(other.name)
+
     # clicking the same label again removes it
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 0
+    assert line not in brain._label_trace_meta
     # the clear-glyphs shortcut clears a picked label
     QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier, point)
     assert len(brain._picked_patches["lh"]) == 1

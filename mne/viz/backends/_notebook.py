@@ -1015,10 +1015,12 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         pass
 
     def _dock_show(self):
-        self._dock_layout.layout.visibility = "visible"
+        for _, layout in self._docks.values():
+            layout.layout.visibility = "visible"
 
     def _dock_hide(self):
-        self._dock_layout.layout.visibility = "hidden"
+        for _, layout in self._docks.values():
+            layout.layout.visibility = "hidden"
 
     def _dock_add_stretch(self, layout=None):
         layout = self._dock_layout if layout is None else layout
@@ -1030,11 +1032,20 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
 
-    def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
+    def _dock_add_label(
+        self,
+        value,
+        *,
+        align=False,
+        layout=None,
+        selectable=False,
+        row=None,
+        col=None,
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = HTML(value=value, disabled=True)
         widget.layout.width = "100px"
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _IpyWidget(widget)
 
     def _dock_add_button(
@@ -1046,6 +1057,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         icon=None,
         tooltip=None,
         layout=None,
+        shortcut=None,  # no window-wide shortcuts in a notebook
     ):
         layout = self._dock_layout if layout is None else layout
         kwargs = dict()
@@ -1056,7 +1068,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         widget = Button(**kwargs)
         widget.on_click(lambda x: callback())
         if icon is not None:
-            widget.icon = icon
+            widget.icon = self._icons[icon]
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -1080,6 +1092,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         double=False,
         tooltip=None,
         layout=None,
+        row=None,
+        col=None,
     ):
         layout = self._dock_named_layout(name=name, layout=layout, compact=compact)
         klass = FloatSlider if double else IntSlider
@@ -1090,15 +1104,26 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names="value")
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, widget, row=row, col=col)
         return _IpyWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, *, tooltip=None, layout=None):
+    def _dock_add_check_box(
+        self,
+        name,
+        value,
+        callback,
+        *,
+        tooltip=None,
+        layout=None,
+        row=None,
+        col=None,
+        shortcut=None,  # no window-wide shortcuts in a notebook
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = Checkbox(value=value, description=name, indent=False, disabled=False)
         hbox = HBox([widget])  # fix stretching to the right
         widget.observe(_generate_callback(callback), names="value")
-        self._layout_add_widget(layout, hbox)
+        self._layout_add_widget(layout, hbox, row=row, col=col)
         return _IpyWidget(widget)
 
     def _dock_add_spin_box(
@@ -1332,7 +1357,9 @@ class _IpyPlayback(_AbstractPlayback):
 
 class _IpyMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        ipympl = _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        import ipympl.backend_nbagg
+
         self.canvas = ipympl.backend_nbagg.Canvas(self.fig)
         self.manager = ipympl.backend_nbagg.FigureManager(self.canvas, 0)
 
@@ -1487,6 +1514,9 @@ class _IpyWidget(_AbstractWdgt):
 
     def hide(self):
         self._widget.layout.visibility = "hidden"
+
+    def remove(self):
+        self._widget.close()
 
     def set_enabled(self, state):
         self._widget.disabled = not state

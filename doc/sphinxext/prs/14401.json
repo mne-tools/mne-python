@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "eb845cd1713dc193c45163ee3aac3a7f22190253",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "mne/viz/_brain/_brain.py": {
+      "a": 4,
+      "d": 9
+    },
+    "mne/viz/_brain/_time_viewer.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/ui_events.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

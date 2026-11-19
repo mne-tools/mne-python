@@ -1,0 +1,2 @@
+Fix bug where :meth:`mne.io.Raw.crop` retained annotations starting after the last data sample, by `Ishaan Maheshwari`_.
+

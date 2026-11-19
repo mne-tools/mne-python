@@ -6,10 +6,10 @@ import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 
 from ..io import BaseRaw
-from ..utils import _validate_type, logger, verbose, warn
+from ..utils import _validate_type, logger, verbose_static, warn
 
 
-@verbose
+@verbose_static()
 def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
     """Realign two simultaneous recordings.
 
@@ -31,7 +31,11 @@ def realign_raw(raw, other, t_raw, t_other, *, verbose=None):
             find_events(raw)[:, 0] / raw.info["sfreq"] - raw.first_time
     t_other : array-like, shape (n_events,)
         The times of shared events in ``other`` relative to ``other.times[0]``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Notes
     -----

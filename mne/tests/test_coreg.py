@@ -21,10 +21,12 @@ from mne._fiff.constants import FIFF
 from mne.channels import DigMontage
 from mne.coreg import (
     Coregistration,
+    _find_head_bem,
     _is_mri_subject,
     coregister_fiducials,
     create_default_subject,
     get_mni_fiducials,
+    read_mri_cfg,
     scale_bem,
     scale_labels,
     scale_mri,
@@ -165,6 +167,9 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
         mri_fiducials=mri_fiducials,
     )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
+    cfg = read_mri_cfg("flachkopf", tmp_path)
+    assert cfg["n_params"] == np.size(scale)
+    assert_array_equal(cfg["scale"], scale)
     spath = tmp_path / "flachkopf" / "bem"
     spath_fname = "flachkopf-%s-src.fif"
 
@@ -439,6 +444,8 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials, fid_match):
     coreg = Coregistration(
         info, subject=subject, subjects_dir=subjects_dir, fiducials=fiducials
     )
+    # the subject's own head file is preferred over the watershed outer_skin.surf
+    assert _find_head_bem(subject, subjects_dir).endswith("sample-head.fif")
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     assert len(coreg.fiducials.dig) == 3
     for dig_point in coreg.fiducials.dig:
@@ -501,6 +508,55 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials, fid_match):
     else:
         atol = 0.35
     assert_allclose(coreg._scale, ref_scale, atol=atol)
+    coreg.reset()
+    assert_allclose(coreg._parameters, default_params)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_fitting_invariants():
+    """Randomized regression net for Coregistration fitting properties."""
+    pytest.importorskip("nibabel")
+    fiducials, _ = read_fiducials(fid_fname)
+    info = read_info(raw_fname)
+    coreg = Coregistration(
+        info, subject="sample", subjects_dir=subjects_dir, fiducials=fiducials
+    )
+    rng = np.random.default_rng(0)
+
+    # omit_head_shape_points
+    all_dists = coreg._orig_hsp_point_distance
+    distances = np.sort(rng.uniform(all_dists.min(), all_dists.max(), size=5))[::-1]
+    prev_n_kept = len(all_dists)
+    for distance in distances:
+        coreg.omit_head_shape_points(distance=distance)
+        kept = coreg._orig_hsp_point_distance[coreg._extra_points_filter]
+        assert (kept <= distance).all()
+        assert len(kept) <= prev_n_kept
+        prev_n_kept = len(kept)
+    # a new info with a different number of points resets the mask (gh-14420)
+    info_fewer = info.copy()
+    extra = [d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in info["dig"]]
+    with info_fewer._unlock():
+        info_fewer["dig"].pop(np.where(extra)[0][-1])
+    coreg.set_info(info_fewer)
+    assert coreg._extra_points_filter is None
+    assert len(coreg._filtered_extra_points) == sum(extra) - 1
+    coreg.set_info(info)
+
+    # fit_fiducials / fit_icp
+    for _ in range(5):
+        coreg.reset()
+        coreg.set_rotation(rng.uniform(-0.1, 0.1, size=3))
+        coreg.set_translation(rng.uniform(-0.01, 0.01, size=3))
+        err_before = np.median(coreg.compute_dig_mri_distances())
+        coreg.fit_fiducials()
+        err_after_fid = np.median(coreg.compute_dig_mri_distances())
+        assert err_after_fid <= err_before + 1e-9
+        coreg.fit_icp(5)
+        err_after_icp = np.median(coreg.compute_dig_mri_distances())
+        assert err_after_icp <= err_after_fid + 1e-9
+    default_params = coreg._default_parameters.copy()
     coreg.reset()
     assert_allclose(coreg._parameters, default_params)
 

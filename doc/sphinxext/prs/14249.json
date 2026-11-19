@@ -1,0 +1,68 @@
+{
+  "merge_commit_sha": "166e95903eee3f4406fd2c150ee75cd2fca19ea4",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 8,
+      "d": 4
+    },
+    "doc/changes/dev/14249.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/tests/test_dipolefit.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/report/report.py": {
+      "a": 94,
+      "d": 47
+    },
+    "mne/report/tests/test_report.py": {
+      "a": 10,
+      "d": 1
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 8,
+      "d": 11
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 9,
+      "d": 55
+    },
+    "mne/viz/evoked.py": {
+      "a": 22,
+      "d": 7
+    },
+    "mne/viz/tests/test_topomap.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/viz/topo.py": {
+      "a": 7,
+      "d": 2
+    },
+    "mne/viz/topomap.py": {
+      "a": 56,
+      "d": 16
+    },
+    "mne/viz/utils.py": {
+      "a": 131,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/intro/70_report.py": {
+      "a": 4,
+      "d": 5
+    }
+  }
+}

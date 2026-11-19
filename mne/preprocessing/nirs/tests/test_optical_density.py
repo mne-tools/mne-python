@@ -55,7 +55,8 @@ def test_optical_density_zeromean():
     raw._data[4] -= np.mean(raw._data[4])
     raw._data[4, -1] = 0
     with np.errstate(invalid="raise", divide="raise"):
-        with pytest.warns(RuntimeWarning, match="Negative"):
+        match = f"Negative.*{raw.ch_names[4]}"
+        with pytest.warns(RuntimeWarning, match=match):
             raw = optical_density(raw)
     assert "fnirs_od" in raw
 
@@ -71,7 +72,10 @@ def test_optical_density_manual():
     # log(1.5)/-1 = -0.40
     test_data = np.tile([0.5, 1.5], 73)[:145]
     raw._data[5] = test_data
+    # positive, but the dynamic range makes the normalized value underflow
+    raw._data[6, :2] = [1e300, 1e-300]
 
-    od = optical_density(raw)
+    with pytest.warns(RuntimeWarning, match=f"in channel {raw.ch_names[6]}"):
+        od = optical_density(raw)
     assert_allclose(od.get_data([4]), 0.0)
     assert_allclose(od.get_data([5])[0, :2], [0.69, -0.4], atol=test_tol)

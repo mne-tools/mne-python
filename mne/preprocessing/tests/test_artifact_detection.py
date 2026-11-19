@@ -72,9 +72,9 @@ def test_movement_annotation_head_correction(meas_date):
 
     dev_head_t_ori = np.array(
         [
-            [0.9957292, -0.08688804, 0.03120615, 0.00698271],
-            [0.09020767, 0.9875856, -0.12859731, -0.0159098],
-            [-0.01964518, 0.1308631, 0.99120578, 0.07258289],
+            [0.99552112, -0.09042172, 0.02759744, 0.00698271],
+            [0.09321412, 0.98752026, -0.12694432, -0.0159098],
+            [-0.01577451, 0.12894822, 0.99152585, 0.07258289],
             [0.0, 0.0, 0.0, 1.0],
         ]
     )
@@ -174,6 +174,12 @@ def test_muscle_annotation(meas_date, events):
     onset = onset.astype(int)
     assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
     assert annot_muscle.duration.size == 2
+    # Bad channels are excluded
+    raw.info["bads"] = ["MEG0111"]
+    _, scores_bads = annotate_muscle_zscore(raw, ch_type="mag", threshold=10)
+    raw_drop = raw.copy().drop_channels(raw.info["bads"])
+    _, scores_drop = annotate_muscle_zscore(raw_drop, ch_type="mag", threshold=10)
+    assert_allclose(scores_bads, scores_drop)
     raw.set_annotations(annot_muscle)
 
 

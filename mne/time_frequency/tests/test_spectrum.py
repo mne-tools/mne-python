@@ -96,14 +96,14 @@ def test_compute_psd_errors(raw):
             256,
             0,
             None,
-            "mean",
+            None,
             "hamming",
             None,
             False,
             True,
             "length",
             "complex",
-        ],  # complex (testing with non-defaults doesn't increase coverage)
+        ],  # complex; Welch cannot average the coefficients
     ],
 )
 def test_spectrum_params(
@@ -162,6 +162,14 @@ def test_n_welch_windows(raw):
     raw.compute_psd(
         method="welch", n_fft=999, n_per_seg=999, n_overlap=250, average=None
     )
+    # n_per_seg gets clipped (to n_fft for welch, to n_times for multitaper)
+    raw.compute_psd(method="welch", n_fft=256, n_per_seg=512, average=None)
+    raw = raw.copy().crop(0, 0.5).pick(raw.ch_names[:2])
+    for n_per_seg in (len(raw.times), 2 * len(raw.times)):
+        spectrum = raw.compute_psd(
+            method="multitaper", n_per_seg=n_per_seg, average=None
+        )
+        assert spectrum.get_data().shape[-1] == 1  # one segment
 
 
 def _get_inst(inst, request, *, evoked=None, average_tfr=None):
@@ -333,6 +341,10 @@ def test_spectrum_getitem_epochs(epochs_spectrum):
     want = epochs_spectrum.get_data()
     got = epochs_spectrum["1"].get_data()
     assert_array_equal(want, got)
+    # gh-14260: a slice selection owns its data rather than aliasing the parent
+    sliced = epochs_spectrum[:1]
+    assert sliced._data.flags["OWNDATA"]
+    assert not np.shares_memory(sliced._data, epochs_spectrum._data)
 
 
 @pytest.mark.parametrize("method", ("mean", partial(np.std, axis=0)))
@@ -429,7 +441,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     if long_format:
         grouping_cols.append("channel")
         drop_cols.append("ch_type")
-        orig_df.drop(columns="ch_type", inplace=True)
+        orig_df = orig_df.drop(columns="ch_type")
     # only do a couple freq bins, otherwise test takes forever for multitaper
     subset = partial(np.isin, test_elements=spectrum.freqs[:2])
     df = df.loc[subset(df["freq"])]
@@ -455,8 +467,8 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
-    agg_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
-    orig_df.sort_values(by=grouping_cols, ignore_index=True, inplace=True)
+    agg_df = agg_df.sort_values(by=grouping_cols, ignore_index=True)
+    orig_df = orig_df.sort_values(by=grouping_cols, ignore_index=True)
     # One can have categorical dtype and the other plain object, so don't check that
     assert_frame_equal(agg_df, orig_df, check_categorical=False, check_dtype=False)
 
@@ -476,10 +488,8 @@ def test_spectrum_proj(inst, request):
     assert has_proj == no_proj
 
 
-@pytest.mark.parametrize(
-    "method, average", [("welch", False), ("welch", "mean"), ("multitaper", None)]
-)
-def test_spectrum_complex(method, average):
+@pytest.mark.parametrize("method", ("welch", "multitaper"))
+def test_spectrum_complex(method):
     """Test output='complex' support."""
     sfreq = 100
     n = 10 * sfreq
@@ -492,16 +502,10 @@ def test_spectrum_complex(method, average):
     assert len(epochs.times) == 2 * sfreq
     kwargs = dict(output="complex", method=method)
     if method == "welch":
-        kwargs["n_fft"] = sfreq
-        want_dims = ("epoch", "channel", "freq")
-        want_shape = (5, 1, sfreq // 2 + 1)
-        if not average:
-            want_dims = want_dims + ("segment",)
-            want_shape = want_shape + (2,)
-            kwargs["average"] = average
+        kwargs.update(n_fft=sfreq, average=None)
+        want_dims = ("epoch", "channel", "freq", "segment")
+        want_shape = (5, 1, sfreq // 2 + 1, 2)
     else:
-        assert method == "multitaper"
-        assert not average
         want_dims = ("epoch", "channel", "taper", "freq")
         want_shape = (5, 1, 7, sfreq + 1)
     spectrum = epochs.compute_psd(**kwargs)
@@ -514,10 +518,6 @@ def test_spectrum_complex(method, average):
     coef = spectrum.get_data(fmin=freq, fmax=freq).mean(0)
     if method == "multitaper":
         coef = coef[..., 0, :]  # first taper
-    elif not average:
-        coef = coef.mean(-1)  # over segments
-    coef = coef.item()
-    # Test phase matches what was simulated
     assert_allclose(np.angle(coef), phase, rtol=1e-4)
     # Now test that it warns appropriately
     epochs._data[0, 0, :] = 0  # actually zero for one epoch and ch
@@ -711,15 +711,16 @@ def test_plot_spectrum(method, output, average, request):
     spectrum.plot(average=True, amplitude=False, spatial_colors=False)
     n_grad = sum(ch_type == "grad" for ch_type in spectrum.get_channel_types())
     for amp, sc in ((True, True), (False, False)):
-        fig = spectrum.plot(average=False, amplitude=amp, spatial_colors=sc, exclude=())
+        fig = spectrum.plot(
+            average=False, amplitude=amp, spatial_colors=sc, exclude=(), selectable=sc
+        )
+        assert hasattr(fig.axes[0], "_span_selector") is sc
         lines = fig.axes[0].lines[2:]  # grads, ignore two vlines
         assert len(lines) == n_grad
         bad_color = "0.5" if sc else "r"
         n_bad = sum(same_color(line.get_color(), bad_color) for line in lines)
         assert n_bad == 1
     spectrum.plot_topo()
-    with pytest.warns(FutureWarning, match="'block' parameter is deprecated"):
-        spectrum.plot_topo(block=True)
     spectrum.plot_topomap()
 
 
@@ -763,3 +764,22 @@ def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
         want = (20 if amplitude else 10) * np.log10(want)
 
     assert want == got, f"expected {want}, got {got}"
+
+
+def test_spectrum_get_data(raw_spectrum, epochs_spectrum):
+    """Test get_data indexing and copy semantics for Spectrum and EpochsSpectrum."""
+    for spect in (raw_spectrum, epochs_spectrum):
+        data = spect.get_data()
+        assert not np.shares_memory(data, spect._data)
+        picks = [0, 2]
+        fmin, fmax = spect.freqs[2], spect.freqs[5]
+        sub_data, sub_freqs = spect.get_data(
+            picks=picks, fmin=fmin, fmax=fmax, return_freqs=True
+        )
+        assert not np.shares_memory(sub_data, spect._data)
+        assert_allclose(sub_freqs, spect.freqs[2:6])
+        freq_idx = slice(2, 6)
+        if spect is raw_spectrum:
+            assert_array_equal(sub_data, spect._data[picks, freq_idx])
+        else:
+            assert_array_equal(sub_data, spect._data[:, picks, freq_idx])

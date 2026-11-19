@@ -12,16 +12,16 @@ from .._fiff.pick import _picks_to_idx
 from ..filter import filter_data
 from ..utils import (
     _validate_type,
-    fill_doc,
+    fill_doc_static,
     logger,
-    verbose,
+    verbose_static,
 )
 from ._covs_ged import _ssd_estimate
 from ._mod_ged import _get_spectral_ratio, _ssd_mod
 from .base import _GEDTransformer, _read_ged
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 class SSD(_GEDTransformer):
     """
     Signal decomposition using the Spatio-Spectral Decomposition (SSD).
@@ -36,7 +36,10 @@ class SSD(_GEDTransformer):
 
     Parameters
     ----------
-    %(info_not_none)s Must match the input data.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Must match the input data.
     filt_params_signal : dict
         Filtering for the frequencies of interest.
     filt_params_noise : dict
@@ -385,7 +388,7 @@ class SSD(_GEDTransformer):
         return X
 
 
-@verbose
+@verbose_static()
 def read_ssd(fname, *, verbose=None):
     """Load a saved :class:`mne.decoding.SSD` object from disk.
 
@@ -394,7 +397,11 @@ def read_ssd(fname, *, verbose=None):
     fname : path-like
         Path to an SSD file in HDF5 format, which should end with ``.h5`` or
         ``.hdf5``.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

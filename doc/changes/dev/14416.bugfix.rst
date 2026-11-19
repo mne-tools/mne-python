@@ -1,0 +1,1 @@
+Fix :meth:`mne.io.Raw.interpolate_bads` for fNIRS data copying an arbitrary channel into bad channels when channel positions are missing, by `Kalle Mäkelä`_.

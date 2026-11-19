@@ -1334,6 +1334,14 @@ def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
     subset_ints = tfr[[0, 1, 2]]
     subset_slice = tfr[:3]
     assert subset_ints == subset_slice
+    # gh-14260: selections own C-ordered data, they don't alias or inherit the
+    # (non-contiguous) layout of the parent
+    assert not tfr._data.flags["C_CONTIGUOUS"]
+    for sub in (subset_ints, subset_slice):
+        assert all(sub._data.flags[f] for f in ("C_CONTIGUOUS", "OWNDATA", "WRITEABLE"))
+        assert sub._data.dtype == tfr._data.dtype
+        assert not np.shares_memory(sub._data, tfr._data)
+    assert tfr[[]].shape == (0,) + tfr.shape[1:]
     # test iteration
     for ix, epo in enumerate(tfr):
         assert_array_equal(tfr[ix].data, epo.data.obj[np.newaxis])
@@ -1723,7 +1731,8 @@ def test_tfr_copy(average_tfr):
 
 
 @pytest.mark.parametrize(
-    "mode", ("mean", "ratio", "logratio", "percent", "zscore", "zlogratio")
+    "mode",
+    ("mean", "ratio", "logratio", "meanlogratio", "percent", "zscore", "zlogratio"),
 )
 def test_tfr_apply_baseline(average_tfr, mode):
     """Test TFR baselining."""
@@ -1936,3 +1945,29 @@ def test_combine_tfr_error_catch(average_tfr):
         match="Aggregating multitaper tapers across TFR datasets is not supported.",
     ):
         combine_tfr([average_tfr_taper, average_tfr_taper])
+
+
+def test_tfr_get_data(average_tfr, epochs_tfr):
+    """Test get_data indexing and copy semantics for AverageTFR and EpochsTFR."""
+    for inst in (average_tfr, epochs_tfr):
+        data = inst.get_data()
+        assert not np.shares_memory(data, inst._data)
+        picks = [0, 1]
+        fmin, fmax = inst.freqs[1], inst.freqs[2]
+        tmin, tmax = inst.times[2], inst.times[5]
+        sub_data, sub_times, sub_freqs = inst.get_data(
+            picks=picks,
+            fmin=fmin,
+            fmax=fmax,
+            tmin=tmin,
+            tmax=tmax,
+            return_times=True,
+            return_freqs=True,
+        )
+        assert not np.shares_memory(sub_data, inst._data)
+        assert_allclose(sub_freqs, inst.freqs[1:3])
+        assert_allclose(sub_times, inst.times[2:6])
+        if inst is average_tfr:
+            assert_array_equal(sub_data, inst._data[picks, 1:3, 2:6])
+        else:
+            assert_array_equal(sub_data, inst._data[:, picks, 1:3, 2:6])

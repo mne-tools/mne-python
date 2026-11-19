@@ -10,7 +10,7 @@ from .._fiff.pick import pick_types
 from .._fiff.reference import make_eeg_average_ref_proj
 from ..epochs import Epochs
 from ..proj import compute_proj_epochs, compute_proj_evoked
-from ..utils import _validate_type, logger, verbose, warn
+from ..utils import _validate_type, logger, verbose_static, warn
 from .ecg import find_ecg_events
 from .eog import find_eog_events
 
@@ -286,7 +286,7 @@ def _compute_exg_proj(
     return (projs, events) + ((drop_log,) if return_drop_log else ())
 
 
-@verbose
+@verbose_static("compute_proj_ecg", "n_jobs", "projs")
 def compute_proj_ecg(
     raw,
     raw_event=None,
@@ -320,7 +320,20 @@ def compute_proj_ecg(
 ):
     """Compute SSP (signal-space projection) vectors for ECG artifacts.
 
-    %(compute_proj_ecg)s
+    This function will:
+
+    #. Filter the ECG data channel.
+
+    #. Find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`.
+
+    #. Filter the raw data.
+
+    #. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
+
+    #. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+       ``average=True`` was passed (default).
+
+    #. Calculate SSP projection vectors on that data to capture the artifacts.
 
     .. note:: Raw data will be loaded if it hasn't been preloaded already.
 
@@ -348,7 +361,13 @@ def compute_proj_ecg(
         Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     ch_name : str | None
         Channel to use for ECG detection (Required if no ECG found).
     reject : dict | None
@@ -392,11 +411,16 @@ def compute_proj_ecg(
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(projs)s
+    projs : list of Projection
+        List of computed projection vectors.
     ecg_events : ndarray
         Detected ECG events.
     drop_log : list
@@ -448,7 +472,7 @@ def compute_proj_ecg(
     )
 
 
-@verbose
+@verbose_static("compute_proj_eog", "n_jobs", "projs")
 def compute_proj_eog(
     raw,
     raw_event=None,
@@ -481,7 +505,21 @@ def compute_proj_eog(
 ):
     """Compute SSP (signal-space projection) vectors for EOG artifacts.
 
-    %(compute_proj_eog)s
+    This function will:
+
+    #. Filter the EOG data channel.
+
+    #. Find the peaks of eyeblinks in the EOG data using
+       :func:`mne.preprocessing.find_eog_events`.
+
+    #. Filter the raw data.
+
+    #. Create `~mne.Epochs` around the eyeblinks.
+
+    #. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+       ``average=True`` was passed (default).
+
+    #. Calculate SSP projection vectors on that data to capture the artifacts.
 
     .. note:: Raw data must be preloaded.
 
@@ -509,7 +547,13 @@ def compute_proj_eog(
         Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     reject : dict | None
         Epoch rejection configuration (see Epochs).
     flat : dict | None
@@ -549,11 +593,16 @@ def compute_proj_eog(
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(projs)s
+    projs : list of Projection
+        List of computed projection vectors.
     eog_events: ndarray
         Detected EOG events.
     drop_log : list

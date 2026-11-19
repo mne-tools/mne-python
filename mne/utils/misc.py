@@ -19,11 +19,12 @@ from queue import Empty, Queue
 from string import Formatter
 from textwrap import dedent
 from threading import Thread
+from typing import IO, TypeGuard
 
 import numpy as np
 from decorator import FunctionMaker
 
-from ._logging import logger, verbose, warn
+from ._logging import logger, verbose_static, warn
 from .check import _check_option, _validate_type
 
 
@@ -97,7 +98,7 @@ def _enqueue_output(out, queue):
         queue.put(line)
 
 
-@verbose
+@verbose_static()
 def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
 
@@ -115,7 +116,11 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
         non-zero.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     *args : list
         Additional arguments to pass to subprocess.Popen.
     **kwargs : dict
@@ -155,7 +160,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    out = out.decode("utf-8")
+                    out = out.decode("utf-8", errors="replace")
                     log_out = out.removesuffix("\n")
                     logger.info(log_out)
                     all_out += out
@@ -166,7 +171,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    err = err.decode("utf-8")
+                    err = err.decode("utf-8", errors="replace")
                     err_out = err.removesuffix("\n")
 
                     # Leave this as logger.warning rather than warn(...) to
@@ -346,7 +351,7 @@ def sizeof_fmt(num):
         return "1 byte"
 
 
-def _file_like(obj):
+def _file_like(obj: object) -> TypeGuard[IO]:
     # An alternative would be::
     #
     #   isinstance(obj, (TextIOBase, BufferedIOBase, RawIOBase, IOBase))
@@ -361,7 +366,6 @@ def _assert_no_instances(cls, when=""):
     from refleak.testing import assert_no_instances
 
     __tracebackhide__ = True
-
     assert_no_instances(cls, when=when)
 
 

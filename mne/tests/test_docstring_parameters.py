@@ -16,7 +16,7 @@ from pkgutil import walk_packages
 import pytest
 
 import mne
-from mne.utils import _pl, _record_warnings
+from mne.utils import _pl, _record_warnings, _soft_import
 from mne.utils._typing import Color, FileLike
 from mne.utils.docs import _doc_special_members
 
@@ -222,8 +222,8 @@ def _public_module_members():
         try:
             members = inspect.getmembers(module, inspect.isclass)
             members += inspect.getmembers(module, inspect.isfunction)
-        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
-            if "'sklearn'" in str(exc):
+        except (ImportError, RuntimeError) as exc:  # e.g. mne.decoding
+            if "sklearn" in str(exc):
                 continue
             raise
         for member_name, obj in members:
@@ -246,8 +246,8 @@ def _public_api_objects():
     for dotted in _documented_names():
         try:
             candidates.append((dotted, _resolve_dotted(dotted)))
-        except ModuleNotFoundError as exc:  # e.g., mne.decoding but no sklearn
-            if "'sklearn'" in str(exc):
+        except (ImportError, RuntimeError) as exc:  # e.g. mne.decoding
+            if "sklearn" in str(exc):
                 continue
             raise
     candidates += [(where, obj) for where, _, obj in _public_module_members()]
@@ -328,36 +328,88 @@ def _is_np_random(node):
     )
 
 
+def _sklearn_callables(tree):
+    """Resolve sklearn imports for signature inspection."""
+    callables = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module
+            and node.module.startswith("sklearn")
+        ):
+            module = _soft_import(node.module, "checking RNG parameters", strict=False)
+            if module:
+                for alias in node.names:
+                    callable_ = getattr(module, alias.name, None)
+                    if callable_ is not None:
+                        callables[alias.asname or alias.name] = callable_
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.startswith("sklearn"):
+                    module = _soft_import(
+                        alias.name, "checking RNG parameters", strict=False
+                    )
+                    if module:
+                        callables[alias.asname or alias.name] = module
+    return callables
+
+
+def _rng_parameters(callable_, node):
+    """Get RNG parameters from a callable, if inspectable."""
+    try:
+        parameters = inspect.signature(callable_).parameters
+    except (TypeError, ValueError):
+        return set()
+    shuffle = next((kw.value for kw in node.keywords if kw.arg == "shuffle"), None)
+    if "shuffle" in parameters and (
+        shuffle is None or isinstance(shuffle, ast.Constant) and not shuffle.value
+    ):
+        return set()
+    return {"random_state", "rng", "seed"} & parameters.keys()
+
+
 def test_no_global_rng():
     """Test that we use local generators and the modern numpy RNG API."""
     root = pyproject_path.parent  # only available in a dev/editable checkout
     bad = []
+    # CI tests an installed wheel from site-packages, where examples/ (if any)
+    # belongs to other packages (e.g. trame-vuetify), not to us
+    installed = root.name in ("site-packages", "dist-packages")
     for sub in ("mne", "examples", "tutorials"):
         base = root / sub
-        if not base.is_dir():  # e.g. examples/tutorials absent from a wheel
+        if not base.is_dir() or (installed and sub != "mne"):
             continue
         for path in sorted(base.rglob("*.py")):
             rel = path.relative_to(root).as_posix()
-            for node in ast.walk(ast.parse(path.read_text("utf-8"))):
-                # 1. the global RNG: ``np.random.<attr>`` / ``numpy.random.<attr>``
+            tree = ast.parse(path.read_text("utf-8"))
+            callables = _sklearn_callables(tree)
+            for node in ast.walk(tree):
                 if (
                     isinstance(node, ast.Attribute)
                     and node.attr not in global_rng_ok
                     and _is_np_random(node.value)
                 ):
-                    bad.append(
-                        f"{rel}:{node.lineno}: np.random.{node.attr} "
-                        "(use a local np.random.default_rng)"
-                    )
-                # 2. legacy RandomState-only methods, e.g. ``rng.randn(...)``
+                    bad.append(f"{rel}:{node.lineno}: global np.random.{node.attr}")
                 elif (
                     isinstance(node, ast.Call)
                     and isinstance(node.func, ast.Attribute)
                     and node.func.attr in legacy_rng_methods
                     and not _is_np_random(node.func.value)
                 ):
-                    want = legacy_rng_methods[node.func.attr]
-                    bad.append(f"{rel}:{node.lineno}: .{node.func.attr}() (use {want})")
+                    bad.append(f"{rel}:{node.lineno}: legacy .{node.func.attr}()")
+                elif isinstance(node, ast.Call):
+                    name = getattr(node.func, "id", None) or getattr(
+                        node.func, "attr", None
+                    )
+                    callable_ = callables.get(name)
+                    if isinstance(node.func, ast.Attribute):
+                        module = callables.get(getattr(node.func.value, "id", None))
+                        if module is not None:
+                            callable_ = getattr(module, node.func.attr, None)
+                    parameters = _rng_parameters(callable_, node)
+                    supplied = parameters & {kw.arg for kw in node.keywords}
+                    if parameters and len(supplied) != 1:
+                        bad.append(f"{rel}:{node.lineno}: {name}() needs one RNG")
     if bad:
         raise AssertionError(
             f"{len(bad)} outdated numpy RNG use{_pl(bad)} found:\n" + "\n".join(bad)
@@ -479,18 +531,39 @@ def _documented_callables():
             yield obj, cls
 
 
-def _annotation_to_str(ann):
+def _annotation_to_str(ann, *, expand_literals=False):
     """Render a type annotation as a module-stripped string."""
     origin = typing.get_origin(ann)
     # unions and ``Literal["a", "b"]`` both flatten to their ``a | b`` members
     if origin in (typing.Union, types.UnionType, typing.Literal):
-        return " | ".join(_annotation_to_str(a) for a in typing.get_args(ann))
+        lst = []
+        # for Literals, also include the type of each listed literal. This allows cases
+        # where the type hint says `Literal["a", "b"]` but the docstring just says `str`
+        # (happens when the docstring expands on "allowed strings" later in the
+        # parameter description).
+        if expand_literals and origin is typing.Literal:
+            lst.extend(list(set(type(x).__name__ for x in typing.get_args(ann))))
+        return " | ".join(
+            [
+                *lst,
+                *[
+                    _annotation_to_str(a, expand_literals=expand_literals)
+                    for a in typing.get_args(ann)
+                ],
+            ]
+        )
     if origin is not None:  # e.g. list[Evoked], dict[str, int], tuple[int, ...]
         args = typing.get_args(ann)
         name = getattr(origin, "__name__", str(origin))
         if args:
             return f"{name}[{', '.join(_annotation_to_str(a) for a in args)}]"
         return name
+    if isinstance(ann, typing.TypeVar):
+        if ann.__name__ == "RawEpoEvkT":
+            # technically `BaseRaw | BaseEpochs | Evoked` but docstring doesn't say that
+            return "Raw | Epochs | Evoked"
+    # prevent things like `ForwardRef('ConductorModel')`
+    ann = getattr(ann, "__forward_arg__", ann)
     if isinstance(ann, str):  # unevaluated forward reference, e.g. "EpochsFIF"
         return ann
     if ann is type(None):
@@ -530,11 +603,15 @@ def _type_atoms(type_str):
     s = re.sub(r"\binstance of\b", "", s)
     s = re.sub(r",?\s*(?:of )?shape\s*\(?[^)|]*\)?", "", s)  # shape (n, m) suffixes
     s = re.sub(r"\btuple of length \d+\b", "tuple", s, flags=re.I)
+    s = re.sub(  # sequence of {'some', 'set', 'values'} -> sequence of str
+        r"\b(iterable|sequence) of \{[^}]*\}", r"\1", s, flags=re.I
+    )
     s = re.sub(  # list of X -> list ("X" may be hyphenated, e.g. "list of path-like")
-        r"\b(list|tuple|dict|set) of [\w.-]+", r"\1", s, flags=re.I
+        r"\b(list|tuple|dict|set|sequence|iterable) of [\w.-]+", r"\1", s, flags=re.I
     )
     s = re.sub(r"\barray(?:-?like)?\s+of\s+\w+", "array", s, flags=re.I)
     s = re.sub(r"\barray-?like\b", "array", s, flags=re.I)
+    s = re.sub(r"\bsequence\s+of\s+\w+", "sequence", s, flags=re.I)
     s = re.sub(  # textual Literal["a", "b"] (from string annotations) -> a | b
         r"\bLiteral\[([^\]]*)\]", lambda m: m.group(1).replace(",", " | "), s
     )
@@ -653,7 +730,14 @@ def _check_type_hints(func, *, cls):
                     "``instance of X``)"
                 )
             continue
-        ann_atoms = {a.lower() for a in _type_atoms(_annotation_to_str(annotation))}
+        ann_atoms = {
+            a.lower()
+            for a in _type_atoms(_annotation_to_str(annotation, expand_literals=True))
+        }
+        # skip for `verbose` parameters, where the type hint uses Literals extensively
+        # but it would be overkill to spell those out in the docstring
+        if target == "verbose":
+            continue
         # The annotation must cover every documented type, but may be broader:
         # ty rejects ``= None``/``= ()`` defaults unless the annotation admits
         # them, so an accurate hint sometimes adds ``None``/``tuple`` that the

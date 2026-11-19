@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "0265fc9a575f125d95c5c92f672fd0bb85cfab2d",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/names.inc": {
+      "a": 5,
+      "d": 5
+    },
+    "doc/conf.py": {
+      "a": 4,
+      "d": 1
+    },
+    "doc/development/contributing.rst": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/development/roadmap.rst": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/datasets/erp_core/erp_core.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/machine-learning/60_gal_decoding.py": {
+      "a": 7,
+      "d": 20
+    }
+  }
+}

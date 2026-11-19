@@ -12,11 +12,10 @@ import numpy as np
 from mne.utils.check import _check_option
 
 from ..._fiff._digitization import _ensure_fiducials_head
-from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
 from ..._fiff.pick import _PICK_TYPES_KEYS
 from ..._fiff.utils import _find_channels, _mult_cal_one, _read_segments_file
-from ...annotations import Annotations, read_annotations
+from ...annotations import Annotations
 from ...channels import make_dig_montage
 from ...defaults import DEFAULTS
 from ...epochs import BaseEpochs
@@ -25,9 +24,9 @@ from ...utils import (
     Bunch,
     _check_fname,
     _check_head_radius,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     logger,
-    verbose,
     warn,
 )
 from ..base import BaseRaw
@@ -120,7 +119,16 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
-def _get_montage_information(eeg, get_pos, *, montage_units):
+def _handle_eog(eog, ch_names, ch_types):
+    eog = _find_channels(ch_names, ch_type="EOG") if eog == "auto" else eog
+    if isinstance(eog, str):
+        eog = (eog,)
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name in eog or idx in eog:
+            ch_types[idx] = "eog"
+
+
+def _get_montage_information(eeg, get_pos, *, montage_units, eog=()):
     """Get channel name, type and montage information from ['chanlocs']."""
     ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
     unknown_types = dict()
@@ -163,6 +171,8 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
             )
         )
 
+    _handle_eog(eog, ch_names, ch_types)
+
     lpa, rpa, nasion = None, None, None
     if hasattr(eeg, "chaninfo") and isinstance(eeg.chaninfo.get("nodatchans"), dict):
         nodatchans = eeg.chaninfo["nodatchans"]
@@ -202,14 +212,22 @@ def _get_montage_information(eeg, get_pos, *, montage_units):
             )
             _check_head_radius(mean_radius, add_info=additional_info)
 
-        montage = make_dig_montage(
-            ch_pos=dict(zip(ch_names, pos_array)),
-            coord_frame="head",
-            lpa=lpa,
-            rpa=rpa,
-            nasion=nasion,
-        )
-        _ensure_fiducials_head(montage.dig)
+        montage_ch_pos = {
+            name: p
+            for name, p, ch_t in zip(ch_names, pos_array, ch_types)
+            if ch_t in ("eeg", "seeg", "dbs", "ecog")
+        }
+        if montage_ch_pos:
+            montage = make_dig_montage(
+                ch_pos=montage_ch_pos,
+                coord_frame="head",
+                lpa=lpa,
+                rpa=rpa,
+                nasion=nasion,
+            )
+            _ensure_fiducials_head(montage.dig)
+        else:
+            montage = None
     else:
         montage = None
 
@@ -230,23 +248,19 @@ def _get_info(eeg, *, eog, montage_units):
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
         ch_names, ch_types, eeg_montage = _get_montage_information(
-            eeg, has_pos, montage_units=montage_units
+            eeg, has_pos, montage_units=montage_units, eog=eog
         )
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = [f"EEG {ii:03d}" for ii in range(eeg.nbchan)]
-        ch_types = "eeg"
+        ch_types = ["eeg"] * eeg.nbchan
+        _handle_eog(eog, ch_names, ch_types)
         eeg_montage = None
         update_ch_names = True
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types=ch_types)
-
-    eog = _find_channels(ch_names, ch_type="EOG") if eog == "auto" else eog
-    for idx, ch in enumerate(info["chs"]):
+    for ch in info["chs"]:
         ch["cal"] = CAL
-        if ch["ch_name"] in eog or idx in eog:
-            ch["coil_type"] = FIFF.FIFFV_COIL_NONE
-            ch["kind"] = FIFF.FIFFV_EOG_CH
 
     return info, eeg_montage, update_ch_names
 
@@ -260,11 +274,7 @@ def _set_dig_montage_in_init(self, montage):
     if montage is None:
         self.set_montage(None)
     else:
-        missing_channels = set(self.ch_names) - set(montage.ch_names)
-        ch_pos = dict(
-            zip(list(missing_channels), np.full((len(missing_channels), 3), np.nan))
-        )
-        self.set_montage(montage + make_dig_montage(ch_pos=ch_pos, coord_frame="head"))
+        self.set_montage(montage, on_missing="ignore")
 
 
 def _handle_montage_units(montage_units, mean_radius):
@@ -283,7 +293,7 @@ def _handle_montage_units(montage_units, mean_radius):
     return scale_units
 
 
-@fill_doc
+@fill_doc_static("preload", "uint16_codec", "montage_units", "verbose")
 def read_raw_eeglab(
     input_fname: Path | str,
     eog: list | tuple | Literal["auto"] = (),
@@ -303,13 +313,40 @@ def read_raw_eeglab(
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(preload)s
-    %(uint16_codec)s
-    %(montage_units)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    uint16_codec : str | None
+        If your set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
 
         .. versionchanged:: 1.6
            Support for ``'auto'`` was added and is the new default.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -335,7 +372,7 @@ def read_raw_eeglab(
     )
 
 
-@fill_doc
+@fill_doc_static("uint16_codec", "montage_units", "verbose")
 def read_epochs_eeglab(
     input_fname: Path | str,
     events: Path | str | np.ndarray | None = None,
@@ -374,12 +411,26 @@ def read_epochs_eeglab(
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(uint16_codec)s
-    %(montage_units)s
+    uint16_codec : str | None
+        If your set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
 
         .. versionchanged:: 1.6
            Support for ``'auto'`` was added and is the new default.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -406,7 +457,7 @@ def read_epochs_eeglab(
     return epochs
 
 
-@fill_doc
+@fill_doc_static("preload", "uint16_codec", "montage_units", "verbose")
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -419,10 +470,37 @@ class RawEEGLAB(BaseRaw):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    %(preload)s
-    %(uint16_codec)s
-    %(montage_units)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    uint16_codec : str | None
+        If your set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
+
+        .. versionadded:: 1.3
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -433,7 +511,7 @@ class RawEEGLAB(BaseRaw):
     .. versionadded:: 0.11.0
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,
@@ -475,6 +553,8 @@ class RawEEGLAB(BaseRaw):
                         "is_embedded": is_embedded,
                         "input_fname": input_fname,
                         "uint16_codec": uint16_codec,
+                        # Cache-sized blocks are 2.1x faster on a 102 MB file.
+                        "max_block_samples": max(1, 4 * 1024**2 // 4 // info["nchan"]),
                     }
                 ],
             )
@@ -496,7 +576,7 @@ class RawEEGLAB(BaseRaw):
             )
 
         # create event_ch from annotations
-        annot = read_annotations(input_fname, uint16_codec=uint16_codec)
+        annot = _read_annotations_eeglab(eeg)
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
@@ -546,7 +626,18 @@ class RawEEGLAB(BaseRaw):
             return
 
         # Fall back to reading from file (separate .fdt file)
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="<f4")
+        _read_segments_file(
+            self,
+            data,
+            idx,
+            fi,
+            start,
+            stop,
+            cals,
+            mult,
+            dtype="<f4",
+            max_block_samples=raw_extra["max_block_samples"],
+        )
 
 
 class EpochsEEGLAB(BaseEpochs):
@@ -620,7 +711,7 @@ class EpochsEEGLAB(BaseEpochs):
     .. versionadded:: 0.11.0
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,

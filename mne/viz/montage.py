@@ -10,11 +10,11 @@ import numpy as np
 
 from .._fiff._digitization import _get_fid_coords
 from .._fiff.meas_info import create_info
-from ..utils import _check_option, _validate_type, logger, verbose
+from ..utils import _check_option, _validate_type, logger, verbose_static
 from .utils import plot_sensors
 
 
-@verbose
+@verbose_static("sphere_topomap_auto", "axes_montage")
 def plot_montage(
     montage,
     *,
@@ -42,17 +42,57 @@ def plot_montage(
         Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
         Show figure if True.
-    %(sphere_topomap_auto)s
-    %(axes_montage)s
+    sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+        The sphere parameters to use for the head outline.
+        Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+        meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+        Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+        use the origin and radius from that object.
+        Can also be a ``str``, in which case:
+
+        - ``'auto'``: the sphere is fit to external digitization points first, and
+          to external + EEG digitization points if the former fails.
+
+        - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+          ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+          approximated from the coordinates of ``'Oz'``).
+
+          - ``'extra'``: the sphere is fit to external digitization points.
+
+          - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+          - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+          - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+        Can also be a list of ``str``, in which case the sphere is fit to the
+        specified digitization points, which can be any combination of ``'extra'``,
+        ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+        ``None`` (the default) will look for an existing head outline in the
+        ``.info`` dictionary and use that. If no outline is present, it is
+        equivalent to ``'auto'`` when enough extra digitization points are
+        available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+        .. versionadded:: 0.20
+        .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+        .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+           ``'hpi'`` and list of ``str`` options.
+    axes : instance of Axes | instance of Axes3D | None
+        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+        of Axes3D. If None (default), a new axes will be created.
 
         .. versionadded:: 1.4
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
         The figure object.
-    """
+    """  # noqa: E501
     import matplotlib.pyplot as plt
     from scipy.spatial.distance import cdist
 

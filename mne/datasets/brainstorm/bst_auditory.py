@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ...utils import verbose
+from ...utils import _verbose_control
 from ..utils import (
     _data_path_doc_accept,
     _download_mne_dataset,
@@ -26,7 +26,7 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
 """
 
 
-@verbose
+@_verbose_control
 def data_path(
     path=None,
     force_update=False,

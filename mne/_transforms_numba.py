@@ -51,32 +51,37 @@ def _one_rot_to_quat(rot, *, tol=1e-3):
     det = np.linalg.det(np.reshape(rot, (3, 3)))
     if np.abs(det - 1.0) > tol:
         raise ValueError("Matrix is not a pure rotation, got determinant != 1")
-    t = 1.0 + rot[0] + rot[4] + rot[8]
-    if t > np.finfo(rot.dtype).eps:
-        s = np.sqrt(t) * 2.0
-        # qw = 0.25 * s
+    trace = rot[0] + rot[4] + rot[8]
+    # not for trace <= 0: near 180 degrees s is tiny and amplifies non-orthonormality
+    if trace > 0:
+        s = np.sqrt(1.0 + trace) * 2.0
+        qw = 0.25 * s
         qx = (rot[7] - rot[5]) / s
         qy = (rot[2] - rot[6]) / s
         qz = (rot[3] - rot[1]) / s
     elif rot[0] > rot[4] and rot[0] > rot[8]:
         s = np.sqrt(1.0 + rot[0] - rot[4] - rot[8]) * 2.0
-        # qw = (rot[7] - rot[5]) / s
+        qw = (rot[7] - rot[5]) / s
         qx = 0.25 * s
         qy = (rot[1] + rot[3]) / s
         qz = (rot[2] + rot[6]) / s
     elif rot[4] > rot[8]:
         s = np.sqrt(1.0 - rot[0] + rot[4] - rot[8]) * 2
-        # qw = (rot[2] - rot[6]) / s
+        qw = (rot[2] - rot[6]) / s
         qx = (rot[1] + rot[3]) / s
         qy = 0.25 * s
         qz = (rot[5] + rot[7]) / s
     else:
         s = np.sqrt(1.0 - rot[0] - rot[4] + rot[8]) * 2.0
-        # qw = (rot[3] - rot[1]) / s
+        qw = (rot[3] - rot[1]) / s
         qx = (rot[2] + rot[6]) / s
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
-    return np.array((qx, qy, qz))
+    # unit length with w >= 0, as recovering the dropped w = sqrt(1 - |v|**2) assumes
+    norm = np.sqrt(qw * qw + qx * qx + qy * qy + qz * qz)
+    if qw < 0:
+        norm = -norm
+    return np.array((qx / norm, qy / norm, qz / norm))
 
 
 @jit()

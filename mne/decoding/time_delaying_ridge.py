@@ -7,6 +7,8 @@
 import numpy as np
 from scipy import linalg
 from scipy.signal import fftconvolve
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.utils.validation import check_is_fitted
 

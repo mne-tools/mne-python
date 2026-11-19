@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "243b0d119c3287c16219bd2db8de584c9e21d2e6",
+  "authors": [
+    {
+      "n": "Aditya Pandey",
+      "e": "297672600+adi-coderr@users.noreply.github.com",
+      "l": "adi-coderr"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14390.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/pick.py": {
+      "a": 2,
+      "d": 3
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 14,
+      "d": 5
+    }
+  }
+}

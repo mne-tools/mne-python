@@ -12,7 +12,7 @@ from .._fiff.pick import _picks_to_idx, pick_info, pick_types
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..source_estimate import SourceEstimate
-from ..utils import _reject_data_segments, fill_doc, logger, warn
+from ..utils import _reject_data_segments, fill_doc_static, logger, warn
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -156,7 +156,7 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
-@fill_doc
+@fill_doc_static("picks_good_data")
 def linear_regression_raw(
     raw,
     events,
@@ -238,7 +238,15 @@ def linear_regression_raw(
         Decimate by choosing only a subsample of data points. Highly
         recommended for data recorded at high sampling frequencies, as
         otherwise huge intermediate matrices have to be created and inverted.
-    %(picks_good_data)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick good data channels. Note
+        that channels in ``info['bads']`` *will be included* if their names or
+        indices are explicitly provided.
     solver : str | callable
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient

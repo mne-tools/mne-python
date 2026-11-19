@@ -7,7 +7,12 @@ import os.path as op
 
 import numpy as np
 
-from ...utils import _check_pandas_installed, _on_missing, _TempDir, verbose
+from ...utils import (
+    _check_pandas_installed,
+    _on_missing,
+    _TempDir,
+    verbose_static,
+)
 from ..utils import _downloader_params, _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), "age_records.csv")
@@ -47,7 +52,7 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
     return destination, True
 
 
-@verbose
+@verbose_static()
 def _data_path(path=None, verbose=None):
     """Get path to local copy of EEG Physionet age Polysomnography dataset URL.
 
@@ -63,7 +68,11 @@ def _data_path(path=None, verbose=None):
         ``PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the "~/mne_data"
         directory is used. If the dataset is not found under the given path,
         the data will be automatically downloaded to the specified folder.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -74,7 +83,7 @@ def _data_path(path=None, verbose=None):
     References
     ----------
     .. footbibliography::
-    """  # noqa: E501
+    """
     key = "PHYSIONET_SLEEP_PATH"
     name = "PHYSIONET_SLEEP"
     path = _get_path(path, key, name)

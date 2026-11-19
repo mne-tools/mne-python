@@ -24,13 +24,13 @@ from ..fixes import (
     stable_cumsum,
     svd_flip,
 )
-from ._logging import logger, verbose, warn
+from ._logging import _verbose_control, logger, warn
 from .check import (
     _ensure_int,
+    _legacy_rng,
     _validate_type,
-    check_random_state,
 )
-from .docs import fill_doc
+from .docs import fill_doc_static
 from .misc import _empty_hash, _pl
 
 
@@ -72,7 +72,7 @@ def sum_squared(X):
     value : float
         Sum of squares of the input array X.
     """
-    X_flat = X.ravel(order="F" if np.isfortran(X) else "C")
+    X_flat = X.ravel(order="K")
     return np.dot(X_flat, X_flat)
 
 
@@ -265,8 +265,9 @@ def compute_corr(x, y):
     return (np.dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
 
 
-@fill_doc
-def random_permutation(n_samples, random_state=None):
+@_legacy_rng("random_state")
+@fill_doc_static("rng", "random_state_rng")
+def random_permutation(n_samples, *, rng=None, random_state=None):
     """Emulate the randperm matlab function.
 
     It returns a vector containing a random permutation of the
@@ -288,14 +289,32 @@ def random_permutation(n_samples, random_state=None):
     n_samples : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
-    %(random_state)s
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
     randperm : ndarray, int
         Randomly permuted sequence between 0 and n-1.
     """
-    rng = check_random_state(random_state)
+    return _random_permutation(n_samples, rng)
+
+
+def _random_permutation(n_samples, rng):
+    """Generate a MATLAB-compatible permutation with a normalized RNG."""
     # This can't just be rng.permutation(n_samples) because it's not identical
     # to what MATLAB produces
     idx = rng.uniform(size=n_samples)
@@ -303,7 +322,7 @@ def random_permutation(n_samples, random_state=None):
     return randperm
 
 
-@verbose
+@_verbose_control
 def _apply_scaling_array(data, picks_list, scalings, verbose=None):
     """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)

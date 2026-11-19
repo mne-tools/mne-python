@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.io.read_raw_snirf` divided landmark positions by the length unit scale instead of multiplying, placing fiducials far from the head for files not in meters, by `Kalle Mäkelä`_.

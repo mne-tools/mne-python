@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "8f498626a53704a6a96bcd8a11e22cbd8866efa5",
+  "authors": [
+    {
+      "n": "Ishaan Maheshwari",
+      "e": "145560898+ishaaaan17@users.noreply.github.com",
+      "l": "ishaaaan17"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14413.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/eyetracking/calibration.py": {
+      "a": 13,
+      "d": 2
+    },
+    "mne/preprocessing/eyetracking/tests/test_calibration.py": {
+      "a": 41,
+      "d": 60
+    }
+  }
+}

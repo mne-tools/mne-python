@@ -95,13 +95,18 @@ raw.load_data()
 #     dimensionality, set ``n_components=n`` during initialization and pass
 #     ``n_pca_components=n`` to `~mne.preprocessing.ICA.apply`.
 #
-# MNE-Python implements three different ICA algorithms: ``fastica`` (the
-# default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
-# widespread use; Picard is a newer (2017) algorithm that is expected to
-# converge faster than FastICA and Infomax, and is more robust than other
-# algorithms in cases where the sources are not completely independent, which
-# typically happens with real EEG/MEG data. See
-# :footcite:`AblinEtAl2018` for more information.
+# MNE-Python implements four different ICA algorithms: ``fastica`` (the
+# default), ``picard``, ``infomax``, and ``jamica``. FastICA and Infomax are
+# both in fairly widespread use; Picard is a newer (2017) algorithm that is
+# expected to converge faster than FastICA and Infomax, and is more robust than
+# other algorithms in cases where the sources are not completely independent,
+# which typically happens with real EEG/MEG data. See
+# :footcite:`AblinEtAl2018` for more information. JAMICA is an optional Python
+# implementation of Adaptive Mixture ICA (AMICA). Within
+# `~mne.preprocessing.ICA`, ``method='jamica'`` fits one ICA model; use the
+# `jamica package <https://snesmaeili.github.io/jamica/>`__ directly for
+# multi-model decompositions and its other advanced functionality. See
+# :footcite:`PalmerEtAl2011` for the AMICA method.
 #
 # The ICA interface in MNE-Python is similar to the interface in
 # `scikit-learn <https://scikit-learn.org/stable/>`__: some general parameters
@@ -255,7 +260,7 @@ filt_raw = raw.copy().filter(l_freq=1.0, h_freq=None)
 #     **after** cleaning (and not before), should you require
 #     baseline correction.
 
-ica = ICA(n_components=15, max_iter="auto", random_state=97)
+ica = ICA(n_components=15, max_iter="auto", rng=97)
 ica.fit(filt_raw, reject=dict(eeg=200e-6))  # avoid a couple of big artifacts
 ica
 
@@ -439,8 +444,8 @@ ica.plot_sources(eog_evoked)
 # necessary to pass a specific channel name.
 # `~mne.preprocessing.ICA.find_bads_ecg` also has two options for its
 # ``method`` parameter: ``'ctps'`` (cross-trial phase statistics
-# :footcite:`DammersEtAl2008`) and
-# ``'correlation'`` (Pearson correlation between data and ECG channel).
+# :footcite:`DammersEtAl2008`) and ``'correlation'`` (Pearson correlation
+# between data and ECG channel).
 
 ica.exclude = []
 # find which ICs match the ECG pattern
@@ -470,7 +475,7 @@ ica.plot_sources(ecg_evoked)
 # resolves out a little better:
 
 # refit the ICA with 30 components this time
-new_ica = ICA(n_components=30, max_iter="auto", random_state=97)
+new_ica = ICA(n_components=30, max_iter="auto", rng=97)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
@@ -542,7 +547,7 @@ for subj in range(1, 5):
     # high-pass filter
     raw_filt = raw.copy().load_data().filter(l_freq=1.0, h_freq=None)
     # fit ICA, using low max_iter for speed
-    ica = ICA(n_components=30, max_iter=100, random_state=97)
+    ica = ICA(n_components=30, max_iter=100, rng=97)
     ica.fit(raw_filt, verbose="error")
     raws.append(raw)
     icas.append(ica)
@@ -673,7 +678,7 @@ epochs = mne.Epochs(
 # Fit ICA model using the FastICA algorithm, detect and plot components
 # explaining ECG artifacts.
 
-ica = ICA(n_components=15, method="fastica", max_iter="auto", random_state=97)
+ica = ICA(n_components=15, method="fastica", max_iter="auto", rng=97)
 ica.fit(epochs)
 
 ecg_epochs = create_ecg_epochs(filt_raw, tmin=-0.5, tmax=0.5)

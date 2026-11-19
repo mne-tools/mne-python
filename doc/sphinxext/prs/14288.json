@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "6e1cc9e737bc59c4eb18a77221af985619fbbe08",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".pre-commit-config.yaml": {
+      "a": 2,
+      "d": 2
+    },
+    "doc/sphinxext/credit_tools.py": {
+      "a": 29,
+      "d": 6
+    },
+    "mne/datasets/utils.py": {
+      "a": 3,
+      "d": 1
+    },
+    "tools/circleci_download.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -8,7 +8,7 @@ import numpy as np
 from scipy.signal import detrend
 
 from .._fiff.pick import _picks_to_idx
-from ..utils import _check_option, _validate_type, verbose
+from ..utils import _check_option, _validate_type, verbose_static
 
 
 class GradientRemover:
@@ -265,7 +265,7 @@ class GradientRemover:
         return (this_start, this_end)
 
 
-@verbose
+@verbose_static("picks_all_data_noref")
 def remove_fmri_gradient_artifact(
     raw,
     tr_events,
@@ -304,14 +304,26 @@ def remove_fmri_gradient_artifact(
         The maximum allowed deviation (in samples) of any individual TR
         spacing from the median TR spacing, to tolerate jitter in detected TR
         onset times. Default 0.
-    %(picks_all_data_noref)s
+    picks : str | array-like | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+        ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+        string values ``'all'`` to pick all channels, or ``'data'`` to pick
+        :term:`data channels`. None (default) will pick all data channels
+        (excluding reference MEG channels). Note that channels in ``info['bads']``
+        *will be included* if their names or indices are explicitly provided.
     method : str
         The artifact removal method. Currently only ``'AAS'`` (average artifact
         subtraction) is supported. Default ``'AAS'``.
     copy : bool
         If True (default), operate on and return a copy of ``raw``. If False,
         modify ``raw`` in place.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

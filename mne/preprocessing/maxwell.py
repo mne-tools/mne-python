@@ -55,10 +55,11 @@ from ..utils import (
     _pl,
     _time_mask,
     _validate_type,
+    _verbose_control,
     _verbose_safe_false,
     logger,
     use_log_level,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -67,7 +68,7 @@ from ..utils import (
 # differences between algorithms
 
 
-@verbose
+@verbose_static("emit_warning")
 def maxwell_filter_prepare_emptyroom(
     raw_er,
     *,
@@ -112,11 +113,16 @@ def maxwell_filter_prepare_emptyroom(
         it as is (default). If you intend to manually transfer annotations
         from ``raw`` **after** running this function, you should set this to
         ``'from_raw'``.
-    %(emit_warning)s
+    emit_warning : bool
+        Whether to emit warnings when cropping or omitting annotations.
         Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
         default here is ``False``, as empty-room recordings are often shorter
         than raw.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -145,7 +151,7 @@ def maxwell_filter_prepare_emptyroom(
         included in the empty room recording. If provided, they will be ignored.
 
     .. versionadded:: 1.1
-    """  # noqa: E501
+    """
     _validate_type(item=raw_er, types=BaseRaw, item_name="raw_er")
     _validate_type(item=raw, types=BaseRaw, item_name="raw")
     _validate_type(item=bads, types=str, item_name="bads")
@@ -217,7 +223,24 @@ def maxwell_filter_prepare_emptyroom(
 
 
 # Changes to arguments here should also be made in find_bad_channels_maxwell
-@verbose
+@verbose_static(
+    "origin_maxwell",
+    "int_order_maxwell",
+    "ext_order_maxwell",
+    "calibration_maxwell_cal",
+    "cross_talk_maxwell",
+    "coord_frame_maxwell",
+    "destination_maxwell_dest",
+    "regularize_maxwell_reg",
+    "ignore_ref_maxwell",
+    "bad_condition_maxwell_cond",
+    "head_pos_maxwell",
+    "st_fixed_maxwell_only",
+    "mag_scale_maxwell",
+    "skip_by_annotation_maxwell",
+    "extended_proj_maxwell",
+    "maxwell_mc_interp",
+)
 def maxwell_filter(
     raw,
     origin="auto",
@@ -253,11 +276,39 @@ def maxwell_filter(
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(origin_maxwell)s
-    %(int_order_maxwell)s
-    %(ext_order_maxwell)s
-    %(calibration_maxwell_cal)s
-    %(cross_talk_maxwell)s
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    calibration : path-like | bool | None
+        Path to the .dat file with fine calibration information.
+        If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no calibration will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control calibration using
+           ``info["fine_calibration"]``, and ``None`` now uses
+           ``info["fine_calibration"]`` if available.
+    cross_talk : path-like | bool | None
+        Path to the FIF file with cross-talk correction information.
+        If ``None``, will use the ``info["cross_talk"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no cross-talk correction will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control cross-talk correction using
+           ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+           if available.
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -271,29 +322,122 @@ def maxwell_filter(
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
         overlapping intersecting inner/outer signals during spatiotemporal SSS.
-    %(coord_frame_maxwell)s
-    %(destination_maxwell_dest)s
-    %(regularize_maxwell_reg)s
-    %(ignore_ref_maxwell)s
-    %(bad_condition_maxwell_cond)s
-    %(head_pos_maxwell)s
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
+    destination : path-like | array-like, shape (3,) | instance of Transform | None
+        The destination location for the head. Can be:
+
+        ``None``
+          Will not change the head position.
+        :class:`~mne.transforms.Transform`
+          A MEG device<->head transformation, e.g. ``info["dev_head_t"]``.
+        :class:`numpy.ndarray`
+          A 3-element array giving the coordinates to translate to (with no rotations).
+          For example, ``destination=(0, 0, 0.04)`` would translate the bases
+          as ``--trans default`` would in MaxFilter™ (i.e., to the default
+          head location).
+        ``path-like``
+          A path to a FIF file containing the destination MEG device<->head
+          transformation.
+    regularize : str | None
+        Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+        Both ``"in"`` options use the same information-theoretic component ordering
+        as the ``-regularize in`` option in MaxFilter™, and differ only in where
+        the total-information curve is cut:
+
+        ``"in"`` (default)
+          Keeps the components giving at least 98% of the peak total information. The
+          curve can be quite flat, so this errs on the side of including rather than
+          excluding components. This is the criterion MaxFilter™ 3.0 uses.
+        ``"in_argmax"``
+          Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+          Use this to match MaxFilter™ 2.2 output more closely; it generally excludes
+          more components than ``"in"``.
+
+          .. versionadded:: 1.13
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+        (default), ``"warning"``, ``"info"``, or ``"ignore"``.
+    head_pos : array | None
+        If array, movement compensation will be performed.
+        The array should be of shape (N, 10), holding the position
+        parameters as returned by e.g. ``read_head_pos``.
 
         .. versionadded:: 0.12
-    %(st_fixed_maxwell_only)s
-    %(mag_scale_maxwell)s
+    st_fixed : bool
+        If True (default), do tSSS using the median head position during the
+        ``st_duration`` window. This is the default behavior of MaxFilter
+        and has been most extensively tested.
+
+        .. versionadded:: 0.12
+    st_only : bool
+        If True, only tSSS (temporal) projection of MEG data will be
+        performed on the output data. The non-tSSS parameters (e.g.,
+        ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
+        used to form the SSS bases used to calculate temporal projectors,
+        but the output MEG data will *only* have temporal projections
+        performed. Noise reduction from SSS basis multiplication,
+        cross-talk cancellation, movement compensation, and so forth
+        will not be applied to the data. This is useful, for example, when
+        evoked movement compensation will be performed with
+        :func:`~mne.epochs.average_movements`.
+
+        .. versionadded:: 0.12
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
 
         .. versionadded:: 0.13
-    %(skip_by_annotation_maxwell)s
+    skip_by_annotation : str | list of str
+        If a string (or list of str), any annotation segment that begins
+        with the given string will not be included in filtering, and
+        segments on either side of the given excluded annotated segment
+        will be filtered separately (i.e., as independent signals).
+        The default ``('edge', 'bad_acq_skip')`` will separately filter
+        any segments that were concatenated by :func:`mne.concatenate_raws`
+        or :meth:`mne.io.Raw.append`, or separated during acquisition.
+        To disable, provide an empty list.
 
         .. versionadded:: 0.17
-    %(extended_proj_maxwell)s
+    extended_proj : list
+        The empty-room projection vectors used to extend the external
+        SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+        pure *external* noise that you expect to be present in your signal.
+        Typically, this should be the case during an empty room recording. Get the
+        projections e.g. by calling::
+
+            proj = mne.compute_proj_raw(
+                raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+            )
+
+        .. versionadded:: 0.21
     st_overlap : bool
         If True (default in 1.11), tSSS processing will use a constant
         overlap-add method. If False, then non-overlapping windows will be used.
 
         .. versionadded:: 1.10
-    %(maxwell_mc_interp)s
-    %(verbose)s
+    mc_interp : str
+        Interpolation to use between adjacent time points in movement
+        compensation. Can be "zero" (used by MaxFilter),
+        "linear", or "hann" (default in 1.11).
+
+        .. versionadded:: 1.10
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -440,7 +584,7 @@ def maxwell_filter(
     return raw_sss
 
 
-@verbose
+@_verbose_control
 def _prep_maxwell_filter(
     raw,
     origin="auto",
@@ -795,7 +939,7 @@ def _run_maxwell_filter(
         assert n > 0
         tsss_valid = n >= st_duration
         if st_overlap and tsss_valid and st_correlation is not None:
-            n_overlap = st_duration // 2
+            n_overlap = (st_duration + 1) // 2
             window = "hann"
         else:
             n_overlap = 0
@@ -1128,7 +1272,7 @@ def _check_destination(destination, info, coord_frame):
     return recon_trans
 
 
-@verbose
+@_verbose_control
 def _prep_mf_coils(info, ignore_ref=True, *, accuracy="accurate", verbose=None):
     """Get all coil integration information loaded and sorted."""
     meg_sensors = _prep_meg_channels(
@@ -1463,7 +1607,7 @@ def _get_s_decomp(
     return S_decomp
 
 
-@verbose
+@_verbose_control
 def _regularize(
     regularize, exp, S_decomp, mag_or_fine, extended_remove, t, verbose=None
 ):
@@ -1503,7 +1647,7 @@ def _regularize(
     return S_decomp, reg_moments, n_use_in
 
 
-@verbose
+@_verbose_control
 def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose=None):
     """Pick types for Maxwell filtering and fix magnetometers."""
     # Check for T1/T2 mag types
@@ -1547,13 +1691,15 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
     coil_types = np.array([ch["coil_type"] for ch in meg_info["chs"]])
     mag_or_fine[(coil_types & 0xFFFF) == FIFF.FIFFV_COIL_KIT_GRAD] = False
-    # The same thing goes for CTF gradiometers...
-    ctf_grads = [
+    # The same thing goes for CTF and Artemis123 gradiometers...
+    axial_grads = [
         FIFF.FIFFV_COIL_CTF_GRAD,
         FIFF.FIFFV_COIL_CTF_REF_GRAD,
         FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
+        FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
+        FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     ]
-    mag_or_fine[np.isin(coil_types, ctf_grads)] = False
+    mag_or_fine[np.isin(coil_types, axial_grads)] = False
     msg = (
         f"    Processing {len(grad_picks)} gradiometers "
         f"and {len(mag_picks)} magnetometers"
@@ -1776,20 +1922,34 @@ def _sss_basis(exp, all_coils):
 
     # do the heavy lifting
     max_order = max(int_order, ext_order)
-    L = _tabular_legendre(rmags, max_order)
+    L = _tabular_legendre(rmags, max_order + 1)  # +1 for the P/sin(theta) recurrence
     phi = np.arctan2(rmags[:, 1], rmags[:, 0])
     r_n = np.sqrt(np.sum(rmags * rmags, axis=1))
     r_xy = np.sqrt(rmags[:, 0] * rmags[:, 0] + rmags[:, 1] * rmags[:, 1])
     cos_pol = rmags[:, 2] / r_n  # cos(theta); theta 0...pi
     sin_pol = np.sqrt(1.0 - cos_pol * cos_pol)  # sin(theta)
+    # On the z-axis phi is undefined, but the field is the same for any choice,
+    # so use phi=0 (the terms below are all finite there)
     z_only = r_xy <= 1e-16
-    sin_pol_nz = sin_pol.copy()
-    sin_pol_nz[z_only] = 1.0  # will be overwritten later
     r_xy[z_only] = 1.0
     cos_az = rmags[:, 0] / r_xy  # cos(phi)
     cos_az[z_only] = 1.0
     sin_az = rmags[:, 1] / r_xy  # sin(phi)
     sin_az[z_only] = 0.0
+    # cosmags in the local (r, az, pol) unit-vector basis, shared by all columns, so
+    # each _integrate_points is equivalent to (but faster than) the simpler:
+    # x = sin_pol * cos_az * b_r + cos_pol * cos_az * b_pol - sin_az * b_az
+    # y = sin_pol * sin_az * b_r + cos_pol * sin_az * b_pol + cos_az * b_az
+    # z = cos_pol * b_r - sin_pol * b_pol
+    # grads = (np.array([x, y, z]).T * cosmags).sum(axis=1)
+    nx, ny, nz = cosmags.T
+    n_rho = cos_az * nx + sin_az * ny
+    projs = (
+        sin_pol * n_rho + cos_pol * nz,
+        cos_az * ny - sin_az * nx,
+        cos_pol * n_rho - sin_pol * nz,
+    )
+    starts = np.flatnonzero(np.diff(bins, prepend=-1))  # bins is sorted
     # Appropriate vector spherical harmonics terms
     r_nn2 = r_n.copy()
     r_nn1 = 1.0 / (r_n * r_n)
@@ -1811,34 +1971,12 @@ def _sss_basis(exp, all_coils):
             if degree <= int_order:
                 b_r = mult * (degree + 1) * L[degree][0] / r_nn2
                 b_pol = -mult * L[degree][1] / r_nn2
-                S_in[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    0.0,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_in[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = -mult * degree * L[degree][0] * r_nn1
                 b_pol = -mult * L[degree][1] * r_nn1
-                S_out[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    0.0,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_out[:, idx] = _integrate_points(b_r, 0.0, b_pol, projs, starts)
         for order in range(1, degree + 1):
             ord_phi = order * phi
             sin_order = np.sin(ord_phi)
@@ -1851,116 +1989,59 @@ def _sss_basis(exp, all_coils):
             # S_in @ pinv(S_tot); it only matters where column norms do, i.e.
             # when regularizing (see _regularize_in).
             factor = mult * np.sqrt(2)
+            # dP/dtheta and P/sin(theta) via recurrences, the latter so that the
+            # azimuthal term is finite on the z-axis (nonzero there for order=1)
+            dP = (
+                L[degree][order + 1]
+                - (degree + order) * (degree - order + 1) * L[degree][order - 1]
+            )
+            P_sin = -(
+                L[degree + 1][order + 1]
+                + (degree - order + 1) * (degree - order + 2) * L[degree + 1][order - 1]
+            ) / (2 * order)
 
             # Real
             idx = _deg_ord_idx(degree, order)
             r_fact = factor * L[degree][order] * cos_order
-            az_fact = factor * order * sin_order * L[degree][order]
-            pol_fact = (
-                -factor
-                * (
-                    L[degree][order + 1]
-                    - (degree + order) * (degree - order + 1) * L[degree][order - 1]
-                )
-                * cos_order
-            )
+            az_fact = factor * order * sin_order * P_sin
+            pol_fact = -factor * dP * cos_order
             # alpha
             if degree <= int_order:
                 b_r = (degree + 1) * r_fact / r_nn2
-                b_az = az_fact / (sin_pol_nz * r_nn2)
-                b_az[z_only] = 0.0
+                b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
-                S_in[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = -degree * r_fact * r_nn1
-                b_az = az_fact * r_nn1 / sin_pol_nz
-                b_az[z_only] = 0.0
+                b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
-                S_out[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_out[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
 
             # Imaginary
             idx = _deg_ord_idx(degree, -order)
             r_fact = factor * L[degree][order] * sin_order
-            az_fact = factor * order * cos_order * L[degree][order]
-            pol_fact = (
-                factor
-                * (
-                    L[degree][order + 1]
-                    - (degree + order) * (degree - order + 1) * L[degree][order - 1]
-                )
-                * sin_order
-            )
+            az_fact = factor * order * cos_order * P_sin
+            pol_fact = factor * dP * sin_order
             # alpha
             if degree <= int_order:
                 b_r = -(degree + 1) * r_fact / r_nn2
-                b_az = az_fact / (sin_pol_nz * r_nn2)
-                b_az[z_only] = 0.0
+                b_az = az_fact / r_nn2
                 b_pol = pol_fact / (2 * r_nn2)
-                S_in[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_in[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
             # beta
             if degree <= ext_order:
                 b_r = degree * r_fact * r_nn1
-                b_az = az_fact * r_nn1 / sin_pol_nz
-                b_az[z_only] = 0.0
+                b_az = az_fact * r_nn1
                 b_pol = pol_fact * r_nn1 / 2.0
-                S_out[:, idx] = _integrate_points(
-                    cos_az,
-                    sin_az,
-                    cos_pol,
-                    sin_pol,
-                    b_r,
-                    b_az,
-                    b_pol,
-                    cosmags,
-                    bins,
-                    n_coils,
-                )
+                S_out[:, idx] = _integrate_points(b_r, b_az, b_pol, projs, starts)
     return S_tot
 
 
-def _integrate_points(
-    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol, cosmags, bins, n_coils
-):
+def _integrate_points(b_r, b_az, b_pol, projs, starts):
     """Integrate points in spherical coords."""
-    grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
-    grads = (grads * cosmags).sum(axis=1)
-    from .._numba import bincount
-
-    return bincount(bins, grads, n_coils)
+    grads = b_r * projs[0] + b_az * projs[1] + b_pol * projs[2]
+    return np.add.reduceat(grads, starts)
 
 
 def _tabular_legendre(r, nind):
@@ -1987,15 +2068,6 @@ def _tabular_legendre(r, nind):
                     - (degree + order - 1) * L[degree - 2][order]
                 ) / (degree - order)
     return L
-
-
-def _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol):
-    """Convert spherical coords to cartesian."""
-    out = np.empty((3,) + sin_pol.shape)
-    out[0] = sin_pol * cos_az * b_r + cos_pol * cos_az * b_pol - sin_az * b_az
-    out[1] = sin_pol * sin_az * b_r + cos_pol * sin_az * b_pol + cos_az * b_az
-    out[2] = cos_pol * b_r - sin_pol * b_pol
-    return out
 
 
 def _get_degrees_orders(order):
@@ -2513,6 +2585,8 @@ def _regularize_in(
     S_decomp = S_decomp.copy()
     use_norm = np.sqrt(np.sum(S_decomp * S_decomp, axis=0))
     S_decomp /= use_norm
+    # eigh of the small Gram matrix is much faster than SVD of the tall S_decomp
+    gram = S_decomp.T @ S_decomp
     eigs = np.zeros((n_in, 2))
 
     # plot = False  # for debugging
@@ -2523,16 +2597,19 @@ def _regularize_in(
     noise_lev = 5e-13  # noise level in T/m
     noise_lev *= noise_lev  # effectively what would happen by earlier multiply
     for ii in range(n_in):
-        this_S = S_decomp.take(in_keepers + out_keepers, axis=1)
-        u, s, v = _safe_svd(this_S, full_matrices=False, **check_disable)
-        del this_S
-        eigs[ii] = s[[0, -1]]
-        v = v.T[: len(in_keepers)]
+        keepers = in_keepers + out_keepers
+        s_sq, v = linalg.eigh(gram[np.ix_(keepers, keepers)], **check_disable)
+        # rank-deficient bases (e.g., head far from origin) can give s_sq < 0
+        np.maximum(s_sq, np.finfo(float).eps * s_sq[-1], out=s_sq)
+        eigs[ii] = np.sqrt(s_sq[[-1, 0]])
+        v = v[: len(in_keepers)]
         v /= use_norm[in_keepers][:, np.newaxis]
-        eta_lm_sq = np.dot(v * 1.0 / s, u.T)
-        del u, s, v
-        eta_lm_sq *= eta_lm_sq
-        eta_lm_sq = eta_lm_sq.sum(axis=1)
+        # U is orthonormal, so row norms of pinv = V @ diag(1 / s) @ U.T need no U;
+        # equivalent to (but much slower than) the simpler:
+        # u, s, vh = _safe_svd(S_decomp[:, keepers], full_matrices=False)
+        # v = vh.T[: len(in_keepers)] / use_norm[in_keepers][:, np.newaxis]
+        # eta_lm_sq = (((v / s) @ u.T) ** 2).sum(axis=1)
+        eta_lm_sq = (v * v / s_sq).sum(axis=1)
         eta_lm_sq *= noise_lev
 
         # Together these scale snr by 400 (order != 0) / 200 (order == 0). Only
@@ -2679,7 +2756,22 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.0):
 
 # intentionally omitted: st_duration, st_correlation, destination, st_fixed,
 # st_only, st_overlap
-@verbose
+@verbose_static(
+    "origin_maxwell",
+    "int_order_maxwell",
+    "ext_order_maxwell",
+    "calibration_maxwell_cal",
+    "cross_talk_maxwell",
+    "coord_frame_maxwell",
+    "regularize_maxwell_reg",
+    "ignore_ref_maxwell",
+    "bad_condition_maxwell_cond",
+    "head_pos_maxwell",
+    "mag_scale_maxwell",
+    "skip_by_annotation_maxwell",
+    "extended_proj_maxwell",
+    "maxwell_mc_interp",
+)
 def find_bad_channels_maxwell(
     raw,
     limit=7.0,
@@ -2736,26 +2828,115 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(origin_maxwell)s
-    %(int_order_maxwell)s
-    %(ext_order_maxwell)s
-    %(calibration_maxwell_cal)s
-    %(cross_talk_maxwell)s
-    %(coord_frame_maxwell)s
-    %(regularize_maxwell_reg)s
-    %(ignore_ref_maxwell)s
-    %(bad_condition_maxwell_cond)s
-    %(head_pos_maxwell)s
-    %(mag_scale_maxwell)s
-    %(skip_by_annotation_maxwell)s
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    calibration : path-like | bool | None
+        Path to the .dat file with fine calibration information.
+        If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no calibration will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control calibration using
+           ``info["fine_calibration"]``, and ``None`` now uses
+           ``info["fine_calibration"]`` if available.
+    cross_talk : path-like | bool | None
+        Path to the FIF file with cross-talk correction information.
+        If ``None``, will use the ``info["cross_talk"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no cross-talk correction will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control cross-talk correction using
+           ``info["cross_talk"]``, and ``None`` now uses ``info["cross_talk"]``
+           if available.
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
+    regularize : str | None
+        Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+        Both ``"in"`` options use the same information-theoretic component ordering
+        as the ``-regularize in`` option in MaxFilter™, and differ only in where
+        the total-information curve is cut:
+
+        ``"in"`` (default)
+          Keeps the components giving at least 98% of the peak total information. The
+          curve can be quite flat, so this errs on the side of including rather than
+          excluding components. This is the criterion MaxFilter™ 3.0 uses.
+        ``"in_argmax"``
+          Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+          Use this to match MaxFilter™ 2.2 output more closely; it generally excludes
+          more components than ``"in"``.
+
+          .. versionadded:: 1.13
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+        (default), ``"warning"``, ``"info"``, or ``"ignore"``.
+    head_pos : array | None
+        If array, movement compensation will be performed.
+        The array should be of shape (N, 10), holding the position
+        parameters as returned by e.g. ``read_head_pos``.
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
+    skip_by_annotation : str | list of str
+        If a string (or list of str), any annotation segment that begins
+        with the given string will not be included in filtering, and
+        segments on either side of the given excluded annotated segment
+        will be filtered separately (i.e., as independent signals).
+        The default ``('edge', 'bad_acq_skip')`` will separately filter
+        any segments that were concatenated by :func:`mne.concatenate_raws`
+        or :meth:`mne.io.Raw.append`, or separated during acquisition.
+        To disable, provide an empty list.
     h_freq : float | None
         The cutoff frequency (in Hz) of the low-pass filter that will be
         applied before processing the data. This defaults to ``40.``, which
         should provide similar results to MaxFilter. If you do not wish to
         apply a filter, set this to ``None``.
-    %(extended_proj_maxwell)s
-    %(maxwell_mc_interp)s
-    %(verbose)s
+    extended_proj : list
+        The empty-room projection vectors used to extend the external
+        SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+        pure *external* noise that you expect to be present in your signal.
+        Typically, this should be the case during an empty room recording. Get the
+        projections e.g. by calling::
+
+            proj = mne.compute_proj_raw(
+                raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+            )
+
+        .. versionadded:: 0.21
+    mc_interp : str
+        Interpolation to use between adjacent time points in movement
+        compensation. Can be "zero" (used by MaxFilter),
+        "linear", or "hann" (default in 1.11).
+
+        .. versionadded:: 1.10
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -3089,7 +3270,19 @@ def _read_cross_talk(cross_talk, ch_names):
     return ctc, sss_ctc
 
 
-@verbose
+@verbose_static(
+    "info_not_none",
+    "origin_maxwell",
+    "int_order_maxwell",
+    "ext_order_maxwell",
+    "calibration_maxwell_cal",
+    "coord_frame_maxwell",
+    "regularize_maxwell_reg",
+    "ignore_ref_maxwell",
+    "bad_condition_maxwell_cond",
+    "mag_scale_maxwell",
+    "extended_proj_maxwell",
+)
 def compute_maxwell_basis(
     info,
     origin="auto",
@@ -3108,18 +3301,84 @@ def compute_maxwell_basis(
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(origin_maxwell)s
-    %(int_order_maxwell)s
-    %(ext_order_maxwell)s
-    %(calibration_maxwell_cal)s
-    %(coord_frame_maxwell)s
-    %(regularize_maxwell_reg)s
-    %(ignore_ref_maxwell)s
-    %(bad_condition_maxwell_cond)s
-    %(mag_scale_maxwell)s
-    %(extended_proj_maxwell)s
-    %(verbose)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    calibration : path-like | bool | None
+        Path to the .dat file with fine calibration information.
+        If ``None``, will use the ``info["fine_calibration"]`` entry if present.
+        If ``True``, this entry must be present in the info and will be used.
+        If ``False``, no calibration will be applied.
+
+        .. versionchanged:: 1.13
+           Support for ``bool`` to explicitly control calibration using
+           ``info["fine_calibration"]``, and ``None`` now uses
+           ``info["fine_calibration"]`` if available.
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
+    regularize : str | None
+        Basis regularization type, must be ``"in"``, ``"in_argmax"``, or None.
+        Both ``"in"`` options use the same information-theoretic component ordering
+        as the ``-regularize in`` option in MaxFilter™, and differ only in where
+        the total-information curve is cut:
+
+        ``"in"`` (default)
+          Keeps the components giving at least 98% of the peak total information. The
+          curve can be quite flat, so this errs on the side of including rather than
+          excluding components. This is the criterion MaxFilter™ 3.0 uses.
+        ``"in_argmax"``
+          Keeps the components at the peak itself, which is what MaxFilter™ 2.2 does.
+          Use this to match MaxFilter™ 2.2 output more closely; it generally excludes
+          more components than ``"in"``.
+
+          .. versionadded:: 1.13
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+        (default), ``"warning"``, ``"info"``, or ``"ignore"``.
+    mag_scale : float | str
+        The magenetometer scale-factor used to bring the magnetometers
+        to approximately the same order of magnitude as the gradiometers
+        (default 100.), as they have different units (T vs T/m).
+        Can be ``'auto'`` to use the reciprocal of the physical distance
+        between the gradiometer pickup loops (e.g., 0.0168 m yields
+        59.5 for VectorView).
+    extended_proj : list
+        The empty-room projection vectors used to extend the external
+        SSS basis (i.e., use eSSS). You can use any SSP projections that contain
+        pure *external* noise that you expect to be present in your signal.
+        Typically, this should be the case during an empty room recording. Get the
+        projections e.g. by calling::
+
+            proj = mne.compute_proj_raw(
+                raw_empty_room.pick('meg'), n_grad=3, n_mag=3, meg="combined"
+            )
+
+        .. versionadded:: 0.21
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

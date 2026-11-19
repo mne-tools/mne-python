@@ -10,6 +10,8 @@ from functools import partial
 from inspect import Parameter, signature
 
 import numpy as np
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn import model_selection as models
 from sklearn.base import (  # noqa: F401
     BaseEstimator,
@@ -33,9 +35,10 @@ from ..utils import (
     _import_h5io_funcs,
     _pl,
     _validate_type,
+    _verbose_control,
     logger,
     pinv,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.check import check_fname
@@ -170,7 +173,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         self.__dict__.update(state)
         self._restore_callables()
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save the object to disk (in HDF5 format).
 
@@ -179,8 +182,14 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         fname : path-like
             The file path to save to. Should end with ``'.h5'`` or
             ``'.hdf5'``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -401,7 +410,7 @@ class _GEDTransformer(MNETransformerMixin, BaseEstimator):
         return tags
 
 
-@verbose
+@_verbose_control
 def _read_ged(fname, ged_class, *, verbose=None):
     """Load a saved GED transformer object from disk."""
     read_hdf5, _ = _import_h5io_funcs()
@@ -469,7 +478,9 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
     def __sklearn_tags__(self):
         """Get sklearn tags."""
         tags = super().__sklearn_tags__()
-        model = self.model if self.model is not None else LogisticRegression()
+        model = (
+            self.model if self.model is not None else LogisticRegression(random_state=0)
+        )
         model_tags = model.__sklearn_tags__()
         tags.estimator_type = model_tags.estimator_type
         if tags.estimator_type is not None:
@@ -538,7 +549,7 @@ class LinearModel(MetaEstimatorMixin, BaseEstimator):
         self.model_ = (
             clone(self.model)
             if self.model is not None
-            else LogisticRegression(solver="liblinear")
+            else LogisticRegression(solver="liblinear", random_state=0)
         )
         self.model_.fit(X, y, **fit_params)
 
@@ -683,7 +694,7 @@ def _get_inverse_funcs_before_step(estimator, step_name):
     return inverse_funcs
 
 
-@verbose
+@verbose_static()
 def get_coef(
     estimator, attr="filters_", inverse_transform=False, *, step_name=None, verbose=None
 ):
@@ -709,7 +720,11 @@ def get_coef(
         If None, the last step will be used. Defaults to None.
 
         .. versionadded:: 1.11
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -753,7 +768,7 @@ def get_coef(
         coef = getattr(est, attr)
 
     if coef.ndim == 1:
-        coef = coef[np.newaxis]
+        coef = coef[np.newaxis, ...]
         squeeze_first_dim = True
 
     # inverse pattern e.g. to get back physical units
@@ -775,7 +790,7 @@ def get_coef(
 
     if squeeze_first_dim:
         logger.debug("  Squeezing first dimension of coefficients.")
-        coef = coef[0]
+        coef = coef[0, ...]
 
     # inverse_transform with Vectorizer returns shape (n_channels, n_components).
     # we should transpose to be consistent with how spatial filters
@@ -791,7 +806,7 @@ def get_coef(
     return coef
 
 
-@verbose
+@verbose_static("n_jobs")
 def cross_val_multiscore(
     estimator,
     X,
@@ -840,8 +855,18 @@ def cross_val_multiscore(
         either binary or multiclass,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     fit_params : dict | None
         Parameters to pass to the fit method of the estimator.
     pre_dispatch : int | str
@@ -896,7 +921,7 @@ def cross_val_multiscore(
 
 # This verbose is necessary to properly set the verbosity level
 # during parallelization
-@verbose
+@_verbose_control
 def _fit_and_score(
     estimator,
     X,

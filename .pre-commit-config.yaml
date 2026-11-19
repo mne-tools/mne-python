@@ -1,7 +1,7 @@
 repos:
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.4
+    rev: v0.17.5
     hooks:
       - id: ruff-check
         name: ruff lint mne
@@ -24,9 +24,11 @@ repos:
   # ty (type checking); deps installed by pre-commit(.ci), see [tool.ty] in
   # pyproject.toml for the checked modules and silenced rules
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.74
+    rev: v0.0.104
     hooks:
       - id: ty
+        # uv can pick a free-threaded build for 3.14+, which lacks wheels (e.g. pymef)
+        language_version: "3.13"
         additional_dependencies:
           - antio  # for mne/io/ant
           - curryreader  # for mne/io/curry
@@ -64,7 +66,7 @@ repos:
 
   # rstcheck
   - repo: https://github.com/rstcheck/rstcheck.git
-    rev: v6.3.0
+    rev: v6.3.1
     hooks:
       - id: rstcheck
         additional_dependencies:
@@ -79,11 +81,11 @@ repos:
     rev: v6.0.0
     hooks:
       - id: file-contents-sorter
-        files: ^doc/sphinxext/related_software.txt|^ignore_words.txt
+        files: ^ignore_words.txt
         args: ["--ignore-case"]
 
   - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.4
+    rev: v0.26.0
     hooks:
       - id: toml-sort-fix
         files: pyproject.toml
@@ -95,10 +97,21 @@ repos:
         language: python
         entry: ./tools/hooks/sort_contributor_names.py
         files: '^(doc/changes/names.inc|.mailmap)$'
+      - id: check-static-docs
+        name: Check statically filled docstrings against docdict
+        language: python
+        entry: ./tools/hooks/check_static_docs.py
+        args: [--fix]
+        # the hook edits files beyond those passed (docs.py, other users of an
+        # edited entry), so parallel batched invocations would race
+        require_serial: true
+        additional_dependencies: [numpy, scipy, matplotlib, decorator, lazy_loader, packaging, jinja2, pooch, tqdm]
+        files: '^mne/.*\.py$'
+        exclude: '^mne/(.*/)?tests/'
 
   # zizmor
-  - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.29.0
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.32.0
     hooks:
       - id: zizmor
         args: [--fix]

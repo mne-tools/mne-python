@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Scheduled updates | Opens pull requests to keep selected package dependencies and pre-commit hooks up to date | Every Monday |
+
 name: Scheduled updates
 
 on:  # yamllint disable-line rule:truthy
@@ -27,10 +30,10 @@ jobs:
             title: 'MAINT: Update dependency specifiers'
             body: '*Adjustments may need to be made to shims in `mne/fixes.py` and elsewhere in this or another PR. `make -C tools/dev dep` is a good starting point for finding potential updates.*'
             label: ''  # this one writes doc/changes/dev/dependency.rst itself
-          - id: prek_auto_update
+          - id: prek_update
             name: Update pre-commit hooks
             title: 'MAINT: Update pre-commit hook versions'
-            body: '*Created by `prek auto-update`. The updated hooks were then run over the whole repo, so any reformatting they now do is included here.*'
+            body: '*Created by `prek update`. The updated hooks were then run over the whole repo, so any reformatting they now do is included here.*'
             label: 'no-changelog-entry-needed'
     env:
       GH_TOKEN: ${{ secrets.MNE_BOT_TOKEN }}
@@ -57,19 +60,22 @@ jobs:
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: ">=0.9"
           activate-environment: true
-          python-version: "3.12"
+          python-version: "3.14"  # keep in sync with `tool.ty.environment` in pyproject.toml
       - name: Install dependencies
         run: uv pip install -e . packaging requests tomlkit prek
       - name: Update tracked dependencies
         if: matrix.id == 'spec_zero'
-        run: python ./tools/dev/spec_zero_update_versions.py
+        uses: mne-tools/mne-tools/actions/spec-zero-update-versions@main
+        with:
+          project-root: ${{ github.workspace }}
+          changelog-path: 'doc/changes/dev/dependency.rst'
       - name: Update pre-commit hook versions
-        if: matrix.id == 'prek_auto_update'
-        run: prek auto-update
+        if: matrix.id == 'prek_update'
+        run: prek update
       - name: check if files changed
         run: |
           git diff && git status --porcelain
@@ -77,7 +83,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v3.0.0
+      - uses: j178/prek-action@v3.1.0
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         env:

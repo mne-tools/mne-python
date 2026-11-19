@@ -196,7 +196,7 @@ def _make_stc(raw, src):
     tstep = 1.0 / sfreq
     n_samples = len(raw.times) // 10
     times = np.arange(0, n_samples) * tstep
-    stc = simulate_sparse_stc(src, 10, times, random_state=seed)
+    stc = simulate_sparse_stc(src, 10, times, rng=seed)
     return stc
 
 
@@ -280,9 +280,9 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
         raw.copy().pick(["meg", "eeg"]).info, stc, trans, src, sphere
     )
     for this_raw in (raw_sim_meg, raw_sim_eeg, raw_sim_meeg):
-        add_eog(this_raw, random_state=seed)
+        add_eog(this_raw, rng=seed)
     for this_raw in (raw_sim_meg, raw_sim_meeg):
-        add_ecg(this_raw, random_state=seed)
+        add_ecg(this_raw, rng=seed)
     with pytest.raises(RuntimeError, match="only add ECG artifacts if MEG"):
         add_ecg(raw_sim_eeg)
     assert_allclose(
@@ -590,24 +590,24 @@ def test_simulation_cascade():
 
     # Calculate independent signal additions
     raw_eog = raw_null.copy()
-    add_eog(raw_eog, random_state=0)
+    add_eog(raw_eog, rng=0)
 
     raw_ecg = raw_null.copy()
-    add_ecg(raw_ecg, random_state=0)
+    add_ecg(raw_ecg, rng=0)
 
     raw_noise = raw_null.copy()
     cov = make_ad_hoc_cov(raw_null.info)
-    add_noise(raw_noise, cov, random_state=0)
+    add_noise(raw_noise, cov, rng=0)
 
     raw_chpi = raw_null.copy()
     add_chpi(raw_chpi)
 
     # Calculate Cascading signal additions
     raw_cascade = raw_null.copy()
-    add_eog(raw_cascade, random_state=0)
-    add_ecg(raw_cascade, random_state=0)
+    add_eog(raw_cascade, rng=0)
+    add_ecg(raw_cascade, rng=0)
     add_chpi(raw_cascade)
-    add_noise(raw_cascade, cov, random_state=0)
+    add_noise(raw_cascade, cov, rng=0)
 
     cascade_data = raw_cascade.get_data()
     serial_data = 0.0

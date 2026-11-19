@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "7947966ad80551fff4c5974e34009b0c135f3d12",
+  "authors": [
+    {
+      "n": "Ishaan Maheshwari",
+      "e": "145560898+ishaaaan17@users.noreply.github.com",
+      "l": "ishaaaan17"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14451.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/_csd.py": {
+      "a": 16,
+      "d": 14
+    }
+  }
+}

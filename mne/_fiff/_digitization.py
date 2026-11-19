@@ -4,10 +4,21 @@
 
 import heapq
 from collections import Counter
+from collections.abc import Iterable
+from os import PathLike
+from typing import Any
 
 import numpy as np
 
-from ..utils import Bunch, _check_fname, _validate_type, logger, verbose, warn
+from ..utils import (
+    Bunch,
+    _check_fname,
+    _validate_type,
+    logger,
+    verbose_static,
+    warn,
+)
+from ..utils._typing import LogLevel
 from .constants import FIFF, _coord_frame_named
 from .tag import read_tag
 from .tree import dir_tree_find
@@ -96,9 +107,6 @@ def _count_points_by_type(dig):
     )
 
 
-_dig_keys = {"kind", "ident", "r", "coord_frame"}
-
-
 class DigPoint(dict):
     """Container for a digitization point.
 
@@ -120,7 +128,15 @@ class DigPoint(dict):
         The coordinate frame used, e.g. ``FIFFV_COORD_HEAD``.
     """
 
-    def __repr__(self):  # noqa: D105
+    _allowed = {
+        "kind": int,
+        "r": np.ndarray,  # used in isinstance() check so don't add [shape, dtype]
+        "ident": int,
+        "coord_frame": int,
+    }
+
+    def __repr__(self) -> str:
+        """Return a string representation of a DigPoint."""
         from ..transforms import _coord_frame_name
 
         if self["kind"] == FIFF.FIFFV_POINT_CARDINAL:
@@ -138,7 +154,7 @@ class DigPoint(dict):
         return f"<DigPoint | {id_} : {pos} : {cf} frame>"
 
     # speed up info copy by only deep copying the mutable item
-    def __deepcopy__(self, memodict):
+    def __deepcopy__(self, memodict: dict[int, Any]) -> "DigPoint":
         """Make a deepcopy."""
         return DigPoint(
             kind=self["kind"],
@@ -147,7 +163,7 @@ class DigPoint(dict):
             coord_frame=self["coord_frame"],
         )
 
-    def __eq__(self, other):  # noqa: D105
+    def __eq__(self, other: dict) -> bool:  # ty: ignore[incompatible-method-override]
         """Compare two DigPoints.
 
         Two digpoints are equal if they are the same kind, share the same
@@ -160,6 +176,18 @@ class DigPoint(dict):
             return False
         else:
             return np.allclose(self["r"], other["r"])
+
+    def __setitem__(self, key, item):
+        """Set DigPoint items, with validation of key names and value types."""
+        if key not in self._allowed:
+            raise KeyError(f"Key must be one of {sorted(self._allowed)}, got {key!r}")
+        expected = self._allowed[key]
+        if not isinstance(item, expected):
+            raise TypeError(
+                f"Value for {key!r} must be {expected.__name__}, "
+                f"got {type(item).__name__}"
+            )
+        super().__setitem__(key, item)
 
 
 def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
@@ -199,10 +227,16 @@ def _read_dig_fif(fid, meas_info, *, return_ch_names=False):
     return out
 
 
-@verbose
+@verbose_static("overwrite")
 def write_dig(
-    fname, pts, coord_frame=None, *, ch_names=None, overwrite=False, verbose=None
-):
+    fname: str | PathLike,
+    pts: Iterable[dict[str, Any]],
+    coord_frame: int | str | None = None,
+    *,
+    ch_names: list[str] | None = None,
+    overwrite: bool = False,
+    verbose: LogLevel = None,
+) -> None:
     """Write digitization data to a FIF file.
 
     Parameters
@@ -220,10 +254,16 @@ def write_dig(
         Channel names associated with the digitization points, if available.
 
         .. versionadded:: 1.9
-    %(overwrite)s
+    overwrite : bool
+        If True (default False), overwrite the destination file if it
+        exists.
 
         .. versionadded:: 1.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
         .. versionadded:: 1.0
     """

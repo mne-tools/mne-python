@@ -1,0 +1,1 @@
+Fix :func:`mne.io.read_raw_ctf` failing with "Illegal date" on CTF headers that store the date as ``dd-mm-YYYY`` (for example OpenNeuro ds000247), by `Bruno Aristimunha`_.

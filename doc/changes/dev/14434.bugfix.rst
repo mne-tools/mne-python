@@ -1,0 +1,1 @@
+Fix ``split_naming="bids"`` since  :meth:`mne.io.Raw.save` and :meth:`mne.Epochs.save` put ``split`` after ``desc``, but ``split`` should come before ``desc``,  by `Hamza Abdelhedi`_.

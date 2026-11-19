@@ -29,7 +29,13 @@ VALID_BROWSE_BACKENDS = (
 VALID_3D_BACKENDS = (
     "pyvistaqt",  # default 3d backend
     "notebook",
+    "jupyterlite_notebook",
 )
+# The backends _get_3d_backend() falls back to when none has been set. The
+# JupyterLite one is left out on purpose: it draws through vtk.js and only
+# displays inside a browser kernel, so picking it on a desktop that happens to
+# have pyvista-js installed would quietly produce figures nothing can show.
+_AUTO_3D_BACKENDS = ("pyvistaqt", "notebook")
 ALLOWED_QUIVER_MODES = ("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")
 _ICONS_PATH = Path(__file__).parents[2] / "icons"
 
@@ -48,6 +54,16 @@ def _get_colormap_from_array(
     else:
         cmap = ListedColormap(np.array(colormap) / 255.0)
     return cmap
+
+
+def _vtk_faces(tris):
+    """Return triangles as the (n, 4) face array VTK and vtk.js both accept.
+
+    Each row is ``(3, i, j, k)``: the leading 3 is the vertex count the VTK cell
+    format expects ahead of every triangle.
+    """
+    tris = np.asarray(tris)
+    return np.c_[np.full(len(tris), 3), tris]
 
 
 def _check_color(color):
@@ -113,6 +129,13 @@ def _splash_class():
 
 @contextmanager
 def _qt_disable_paint(widget):
+    if hasattr(widget, "paintGL"):
+        # QOpenGLWidget-based interactor (PyVistaQt >= 0.13): paintEvent drives
+        # the GL compositing of the whole window there, and suppressing it
+        # while the window is first shown leaves the entire window blank on
+        # macOS until a resize forces a fresh frame
+        yield
+        return
     paintEvent = widget.paintEvent
     widget.paintEvent = lambda *args, **kwargs: None
     try:
@@ -221,13 +244,24 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         qsplash = _splash_class()(*args)
         qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
-            alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
-            qsplash.showMessage(splash, alignment=alignment, color=Qt.white)
+            _splash_message(qsplash, splash)
         qsplash.show()
         app.processEvents()
         out = (out, qsplash)
 
     return out
+
+
+def _splash_message(splash, message):
+    """Show a message at the bottom of a splash screen from ``_init_mne_qtapp``.
+
+    ``QSplashScreen.showMessage`` repaints the splash screen synchronously, so this
+    can be used to narrate the startup of a GUI while its window is not up yet.
+    """
+    from qtpy.QtCore import Qt
+
+    alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
+    splash.showMessage(message, alignment=alignment, color=Qt.white)
 
 
 def _display_is_valid():
@@ -413,6 +447,14 @@ def _qt_get_stylesheet(theme):
 def _should_raise_window():
     from matplotlib import rcParams
 
+    from . import renderer
+
+    # The test suite opens a lot of 3D windows, and raising each one steals focus
+    # from whatever the developer is doing -- on macOS especially, where
+    # `activateWindow()` brings the whole application forward. The windows are
+    # still shown during tests, they just stay behind the active window.
+    if renderer.MNE_3D_BACKEND_TESTING:
+        return False
     return rcParams["figure.raise_window"]
 
 
@@ -508,3 +550,19 @@ def _qt_safe_window(
         return func
 
     return dec
+
+
+# Inspired from Mayavi's version of Raymond Maple 3-lights illumination: below
+# and centered, left and above, right and above, as (azimuth, elevation,
+# intensity) of camera lights
+LIGHTS = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
+
+
+def _to_pos(azimuth, elevation):
+    """Return the unit-sphere position of a camera light."""
+    theta = azimuth * np.pi / 180.0
+    phi = (90.0 - elevation) * np.pi / 180.0
+    x = np.sin(theta) * np.sin(phi)
+    y = np.cos(phi)
+    z = np.cos(theta) * np.sin(phi)
+    return x, y, z

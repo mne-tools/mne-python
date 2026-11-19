@@ -29,7 +29,7 @@ from .check import (
     _soft_import,
     _validate_type,
 )
-from .docs import fill_doc
+from .docs import fill_doc_static
 from .misc import _pl
 
 _temp_home_dir = None
@@ -40,17 +40,20 @@ class UnknownPlatformError(Exception):
 
 
 def set_cache_dir(cache_dir):
-    """Set the directory to be used for temporary file storage.
+    """Set the directory used for temporary and managed cache storage.
 
-    This directory is used by joblib to store memmapped arrays,
-    which reduces memory requirements and speeds up parallel
-    computation.
+    This directory is used by joblib to store temporary memmapped arrays and,
+    when requested by supported Raw readers, to persist decoded preload data.
 
     Parameters
     ----------
     cache_dir : str or None
-        Directory to use for temporary file storage. None disables
-        temporary file storage.
+        Directory to use for cache storage. None disables cache storage.
+
+    Notes
+    -----
+    Persistent decoded Raw entries are not automatically size-limited. They are
+    stored below ``cache_dir`` in a versioned ``raw-preload`` directory.
     """
     if cache_dir is not None and not op.exists(cache_dir):
         raise OSError(f"Directory {cache_dir} does not exist")
@@ -89,6 +92,9 @@ _known_config_types = {
         "int, number of samples to use for full-screen antialiasing"
     ),
     "MNE_3D_OPTION_SMOOTH_SHADING": ("bool, whether to use smooth shading in 3D plots"),
+    "MNE_3D_OPTION_SSAO": (
+        "bool, whether to use screen-space ambient occlusion in 3D plots"
+    ),
     "MNE_3D_OPTION_THEME": ("str, the color theme (light or dark) to use for 3D plots"),
     "MNE_BROWSE_RAW_SIZE": (
         "tuple, width and height of the raw browser window (in inches)"
@@ -109,7 +115,7 @@ _known_config_types = {
     "MNE_BROWSER_USE_OPENGL": (
         "bool, whether to use OpenGL for rendering in the raw browser"
     ),
-    "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
+    "MNE_CACHE_DIR": "str, path to the temporary and managed cache directory",
     "MNE_COREG_ADVANCED_RENDERING": (
         "bool, whether to use advanced OpenGL rendering in coreg"
     ),
@@ -166,6 +172,7 @@ _known_config_types = {
     "MNE_DATASETS_TESTING_PATH": "str, path for testing data",
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
+    "MNE_DATASETS_LITE_DATA_PATH": "str, path for lite_data data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
     "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
@@ -182,6 +189,10 @@ _known_config_types = {
     "MNE_MEMMAP_MIN_SIZE": (
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
+    ),
+    "MNE_PROPAGATE_DOC_CHANGES": (
+        "bool, propagate edits made to a shared docstring back to docdict and every "
+        "other docstring using it (tools/hooks/check_static_docs.py; developers only)"
     ),
     "MNE_REPR_HTML": (
         "bool, represent some objects with rich HTML in a notebook environment"
@@ -585,7 +596,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -597,7 +608,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     ----------
     stim_channel : str | list of str | None
         The stim channel selected by the user.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Returns
     -------
@@ -691,10 +704,30 @@ def _get_numpy_build_blas():
     except Exception:
         return None
     version = blas.get("version", "")
+    # conda's libblas is a switchable interface; macOS installs often point it at
+    # Accelerate, which threadpoolctl can't see
+    if name in ("blas", "cblas") and "veclib" in _get_runtime_blas_path().lower():
+        name, version = "accelerate", ""  # version was the interface's
     name = _blas_rename.get(name, name)
     if version and version != "unknown":  # Accelerate reports a literal "unknown"
         name = f"{name} {version}"
     return f"{name}, threads not introspectable"
+
+
+def _get_runtime_blas_path():
+    """Get the path of the library actually providing NumPy's cblas_dgemm."""
+    import ctypes
+
+    try:  # private module, POSIX-only dladdr, and the symbol can be named differently
+        from numpy._core import _multiarray_umath
+
+        dgemm = ctypes.CDLL(_multiarray_umath.__file__).cblas_dgemm
+        info = (ctypes.c_void_p * 4)()  # Dl_info, whose first field is dli_fname
+        if ctypes.CDLL(None).dladdr(ctypes.cast(dgemm, ctypes.c_void_p), info):
+            return ctypes.string_at(info[0]).decode()
+    except Exception:
+        pass
+    return ""
 
 
 _gpu_cmd = """\
@@ -873,6 +906,7 @@ def sys_info(
         "dipy",
         "openmeeg",
         "python-picard",
+        "jamica",
         "cupy",
         "pandas",
         "h5io",
@@ -937,9 +971,11 @@ def sys_info(
             "nbclient",
             "nbformat",
             "nitime",
+            "pyvista-js",
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "pynwb",
             "twine",
             "",
             "# Documentation",

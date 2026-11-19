@@ -1,0 +1,60 @@
+{
+  "merge_commit_sha": "d07ed22e231350945ee6488612f0b4a2f50948a4",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    "doc/conf.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/_fiff/constants.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/_fiff/meas_info.py": {
+      "a": 197,
+      "d": 112
+    },
+    "mne/epochs.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/evoked.py": {
+      "a": 8,
+      "d": 8
+    },
+    "mne/io/hitachi/hitachi.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/io/persyst/persyst.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 26,
+      "d": 4
+    },
+    "mne/utils/_bunch.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/_typing.py": {
+      "a": 34,
+      "d": 2
+    },
+    "mne/utils/docs.py": {
+      "a": 2,
+      "d": 2
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

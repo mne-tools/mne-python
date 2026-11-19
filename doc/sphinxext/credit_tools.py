@@ -9,7 +9,9 @@ Contributor names are resolved from the PR JSON files in this order:
    word, abbreviation, ALL-CAPS) carry a trailing ``# credit: name-ok``
    comment (valid mailmap syntax, and robust to the line-sorting pre-commit
    hook).
-2. GitHub-derived names stored in the JSON files, when they look like real
+2. doc/changes/names.inc: the name that links to the author's GitHub profile
+   there, since that is the name their changelog entries already use.
+3. GitHub-derived names stored in the JSON files, when they look like real
    two-part names.
 
 Anything else is reported as a ready-to-paste ``.mailmap`` suggestion, or
@@ -21,7 +23,17 @@ contributors pick that name themselves.
 Every credited name is shown as a link to that person, so it also needs an
 entry in doc/changes/names.inc (the same links changelogs use). ``--fix-mailmap``
 adds one pointing at the contributor's GitHub profile where we know it;
-anything left over is an error, since the badge would have nowhere to point.
+anything left over is an error, since the badge would have nowhere to point (or,
+when it is an existing contributor under another spelling, a sign that .mailmap
+should map that address to the name we already credit).
+
+Errors are reported rather than raised when running with ``--report`` (again,
+the monthly action), so that its PR still opens with them in the body for a
+maintainer to fix there; the doc build then fails on them until they are.
+
+New contributors whose PR merged without a changelog fragment are credited on
+the credit page but nowhere in the changelog, so ``--fix-mailmap`` also leaves
+a stub fragment naming them for a maintainer to reword.
 
 Two names that look like the same person are also an error: it usually means an
 address is missing from .mailmap, so someone is credited twice under slightly
@@ -33,12 +45,14 @@ different spellings. Genuinely distinct people go in DISTINCT_NAMES below.
 # Copyright the MNE-Python contributors.
 
 import argparse
+import contextlib
 import dataclasses
 import difflib
 import fnmatch
 import json
 import os
 import re
+import subprocess
 import unicodedata
 from collections import defaultdict
 from pathlib import Path
@@ -236,7 +250,9 @@ class _Unresolved:
         return entry
 
 
-def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins):
+def _resolve_name(
+    author, pr, data, mailmap, names_inc_logins, fallback_names, unresolved, logins
+):
     """Resolve one PR JSON author dict to a display name (or None to skip)."""
     name, email, login = author.get("n"), author.get("e"), author.get("l")
     if _is_bot(name, email):
@@ -244,6 +260,12 @@ def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
     resolved = mailmap.names.get(email)
     if resolved is not None:
         logins.setdefault(resolved, _github_login(author))
+        return resolved
+    login = _github_login(author)
+    linked = names_inc_logins.get((login or "").lower(), ())
+    if len(linked) == 1:  # ambiguous links are reported in generate_credit_rst
+        (resolved,) = linked
+        logins.setdefault(resolved, login)
         return resolved
     # GitHub-derived fallback; first good name seen for an email wins so that
     # later profile-name tweaks don't split one person into two entries
@@ -287,9 +309,11 @@ def _load_pr_ignores():
 def _load_pr_stats(mailmap):
     """Aggregate per-file line-change stats for every author of every PR."""
     ignores = _load_pr_ignores()
+    names_inc_logins = _names_inc_logins()
     fallback_names = dict()  # email -> good GitHub-derived name
     unresolved = dict()  # email (or name#pr) -> _Unresolved
     logins = dict()  # credited name -> GitHub login (None if unknown)
+    emails = defaultdict(set)  # credited name -> author addresses seen
     # (name, pr) -> total change count, used for logging the biggest PRs
     commits = defaultdict(int)
     # filename -> name -> [additions, deletions]
@@ -300,9 +324,21 @@ def _load_pr_stats(mailmap):
         data = json.loads(fname.read_text("utf-8"))
         assert data != {}, fname
         names = [
-            _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
+            _resolve_name(
+                author,
+                pr,
+                data,
+                mailmap,
+                names_inc_logins,
+                fallback_names,
+                unresolved,
+                logins,
+            )
             for author in data["authors"]
         ]
+        for author, name in zip(data["authors"], names):
+            if name is not None and author.get("e"):
+                emails[name].add(author["e"])
         # dedup, keeping author order (so ties in the output sort stay stable)
         names = [name for name in dict.fromkeys(names) if name is not None]
         for file, counts in data["changes"].items():
@@ -316,7 +352,16 @@ def _load_pr_stats(mailmap):
             for name in names:
                 commits[(name, pr)] += p + m
                 stats[file][name] += [p, m]
-    return stats, commits, ignores, unresolved, logins
+    return stats, commits, ignores, unresolved, logins, emails
+
+
+def _read_names_inc():
+    """Read the (name, URL) pairs of the doc/changes/names.inc links."""
+    return re.findall(
+        r"^\.\. _(.+?):\s+(\S+)\s*$",
+        (doc_root / "changes" / "names.inc").read_text("utf-8"),
+        re.M,
+    )
 
 
 def _load_names_inc():
@@ -325,14 +370,17 @@ def _load_names_inc():
     Keys are normalized the way docutils normalizes reST reference names, i.e.
     case-insensitively and with collapsed whitespace.
     """
-    return {
-        _reference_key(name): url
-        for name, url in re.findall(
-            r"^\.\. _(.+?):\s+(\S+)\s*$",
-            (doc_root / "changes" / "names.inc").read_text("utf-8"),
-            re.M,
-        )
-    }
+    return {_reference_key(name): url for name, url in _read_names_inc()}
+
+
+def _names_inc_logins():
+    """Map each GitHub login linked from names.inc to the names linking to it."""
+    linked = defaultdict(set)
+    for name, url in _read_names_inc():
+        match = re.fullmatch(r"https?://(?:www\.)?github\.com/([^/]+)/?", url)
+        if match:
+            linked[match.group(1).lower()].add(name)
+    return linked
 
 
 def _check_names_inc(names, urls):
@@ -346,6 +394,60 @@ def _append_names_inc_anchors(anchors):
     lines = path.read_text("utf-8").splitlines() + list(anchors)
     lines.sort(key=_fold)
     path.write_text("\n".join(lines) + "\n", "utf-8")
+
+
+def _append_commit_mailmap_entries(emails, logins, urls, name_ok):
+    """Point commit addresses at the names we credit, so git agrees with us.
+
+    The PR JSON knows a contributor by their GitHub profile, git by whatever
+    their commits carry, so without a .mailmap line ``git shortlog`` credits
+    e.g. "kalomak" where the credit page says "Kalle Mäkelä". Someone who
+    committed from several addresses is likewise listed once per address until
+    they all map to one, so those get routed to the address with the most
+    commits. Only addresses we can tie to a credited name (the same address, the
+    login in a GitHub noreply address, or already the same name) are matched;
+    the rest need a human.
+    """
+    by_email = {email: name for name, these in emails.items() for email in these}
+    by_login = dict()
+    for name, login in logins.items():
+        if login is None:  # names.inc links are the other place we keep a login
+            url = urls.get(_reference_key(name), "")
+            login = url.rsplit("/", maxsplit=1)[1] if "github.com/" in url else None
+        if login:
+            by_login.setdefault(login.lower(), name)
+    entries = []
+    try:
+        shortlog = subprocess.check_output(
+            ["git", "shortlog", "-se", "HEAD"], cwd=repo_root, text=True
+        )
+    except Exception:
+        return entries  # best-effort, e.g. a shallow checkout with no history
+    rows = defaultdict(list)  # credited name -> [(count, git name, email), ...]
+    for line in shortlog.splitlines():
+        count, identity = line.split("\t", maxsplit=1)
+        name, email = identity.rstrip(">").split(" <", 1)
+        if _is_bot(name, email):
+            continue
+        credited = by_email.get(email)
+        if credited is None:
+            login = _github_login(dict(e=email))
+            credited = by_login.get(login.lower()) if login else None
+        if credited is None and name in logins:
+            credited = name
+        if credited is not None:
+            rows[credited].append((int(count), name, email))
+    for credited, these in rows.items():
+        canonical = max(these)[2]
+        for _, name, email in these:
+            if (name, email) != (credited, canonical):
+                alias = f" <{email}>" if email != canonical else ""
+                marker = "" if _good_name(credited, name_ok=name_ok) else NAME_OK_MARKER
+                entries.append(f"{credited} <{canonical}>{alias} {marker}".rstrip())
+    if entries:
+        _append_mailmap_entries(entries)
+        sphinx_logger.info(f"Added {len(entries)} commit .mailmap entries")
+    return entries
 
 
 def _append_mailmap_entries(entries):
@@ -386,24 +488,33 @@ def generate_credit_rst(
     """Get the credit RST."""
     sphinx_logger.info("Creating code credit RST inclusion file")
     mailmap = _load_mailmap()
-    stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
+    stats, commits, ignores, unresolved, logins, emails = _load_pr_stats(mailmap)
     added = [un for un in unresolved.values() if un.email is not None]
     if fix_mailmap and added and not mailmap.problems:
         _apply_newcontrib_names(added)
         _append_mailmap_entries(un.mailmap_entry for un in added)
         sphinx_logger.info(f"Added {len(added)} entries to .mailmap")
         mailmap = _load_mailmap()  # second pass with the appended entries
-        stats, commits, ignores, unresolved, logins = _load_pr_stats(mailmap)
+        stats, commits, ignores, unresolved, logins, emails = _load_pr_stats(mailmap)
     else:
         added = []
+    stubs = _write_newcontrib_stubs(commits) if fix_mailmap else []
+    errors = []
     problems = _report_problems(mailmap, unresolved)
     if problems:
-        raise RuntimeError(problems)
+        errors.append(problems)
 
     all_names = {name for these in stats.values() for name in these}
     duplicates = _similar_names(all_names)
+    duplicates += [
+        f"doc/changes/names.inc links github.com/{login} as "
+        + " and ".join(map(repr, sorted(names)))
+        + "; keep only the name changelogs should use"
+        for login, names in sorted(_names_inc_logins().items())
+        if len({_fold(name) for name in names}) > 1  # accent variants are fine
+    ]
     if duplicates:
-        raise RuntimeError(
+        errors.append(
             f"{len(duplicates)} possible duplicate contributor(s):\n"
             + "\n".join(duplicates)
         )
@@ -425,18 +536,37 @@ def generate_credit_rst(
             sphinx_logger.info(f"Added {len(anchors_added)} entries to names.inc")
             urls = _load_names_inc()
             missing_anchors = _check_names_inc(all_names, urls)
+    if fix_mailmap:
+        _append_commit_mailmap_entries(emails, logins, urls, mailmap.name_ok)
     if missing_anchors:
-        raise RuntimeError(
+        suggestions = []
+        for name in missing_anchors:
+            suggestions.append(f".. _{name}: https://...")
+            suggestions += [
+                f"    ...or in .mailmap: Their Name <{email}>"
+                for email in sorted(emails[name])
+            ]
+        errors.append(
             f"{len(missing_anchors)} credited name(s) have no link in "
             "doc/changes/names.inc, which the code credit page needs to link "
             "their badge. Add a line for each of them (the file is sorted "
             "alphabetically, ignoring case), or run\n"
             "`python doc/sphinxext/credit_tools.py --fix-mailmap` to fill in "
-            "the ones whose GitHub profile we know:\n"
-            + "\n".join(f".. _{name}: https://..." for name in missing_anchors)
+            "the ones whose GitHub profile we know. A name that is really an "
+            "existing contributor spelled differently should instead get a "
+            ".mailmap entry pointing their address at the name we already "
+            "credit:\n" + "\n".join(suggestions)
         )
     if report_file is not None:
-        _write_report(report_file, added, anchors_added)
+        _write_report(report_file, added, anchors_added, stubs, errors)
+    if errors:
+        # --report means the credit action is running: let it open its PR with
+        # the problems in the body and leave the failure to the doc build
+        for error in errors:
+            sphinx_logger.warning(error)
+        if report_file is None:
+            raise RuntimeError("\n\n".join(errors))
+        return
 
     logger.info("Biggest included commits/PRs:")
     biggest = sorted(commits, key=lambda key: commits[key], reverse=True)
@@ -444,12 +574,76 @@ def generate_credit_rst(
         logger.info(f"{pr.ljust(5)} @ {commits[(name, pr)]:5d} by {name}")
 
     logger.info("\nIgnored commits:")
-    for pr, files in ignores.items():  # should have found one of each
+    # should have found one of each, except PRs whose JSON isn't fetched yet
+    last_pr = max(int(pr) for _, pr in commits)
+    for pr, files in ignores.items():
         logger.info(f"ignored {len(files):3d} files for {pr}")
-        assert len(files) >= 1, (pr, files)
+        assert len(files) >= 1 or int(pr) > last_pr, (pr, files)
 
     mod_stats, link_overrides, mod_file_map = _aggregate_module_stats(stats)
     _write_credit_rst(mod_stats, link_overrides, mod_file_map, urls)
+
+
+@contextlib.contextmanager
+def _github_client():
+    """Open a GitHub client, authenticated when we have a token."""
+    import github  # not a doc dependency, only needed in the modes below
+
+    token = os.environ.get("GITHUB_TOKEN")
+    auth = github.Auth.Token(token) if token else None
+    with github.Github(auth=auth) as gh:
+        yield gh
+
+
+def _write_newcontrib_stubs(commits):
+    """Leave a changelog stub for new contributors whose PR added none.
+
+    New contributors credit themselves with a ``:newcontrib:`` fragment, so
+    when a PR merges without one they end up on the credit page but never in
+    the changelog. Write a stub naming them (the credit PR is where a
+    maintainer rewords it, picks a better type, or deletes it).
+    """
+    changes = doc_root / "changes"
+    released = sorted(
+        changes.glob("v*.rst"), key=lambda p: [int(v) for v in p.stem[1:].split(".")]
+    )
+    # anyone older than this belongs to a changelog that already shipped
+    cutoff = max(
+        int(pr) for pr in re.findall(r"/pull/(\d+)", released[-1].read_text("utf-8"))
+    )
+    first_pr = dict()  # credited name -> the number of their first PR
+    for name, pr in commits:
+        first_pr[name] = min(int(pr), first_pr.get(name, int(pr)))
+    # one entry per contributor per release is enough, so skip anyone a
+    # fragment already credits, and any PR that already has a fragment (which
+    # may spell their name differently), including a stub an earlier run left
+    credited, with_fragment = set(), set()
+    for path in (changes / "dev").glob("*.rst"):
+        with_fragment.add(int(path.name.split(".")[0]))
+        text = path.read_text("utf-8")
+        credited |= {
+            _fold(name)  # accents are spelled inconsistently across changelogs
+            for name in re.findall(r":newcontrib:`([^`]+)`", text)
+            + re.findall(r"`([^`<>]+?)`_", text)
+        }
+    todo = defaultdict(list)  # PR number -> new contributors it never credited
+    for name, pr in first_pr.items():
+        if pr > cutoff and pr not in with_fragment and _fold(name) not in credited:
+            todo[pr].append(name)
+    stubs = []
+    try:
+        with _github_client() as gh:
+            repo = gh.get_repo("mne-tools/mne-python")
+            for pr, names in sorted(todo.items()):
+                credit = " and ".join(f":newcontrib:`{name}`" for name in sorted(names))
+                stub = changes / "dev" / f"{pr}.other.rst"
+                stub.write_text(f"{repo.get_pull(pr).title} by {credit}.\n", "utf-8")
+                stubs.append(stub.name)
+    except Exception:
+        pass  # best-effort only, the credit page is still correct without it
+    if stubs:
+        sphinx_logger.info(f"Added {len(stubs)} changelog stub(s)")
+    return stubs
 
 
 def _apply_newcontrib_names(unresolved):
@@ -472,11 +666,7 @@ def _apply_newcontrib_names(unresolved):
     if not todo:
         return
     try:
-        import github  # not a doc dependency, only needed in --fix-mailmap mode
-
-        token = os.environ.get("GITHUB_TOKEN")
-        auth = github.Auth.Token(token) if token else None
-        with github.Github(auth=auth) as gh:
+        with _github_client() as gh:
             repo = gh.get_repo("mne-tools/mne-python")
             for un in todo:
                 for path in un.changelog_files:
@@ -497,11 +687,7 @@ def _github_website(login):
     if login is None:
         return None
     try:
-        import github  # not a doc dependency, only needed in --report mode
-
-        token = os.environ.get("GITHUB_TOKEN")
-        auth = github.Auth.Token(token) if token else None
-        with github.Github(auth=auth) as gh:
+        with _github_client() as gh:
             website = (gh.get_user(login).blog or "").strip()
     except Exception:
         return None
@@ -510,9 +696,20 @@ def _github_website(login):
     return website or None
 
 
-def _write_report(report_file, added, anchors_added):
+def _write_report(report_file, added, anchors_added, stubs, errors):
     """Write a Markdown summary for the credit GitHub Action's PR body."""
     lines = ["## Contributor name resolution", ""]
+    if errors:
+        # every line needs the "> " prefix or it falls out of the alert
+        alert = [
+            "[!IMPORTANT]",
+            "The doc build will fail until these are fixed in this PR:",
+            "",
+            "```",
+            *"\n\n".join(errors).splitlines(),
+            "```",
+        ]
+        lines += [f"> {line}".rstrip() for line in alert] + [""]
     if added:
         lines += [
             f"{len(added)} new contributor(s) were added to `.mailmap`, named "
@@ -529,8 +726,21 @@ def _write_report(report_file, added, anchors_added):
             if website is not None:
                 links.append(f"[website]({website})")
             lines.append(f"- `{un.mailmap_entry}` — {', '.join(links)}")
-    else:
+    elif not errors:
         lines += ["All contributor names resolved cleanly."]
+    if stubs:
+        lines += [
+            "",
+            f"{len(stubs)} changelog stub(s) were added for new contributors "
+            "whose PR merged without one. The text is just the PR title, so "
+            "reword it, give it a better type than `other`, or delete it:",
+            "",
+        ]
+        for stub in stubs:
+            pr = stub.split(".")[0]
+            lines.append(
+                f"- `doc/changes/dev/{stub}` — [#{pr}]({PR_URL.format(pr=pr)})"
+            )
     if anchors_added:
         lines += [
             "",
@@ -560,18 +770,15 @@ _NULL_GLOBS = """
 # The "doc" entry must precede "maintenance" so doc/*.yml etc. count as doc.
 _ALIAS_GLOBS = {
     "mne.preprocessing": "mne/artifacts/*.py mne/csp.py",
-    "mne.io": "mne/pick.py mne/constants.py mne/info.py mne/fiff/*.* mne/_fiff/*.* "
-    "mne/raw.py mne/testing.py mne/_hdf5.py mne/compensator.py",
+    "mne.io": "mne/pick.py mne/constants.py mne/info.py mne/fiff/*.* mne/_fiff/*.* mne/raw.py mne/testing.py mne/_hdf5.py mne/compensator.py",  # noqa: E501
     "mne.transforms": "mne/transforms/*.py mne/_freesurfer.py",
     "mne.inverse_sparse": "mne/mixed_norm/*.py mne/sparse_learning/*.py",
     "mne.commands": "mne/__main__.py bin/*",
     "mne.surface": "mne/morph_map.py",
     "mne.epochs": "mne/baseline.py",
-    "mne.utils": "mne/parallel.py mne/rank.py mne/misc.py mne/data/*.* "
-    "mne/defaults.py mne/fixes.py mne/icons/*.* mne/icons.*",
+    "mne.utils": "mne/parallel.py mne/rank.py mne/misc.py mne/data/*.* mne/defaults.py mne/fixes.py mne/icons/*.* mne/icons.* mne/**_numba.py",  # noqa: E501
     "mne.filter": "mne/_ola.py mne/cuda.py",
-    "mne.channels": "mne/*digitization/*.py mne/layouts/*.py mne/montages/*.py "
-    "mne/selection.py",
+    "mne.channels": "mne/*digitization/*.py mne/layouts/*.py mne/montages/*.py mne/selection.py",  # noqa: E501
     "mne.bem": "mne/bem_surfaces.py",
     "mne.coreg": "mne/coreg/*.py",
     "mne.minimum_norm": "mne/inverse.py",
@@ -584,9 +791,7 @@ _ALIAS_GLOBS = {
     "doc": "doc/* doc/*.py doc/*.rst",
     "examples": "examples/*.py examples/*.rst",
     "tutorials": "tutorials/*.py tutorials/*.rst",
-    "maintenance": ".circleci/* tools/* *.yml *.md setup.* MANIFEST.in Makefile "
-    "README.rst flow_diagram.py *.toml debian/* logo/*.py *.git* "
-    ".pre-commit-config.yaml .mailmap .coveragerc make/*",
+    "maintenance": ".circleci/* tools/* *.yml *.md setup.* MANIFEST.in Makefile README.rst flow_diagram.py *.toml debian/* logo/*.py *.git* .pre-commit-config.yaml .mailmap .coveragerc make/* .extended_metadata.yaml",  # noqa: E501
 }
 _LINK_OVERRIDES = {  # website links that aren't just module paths in this repo
     "mne-connectivity (moved)": "mne-tools/mne-connectivity",
@@ -612,7 +817,7 @@ def _build_globs():
         if file.is_dir():
             globs[f"mne/{rel}/*.*"] = mod
             globs[f"mne/{rel}.*"] = mod
-        elif file.is_file() and file.suffix == ".py":
+        elif file.is_file() and file.suffix == ".py" and not file.stem.startswith("_"):
             key = f"mne/{rel}.py"
             if file.stem == "conftest":
                 globs[key] = "maintenance"

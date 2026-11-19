@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "9f48d860b218afdc117262908e2f280c094bbbc3",
+  "authors": [
+    {
+      "n": "Judith Schepers",
+      "e": "22366977+jschepers@users.noreply.github.com",
+      "l": "jschepers"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    }
+  ],
+  "changes": {
+    "mne/io/eyelink/_utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

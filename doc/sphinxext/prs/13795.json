@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "49f2078b14dea798e8ebf7f4523e2f41b17b7f74",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com",
+      "l": "PragnyaKhandelwal"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13795.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_mpl_figure.py": {
+      "a": 15,
+      "d": 2
+    },
+    "mne/viz/evoked.py": {
+      "a": 13,
+      "d": 4
+    },
+    "mne/viz/tests/test_evoked.py": {
+      "a": 6,
+      "d": 1
+    },
+    "tutorials/evoked/10_evoked_overview.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

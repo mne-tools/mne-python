@@ -91,10 +91,11 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     assert_allclose(raw.get_data(), raw_read.get_data())
 
 
-def test_export_raw_eeglab(tmp_path):
+def test_export_raw_eeglab(tmp_path, monkeypatch):
     """Test saving a Raw instance to EEGLAB's set format."""
     pytest.importorskip("eeglabio")
-    raw = read_raw_fif(fname_raw, preload=True)
+    # a couple of seconds is enough, and the file gets exported four times below
+    raw = read_raw_fif(fname_raw).crop(0, 2).load_data()
     raw.apply_proj()
     temp_fname = tmp_path / "test.set"
     raw.export(temp_fname)
@@ -118,8 +119,19 @@ def test_export_raw_eeglab(tmp_path):
     # test pathlib.Path files
     raw.export(Path(temp_fname), overwrite=True)
 
+    # test large-data (HDF5) export
+    if check_version("eeglabio", "0.1.4") and check_version("h5py"):
+        from mne.export import _eeglab
+
+        monkeypatch.setattr(_eeglab, "_V5_MAX_BYTES", 0)
+        raw.export(temp_fname, overwrite=True)
+        with open(temp_fname, "rb") as fid:
+            assert fid.read(19) == b"MATLAB 7.3 MAT-file"
+        raw_read = read_raw_eeglab(temp_fname, preload=True, verbose="error")
+        assert_allclose(raw.get_data(), raw_read.get_data())
+
     # test warning with unapplied projectors
-    raw = read_raw_fif(fname_raw, preload=True)
+    raw = read_raw_fif(fname_raw).crop(0, 2).load_data()
     with pytest.warns(RuntimeWarning, match="Raw instance has unapplied projectors."):
         raw.export(temp_fname, overwrite=True)
 
@@ -133,14 +145,14 @@ def test_export_raw_eeglab_annotations(tmp_path, tmin):
     pytest.importorskip("eeglabio")
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
-    annotations = Annotations(
+    annotations = Annotations(  # all onsets are < 1.1 s
         onset=[0.01, 0.05, 0.90, 1.05],
         duration=[0, 1, 0, 0],
         description=["test1", "test2", "test3", "test4"],
         ch_names=[["MEG 0113"], ["MEG 0113", "MEG 0132"], [], ["MEG 0143"]],
     )
     raw.set_annotations(annotations)
-    raw.crop(tmin)
+    raw.crop(tmin, tmin + 1.5)  # tmax keeps the exported file small
 
     # export
     temp_fname = tmp_path / "test.set"
@@ -260,6 +272,46 @@ def test_edf_physical_range(tmp_path):
     raw.export(temp_fname, physical_range="channelwise")
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert_array_almost_equal(raw.get_data(), raw_read.get_data(), decimal=10)
+
+
+@edfio_mark()
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    "fname",
+    (
+        pytest.param(
+            "chtypes_edf.edf",
+            marks=pytest.mark.xfail(reason="edfio float rounding of physical range"),
+        ),
+        pytest.param(
+            "SC4001EC-Hypnogram.edf", marks=pytest.mark.xfail(reason="annot-only?")
+        ),
+        "subsecond_starttime.edf",
+        "test_edf_overlapping_annotations.edf",
+        "test_generator_2.edf",
+        "test_utf8_annotations.edf",
+        pytest.param(
+            "test_edf_stim_resamp.edf",
+            marks=pytest.mark.xfail(
+                reason="unequal sfreq → upsampling → allclose fail"
+            ),
+        ),
+        pytest.param(
+            "test_reduced.edf",
+            marks=pytest.mark.xfail(
+                reason="unequal sfreq → upsampling → allclose fail"
+            ),
+        ),
+    ),
+)
+def test_edf_roundtrip(tmp_path, fname):
+    """Test roundtrip fidelity exporting EDF with original digital/physical ranges."""
+    orig_fpath = data_path / "EDF" / fname
+    orig = read_raw_edf(orig_fpath).pick(slice(None, 0, -1))  # subset and reorder
+    export_fpath = tmp_path / "tmp.edf"
+    orig.export(export_fpath, physical_range="orig", digital_range="orig")
+    reread = read_raw_edf(export_fpath)
+    assert_allclose(reread.get_data(), orig.get_data(), rtol=0, atol=1e-18)
 
 
 @edfio_mark()
@@ -545,7 +597,9 @@ def test_export_epochs_eeglab(tmp_path, preload):
     eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
     raw.load_data()
+    events = events[:6]  # a handful of epochs is plenty, and the file is written 4x
     epochs = Epochs(raw, events, preload=preload)
+    epochs.drop([1, 4])  # keeps one epoch of each type
     temp_fname = tmp_path / "test.set"
     # TODO: eeglabio 0.2 warns about invalid events
     if _compare_version(eeglabio.__version__, "==", "0.0.2-1"):
@@ -560,7 +614,10 @@ def test_export_epochs_eeglab(tmp_path, preload):
     cart_coords = np.array([d["loc"][:3] for d in epochs.info["chs"]])  # just xyz
     cart_coords_read = np.array([d["loc"][:3] for d in epochs_read.info["chs"]])
     assert_allclose(cart_coords, cart_coords_read)
-    assert_array_equal(epochs.events[:, 0], epochs_read.events[:, 0])  # latency
+    event_samples = (
+        np.arange(len(epochs)) * len(epochs.times) + epochs.time_as_index(0)[0]
+    )
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
     assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
     assert_allclose(epochs.times, epochs_read.times)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
@@ -571,9 +628,13 @@ def test_export_epochs_eeglab(tmp_path, preload):
     with ctx():
         epochs.export(temp_fname, overwrite=True)
 
-    # test pathlib.Path files
+    # test pathlib.Path files, and time zero at the last sample
+    epochs.crop(tmax=0)
     with ctx():
         epochs.export(Path(temp_fname), overwrite=True)
+    epochs_read = read_epochs_eeglab(temp_fname, verbose="error")
+    event_samples = np.arange(1, len(epochs) + 1) * len(epochs.times) - 1
+    assert_array_equal(event_samples, epochs_read.events[:, 0])
 
     # test warning with unapplied projectors
     epochs = Epochs(raw, events, preload=preload, proj=False)

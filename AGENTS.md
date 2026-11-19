@@ -15,6 +15,73 @@ This project has an explicit policy on AI-generated contributions:
 
 @CONTRIBUTING.md
 
+Two rules for agents on top of that policy:
+
+- **Do not add AI co-authorship trailers to commits.** No `Co-Authored-By:` line for Claude /
+  Copilot / Cursor / any other tool, and no bot as the commit author. The human opening the PR is
+  the sole author, takes full responsibility for the contents, and must be able to explain and
+  defend every line on request. Disclose the tools used and the scope of their assistance in the
+  PR description instead, as CONTRIBUTING.md requires.
+- **Optimize for the reviewer and for long-term maintainability, not for output volume.** Every
+  line you add is read by a volunteer reviewer and then maintained by humans in perpetuity. See
+  "Keep changes small when possible" below — oversized diffs are the single most common problem
+  with agent-assisted PRs here.
+
+## Keep changes small when possible
+
+A big diff is a cost, not an accomplishment. Aim for the smallest change that delivers the
+user-visible behavior; anything else can be added later, when something actually needs it.
+
+- **Sketch before you generate.** For anything beyond a local fix, summarize the design in a few
+  sentences for the human you are working with, and confirm with them that it is the smallest one
+  that works before writing code. Getting agreement on a design for larger work is worthwhile, but
+  the human decides whether and how to raise it publicly, and writes it in their own words — as
+  CONTRIBUTING.md says, do not paste agent-written text into issues, PRs, or comments. Prefer
+  landing a minimal version and iterating in follow-ups over one large PR.
+- **Stop and re-plan at roughly 150 new lines of implementation.** Growth past that — or reaching
+  for a new module, a new test file, or a new dependency — is a signal that the design is too
+  elaborate, not that progress is being made. Stop, tell the human, and offer the smaller version.
+- **YAGNI: do not build what the feature does not yet need.** No manifests, format versioning or
+  generations, garbage collection, custom locking, retry logic, JSON side-car metadata,
+  platform-specific fallbacks, or extension points unless a test in the same PR fails without
+  them. Unrequested "robustness" is the main way an agent PR reaches +1500. This goes double for
+  public API: a new parameter, keyword value, or config knob needs a demonstrated end-user need,
+  not a hypothetical one, because every one of them is documented, tested, and supported forever.
+  Hard-code the single behavior that is actually wanted and add the option later if someone asks.
+- **DRY: reuse or refactor before writing something new.** Grep for machinery that already
+  exists — `__hash__` and other dunders on the object, helpers in `mne/utils/`, `docdict` entries
+  for parameter text, existing generic test harnesses, joblib / NumPy / SciPy idioms — and build
+  on it rather than writing a bespoke implementation. When the code you need is almost right but
+  not reusable as it stands, factor the shared part out into a private helper (or generalize an
+  existing private function) and call it from both places, rather than copying it and editing the
+  copy. Near-duplicate blocks that drift apart are a long-term maintenance cost here.
+- **Implement at the highest layer that already exists.** Adding behavior once to a base class
+  (e.g. `BaseRaw`) is usually both smaller and broader than adding it to three subclasses, and it
+  covers formats added later for free.
+- **Never promote an optional dependency to a required one** as a side effect of a feature, and do
+  not add a dependency at all without asking first.
+- **Add to an existing test before writing a new one.** In order of preference: extend a test
+  function that already builds the objects you need — a parametrized one especially, since the new
+  assertion then runs across every case for free — then add to the existing test module for that
+  code, and only then write a new test function or file. A new `mne/**/tests/test_<thing>.py` is a
+  signal to stop and look, and new I/O behavior usually belongs in the generic
+  `mne/io/tests/test_raw.py::_test_raw_reader`, which runs for every format. A few compact
+  assertions that run everywhere beat hundreds of lines that run once, and re-created setup is one
+  of the most common things reviewers ask to have deleted. In mne-tools/mne-python#14248 a 30-line
+  standalone test became fewer than 10 lines added to the existing parametrized
+  `test_anonymize_with_io`, which already had the fixture, the save/load round trip, and the
+  `daysback` parametrization that exposed the bug.
+- **Check that a new API spelling does not already mean something else.** A new sentinel or
+  keyword value (`preload="auto"`, `memmap="auto"`, ...) must not collide with an existing meaning
+  of the same string on a related argument.
+
+Worked example of what to avoid: mne-tools/mne-python#14216 opened at +1523/-27, with a 628-line
+private module, a 679-line dedicated test file, and an optional dependency promoted to required.
+After review it delivered the same feature in ~114 implementation lines and ~150 test lines, with
+no manifests, generations, scavenger, or lock file, implemented on `BaseRaw` so it worked for
+every reader instead of three, and smoke-tested from `_test_raw_reader`. That second version is
+what should have been written first.
+
 
 ## Common commands
 
@@ -41,9 +108,6 @@ pytest mne/tests/test_evoked.py -k test_io_evoked --verbose
 # fetch datasets explicitly if needed
 python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
 python -c "import mne; mne.datasets.sample.data_path(verbose=True)"
-
-# useful flags: -x (stop on first failure), --pdb, --durations=5,
-# --cov=mne.viz --cov-report=term-missing (see which lines are covered)
 ```
 
 Docstring / doctest checks:
@@ -67,6 +131,27 @@ make clean           # remove build artifacts, __pycache__, *.pyc/*.so
 There is no separate "build" step for the library itself beyond the editable install (pure
 Python + hatchling/hatch-vcs for versioning from git tags).
 
+Before handing work back, at minimum run `pre-commit run --files <changed files>`, the targeted
+tests for the changed code, and `pytest mne/tests/test_docstring_parameters.py` if public
+docstrings or signatures changed. Report any failures rather than working around them.
+
+## Boundaries
+
+Ask the human first before:
+- adding or bumping a dependency, or changing minimum supported versions;
+- editing CI / release configuration (`.github/workflows/`, `azure-pipelines.yml`,
+  `.circleci/`, `tools/`) or `.pre-commit-config.yaml`;
+- adding, renaming, or removing public API (including new parameters or keyword values), or
+  deprecating anything.
+
+Never:
+- add AI co-authorship trailers or agent-written text to commits, issues, or PRs (see above);
+- skip, `xfail`, loosen, or delete an existing test to make a change pass;
+- bypass hooks (`git commit --no-verify`) or silence warnings/lint rules instead of fixing them;
+- commit data files or large binaries — test data belongs in the external `testing` dataset;
+- edit `doc/changes/dev.rst` or versioned `doc/changes/vX.Y.rst` files by hand;
+- adapt code whose license is not BSD-compatible or cannot be determined (see below).
+
 ## Architecture
 
 ### Lazy public API via stub files
@@ -77,9 +162,7 @@ pattern. When adding a new public function/class, it typically needs to be added
 `__init__.pyi` (and, for docs, to `doc/python_reference.rst`) as well as implemented.
 
 ### I/O readers: one subpackage per format
-`mne/io/<format>/` (ant, array, artemis123, bci2k, besa, boxy, brainvision, bti, cnt, ctf, curry,
-edf, eeglab, egi, eximia, eyelink, fieldtrip, fil, hitachi, kit, mef, nedf, neuralynx, nicolet,
-nihon, nirx, nsx, persyst, snirf, ...) each implement a `read_raw_<format>` function and a
+`mne/io/<format>/` subpackages each implement a `read_raw_<format>` function and a
 format-specific `Raw<Format>` subclass of `BaseRaw` (`mne/io/base.py`). `mne/io/_read_raw.py`
 provides the generic `read_raw()` dispatcher. New format support follows this same shape: a
 subpackage with a reader function + `BaseRaw` subclass + its own `tests/` dir with small
@@ -99,11 +182,19 @@ cropping, projections, export) lives in mixins under `mne/channels/`, `mne/filte
 `mne/utils/mixin.py`, etc. and is composed via multiple inheritance rather than duplicated per
 class.
 
-### Shared/templated docstrings
-Common parameter descriptions live in a central dict in `mne/utils/docs.py` and are spliced into
-function/method docstrings via the `@fill_doc` decorator + `%(param_name)s` placeholders — grep
-for `docdict[` / `@fill_doc` before writing out a parameter docstring by hand, it's likely already
-defined.
+### Shared docstrings (`docdict`)
+Common parameter descriptions live in a central dict in `mne/utils/docs.py`; grep for `docdict[`
+before writing out a parameter docstring by hand, it's likely already defined. New code should use
+`@fill_doc_static("key", ...)` / `@verbose_static("key", ...)` with the full text written out in
+the docstring (and `@copy_function_doc_to_method_doc_static("func:...")` for methods that copy a
+function's docstring); `tools/hooks/check_static_docs.py --fix FILE` expands `%(key)s`
+placeholders and keeps the expanded text in sync with `docdict`. Shared text can be edited either
+in `docdict` or in any one expanded copy; the pre-commit hook (which runs with `--fix`)
+propagates the edit to the other side and fails the commit once so the changes can be reviewed
+and staged (copy -> `docdict` propagation requires the `MNE_PROPAGATE_DOC_CHANGES` config value
+to be true; otherwise the hook errors with an explanation and changes nothing). The legacy `@fill_doc`/`@verbose` decorators substitute `%(key)s` at import time
+(IDEs can't see the result) and are kept only for downstream packages; don't add new uses.
+Private functions that take `verbose` without documenting it use `@_verbose_control`.
 
 ### Changelog is per-PR fragment files (towncrier), not a single hand-edited file
 User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types: `notable`,
@@ -112,7 +203,21 @@ User-facing changes need a file `doc/changes/dev/<PR-number>.<type>.rst` (types:
 `doc/changes/dev.rst` at release time; don't edit `doc/changes/dev.rst` or the versioned
 `doc/changes/vX.Y.rst` files directly for new changes. New contributors must also add themselves
 to `doc/changes/names.inc` (build fails otherwise) and are credited with `:newcontrib:` in their
-changelog entry instead of a plain name link.
+changelog entry instead of a plain name link. Pick `<type>` by intent (performance improvements
+are `newfeature`, not `bugfix`) and keep the entry to one short sentence ending with the
+contributor name link, e.g. "Speed up X by optimizing Y, by `Jane Doe`_"; read an existing
+fragment or two before writing yours.
+
+The `<PR-number>` is not known yet. While it can be determined based off of the highest
+current issue or PR number, this may change between creating the changelog fragment, and
+opening the PR. As an alternative, the file can be created without `<PR-number>`, i.e.,
+`doc/changes/dev/<type>.rst`. In this case, the `.github/workflows/autofix.yml` workflow will
+run on the PR and rename the file to include the PR number.
+
+Where multiple distinct changes of the same type are made in one PR, it may be appropriate to
+create multiple fragments, which use the optional `<count>` suffix,
+`doc/changes/dev/<PR-number>.<type>.<count>.rst`. E.g., `doc/changes/dev/1234.bugfix.1.rst` and
+`doc/changes/dev/1234.bugfix.2.rst`.
 
 ## Code conventions (beyond what ruff enforces)
 
@@ -143,7 +248,12 @@ changelog entry instead of a plain name link.
   when bumping minimum versions, so a workaround without the marker tends to outlive its
   reason for existing.
 - Prefer the `testing` dataset over `sample`/other large datasets in tests (smaller, faster).
-- Prefer to keep unit tests compact and add to existing tests when possible. The full test suite takes about an hour on CIs, so minimizing test time (for CIs) and test verbosity (for reviewers) is important.
+  The full test suite takes about an hour on CIs, so test time matters as much as test length.
+- For a bug fix, confirm that the new or modified tests fail on `main` and pass with the fix:
+  keep the test changes, restore the non-test files to their `main` versions (e.g.,
+  `git diff main -- <src files> > fix.patch && git checkout main -- <src files>`), run the tests,
+  then `git apply fix.patch` and rerun. A regression test that passes without the fix guards
+  nothing. Avoid `git stash` for this, since it can pick up unrelated stashes.
 - When new functionality is added, it is good in general to add it somewhere in an example (`examples/`) or a tutorial (`tutorials/`) to help with discoverability and documentation.
 - Code adapted from an outside source must be under a BSD-compatible license (BSD, MIT, ISC, Apache-2.0, public domain, ...); GPL/LGPL/AGPL and non-commercial or no-derivatives licenses are not acceptable. Attribute it in a comment directly above the adapted code, naming the source (URL and/or author) and its license, e.g.:
   ```python
@@ -151,3 +261,9 @@ changelog entry instead of a plain name link.
   # (BSD-compatible).
   ```
   If the license of a snippet cannot be determined, do not adapt it.
+
+- Benchmarking performance changes: only interleaved A/B runs against a
+  pristine snapshot built from the exact upstream base are trustworthy;
+  whole-suite back-to-back runs drift ±20–100 %. Verify which installed mne a
+  benchmark actually imports (`print(mne.__file__)`) before trusting numbers,
+  and keep fixture data out of commits.

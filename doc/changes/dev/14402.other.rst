@@ -1,0 +1,1 @@
+Optimize multidimensional indexing in :meth:`mne.time_frequency.Spectrum.get_data` and :meth:`mne.time_frequency.EpochsTFR.get_data` to eliminate intermediate array allocations, by :newcontrib:`Ishaan Maheshwari`.

@@ -156,11 +156,10 @@ report.save("report_evoked.html", overwrite=True)
 # Adding `~mne.Covariance`
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# (Noise) covariance objects can be added via
-# :meth:`mne.Report.add_covariance`. The method accepts `~mne.Covariance`
-# objects and the path to a file on disk. It also expects us to pass an
-# `~mne.Info` object or the path to a file to read the measurement info from,
-# as well as a title.
+# (Noise) covariance objects can be added via :meth:`mne.Report.add_covariance`. The
+# method accepts `~mne.Covariance` objects and the path to a file on disk. It also
+# expects us to pass an `~mne.Info` object or the path to a file to read the measurement
+# info from, as well as a title.
 
 cov_path = sample_dir / "sample_audvis-cov.fif"
 
@@ -234,7 +233,12 @@ del raw_full, events, ecg_evoked
 # Lastly, by passing ``n_jobs``, you may largely speed up the generation of
 # the properties plots by enabling parallel execution.
 # To additionally include ICA source time-courses in the report, pass
-# ``plot_sources=True``. This requires ``inst`` to be provided.
+# ``plot_sources=True`` (which requires ``inst`` to be provided). When
+# ``inst`` is a :class:`~mne.io.Raw` object, you can also pass
+# ``source_segments`` and ``source_duration`` to sample multiple evenly-spaced
+# time windows across the recording as an interactive slider, and
+# ``n_components`` to control how many components are shown per figure or
+# slider before paginating into additional cards.
 #
 # .. warning::
 #    In the following example, we request a small number of ICA components
@@ -246,7 +250,7 @@ del raw_full, events, ecg_evoked
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
     fit_params=dict(tol=0.01),  # assume very early on that ICA has converged
-    random_state=97,
+    rng=97,
 )
 
 ica.fit(inst=raw)
@@ -268,6 +272,8 @@ report.add_ica(
     picks=ica.exclude,  # plot the excluded EOG components
     inst=raw,
     plot_sources=True,
+    source_segments=3,
+    source_duration=5.0,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
     n_jobs=None,  # could be increased!

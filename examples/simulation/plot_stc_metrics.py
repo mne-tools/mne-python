@@ -32,7 +32,7 @@ from mne.simulation.metrics import (
     spatial_deviation_error,
 )
 
-random_state = 42  # set random state to make this example deterministic
+random_state = 229  # set random state to make this example deterministic
 
 # Import sample data
 data_path = sample.data_path()
@@ -76,7 +76,7 @@ label_region = mne.label.select_sources(
     location=location,
     extent=extent,
     subjects_dir=subjects_dir,
-    random_state=random_state,
+    rng=random_state,
 )
 
 # Dipole
@@ -88,7 +88,7 @@ label_dipole = mne.label.select_sources(
     location=location,
     extent=extent,
     subjects_dir=subjects_dir,
-    random_state=random_state,
+    rng=random_state,
 )
 
 # WHAT?
@@ -128,7 +128,7 @@ raw_region = mne.simulation.simulate_raw(info, source_simulator_region, forward=
 raw_region = raw_region.pick(picks=["eeg", "stim"], exclude="bads")
 cov = mne.make_ad_hoc_cov(raw_region.info)
 mne.simulation.add_noise(
-    raw_region, cov, iir_filter=[0.2, -0.2, 0.04], random_state=random_state
+    raw_region, cov, iir_filter=[0.2, -0.2, 0.04], rng=random_state
 )
 
 # Dipole
@@ -136,7 +136,7 @@ raw_dipole = mne.simulation.simulate_raw(info, source_simulator_dipole, forward=
 raw_dipole = raw_dipole.pick(picks=["eeg", "stim"], exclude="bads")
 cov = mne.make_ad_hoc_cov(raw_dipole.info)
 mne.simulation.add_noise(
-    raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04], random_state=random_state
+    raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04], rng=random_state
 )
 
 ###############################################################################
