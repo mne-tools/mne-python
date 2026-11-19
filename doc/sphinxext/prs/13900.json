@@ -1,0 +1,67 @@
+{
+  "merge_commit_sha": "c6de8abc07912c5e08662e2bdc30b8fa9f2ce13f",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 2,
+      "d": 1
+    },
+    "azure-pipelines.yml": {
+      "a": 62,
+      "d": 85
+    },
+    "doc/sphinxext/related_software.txt": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/sphinxext/related_software_nodeps.txt": {
+      "a": 6,
+      "d": 6
+    },
+    "mne/conftest.py": {
+      "a": 10,
+      "d": 15
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 7,
+      "d": 3
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 99,
+      "d": 97
+    },
+    "mne/viz/backends/_utils.py": {
+      "a": 7,
+      "d": 1
+    },
+    "tools/azure_dependencies.sh": {
+      "a": 2,
+      "d": 3
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 1,
+      "d": 0
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 11,
+      "d": 11
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/github_actions_download.sh": {
+      "a": 1,
+      "d": 2
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

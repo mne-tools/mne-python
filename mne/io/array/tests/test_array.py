@@ -2,6 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import gc
+import weakref
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -73,6 +75,16 @@ def test_array_copy():
     with pytest.raises(ValueError, match="data copying was not .* copy=None"):
         RawArray(data.astype(np.float32), info, copy=None)
 
+    # _init_kwargs should not retain data to avoid memory leaks
+    data = np.zeros((1, 100))
+    ref = weakref.ref(data)
+    raw = RawArray(data, info)
+    assert "data" not in raw._init_kwargs
+    del data
+    raw._data = np.zeros((1, 50))
+    gc.collect()
+    assert ref() is None
+
 
 @pytest.mark.slowtest
 def test_array_raw():
@@ -117,6 +129,7 @@ def test_array_raw():
     raw2 = _test_raw_reader(
         RawArray,
         test_preloading=False,
+        test_kwargs=False,
         data=data,
         info=info,
         first_samp=2 * data.shape[1],
@@ -164,8 +177,8 @@ def test_array_raw():
     assert_equal(evoked.nave, len(events) - 1)
 
     # complex data
-    rng = np.random.RandomState(0)
-    data = rng.randn(1, 100) + 1j * rng.randn(1, 100)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((1, 100)) + 1j * rng.standard_normal((1, 100))
     raw = RawArray(data, create_info(1, 1000.0, "eeg"))
     assert_allclose(raw._data, data)
 
@@ -174,9 +187,9 @@ def test_array_raw():
     ts_size = 10000
     Fs = 512.0
     ch_names = [str(i) for i in range(n_elec)]
-    ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
+    ch_pos_loc = rng.integers(60, size=(n_elec, 3)).tolist()
 
-    data = np.random.rand(n_elec, ts_size)
+    data = rng.random((n_elec, ts_size))
     montage = make_dig_montage(
         ch_pos=dict(zip(ch_names, ch_pos_loc)), coord_frame="head"
     )

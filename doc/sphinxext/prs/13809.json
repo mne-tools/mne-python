@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "afdae06ff1f21419289d74653d78885f4ae686b6",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "examples/inverse/multi_dipole_model.py": {
+      "a": 4,
+      "d": 2
+    },
+    "examples/stats/r_interop.py": {
+      "a": 3,
+      "d": 3
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 3
+    },
+    "tools/circleci_dependencies.sh": {
+      "a": 3,
+      "d": 1
+    },
+    "tutorials/preprocessing/90_eyetracking_data.py": {
+      "a": 8,
+      "d": 3
+    }
+  }
+}

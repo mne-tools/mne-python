@@ -1,0 +1,1 @@
+Reduce memory consumption and improve execution speed in :func:`mne.stats.permutation_t_test` by chunking permutation evaluations, by `Ishaan Maheshwari`_.

@@ -415,7 +415,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
-        coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
+        coordinate frame and the MRI Surface RAS coordinate frame used by FreeSurfer.
 
     whitening
         A linear operation that transforms data with a known covariance

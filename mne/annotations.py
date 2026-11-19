@@ -7,20 +7,21 @@ import re
 import warnings
 from collections import Counter, OrderedDict, UserDict, UserList
 from collections.abc import Iterable
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from copy import copy, deepcopy
+from datetime import UTC, datetime, timedelta
 from itertools import takewhile
 from textwrap import shorten
 
 import numpy as np
-from scipy.io import loadmat
 
 from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
 from ._fiff.open import fiff_open
 from ._fiff.tag import read_tag
 from ._fiff.tree import dir_tree_find
 from ._fiff.write import (
-    _safe_name_list,
+    _safe_read_name_list,
+    _safe_write_name_list,
     end_block,
     start_and_end_file,
     start_block,
@@ -47,10 +48,10 @@ from .utils import (
     _stamp_to_dt,
     _validate_type,
     check_fname,
-    fill_doc,
+    fill_doc_static,
     int_like,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 from .utils.check import _soft_import
@@ -67,16 +68,16 @@ class _AnnotationsExtrasDict(UserDict):
     strings, integers, floats, or None.
     """
 
-    def __setitem__(self, key: str, value: str | int | float | None) -> None:
+    def __setitem__(self, key: str, item: str | int | float | None) -> None:
         _validate_type(key, str, "key")
         if key in ("onset", "duration", "description", "ch_names", "hed_string"):
             raise ValueError(f"Key '{key}' is reserved and cannot be used in extras.")
         _validate_type(
-            value,
+            item,
             (str, int, float, None),
             "value",
         )
-        super().__setitem__(key, value)
+        super().__setitem__(key, item)
 
 
 class _AnnotationsExtrasList(UserList):
@@ -107,12 +108,19 @@ class _AnnotationsExtrasList(UserList):
             else _AnnotationsExtrasDict(value or {})
         )
 
+    @classmethod
+    def _from_validated(cls, extras):
+        """Wrap already-validated extras dicts without re-validating them."""
+        inst = cls()
+        inst.data = list(extras)
+        return inst
+
     def __init__(self, initlist=None):
         if not (isinstance(initlist, _AnnotationsExtrasList) or initlist is None):
             initlist = [self._validate_value(v) for v in initlist]
         super().__init__(initlist)
 
-    def __setitem__(  # type: ignore[override]
+    def __setitem__(  # ty: ignore[incompatible-method-override]  # intentional narrowing
         self,
         key: int | slice,
         value,
@@ -158,51 +166,89 @@ def _validate_extras(extras, length: int):
     return _AnnotationsExtrasList(extras or [None] * length)
 
 
-def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
-    onset = np.atleast_1d(np.array(onset, dtype=float))
-    if onset.ndim != 1:
+def _ensure_1d(arr, *, dtype, name):
+    arr = np.atleast_1d(np.array(arr, dtype=dtype))
+    if arr.ndim != 1:
         raise ValueError(
-            f"Onset must be a one dimensional array, got {onset.ndim} (shape "
-            f"{onset.shape})."
+            f"{name} must be a one dimensional array, got {arr.ndim} (shape "
+            f"{arr.shape})."
         )
-    duration = np.array(duration, dtype=float)
-    if duration.ndim == 0 or duration.shape == (1,):
-        duration = np.repeat(duration, len(onset))
-    if duration.ndim != 1:
+    return arr
+
+
+def _check_length(arr, n, *, name):
+    if len(arr) != n:
         raise ValueError(
-            f"Duration must be a one dimensional array, got {duration.ndim}."
+            f"Length of {name} ({len(arr)}) must match the length of "
+            f"existing annotations ({n})."
         )
 
-    description = np.array(description, dtype=str)
-    if description.ndim == 0 or description.shape == (1,):
-        description = np.repeat(description, len(onset))
-    if description.ndim != 1:
-        raise ValueError(
-            f"Description must be a one dimensional array, got {description.ndim}."
-        )
-    _safe_name_list(description, "write", "description")
 
-    # ch_names: convert to ndarray of tuples
+def _check_onset(onset, n=None):
+    """Convert and validate onset to a 1D float array."""
+    onset = _ensure_1d(onset, dtype=float, name="onset")
+    if n is not None:
+        _check_length(onset, n, name="onset")
+    return onset
+
+
+def _check_duration(duration, n):
+    """Convert and validate duration to a 1D float array of length n."""
+    duration = _ensure_1d(duration, dtype=float, name="duration")
+    if duration.shape == (1,):
+        duration = np.repeat(duration, n)
+    _check_length(duration, n, name="duration")
+    return duration
+
+
+def _check_description(description, n):
+    """Convert and validate description to a 1D str array of length n."""
+    description = _ensure_1d(
+        description, dtype=np.dtypes.StringDType, name="description"
+    )
+    if description.shape == (1,):
+        description = np.repeat(description, n)
+    _check_length(description, n, name="description")
+    # ↓ just ensures no "{COLON}" present in any descriptions;
+    # ↓ `.tolist()` is done for typing purposes
+    _safe_write_name_list(description.tolist(), "description")
+    return description
+
+
+def _check_ch_names_annot(ch_names, n):
+    """Convert and validate ch_names to an ndarray of tuples of length n."""
     _validate_type(ch_names, (None, tuple, list, np.ndarray), "ch_names")
     if ch_names is None:
-        ch_names = [()] * len(onset)
+        ch_names = [()] * n
     ch_names = list(ch_names)
+    _check_length(ch_names, n, name="ch_names")
     for ai, ch in enumerate(ch_names):
         _validate_type(ch, (list, tuple, np.ndarray), f"ch_names[{ai}]")
         ch_names[ai] = tuple(ch)
         for ci, name in enumerate(ch_names[ai]):
             _validate_type(name, str, f"ch_names[{ai}][{ci}]")
-    ch_names = _ndarray_ch_names(ch_names)
+    return _ndarray_ch_names(ch_names)
 
-    if not (len(onset) == len(duration) == len(description) == len(ch_names)):
-        raise ValueError(
-            "Onset, duration, description, and ch_names must be "
-            f"equal in sizes, got {len(onset)}, {len(duration)}, "
-            f"{len(description)}, and {len(ch_names)}."
-        )
+
+def _check_o_d_s_c_e(onset, duration, description, ch_names, extras):
+    onset = _check_onset(onset)
+    n = len(onset)
+    duration = _check_duration(duration, n)
+    description = _check_description(description, n)
+    ch_names = _check_ch_names_annot(ch_names, n)
 
     extras = _validate_extras(extras, len(onset))
     return onset, duration, description, ch_names, extras
+
+
+def _seconds_to_us(seconds):
+    """Convert float seconds to integer microseconds like datetime.timedelta does."""
+    # timedelta(seconds=x) splits off the whole seconds exactly and rounds the
+    # fraction to the nearest microsecond (ties to even), as does np.round
+    whole = np.trunc(seconds)
+    return whole.astype(np.int64) * 10**6 + np.round((seconds - whole) * 1e6).astype(
+        np.int64
+    )
 
 
 def _ndarray_ch_names(ch_names):
@@ -215,7 +261,7 @@ def _ndarray_ch_names(ch_names):
     return out
 
 
-@fill_doc
+@fill_doc_static("ch_names_annot")
 class Annotations:
     """Annotation object for annotating segments of raw data.
 
@@ -243,10 +289,20 @@ class Annotations:
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
-        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
+        More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' ' and at most
         microsecond precision (nanoseconds are not supported).
-    %(ch_names_annot)s
+    ch_names : list | None
+        List of lists of channel names associated with the annotations.
+        Empty entries are assumed to be associated with no specific channel,
+        i.e., with all channels or with the time slice itself. None (default) is
+        the same as passing all empty lists. For example, this creates three
+        annotations, associating the first with the time interval itself, the
+        second with two channels, and the third with a single channel::
+
+            Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                        description=['Start', 'BAD_flux', 'BAD_noise'],
+                        ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 
         .. versionadded:: 0.23
     extras : list[dict[str, int | float | str | None] | None] | None
@@ -381,7 +437,7 @@ class Annotations:
     ``BAD_ACQ_SKIP`` annotation leads to specific reading/writing file
     behaviours. See :meth:`mne.io.read_raw_fif` and
     :meth:`Raw.save() <mne.io.Raw.save>` notes for details.
-    """  # noqa: E501
+    """
 
     def __init__(
         self,
@@ -398,7 +454,7 @@ class Annotations:
             try:  # only warn if `orig_time` is not the default '1970-01-01 00:00:00'
                 if _handle_meas_date(0) == datetime.strptime(
                     orig_time, "%Y-%m-%d %H:%M:%S"
-                ).replace(tzinfo=timezone.utc):
+                ).replace(tzinfo=UTC):
                     pass
             except ValueError:  # error if incorrect datetime format AND not the default
                 warn(
@@ -408,7 +464,7 @@ class Annotations:
                     f"' '. Got: {orig_time}. Defaulting `orig_time` to None.",
                     RuntimeWarning,
                 )
-        self.onset, self.duration, self.description, self.ch_names, self._extras = (
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
             _check_o_d_s_c_e(onset, duration, description, ch_names, extras)
         )
         self._sort()  # ensure we're sorted
@@ -417,6 +473,98 @@ class Annotations:
     def orig_time(self):
         """The time base of the Annotations."""
         return self._orig_time
+
+    @property
+    def onset(self):
+        """Onset of each annotation (in seconds).
+
+        Returns
+        -------
+        onset : array of shape (n_annotations,)
+            The onset of each annotation in seconds from the start of
+            the recording.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._onset
+
+    @onset.setter
+    def onset(self, onset):
+        onset = _check_onset(onset, n=len(self._onset))
+        self._onset = onset
+
+    @property
+    def duration(self):
+        """Duration of each annotation (in seconds).
+
+        Returns
+        -------
+        duration : array of shape (n_annotations,)
+            The duration of each annotation in seconds.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        n = len(self._duration)
+        duration = _check_duration(duration, n)
+        self._duration = duration
+
+    @property
+    def description(self):
+        """Description of each annotation.
+
+        Returns
+        -------
+        description : array of shape (n_annotations,)
+            A string description for each annotation (e.g., event
+            label or condition name). The array uses NumPy's variable-width
+            :obj:`~numpy.dtypes.StringDType`, so assigning a longer string into an
+            existing entry does not truncate it.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        """
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        n = len(self._description)
+        description = _check_description(description, n)
+        self._description = description
+
+    @property
+    def ch_names(self):
+        """Channel names associated with each annotation.
+
+        Returns
+        -------
+        ch_names : list of tuple
+            Channel names associated with each annotation.
+
+        See Also
+        --------
+        :attr:`~mne.Annotations.onset`
+        :attr:`~mne.Annotations.duration`
+        :attr:`~mne.Annotations.description`
+        """
+        return self._ch_names
+
+    @ch_names.setter
+    def ch_names(self, ch_names):
+        n = len(self._ch_names)
+        ch_names = _check_ch_names_annot(ch_names, n)
+        self._ch_names = ch_names
 
     @property
     def extras(self):
@@ -472,7 +620,18 @@ class Annotations:
         return len(self.duration)
 
     def __add__(self, other):
-        """Add (concatencate) two Annotation objects."""
+        """Add (concatenate) two Annotations objects.
+
+        Parameters
+        ----------
+        other : instance of Annotations
+            The annotations to append. Must have the same ``orig_time``.
+
+        Returns
+        -------
+        annotations : instance of Annotations
+            A new instance containing the annotations of both objects.
+        """
         out = self.copy()
         out += other
         return out
@@ -501,7 +660,14 @@ class Annotations:
         )
 
     def __iter__(self):
-        """Iterate over the annotations."""
+        """Iterate over the annotations.
+
+        Yields
+        ------
+        annotation : OrderedDict
+            The keys are ``onset``, ``duration``, ``description``,
+            ``orig_time``, and (if any are set) ``ch_names`` and ``extras``.
+        """
         # Figure this out once ahead of time for consistency and speed (for
         # thousands of annotations)
         with_ch_names = self._any_ch_names()
@@ -509,8 +675,28 @@ class Annotations:
             yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying numpy structure."""
-        if isinstance(key, int_like):
+        """Propagate indexing and slicing to the underlying numpy structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of Annotations
+            A single annotation (as a dict) if ``key`` is an integer, otherwise
+            a new :class:`~mne.Annotations` instance with the selected
+            annotations.
+        """
+        if isinstance(key, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             out_keys = ("onset", "duration", "description", "orig_time")
             out_vals = (
                 self.onset[key],
@@ -536,7 +722,7 @@ class Annotations:
                 extras=[self.extras[i] for i in np.arange(len(self.extras))[key]],
             )
 
-    @fill_doc
+    @fill_doc_static("ch_names_annot")
     def append(self, onset, duration, description, ch_names=None, *, extras=None):
         """Add an annotated segment. Operates inplace.
 
@@ -550,7 +736,17 @@ class Annotations:
         description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'.
-        %(ch_names_annot)s
+        ch_names : list | None
+            List of lists of channel names associated with the annotations.
+            Empty entries are assumed to be associated with no specific channel,
+            i.e., with all channels or with the time slice itself. None (default) is
+            the same as passing all empty lists. For example, this creates three
+            annotations, associating the first with the time interval itself, the
+            second with two channels, and the third with a single channel::
+
+                Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                            description=['Start', 'BAD_flux', 'BAD_noise'],
+                            ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 
             .. versionadded:: 0.23
         extras : list[dict[str, int | float | str | None] | None] | None
@@ -573,11 +769,15 @@ class Annotations:
         onset, duration, description, ch_names, extras = _check_o_d_s_c_e(
             onset, duration, description, ch_names, extras
         )
-        self.onset = np.append(self.onset, onset)
-        self.duration = np.append(self.duration, duration)
-        self.description = np.append(self.description, description)
-        self.ch_names = np.append(self.ch_names, ch_names)
-        self.extras.extend(extras)
+        # Write directly to private attributes to avoid triggering the public
+        # setter validation, which would raise an error due to temporary length
+        # mismatches while fields are being extended one at a time.
+        # The data is already validated by _check_o_d_s_c_e above.
+        self._onset = np.append(self._onset, onset)
+        self._duration = np.append(self._duration, duration)
+        self._description = np.append(self._description, description)
+        self._ch_names = np.append(self._ch_names, ch_names)
+        self._extras.extend(extras)
         self._sort()
         return self
 
@@ -589,7 +789,30 @@ class Annotations:
         inst : instance of Annotations
             A copy of the object.
         """
-        return deepcopy(self)
+        # Much faster than deepcopy, which recurses into every annotation
+        inst = object.__new__(type(self))
+        inst.__dict__.update(self.__dict__)
+        for key in ("_onset", "_duration", "_description", "_ch_names"):
+            setattr(inst, key, getattr(self, key).copy())  # ch_names are tuples
+        # Extras values are immutable (str, int, float, or None), so a shallow copy
+        # (UserDict.__copy__) of each dict suffices and skips re-validation
+        inst._extras = _AnnotationsExtrasList._from_validated(
+            copy(extra) for extra in self._extras
+        )
+        return inst
+
+    def __getstate__(self):
+        """Get the state for pickling and copying."""
+        state = self.__dict__.copy()
+        # Store the descriptions as a list: copy.deepcopy of a StringDType array
+        # TODO VERSION: segfaults on NumPy < 2.2.5 (numpy/numpy#28609)
+        state["_description"] = self._description.tolist()
+        return state
+
+    def __setstate__(self, state):
+        """Set the state from pickling and copying."""
+        self.__dict__.update(state)
+        self._description = np.array(self._description, dtype=np.dtypes.StringDType)
 
     def delete(self, idx):
         """Remove an annotation. Operates inplace.
@@ -600,24 +823,32 @@ class Annotations:
             Index of the annotation to remove. Can be array-like to
             remove multiple indices.
         """
-        self.onset = np.delete(self.onset, idx)
-        self.duration = np.delete(self.duration, idx)
-        self.description = np.delete(self.description, idx)
-        self.ch_names = np.delete(self.ch_names, idx)
-        if isinstance(idx, int_like):
+        self._onset = np.delete(self._onset, idx)
+        self._duration = np.delete(self._duration, idx)
+        self._description = np.delete(self._description, idx)
+        self._ch_names = np.delete(self._ch_names, idx)
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.extras[idx]
         elif len(idx) > 0:
             # convert slice-like idx to ints, and delete list items in reverse order
             for i in np.sort(np.arange(len(self.extras))[idx])[::-1]:
                 del self.extras[i]
 
-    @fill_doc
+    @fill_doc_static("time_format_df_raw")
     def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
 
         Parameters
         ----------
-        %(time_format_df_raw)s
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values. If ``'datetime'``, time values will be
+            converted to :class:`pandas.Timestamp` values, relative to
+            ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
+            Default is ``None`` unless specified otherwise.
             Default is ``datetime``.
 
             .. versionadded:: 1.7
@@ -687,7 +918,7 @@ class Annotations:
             self.delete(drop_idx)
         return self
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save annotations to FIF, CSV or TXT.
 
@@ -700,10 +931,16 @@ class Annotations:
         ----------
         fname : path-like
             The filename to use.
-        %(overwrite)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
 
             .. versionadded:: 0.23
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Notes
         -----
@@ -740,11 +977,13 @@ class Annotations:
         # the onset-then-duration hierarchy
         vals = sorted(zip(self.onset, self.duration, range(len(self))))
         order = list(list(zip(*vals))[-1]) if len(vals) else []
-        self.onset = self.onset[order]
-        self.duration = self.duration[order]
-        self.description = self.description[order]
-        self.ch_names = self.ch_names[order]
-        self.extras = [self.extras[i] for i in order]
+        self._onset = self._onset[order]
+        self._duration = self._duration[order]
+        self._description = self._description[order]
+        self._ch_names = self._ch_names[order]
+        self._extras = _AnnotationsExtrasList._from_validated(
+            self._extras[i] for i in order
+        )
         return order
 
     def _get_crop_lims(self, tmin, tmax, use_orig_time):
@@ -770,7 +1009,7 @@ class Annotations:
             )
         return offset, absolute_tmin, absolute_tmax
 
-    @verbose
+    @verbose_static()
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
@@ -790,7 +1029,11 @@ class Annotations:
         use_orig_time : bool
             Whether to use orig_time as an offset.
             Defaults to True.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -805,61 +1048,42 @@ class Annotations:
         del tmin, tmax
         logger.debug(f"Cropping annotations {absolute_tmin} - {absolute_tmax}")
 
-        onsets, durations, descriptions, ch_names, extras = [], [], [], [], []
-        out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
-        for idx, (onset, duration, description, ch, extra) in enumerate(
-            zip(self.onset, self.duration, self.description, self.ch_names, self.extras)
-        ):
-            # if duration is NaN behave like a zero
-            if np.isnan(duration):
-                duration = 0.0
-            # convert to absolute times
-            absolute_onset = timedelta(seconds=onset) + offset
-            absolute_offset = absolute_onset + timedelta(seconds=duration)
-            out_of_bounds.append(
-                absolute_onset > absolute_tmax or absolute_offset < absolute_tmin
-            )
-            if out_of_bounds[-1]:
-                clip_left_elem.append(False)
-                clip_right_elem.append(False)
-                logger.debug(
-                    f"  [{idx}] Dropping "
-                    f"({absolute_onset} - {absolute_offset}: {description})"
-                )
-            else:
-                # clip the left side
-                clip_left_elem.append(absolute_onset < absolute_tmin)
-                if clip_left_elem[-1]:
-                    absolute_onset = absolute_tmin
-                clip_right_elem.append(absolute_offset > absolute_tmax)
-                if clip_right_elem[-1]:
-                    absolute_offset = absolute_tmax
-                if clip_left_elem[-1] or clip_right_elem[-1]:
-                    durations.append((absolute_offset - absolute_onset).total_seconds())
-                else:
-                    durations.append(duration)
-                onsets.append((absolute_onset - offset).total_seconds())
-                logger.debug(
-                    f"  [{idx}] Keeping  "
-                    f"({absolute_onset} - {absolute_offset} -> "
-                    f"{onset} - {onset + duration})"
-                )
-                descriptions.append(description)
-                ch_names.append(ch)
-                extras.append(extra)
-        logger.debug(f"Cropping complete (kept {len(onsets)})")
-        self.onset = np.array(onsets, float)
-        self.duration = np.array(durations, float)
-        assert (self.duration >= 0).all()
-        self.description = np.array(descriptions, dtype=str)
-        self.ch_names = _ndarray_ch_names(ch_names)
-        self.extras = extras
+        # Work in integer microseconds relative to offset, which gives the same
+        # results as datetime/timedelta arithmetic (including kept onsets being
+        # rounded to whole microseconds)
+        one_us = timedelta(microseconds=1)
+        tmin_us = (absolute_tmin - offset) // one_us
+        tmax_us = (absolute_tmax - offset) // one_us
+        duration = np.nan_to_num(self.duration, nan=0.0)  # NaN behaves like zero
+        onset_us = _seconds_to_us(self.onset)
+        offset_us = onset_us + _seconds_to_us(duration)
+        out_of_bounds = (onset_us > tmax_us) | (offset_us < tmin_us)
+        keep = np.flatnonzero(~out_of_bounds)
+        onset_us, offset_us, duration = onset_us[keep], offset_us[keep], duration[keep]
+        clip_left = onset_us < tmin_us
+        clip_right = offset_us > tmax_us
+        clipped = clip_left | clip_right
+        onset_us[clip_left] = tmin_us
+        offset_us[clip_right] = tmax_us
+        duration[clipped] = (offset_us[clipped] - onset_us[clipped]) / 1e6
+        logger.debug(
+            f"Cropping complete (kept {len(keep)}, dropped {out_of_bounds.sum()}, "
+            f"clipped {clipped.sum()})"
+        )
+        self._onset = onset_us / 1e6
+        self._duration = duration
+        assert (self._duration >= 0).all()
+        self._description = self._description[keep]
+        self._ch_names = self._ch_names[keep]
+        self._extras = _AnnotationsExtrasList._from_validated(
+            self._extras[i] for i in keep
+        )
 
         if emit_warning:
-            omitted = np.array(out_of_bounds).sum()
+            omitted = out_of_bounds.sum()
             if omitted > 0:
                 warn(f"Omitted {omitted} annotation(s) that were outside data range.")
-            limited = (np.array(clip_left_elem) | np.array(clip_right_elem)).sum()
+            limited = clipped.sum()
             if limited > 0:
                 warn(
                     f"Limited {limited} annotation(s) that were expanding outside the"
@@ -868,7 +1092,7 @@ class Annotations:
 
         return self
 
-    @verbose
+    @verbose_static()
     def set_durations(self, mapping, verbose=None):
         """Set annotation duration(s). Operates inplace.
 
@@ -879,7 +1103,11 @@ class Annotations:
             seconds e.g. ``{'ShortStimulus' : 3, 'LongStimulus' : 12}``.
             Alternatively, if a number is provided, then all annotations
             durations are set to the single provided value.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -915,7 +1143,7 @@ class Annotations:
 
         return self
 
-    @verbose
+    @verbose_static()
     def rename(self, mapping, verbose=None):
         """Rename annotation description(s). Operates inplace.
 
@@ -924,7 +1152,11 @@ class Annotations:
         mapping : dict
             A dictionary mapping the old description to a new description,
             e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -942,7 +1174,10 @@ class Annotations:
             valid_key_source="data",
             key_description="Annotation description(s)",
         )
-        self.description = np.array([str(mapping.get(d, d)) for d in self.description])
+        self.description = np.array(
+            [str(mapping.get(d, d)) for d in self.description],
+            dtype=np.dtypes.StringDType,
+        )
         return self
 
 
@@ -990,7 +1225,7 @@ def _hed_extras_from_hed_annotations(annot):
     return [{**d, "HED": str(hs)} for d, hs in zip(annot.extras, annot.hed_string)]
 
 
-@fill_doc
+@fill_doc_static("ch_names_annot")
 class HEDAnnotations(Annotations):
     """Annotations object for annotating segments of raw data with HED tags.
 
@@ -1019,9 +1254,19 @@ class HEDAnnotations(Annotations):
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
-        More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
+        More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
-    %(ch_names_annot)s
+    ch_names : list | None
+        List of lists of channel names associated with the annotations.
+        Empty entries are assumed to be associated with no specific channel,
+        i.e., with all channels or with the time slice itself. None (default) is
+        the same as passing all empty lists. For example, this creates three
+        annotations, associating the first with the time interval itself, the
+        second with two channels, and the third with a single channel::
+
+            Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                        description=['Start', 'BAD_flux', 'BAD_noise'],
+                        ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
     extras : list[dict[str, int | float | str | None] | None] | None
         Optional list of dicts containing extra fields for each annotation.
         The number of items must match the number of annotations.
@@ -1131,7 +1376,27 @@ class HEDAnnotations(Annotations):
         return f"<{s}>"
 
     def __getitem__(self, key, *, with_ch_names=None, with_extras=True):
-        """Propagate indexing and slicing to the underlying structure."""
+        """Propagate indexing and slicing to the underlying structure.
+
+        Parameters
+        ----------
+        key : int | slice | array-like
+            The annotation(s) to select.
+        with_ch_names : bool | None
+            Whether to include the ``ch_names`` key when returning a single
+            annotation. If ``None``, include it only if any annotation has
+            channel names.
+        with_extras : bool
+            Whether to include the ``extras`` key when returning a single
+            annotation.
+
+        Returns
+        -------
+        annotation : OrderedDict | instance of HEDAnnotations
+            A single annotation (as a dict, including ``hed_string``) if
+            ``key`` is an integer, otherwise a new
+            :class:`~mne.HEDAnnotations` instance with the selected annotations.
+        """
         result = super().__getitem__(
             key, with_ch_names=with_ch_names, with_extras=with_extras
         )
@@ -1152,13 +1417,23 @@ class HEDAnnotations(Annotations):
             extras=result.extras if with_extras else None,
         )
 
+    def copy(self):
+        """Return a copy of the HEDAnnotations.
+
+        Returns
+        -------
+        inst : instance of HEDAnnotations
+            A copy of the object.
+        """
+        return deepcopy(self)  # uses __getstate__ to drop the HED module reference
+
     def __getstate__(self):
         """Make serialization work, by removing module reference."""
         return dict(
             _orig_time=self._orig_time,
             onset=self.onset,
             duration=self.duration,
-            description=self.description,
+            description=self.description.tolist(),  # see Annotations.__getstate__
             ch_names=self.ch_names,
             _extras=self.extras,
             hed_string=list(self.hed_string),
@@ -1168,17 +1443,21 @@ class HEDAnnotations(Annotations):
     def __setstate__(self, state):
         """Unpack from serialized format."""
         self._orig_time = state["_orig_time"]
-        self.onset = state["onset"]
-        self.duration = state["duration"]
-        self.description = state["description"]
-        self.ch_names = state["ch_names"]
-        self.extras = state.get("_extras", [None] * len(self.onset))
+        self._onset, self._duration, self._description, self._ch_names, self._extras = (
+            _check_o_d_s_c_e(
+                state["onset"],
+                state["duration"],
+                state["description"],
+                state["ch_names"],
+                state.get("_extras", None),
+            )
+        )
         self._hed_version = state["_hed_version"]
         self.hed_string = _HEDStrings(
             state["hed_string"], hed_version=self._hed_version
         )
 
-    @fill_doc
+    @fill_doc_static("ch_names_annot")
     def append(
         self, *, onset, duration, description, hed_string, ch_names=None, extras=None
     ):
@@ -1198,7 +1477,17 @@ class HEDAnnotations(Annotations):
             Sequence of strings containing a HED tag (or comma-separated list of HED
             tags) for each annotation. If a single string is provided, all annotations
             are assigned the same HED string.
-        %(ch_names_annot)s
+        ch_names : list | None
+            List of lists of channel names associated with the annotations.
+            Empty entries are assumed to be associated with no specific channel,
+            i.e., with all channels or with the time slice itself. None (default) is
+            the same as passing all empty lists. For example, this creates three
+            annotations, associating the first with the time interval itself, the
+            second with two channels, and the third with a single channel::
+
+                Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                            description=['Start', 'BAD_flux', 'BAD_noise'],
+                            ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
         extras : list[dict[str, int | float | str | None] | None] | None
             Optional list of dicts containing extras fields for each annotation.
 
@@ -1211,6 +1500,7 @@ class HEDAnnotations(Annotations):
             onset, duration, description, ch_names, extras
         )
         hed_string = self._check_hed_strings(hed_string, len(onset))
+
         hed_objs = [
             self.hed_string._validate_hed_string(v, self.hed_string._schema)
             for v in hed_string
@@ -1229,7 +1519,6 @@ class HEDAnnotations(Annotations):
     def __iadd__(self, other):
         """Add (concatenate) two HEDAnnotations objects in-place."""
         if not isinstance(other, type(self)):
-            # Convert self to plain Annotations, preserving HED in extras
             extras = _hed_extras_from_hed_annotations(self)
             result = Annotations(
                 onset=self.onset,
@@ -1267,7 +1556,7 @@ class HEDAnnotations(Annotations):
             indices.
         """
         super().delete(idx)
-        if isinstance(idx, int_like):
+        if isinstance(idx, int_like):  # ty: ignore[invalid-argument-type]  # __instancecheck__
             del self.hed_string._objs[idx]
             del self.hed_string[idx]
         else:
@@ -1284,7 +1573,7 @@ class HEDAnnotations(Annotations):
                 i, self.hed_string._objs[i].get_original_hed_string()
             )
 
-    @verbose
+    @verbose_static()
     def crop(
         self, tmin=None, tmax=None, emit_warning=False, use_orig_time=True, verbose=None
     ):
@@ -1304,7 +1593,11 @@ class HEDAnnotations(Annotations):
         use_orig_time : bool
             Whether to use orig_time as an offset.
             Defaults to True.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1342,13 +1635,21 @@ class HEDAnnotations(Annotations):
         )
         return self
 
-    @fill_doc
+    @fill_doc_static("time_format_df_raw")
     def to_data_frame(self, time_format="datetime"):
         """Export annotations in tabular structure as a pandas DataFrame.
 
         Parameters
         ----------
-        %(time_format_df_raw)s
+        time_format : str | None
+            Desired time format. If ``None``, no conversion is applied, and time values
+            remain as float values in seconds. If ``'ms'``, time values will be rounded
+            to the nearest millisecond and converted to integers. If ``'timedelta'``,
+            time values will be converted to
+            :class:`pandas.Timedelta` values. If ``'datetime'``, time values will be
+            converted to :class:`pandas.Timestamp` values, relative to
+            ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
+            Default is ``None`` unless specified otherwise.
 
         Returns
         -------
@@ -1365,11 +1666,19 @@ class HEDAnnotations(Annotations):
 class EpochAnnotationsMixin:
     """Mixin class for Annotations in Epochs."""
 
+    # Attributes provided by the host class (BaseEpochs), declared here so the
+    # mixin methods type-check.
+    info: Info
+    events: np.ndarray
+    times: np.ndarray
+    _raw_sfreq: float
+    _annotations: Annotations | None
+
     @property
     def annotations(self):  # noqa: D102
         return self._annotations
 
-    @verbose
+    @verbose_static("on_missing_ch_names")
     def set_annotations(self, annotations, on_missing="raise", *, verbose=None):
         """Setter for Epoch annotations from Raw.
 
@@ -1381,8 +1690,17 @@ class EpochAnnotationsMixin:
         ----------
         annotations : instance of mne.Annotations | None
             Annotations to set.
-        %(on_missing_ch_names)s
-        %(verbose)s
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -1453,6 +1771,7 @@ class EpochAnnotationsMixin:
         # check if annotations exist
         if self.annotations is None:
             return epoch_annot_list
+        assert self._annotations is not None
 
         # when each epoch and annotation starts/stops
         # no need to account for first_samp here...
@@ -1554,8 +1873,8 @@ class EpochAnnotationsMixin:
             return self
 
         # get existing metadata DataFrame or instantiate an empty one
-        if self._metadata is not None:
-            metadata = self._metadata
+        if self._metadata is not None:  # ty: ignore[missing-attribute]  # host pandas attr
+            metadata = self._metadata  # ty: ignore[missing-attribute]  # host pandas attr
         else:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
@@ -1616,7 +1935,10 @@ def _combine_annotations(
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
     ch_names = np.concatenate([one.ch_names, two.ch_names])
-    return Annotations(onset, duration, description, one.orig_time, ch_names)
+    extras = one.extras + two.extras
+    return Annotations(
+        onset, duration, description, one.orig_time, ch_names, extras=extras
+    )
 
 
 def _handle_meas_date(meas_date):
@@ -1631,25 +1953,35 @@ def _handle_meas_date(meas_date):
     if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = "%Y-%m-%d %H:%M:%S.%f"
         try:
-            meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+            dt = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+            meas_date = dt.replace(tzinfo=UTC)
         except ValueError:
-            meas_date = None
-        else:
-            meas_date = meas_date.replace(tzinfo=timezone.utc)
+            try:
+                dt = datetime.strptime(meas_date, "%Y-%m-%d %H:%M:%S.%f%z")
+                meas_date = dt.astimezone(UTC)
+            except ValueError:
+                meas_date = None
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
+    elif isinstance(meas_date, datetime):
+        # Non-UTC timezone-aware datetimes are converted to UTC for internal storage
+        if meas_date.tzinfo is None:
+            raise ValueError(
+                f"Date must be a timezone-aware datetime object: {repr(meas_date)}"
+            )
+        meas_date = meas_date.astimezone(UTC)
+    elif np.isscalar(meas_date):
+        # It would be nice just to do:
+        #
+        #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+        #
+        # But Windows does not like timestamps < 0. So we'll use
+        # our specialized wrapper instead:
+        meas_date = np.array(np.modf(meas_date)[::-1])
+        meas_date *= [1, 1e6]
+        meas_date = _stamp_to_dt(np.round(meas_date))
     if meas_date is not None:
-        if np.isscalar(meas_date):
-            # It would be nice just to do:
-            #
-            #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
-            #
-            # But Windows does not like timestamps < 0. So we'll use
-            # our specialized wrapper instead:
-            meas_date = np.array(np.modf(meas_date)[::-1])
-            meas_date *= [1, 1e6]
-            meas_date = _stamp_to_dt(np.round(meas_date))
         _check_dt(meas_date)  # run checks
     return meas_date
 
@@ -1738,7 +2070,7 @@ def _write_annotations_csv(fname, annot):
     annot = annot.to_data_frame()
     if "ch_names" in annot:
         annot["ch_names"] = [
-            _safe_name_list(ch, "write", name=f'annot["ch_names"][{ci}')
+            _safe_write_name_list(ch, name=f'annot["ch_names"][{ci}')
             for ci, ch in enumerate(annot["ch_names"])
         ]
     extras_columns = set(annot.columns) - {
@@ -1769,7 +2101,7 @@ def _write_annotations_txt(fname, annot):
         content += ", ch_names"
         data.append(
             [
-                _safe_name_list(ch, "write", f"annot.ch_names[{ci}]")
+                _safe_write_name_list(ch, name=f"annot.ch_names[{ci}]")
                 for ci, ch in enumerate(annot.ch_names)
             ]
         )
@@ -1785,7 +2117,7 @@ def _write_annotations_txt(fname, annot):
                 )
             data.append([val if val is not None else "" for val in values])
     content += "\n"
-    data = np.array(data, dtype=str).T
+    data = np.array(data, dtype=np.dtypes.StringDType).T
     assert data.ndim == 2
     assert data.shape[0] == len(annot.onset)
     assert data.shape[1] == n_cols
@@ -1794,9 +2126,14 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
-@fill_doc
+@fill_doc_static("encoding_edf")
 def read_annotations(
-    fname, sfreq="auto", uint16_codec=None, encoding="utf8", ignore_marker_types=False
+    fname,
+    sfreq="auto",
+    uint16_codec=None,
+    encoding="utf8",
+    ignore_marker_types=False,
+    data_format="auto",
 ) -> Annotations:
     r"""Read annotations from a file.
 
@@ -1825,11 +2162,15 @@ def read_annotations(
         too small". ``uint16_codec`` allows to specify what codec (for example:
         ``'latin1'`` or ``'utf-8'``) should be used when reading character
         arrays and can therefore help you solve this problem.
-    %(encoding_edf)s
+    encoding : str
+        Encoding of annotations channel(s). Default is "utf8" (the only correct
+        encoding according to the EDF+ standard).
         Only used when reading EDF annotations.
     ignore_marker_types : bool
         If ``True``, ignore marker types in BrainVision files (and only use their
         descriptions). Defaults to ``False``.
+    data_format : str
+        Only used by CNT files, see :func:`mne.io.read_raw_cnt` for details.
 
     Returns
     -------
@@ -1874,6 +2215,7 @@ def read_annotations(
     kwargs = {
         ".vmrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
         ".amrk": {"sfreq": sfreq, "ignore_marker_types": ignore_marker_types},
+        ".cnt": {"data_format": data_format},
         ".dat": {"sfreq": sfreq},
         ".cdt": {"sfreq": sfreq},
         ".cef": {"sfreq": sfreq},
@@ -1931,23 +2273,21 @@ def _read_annotations_csv(fname):
             "onsets in seconds."
         )
     except ValueError:
-        # remove nanoseconds for ISO8601 (microsecond) compliance
-        timestamp = pd.Timestamp(orig_time)
-        timespec = "microseconds"
-        if timestamp == pd.Timestamp(_handle_meas_date(0)).astimezone(None):
-            timespec = "auto"  # use default timespec for `orig_time=None`
-        orig_time = timestamp.isoformat(sep=" ", timespec=timespec)
+        # remove nanoseconds for ISO8601 (microsecond) compliance; orig_time is None
+        # when CSV onsets are relative to the 1970-01-01 epoch (gh-8573)
+        ts = pd.Timestamp(orig_time)
+        orig_time = (
+            None if ts.year == 1970 else ts.isoformat(sep=" ", timespec="microseconds")
+        )
 
     onset_dt = pd.to_datetime(df["onset"])
-    onset = (onset_dt - onset_dt[0]).dt.total_seconds()
+    ref = pd.Timestamp(0, tz=onset_dt.dt.tz) if orig_time is None else onset_dt[0]
+    onset = (onset_dt - ref).dt.total_seconds()
     duration = df["duration"].values.astype(float)
     description = df["description"].values
     ch_names = None
     if "ch_names" in df.columns:
-        ch_names = [
-            _safe_name_list(val, "read", "annotation channel name")
-            for val in df["ch_names"].values
-        ]
+        ch_names = [_safe_read_name_list(val) for val in df["ch_names"].values]
     extra_columns = list(
         df.columns.difference(["onset", "duration", "description", "ch_names"])
     )
@@ -1978,6 +2318,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
+    from scipy.io import loadmat
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
@@ -2096,8 +2437,8 @@ def _read_annotations_txt(fname):
     desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     if ch_names is not None:
         ch_names = [
-            _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
-            for ci, ch in enumerate(ch_names)
+            _safe_read_name_list(ch.decode().strip())
+            for ci, ch in enumerate(np.atleast_1d(ch_names))
         ]
 
     annotations = Annotations(
@@ -2132,13 +2473,13 @@ def _read_annotations_fif(fid, tree):
                 duration = tag.data
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
-                description = _safe_name_list(tag.data, "read", "description")
+                description = _safe_read_name_list(tag.data)
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:
-                    orig_time = float(orig_time)  # old way
+                    orig_time = float(tag.data)  # old way
                 except TypeError:
-                    orig_time = tuple(orig_time)  # new way
+                    orig_time = tuple(tag.data)  # new way
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 ch_names = tuple(tuple(x) for x in json.loads(tag.data))
             elif kind == FIFF.FIFF_FREE_LIST:
@@ -2258,7 +2599,7 @@ def _check_event_description(event_desc, events):
     return event_desc
 
 
-@verbose
+@verbose_static("events")
 def events_from_annotations(
     raw,
     event_id="auto",
@@ -2292,6 +2633,11 @@ def events_from_annotations(
           - Other raw formats: Behaves like None.
 
           .. versionadded:: 0.18
+
+        Several descriptions may map to the same event code (e.g., to merge
+        conditions), but the returned ``event_id`` then cannot be passed to
+        :class:`~mne.Epochs` as-is, because it requires each event code to map to
+        exactly one name.
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match. The default ignores descriptions beginning
@@ -2314,11 +2660,17 @@ def events_from_annotations(
         ``chunk_duration`` is not ``None``. If the duration from a computed
         chunk onset to the end of the annotation is smaller than
         ``chunk_duration`` minus ``tol``, the onset will be discarded.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
-    %(events)s
+    events : ndarray of int, shape (n_events, 3)
+        The identity and timing of experimental events, around which the epochs were
+        created. See :term:`events` for more information.
     event_id : dict
         The event_id variable that can be passed to :class:`~mne.Epochs`.
 
@@ -2381,7 +2733,7 @@ def events_from_annotations(
     return events, event_id_
 
 
-@verbose
+@verbose_static()
 def annotations_from_events(
     events, sfreq, event_desc=None, first_samp=0, orig_time=None, verbose=None
 ):
@@ -2411,7 +2763,11 @@ def annotations_from_events(
         Determines the starting time of annotation acquisition. If None
         (default), starting time is determined from beginning of raw data
         acquisition. For details, see :meth:`mne.Annotations` docstring.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

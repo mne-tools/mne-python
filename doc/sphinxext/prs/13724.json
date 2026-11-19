@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "1502d0bd2ed5e1331a319110f24411deb5c99e29",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/spec_zero.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

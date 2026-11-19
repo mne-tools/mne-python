@@ -27,7 +27,12 @@ from mne.time_frequency import (
     read_csd,
     tfr_morlet,
 )
-from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
+from mne.time_frequency.csd import (
+    _csd_triu_from_mt,
+    _sym_mat_to_vector,
+    _vector_to_sym_mat,
+)
+from mne.time_frequency.multitaper import _csd_from_mt
 from mne.utils import sum_squared
 
 base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
@@ -438,11 +443,12 @@ def _test_fourier_multitaper_parameters(epochs, csd_epochs, csd_array):
     )
 
     # Test checks for data types and sizes
-    diff_types = [np.random.randn(3, 5), "error"]
-    err_data = [np.random.randn(3, 5), np.random.randn(2, 4)]
+    rng = np.random.default_rng(0)
+    diff_types = [rng.standard_normal((3, 5)), "error"]
+    err_data = [rng.standard_normal((3, 5)), rng.standard_normal((2, 4))]
     raises(ValueError, csd_array, err_data, sfreq=1)
     raises(ValueError, csd_array, diff_types, sfreq=1)
-    raises(ValueError, csd_array, np.random.randn(3), sfreq=1)
+    raises(ValueError, csd_array, rng.standard_normal(3), sfreq=1)
 
 
 def test_csd_fourier():
@@ -566,6 +572,14 @@ def test_csd_multitaper():
             )
             mt_power_per_sample = np.abs(csd_mt[0, 0]) * sfreq / n_fft
             assert abs(signal_power_per_sample - mt_power_per_sample) < 0.001
+
+    # Fast all-pairs CSD matches the pairwise one, with per-channel (adaptive) weights
+    rng = np.random.default_rng(0)
+    x_mt = rng.standard_normal((4, 3, 5)) + 1j * rng.standard_normal((4, 3, 5))
+    weights = rng.uniform(0.5, 1, (4, 3, 5))
+    ii, jj = np.triu_indices(4)
+    want = _csd_from_mt(x_mt[ii], x_mt[jj], weights[ii], weights[jj])
+    assert_allclose(_csd_triu_from_mt(x_mt, weights), want)
 
 
 def test_csd_morlet():

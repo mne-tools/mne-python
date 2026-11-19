@@ -2,7 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from typing import IO, Any
+
 from ..utils import logger
+from ..utils._bunch import NamedInt
 from .constants import FIFF
 from .tag import find_tag, has_tag
 from .write import (
@@ -94,7 +97,7 @@ def _read_named_matrix(fid, node, matkind, indent="    ", transpose=False):
     return mat
 
 
-def write_named_matrix(fid, kind, mat):
+def write_named_matrix(fid: IO[bytes], kind: NamedInt, mat: dict[str, Any]) -> None:
     """Write named matrix from the given node.
 
     Parameters

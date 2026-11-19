@@ -1,0 +1,1 @@
+Add a ``theme`` parameter to :func:`mne.gui.coregistration`, and use a dark default 3D background with readable dock titles, legend, and orientation axes, by `Payam Sadeghi-Shabestari`_.

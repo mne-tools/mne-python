@@ -1,0 +1,1 @@
+Exclude pre-existing bad channels that are not bridged from :func:`~mne.preprocessing.interpolate_bridged_electrodes` interpolation, by `Deepesh Sonar`_.

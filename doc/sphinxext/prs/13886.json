@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "d894194b74eb4bdb632250d6cebd47093c67ba1e",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/viz/backends/_pyvista.py": {
+      "a": 10,
+      "d": 6
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

@@ -7,6 +7,7 @@
 import os.path as op
 from calendar import timegm
 from time import strptime
+from typing import Any
 
 import numpy as np
 
@@ -93,7 +94,7 @@ def _convert_time(date_str, time_str):
             "POSIX epoch (1970/01/01 midnight)"
         )
 
-    for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y", "%Y/%m/%d"):
+    for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d-%b-%Y", "%a, %b %d, %Y", "%Y/%m/%d"):
         try:
             date = strptime(date_str.strip(), fmt)
         except ValueError:
@@ -182,7 +183,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
     this_comp = None
     for k, cch in enumerate(res4["chs"]):
         cal = float(1.0 / (cch["proper_gain"] * cch["qgain"]))
-        ch = dict(
+        ch: dict[str, Any] = dict(
             scanno=k + 1,
             range=1.0,
             cal=cal,
@@ -398,7 +399,7 @@ def _convert_comp_data(res4):
 
 def _pick_eeg_pos(c):
     """Pick EEG positions."""
-    eeg = dict(
+    eeg: dict[str, Any] = dict(
         coord_frame=FIFF.FIFFV_COORD_HEAD,
         assign_to_chs=False,
         labels=list(),

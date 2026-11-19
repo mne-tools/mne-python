@@ -1,0 +1,1 @@
+IDEs that display docstrings through static analysis (e.g., VS Code) now show complete docstrings for MNE-Python functions, methods, and classes, by `Eric Larson`_.

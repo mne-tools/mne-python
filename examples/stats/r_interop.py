@@ -1,9 +1,9 @@
 """
 .. _r-interop:
 
-============================
-Integrating with R via rpy2
-============================
+===============================
+Integrating with R via ``rpy2``
+===============================
 
 This example shows how to run a mass-univariate 2-sample t-test on
 :class:`~mne.Epochs` data in Python using :func:`scipy.stats.ttest_ind`,
@@ -30,6 +30,7 @@ used for anything the R ecosystem has to offer.
 # We use the MNE sample dataset and create epochs for two conditions:
 # auditory/left and auditory/right.
 
+import numpy as np
 import rpy2.robjects as ro
 from rpy2.robjects import default_converter, numpy2ri
 from rpy2.robjects.conversion import localconverter
@@ -142,3 +143,4 @@ print(f"R       →  t = {t_r:.4f},  p = {p_r:.4f}")
 
 print(f"\nt difference: {abs(t_python - t_r):.2e}")
 print(f"p difference: {abs(p_python - p_r):.2e}")
+np.testing.assert_allclose([t_python, p_python], [t_r, p_r], rtol=1e-10)

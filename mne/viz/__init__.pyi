@@ -1,5 +1,6 @@
 __all__ = [
     "Brain",
+    "LayeredMesh",
     "ClickableImage",
     "EvokedField",
     "Figure3D",
@@ -13,6 +14,7 @@ __all__ = [
     "backends",
     "centers_to_edges",
     "circular_layout",
+    "clear_3d_figure",
     "close_3d_figure",
     "close_all_3d_figures",
     "compare_fiff",
@@ -102,11 +104,12 @@ from ._3d import (
     set_3d_options,
     snapshot_brain_montage,
 )
-from ._brain import Brain
+from ._brain import Brain, LayeredMesh
 from ._figure import get_browser_backend, set_browser_backend, use_browser_backend
 from ._proj import plot_projs_joint
 from .backends._abstract import Figure3D
 from .backends.renderer import (
+    clear_3d_figure,
     close_3d_figure,
     close_all_3d_figures,
     create_3d_figure,

@@ -1,0 +1,1 @@
+Add a toolbar (screenshot, show/hide controls, help) with keyboard shortcuts to :func:`mne.gui.coregistration`, and show ICP fitting progress with a button (or :kbd:`Esc`) to stop the fit early, by `Payam Sadeghi-Shabestari`_.

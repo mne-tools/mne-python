@@ -1,0 +1,136 @@
+{
+  "merge_commit_sha": "c85b81597abd1f55a26725d77109c32ee145974b",
+  "authors": [
+    {
+      "n": "Carina",
+      "e": "carinaforster0611@gmail.com",
+      "l": "CarinaFo"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    },
+    {
+      "n": "maximilien.chaumon",
+      "e": "maximilien.chaumon@sorbonne-universite.fr"
+    },
+    {
+      "n": "SophieHerbst",
+      "e": "ksherbst@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/api/statistics.rst": {
+      "a": 2,
+      "d": 0
+    },
+    "doc/changes/dev/12663.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "environment.yml": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/stats/cluster_stats_evoked.py": {
+      "a": 5,
+      "d": 0
+    },
+    "mne/channels/channels.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/datasets/config.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/stats/__init__.pyi": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 703,
+      "d": 7
+    },
+    "mne/stats/tests/conftest.py": {
+      "a": 36,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_equiv.py": {
+      "a": 366,
+      "d": 0
+    },
+    "mne/stats/tests/test_cluster_level_legacy.py": {
+      "a": 22,
+      "d": 34
+    },
+    "mne/stats/tests/test_cluster_level_modern.py": {
+      "a": 421,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 76,
+      "d": 57
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/20_erp_stats.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/40_cluster_1samp_time_freq.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/50_cluster_between_time_freq.py": {
+      "a": 5,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/70_cluster_rmANOVA_time_freq.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/75_cluster_ftest_spatiotemporal.py": {
+      "a": 6,
+      "d": 0
+    },
+    "tutorials/stats-sensor-space/76_new_cluster_test_api.py": {
+      "a": 206,
+      "d": 0
+    }
+  }
+}

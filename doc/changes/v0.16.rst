@@ -256,3 +256,5 @@ People who contributed to this release  (in alphabetical order):
 * Stefan Repplinger
 * Tommy Clausner
 * Yaroslav Halchenko
+
+.. include:: names.inc

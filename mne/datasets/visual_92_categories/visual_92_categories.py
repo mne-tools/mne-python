@@ -2,11 +2,11 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from ...utils import verbose
+from ...utils import verbose_static
 from ..utils import _data_path_doc, _download_mne_dataset, _get_version, _version_doc
 
 
-@verbose
+@verbose_static()
 def data_path(
     path=None, force_update=False, update_path=True, download=True, *, verbose=None
 ):
@@ -31,7 +31,11 @@ def data_path(
     update_path : bool | None
         If True, set the MNE_DATASETS_VISUAL_92_CATEGORIES_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

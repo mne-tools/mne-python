@@ -1,0 +1,1 @@
+Add ``selectable`` parameter to :meth:`mne.time_frequency.Spectrum.plot` and :meth:`mne.time_frequency.EpochsSpectrum.plot` to disable interactive features, by `Eric Larson`_.

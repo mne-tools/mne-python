@@ -4,7 +4,7 @@
 
 from functools import partial
 
-from ...utils import get_config, verbose
+from ...utils import _verbose_control, get_config
 from ..utils import (
     _data_path_doc,
     _download_mne_dataset,
@@ -16,7 +16,7 @@ from ..utils import (
 has_testing_data = partial(has_dataset, name="testing")
 
 
-@verbose
+@_verbose_control
 def data_path(
     path=None, force_update=False, update_path=True, download=True, *, verbose=None
 ):  # noqa: D103

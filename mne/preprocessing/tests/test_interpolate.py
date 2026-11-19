@@ -96,6 +96,40 @@ def test_interpolate_bridged_electrodes():
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
+    # pre-existing bads that are not bridged must not influence the bridged
+    # interpolation (raw only; the behavior does not depend on the input type)
+    idx0 = raw.ch_names.index("EEG 001")
+    idx1 = raw.ch_names.index("EEG 002")
+    ch_names_orig = raw.ch_names.copy()
+    raw.info["bads"] = ["EEG 003"]
+    bads_orig = raw.info["bads"].copy()
+    # Verify non-bridged bad doesn't influence the interpolation result
+    inst_clean = interpolate_bridged_electrodes(raw.copy(), [(idx0, idx1)])
+    data_clean = inst_clean.get_data(picks=["EEG 001", "EEG 002"])
+    inst_pois = raw.copy()
+    inst_pois.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 003"])
+    data_bad_poisoned = inst_pois.get_data(picks="EEG 003").copy()
+    inst_pois = interpolate_bridged_electrodes(inst_pois, [(idx0, idx1)])
+    assert np.array_equal(inst_pois.get_data(picks=["EEG 001", "EEG 002"]), data_clean)
+    assert np.array_equal(inst_pois.get_data(picks="EEG 003"), data_bad_poisoned)
+    assert inst_pois.info["bads"] == bads_orig
+    assert not any(["virtual" in ch for ch in inst_pois.ch_names])
+    assert inst_pois.ch_names == ch_names_orig
+    # Bridged channel that is also marked bad should be repaired
+    inst_overlap = raw.copy()
+    inst_overlap.info["bads"] = ["EEG 001", "EEG 003"]
+    bads_overlap = inst_overlap.info["bads"].copy()
+    data_bad_before = inst_overlap.get_data(picks="EEG 003").copy()
+    inst_overlap.apply_function(lambda x: np.full_like(x, 1.0), picks=["EEG 001"])
+    data_bridged_poisoned = inst_overlap.get_data(picks="EEG 001").copy()
+    inst_overlap = interpolate_bridged_electrodes(inst_overlap, [(idx0, idx1)])
+    assert inst_overlap.info["bads"] == bads_overlap
+    assert not np.array_equal(
+        inst_overlap.get_data(picks="EEG 001"), data_bridged_poisoned
+    )
+    assert np.array_equal(inst_overlap.get_data(picks="EEG 003"), data_bad_before)
+    raw.info["bads"] = []
+
     for inst in (raw, epochs, evoked):
         idx0 = inst.ch_names.index("EEG 001")
         idx1 = inst.ch_names.index("EEG 002")
@@ -117,24 +151,28 @@ def test_interpolate_bridged_electrodes():
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
     # test bad_limit
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1005")
     ch_names = [
         ch
         for ch in montage.ch_names
         if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]
     ]
     info = create_info(ch_names, sfreq=1024, ch_types="eeg")
-    data = np.random.randn(len(ch_names), 1024)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((len(ch_names), 1024))
     data[:5, :] = np.ones((5, 1024))
     raw = io.RawArray(data, info)
-    raw.set_montage("standard_1020")
+    raw.set_montage("spherical_1005")
+    raw.info["bads"] = [ch_names[10]]  # a bad channel outside the bridged group
     bridged_idx = list(itertools.combinations(range(5), 2))
     with pytest.raises(
         RuntimeError,
-        match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
+        match="The channels AF1, AF10, AF10h, AF1h, AF2 are bridged "
         "together and form a large area of bridged electrodes.",
     ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
+    # bads must be preserved when the error is raised
+    assert raw.info["bads"] == [ch_names[10]]
     # increase the limit to prevent raising
     interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)
     # invalid argument
@@ -146,7 +184,7 @@ def test_interpolate_bridged_electrodes():
 
 def test_find_centroid():
     """Test that the centroid is correct."""
-    montage = make_standard_montage("standard_1020")
+    montage = make_standard_montage("spherical_1005")
     ch_names = [
         ch
         for ch in montage.ch_names
@@ -172,7 +210,7 @@ def test_find_centroid():
         ("Fpz", "AFz"),
         ("AF7", "F7"),
         ("O1", "O2"),
-        ("M2", "A2"),
+        ("TP9", "TP9h"),
         ("P5", "P9"),
     ]
     for ch_names in pairs:

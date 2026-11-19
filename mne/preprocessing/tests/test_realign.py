@@ -139,7 +139,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
         realign_raw(raw, other, raw_times[:5], other_times[:5])
     with pytest.raises(ValueError, match="same shape"):
         realign_raw(raw_orig, other_orig, raw_times[:5], other_times)
-    rand_times = np.random.RandomState(0).randn(len(other_times))
+    rand_times = np.random.default_rng(0).standard_normal(len(other_times))
     with pytest.raises(ValueError, match="cannot resample safely"):
         realign_raw(raw_orig, other_orig, rand_times, other_times)
     with pytest.warns(RuntimeWarning, match=".*computed as R=.*unreliable"):

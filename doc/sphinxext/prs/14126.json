@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "8a7a1d79060b926c3d7f43bd8fa863bc9468b118",
+  "authors": [
+    {
+      "n": "Lifeng",
+      "e": "76589235+Gnefil@users.noreply.github.com",
+      "l": "Gnefil"
+    },
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14126.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 16,
+      "d": 6
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 29,
+      "d": 0
+    },
+    "mne/viz/ui_events.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

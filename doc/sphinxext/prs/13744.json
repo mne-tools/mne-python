@@ -1,0 +1,19 @@
+{
+  "merge_commit_sha": "82cc6f0aaaeb03bccb493929c55f966c90820d5b",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/datasets/_phantom/base.py": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/utils/check.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

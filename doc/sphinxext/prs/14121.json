@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "699f34663f4195e3c8ff64cee5ce6cdb9ff8f820",
+  "authors": [
+    {
+      "n": "mne[bot]",
+      "e": "50266005+mne-bot@users.noreply.github.com",
+      "l": "mne-bot"
+    }
+  ],
+  "changes": {
+    "tools/pylock.ci-old.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

@@ -30,12 +30,12 @@ subjects_dir = data_path / "subjects"
 fname_mri = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
 aseg_fname = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 
 @testing.requires_testing_data
 def test_check_subject_dir():
-    """Test checking for a Freesurfer recon-all subject directory."""
+    """Test checking for a FreeSurfer recon-all subject directory."""
     _check_subject_dir("sample", subjects_dir)
     with pytest.raises(ValueError, match="subject folder is incorrect"):
         _check_subject_dir("foo", data_path)
@@ -113,8 +113,8 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     pytest.importorskip("nibabel")
     n_check = 1000
     subject = "sample"
-    vertices = rng.randint(0, 100000, n_check)
-    hemis = rng.randint(0, 1, n_check)
+    vertices = rng.integers(0, 100000, n_check)
+    hemis = rng.integers(0, 2, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     read_mri = mne._freesurfer._read_mri_info
     monkeypatch.setattr(
@@ -128,7 +128,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
 
 
 def test_read_lta(tmp_path):
-    """Test reading a Freesurfer linear transform array file."""
+    """Test reading a FreeSurfer linear transform array file."""
     with open(tmp_path / "test.lta", "w") as fid:
         fid.write(
             """type      = 0 # LINEAR_VOX_TO_VOX

@@ -1,0 +1,1 @@
+Add Array API support to :class:`mne.decoding.ReceptiveField` with compatible scikit-learn estimators, preserving the input backend for predictions, scores, and patterns, by `Daria Agafonova`_.

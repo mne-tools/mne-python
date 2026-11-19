@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "7ad77a39600fb1c2989848c2258bdc4afc88960b",
+  "authors": [
+    {
+      "n": "Lumberbot (aka Jack)",
+      "e": "39504233+meeseeksmachine@users.noreply.github.com",
+      "l": "meeseeksmachine"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14300.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

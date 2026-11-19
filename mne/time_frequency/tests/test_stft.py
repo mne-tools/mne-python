@@ -41,7 +41,8 @@ def test_stft(T, wsize, tstep, f):
     )
 
     # Test with random signal
-    x = np.random.randn(2, T)
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((2, T))
     wsize = 16
     tstep = 8
     X = stft(x, wsize, tstep)

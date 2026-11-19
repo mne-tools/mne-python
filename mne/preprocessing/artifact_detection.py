@@ -4,9 +4,7 @@
 
 
 import numpy as np
-from scipy.ndimage import distance_transform_edt, label
 from scipy.signal import find_peaks
-from scipy.stats import zscore
 
 from ..annotations import (
     Annotations,
@@ -30,12 +28,12 @@ from ..utils import (
     _pl,
     _validate_type,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 
 
-@verbose
+@verbose_static("n_jobs_cuda")
 def annotate_muscle_zscore(
     raw,
     threshold=4,
@@ -75,8 +73,17 @@ def annotate_muscle_zscore(
     filter_freq : array-like, shape (2,)
         The lower and upper frequencies of the band-pass filter.
         Default is ``(110, 140)``.
-    %(n_jobs)s
-    %(verbose)s
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+        is installed properly.
+
+        .. versionchanged:: 1.13
+           Added support for CUDA.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -85,10 +92,29 @@ def annotate_muscle_zscore(
     scores_muscle : array
         Z-score values averaged across channels for each sample.
 
+    Notes
+    -----
+    Because the z-scores are summed across channels and divided by
+    ``sqrt(n_channels)``, an artifact present on only a few channels is diluted:
+    one channel with a z-score of 10 among 270 channels contributes only
+    ``10 / sqrt(270)``, about 0.6, to the score. To detect focal muscle activity,
+    such as temporal muscle seen on a few temporal sensors, pass a copy restricted
+    to those channels, e.g. ``annotate_muscle_zscore(raw.copy().pick(ch_names))``.
+
+    Each channel is z-scored against its own mean and standard deviation over the
+    whole recording (excluding segments annotated as bad). If a channel shows
+    muscle activity during a large part of the recording, that activity inflates
+    its mean and standard deviation, so the artifact no longer stands out and may
+    not be annotated. In that case, consider marking the channel as bad rather than
+    annotating time spans.
+
     References
     ----------
     .. footbibliography::
     """
+    from scipy.ndimage import label
+    from scipy.stats import zscore
+
     raw_copy = raw.copy()
 
     if ch_type is None:
@@ -107,7 +133,7 @@ def annotate_muscle_zscore(
         logger.info("Using %s sensors for muscle artifact detection", ch_type)
     else:
         _check_option("ch_type", ch_type, ["mag", "grad", "eeg"])
-    raw_copy.pick(ch_type)
+    raw_copy.pick(ch_type, exclude="bads")
 
     raw_copy.filter(
         filter_freq[0],
@@ -176,7 +202,7 @@ def annotate_movement(
         Head translation velocity limit in meters per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
-    use_dev_head_trans : 'average' (default) | 'info'
+    use_dev_head_trans : 'average' | 'info'
         Identify the device to head transform used to define the
         fixed HPI locations for computing moving distances.
         If ``average`` the average device to head transform is
@@ -299,7 +325,7 @@ def annotate_movement(
     return annot, disp
 
 
-@verbose
+@verbose_static()
 def compute_average_dev_head_t(raw, pos, *, verbose=None):
     """Get new device to head transform based on good segments.
 
@@ -314,7 +340,11 @@ def compute_average_dev_head_t(raw, pos, *, verbose=None):
     pos : array, shape (N, 10) | list of ndarray
         The position and quaternion parameters from cHPI fitting. Can be
         a list containing multiple position arrays, one per raw instance passed.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -406,6 +436,8 @@ def _raw_hp_weights(raw, pos):
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
+    from scipy.ndimage import distance_transform_edt
+
     mask_tf = distance_transform_edt(mask)
     # Overcome the shortcoming of find_peaks
     # in finding a marginal peak, by
@@ -436,7 +468,7 @@ def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     return Annotations(onsets, durations, desc, orig_time=orig_time)
 
 
-@verbose
+@verbose_static()
 def annotate_break(
     raw,
     events=None,
@@ -498,7 +530,11 @@ def annotate_break(
         indicating "edges" (produced by data concatenation) will be
         ignored. Pass an empty list or tuple to take all existing annotations
         into account. If ``events`` is passed, this parameter has no effect.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

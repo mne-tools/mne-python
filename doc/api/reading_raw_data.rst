@@ -16,6 +16,7 @@ Reading raw data
    read_raw
    read_raw_ant
    read_raw_artemis123
+   read_raw_bci2k
    read_raw_bdf
    read_raw_boxy
    read_raw_brainvision
@@ -40,6 +41,7 @@ Reading raw data
    read_raw_nihon
    read_raw_nirx
    read_raw_nsx
+   read_raw_nwb
    read_raw_neuralynx
    read_raw_persyst
    read_raw_snirf

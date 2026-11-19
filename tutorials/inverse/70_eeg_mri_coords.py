@@ -33,7 +33,7 @@ from mne.viz import plot_alignment
 # - your subject's MRI reconstrcted using FreeSurfer
 # - an appropriate boundary element model (BEM)
 # - an appropriate source space (src)
-# - your EEG electrodes in Freesurfer surface RAS coordinates, stored
+# - your EEG electrodes in FreeSurfer surface RAS coordinates, stored
 #   in one of the formats :func:`mne.channels.read_custom_montage` supports
 #
 # Let's set the paths to these files for the ``sample`` dataset, including
@@ -82,7 +82,7 @@ plot_glass_brain(
 # ------------------------------------------------------------------------
 # Let's load our :class:`~mne.channels.DigMontage` using
 # :func:`mne.channels.read_custom_montage`, making note of the fact that
-# we stored our locations in Freesurfer surface RAS (MRI) coordinates.
+# we stored our locations in FreeSurfer surface RAS (MRI) coordinates.
 #
 # .. dropdown:: What if my electrodes are in MRI voxels?
 #     :color: warning

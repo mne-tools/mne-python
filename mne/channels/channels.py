@@ -13,10 +13,6 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
-from scipy.io import loadmat
-from scipy.sparse import csr_array, lil_array
-from scipy.spatial import Delaunay
-from scipy.stats import zscore
 
 from .._fiff.constants import FIFF
 from .._fiff.meas_info import (  # noqa F401
@@ -52,10 +48,11 @@ from ..utils import (
     _get_stim_channel,
     _on_missing,
     _validate_type,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     legacy,
     logger,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -107,7 +104,7 @@ def _get_meg_system(info):
     return system, have_helmet
 
 
-@verbose
+@verbose_static()
 def equalize_channels(instances, copy=True, verbose=None):
     """Equalize channel picks and ordering across multiple MNE-Python objects.
 
@@ -131,7 +128,11 @@ def equalize_channels(instances, copy=True, verbose=None):
         default) the dropping and re-ordering of channels happens in-place.
 
         .. versionadded:: 0.20.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -294,7 +295,14 @@ def unify_bad_channels(insts):
 class ReferenceMixin(MontageMixin):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    @verbose
+    @verbose_static(
+        "ref_channels_set_eeg_reference",
+        "projection_set_eeg_reference",
+        "ch_type_set_eeg_reference",
+        "forward_set_eeg_reference",
+        "joint_set_eeg_reference",
+        "set_eeg_reference_see_also_notes",
+    )
     def set_eeg_reference(
         self,
         ref_channels="average",
@@ -314,12 +322,64 @@ class ReferenceMixin(MontageMixin):
 
         Parameters
         ----------
-        %(ref_channels_set_eeg_reference)s
-        %(projection_set_eeg_reference)s
-        %(ch_type_set_eeg_reference)s
-        %(forward_set_eeg_reference)s
-        %(joint_set_eeg_reference)s
-        %(verbose)s
+        ref_channels : list of str | str | dict
+            Can be:
+
+            - The name(s) of the channel(s) used to construct the reference for
+              every channel of ``ch_type``.
+            - ``'average'`` to apply an average reference (default)
+            - ``'REST'`` to use the Reference Electrode Standardization Technique
+              infinity reference :footcite:`Yao2001`.
+            - A dictionary mapping names of data channels to (lists of) names of
+              reference channels. For example, {'A1': 'A3'} would replace the
+              data in channel 'A1' with the difference between 'A1' and 'A3'. To take
+              the average of multiple channels as reference, supply a list of channel
+              names as the dictionary value, e.g. {'A1': ['A2', 'A3']} would replace
+              channel A1 with ``A1 - mean(A2, A3)``.
+            - An empty list, in which case MNE will not attempt any re-referencing of
+              the data
+        projection : bool
+            If ``ref_channels='average'`` this argument specifies if the
+            average reference should be computed as a projection (True) or not
+            (False; default). If ``projection=True``, the average reference is
+            added as a projection and is not applied to the data (it can be
+            applied afterwards with the ``apply_proj`` method). If
+            ``projection=False``, the average reference is directly applied to
+            the data. If ``ref_channels`` is not ``'average'``, ``projection``
+            must be set to ``False`` (the default in this case).
+        ch_type : "auto" | "eeg" | "ecog" | "seeg" | "dbs" | sequence of str
+            The name of the channel type to apply the reference to.
+            Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
+            ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
+            that is found (in that order) will be selected.
+
+            .. versionadded:: 0.19
+            .. versionchanged:: 1.2
+               ``list-of-str`` is now supported with ``projection=True``.
+            .. versionchanged:: 1.13
+               ``list-of-str`` with ``projection=False`` and ``ref_channels="average"``
+               now applies a per-channel-type reference by default (set ``joint=True``
+               for the previous union-of-types behavior).
+        forward : instance of Forward | None
+            Forward solution to use. Only used with ``ref_channels='REST'``.
+
+            .. versionadded:: 0.21
+        joint : bool
+            How to handle list-of-str ``ch_type``. If False (default), the reference is
+            computed per channel type (one projector per type when ``projection=True``;
+            one average reference subtracted per type when ``projection=False`` and
+            ``ref_channels="average"``). If True, a single reference is computed across
+            all listed channel types.
+
+            .. versionadded:: 1.2
+            .. versionchanged:: 1.13
+               Now also applies when ``projection=False``. Previously, the
+               ``projection=False`` path silently behaved as if ``joint=True``.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -327,7 +387,70 @@ class ReferenceMixin(MontageMixin):
             Data with EEG channels re-referenced. If ``ref_channels='average'``
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
-        %(set_eeg_reference_see_also_notes)s
+
+        See Also
+        --------
+        mne.set_bipolar_reference : Convenience function for creating bipolar
+                                references.
+
+        Notes
+        -----
+        Some common referencing schemes and the corresponding value for the
+        ``ref_channels`` parameter:
+
+        - Average reference:
+            A new virtual reference electrode is created by averaging the current
+            EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+            automatically excluded if they are properly set in ``info['bads']``.
+
+        .. note::
+            When performing average referencing in sensor-space analyses, the original
+            reference electrode should be present as a zero-filled channel. If it is
+            not, this must first be added using :func:`~mne.add_reference_channels`,
+            before calling :func:`~mne.set_eeg_reference`. This is necessary to avoid
+            biasing the reference :footcite:`KimEtAl2023`.
+
+        - A single electrode:
+            Set ``ref_channels`` to a list containing the name of the channel that
+            will act as the new reference, for example ``ref_channels=['Cz']``.
+
+        - The mean of multiple electrodes:
+            A new virtual reference electrode is created by computing the average
+            of the current EEG signal recorded from two or more selected channels.
+            Set ``ref_channels`` to a list of channel names, indicating which
+            channels to use. For example, to apply an average mastoid reference,
+            when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
+
+        - REST
+            The given EEG electrodes are referenced to a point at infinity using the
+            lead fields in ``forward``, which helps standardize the signals.
+
+        - Different references for different channels
+            Set ``ref_channels`` to a dictionary mapping source channel names (str)
+            to the reference channel names (str or list of str). Unlike the other
+            approaches where the same reference is applied globally, you can set
+            different references for different channels with this method. For example,
+            to re-reference channel 'A1' to 'A2' and 'B1' to the average of 'B2' and
+            'B3', set ``ref_channels={'A1': 'A2', 'B1': ['B2', 'B3']}``. Warnings are
+            issued when a mapping involves bad channels or channels of different types.
+
+        1. If a reference is requested that is not the average reference, this
+           function removes any pre-existing average reference projections.
+
+        2. During source localization, the EEG signal should have an average
+           reference.
+
+        3. In order to apply a reference, the data must be preloaded. This is not
+           necessary if ``ref_channels='average'`` and ``projection=True``.
+
+        4. For an average or REST reference, bad EEG channels are automatically
+           excluded if they are properly set in ``info['bads']``.
+
+        .. versionadded:: 0.9.0
+
+        References
+        ----------
+        .. footbibliography::
         """
         return set_eeg_reference(
             self,
@@ -340,10 +463,35 @@ class ReferenceMixin(MontageMixin):
         )[0]
 
 
+def _check_drop_ch_names(ch_names, current_ch_names, on_missing="raise"):
+    if isinstance(ch_names, str):
+        ch_names = [ch_names]
+
+    try:
+        all_str = all([isinstance(ch, str) for ch in ch_names])
+    except TypeError:
+        raise ValueError(
+            f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
+        )
+
+    if not all_str:
+        raise ValueError(
+            "Each element in 'ch_names' must be str, got "
+            f"{[type(ch) for ch in ch_names]}."
+        )
+
+    missing = [ch for ch in ch_names if ch not in current_ch_names]
+    if len(missing) > 0:
+        msg = "Channel(s) {0} not found, nothing dropped."
+        _on_missing(on_missing, msg.format(", ".join(missing)))
+
+    return [ch for ch in ch_names if ch in current_ch_names]
+
+
 class UpdateChannelsMixin:
     """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
-    @verbose
+    @verbose_static("pick_types_params")
     @legacy(alt="inst.pick(...)")
     def pick_types(
         self,
@@ -381,8 +529,78 @@ class UpdateChannelsMixin:
 
         Parameters
         ----------
-        %(pick_types_params)s
-        %(verbose)s
+        meg : bool | str
+            If True include MEG channels. If string it can be 'mag', 'grad',
+            'planar1' or 'planar2' to select only magnetometers, all
+            gradiometers, or a specific type of gradiometer.
+        eeg : bool
+            If True include EEG channels.
+        stim : bool
+            If True include stimulus channels.
+        eog : bool
+            If True include EOG channels.
+        ecg : bool
+            If True include ECG channels.
+        emg : bool
+            If True include EMG channels.
+        ref_meg : bool | str
+            If True include CTF / 4D reference channels. If 'auto', reference
+            channels are included if compensations are present and ``meg`` is
+            not False. Can also be the string options for the ``meg``
+            parameter.
+        misc : bool
+            If True include miscellaneous analog channels.
+        resp : bool
+            If ``True`` include respiratory channels.
+        chpi : bool
+            If True include continuous HPI coil channels.
+        exci : bool
+            Flux excitation channel used to be a stimulus channel.
+        ias : bool
+            Internal Active Shielding data (maybe on Triux only).
+        syst : bool
+            System status channel information (on Triux systems only).
+        seeg : bool
+            Stereotactic EEG channels.
+        dipole : bool
+            Dipole time course channels.
+        gof : bool
+            Dipole goodness of fit channels.
+        bio : bool
+            Bio channels.
+        ecog : bool
+            Electrocorticography channels.
+        fnirs : bool | str
+            Functional near-infrared spectroscopy channels. If True include all
+            fNIRS channels. If False (default) include none. If string it can
+            be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+            include channels measuring deoxyhemoglobin).
+        csd : bool
+            EEG-CSD channels.
+        dbs : bool
+            Deep brain stimulation channels.
+        temperature : bool
+            Temperature channels.
+        gsr : bool
+            Galvanic skin response channels.
+        eyetrack : bool | str
+            Eyetracking channels. If True include all eyetracking channels. If False
+            (default) include none. If string it can be 'eyegaze' (to include
+            eye position channels) or 'pupil' (to include pupil-size
+            channels).
+        include : sequence of str
+            List of additional channels to include. If empty do not include
+            any.
+        exclude : sequence of str | str
+            List of channels to exclude. If 'bads' (default), exclude channels
+            in ``info['bads']``.
+        selection : sequence of str
+            Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -445,7 +663,7 @@ class UpdateChannelsMixin:
 
         return self
 
-    @verbose
+    @verbose_static("ordered")
     @legacy(alt="inst.pick(...)")
     def pick_channels(self, ch_names, ordered=True, *, verbose=None):
         """Pick some channels.
@@ -454,8 +672,18 @@ class UpdateChannelsMixin:
         ----------
         ch_names : list
             The list of channels to select.
-        %(ordered)s
-        %(verbose)s
+        ordered : bool
+            If True (default), ensure that the order of the channels in
+            the modified instance matches the order of ``ch_names``.
+
+            .. versionadded:: 0.20.0
+            .. versionchanged:: 1.7
+                The default changed from False in 1.6 to True in 1.7.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
             .. versionadded:: 1.1
 
@@ -483,17 +711,29 @@ class UpdateChannelsMixin:
         picks = pick_channels(self.info["ch_names"], ch_names, ordered=ordered)
         return self._pick_drop_channels(picks)
 
-    @verbose
+    @verbose_static("picks_all")
     def pick(self, picks, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
         Parameters
         ----------
-        %(picks_all)s
+        picks : str | array-like | slice | None
+            Channels to include. Slices and lists of integers will be interpreted as
+            channel indices. In lists, channel *type* strings (e.g., ``['meg',
+            'eeg']``) will pick channels of those types, channel *name* strings (e.g.,
+            ``['MEG0111', 'MEG2623']`` will pick the given channels. Can also be the
+            string values ``'all'`` to pick all channels, or ``'data'`` to pick
+            :term:`data channels`. None (default) will pick all channels. Bad channels
+            are included by default. Note that channels in ``info['bads']`` *will be
+            included* if their names or indices are explicitly provided.
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
             .. versionadded:: 0.24.0
 
@@ -555,7 +795,7 @@ class UpdateChannelsMixin:
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
-    @fill_doc
+    @fill_doc_static("on_missing_ch_names")
     def drop_channels(self, ch_names, on_missing="raise"):
         """Drop channel(s).
 
@@ -563,7 +803,12 @@ class UpdateChannelsMixin:
         ----------
         ch_names : iterable or str
             Iterable (e.g. list) of channel name(s) or channel name to remove.
-        %(on_missing_ch_names)s
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -580,34 +825,14 @@ class UpdateChannelsMixin:
         -----
         .. versionadded:: 0.9.0
         """
-        if isinstance(ch_names, str):
-            ch_names = [ch_names]
-
-        try:
-            all_str = all([isinstance(ch, str) for ch in ch_names])
-        except TypeError:
-            raise ValueError(
-                f"'ch_names' must be iterable, got type {type(ch_names)} ({ch_names})."
-            )
-
-        if not all_str:
-            raise ValueError(
-                "Each element in 'ch_names' must be str, got "
-                f"{[type(ch) for ch in ch_names]}."
-            )
-
-        missing = [ch for ch in ch_names if ch not in self.ch_names]
-        if len(missing) > 0:
-            msg = "Channel(s) {0} not found, nothing dropped."
-            _on_missing(on_missing, msg.format(", ".join(missing)))
-
-        bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
+        drop_chs = _check_drop_ch_names(ch_names, self.ch_names, on_missing)
+        bad_idx = [self.ch_names.index(ch) for ch in drop_chs]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         if len(idx) == 0:
             raise ValueError("All channels would be dropped.")
         return self._pick_drop_channels(idx)
 
-    @verbose
+    @_verbose_control
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
@@ -646,9 +871,10 @@ class UpdateChannelsMixin:
 
         if isinstance(self, BaseRaw):
             self.annotations._prune_ch_names(self.info, on_missing="ignore")
-            self._orig_units = {
-                k: v for k, v in self._orig_units.items() if k in self.ch_names
-            }
+            if self._orig_units:
+                self._orig_units = {
+                    k: v for k, v in self._orig_units.items() if k in self.ch_names
+                }
 
         self._pick_projs()
         return self
@@ -751,6 +977,7 @@ class UpdateChannelsMixin:
         # Now update the attributes
         if (
             isinstance(self._data, np.memmap)
+            and self._data.mode != "c"
             and con_axis == 0
             and sys.platform != "darwin"
         ):  # resizing not available--no mremap
@@ -796,7 +1023,7 @@ class UpdateChannelsMixin:
 
         return self
 
-    @fill_doc
+    @fill_doc_static("ref_channels")
     def add_reference_channels(self, ref_channels):
         """Add reference channels to data that consists of all zeros.
 
@@ -806,7 +1033,10 @@ class UpdateChannelsMixin:
 
         Parameters
         ----------
-        %(ref_channels)s
+        ref_channels : str | list of str
+            Name of the electrode(s) which served as the reference in the
+            recording. If a name is provided, a corresponding channel is added
+            and its data is set to 0. This is useful for later re-referencing.
 
         Returns
         -------
@@ -819,7 +1049,7 @@ class UpdateChannelsMixin:
 class InterpolationMixin:
     """Mixin class for Raw, Evoked, Epochs."""
 
-    @verbose
+    @verbose_static()
     def interpolate_bads(
         self,
         reset_bads=True,
@@ -828,6 +1058,8 @@ class InterpolationMixin:
         method=None,
         exclude=(),
         on_bad_position="warn",
+        *,
+        interpolation=None,
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -837,7 +1069,9 @@ class InterpolationMixin:
         Parameters
         ----------
         reset_bads : bool
-            If True, remove the bads from info.
+            If True, remove the interpolated channels from ``info["bads"]``.
+            Bad channels that were not interpolated (e.g., those in ``exclude``
+            or of a channel type not handled by ``method``) are kept.
         mode : str
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of channels
@@ -879,7 +1113,19 @@ class InterpolationMixin:
             filled with :data:`~numpy.nan`.
 
             .. versionadded:: 1.12
-        %(verbose)s
+        interpolation : dict | None
+            Precomputed interpolation data from
+            :func:`mne.channels.compute_interpolation_data`, which maps ``"eeg"``
+            and/or ``"meg"`` to :class:`~mne.channels.InterpolationData`. For each
+            channel type present, ``method`` is ``"spline"`` (EEG) or ``"MNE"``
+            (MEG), and the ``origin`` and ``mode`` used to compute the data are used.
+
+            .. versionadded:: 1.14
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -893,6 +1139,7 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            InterpolationData,
             _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
@@ -903,13 +1150,21 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
+        _validate_type(interpolation, (dict, None), "interpolation")
+        interpolation = dict() if interpolation is None else interpolation
+        for key, data in interpolation.items():
+            _check_option("interpolation key", key, ("eeg", "meg"))
+            _validate_type(data, InterpolationData, f"interpolation[{key!r}]")
+            _check_option(f"interpolation[{key!r}]['kind']", data["kind"], (key,))
 
         # check for channels with invalid position(s)
-        invalid_chs = []
-        for ch in self.info["bads"]:
-            loc = self.info["chs"][self.ch_names.index(ch)]["loc"][:3]
-            if np.allclose(loc, 0.0, rtol=0, atol=1e-16) or np.isnan(loc).any():
-                invalid_chs.append(ch)
+        # vectorized, as e.g. autoreject passes many bads on each call
+        name_to_idx = {name: ii for ii, name in enumerate(self.ch_names)}
+        locs = np.array(
+            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in self.info["bads"]]
+        ).reshape(-1, 3)
+        invalid = np.all(np.abs(locs) <= 1e-16, axis=1) | np.isnan(locs).any(axis=1)
+        invalid_chs = [ch for ch, inv in zip(self.info["bads"], invalid) if inv]
 
         if invalid_chs:
             if on_bad_position == "raise":
@@ -942,6 +1197,8 @@ class InterpolationMixin:
         keys2delete = set(method) - set(ch_types)
         for key in keys2delete:
             del method[key]
+        for key in set(interpolation) & set(method):
+            method[key] = dict(eeg="spline", meg="MNE")[key]
         valids = {
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
@@ -953,41 +1210,55 @@ class InterpolationMixin:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
-        idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
-        if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
+        bads = set(self.info["bads"])
+
+        def _has_bads(picks):
+            idx = _picks_to_idx(self.info, picks, exclude=(), allow_empty=True)
+            return any(self.ch_names[pi] in bads for pi in idx)
+
+        if not _has_bads(list(method)):
             warn("No bad channels to interpolate. Doing nothing...")
             return self
         for ch_type in method.copy():
-            idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
-            if len(pick_info(self.info, idx)["bads"]) == 0:
+            if not _has_bads(ch_type):
                 method.pop(ch_type)
+        picks = _picks_to_idx(
+            self.info, list(method), exclude=exclude, allow_empty=True
+        )
+        interpolated = set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
         logger.info("Interpolating bad channels.")
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):
             origin = _check_origin(origin, self.info)
-        for ch_type, interp in method.items():
-            if interp == "nan":
-                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
-        if method.get("eeg", "") == "spline":
-            _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-        meg_mne = method.get("meg", "") == "MNE"
-        eeg_mne = method.get("eeg", "") == "MNE"
-        if meg_mne or eeg_mne:
-            _interpolate_bads_meeg(
-                self,
-                mode=mode,
-                meg=meg_mne,
-                eeg=eeg_mne,
-                origin=origin,
-                exclude=exclude,
-                method=method,
-            )
-        if method.get("fnirs", "") == "nearest":
-            _interpolate_bads_nirs(self, exclude=exclude)
-        if method.get("ecog", "") == "spline":
-            _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
-        if method.get("seeg", "") == "spline":
-            _interpolate_bads_seeg(self, exclude=exclude)
+        # check once here rather than in each of the many pick_info calls below
+        self.info._check_consistency()
+        with self.info._skip_checks():
+            for ch_type, interp in method.items():
+                if interp == "nan":
+                    _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
+            if method.get("eeg", "") == "spline":
+                _interpolate_bads_eeg(
+                    self, origin=origin, exclude=exclude, data=interpolation.get("eeg")
+                )
+            meg_mne = method.get("meg", "") == "MNE"
+            eeg_mne = method.get("eeg", "") == "MNE"
+            if meg_mne or eeg_mne:
+                _interpolate_bads_meeg(
+                    self,
+                    mode=mode,
+                    meg=meg_mne,
+                    eeg=eeg_mne,
+                    origin=origin,
+                    exclude=exclude,
+                    method=method,
+                    meg_data=interpolation.get("meg"),
+                )
+            if method.get("fnirs", "") == "nearest":
+                _interpolate_bads_nirs(self, exclude=exclude)
+            if method.get("ecog", "") == "spline":
+                _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
+            if method.get("seeg", "") == "spline":
+                _interpolate_bads_seeg(self, exclude=exclude)
 
         if reset_bads is True:
             if "nan" in method.values():
@@ -997,7 +1268,9 @@ class InterpolationMixin:
                     "nan-containing channels can be easily excluded from later "
                     "computations."
                 )
-            self.info["bads"] = [ch for ch in self.info["bads"] if ch in exclude]
+            self.info["bads"] = [
+                ch for ch in self.info["bads"] if ch not in interpolated
+            ]
 
         return self
 
@@ -1099,7 +1372,9 @@ class InterpolationMixin:
         return func(self, sensors, origin)
 
 
-@verbose
+@verbose_static(
+    "info_not_none", "mapping_rename_channels_duplicates", "on_missing_ch_names"
+)
 def rename_channels(
     info, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
 ):
@@ -1107,12 +1382,35 @@ def rename_channels(
 
     Parameters
     ----------
-    %(info_not_none)s Note: modified in place.
-    %(mapping_rename_channels_duplicates)s
-    %(on_missing_ch_names)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Note: modified in place.
+    mapping : dict | callable
+        A dictionary mapping the old channel to a new channel name
+        e.g. ``{'EEG061' : 'EEG161'}``. Can also be a callable function
+        that takes and returns a string.
+
+        .. versionchanged:: 0.10.0
+           Support for a callable function.
+    allow_duplicates : bool
+        If True (default False), allow duplicates, which will automatically
+        be renamed with ``-N`` at the end.
+
+        .. versionadded:: 0.22.0
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when entries in ch_names are not present in the raw instance.
+
+        .. versionadded:: 0.23.0
 
         .. versionadded:: 1.11.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
@@ -1448,7 +1746,7 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
 ]
 
 
-@fill_doc
+@fill_doc_static()
 def get_builtin_ch_adjacencies(*, descriptions=False):
     """Get a list of all FieldTrip neighbor definitions shipping with MNE.
 
@@ -1485,7 +1783,7 @@ def get_builtin_ch_adjacencies(*, descriptions=False):
         return sorted([m.name for m in _BUILTIN_CHANNEL_ADJACENCIES], key=str.casefold)
 
 
-@fill_doc
+@fill_doc_static("picks_all_notypes")
 def read_ch_adjacency(fname, picks=None):
     """Read a channel adjacency ("neighbors") file that ships with MNE.
 
@@ -1503,7 +1801,12 @@ def read_ch_adjacency(fname, picks=None):
             You can retrieve the names of all
             built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
-    %(picks_all_notypes)s
+    picks : list of int | list of str | slice | None
+        Channels to include. Slices and lists of integers will be interpreted as
+        channel indices. In lists, channel *name* strings (e.g., ``['MEG0111',
+        'MEG2623']`` will pick the given channels. None (default) will pick all
+        channels. Note that channels in ``info['bads']`` *will be included* if
+        their names or indices are explicitly provided.
 
     Returns
     -------
@@ -1529,6 +1832,8 @@ def read_ch_adjacency(fname, picks=None):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
+    from scipy.io import loadmat
+
     if op.isabs(fname):
         fname = str(
             _check_fname(
@@ -1589,9 +1894,11 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse.spmatrix
+    ch_adjacency : scipy.sparse.sparray
         The adjacency matrix.
     """
+    from scipy.sparse import csr_array
+
     if len(ch_names) != len(neighbors):
         raise ValueError("`ch_names` and `neighbors` must have the same length")
     set_neighbors = {c for d in neighbors for c in d}
@@ -1612,7 +1919,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     return ch_adjacency
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def find_ch_adjacency(info, ch_type):
     """Find the adjacency matrix for the given channels.
 
@@ -1622,7 +1929,9 @@ def find_ch_adjacency(info, ch_type):
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     ch_type : str | None
         The channel type for computing the adjacency matrix. Currently
         supports ``'mag'``, ``'grad'``, ``'eeg'`` and ``None``.
@@ -1730,13 +2039,15 @@ def find_ch_adjacency(info, ch_type):
     return _compute_ch_adjacency(info, ch_type)
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _compute_ch_adjacency(info, ch_type):
     """Compute channel adjacency matrix using Delaunay triangulations.
 
     Parameters
     ----------
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
     ch_type : str
         The channel type for computing the adjacency matrix. Currently
         supports ``'mag'``, ``'grad'`` and ``'eeg'``.
@@ -1748,6 +2059,9 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
+    from scipy.sparse import csr_array, lil_array
+    from scipy.spatial import Delaunay
+
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     from ..source_estimate import spatial_tris_adjacency
 
@@ -1791,13 +2105,16 @@ def _compute_ch_adjacency(info, ch_type):
     return ch_adjacency, ch_names
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def fix_mag_coil_types(info, use_cal=False):
     """Fix magnetometer coil types.
 
     Parameters
     ----------
-    %(info_not_none)s Corrections are done in-place.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Corrections are done in-place.
     use_cal : bool
         If True, further refine the check for old coil types by checking
         ``info['chs'][ii]['cal']``.
@@ -1918,7 +2235,7 @@ def _get_ch_info(info):
     )
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
     """Map hemisphere names to corresponding EEG channel names or indices.
 
@@ -1935,7 +2252,10 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
 
     Parameters
     ----------
-    %(info_not_none)s If channel locations are present, the channel lists will
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        If channel locations are present, the channel lists will
         be sorted from posterior to anterior; otherwise, the order specified in
         ``info["ch_names"]`` will be kept.
     midline : str
@@ -1992,7 +2312,7 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
     return selections
 
 
-@verbose
+@verbose_static("on_missing_epochs")
 def combine_channels(
     inst,
     groups,
@@ -2040,9 +2360,21 @@ def combine_channels(
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
-    %(on_missing_epochs)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        What to do if one or several event ids are not found in the recording.
+        Valid keys are 'raise' | 'warn' | 'ignore'
+        Default is ``'raise'``. If ``'warn'``, it will proceed but
+        warn; if ``'ignore'``, it will proceed silently.
+
+        .. note::
+           If none of the event ids are found in the data, an error will be
+           automatically generated irrespective of this parameter.
         .. versionadded:: 1.11.0
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2186,6 +2518,8 @@ _EEG_SELECTIONS = ["EEG 1-32", "EEG 33-64", "EEG 65-96", "EEG 97-128"]
 
 def _divide_to_regions(info, add_stim=True):
     """Divide channels to regions by positions."""
+    from scipy.stats import zscore
+
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch["loc"][:3] for ch in info["chs"]])
@@ -2259,7 +2593,7 @@ def _divide_side(lobe, x):
     return list(left), list(right)
 
 
-@verbose
+@verbose_static("info")
 def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     """Read Neuromag Vector View channel selection from a file.
 
@@ -2276,10 +2610,17 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     fname : path-like
         Filename of the selection file (if ``None``, built-in selections are
         used).
-    %(info)s Used to determine which channel naming convention to use, e.g.
+    info : mne.Info | None
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Used to determine which channel naming convention to use, e.g.
         ``'MEG 0111'`` (with space) for old Neuromag systems and ``'MEG0111'``
         (without space) for new ones.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

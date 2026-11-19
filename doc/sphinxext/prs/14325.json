@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "983a123b478a02309cda5246b187955a216ef552",
+  "authors": [
+    {
+      "n": "Clemens Brunner",
+      "e": "4377312+cbrnr@users.noreply.github.com",
+      "l": "cbrnr"
+    }
+  ],
+  "changes": {
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

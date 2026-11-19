@@ -320,10 +320,12 @@ People who contributed to this release  (in alphabetical order):
 * Nicolas Barascud
 * Nicole Proulx
 * Phillip Alday
-* Ramonapariciog Apariciogarcia
+* ramonapariciog
 * Robin Tibor Schirrmeister
 * Rodrigo Hübner
 * S. M. Gutstein
 * Simon Kern
 * Teon Brooks
 * Yousra Bekhti
+
+.. include:: names.inc

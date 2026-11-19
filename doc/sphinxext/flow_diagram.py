@@ -28,7 +28,7 @@ nodes = dict(
     T1="T1",
     flashes="Flash5/30",
     trans="Head-MRI trans",
-    recon="Freesurfer surfaces",
+    recon="FreeSurfer surfaces",
     bem="BEM",
     src="Source space\nmne.SourceSpaces",
     cov="Noise covariance\nmne.Covariance",
@@ -76,7 +76,7 @@ subgraphs = (
         ("T1", "flashes", "recon", "bem", "src"),
         (
             f'<Structural information<BR/><FONT POINT-SIZE="{node_small_size}"><I>'
-            "Freesurfer / MNE-C</I></FONT>>"
+            "FreeSurfer / MNE-C</I></FONT>>"
         ),
     ],
 )

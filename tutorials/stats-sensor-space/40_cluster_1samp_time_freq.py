@@ -24,6 +24,12 @@ an analysis at the "2nd level".
 
 For more information on cluster-based permutation testing in MNE-Python,
 see also: :ref:`tut-cluster-spatiotemporal-sensor`.
+
+.. note::
+   This tutorial uses the legacy cluster-test functions.
+   :func:`mne.stats.cluster_test` is the modern equivalent: it takes a
+   :class:`~pandas.DataFrame` plus a Wilkinson formula, and infers the test and
+   the sensor adjacency for you. See :ref:`tut-new-cluster-test-api`.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
@@ -208,6 +214,7 @@ T_obs, clusters, cluster_p_values, H0 = permutation_cluster_1samp_test(
     tail=tail,
     adjacency=adjacency,
     out_type="mask",
+    rng=73,
     verbose=True,
 )
 

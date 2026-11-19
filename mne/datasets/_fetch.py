@@ -126,7 +126,8 @@ def fetch_dataset(
         {'dataset_name': 'sample',
          'archive_name': 'MNE-sample-data-processed.tar.gz',
          'hash': 'md5:e8f30c4516abdc12a0c08e6bae57409c',
-         'url': 'https://osf.io/download/86qa2?version=6',
+         'url': 'https://github.com/mne-tools/mne-data/releases/download/'
+                'sample-6/MNE-sample-data-processed.tar.gz',
          'folder_name': 'MNE-sample-data',
          'config_key': 'MNE_DATASETS_SAMPLE_PATH'}
 

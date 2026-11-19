@@ -90,3 +90,5 @@ The committer list for this release is the following (preceded by number of comm
 *   2  emilyps14
 *   2  lennyvarghese
 *   1  Marian Dovgialo
+
+.. include:: names.inc

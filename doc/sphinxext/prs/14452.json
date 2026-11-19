@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "24c3922e8a318bc23f35457a4b4815593e70d0ab",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org",
+      "l": "sappelhoff"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14452.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_ica.py": {
+      "a": 3,
+      "d": 1
+    }
+  }
+}

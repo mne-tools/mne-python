@@ -7,8 +7,7 @@ from inspect import signature
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
-from scipy.sparse import csr_array
-from scipy.sparse import eye as speye
+from scipy.sparse import csr_array, eye_array
 from scipy.spatial.distance import cdist
 
 import mne
@@ -80,12 +79,12 @@ def test_sourcemorph_consistency():
 @testing.requires_testing_data
 def test_sparse_morph():
     """Test sparse morphing."""
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     vertices_fs = [
         np.sort(rng.permutation(np.arange(10242))[:4]),
         np.sort(rng.permutation(np.arange(10242))[:6]),
     ]
-    data = rng.randn(10, 1)
+    data = rng.standard_normal((10, 1))
     stc_fs = SourceEstimate(data, vertices_fs, 1, 1, "fsaverage")
     spheres_fs = [
         mne.read_surface(subjects_dir / "fsaverage" / "surf" / f"{hemi}.sphere.reg")[0]
@@ -263,7 +262,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
 
 
 @testing.requires_testing_data
-def test_surface_source_morph_shortcut():
+def test_surface_source_morph_shortcut(subjects_dir_tmp):
     """Test that our shortcut for smooth=0 works."""
     stc = mne.read_source_estimate(fname_smorph)
     morph_identity = compute_source_morph(
@@ -272,11 +271,11 @@ def test_surface_source_morph_shortcut():
         "sample",
         spacing=stc.vertices,
         smooth=0,
-        subjects_dir=subjects_dir,
+        subjects_dir=subjects_dir_tmp,
     )
     stc_back = morph_identity.apply(stc)
     assert_allclose(stc_back.data, stc.data, rtol=1e-4)
-    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format="csc")
+    abs_sum = morph_identity.morph_mat - eye_array(len(stc.data), format="csc")
     abs_sum = np.abs(abs_sum.data).sum()
     assert abs_sum < 1e-4
 
@@ -942,7 +941,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     assert stc.data.shape == (n_src, 1)
     img = stc.as_volume(src, mri_resolution=True)
     assert img.shape == (86, 86, 86, 1)
-    n_on = np.array(img.dataobj).astype(bool).sum()
+    n_on = np.asarray(img.dataobj).astype(bool).sum()
     aseg_img = _get_img_fdata(nib.load(fname_aseg))
     n_got_real = np.isin(
         aseg_img.ravel(), [lut[name] for name in use_label_names]
@@ -960,7 +959,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
         if ii:
             src[0]["interpolator"] = None
         img = stc.as_volume(src, mri_resolution=False)
-        n_on = np.array(img.dataobj).astype(bool).sum()
+        n_on = np.asarray(img.dataobj).astype(bool).sum()
         # was 20 on `main` before gh-5590
         # then 44 before gh-7653, which took it back to 20
         assert n_on == n_orig
@@ -1082,10 +1081,10 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
 
 
 def _rand_affine(rng):
-    quat = rng.randn(3)
+    quat = rng.standard_normal(3)
     quat /= 5 * np.linalg.norm(quat)
     affine = np.eye(4)
-    affine[:3, 3] = rng.randn(3) / 5.0
+    affine[:3, 3] = rng.normal(scale=1 / 5.0, size=3)
     affine[:3, :3] = quat_to_rot(quat)
     return affine
 
@@ -1113,8 +1112,8 @@ def test_resample_equiv(from_shape, from_affine, to_shape, to_affine, order, see
     """Test resampling equivalences."""
     pytest.importorskip("nibabel")
     pytest.importorskip("dipy")
-    rng = np.random.RandomState(seed)
-    from_data = rng.randn(*from_shape)
+    rng = np.random.default_rng(seed)
+    from_data = rng.standard_normal(from_shape)
     is_rand = False
     if isinstance(to_affine, str):
         assert to_affine == "rand"

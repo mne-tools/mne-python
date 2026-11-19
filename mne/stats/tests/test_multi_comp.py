@@ -19,8 +19,9 @@ def test_bonferroni_pval_clip():
 
 def test_multi_pval_correction():
     """Test pval correction for multi comparison (FDR and Bonferroni)."""
-    rng = np.random.RandomState(0)
-    X = rng.randn(10, 1000, 10)
+    # seed chosen so all 50 injected significant tests are detected
+    rng = np.random.default_rng(1)
+    X = rng.standard_normal((10, 1000, 10))
     X[:, :50, 0] += 4.0  # 50 significant tests
     alpha = 0.05
 

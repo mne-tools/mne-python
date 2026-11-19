@@ -86,7 +86,7 @@ brain_psf_vol = stc_psf_vol.plot_3d(
     src=forward_vol["src"],
     views="ven",
     subjects_dir=subjects_dir,
-    volume_options=dict(alpha=0.5),
+    volume_options=dict(alpha=0.5, interpolation="nearest", silhouette_alpha=0.5),
 )
 brain_psf_vol.add_text(0.1, 0.9, "Volumetric sLORETA PSF", "title", font_size=16)
 brain_psf_vol.add_foci(

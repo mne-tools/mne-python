@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +14,6 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 pytest.importorskip("sklearn")
 
 from sklearn.linear_model import Ridge
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (
@@ -22,8 +22,8 @@ from mne.decoding.receptive_field import (
     _delays_to_slice,
     _times_to_delays,
 )
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.decoding.time_delaying_ridge import _compute_corrs, _compute_reg_neighbors
-from mne.fixes import _reshape_view
 
 data_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -89,8 +89,8 @@ def test_rank_deficiency():
     fs = 1.0
     tmin, tmax = -50, 100
     reg = 0.1
-    rng = np.random.RandomState(0)
-    eeg = rng.randn(N, 1)
+    rng = np.random.default_rng(0)
+    eeg = rng.standard_normal((N, 1))
     eeg *= 100
     eeg = rfft(eeg, axis=0)
     eeg[N // 4 :] = 0  # rank-deficient lowpass
@@ -98,9 +98,9 @@ def test_rank_deficiency():
     win = np.hanning(N // 8)
     win /= win.mean()
     y = np.apply_along_axis(np.convolve, 0, eeg, win, mode="same")
-    y += rng.randn(*y.shape) * 100
+    y += rng.normal(scale=100, size=y.shape)
 
-    for est in (Ridge(reg), reg):
+    for est in (Ridge(reg, random_state=0), reg):
         rf = ReceptiveField(tmin, tmax, fs, estimator=est, patterns=True)
         rf.fit(eeg, y)
         pred = rf.predict(eeg)
@@ -112,7 +112,7 @@ def test_rank_deficiency():
 def test_time_delay():
     """Test that time-delaying w/ times and samples works properly."""
     # Explicit delays + sfreq
-    X = np.random.RandomState(0).randn(1000, 2)
+    X = np.random.default_rng(0).standard_normal((1000, 2))
     assert (X == 0).sum() == 0  # need this for later
     test_tlims = [
         ((1, 2), 1),
@@ -173,6 +173,84 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.0)
 
 
+@pytest.fixture(params=["torch", "array_api_strict"])
+def rf_array_api(request):
+    """Exercise MNE-specific behavior beyond sklearn's estimator checks."""
+    from sklearn import config_context
+
+    if os.getenv("SCIPY_ARRAY_API") != "1":
+        pytest.skip("Requires SCIPY_ARRAY_API=1 at startup")
+    backend = pytest.importorskip(request.param)
+    compat = pytest.importorskip("array_api_compat")
+    with config_context(array_api_dispatch=True):
+        yield compat.array_namespace(backend.asarray([0.0]))
+
+
+@pytest.mark.parametrize("dtype, fit_intercept", [("int64", False), ("float32", True)])
+def test_receptive_field_array_api(rf_array_api, monkeypatch, dtype, fit_intercept):
+    """Check epoch/lag order, patterns, vector scores, and no host conversion."""
+    from unittest.mock import Mock
+
+    xp = rf_array_api
+    if xp.__name__ == "array_api_strict":
+        # TODO VERSION remove once sklearn >= 1.9 is required.
+        # Older Ridge cannot broadcast a scalar alpha for strict multi-output y.
+        pytest.importorskip("sklearn", minversion="1.9")
+    tol = 3e-5 if dtype == "float32" else 1e-10
+    rng = np.random.default_rng(42)
+    x = rng.standard_normal((32, 2, 3)).astype(dtype)
+    x[:, 1] += 4
+    y = rng.standard_normal((32, 2, 1)).repeat(2, axis=-1)  # singular covariance
+    estimator = Ridge(solver="svd", fit_intercept=fit_intercept, random_state=0)
+    expected = ReceptiveField(-1, 2, 1, estimator=estimator, patterns=True).fit(x, y)
+    xt, yt = xp.asarray(x.copy()), xp.asarray(y.copy())
+    model = ReceptiveField(-1, 2, 1, estimator=estimator, patterns=True)
+    with monkeypatch.context() as patch:
+        for method in ("__array__", "numpy", "cpu"):
+            if hasattr(type(xt), method):
+                patch.setattr(
+                    type(xt), method, Mock(side_effect=AssertionError(method))
+                )
+        model.fit(xt, yt)
+        predicted = model.predict(xt)
+        scores = []
+        for scoring in ("r2", "corrcoef"):
+            model.scoring = scoring
+            scores.append(model.score(xt, yt))
+    # sklearn covers continuous data; check MNE's epoch/lag ordering here.
+    assert predicted.dtype == (xp.float64 if dtype == "int64" else xt.dtype)
+    assert_allclose(np.asarray(predicted), expected.predict(x), atol=tol, rtol=tol)
+    assert_allclose(np.asarray(model.patterns_), expected.patterns_, atol=tol, rtol=tol)
+    for scoring, actual in zip(("r2", "corrcoef"), scores):
+        expected.scoring = scoring
+        assert actual.device == xt.device
+        assert actual.shape == (2,)
+        assert_allclose(np.asarray(actual), expected.score(x, y), atol=tol, rtol=tol)
+    assert_array_equal(np.asarray(xt), x)
+    assert_array_equal(np.asarray(yt), y)
+
+
+def test_receptive_field_array_api_errors(rf_array_api):
+    """Reject unsupported estimators, one-sample patterns, and invalid scores."""
+    xp = rf_array_api
+    model = ReceptiveField(
+        0, 0, 1, estimator=Ridge(solver="svd", random_state=0), patterns=True
+    )
+    with pytest.raises(ValueError, match="only one sample"):
+        model.fit(xp.ones((1, 1)), xp.ones(1))
+    for unsupported in (None, 0.1, TimeDelayingRidge(0, 1, 1)):
+        with pytest.raises(ValueError, match="compatible estimator"):
+            ReceptiveField(0, 1, 1, estimator=unsupported).fit(
+                xp.ones((3, 1)), xp.ones(3)
+            )
+    for data, match in (
+        (xp.ones((1, 1)), "at least 2"),
+        (xp.ones((2, 1), dtype=xp.complex64), "Complex data"),
+    ):
+        with pytest.raises(ValueError, match=match):
+            _SCORERS["corrcoef"](data, data, multioutput="raw_values")
+
+
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 @pytest.mark.filterwarnings("ignore:Estimator .* has no __sklearn_tags__.*")
@@ -180,16 +258,16 @@ def test_time_delay():
 def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
     # Make sure estimator pulling works
-    mod = Ridge()
-    rng = np.random.RandomState(1337)
+    mod = Ridge(random_state=0)
+    rng = np.random.default_rng(1337)
 
     # Test the receptive field model
     # Define parameters for the model and simulate inputs + weights
     tmin, tmax = -10.0, 0
     n_feats = 3
-    rng = np.random.RandomState(0)
-    X = rng.randn(10000, n_feats)
-    w = rng.randn(int((tmax - tmin) + 1) * n_feats)
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((10000, n_feats))
+    w = rng.standard_normal(int((tmax - tmin) + 1) * n_feats)
 
     # Delay inputs and cut off first 4 values since they'll be cut in the fit
     X_del = np.concatenate(
@@ -208,6 +286,7 @@ def test_receptive_field_basic(n_jobs):
     assert_allclose(y[rf.valid_samples_], y_pred[rf.valid_samples_], atol=1e-2)
     scores = rf.score(X, y)
     assert scores > 0.99
+    assert_array_equal(rf.score(X.tolist(), y.tolist()), scores)
     assert_allclose(rf.coef_.T.ravel(), w, atol=1e-3)
     # Make sure different input shapes work
     rf.fit(X[:, np.newaxis :], y[:, np.newaxis])
@@ -264,6 +343,7 @@ def test_receptive_field_basic(n_jobs):
         ReceptiveField(tmin, tmax, 1.0, scoring="foo").fit(X, y)
 
 
+@pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 def test_time_delaying_fast_calc(n_jobs):
     """Test time delaying and fast calculations."""
@@ -272,7 +352,7 @@ def test_time_delaying_fast_calc(n_jobs):
     smin, smax = 1, 2
     X_del = _delay_time_series(X, smin, smax, 1.0)
     # (n_times, n_features, n_delays) -> (n_times, n_features * n_delays)
-    X_del = _reshape_view(X_del, (X.shape[0], -1))
+    X_del = X_del.reshape((X.shape[0], -1), copy=False)
     expected = np.array([[0, 1, 2], [0, 0, 1], [0, 5, 7], [0, 0, 5]]).T
     assert_allclose(X_del, expected)
     Xt_X = np.dot(X_del.T, X_del)
@@ -283,7 +363,7 @@ def test_time_delaying_fast_calc(n_jobs):
     # all positive
     smin, smax = -2, -1
     X_del = _delay_time_series(X, smin, smax, 1.0)
-    X_del = _reshape_view(X_del, (X.shape[0], -1))
+    X_del = X_del.reshape((X.shape[0], -1), copy=False)
     expected = np.array([[3, 0, 0], [2, 3, 0], [11, 0, 0], [7, 11, 0]]).T
     assert_allclose(X_del, expected)
     Xt_X = np.dot(X_del.T, X_del)
@@ -294,7 +374,7 @@ def test_time_delaying_fast_calc(n_jobs):
     # both sides
     smin, smax = -1, 1
     X_del = _delay_time_series(X, smin, smax, 1.0)
-    X_del = _reshape_view(X_del, (X.shape[0], -1))
+    X_del = X_del.reshape((X.shape[0], -1), copy=False)
     expected = np.array(
         [[2, 3, 0], [1, 2, 3], [0, 1, 2], [7, 11, 0], [5, 7, 11], [0, 5, 7]]
     ).T
@@ -316,7 +396,7 @@ def test_time_delaying_fast_calc(n_jobs):
     X = np.array([[1, 2, 3, 5]]).T
     smin, smax = 0, 3
     X_del = _delay_time_series(X, smin, smax, 1.0)
-    X_del = _reshape_view(X_del, (X.shape[0], -1))
+    X_del = X_del.reshape((X.shape[0], -1), copy=False)
     expected = np.array([[1, 2, 3, 5], [0, 1, 2, 3], [0, 0, 1, 2], [0, 0, 0, 1]]).T
     assert_allclose(X_del, expected)
     Xt_X = np.dot(X_del.T, X_del)
@@ -329,7 +409,7 @@ def test_time_delaying_fast_calc(n_jobs):
     X = np.array([[1, 2, 3], [5, 7, 11]]).T
     smin, smax = 0, 2
     X_del = _delay_time_series(X, smin, smax, 1.0)
-    X_del = _reshape_view(X_del, (X.shape[0], -1))
+    X_del = X_del.reshape((X.shape[0], -1), copy=False)
     expected = np.array(
         [[1, 2, 3], [0, 1, 2], [0, 0, 1], [5, 7, 11], [0, 5, 7], [0, 0, 5]]
     ).T
@@ -350,8 +430,8 @@ def test_time_delaying_fast_calc(n_jobs):
     assert_allclose(x_xt, expected)
 
     # And a bunch of random ones for good measure
-    rng = np.random.RandomState(0)
-    X = rng.randn(25, 3)
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((25, 3))
     y = np.empty((25, 2))
     vals = (0, -1, 1, -2, 2, -11, 11)
     for smax in vals:
@@ -359,7 +439,7 @@ def test_time_delaying_fast_calc(n_jobs):
             if smin > smax:
                 continue
             for ii in range(X.shape[1]):
-                kernel = rng.randn(smax - smin + 1)
+                kernel = rng.standard_normal(smax - smin + 1)
                 kernel -= np.mean(kernel)
                 y[:, ii % y.shape[-1]] = np.convolve(X[:, ii], kernel, "same")
             x_xt, x_yt, n_ch_x, _, _ = _compute_corrs(X, y, smin, smax + 1)
@@ -367,7 +447,7 @@ def test_time_delaying_fast_calc(n_jobs):
             x_yt_true = einsum("tfd,to->ofd", X_del, y)
             x_yt_true = np.reshape(x_yt_true, (x_yt_true.shape[0], -1)).T
             assert_allclose(x_yt, x_yt_true, atol=1e-7, err_msg=(smin, smax))
-            X_del = _reshape_view(X_del, (X.shape[0], -1))
+            X_del = X_del.reshape((X.shape[0], -1), copy=False)
             x_xt_true = np.dot(X_del.T, X_del).T
             assert_allclose(x_xt, x_xt_true, atol=1e-7, err_msg=(smin, smax))
 
@@ -375,8 +455,8 @@ def test_time_delaying_fast_calc(n_jobs):
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
 def test_receptive_field_1d(n_jobs):
     """Test that the fast solving works like Ridge."""
-    rng = np.random.RandomState(0)
-    x = rng.randn(500, 1)
+    rng = np.random.default_rng(0)
+    x = rng.standard_normal((500, 1))
     for delay in range(-2, 3):
         y = np.zeros(500)
         slims = [(-2, 4)]
@@ -389,7 +469,7 @@ def test_receptive_field_1d(n_jobs):
             y[delay:] = x[:-delay, 0]
             slims += [(1, 2)]
         for ndim in (1, 2):
-            y = _reshape_view(y, (y.shape[0],) + (1,) * (ndim - 1))
+            y = y.reshape((y.shape[0],) + (1,) * (ndim - 1), copy=False)
             for slim in slims:
                 smin, smax = slim
                 lap = TimeDelayingRidge(
@@ -401,7 +481,13 @@ def test_receptive_field_1d(n_jobs):
                     fit_intercept=False,
                     n_jobs=n_jobs,
                 )
-                for estimator in (Ridge(alpha=0.0), Ridge(alpha=0.1), 0.0, 0.1, lap):
+                for estimator in (
+                    Ridge(alpha=0.0, random_state=0),
+                    Ridge(alpha=0.1, random_state=0),
+                    0.0,
+                    0.1,
+                    lap,
+                ):
                     for offset in (-100, 0, 100):
                         model = ReceptiveField(
                             smin, smax, 1.0, estimator=estimator, n_jobs=n_jobs
@@ -434,8 +520,9 @@ def test_receptive_field_1d(n_jobs):
 def test_receptive_field_nd(n_jobs):
     """Test multidimensional support."""
     # multidimensional
-    rng = np.random.RandomState(3)
-    x = rng.randn(1000, 3)
+    # seed chosen to give a well-conditioned design for the coefficient recovery check
+    rng = np.random.default_rng(4)
+    x = rng.standard_normal((1000, 3))
     y = np.zeros((1000, 2))
     smin, smax = 0, 5
     # This is a weird assignment, but it's just a way to distribute some
@@ -455,7 +542,8 @@ def test_receptive_field_nd(n_jobs):
         smin, smax, 1.0, 0.1, n_jobs=n_jobs, edge_correction=False
     )
     for estimator, atol in zip(
-        (Ridge(alpha=0.0), 0.0, 0.01, tdr_l, tdr_nc), (1e-3, 1e-3, 1e-3, 5e-3, 5e-2)
+        (Ridge(alpha=0.0, random_state=0), 0.0, 0.01, tdr_l, tdr_nc),
+        (1e-3, 1e-3, 1e-3, 5e-3, 5e-2),
     ):
         model = ReceptiveField(smin, smax, 1.0, estimator=estimator)
         model.fit(x, y)
@@ -479,9 +567,9 @@ def test_receptive_field_nd(n_jobs):
     tdr = TimeDelayingRidge(smin, smax, 1.0, 0.0, n_jobs=n_jobs)
     tdr_no = TimeDelayingRidge(smin, smax, 1.0, 0.0, fit_intercept=False, n_jobs=n_jobs)
     for estimator in (
-        Ridge(alpha=0.0),
+        Ridge(alpha=0.0, random_state=0),
         tdr,
-        Ridge(alpha=0.0, fit_intercept=False),
+        Ridge(alpha=0.0, fit_intercept=False, random_state=0),
         tdr_no,
     ):
         # first with no intercept in the data
@@ -536,9 +624,10 @@ def test_receptive_field_nd(n_jobs):
 
 
 def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
-    rng = np.random.RandomState(0)
-    X = rng.randn(n_samples, n_feats)
-    w = rng.randn(int((tmax - tmin) + 1) * n_feats, n_targets)
+    # seed chosen to give a well-conditioned design for the coefficient recovery checks
+    rng = np.random.default_rng(2)
+    X = rng.standard_normal((n_samples, n_feats))
+    w = rng.standard_normal((int((tmax - tmin) + 1) * n_feats, n_targets))
     # Delay inputs
     X_del = np.concatenate(
         _delay_time_series(X, tmin, tmax, 1.0).transpose(2, 0, 1), axis=1
@@ -549,6 +638,15 @@ def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
 
 def test_inverse_coef():
     """Test inverse coefficients computation."""
+    # With an invertible noiseless mapping, patterns undo the forward mapping.
+    X = np.array([[-2.0, 0], [2, 0], [0, -1], [0, 1]])
+    y = X @ [[1, 2], [3, 4]]
+    for estimator in (0.0, Ridge(alpha=0, solver="svd", random_state=0)):
+        rf = ReceptiveField(0, 0, 1, estimator=estimator, patterns=True).fit(X, y)
+        assert_allclose(rf.coef_[..., 0], [[1, 3], [2, 4]], atol=1e-14)
+        assert_allclose(rf.patterns_[..., 0], [[-2, 1], [1.5, -0.5]], atol=1e-14)
+        assert_allclose(rf.predict(X), y, atol=1e-14)
+
     tmin, tmax = 0.0, 10.0
     n_feats, n_targets, n_samples = 3, 2, 1000
     n_delays = int((tmax - tmin) + 1)
@@ -556,7 +654,7 @@ def test_inverse_coef():
     # Check coefficient dims, for all estimator types
     X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
     tdr = TimeDelayingRidge(tmin, tmax, 1.0, 0.1, "laplacian")
-    for estimator in (0.0, 0.01, Ridge(alpha=0.0), tdr):
+    for estimator in (0.0, 0.01, Ridge(alpha=0.0, random_state=0), tdr):
         rf = ReceptiveField(tmin, tmax, 1.0, estimator=estimator, patterns=True)
         rf.fit(X, y)
         inv_rf = ReceptiveField(tmin, tmax, 1.0, estimator=estimator, patterns=True)
@@ -579,7 +677,7 @@ def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
     n_feats, n_targets, n_samples = 5, 60, 50
     X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
-    for estimator in (0.0, Ridge(alpha=0.0)):
+    for estimator in (0.0, Ridge(alpha=0.0, random_state=0)):
         rf = ReceptiveField(tmin, tmax, 1.0, estimator=estimator)
         with pytest.warns(
             (RuntimeWarning, UserWarning), match="[Singular|scipy.linalg.solve]"
@@ -603,7 +701,13 @@ def test_tdr_sklearn_compliance(estimator, check):
 
 
 @pytest.mark.filterwarnings("ignore:.*invalid value encountered in subtract.*:")
-@parametrize_with_checks([ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)])
+@parametrize_with_checks(
+    [
+        ReceptiveField(
+            -1, 2, 1.0, estimator=Ridge(solver="svd", random_state=0), patterns=True
+        )
+    ]
+)
 def test_rf_sklearn_compliance(estimator, check):
     """Test sklearn RF compliance."""
     pytest.importorskip("sklearn", minversion="1.6")  # TODO VERSION remove on 1.6+
@@ -612,7 +716,30 @@ def test_rf_sklearn_compliance(estimator, check):
         # shuffled or subsampled.
         "check_methods_sample_order_invariance",
         "check_methods_subset_invariance",
+        # X and y must come from the same array library and device.
+        "check_array_api_mixed_inputs",
     )
     if any(ignore in str(check) for ignore in ignores):
         return
+    if "check_array_api" in str(check):
+        # Check opt-in before sklearn probes optional backends.
+        if os.getenv("SCIPY_ARRAY_API") != "1":
+            pytest.skip("Requires SCIPY_ARRAY_API=1 at startup")
+        estimator = _ScalarScoreReceptiveField(**estimator.get_params(deep=False))
+        if "check_array_api_same_namespace" not in str(check):
+            # NumPy's legacy delay buffer promotes float32 to float64; compare
+            # values here and check tensor dtype in the MNE-specific tests.
+            check(estimator, check_values=True)
+            return
     check(estimator)
+
+
+class _ScalarScoreReceptiveField(ReceptiveField):
+    """Adapt MNE's per-output score to sklearn's scalar-score test contract."""
+
+    def score(self, X, y):
+        from mne.decoding._fixes import _get_array_namespace
+
+        scores = super().score(X, y)
+        xp, _ = _get_array_namespace(scores)
+        return float(xp.mean(scores))

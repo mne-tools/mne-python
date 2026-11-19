@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "7e4f6a5c22b80b5912eb66b3a9601e2772add2bc",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    "tools/sync_dependencies.py": {
+      "a": 4,
+      "d": 0
+    }
+  }
+}

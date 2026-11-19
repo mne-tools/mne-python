@@ -33,75 +33,46 @@ EXPECTED_REPR = (
 )
 
 
-@pytest.mark.parametrize(
-    (
-        "onset, model, eye, avg_error, max_error, positions, offsets, gaze,"
-        " screen_size, screen_distance, screen_resolution"
-    ),
-    [
-        (
-            0,
-            "H3",
-            "right",
-            0.5,
-            1.0,
-            POSITIONS,
-            OFFSETS,
-            GAZES,
-            (0.531, 0.298),
-            0.065,
-            (1920, 1080),
-        ),
-        (None, None, None, None, None, None, None, None, None, None, None),
-    ],
-)
-def test_create_calibration(
-    onset,
-    model,
-    eye,
-    avg_error,
-    max_error,
-    positions,
-    offsets,
-    gaze,
-    screen_size,
-    screen_distance,
-    screen_resolution,
-):
+@pytest.mark.parametrize("input_type", ["array", "list", None])
+def test_create_calibration(input_type):
     """Test creating a Calibration object."""
-    kwargs = dict(
-        onset=onset,
-        model=model,
-        eye=eye,
-        avg_error=avg_error,
-        max_error=max_error,
-        positions=positions,
-        offsets=offsets,
-        gaze=gaze,
-        screen_size=screen_size,
-        screen_distance=screen_distance,
-        screen_resolution=screen_resolution,
+    kwargs_template = dict(
+        onset=0,
+        model="H3",
+        eye="right",
+        avg_error=0.5,
+        max_error=1.0,
+        positions=POSITIONS,
+        offsets=OFFSETS,
+        gaze=GAZES,
+        screen_size=(0.531, 0.298),
+        screen_distance=0.065,
+        screen_resolution=(1920, 1080),
     )
+    kwargs = kwargs_template.copy()
+    if input_type is None:
+        kwargs = {k: None for k in kwargs}
+    elif input_type == "list":
+        for key in ("positions", "offsets", "gaze"):
+            kwargs[key] = kwargs[key].tolist()
+
     cal = Calibration(**kwargs)
-    assert cal["onset"] == onset
-    assert cal["model"] == model
-    assert cal["eye"] == eye
-    assert cal["avg_error"] == avg_error
-    assert cal["max_error"] == max_error
-    if positions is not None:
+
+    for key in ("onset", "model", "eye", "avg_error", "max_error"):
+        assert cal[key] == kwargs[key]
+    if input_type is not None:
         assert isinstance(cal["positions"], np.ndarray)
         assert np.array_equal(cal["positions"], np.array(POSITIONS))
-    else:
-        assert cal["positions"] is None
-    if offsets is not None:
         assert isinstance(cal["offsets"], np.ndarray)
         assert np.array_equal(cal["offsets"], np.array(OFFSETS))
-    if gaze is not None:
         assert isinstance(cal["gaze"], np.ndarray)
         assert np.array_equal(cal["gaze"], np.array(GAZES))
-    assert cal["screen_size"] == screen_size
-    assert cal["screen_distance"] == screen_distance
-    assert cal["screen_resolution"] == screen_resolution
+    else:
+        assert cal["positions"] is None
+
+    assert cal["screen_size"] == kwargs["screen_size"]
+    assert cal["screen_distance"] == kwargs["screen_distance"]
+    assert cal["screen_resolution"] == kwargs["screen_resolution"]
     # test copy method
     copied_obj = cal.copy()
     # Check if the copied object is an instance of Calibration
@@ -114,6 +85,16 @@ def test_create_calibration(
     # test __repr__
     if cal["onset"] is not None:
         assert repr(cal) == EXPECTED_REPR  # test __repr__
+
+    # test plot
+    if cal["positions"] is not None:
+        import matplotlib.pyplot as plt
+
+        fig = cal.plot(show=False)
+        plt.close(fig)
+    else:
+        with pytest.raises(ValueError, match="positions and gaze keys"):
+            cal.plot(show=False)
 
 
 @requires_testing_data
@@ -279,6 +260,34 @@ def test_calibration_newlines(fname, tmp_path):
     cals = read_eyelink_calibration(out_fname)
 
     # The added blank lines should not affect the values that we read in...
+    assert len(cals) == len(want_cals)
+    assert cals[1]["eye"] == want_cals[1]["eye"]
+    np.testing.assert_allclose(cals[0]["onset"], want_cals[0]["onset"])
+    np.testing.assert_allclose(cals[0]["positions"], want_cals[0]["positions"])
+    np.testing.assert_allclose(cals[1]["offsets"], want_cals[1]["offsets"])
+    np.testing.assert_allclose(cals[0]["gaze"], want_cals[0]["gaze"])
+
+
+@requires_testing_data
+@pytest.mark.parametrize("fname", [(fname)])
+def test_calibration_non_ascii(fname, tmp_path):
+    """Test reading a calibration whose MSG lines contain non-ASCII text."""
+    # MSG lines are not guaranteed to be ASCII (users may put UTF-8 text in their
+    # messages), so reading should not raise a UnicodeDecodeError. See gh-14000.
+    want_cals = read_eyelink_calibration(fname)
+
+    lines = Path(fname).read_text().splitlines()
+    # Insert a MSG line with non-ASCII content, including the zero-width no-break
+    # space (U+FEFF, encoded as the 0xEF byte that triggered the original crash).
+    msg_idx = next(i for i, line in enumerate(lines) if line.startswith("MSG"))
+    non_ascii_msg = "MSG\t5000000\tunicode message \ufeff \u00e9\u00e8\u00ea \u2615"
+    new_lines = lines[:msg_idx] + [non_ascii_msg] + lines[msg_idx:]
+
+    out_fname = tmp_path / "non_ascii_calibration.asc"
+    out_fname.write_text("\n".join(new_lines), encoding="utf-8")
+    cals = read_eyelink_calibration(out_fname)
+
+    # The added non-ASCII MSG line should not affect the parsed values...
     assert len(cals) == len(want_cals)
     assert cals[1]["eye"] == want_cals[1]["eye"]
     np.testing.assert_allclose(cals[0]["onset"], want_cals[0]["onset"])

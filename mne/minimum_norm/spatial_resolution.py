@@ -11,10 +11,10 @@ Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 import numpy as np
 
 from ..source_estimate import SourceEstimate
-from ..utils import _check_option, logger, verbose
+from ..utils import _check_option, logger, verbose_static
 
 
-@verbose
+@verbose_static()
 def resolution_metrics(
     resmat, src, function="psf", metric="peak_err", threshold=0.5, verbose=None
 ):
@@ -48,7 +48,7 @@ def resolution_metrics(
 
         - ``'sd_ext'`` Spatial deviation
           (e.g. :footcite:`MolinsEtAl2008,HaukEtAl2019`).
-        - ``'maxrad_ext'`` Maximum radius to 50%% of max amplitude.
+        - ``'maxrad_ext'`` Maximum radius to 50% of max amplitude.
 
         Amplitude-based metrics:
 
@@ -59,7 +59,11 @@ def resolution_metrics(
     threshold : float
         Amplitude fraction threshold for spatial extent metric 'maxrad_ext'.
         Defaults to 0.5.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

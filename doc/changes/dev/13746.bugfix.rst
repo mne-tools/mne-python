@@ -1,1 +1,0 @@
-Improved handling of dropped epochs in :func:`mne.viz.plot_ica_properties` and :meth:`mne.preprocessing.ICA.plot_properties`, allowing plots to be generated even with many bad annotations, by `Clemens Brunner`_.

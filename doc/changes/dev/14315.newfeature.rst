@@ -1,0 +1,1 @@
+Add parameter ``source_cov`` for :func:`mne.minimum_norm.make_inverse_operator`, allowing use of a custom (diagonal) source covariance matrix for the inverse solution, by `Teemu Taivainen`_.

@@ -391,7 +391,7 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # inclusive of the endpoint):
 
 df = epochs.to_data_frame(index=["condition", "epoch", "time"])
-df.sort_index(inplace=True)
+df = df.sort_index()
 print(df.loc[("auditory/left", slice(0, 10), slice(100, 107)), "EEG 056":"EEG 058"])
 
 del df

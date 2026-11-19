@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "db21534b248b27c3ffa3e84738b7f69fa6f53cb5",
+  "authors": [
+    {
+      "n": "Daniel McCloy",
+      "e": "1810515+drammock@users.noreply.github.com",
+      "l": "drammock"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

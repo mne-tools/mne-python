@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.preprocessing.regress_artifact` where passing ``betas`` caused the ``picks_artifact`` value to be passed as ``exclude`` and the default ``picks_artifact="eog"`` to be used instead, by `Johannes Herforth`_.

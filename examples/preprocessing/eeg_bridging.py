@@ -60,7 +60,7 @@ print(__doc__)
 #           bridging so using the last segment of the data will
 #           give the most conservative estimate.
 
-montage = mne.channels.make_standard_montage("standard_1005")
+montage = mne.channels.make_standard_montage("spherical_1005")
 ed_data = dict()  # electrical distance/bridging data
 raw_data = dict()  # store infos for electrode positions
 for sub in range(1, 11):

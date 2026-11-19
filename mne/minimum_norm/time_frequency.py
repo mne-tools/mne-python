@@ -21,7 +21,15 @@ from ..time_frequency.multitaper import (
     _psd_from_mt_adaptive,
 )
 from ..time_frequency.tfr import cwt, morlet
-from ..utils import ProgressBar, _check_option, _pl, _validate_type, logger, verbose
+from ..utils import (
+    ProgressBar,
+    _check_option,
+    _pl,
+    _validate_type,
+    _verbose_control,
+    logger,
+    verbose_static,
+)
 from .inverse import (
     INVERSE_METHODS,
     _assemble_kernel,
@@ -164,7 +172,7 @@ def _prepare_source_params(
     return K, sel, Vh, vertno, is_free_ori, noise_norm, k_idxs
 
 
-@verbose
+@verbose_static("baseline_mode_mn", "n_jobs", "use_cps_restricted")
 def source_band_induced_power(
     epochs,
     inverse_operator,
@@ -214,42 +222,65 @@ def source_band_induced_power(
         Do convolutions in time or frequency domain with FFT.
     decim : int
         Temporal decimation factor.
-    baseline : None (default) or tuple, shape (2,)
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
         all the time interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-        Perform baseline correction by
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+        Perform baseline correction by:
 
-        - subtracting the mean of baseline values ('mean')
-        - dividing by the mean of baseline values ('ratio')
-        - dividing by the mean of baseline values and taking the log
-          ('logratio')
-        - subtracting the mean of baseline values followed by dividing by
-          the mean of baseline values ('percent')
-        - subtracting the mean of baseline values and dividing by the
-          standard deviation of baseline values ('zscore')
-        - dividing by the mean of baseline values, taking the log, and
+        ``"mean"``
+          Subtracting the mean of baseline values
+        ``"ratio"``
+          Dividing by the mean of baseline values
+        ``"logratio"``
+          Dividing by the mean of baseline values and taking the log
+        ``"meanlogratio"``
+          Dividing by the mean of baseline values, taking the log and then
+          subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+          .. note:: this baseline mode has not been tested at the source-level!
+        ``"percent"``
+          Subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values
+        ``"zscore"``
+          Subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values
+        ``"zlogratio"``
+          Dividing by the mean of baseline values, taking the log, and
           dividing by the standard deviation of log baseline values
-          ('zlogratio')
-
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    %(use_cps_restricted)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
+
+        Only used when the inverse is free orientation (``loose=1.``),
+        not in surface orientation, and ``pick_ori='normal'``.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -258,6 +289,10 @@ def source_band_induced_power(
         (n_vertices, n_frequencies, n_samples) if label=None or label=label.
         For lists of one or more labels, the induced power estimate has shape
         (n_labels, n_frequencies, n_samples).
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
 
@@ -336,7 +371,7 @@ def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
     return shape, is_free_ori
 
 
-@verbose
+@_verbose_control
 def _compute_pow_plv(
     data,
     K,
@@ -471,7 +506,7 @@ def _get_label_power(power, labels, vertno, k_idxs):
     return out_power
 
 
-@verbose
+@_verbose_control
 def _source_induced_power(
     epochs,
     inverse_operator,
@@ -583,7 +618,7 @@ def _source_induced_power(
     return power, plv, vertno
 
 
-@verbose
+@verbose_static("baseline_mode_mn", "n_jobs", "use_cps_restricted")
 def source_induced_power(
     epochs,
     inverse_operator,
@@ -640,7 +675,7 @@ def source_induced_power(
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    baseline : None (default) or tuple of length 2
+    baseline : tuple of length 2 | None
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -648,26 +683,40 @@ def source_induced_power(
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-        Perform baseline correction by
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'meanlogratio' | 'percent' | 'zscore' | 'zlogratio'
+        Perform baseline correction by:
 
-        - subtracting the mean of baseline values ('mean')
-        - dividing by the mean of baseline values ('ratio')
-        - dividing by the mean of baseline values and taking the log
-          ('logratio')
-        - subtracting the mean of baseline values followed by dividing by
-          the mean of baseline values ('percent')
-        - subtracting the mean of baseline values and dividing by the
-          standard deviation of baseline values ('zscore')
-        - dividing by the mean of baseline values, taking the log, and
+        ``"mean"``
+          Subtracting the mean of baseline values
+        ``"ratio"``
+          Dividing by the mean of baseline values
+        ``"logratio"``
+          Dividing by the mean of baseline values and taking the log
+        ``"meanlogratio"``
+          Dividing by the mean of baseline values, taking the log and then
+          subtracting the mean (:footcite:`KinleyEtAl2026`)
+
+          .. note:: this baseline mode has not been tested at the source-level!
+        ``"percent"``
+          Subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values
+        ``"zscore"``
+          Subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values
+        ``"zlogratio"``
+          Dividing by the mean of baseline values, taking the log, and
           dividing by the standard deviation of log baseline values
-          ('zlogratio')
-
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
     return_plv : bool
         If True, return the phase-locking value array. Else, only return power.
 
@@ -678,10 +727,19 @@ def source_induced_power(
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
-    %(use_cps_restricted)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
+
+        Only used when the inverse is free orientation (``loose=1.``),
+        not in surface orientation, and ``pick_ori='normal'``.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -692,6 +750,10 @@ def source_induced_power(
     plv : array
         The phase-locking value array with shape (n_sources, n_freqs,
         n_samples). Only returned if ``return_plv=True``.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     _check_option("method", method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
@@ -724,7 +786,7 @@ def source_induced_power(
     return outs
 
 
-@verbose
+@verbose_static("n_jobs")
 def compute_source_psd(
     raw,
     inverse_operator,
@@ -814,11 +876,17 @@ def compute_source_psd(
 
         .. versionadded:: 0.17
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
 
         .. versionadded:: 0.17
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         It is only used if adaptive=True.
 
         .. versionadded:: 0.17
@@ -830,7 +898,11 @@ def compute_source_psd(
         If True (default False), return output it decibels.
 
         .. versionadded:: 0.17
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1087,7 +1159,7 @@ def _compute_source_psd_epochs(
     iter_epochs.update(n_epochs)  # in case some were skipped
 
 
-@verbose
+@verbose_static("n_jobs", "use_cps_restricted")
 def compute_source_psd_epochs(
     epochs,
     inverse_operator,
@@ -1150,12 +1222,18 @@ def compute_source_psd_epochs(
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
+        Only use tapers with more than 90% spectral concentration within
         bandwidth.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
-    %(n_jobs)s
+    n_jobs : int | None
+        The number of jobs to run in parallel. If ``-1``, it is set
+        to the number of CPU cores. Requires the :mod:`joblib` package.
+        ``None`` (default) is a marker for 'unset' that will be interpreted
+        as ``n_jobs=1`` (sequential execution) unless the call is performed under
+        a :class:`joblib:joblib.parallel_config` context manager that sets another
+        value for ``n_jobs``.
         It is only used if adaptive=True.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
@@ -1167,10 +1245,19 @@ def compute_source_psd_epochs(
         If True, also return the sensor PSD for each epoch as an EvokedArray.
 
         .. versionadded:: 0.17
-    %(use_cps_restricted)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
+
+        Only used when the inverse is free orientation (``loose=1.``),
+        not in surface orientation, and ``pick_ori='normal'``.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

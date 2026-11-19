@@ -1,0 +1,68 @@
+{
+  "merge_commit_sha": "3e3590928f82b391b37b59c6304ad8648982aabc",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/conftest.py": {
+      "a": 56,
+      "d": 21
+    },
+    "mne/decoding/tests/test_receptive_field.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/inverse_sparse/tests/test_gamma_map.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/inverse_sparse/tests/test_mxne_inverse.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_annotate_nan.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/preprocessing/tests/test_fine_cal.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/preprocessing/tests/test_maxwell.py": {
+      "a": 13,
+      "d": 3
+    },
+    "mne/tests/test_chpi.py": {
+      "a": 2,
+      "d": 1
+    },
+    "mne/utils/numerics.py": {
+      "a": 5,
+      "d": 3
+    },
+    "mne/viz/_3d.py": {
+      "a": 61,
+      "d": 31
+    },
+    "mne/viz/_brain/_linkviewer.py": {
+      "a": 12,
+      "d": 2
+    },
+    "mne/viz/tests/test_3d_mpl.py": {
+      "a": 1,
+      "d": 0
+    }
+  }
+}

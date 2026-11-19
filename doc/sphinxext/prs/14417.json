@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "1084a083526f97e347fec102d1915c40d2a2f681",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "mne/tests/test_docstring_parameters.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 0,
+      "d": 28
+    },
+    "mne/viz/_brain/_time_viewer.py": {
+      "a": 31,
+      "d": 0
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 7,
+      "d": 0
+    }
+  }
+}

@@ -83,6 +83,5 @@ troubleshooting installation problems.
 
 .. LINKS
 
-.. _`pyvista`: https://docs.pyvista.org/
-.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
-.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
+
+.. include:: ../links.inc

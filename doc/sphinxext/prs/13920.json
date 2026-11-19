@@ -1,0 +1,31 @@
+{
+  "merge_commit_sha": "c1b048cd8cad6c526fb03ad543da6f4dd2737731",
+  "authors": [
+    {
+      "n": "Ben Tang",
+      "e": "ben.tang@duke.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13920.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/reference.py": {
+      "a": 24,
+      "d": 4
+    },
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 50,
+      "d": 1
+    },
+    "mne/utils/docs.py": {
+      "a": 12,
+      "d": 3
+    }
+  }
+}

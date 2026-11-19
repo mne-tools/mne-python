@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "47d5be239f12eb310e7799b5119baf24bed89d05",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    ".github/actions/rename_towncrier/rename_towncrier.py": {
+      "a": 0,
+      "d": 58
+    },
+    ".github/workflows/autofix.yml": {
+      "a": 5,
+      "d": 2
+    }
+  }
+}

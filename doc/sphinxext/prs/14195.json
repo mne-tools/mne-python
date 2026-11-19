@@ -1,0 +1,96 @@
+{
+  "merge_commit_sha": "0311e444b0450ce9d2b2b304cebe7d5343533357",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".pre-commit-config.yaml": {
+      "a": 11,
+      "d": 0
+    },
+    "AGENTS.md": {
+      "a": 12,
+      "d": 5
+    },
+    "doc/changes/dev/14195.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 13,
+      "d": 6
+    },
+    "doc/development/contributing.rst": {
+      "a": 81,
+      "d": 0
+    },
+    "doc/development/roadmap.rst": {
+      "a": 5,
+      "d": 1
+    },
+    "mne/baseline.py": {
+      "a": 43,
+      "d": 6
+    },
+    "mne/cov.py": {
+      "a": 70,
+      "d": 6
+    },
+    "mne/evoked.py": {
+      "a": 35,
+      "d": 8
+    },
+    "mne/io/base.py": {
+      "a": 299,
+      "d": 2
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 44,
+      "d": 7
+    },
+    "mne/utils/__init__.pyi": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/utils/_logging.py": {
+      "a": 33,
+      "d": 0
+    },
+    "mne/utils/config.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/utils/docs.py": {
+      "a": 94,
+      "d": 12
+    },
+    "mne/utils/tests/test_docs.py": {
+      "a": 298,
+      "d": 0
+    },
+    "mne/viz/evoked.py": {
+      "a": 45,
+      "d": 4
+    },
+    "mne/viz/raw.py": {
+      "a": 155,
+      "d": 27
+    },
+    "tools/dev/ensure_headers.py": {
+      "a": 6,
+      "d": 8
+    },
+    "tools/github_actions_test.sh": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/hooks/check_static_docs.py": {
+      "a": 795,
+      "d": 0
+    }
+  }
+}

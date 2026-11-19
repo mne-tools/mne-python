@@ -17,9 +17,10 @@ from numpy.testing import (
 )
 
 import mne
-from mne import read_trans, write_trans
+from mne import pick_types, read_trans, write_trans
+from mne._fiff.tag import _loc_to_coil_trans
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata, _reshape_view
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.transforms import (
     _angle_between_quats,
@@ -76,7 +77,7 @@ def test_tps():
     az = np.linspace(0.0, 2 * np.pi, 20, endpoint=False)
     pol = np.linspace(0, np.pi, 12)[1:-1]
     sph = np.array(np.meshgrid(1, az, pol, indexing="ij"))
-    sph = _reshape_view(sph, (3, -1))
+    sph = sph.reshape((3, -1), copy=False)
     assert_equal(sph.shape[1], 200)
     source = _sph_to_cart(sph.T)
     destination = source.copy()
@@ -131,7 +132,7 @@ def test_io_trans(tmp_path):
 def test_get_ras_to_neuromag_trans():
     """Test the coordinate transformation from ras to neuromag."""
     # create model points in neuromag-like space
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     anterior = [0, 1, 0]
     left = [-1, 0, 0]
     right = [0.8, 0, 0]
@@ -182,9 +183,9 @@ def test_sph_to_cart():
     coord = _sph_to_cart(np.array([[r, theta, phi]]))[0]
     assert_allclose(coord, (x, y, z), atol=1e-7)
     assert_allclose(coord, (r, 0, 0), atol=1e-7)
-    rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     # round-trip test
-    coords = rng.randn(10, 3)
+    coords = rng.standard_normal((10, 3))
     assert_allclose(_sph_to_cart(_cart_to_sph(coords)), coords, atol=1e-5)
     # equivalence tests to old versions
     for coord in coords:
@@ -217,9 +218,9 @@ def test_polar_to_cartesian():
     assert_allclose(coord, (x, y), atol=1e-7)
     assert_allclose(coord, (-1, 0), atol=1e-7)
     assert_allclose(coord, _polar_to_cartesian(theta, r), atol=1e-7)
-    rng = np.random.RandomState(0)
-    r = rng.randn(10)
-    theta = rng.rand(10) * (2 * np.pi)
+    rng = np.random.default_rng(0)
+    r = rng.standard_normal(10)
+    theta = rng.random(10) * (2 * np.pi)
     polar = np.array((r, theta)).T
     assert_allclose(
         [_polar_to_cartesian(p[1], p[0]) for p in polar], _pol_to_cart(polar), atol=1e-7
@@ -235,9 +236,9 @@ def _topo_to_phi_theta(theta, radius):
 
 def test_topo_to_sph():
     """Test topo to sphere conversion."""
-    rng = np.random.RandomState(0)
-    angles = rng.rand(10) * 360
-    radii = rng.rand(10)
+    rng = np.random.default_rng(0)
+    angles = rng.random(10) * 360
+    radii = rng.random(10)
     angles[0] = 30
     radii[0] = 0.25
     # new way
@@ -358,6 +359,15 @@ def test_quaternions():
         assert_allclose(rot, quat_to_rot(rot_to_quat(rot)), rtol=1e-5, atol=1e-5)
         rot = rot[np.newaxis, np.newaxis, :, :]
         assert_allclose(rot, quat_to_rot(rot_to_quat(rot)), rtol=1e-5, atol=1e-5)
+    # MEG coil orientations, orthonormal only to ~2e-4 and some near 180 degrees
+    info = read_info(test_fif_fname)
+    coil_rots = np.array(
+        [
+            _loc_to_coil_trans(info["chs"][pick]["loc"])[:3, :3]
+            for pick in pick_types(info, meg=True)
+        ]
+    )
+    assert_allclose(quat_to_rot(rot_to_quat(coil_rots, tol=2e-3)), coil_rots, atol=2e-4)
 
     # let's make sure our angle function works in some reasonable way
     for ii in range(3):
@@ -386,6 +396,19 @@ def test_vector_rotation():
     quat_1 = rot_to_quat(rot)
     quat_2 = rot_to_quat(np.eye(3))
     assert_allclose(_angle_between_quats(quat_1, quat_2), np.pi / 2.0)
+    # many at once, including the parallel, antiparallel and nearly antiparallel
+    # cases, the first two of which have no rotation axis of their own
+    b = np.random.default_rng(0).normal(size=(20, 3))
+    b = np.concatenate([b, [x, -x, [-1, 1e-8, 0]]])
+    b /= np.linalg.norm(b, axis=1, keepdims=True)
+    rots = _find_vector_rotation(x, b)
+    assert_allclose(rots @ x, b, atol=1e-12)
+    eye = np.broadcast_to(np.eye(3), rots.shape)
+    assert_allclose(rots @ rots.transpose(0, 2, 1), eye, atol=1e-12)
+    assert_allclose(rots[-2], np.diag([-1, -1, 1]), atol=1e-12)
+    for rot, this_b in zip(rots[:3], b):  # each is the minimal rotation
+        angle = _angle_between_quats(rot_to_quat(rot), np.zeros(3))
+        assert_allclose(angle, np.arccos(x @ this_b))
 
 
 def test_average_quats():
@@ -412,6 +435,10 @@ def test_average_quats():
     assert_allclose(rot_0, rot_1, atol=1e-7)
     for lim, ex in enumerate(expected):
         assert_allclose(_average_quats(quats[: lim + 1]), ex, atol=1e-7)
+    # Weights should enter linearly (not squared): 0.75 * 0.2 rad ~= 0.15 rad
+    z_quats = np.array([[0, 0, np.sin(angle / 2)] for angle in (0.0, 0.2)])
+    avg = _average_quats(z_quats, weights=np.array([0.25, 0.75]))
+    assert_allclose(2 * np.arcsin(avg[2]), 0.15, atol=2e-4)
     # Assert some symmetry
     count = 0
     extras = [[sq2, sq2, 0]] + list(np.eye(3))
@@ -428,7 +455,7 @@ def test_average_quats():
 @testing.requires_testing_data
 @pytest.mark.parametrize("subject", ("fsaverage", "sample"))
 def test_fs_xfm(subject, tmp_path):
-    """Test reading and writing of Freesurfer transforms."""
+    """Test reading and writing of FreeSurfer transforms."""
     fname = data_path / "subjects" / subject / "mri" / "transforms" / "talairach.xfm"
     xfm, kind = _read_fs_xfm(str(fname))
     if subject == "fsaverage":
@@ -440,7 +467,7 @@ def test_fs_xfm(subject, tmp_path):
     assert kind_read == kind
     assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
     # Some wacky one
-    xfm[:3] = np.random.RandomState(0).randn(3, 4)
+    xfm[:3] = np.random.default_rng(0).standard_normal((3, 4))
     _write_fs_xfm(fname_out, xfm, "foo")
     xfm_read, kind_read = _read_fs_xfm(str(fname_out))
     assert kind_read == "foo"
@@ -458,7 +485,7 @@ def test_fs_xfm(subject, tmp_path):
 @pytest.fixture()
 def quats():
     """Make some unit quats."""
-    quats = np.random.RandomState(0).randn(5, 3)
+    quats = np.random.default_rng(0).standard_normal((5, 3))
     quats[:, 0] = 0  # identity
     quats /= 2 * np.linalg.norm(quats, axis=1, keepdims=True)  # some real part
     return quats
@@ -468,13 +495,13 @@ def _check_fit_matched_points(
     p, x, weights, do_scale, angtol=1e-5, dtol=1e-5, stol=1e-7
 ):
     __tracebackhide__ = True
-    mne.coreg._ALLOW_ANALITICAL = False
+    mne.transforms._ALLOW_ANALITICAL = False
     try:
-        params = mne.coreg.fit_matched_points(
+        params = mne.transforms.fit_matched_points(
             p, x, weights=weights, scale=do_scale, out="params"
         )
     finally:
-        mne.coreg._ALLOW_ANALITICAL = True
+        mne.transforms._ALLOW_ANALITICAL = True
     quat_an, scale_an = _fit_matched_points(p, x, weights, scale=do_scale)
     assert len(params) == 6 + int(do_scale)
     q_co = _euler_to_quat(params[:3])
@@ -491,7 +518,7 @@ def _check_fit_matched_points(
     trans[:3, :3] *= scale_an
     weights = np.ones(1) if weights is None else weights
     err_an = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
-    trans = mne.coreg._trans_from_params((True, True, do_scale), params)
+    trans = mne.transforms._trans_from_params((True, True, do_scale), params)
     err_co = np.linalg.norm(weights[:, np.newaxis] * apply_trans(trans, p) - x)
     if err_an > 1e-14:
         assert err_an < err_co * 1.5
@@ -504,9 +531,10 @@ def test_fit_matched_points(quats, scaling, do_scale):
     """Test analytical least-squares matched point fitting."""
     if scaling != 1 and not do_scale:
         return  # no need to test this, it will not be good
-    rng = np.random.RandomState(0)
-    fro = rng.randn(10, 3)
-    translation = rng.randn(3)
+    # seed chosen to give points that fit within the asserted tolerance
+    rng = np.random.default_rng(11)
+    fro = rng.standard_normal((10, 3))
+    translation = rng.standard_normal(3)
     for qi, quat in enumerate(quats):
         print(qi)
         to = scaling * np.dot(quat_to_rot(quat), fro.T).T + translation

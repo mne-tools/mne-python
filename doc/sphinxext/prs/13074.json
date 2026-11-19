@@ -1,0 +1,96 @@
+{
+  "merge_commit_sha": "b530f623fcf4c2a1f651b07edc88d0619113532f",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    },
+    {
+      "n": "Gnefil",
+      "e": "lifeng2628qiu@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/inverse.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/13074.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/conf.py": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/sphinxext/mne_doc_utils.py": {
+      "a": 6,
+      "d": 0
+    },
+    "mne/commands/mne_dipolefit.py": {
+      "a": 166,
+      "d": 0
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 54,
+      "d": 3
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/gui/__init__.pyi": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/gui/_dipolefit.py": {
+      "a": 985,
+      "d": 0
+    },
+    "mne/gui/_gui.py": {
+      "a": 248,
+      "d": 8
+    },
+    "mne/gui/tests/test_dipolefit.py": {
+      "a": 523,
+      "d": 0
+    },
+    "mne/utils/misc.py": {
+      "a": 0,
+      "d": 1
+    },
+    "mne/viz/_3d.py": {
+      "a": 16,
+      "d": 8
+    },
+    "mne/viz/evoked_field.py": {
+      "a": 69,
+      "d": 8
+    },
+    "mne/viz/tests/test_3d.py": {
+      "a": 28,
+      "d": 3
+    },
+    "mne/viz/tests/test_ui_events.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/viz/ui_events.py": {
+      "a": 21,
+      "d": 8
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    },
+    "tutorials/inverse/21_interactive_dipole_fit.py": {
+      "a": 185,
+      "d": 0
+    }
+  }
+}

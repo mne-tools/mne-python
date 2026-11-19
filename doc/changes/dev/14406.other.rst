@@ -1,0 +1,1 @@
+Vectorize blink interval masking in :func:`mne.preprocessing.eyetracking.interpolate_blinks`, by `Ishaan Maheshwari`_.

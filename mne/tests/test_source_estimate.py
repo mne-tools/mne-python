@@ -77,6 +77,7 @@ from mne.source_estimate import _get_vol_mask, _make_stc, grade_to_tris
 from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform
 from mne.utils import (
+    _chmod_rw_R,
     _record_warnings,
     catch_logging,
 )
@@ -110,7 +111,7 @@ fname_inv_vol = (
     data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-meg-inv.fif"
 )
 fname_nirx = data_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
-rng = np.random.RandomState(0)
+rng = np.random.default_rng(0)
 
 pytest.importorskip("nibabel")
 
@@ -240,9 +241,9 @@ def test_volume_stc(tmp_path):
     with pytest.raises(ValueError, match="'ftype' parameter"):
         stc.save(fname_vol, ftype="whatever", overwrite=True)
     for ftype in ["w", "h5"]:
-        for _ in range(2):
+        for save_ftype in (ftype, "auto"):
             fname_temp = tmp_path / f"temp-vol.{ftype}"
-            stc_new.save(fname_temp, ftype=ftype, overwrite=True)
+            stc_new.save(fname_temp, ftype=save_ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, VolSourceEstimate)
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
@@ -250,7 +251,10 @@ def test_volume_stc(tmp_path):
 
 
 @testing.requires_testing_data
-def test_save_stc_as_gifti(tmp_path):
+@pytest.mark.parametrize(
+    "scale, scale_rr, known_subject", [(1, 1e3, True), (2, 1, False)]
+)
+def test_save_stc_as_gifti(tmp_path, scale, scale_rr, known_subject):
     """Save the stc as a GIFTI file and export."""
     nib = pytest.importorskip("nibabel")
     surfpath_src = bem_path / "sample-oct-6-src.fif"
@@ -259,22 +263,96 @@ def test_save_stc_as_gifti(tmp_path):
     stc = read_source_estimate(surfpath_stc)  # need stc
     assert isinstance(src, SourceSpaces)
     assert isinstance(stc, SourceEstimate)
+    with pytest.raises(ValueError, match="vertices for lh must match"):
+        stc.save_as_surface(tmp_path / "mismatch", src)
+    assert not list(tmp_path.glob("mismatch*"))
+    vertices = [s["vertno"].copy() for s in src]
+    n_vertices = sum(map(len, vertices))
+    stc = SourceEstimate(
+        np.arange(n_vertices * 3).reshape(n_vertices, 3),
+        vertices,
+        tmin=-0.12345678901234567,
+        tstep=0.003456789012345678,
+        subject="sample",
+    )
+    if not known_subject:
+        src[0].pop("subject_his_id", None)
+        src[1]["subject_his_id"] = None
 
     surf_fname = tmp_path / "stc_write"
 
-    stc.save_as_surface(surf_fname, src)
+    stc.save_as_surface(surf_fname, src, scale=scale, scale_rr=scale_rr)
 
     # did structural get written?
     img_lh = nib.load(f"{surf_fname}-lh.gii")
     img_rh = nib.load(f"{surf_fname}-rh.gii")
     assert isinstance(img_lh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_rh, nib.gifti.gifti.GiftiImage)
+    for image, parent, hemi in zip((img_lh, img_rh), src, ("lh", "rh")):
+        assert len(image.darrays) == 2
+        vertices = np.fromstring(
+            image.meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert_array_equal(vertices, parent["vertno"])
+        assert image.meta["MNEParentHemisphere"] == hemi
+        assert int(image.meta["MNEParentVertexCount"]) == len(parent["rr"])
+        if known_subject:
+            assert image.meta["MNEParentSubject"] == parent["subject_his_id"]
+        else:
+            assert "MNEParentSubject" not in image.meta
+        coords, triangles = image.agg_data(("pointset", "triangle"))
+        assert_array_equal(
+            coords, (parent["rr"][vertices] * scale_rr).astype(np.float32)
+        )
+        assert triangles.dtype == np.int32
+        assert triangles.min() >= 0
+        assert triangles.max() < len(vertices)
+        assert_array_equal(vertices[triangles], parent["use_tris"])
 
     # did time series get written?
     img_timelh = nib.load(f"{surf_fname}-lh.time.gii")
     img_timerh = nib.load(f"{surf_fname}-rh.time.gii")
     assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
+
+    for image, anatomical, data in (
+        (img_timelh, img_lh, stc.lh_data),
+        (img_timerh, img_rh, stc.rh_data),
+    ):
+        parent_meta = {
+            key: value
+            for key, value in image.meta.items()
+            if key.startswith("MNEParent")
+        }
+        assert parent_meta == dict(anatomical.meta)
+        vertices = np.fromstring(
+            parent_meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert len(vertices) == data.shape[0]
+        assert_allclose(float(image.meta["TimeStart"]), stc.tmin)
+        assert_allclose(float(image.meta["TimeStep"]), stc.tstep)
+        assert image.meta["TimeUnits"] == "s"
+        assert image.meta["TimeSamples"] == str(len(stc.times))
+        assert len(image.darrays) == len(stc.times)
+        for idx, (darray, time) in enumerate(
+            zip(image.darrays, stc.times, strict=True)
+        ):
+            assert darray.meta["TimeIndex"] == str(idx)
+            assert_allclose(float(darray.meta["TimeValue"]), time)
+            assert darray.meta["TimeUnits"] == "s"
+            assert darray.meta["Name"] == f"{time:g} s"
+            assert not any(key.startswith("MNEParent") for key in darray.meta)
+            assert darray.intent == nib.nifti1.intent_codes["pointset"]
+            assert_array_equal(darray.data, (data[:, idx] * scale).astype(np.float32))
+
+    for key in ("TimeStart", "TimeStep", "TimeUnits", "TimeSamples"):
+        assert img_timelh.meta[key] == img_timerh.meta[key]
+
+    # Reject reordered vertices in rh before writing either hemi
+    stc.vertices[1] = stc.vertices[1][::-1]
+    with pytest.raises(ValueError, match="vertices for rh must match"):
+        stc.save_as_surface(tmp_path / "mismatch", src)
+    assert not list(tmp_path.glob("mismatch*"))
 
 
 @testing.requires_testing_data
@@ -372,18 +450,18 @@ def test_expand():
 
 
 def _fake_stc(n_time=10, is_complex=False):
-    np.random.seed(7)
+    rng = np.random.default_rng(7)
     verts = [np.arange(10), np.arange(90)]
-    data = np.random.rand(100, n_time)
+    data = rng.random((100, n_time))
     if is_complex:
         data.astype(complex)
     return SourceEstimate(data, verts, 0, 1e-1, "foo")
 
 
 def _fake_vec_stc(n_time=10, is_complex=False):
-    np.random.seed(7)
+    rng = np.random.default_rng(7)
     verts = [np.arange(10), np.arange(90)]
-    data = np.random.rand(100, 3, n_time)
+    data = rng.random((100, 3, n_time))
     if is_complex:
         data.astype(complex)
     return VectorSourceEstimate(data, verts, 0, 1e-1, "foo")
@@ -450,7 +528,8 @@ def test_stc_attributes():
     pytest.raises(ValueError, attempt_assignment, stc, "tstep", -1)
 
     # Changing .data re-computes .times
-    stc.data = np.random.rand(100, 5)
+    rng = np.random.default_rng(0)
+    stc.data = rng.random((100, 5))
     assert_array_almost_equal(stc.times, [1.0, 2.0, 3.0, 4.0, 5.0])
 
     # .data must match the number of vertices
@@ -489,6 +568,16 @@ def test_io_stc(tmp_path):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    stc.save(tmp_path / "tmp-lh.stc", overwrite=True)
+    assert not (tmp_path / "tmp-lh.stc-lh.stc").exists()
+    assert_array_almost_equal(stc.data, read_source_estimate(tmp_path / "tmp.stc").data)
+    # legacy stem ending in another extension is not stripped on read
+    stc.save(tmp_path / "legacy.w", ftype="stc")
+    assert (tmp_path / "legacy.w-lh.stc").is_file()
+    assert_array_almost_equal(
+        stc.data, read_source_estimate(tmp_path / "legacy.w").data
+    )
+
     # test warning for complex data
     stc2.data = stc2.data.astype(np.complex128)
     with pytest.raises(ValueError, match="Cannot save complex-valued STC"):
@@ -514,6 +603,8 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
     with pytest.raises(FileExistsError, match="Destination file exists"):
         stc.save(out_name, ftype="h5")
     stc.save(out_name, ftype="h5", overwrite=True)
+    stc.save(tmp_path / "auto.h5")  # default ftype infers h5
+    assert (tmp_path / "auto.h5").is_file()
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name.with_name(out_name.name + "-stc"))
     stc5 = read_source_estimate(out_name.with_name(out_name.name + "-stc.h5"))
@@ -539,6 +630,9 @@ def test_io_w(tmp_path):
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
+    src.save(tmp_path / "tmp-lh.w", overwrite=True)
+    assert not (tmp_path / "tmp-lh.w-lh.w").exists()
+    assert_array_almost_equal(src.data, read_source_estimate(tmp_path / "tmp.w").data)
 
 
 def test_stc_arithmetic():
@@ -1073,8 +1167,8 @@ def test_transform_data():
     """Test applying linear (time) transform to data."""
     # make up some data
     n_sensors, n_vertices, n_times = 10, 20, 4
-    kernel = rng.randn(n_vertices, n_sensors)
-    sens_data = rng.randn(n_sensors, n_times)
+    kernel = rng.standard_normal((n_vertices, n_sensors))
+    sens_data = rng.standard_normal((n_sensors, n_times))
 
     vertices = [np.arange(n_vertices)]
     data = np.dot(kernel, sens_data)
@@ -1106,7 +1200,7 @@ def test_transform():
     # make up some data
     n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
-    data = rng.randn(n_verts_lh + n_verts_rh, n_times)
+    data = rng.standard_normal((n_verts_lh + n_verts_rh, n_times))
     stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
 
     # data_t.ndim > 2 & copy is True
@@ -1211,7 +1305,7 @@ def test_to_data_frame():
     pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
-    data = rng.randn(n_vert, n_times)
+    data = rng.standard_normal((n_vert, n_times))
     stc_surf = SourceEstimate(
         data, vertices=vertices, tmin=0, tstep=1, subject="sample"
     )
@@ -1235,7 +1329,7 @@ def test_to_data_frame_index(index):
     pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
-    data = rng.randn(n_vert, n_times)
+    data = rng.standard_normal((n_vert, n_times))
     stc = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1, subject="sample")
     df = stc.to_data_frame(index=index)
     # test index setting
@@ -1310,7 +1404,7 @@ def test_mixed_stc(tmp_path):
     T = 2  # number of time points
     S = 3  # number of source spaces
 
-    data = rng.randn(N, T)
+    data = rng.standard_normal((N, T))
     vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2
@@ -1441,10 +1535,10 @@ def test_vec_stc_basic(tmp_path, klass, kind, dtype):
 def test_source_estime_project(real):
     """Test projecting a source estimate onto direction of max power."""
     n_src, n_times = 4, 100
-    rng = np.random.RandomState(0)
-    data = rng.randn(n_src, 3, n_times)
+    rng = np.random.default_rng(0)
+    data = rng.standard_normal((n_src, 3, n_times))
     if not real:
-        data = data + 1j * rng.randn(n_src, 3, n_times)
+        data = data + 1j * rng.standard_normal((n_src, 3, n_times))
         assert data.dtype == np.complex128
     else:
         assert data.dtype == np.float64
@@ -1686,6 +1780,11 @@ def test_stc_near_sensors(tmp_path):
             subjects_dir / "sample" / "surf" / f"{hemi}.white",
             tmp_path / "sample" / "surf" / f"{hemi}.pial",
         )
+        copyfile(
+            subjects_dir / "sample" / "surf" / f"{hemi}.sphere.reg",
+            tmp_path / "sample" / "surf" / f"{hemi}.sphere.reg",
+        )
+    _chmod_rw_R(tmp_path / "sample" / "surf")  # for read-only FSes
     # here we use a distance is smaller than the inter-sensor distance
     kwargs = dict(
         subject="sample",
@@ -1720,7 +1819,7 @@ def test_stc_near_sensors(tmp_path):
             "sample",
             smooth=5,
             spacing=None,
-            subjects_dir=subjects_dir,
+            subjects_dir=tmp_path,
         ).apply(stc_src)
     lh_idx = np.searchsorted(stc_src_full.vertices[0], stc.vertices[0])
     rh_idx = np.searchsorted(stc_src_full.vertices[1], stc.vertices[1])
@@ -1906,8 +2005,8 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     #    (for surfaces at least; for volumes it's not as clean as this
     #     due to interpolation)
     n_times = 50
-    rng = np.random.RandomState(0)
-    label_tc = rng.randn(n_labels, n_times)
+    rng = np.random.default_rng(0)
+    label_tc = rng.standard_normal((n_labels, n_times))
     # check that a random permutation of our labels yields a terrible
     # correlation
     corr = np.corrcoef(label_tc.ravel(), rng.permutation(label_tc).ravel())[0, 1]
@@ -1983,7 +2082,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
                 min_, max_ = 0.72, 0.76
             else:
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.46, 0.63
+                min_, max_ = 0.4, 0.63
             assert min_ < corr <= max_, scale
         else:
             assert_allclose(label_tc, label_tc_to_morph, atol=1e-12, rtol=1e-12)

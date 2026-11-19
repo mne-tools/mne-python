@@ -25,18 +25,17 @@ multiple additional options.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from mne import read_evokeds
-from mne.datasets import sample
+import mne
 
 print(__doc__)
 
-path = sample.data_path()
+path = mne.datasets.sample.data_path()
 fname = path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
 # load evoked corresponding to a specific condition
 # from the fif file and subtract baseline
 condition = "Left Auditory"
-evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
+evoked = mne.read_evokeds(fname, condition=condition, baseline=(None, 0))
 
 # %%
 # Basic :func:`~mne.viz.plot_topomap` options
@@ -192,4 +191,4 @@ evoked.plot_topomap(times, ch_type="eeg", image_interp="nearest", contours=0)
 
 # sphinx_gallery_thumbnail_number = 9
 times = np.arange(0.05, 0.151, 0.01)
-fig, anim = evoked.animate_topomap(times=times, ch_type="mag", frame_rate=2, blit=False)
+fig, anim = evoked.animate_topomap(times=times, ch_type="mag", frame_rate=2)

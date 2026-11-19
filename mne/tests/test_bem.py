@@ -4,7 +4,6 @@
 
 import re
 from copy import deepcopy
-from os import makedirs
 from pathlib import Path
 from shutil import copy
 
@@ -44,6 +43,7 @@ from mne.io import read_info
 from mne.surface import _get_ico_surface, read_surface
 from mne.transforms import translation
 from mne.utils import (
+    _chmod_rw_R,
     _record_warnings,
     catch_logging,
     check_version,
@@ -224,13 +224,14 @@ def test_bem_model_topology(tmp_path):
     """Test BEM model topological checks."""
     pytest.importorskip("nibabel")
     # bad topology (not enough neighboring tris)
-    makedirs(tmp_path / "foo" / "bem")
+    (tmp_path / "foo" / "bem").mkdir(parents=True)
     for fname in ("inner_skull", "outer_skull", "outer_skin"):
         fname += ".surf"
         copy(
             subjects_dir / "sample" / "bem" / fname,
             tmp_path / "foo" / "bem" / fname,
         )
+    _chmod_rw_R(tmp_path)
     outer_fname = tmp_path / "foo" / "bem" / "outer_skull.surf"
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
@@ -523,7 +524,7 @@ def test_io_head_bem(tmp_path):
     assert np.allclose(head["tris"], head_defect["tris"])
 
 
-@pytest.mark.slowtest
+@pytest.mark.ultraslowtest  # ~15s locally
 @requires_freesurfer("mkheadsurf")
 @testing.requires_testing_data
 def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
@@ -533,21 +534,18 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
 
     # tests on 'sample'
     subject = "sample"
-    subjects_dir = testing.data_path(download=False)
     with pytest.raises(OSError, match="use --overwrite to overwrite it"):
         make_scalp_surfaces(
             subject, subjects_dir, force=False, verbose=True, overwrite=False
         )
 
-    make_scalp_surfaces(
-        subject, subjects_dir, force=False, verbose=True, overwrite=True
-    )
-
     # tests on custom surface
-    subjects_dir = tmp_path
     subject = "test"
-    surf_dir = subjects_dir / subject / "surf"
-    makedirs(surf_dir)
+    surf_dir = tmp_path / subject / "surf"
+    surf_dir.mkdir(parents=True)
+    mri_dir = tmp_path / subject / "mri"
+    mri_dir.mkdir(parents=True)
+    copy(subjects_dir / "sample" / "mri" / "T1.mgz", mri_dir / "T1.mgz")
     surf = _get_ico_surface(2)
     surf["rr"] *= 100  # mm
     write_surface(surf_dir / "lh.seghead", surf["rr"], surf["tris"])
@@ -564,15 +562,17 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
     # Not enough neighbors
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=315))
     with pytest.raises(ValueError, match=".*have fewer than three.*"):
-        make_scalp_surfaces(subject, subjects_dir, force=False, verbose=True)
+        make_scalp_surfaces(
+            subject, tmp_path, force=False, overwrite=True, verbose=True
+        )
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=319))
     # Incomplete surface (sum of solid angles)
-    with pytest.raises(RuntimeError, match=".*is not complete.*"):
+    with pytest.raises(ValueError, match="topological defects"):
         make_scalp_surfaces(
-            subject, subjects_dir, force=False, verbose=True, overwrite=True
+            subject, tmp_path, force=False, verbose=True, overwrite=True
         )
 
-    bem_dir = subjects_dir / subject / "bem"
+    bem_dir = tmp_path / subject / "bem"
     sparse_path = bem_dir / f"{subject}-head-sparse.fif"
     assert not sparse_path.is_file()
 
@@ -582,12 +582,12 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
         _record_warnings(),
         pytest.warns(RuntimeWarning, match=".*have fewer than three.*"),
     ):
-        make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
+        make_scalp_surfaces(subject, tmp_path, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")
     assert len(surf["tris"]) == 315
     monkeypatch.setattr(mne.bem, "_tri_levels", dict(sparse=319))
     with _record_warnings(), pytest.warns(RuntimeWarning, match=".*is not complete.*"):
-        make_scalp_surfaces(subject, subjects_dir, force=True, overwrite=True)
+        make_scalp_surfaces(subject, tmp_path, force=True, overwrite=True)
     (surf,) = read_bem_surfaces(sparse_path, on_defects="ignore")
     assert len(surf["tris"]) == 319
 

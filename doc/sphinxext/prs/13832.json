@@ -1,0 +1,27 @@
+{
+  "merge_commit_sha": "f7cd2d7322bd42f4f2f726b44802f6555159adaa",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/spec_zero.yml": {
+      "a": 9,
+      "d": 3
+    },
+    ".pre-commit-config.yaml": {
+      "a": 0,
+      "d": 12
+    },
+    "tools/environment_old.yml": {
+      "a": 0,
+      "d": 18
+    },
+    "tools/sync_dependencies.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

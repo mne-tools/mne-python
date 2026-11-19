@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "dbeed03c09e6a01a0994ce9a698d7a7e16aacc95",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14270.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 42,
+      "d": 9
+    },
+    "mne/viz/_brain/tests/test_brain.py": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 5,
+      "d": 5
+    }
+  }
+}

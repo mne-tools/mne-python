@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "46839617fc27d0dbfafd5bbca5dfe7d8e19ea713",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/viz/tests/test_ica.py": {
+      "a": 19,
+      "d": 3
+    }
+  }
+}
