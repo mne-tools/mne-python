@@ -1,0 +1,1 @@
+Fix :func:`mne.gui.coregistration` not showing the chosen info file and subjects folder, not updating the subject list after changing the subjects folder, and opening the trans file dialogs in the current working directory, by `Payam Sadeghi-Shabestari`_.
