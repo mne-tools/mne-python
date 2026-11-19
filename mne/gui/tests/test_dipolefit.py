@@ -452,7 +452,7 @@ def test_dipolefit_params(
     )
     assert_allclose(  # compute var on baseline period
         g._cov["data"][[0, 1, 2, 306]],
-        [3.5e-24, 3.5e-24, 3.0e-27, 2.3e-12],
+        [2.8e-24, 2.8e-24, 3.0e-27, 2.3e-12],
         rtol=0.1,
         atol=0,
     )

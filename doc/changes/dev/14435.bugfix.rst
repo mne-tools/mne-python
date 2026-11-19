@@ -1,0 +1,1 @@
+Fix bug with :func:`mne.gui.dipolefit` where channels in ``evoked.info["bads"]`` were included in the noise estimate when ``cov="baseline"``, by `Hamza Abdelhedi`_.
