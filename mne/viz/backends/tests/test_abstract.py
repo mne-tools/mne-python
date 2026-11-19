@@ -7,7 +7,8 @@ from pathlib import Path
 from mne.viz.backends.renderer import _get_backend
 
 
-def _do_widget_tests(backend):
+def _do_widget_tests(backend, renderer_class=None):
+    """Test a backend's widgets; its 3D renderer can live in another module."""
     # testing utils
     widget_checks = set()
 
@@ -21,7 +22,8 @@ def _do_widget_tests(backend):
 
     window = backend._AppWindow()
     central_layout = backend._VBoxLayout(scroll=(500, 500))
-    renderer = backend._3DRenderer(name="test", size=(200, 200))
+    renderer_class = renderer_class or backend._3DRenderer
+    renderer = renderer_class(name="test", size=(200, 200))
     renderer.sphere([0, 0, 0], "red", 1)
     central_layout._add_widget(renderer.plotter)
     canvas = backend._Canvas(5, 5, 96)
@@ -119,13 +121,15 @@ def test_widget_abstraction_notebook(renderer_notebook, nbexec):
     from IPython import get_ipython
 
     from mne.viz import set_3d_backend
+    from mne.viz.backends import _notebook
     from mne.viz.backends.renderer import _get_backend
     from mne.viz.backends.tests.test_abstract import _do_widget_tests
 
     set_3d_backend("notebook")
     backend = _get_backend()
-    assert Path(backend.__file__).stem == "_notebook"
+    assert Path(backend.__file__).stem == "_trame"
 
     ipython = get_ipython()
     ipython.run_line_magic(magic_name="matplotlib", line="widget")
-    _do_widget_tests(backend)
+    # the widgets are shared with the notebook_js backend
+    _do_widget_tests(_notebook, backend._3DRenderer)
