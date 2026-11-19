@@ -116,6 +116,7 @@
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 .. _Diptyajit Das: https://github.com/dasdiptyajit
 .. _Dirk Gütlin: https://github.com/DiGyt
+.. _Divya: https://github.com/divya-git03
 .. _Dmitrii Altukhov: https://github.com/dmalt
 .. _Dominik Krzemiński: https://github.com/dokato
 .. _Dominik Welke: https://github.com/dominikwelke/
