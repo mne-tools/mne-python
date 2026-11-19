@@ -340,6 +340,7 @@
 .. _Nicolas Legrand: https://github.com/LegrandNico
 .. _Nicole Proulx: https://github.com/nicproulx
 .. _Niels Focke: https://neurologie.umg.eu/forschung/arbeitsgruppen/epilepsie-und-bildgebungsforschung
+.. _Nikhil Sinha: https://github.com/Nikhil-sinhaa
 .. _Niklas Wilming: https://github.com/nwilming
 .. _Nikolai Chapochnikov: https://github.com/chapochn
 .. _Nikolai Kapralov: https://github.com/ctrltz

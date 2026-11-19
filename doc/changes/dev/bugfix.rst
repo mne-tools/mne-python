@@ -1,0 +1,1 @@
+Fix bug in :meth:`mne.io.Raw.plot` where ``scalings="auto"`` with ``remove_dc=True`` subtracted the across-segment average instead of each segment's mean, so periodic signals (e.g., sinusoids or regular analog triggers) got a near-zero scaling and were drawn as vertical lines, by :newcontrib:`Nikhil Sinha`.
