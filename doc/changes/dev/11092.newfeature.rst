@@ -1,0 +1,1 @@
+- Added noisy point-spread functions to mne.minimum_norm.make_inverse_resolution_matrix (:gh:`11058` by `Olaf Hauk`_)
