@@ -2123,6 +2123,23 @@ def test_montage_add_fiducials():
     montage.remove_fiducials()
     assert all([d["kind"] != FIFF.FIFFV_POINT_CARDINAL for d in montage.dig])
 
+    # test projecting the channel positions onto the scalp (gh-13188)
+    trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+    orig = transform_to_head(make_standard_montage("spherical_1020"))
+    proj = orig.copy().project_to_head(trans, subject, subjects_dir)
+    orig_pos, proj_pos = orig.get_positions(), proj.get_positions()
+    assert proj_pos["coord_frame"] == "head"
+    assert_array_equal(proj_pos["nasion"], orig_pos["nasion"])
+    dists = [
+        np.linalg.norm(proj_pos["ch_pos"][k] - v) for k, v in orig_pos["ch_pos"].items()
+    ]
+    assert np.max(dists) > 0.01  # some moved by more than 1 cm
+    # points already on the scalp barely move (the nearest-triangle search in
+    # _project_onto_surface is approximate, so this is not exact)
+    reproj = proj.copy().project_to_head(trans, subject, subjects_dir)
+    for key, val in proj_pos["ch_pos"].items():
+        assert_allclose(reproj.get_positions()["ch_pos"][key], val, atol=2e-3)
+
 
 def test_dig_montage_drop_channels():
     """Test dropping channels from DigMontage."""

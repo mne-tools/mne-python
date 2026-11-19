@@ -34,12 +34,14 @@ from ..transforms import (
     Transform,
     _ensure_trans,
     _frame_to_str,
+    _get_trans,
     _quat_to_affine,
     _sph_to_cart,
     _topo_to_sph,
     _verbose_frames,
     apply_trans,
     get_ras_to_neuromag_trans,
+    invert_transform,
 )
 from ..utils import (
     _check_fname,
@@ -795,6 +797,61 @@ class DigMontage:
 
         # add those digpoints to front of montage
         self.dig = fids_mri + self.dig
+        return self
+
+    @verbose_static("trans_not_none", "subject", "subjects_dir")
+    def project_to_head(self, trans, subject, subjects_dir=None, verbose=None):
+        """Project EEG channel positions onto the scalp surface.
+
+        Parameters
+        ----------
+        trans : str | dict | instance of Transform
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+        subject : str
+            The FreeSurfer subject name.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place and in the ``head`` coordinate frame.
+
+        See Also
+        --------
+        mne.viz.plot_alignment
+
+        Notes
+        -----
+        The channel positions are projected onto the closest point of the head
+        surface loaded by :func:`mne.get_head_surf`, which uses the scalp surface
+        of the BEM model when available, like :func:`mne.make_forward_solution`.
+        :func:`mne.viz.plot_alignment` applies the same projection for
+        ``eeg="projected"``, onto the head surface it plots.
+
+        .. versionadded:: 1.14
+        """
+        from ..surface import _project_onto_surface, get_head_surf
+
+        head_mri_t = _get_trans(trans, "head", "mri", allow_none=False)[0]
+        self.dig = transform_to_head(self).dig
+        eeg = [d for d in self.dig if d["kind"] == FIFF.FIFFV_POINT_EEG]
+        if not eeg:
+            return self
+        surf = get_head_surf(subject, subjects_dir=subjects_dir)
+        rrs = apply_trans(head_mri_t, np.array([d["r"] for d in eeg]))
+        rrs = _project_onto_surface(rrs, surf, project_rrs=True)[2]
+        for d, rr in zip(eeg, apply_trans(invert_transform(head_mri_t), rrs)):
+            d["r"] = rr
         return self
 
     @verbose_static("subjects_dir")
