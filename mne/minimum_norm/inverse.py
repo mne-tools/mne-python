@@ -962,7 +962,7 @@ def apply_inverse(
         Use minimum norm :footcite:`HamalainenIlmoniemi1994`,
         dSPM (default) :footcite:`DaleEtAl2000`,
         sLORETA :footcite:`Pascual-Marqui2002`, or
-        eLORETA :footcite:`Pascual-Marqui2011`.
+        eLORETA :footcite:`Pascual-Marqui2007,Pascual-Marqui2011`.
     pick_ori : None | "normal" | "vector"
 
         Options:
@@ -1034,31 +1034,17 @@ def apply_inverse(
             The maximum number of iterations (default 20).
             If less regularization is applied, more iterations may be
             necessary.
-        'force_equal' : bool
-            Force all eLORETA weights for each direction for a given
-            location equal. The default is None, which means ``True`` for
-            loose-orientation inverses and ``False`` for free- and
-            fixed-orientation inverses. See below.
+        'force_equal' : None
+            Deprecated and has no effect, will be removed in 1.15.
 
-    The eLORETA paper :footcite:`Pascual-Marqui2011` defines how to compute
-    inverses for fixed- and
-    free-orientation inverses. In the free orientation case, the X/Y/Z
-    orientation triplet for each location is effectively multiplied by a
-    3x3 weight matrix. This is the behavior obtained with
-    ``force_equal=False`` parameter.
-
-    However, other noise normalization methods (dSPM, sLORETA) multiply all
-    orientations for a given location by a single value.
-    Using ``force_equal=True`` mimics this behavior by modifying the iterative
-    algorithm to choose uniform weights (equivalent to a 3x3 diagonal matrix
-    with equal entries).
-
-    It is necessary to use ``force_equal=True``
-    with loose orientation inverses (e.g., ``loose=0.2``), otherwise the
-    solution resembles a free-orientation inverse (``loose=1.0``).
-    It is thus recommended to use ``force_equal=True`` for loose orientation
-    and ``force_equal=False`` for free orientation inverses. This is the
-    behavior used when the parameter ``force_equal=None`` (default behavior).
+    The eLORETA papers :footcite:`Pascual-Marqui2007,Pascual-Marqui2011`
+    define how to compute inverses for fixed- and free-orientation inverses.
+    In the free orientation case, the X/Y/Z orientation triplet for each
+    location is effectively multiplied by a 3x3 weight matrix. For
+    loose-orientation inverses (e.g., ``loose=0.2``), the eLORETA weights are
+    fit to the gain matrix with each orientation's columns scaled by its
+    orientation prior, so the solution varies smoothly from fixed
+    (``loose=0``) to free (``loose=1``) orientation.
 
     References
     ----------

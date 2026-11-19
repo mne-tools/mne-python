@@ -126,7 +126,7 @@ brain.add_text(0.1, 0.9, "eLORETA", "title", font_size=14)
 # %%
 # And one interesting property to note is the noise normalization of dSPM
 # can be easily seen by visualizing the source reconstruction of the noise
-# covariance used to compute the inverse operator -- it's takes on the
+# covariance used to compute the inverse operator -- it takes on the
 # value of 1. (orange in the colormap here) across the entire brain:
 
 stc_baseline = apply_inverse_cov(

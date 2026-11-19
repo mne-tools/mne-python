@@ -10,19 +10,6 @@ from ..defaults import _handle_default
 from ..fixes import _safe_svd
 from ..utils import eigh, logger, sqrtm_sym, warn
 
-# For the reference implementation of eLORETA (force_equal=False),
-# 0 < loose <= 1 all produce solutions that are (more or less)
-# the same as free orientation (loose=1) and quite different from
-# loose=0 (fixed). If we do force_equal=True, we get a visibly smooth
-# transition from 0->1. This is probably because this mode behaves more like
-# sLORETA and dSPM in that it weights each orientation for a given source
-# uniformly (which is not the case for the reference eLORETA implementation).
-#
-# If we *reapply the orientation prior* after each eLORETA iteration,
-# we can preserve the smooth transition without requiring force_equal=True,
-# which is probably more representative of what eLORETA should do. But this
-# does not produce results that pass the eye test.
-
 
 def _compute_eloreta(inv, lambda2, options):
     """Compute the eLORETA solution."""
@@ -30,7 +17,13 @@ def _compute_eloreta(inv, lambda2, options):
 
     options = _handle_default("eloreta_options", options)
     eps, max_iter = options["eps"], options["max_iter"]
-    force_equal = bool(options["force_equal"])  # None means False
+    if options["force_equal"] is not None:
+        warn(
+            'eLORETA method_params["force_equal"] is deprecated, has no effect, '
+            "and will be removed in 1.15. Remove it from method_params to avoid "
+            "this warning.",
+            FutureWarning,
+        )
 
     # Reassemble the gain matrix (should be fast enough)
     if inv["eigen_leads_weighted"]:
@@ -45,11 +38,11 @@ def _compute_eloreta(inv, lambda2, options):
     G = G.astype(np.float64)
     n_nzero = compute_rank_inverse(inv)
     G /= np.sqrt(inv["source_cov"]["data"])
-    # restore orientation prior
-    source_std = np.ones(G.shape[1])
+    # Not sqrt: eLORETA cancels half a column scaling, this makes loose act like MNE's
+    ori_scale = np.ones(G.shape[1])
     if inv["orient_prior"] is not None:
-        source_std *= np.sqrt(inv["orient_prior"]["data"])
-    G *= source_std
+        ori_scale *= inv["orient_prior"]["data"]
+    G *= ori_scale
     # We do not multiply by the depth prior, as eLORETA should compensate for
     # depth bias.
     n_src = inv["nsource"]
@@ -57,32 +50,19 @@ def _compute_eloreta(inv, lambda2, options):
     n_orient //= n_src
     assert n_orient in (1, 3)
     logger.info("    Computing optimized source covariance (eLORETA)...")
-    if n_orient == 3:
-        logger.info(
-            f"        Using {'uniform' if force_equal else 'independent'} "
-            "orientation weights"
-        )
     # src, sens, 3
     G_3 = _get_G_3(G, n_orient)
-    if n_orient != 1 and not force_equal:
-        # Outer product
-        R_prior = source_std.reshape(n_src, 1, 3) * source_std.reshape(n_src, 3, 1)
-    else:
-        R_prior = source_std**2
-
     # The following was adapted under BSD license by permission of Guido Nolte
-    if force_equal or n_orient == 1:
-        R_shape = (n_src * n_orient,)
-        R = np.ones(R_shape)
+    # Init so that max_iter=0 gives MNE (source cov orient_prior)
+    if n_orient == 1:
+        R_shape = (n_src,)
+        R = 1.0 / ori_scale
     else:
         R_shape = (n_src, n_orient, n_orient)
-        R = np.empty(R_shape)
-        R[:] = np.eye(n_orient)[np.newaxis]
-    R *= R_prior
+        R = np.eye(n_orient) / ori_scale.reshape(n_src, 1, n_orient)
     _this_normalize_R = partial(
         _normalize_R,
         n_nzero=n_nzero,
-        force_equal=force_equal,
         n_src=n_src,
         n_orient=n_orient,
     )
@@ -105,13 +85,9 @@ def _compute_eloreta(inv, lambda2, options):
         if n_orient == 1:
             R[:] = 1.0 / np.sqrt((np.dot(N, G) * G).sum(0))
         else:
-            M = np.matmul(np.matmul(G_3, N[np.newaxis]), G_3.swapaxes(-2, -1))
-            if force_equal:
-                _, s = sqrtm_sym(M, inv=True)
-                R[:] = np.repeat(1.0 / np.mean(s, axis=-1), 3)
-            else:
-                R[:], _ = sqrtm_sym(M, inv=True)
-        R *= R_prior  # reapply our prior, eLORETA undoes it
+            NG_3 = (N @ G).reshape(n_chan, n_src, 3).transpose(1, 0, 2)
+            M = np.matmul(G_3, NG_3)
+            R[:], _ = sqrtm_sym(M, inv=True)
         G_R_Gt = _this_normalize_R(G, R, G_3)
 
         # Check for weight convergence
@@ -123,18 +99,15 @@ def _compute_eloreta(inv, lambda2, options):
         )
         if delta < eps:
             logger.info(
-                f"        Converged on iteration {kk} ({delta:.2g} < {eps:.2g})"
+                f"        Converged on iteration {kk + 1} ({delta:.2g} < {eps:.2g})"
             )
             break
     else:
         warn(f"eLORETA weight fitting did not converge (>= {eps})")
     del G_R_Gt
     logger.info("        Updating inverse with weighted eigen leads")
-    G /= source_std  # undo our biasing
-    G_3 = _get_G_3(G, n_orient)
-    _this_normalize_R(G, R, G_3)
     del G_3
-    if n_orient == 1 or force_equal:
+    if n_orient == 1:
         R_sqrt = np.sqrt(R)
     else:
         R_sqrt = sqrtm_sym(R)[0]
@@ -146,11 +119,13 @@ def _compute_eloreta(inv, lambda2, options):
     inv["sing"] = sing
     inv["reginv"] = _compute_reginv(inv, lambda2)
     inv["eigen_leads_weighted"] = True
-    inv["eigen_leads"]["data"] = _R_sqrt_mult(eigen_leads, R_sqrt).T
+    # R was fit to G @ diag(ori_scale), so the source cov is ori_scale * R * ori_scale
+    inv["eigen_leads"]["data"] = (
+        ori_scale[:, np.newaxis] * _R_sqrt_mult(eigen_leads, R_sqrt).T
+    )
     inv["eigen_fields"]["data"] = eigen_fields.T
     # XXX in theory we should set inv['source_cov'] properly.
-    # For fixed ori (or free ori with force_equal=True), we can as these
-    # are diagonal matrices. But for free ori without force_equal, it's a
+    # For fixed ori, we can as it's a diagonal matrix. But for free ori, it's a
     # block diagonal 3x3 and we have no efficient way of storing this (and
     # storing a covariance matrix with (20484 * 3) ** 2 elements is not going
     # to work. So let's just set to nan for now.
@@ -160,9 +135,9 @@ def _compute_eloreta(inv, lambda2, options):
     logger.info("[done]")
 
 
-def _normalize_R(G, R, G_3, n_nzero, force_equal, n_src, n_orient):
+def _normalize_R(G, R, G_3, n_nzero, n_src, n_orient):
     """Normalize R so that lambda2 is consistent."""
-    if n_orient == 1 or force_equal:
+    if n_orient == 1:
         R_Gt = R[:, np.newaxis] * G.T
     else:
         R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
