@@ -79,7 +79,15 @@ def _get_epochs_delayed_ssp():
 def test_plot_joint():
     """Test joint plot."""
     evoked = _get_epochs().average()
-    evoked.plot_joint(ts_args=dict(time_unit="s"), topomap_args=dict(time_unit="s"))
+    fig = evoked.plot_joint(
+        picks="grad", ts_args=dict(time_unit="s"), topomap_args=dict(time_unit="s")
+    )
+    ax = max(fig.axes, key=lambda a: a.get_position().height)
+    fig.canvas.draw()
+    pos = ax.get_position().bounds
+    for _ in range(5):
+        fig.canvas.draw()
+    assert np.allclose(pos, ax.get_position().bounds)
 
     def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
         return list(range(d.shape[0]))
