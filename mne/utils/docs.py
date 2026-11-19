@@ -4872,6 +4872,11 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
     dfn = n_conditions - 1  # degrees of freedom numerator
     dfd = n_observations - n_conditions  # degrees of freedom denominator
     thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
+
+A cluster is any set of samples exceeding ``threshold`` that are connected
+through ``adjacency``. There is no minimum number of supra-threshold neighbors
+(unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+no supra-threshold neighbors forms its own cluster.
 """
 
 docdict["threshold_clust_t"] = _threshold_clust_base.format(
@@ -4888,6 +4893,11 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
 
 For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+
+A cluster is any set of samples exceeding ``threshold`` that are connected
+through ``adjacency``. There is no minimum number of supra-threshold neighbors
+(unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+no supra-threshold neighbors forms its own cluster.
 """
 
 docdict["threshold_clust_t_or_f_notes"] = """
@@ -4905,6 +4915,11 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
 
 For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+
+A cluster is any set of samples exceeding ``threshold`` that are connected
+through ``adjacency``. There is no minimum number of supra-threshold neighbors
+(unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+no supra-threshold neighbors forms its own cluster.
 """
 
 docdict["time_bandwidth_tfr"] = """
