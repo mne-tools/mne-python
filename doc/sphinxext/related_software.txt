@@ -49,6 +49,7 @@
 ## ONES WE ACTUALLY NEED CIRCLECI TO INSTALL
 ## =========================================
 alphacsc # categories: stats, oscillations
+auto-eeg-analysis # categories: organization
 autoreject # categories: preproc
 bycycle # categories: oscillations
 curryreader # categories: io
