@@ -17,6 +17,7 @@ from ..._fiff.utils import _read_segments_file
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,
+    _pl,
     _verbose_control,
     fill_doc_static,
     logger,
@@ -74,6 +75,9 @@ def read_raw_persyst(
     ``.dat`` file, ``read_raw_persyst`` will get the corresponding dat
     filename from the lay file, and look for that file inside the same
     directory as the lay file.
+
+    Recording gaps described in the ``[SampleTimes]`` section of the ``.lay`` file
+    are filled with zeros and annotated as ``BAD_ACQ_SKIP``.
     """
     return RawPersyst(fname, preload, verbose)
 
@@ -130,11 +134,11 @@ class RawPersyst(BaseRaw):
         keys, data, sections = _read_lay_contents(fname)
 
         # these are the section headers in the Persyst file layout
-        # Note: We do not make use of "SampleTimes" yet
         fileinfo_dict = OrderedDict()
         channelmap_dict = OrderedDict()
         patient_dict = OrderedDict()
         comments_dict = OrderedDict()
+        sample_times = list()
 
         # keep track of total number of comments
         num_comments = 0
@@ -180,6 +184,9 @@ class RawPersyst(BaseRaw):
             elif section == "comments":
                 comments_dict[key] = comments_dict.get(key, list()) + [val]
                 num_comments += 1
+            # SampleTimes (recording gaps)
+            elif section == "sampletimes":
+                sample_times.append((key, val))
 
         # get numerical metadata
         # datatype is either 7 for 32 bit, or 0 for 16 bit
@@ -270,17 +277,25 @@ class RawPersyst(BaseRaw):
 
             logger.debug(f"Loaded {n_samples} samples for {n_chs} channels.")
 
+        # contiguous blocks of the .dat file, separated by zero-filled gaps
+        file_starts, out_starts = _get_data_blocks(
+            sample_times, n_samples, info["sfreq"]
+        )
+        n_gap_samples = out_starts[-1] - file_starts[-1]
+
         # Cache-sized blocks are 2.3x faster on a 107 MB file.
         raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         raw_extras["max_block_samples"] = max(
             1, 16 * 1024**2 // dtype.itemsize // n_chs
         )
+        raw_extras["file_starts"] = file_starts
+        raw_extras["out_starts"] = out_starts
         # create Raw object
         super().__init__(
             info,
             preload,
             filenames=[dat_fpath],
-            last_samps=[n_samples - 1],
+            last_samps=[n_samples + n_gap_samples - 1],
             raw_extras=[raw_extras],
             verbose=verbose,
         )
@@ -301,7 +316,22 @@ class RawPersyst(BaseRaw):
                 duration[t_idx] = _duration
                 description[t_idx] = _description
                 t_idx += 1
+        sfreq = self.info["sfreq"]
+        onset = _shift_onsets_by_gaps(onset, file_starts, out_starts, sfreq)
         annot = Annotations(onset, duration, description)
+
+        # annotate the zero-filled gaps
+        gap_n_samples = np.diff(out_starts - file_starts)
+        gap_starts = out_starts[1:] - gap_n_samples
+        n_gaps = len(gap_starts)
+        if n_gaps:
+            logger.info(
+                f"Found {n_gaps} acquisition gap{_pl(n_gaps)} in [SampleTimes], "
+                "filling with zeros and annotating as BAD_ACQ_SKIP."
+            )
+            annot.append(
+                gap_starts / sfreq, gap_n_samples / sfreq, ["BAD_ACQ_SKIP"] * n_gaps
+            )
         self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -309,21 +339,78 @@ class RawPersyst(BaseRaw):
 
         The Persyst software  records raw data in either 16 or 32 bit
         binary files. In addition, it stores the calibration to convert
-        data to uV in the lay file.
+        data to uV in the lay file. Recording gaps (from the [SampleTimes]
+        section) are not stored in the file and are filled with zeros.
         """
-        _read_segments_file(
-            self,
-            data,
-            idx,
-            fi,
-            start,
-            stop,
-            cals,
-            mult,
-            dtype=self._raw_extras[fi]["dtype"],
-            n_channels=self._raw_extras[fi]["n_chs"],
-            max_block_samples=self._raw_extras[fi]["max_block_samples"],
+        extras = self._raw_extras[fi]
+        file_starts, out_starts = extras["file_starts"], extras["out_starts"]
+        out_stops = out_starts + np.diff(np.append(file_starts, extras["n_samples"]))
+        # gap samples are left as is, the output buffer is already zeroed
+        for file_start, out_start, out_stop in zip(file_starts, out_starts, out_stops):
+            read_start, read_stop = max(out_start, start), min(out_stop, stop)
+            if read_start >= read_stop:
+                continue
+            _read_segments_file(
+                self,
+                data[:, read_start - start : read_stop - start],
+                idx,
+                fi,
+                file_start + read_start - out_start,
+                file_start + read_stop - out_start,
+                cals,
+                mult,
+                dtype=extras["dtype"],
+                n_channels=extras["n_chs"],
+                max_block_samples=extras["max_block_samples"],
+            )
+
+
+def _get_data_blocks(sample_times, n_samples, sfreq):
+    """Get the first sample of each contiguous block in the .dat and output data.
+
+    Each [SampleTimes] ``<sample>=<time>`` entry gives the time (in seconds since
+    midnight) of that .dat sample; a time later than expected marks a gap.
+    """
+    file_starts, out_starts = [0], [0]
+    try:
+        entries = sorted((int(sample), float(time)) for sample, time in sample_times)
+    except ValueError:
+        warn("Could not parse the [SampleTimes] section, ignoring recording gaps.")
+        return np.array(file_starts), np.array(out_starts)
+    n_beyond = sum(sample >= n_samples for sample, _ in entries)
+    if n_beyond:
+        warn(
+            f"Ignoring {n_beyond} [SampleTimes] entr{_pl(n_beyond, 'y', 'ies')} at "
+            f"or beyond the end of the data ({n_samples} samples)."
         )
+        entries = entries[: len(entries) - n_beyond]
+    # times are stored with millisecond precision, so gaps shorter than 1 ms (i.e., a
+    # few samples at high sfreq) cannot be distinguished from timestamp rounding
+    tol = max(0.5 / sfreq, 1e-3)
+    n_gap_total = 0
+    for (prev_sample, prev_time), (sample, time) in zip(entries[:-1], entries[1:]):
+        jump = time - prev_time - (sample - prev_sample) / sfreq
+        # times restart at 0 after midnight, so use whichever of the two possible
+        # jumps is closer to 0 (backward steps of more than 12 h are midnight wraps)
+        if abs(jump + 86400) < abs(jump):
+            jump += 86400
+        if jump < -tol:
+            warn(f"Ignoring negative [SampleTimes] jump at sample {sample}.")
+            continue
+        n_gap = round(jump * sfreq) if jump > tol else 0
+        if n_gap:
+            n_gap_total += n_gap
+            file_starts.append(sample)
+            out_starts.append(sample + n_gap_total)
+    return np.array(file_starts), np.array(out_starts)
+
+
+def _shift_onsets_by_gaps(onset, file_starts, out_starts, sfreq):
+    """Shift [Comments] onsets past the recording gaps that precede them."""
+    # This keeps each comment on the same data samples as before gaps were inserted,
+    # which is correct if Persyst stores data (not wall-clock) time (gh-12339).
+    block = np.searchsorted(file_starts / sfreq, onset, side="right") - 1
+    return onset + (out_starts - file_starts)[np.maximum(block, 0)] / sfreq
 
 
 def _get_subjectinfo(patient_dict):
@@ -452,8 +539,10 @@ def _process_lay_line(line, section):
     of data that line holds, while the values contain the corresponding
     value. In some cases, the ``value``.
 
-    For ``SampleTimes``, the ``key`` and ``value`` pair indicate the
-    start and end time in seconds of the original data file.
+    For ``SampleTimes``, the ``key`` is a sample index in the .dat file and the
+    ``value`` is the time (in seconds since midnight of the test date) at which
+    that sample was recorded. There is an entry for the first sample and after
+    each recording gap.
 
     For ``Comments`` section, this denotes an area where users through
     Persyst actually annotate data in time. These are instead

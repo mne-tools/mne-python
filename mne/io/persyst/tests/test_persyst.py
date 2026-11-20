@@ -7,7 +7,7 @@ import shutil
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
@@ -21,6 +21,40 @@ fname_lay = (
 fname_dat = (
     testing_path / "Persyst" / "sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat"
 )
+# [SampleTimes] start of the testing file (seconds since midnight); it has 847 samples
+# at 200 Hz
+T0 = 9468.36
+
+
+def _write_sample_times(tmp_path, sample_times):
+    """Copy the testing recording, replacing its [SampleTimes] entries."""
+    shutil.copy(fname_dat, tmp_path / fname_dat.name)
+    text = fname_lay.read_text()
+    text = text[: text.index("[SampleTimes]")]
+    if sample_times is not None:
+        text += "[SampleTimes]\n"
+        for idx, time in sample_times:
+            # strings are written as-is to allow malformed values
+            time = f"{time:.3f}" if isinstance(time, float) else time
+            text += f"{idx}={time}\n"
+    fname = tmp_path / fname_lay.name
+    fname.write_text(text)
+    return fname
+
+
+def _check_gaps(raw, gaps):
+    """Check BAD_ACQ_SKIP annotations, zero-filled gaps, and the data around them."""
+    orig = read_raw_persyst(fname_lay).get_data()
+    sfreq = raw.info["sfreq"]
+    skips = raw.annotations[raw.annotations.description == "BAD_ACQ_SKIP"]
+    assert_allclose(skips.onset, [onset for onset, _ in gaps])
+    assert_allclose(skips.duration, [duration for _, duration in gaps])
+    assert raw.n_times == orig.shape[1] + round(sum(d for _, d in gaps) * sfreq)
+    assert_array_equal(raw.get_data(reject_by_annotation="omit"), orig)
+    for onset, duration in gaps:
+        start = round(onset * sfreq)
+        stop = start + round(duration * sfreq)
+        assert_array_equal(raw.get_data(start=start, stop=stop), 0)
 
 
 @requires_testing_data
@@ -255,3 +289,87 @@ def test_persyst_errors(tmp_path):
     with pytest.warns(RuntimeWarning, match="Cannot read in the measurement date"):
         raw = read_raw_persyst(new_fname_lay)
         assert raw.info["meas_date"] is None
+
+
+@requires_testing_data
+def test_persyst_sampletimes_gap(tmp_path):
+    """Test that [SampleTimes] gaps are zero-filled and annotated (gh-12339)."""
+    orig = read_raw_persyst(fname_lay).get_data()
+    # data resume at file sample 400 (2 s), 5 s later than if contiguous
+    fname = _write_sample_times(tmp_path, [(0, T0), (400, T0 + 7)])
+    raw = read_raw_persyst(fname, preload=True)
+    assert raw.n_times == 847 + 1000
+    data = raw.get_data()
+    assert_array_equal(data[:, :400], orig[:, :400])
+    assert_array_equal(data[:, 400:1400], 0)
+    assert_array_equal(data[:, 1400:], orig[:, 400:])
+    annot = raw.annotations
+    assert annot.orig_time == raw.info["meas_date"]
+    _check_gaps(raw, [(2.0, 5.0)])
+    # comments before the gap are unchanged, comments after it are shifted
+    assert_allclose(annot.onset[annot.description == "CLip2"], [0.0])
+    assert_allclose(annot.onset[annot.description == "Clip1"], [3.73 + 5])
+
+    # preload=False matches, including reads and crops straddling the gap
+    raw_lazy = read_raw_persyst(fname, preload=False)
+    assert_array_equal(raw_lazy.get_data(), data)
+    assert_array_equal(raw_lazy.get_data(start=350, stop=1450), data[:, 350:1450])
+    assert_array_equal(
+        raw_lazy.copy().crop(1.5, 7.5).get_data(), raw.copy().crop(1.5, 7.5).get_data()
+    )
+    _test_raw_reader(read_raw_persyst, fname=fname)
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "sample_times, gaps",
+    [
+        (None, []),  # no [SampleTimes] section
+        ([(0, T0)], []),  # single entry (the testing file itself)
+        ([(0, T0), (400, T0 + 2.001)], []),  # 1 ms timestamp jitter, contiguous
+        ([(0, T0), (400, T0 + 2.005)], [(2.0, 0.005)]),  # 1-sample gap
+        ([(100, T0 + 0.5), (400, T0 + 7)], [(2.0, 5.0)]),  # first entry not at 0
+        ([(0, T0), (200, T0 + 2), (600, T0 + 6.5)], [(1.0, 1.0), (4.0, 2.5)]),
+        ([(0, 86399.0), (400, 86406.0)], [(2.0, 5.0)]),  # values run past midnight
+        ([(0, 86399.0), (400, 1.0)], []),  # wraps at midnight, no gap
+        ([(0, 86399.0), (400, 6.0)], [(2.0, 5.0)]),  # wraps, gap across midnight
+    ],
+)
+def test_persyst_sampletimes_layouts(tmp_path, sample_times, gaps):
+    """Test [SampleTimes] layouts that read without warnings."""
+    raw = read_raw_persyst(_write_sample_times(tmp_path, sample_times))
+    _check_gaps(raw, gaps)
+    if not gaps:  # no behavior change compared to the original file
+        orig = read_raw_persyst(fname_lay)
+        assert_array_equal(raw.get_data(), orig.get_data())
+        assert_array_equal(raw.annotations.onset, orig.annotations.onset)
+        assert_array_equal(raw.annotations.description, orig.annotations.description)
+
+
+@requires_testing_data
+def test_persyst_sampletimes_multiple_wraps(tmp_path):
+    """Test that each midnight wrap is handled on its own."""
+    # not in test_persyst_sampletimes_layouts, as _check_gaps would read ~17M samples
+    # 86399 -> 0 wraps without a gap; 50000 -> 1 wraps again after a long gap
+    sample_times = [(0, 86399.0), (200, 0.0), (300, 50000.0), (400, 1.0)]
+    raw = read_raw_persyst(_write_sample_times(tmp_path, sample_times))
+    skips = raw.annotations[raw.annotations.description == "BAD_ACQ_SKIP"]
+    assert_allclose(skips.onset, [1.5, 1.5 + 49999.5 + 0.5])
+    assert_allclose(skips.duration, [49999.5, 86400 + 1 - 50000 - 0.5])
+
+
+@requires_testing_data
+@pytest.mark.parametrize(
+    "sample_times, match, gaps",
+    [
+        # clock steps back 10 s: treated as contiguous, the later gap is kept
+        ([(0, T0), (200, T0 - 9), (400, T0 - 3)], "negative", [(2.0, 5.0)]),
+        ([(0, T0), (400, "abc")], "Could not parse", []),
+        ([(0, T0), (400, T0 + 7), (847, T0 + 20)], "beyond the end", [(2.0, 5.0)]),
+    ],
+)
+def test_persyst_sampletimes_malformed(tmp_path, sample_times, match, gaps):
+    """Test that malformed [SampleTimes] warn and fall back to contiguous data."""
+    with pytest.warns(RuntimeWarning, match=match):
+        raw = read_raw_persyst(_write_sample_times(tmp_path, sample_times))
+    _check_gaps(raw, gaps)
