@@ -695,11 +695,21 @@ def test_setup_subcortical_source_space(tmp_path):
             subjects_dir=subjects_dir,
         )
 
-    # label input: tessellate regions from the anatomical segmentation
+    # label input: tessellate regions from the anatomical segmentation; labels
+    # missing from the aseg (here Left-Thalamus, id 9) are skipped
     labels = ["Left-Amygdala", "Left-Hippocampus"]
-    src_label = setup_subcortical_source_space(
-        "sample", label=labels, aseg="aseg", subjects_dir=subjects_dir
-    )
+    with pytest.warns(RuntimeWarning, match="not found"):
+        src_label = setup_subcortical_source_space(
+            "sample",
+            label=labels + ["Left-Thalamus"],
+            aseg="aseg",
+            subjects_dir=subjects_dir,
+        )
+    with pytest.raises(ValueError, match="None of the requested"):
+        with pytest.warns(RuntimeWarning, match="not found"):
+            setup_subcortical_source_space(
+                "sample", label="Left-Thalamus", aseg="aseg", subjects_dir=subjects_dir
+            )
     assert src_label.kind == "subcortical_surf"
     assert len(src_label) == len(labels)
     for s, name in zip(src_label, labels):
@@ -707,6 +717,8 @@ def test_setup_subcortical_source_space(tmp_path):
         assert s["seg_name"] == name
         assert s["id"] == FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + atlas_ids[name]
         assert s["rr"].shape[1] == 3 and s["ntri"] > 0
+        r = s["rr"][s["tris"]]
+        assert np.einsum("ij,ij->i", r[:, 0], np.cross(r[:, 1], r[:, 2])).sum() > 0
 
     # mesh input: an externally-supplied surface (path or rr/tris dict)
     rr, tris = read_surface(fname_surf)[:2]

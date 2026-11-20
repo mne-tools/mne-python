@@ -42,6 +42,7 @@ from ..bem import ConductorModel, read_bem_surfaces
 from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
+    _apply_trans_mesh,
     _CheckInside,
     _CheckInsideSphere,
     _compute_nearest,
@@ -2229,7 +2230,7 @@ def setup_subcortical_source_space(
     validated interactively on the ``sample`` subject. See the warning above
     for known gaps, to be addressed in follow-up work.
 
-    .. versionadded:: 1.12
+    .. versionadded:: 1.14
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     _validate_type(label, (str, list, tuple, dict, None), "label")
@@ -2262,7 +2263,7 @@ def setup_subcortical_source_space(
                 continue
             if keep_largest_component:
                 rr, tris = _keep_largest_component(rr, tris)
-            rr = apply_trans(vox_mri_t, rr)
+            rr, tris = _apply_trans_mesh(vox_mri_t, rr, tris)
             s = _surf_from_mesh(rr, tris, subject)
             s["seg_name"] = seg_name
             s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + seg_id
