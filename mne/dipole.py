@@ -1806,6 +1806,10 @@ def fit_dipole(
 
     Notes
     -----
+    When a BEM model is used, EEG electrode positions are projected onto its
+    scalp surface before fitting. To get these projected positions, use
+    :meth:`mne.channels.DigMontage.project_onto_scalp`.
+
     .. versionadded:: 0.9.0
     """
     # This could eventually be adapted to work with other inputs, these
