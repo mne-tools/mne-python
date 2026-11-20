@@ -1,0 +1,1 @@
+Allow overriding existing channel units when reading EDF files, by :newcontrib:`Divya`.
