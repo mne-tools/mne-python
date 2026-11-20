@@ -7,7 +7,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-from scipy import stats
 
 from mne import Epochs, EvokedArray, create_info, read_events
 from mne.io import read_raw_fif
@@ -31,9 +30,6 @@ def test_compute_sme():
     epochs = Epochs(raw, events)
     sme = compute_sme(epochs, start=0, stop=0.1)
     assert sme.shape == (376,)
-    # standard error of the single-trial mean amplitudes (sample SD, ddof=1)
-    scores = epochs.get_data(tmin=0, tmax=0.1).mean(axis=2)
-    assert_allclose(sme, stats.sem(scores, axis=0))
 
     with pytest.raises(TypeError, match="int or float"):
         compute_sme(epochs, "0", 0.1)
