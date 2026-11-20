@@ -20,9 +20,10 @@ from ...utils import (
     _check_option,
     _explain_exception,
     _validate_type,
+    _verbose_control,
     _verbose_safe_false,
-    fill_doc,
-    verbose,
+    fill_doc_static,
+    verbose_static,
 )
 from ..base import BaseRaw
 from ._utils import (
@@ -37,7 +38,7 @@ from ._utils import (
 )
 
 
-@verbose
+@_verbose_control
 def _read_annotations_cnt(fname, *, data_format, verbose=None):
     """CNT Annotation File Reader.
 
@@ -168,7 +169,7 @@ def _read_annotations_cnt(fname, *, data_format, verbose=None):
         )
 
 
-@verbose
+@verbose_static("preload")
 def read_raw_cnt(
     input_fname: Path | str,
     eog: list | tuple | Literal["auto", "header"] = (),
@@ -247,8 +248,25 @@ def read_raw_cnt(
         Defaults to ``'auto'``.
 
         .. versionadded:: 1.6
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -439,7 +457,7 @@ def _get_cnt_info(
     return info, cnt_info
 
 
-@fill_doc
+@fill_doc_static("preload", "verbose")
 class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
@@ -500,15 +518,32 @@ class RawCNT(BaseRaw):
         are formatted. If auto, reads using old and new header and
         if either contain a bad channel make channel bad.
         Defaults to ``'auto'``.
-    %(preload)s
-    %(verbose)s
+    preload : bool | str
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, it is the name of a
+        freshly created memory-mapped file used to store the data on the hard
+        drive (slower, requires less memory). An existing file is overwritten.
+        The caller owns the file and is responsible for removing it after the
+        Raw object is no longer in use. For supported Raw readers, the exact string
+        ``"auto"`` instead reuses decoded data below the directory configured by
+        :func:`mne.set_cache_dir`. Entries persist without a size limit and are mapped
+        copy-on-write. Use ``Path("auto")`` for a literal filename.
+
+        .. versionchanged:: 1.13
+           Support for the ``"auto"`` decoded-data cache was added.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     See Also
     --------
     mne.io.Raw : Documentation of attributes and methods.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         input_fname,

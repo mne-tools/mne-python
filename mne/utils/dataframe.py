@@ -9,11 +9,11 @@ from inspect import signature
 import numpy as np
 
 from ..defaults import _handle_default
-from ._logging import logger, verbose
+from ._logging import _verbose_control, logger
 from .check import check_version
 
 
-@verbose
+@_verbose_control
 def _set_pandas_dtype(df, columns, dtype, verbose=None):
     """Try to set the right columns to dtype."""
     for column in columns:
@@ -58,17 +58,16 @@ def _convert_times(
 
 
 def _inplace(df, method, **kwargs):
-    # TODO VERSION remove on pandas 3.0+
-    # Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)
-    # and 3.0 warning:
+    # TODO VERSION remove on pandas 3.0+, which warns:
     #     The copy keyword will be removed in a
     #     future version. Copy-on-Write is active in pandas since 3.0 which utilizes a
     #     lazy copy mechanism that defers copies until necessary. Use .copy() to make
     #     an eager copy if necessary.
-    _meth = getattr(df, method)  # used for set_index() and rename()
+    _meth = getattr(df, method)  # used for set_index(), rename(), sort_values()
 
     if check_version("pandas", "3.0"):
         return _meth(**kwargs)
+    # per-method, not per-version: rename() takes copy=, set_index()/sort_values() don't
     elif "copy" in signature(_meth).parameters:
         return _meth(**kwargs, copy=False)
     else:
@@ -76,7 +75,7 @@ def _inplace(df, method, **kwargs):
         return df
 
 
-@verbose
+@_verbose_control
 def _build_data_frame(
     inst,
     data,

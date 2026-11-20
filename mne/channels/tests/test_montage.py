@@ -32,6 +32,7 @@ from mne import (
 )
 from mne._fiff._digitization import (
     _count_points_by_type,
+    _fiducial_coords,
     _format_dig_points,
     _get_dig_eeg,
     _get_fid_coords,
@@ -77,7 +78,6 @@ from mne.preprocessing import compute_current_source_density
 from mne.transforms import _ensure_trans, _get_trans, apply_trans, invert_transform
 from mne.utils import _record_warnings, assert_dig_allclose
 from mne.utils._testing import assert_object_equal
-from mne.viz._3d import _fiducial_coords
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = data_path / "montage" / "eeganes07.fif"
@@ -1043,6 +1043,17 @@ def test_set_dig_montage():
             [6.0, 7.0, 8.0, 42.0, 42.0, 42.0],
         ],
     )
+
+    # EEG dig follows info["ch_names"] order, with the reference first as ident 0
+    montage_rev = make_dig_montage(
+        ch_pos=dict(**dict(reversed(ch_pos.items())), REF=np.full(3, 42)),
+        coord_frame="head",
+    )
+    info = create_info(ch_names, sfreq=1, ch_types="eeg")
+    info.set_montage(montage_rev)
+    eeg_dig = [d for d in info["dig"] if d["kind"] == FIFF.FIFFV_POINT_EEG]
+    assert [d["ident"] for d in eeg_dig] == [0, 1, 2, 3]
+    assert_allclose([d["r"] for d in eeg_dig], np.r_[[[42] * 3], list(ch_pos.values())])
 
 
 def test_set_dig_montage_with_nan_positions():
@@ -2111,6 +2122,21 @@ def test_montage_add_fiducials():
     # test remove fiducials
     montage.remove_fiducials()
     assert all([d["kind"] != FIFF.FIFFV_POINT_CARDINAL for d in montage.dig])
+
+
+def test_dig_montage_drop_channels():
+    """Test dropping channels from DigMontage."""
+    mon = _make_toy_dig_montage(3, nasion=[0, 1, 0])
+    assert mon.drop_channels("a") is mon
+    assert mon.ch_names == ["b", "c"]
+    assert len(_get_dig_eeg(mon.dig)) == 2
+    assert len(mon.dig) == 3  # 1 fiducial + 2 EEG
+    mon.drop_channels(["b", "c"])
+    assert mon.ch_names == []
+    assert len(_get_dig_eeg(mon.dig)) == 0
+    with pytest.raises(ValueError, match="not found"):
+        mon.drop_channels("a")
+    mon.drop_channels("a", on_missing="ignore")
 
 
 def test_read_dig_localite(tmp_path):

@@ -42,7 +42,6 @@ from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.event import read_events
-from mne.fixes import _reshape_view
 from mne.forward import apply_forward, is_fixed_orient, restrict_forward_to_stc
 from mne.io import read_info, read_raw_fif
 from mne.label import label_sign_flip, read_label
@@ -453,9 +452,9 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper, depth)
         ),  # sparse default
         pytest.param("dSPM", 85, 87, 0.8, 0.2, marks=pytest.mark.slowtest),
         pytest.param("sLORETA", 100, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
-        pytest.param("eLORETA", 99, 100, None, 0.2, marks=pytest.mark.slowtest),
-        pytest.param("eLORETA", 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
-        pytest.param("eLORETA", 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
+        pytest.param("eLORETA", 100, 100, None, 0.2, marks=pytest.mark.slowtest),
+        pytest.param("eLORETA", 100, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
+        pytest.param("eLORETA", 100, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
     ],
 )
 @pytest.mark.parametrize("pick_ori", (None, "vector"))
@@ -529,17 +528,6 @@ def test_localization_bias_loose(
             "sLORETA", 93, 95, 0.95, 0.96, {}, 0.8, 1, marks=pytest.mark.slowtest
         ),
         pytest.param(
-            "eLORETA",
-            93,
-            100,
-            0.95,
-            0.96,
-            dict(method_params=dict(force_equal=True)),
-            None,
-            1,
-            marks=pytest.mark.slowtest,
-        ),
-        pytest.param(
             "eLORETA", 100, 100, 0.98, 0.99, {}, None, 1.0, marks=pytest.mark.slowtest
         ),
         pytest.param(
@@ -599,6 +587,14 @@ def test_apply_inverse_sphere(evoked, tmp_path):
     stc = apply_inverse(evoked, inv, method="eLORETA", method_params=dict(eps=1e-2))
     # assert zero localization bias
     assert_array_equal(np.argmax(stc.data, axis=0), np.repeat(np.arange(101), 3))
+    with pytest.warns(FutureWarning, match="force_equal"):
+        stc_fe = apply_inverse(
+            evoked,
+            inv,
+            method="eLORETA",
+            method_params=dict(eps=1e-2, force_equal=True),
+        )
+    assert_allclose(stc_fe.data, stc.data)
 
 
 @pytest.mark.slowtest
@@ -606,7 +602,7 @@ def test_apply_inverse_sphere(evoked, tmp_path):
 @pytest.mark.parametrize("lambda2", [1.0 / 9.0, 0.0])
 def test_apply_inverse_eLORETA_MNE_equiv(bias_params_free, loose, lambda2):
     """Test that eLORETA with no iterations is the same as MNE."""
-    method_params = dict(max_iter=0, force_equal=False)
+    method_params = dict(max_iter=0)
     pick_ori = None if loose == 0 else "vector"
     evoked, fwd, noise_cov, _, _ = bias_params_free
     inv = make_inverse_operator(
@@ -727,8 +723,9 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 @pytest.mark.parametrize(
     "looses, vmin, vmax, nmin, nmax",
     [
-        ((1.0, 0.8), 0.87, 0.94, 0.9, 1.1),  # almost the same as free
-        ((0.0, 0.2), 0.3, 0.6, 2, 4),  # similar to fixed
+        ((1.0, 0.8), 0.88, 0.92, 0.93, 0.98),  # similar to free
+        ((0.0, 0.2), 0.35, 0.6, 3, 4.5),  # similar to fixed
+        ((0.0, 1e-4), 0.998, 1.0, 3e3, 1e5),  # almost the same as fixed
     ],
 )
 def test_orientation_prior(bias_params_free, method, looses, vmin, vmax, nmin, nmax):
@@ -743,7 +740,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax, nmin, n
         else:
             pick_ori = "vector"
         stcs.append(apply_inverse(evoked, inv, method=method, pick_ori=pick_ori))
-        if loose in (1.0, 0.2):
+        if loose in (1.0, 0.2, 1e-4):
             assert vec_stc is None
             vec_stc = apply_inverse(evoked, inv, method=method, pick_ori="vector")
     assert vec_stc is not None
@@ -880,7 +877,29 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
     assert "EEG channels: 0" in repr(inv_op)
     assert "MEG channels: 305" in repr(inv_op)
     assert "Fixed" in repr(inv_op)
-    del fwd_fixed
+
+    # uniform source_cov should be equivalent to the default (None)
+    kwargs = dict(depth=0.0, fixed=True, use_cps=False)
+    inv_op_ones = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=np.ones(fwd["nsource"]), **kwargs
+    )
+    _compare_inverses_approx(inv_op, inv_op_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale the final source covariance
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[0] = 4.0
+    inv_op_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, source_cov=source_cov, **kwargs
+    )
+    got = inv_op_scaled["source_cov"]["data"]
+    assert_allclose(got / got[1], source_cov)
+    with pytest.raises(ValueError, match="must have shape"):
+        make_inverse_operator(evoked.info, fwd, noise_cov, source_cov=[1.0], **kwargs)
+    with pytest.raises(ValueError, match="finite, positive"):
+        make_inverse_operator(
+            evoked.info, fwd, noise_cov, source_cov=-source_cov, **kwargs
+        )
+    del fwd_fixed, inv_op_ones, inv_op_scaled, source_cov, kwargs
+
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
     # assert 'EEG channels: 0' in repr(inverse_operator_nodepth)
@@ -932,6 +951,25 @@ def test_make_inverse_operator_free(evoked, noise_cov):
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
         stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
         assert_allclose(stc_surf.data, stc.data, atol=1e-2)
+
+    # uniform source_cov should be equivalent to the default (None)
+    inv_ones = make_inverse_operator(
+        evoked.info,
+        fwd,
+        noise_cov,
+        depth=None,
+        loose=1.0,
+        source_cov=np.ones(fwd["nsource"]),
+    )
+    _compare_inverses_approx(inv, inv_ones, evoked, rtol=1e-5, atol=1e-8)
+    # non-uniform source_cov should scale all three orientations of a source
+    source_cov = np.ones(fwd["nsource"])
+    source_cov[-1] = 5.0
+    inv_scaled = make_inverse_operator(
+        evoked.info, fwd, noise_cov, depth=None, loose=1.0, source_cov=source_cov
+    )
+    got = inv_scaled["source_cov"]["data"]
+    assert_allclose(got / got[0], np.repeat(source_cov, 3))
 
 
 @pytest.mark.slowtest
@@ -1081,7 +1119,7 @@ def test_io_inverse_operator(tmp_path):
     _compare_io(inverse_operator, out_file_ext=".gz", tmp_path=tmp_path)
 
     # test warnings on bad filenames
-    inv_badname = tmp_path / "test-bad-name.fif.gz"
+    inv_badname = tmp_path / "test-bad-name.fif"
     with pytest.warns(RuntimeWarning, match="-inv.fif"):
         write_inverse_operator(inv_badname, inverse_operator)
     with pytest.warns(RuntimeWarning, match="-inv.fif"):
@@ -1704,7 +1742,7 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
         assert ori.shape == (ori.shape[0], 3)
         ori = ori[max_idx]
     assert ori.shape == (max_idx.size, 3)
-    ori = _reshape_view(ori, (max_idx.size // 3, 3, 3))
+    ori = ori.reshape((max_idx.size // 3, 3, 3), copy=False)
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu

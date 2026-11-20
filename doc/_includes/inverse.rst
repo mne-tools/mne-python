@@ -391,7 +391,7 @@ a source covariance
 matrix :math:`R` that achieves zero localization bias. For fixed-orientation
 solutions the resulting matrix :math:`R` will be a diagonal matrix, and for
 free-orientation solutions it will be a block-diagonal matrix with
-:math:`3 \times 3` blocks.
+:math:`3 \times 3` blocks :footcite:`Pascual-Marqui2007`.
 
 .. In https://royalsocietypublishing.org/doi/full/10.1098/rsta.2011.0081
 .. eq. 2.10 (classical min norm), their values map onto our values as:
@@ -405,7 +405,8 @@ free-orientation solutions it will be a block-diagonal matrix with
 
 In :footcite:`Pascual-Marqui2011` eq. 2.13 states that the following system
 of equations can be used to find the weights, :math:`\forall i \in {1, ..., P}`
-(note that here we represent the equations from that paper using our notation):
+(note that here we represent the equations from that paper using our notation;
+see :footcite:`Pascual-Marqui2007` eq. 43 for the :math:`3 \times 3` block form):
 
 .. math:: r_i = \left[ G_i^\top \left( GRG^\top + \lambda^2C \right)^{-1} G_i \right] ^{-^1/_2}
 

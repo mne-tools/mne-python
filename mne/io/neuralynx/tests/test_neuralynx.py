@@ -4,7 +4,7 @@
 
 import os
 from ast import literal_eval
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -13,7 +13,7 @@ from scipy.io import loadmat
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_neuralynx
-from mne.io.neuralynx.neuralynx import _exclude_kwarg
+from mne.io.neuralynx.neuralynx import _neo_kwargs
 from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False) / "neuralynx"
@@ -139,7 +139,7 @@ def test_neuralynx():
     assert raw.info["lowpass"] == expected_lp_freq, "lowpass freq not set correctly"
     assert raw.info["sfreq"] == expected_sfreq, "sampling freq not set correctly"
 
-    meas_date_utc = expected_meas_date.astimezone(timezone.utc)
+    meas_date_utc = expected_meas_date.astimezone(UTC)
     assert raw.info["meas_date"] == meas_date_utc, "meas_date not set correctly"
 
     # test that channel selection worked
@@ -150,7 +150,7 @@ def test_neuralynx():
     mne_y = raw.get_data()  # in V
 
     # ==== NeuralynxIO ==== #
-    nlx_reader = NeuralynxIO(dirname=testing_path, **_exclude_kwarg(excluded_ncs_files))
+    nlx_reader = NeuralynxIO(dirname=testing_path, **_neo_kwargs(excluded_ncs_files))
     bl = nlx_reader.read(
         lazy=False
     )  # read a single block which contains the data split in segments

@@ -154,3 +154,5 @@ of commits):
 *   5  Brad Buran
 *   1  Andrew Dykstra
 *   1  Christoph Dinh
+
+.. include:: names.inc

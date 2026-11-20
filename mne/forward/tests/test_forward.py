@@ -113,7 +113,6 @@ def test_io_forward(tmp_path):
     n_channels, n_src = 366, 108
     fwd = read_forward_solution(fname_meeg_grad)
     assert isinstance(fwd, Forward)
-    fwd = read_forward_solution(fname_meeg_grad)
     fwd = convert_forward_solution(fwd, surf_ori=True)
     leadfield = fwd["sol"]["data"]
     assert_equal(leadfield.shape, (n_channels, n_src))
@@ -188,7 +187,7 @@ def test_io_forward(tmp_path):
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
-    fwd_badname = tmp_path / "test-bad-name.fif.gz"
+    fwd_badname = tmp_path / "test-bad-name.fif"
     with pytest.warns(RuntimeWarning, match="end with"):
         write_forward_solution(fwd_badname, fwd)
     with pytest.warns(RuntimeWarning, match="end with"):

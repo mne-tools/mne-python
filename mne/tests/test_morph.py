@@ -7,8 +7,7 @@ from inspect import signature
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
-from scipy.sparse import csr_array
-from scipy.sparse import eye as speye
+from scipy.sparse import csr_array, eye_array
 from scipy.spatial.distance import cdist
 
 import mne
@@ -276,7 +275,7 @@ def test_surface_source_morph_shortcut(subjects_dir_tmp):
     )
     stc_back = morph_identity.apply(stc)
     assert_allclose(stc_back.data, stc.data, rtol=1e-4)
-    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format="csc")
+    abs_sum = morph_identity.morph_mat - eye_array(len(stc.data), format="csc")
     abs_sum = np.abs(abs_sum.data).sum()
     assert abs_sum < 1e-4
 
@@ -942,7 +941,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     assert stc.data.shape == (n_src, 1)
     img = stc.as_volume(src, mri_resolution=True)
     assert img.shape == (86, 86, 86, 1)
-    n_on = np.array(img.dataobj).astype(bool).sum()
+    n_on = np.asarray(img.dataobj).astype(bool).sum()
     aseg_img = _get_img_fdata(nib.load(fname_aseg))
     n_got_real = np.isin(
         aseg_img.ravel(), [lut[name] for name in use_label_names]
@@ -960,7 +959,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
         if ii:
             src[0]["interpolator"] = None
         img = stc.as_volume(src, mri_resolution=False)
-        n_on = np.array(img.dataobj).astype(bool).sum()
+        n_on = np.asarray(img.dataobj).astype(bool).sum()
         # was 20 on `main` before gh-5590
         # then 44 before gh-7653, which took it back to 20
         assert n_on == n_orig

@@ -4,10 +4,10 @@
 
 import numpy as np
 
-from ..utils import _pl, logger, verbose
+from ..utils import _pl, logger, verbose_static
 
 
-@verbose
+@verbose_static()
 def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     """Noise-tolerant fast peak-finding algorithm.
 
@@ -23,7 +23,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
         (default = maxima, 1).
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

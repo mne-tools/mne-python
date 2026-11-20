@@ -1,0 +1,52 @@
+{
+  "merge_commit_sha": "f6b19ee7df35b73a57a290a66370587dda426f9b",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com",
+      "l": "scott-huberty"
+    },
+    {
+      "n": "Daniel McCloy",
+      "e": "dan@mccloy.info"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 8,
+      "d": 0
+    },
+    ".github/workflows/tests.yml": {
+      "a": 21,
+      "d": 3
+    },
+    "tools/ci/macos-intel/pixi.lock": {
+      "a": 7565,
+      "d": 0
+    },
+    "tools/ci/macos-intel/pixi.toml": {
+      "a": 105,
+      "d": 0
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 9,
+      "d": 0
+    },
+    "tools/github_actions_verify_python.sh": {
+      "a": 2,
+      "d": 0
+    },
+    "tools/write-pixi-toml.py": {
+      "a": 116,
+      "d": 0
+    }
+  }
+}

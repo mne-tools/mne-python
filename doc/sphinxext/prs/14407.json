@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "97f2360f72356221432e22382846fbde0125ea1c",
+  "authors": [
+    {
+      "n": "Ishaan Maheshwari",
+      "e": "145560898+ishaaaan17@users.noreply.github.com",
+      "l": "ishaaaan17"
+    }
+  ],
+  "changes": {
+    "mne/datasets/tests/test_datasets.py": {
+      "a": 8,
+      "d": 0
+    },
+    "mne/datasets/utils.py": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

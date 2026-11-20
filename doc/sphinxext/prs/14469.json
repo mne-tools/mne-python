@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "b93d1d250c250c22815083832a20591853956b2c",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    "azure-pipelines.yml": {
+      "a": 4,
+      "d": 4
+    },
+    "mne/commands/tests/test_commands.py": {
+      "a": 3,
+      "d": 3
+    },
+    "mne/viz/backends/_pyvista.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

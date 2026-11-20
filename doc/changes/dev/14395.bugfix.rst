@@ -1,0 +1,1 @@
+Fix :meth:`mne.Label.split` dropping vertex 0 with ``parts="contiguous"`` and failing on labels without a name, by `Christoph Dinh`_.

@@ -1,0 +1,36 @@
+{
+  "merge_commit_sha": "d8ed7c396fdceb383603e91f1df2e1c3dbe6a2d9",
+  "authors": [
+    {
+      "n": "Shruti Bhale",
+      "e": "207423216+shruti423@users.noreply.github.com",
+      "l": "shruti423"
+    },
+    {
+      "n": "pre-commit-ci[bot]",
+      "e": "66853113+pre-commit-ci[bot]@users.noreply.github.com"
+    },
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/13556.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/epochs.py": {
+      "a": 12,
+      "d": 0
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 38,
+      "d": 0
+    },
+    "mne/viz/_figure.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

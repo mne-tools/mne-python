@@ -13,10 +13,18 @@ from ..epochs import BaseEpochs
 from ..evoked import Evoked
 from ..forward import apply_forward
 from ..io import BaseRaw
-from ..utils import _check_preload, _validate_type, check_random_state, logger, verbose
+from ..utils import (
+    _check_preload,
+    _legacy_rng,
+    _validate_type,
+    check_random_state,
+    logger,
+    verbose_static,
+)
 
 
-@verbose
+@_legacy_rng("random_state")
+@verbose_static("info_not_none", "use_cps", "rng", "random_state_rng")
 def simulate_evoked(
     fwd,
     stc,
@@ -24,9 +32,11 @@ def simulate_evoked(
     cov=None,
     nave=30,
     iir_filter=None,
-    random_state=None,
     use_cps=True,
     verbose=None,
+    *,
+    rng=None,
+    random_state=None,
 ):
     """Generate noisy evoked data.
 
@@ -42,7 +52,10 @@ def simulate_evoked(
         A forward solution.
     stc : SourceEstimate object
         The source time courses.
-    %(info_not_none)s Used to generate the evoked.
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+        Used to generate the evoked.
     cov : Covariance object | None
         The noise covariance. If None, no noise is added.
     nave : int
@@ -51,11 +64,31 @@ def simulate_evoked(
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    %(random_state)s
-    %(use_cps)s
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal orientations for
+        surfaces (default True).
 
         .. versionadded:: 0.15
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -84,7 +117,7 @@ def simulate_evoked(
         return evoked
 
     if nave < np.inf:
-        noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
+        noise = _simulate_noise_evoked(evoked, cov, iir_filter, rng)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int64(nave)
     if cov.get("projs", None):
@@ -92,14 +125,15 @@ def simulate_evoked(
     return evoked
 
 
-def _simulate_noise_evoked(evoked, cov, iir_filter, random_state):
+def _simulate_noise_evoked(evoked, cov, iir_filter, rng):
     noise = evoked.copy()
     noise.data[:] = 0
-    return _add_noise(noise, cov, iir_filter, random_state, allow_subselection=False)
+    return _add_noise(noise, cov, iir_filter, rng, allow_subselection=False)
 
 
-@verbose
-def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
+@_legacy_rng("random_state")
+@verbose_static("rng", "random_state_rng")
+def add_noise(inst, cov, iir_filter=None, verbose=None, *, rng=None, random_state=None):
     """Create noise as a multivariate Gaussian.
 
     The spatial covariance of the noise is given from the cov matrix.
@@ -112,8 +146,26 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    %(random_state)s
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
+    rng : None | int | instance of ~numpy.random.Generator | ~numpy.random.RandomState
+        The random number generator (RNG). If ``None`` (default), a new
+        :class:`numpy.random.Generator` seeded from entropy is used. Pass an int or
+        a :class:`numpy.random.Generator` for reproducible results, or a legacy
+        :class:`~numpy.random.RandomState` to control the random-number stream or
+        for interoperability with third-party code such as scikit-learn that does
+        not accept generators. An integer seed uses
+        :func:`numpy.random.default_rng` and therefore produces a different stream
+        than the same integer passed to a legacy ``random_state`` or ``seed``
+        parameter.
+
+        .. versionadded:: 1.13
+    random_state : None | int | instance of ~numpy.random.RandomState
+        Supported for compatibility. New code should use ``rng``. If ``None``,
+        NumPy's global :class:`~numpy.random.RandomState` is used.
 
     Returns
     -------
@@ -130,10 +182,13 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
     .. versionadded:: 0.18.0
     """
     # We always allow subselection here
-    return _add_noise(inst, cov, iir_filter, random_state)
+    legacy_seed = random_state if isinstance(random_state, int | np.integer) else None
+    return _add_noise(inst, cov, iir_filter, rng, legacy_seed=legacy_seed)
 
 
-def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
+def _add_noise(
+    inst, cov, iir_filter, rng, allow_subselection=True, *, legacy_seed=None
+):
     """Add noise, possibly with channel subselection."""
     _validate_type(cov, Covariance, "cov")
     _validate_type(
@@ -162,17 +217,17 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
 
         gen_picks = np.arange(info["nchan"])
     for epoch in data:
+        # An integer passed to the deprecated parameter historically restarted
+        # the same stream for each epoch. ``rng`` intentionally advances.
+        this_rng = check_random_state(legacy_seed) if legacy_seed is not None else rng
         epoch[picks] += _generate_noise(
-            info, cov, iir_filter, random_state, epoch.shape[1], picks=gen_picks
+            info, cov, iir_filter, this_rng, epoch.shape[1], picks=gen_picks
         )[0]
     return inst
 
 
-def _generate_noise(
-    info, cov, iir_filter, random_state, n_samples, zi=None, picks=None
-):
+def _generate_noise(info, cov, iir_filter, rng, n_samples, zi=None, picks=None):
     """Create spatially colored and temporally IIR-filtered noise."""
-    rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(
         cov, info, pca=True, return_colorer=True, picks=picks, verbose=False
     )

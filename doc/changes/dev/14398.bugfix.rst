@@ -1,0 +1,1 @@
+:func:`mne.read_epochs` and :meth:`mne.Epochs.save` no longer warn about BIDS names such as ``sub-01_task-rest_meg.fif``, by `Hamza Abdelhedi`_.

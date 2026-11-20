@@ -219,7 +219,7 @@ def test_f_oneway_hat_small_variance():
 
 
 def test_f_oneway_hat_input_validation():
-    """Test f_oneway input validation for sigma and method."""
+    """Test f_oneway input validation and integer inputs."""
     rng = np.random.default_rng(0)
     X1 = rng.standard_normal((5, 10))
     X2 = rng.standard_normal((5, 10))
@@ -229,3 +229,7 @@ def test_f_oneway_hat_input_validation():
 
     with pytest.raises(ValueError, match="method"):
         f_oneway(X1, X2, sigma=1e-3, method="invalid")
+
+    # integer squares must not overflow (gh-14477)
+    a, b = np.array([[182], [180]], np.int16), np.array([[181], [178]], np.int16)
+    assert_allclose(f_oneway(a, b), f_oneway(a.astype(float), b.astype(float)))

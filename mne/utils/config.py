@@ -20,10 +20,6 @@ import sys
 import tempfile
 from functools import lru_cache, partial
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
-
-from packaging.version import parse
 
 from ._logging import logger, warn
 from .check import (
@@ -33,7 +29,7 @@ from .check import (
     _soft_import,
     _validate_type,
 )
-from .docs import fill_doc
+from .docs import fill_doc_static
 from .misc import _pl
 
 _temp_home_dir = None
@@ -44,17 +40,20 @@ class UnknownPlatformError(Exception):
 
 
 def set_cache_dir(cache_dir):
-    """Set the directory to be used for temporary file storage.
+    """Set the directory used for temporary and managed cache storage.
 
-    This directory is used by joblib to store memmapped arrays,
-    which reduces memory requirements and speeds up parallel
-    computation.
+    This directory is used by joblib to store temporary memmapped arrays and,
+    when requested by supported Raw readers, to persist decoded preload data.
 
     Parameters
     ----------
     cache_dir : str or None
-        Directory to use for temporary file storage. None disables
-        temporary file storage.
+        Directory to use for cache storage. None disables cache storage.
+
+    Notes
+    -----
+    Persistent decoded Raw entries are not automatically size-limited. They are
+    stored below ``cache_dir`` in a versioned ``raw-preload`` directory.
     """
     if cache_dir is not None and not op.exists(cache_dir):
         raise OSError(f"Directory {cache_dir} does not exist")
@@ -93,6 +92,9 @@ _known_config_types = {
         "int, number of samples to use for full-screen antialiasing"
     ),
     "MNE_3D_OPTION_SMOOTH_SHADING": ("bool, whether to use smooth shading in 3D plots"),
+    "MNE_3D_OPTION_SSAO": (
+        "bool, whether to use screen-space ambient occlusion in 3D plots"
+    ),
     "MNE_3D_OPTION_THEME": ("str, the color theme (light or dark) to use for 3D plots"),
     "MNE_BROWSE_RAW_SIZE": (
         "tuple, width and height of the raw browser window (in inches)"
@@ -113,7 +115,7 @@ _known_config_types = {
     "MNE_BROWSER_USE_OPENGL": (
         "bool, whether to use OpenGL for rendering in the raw browser"
     ),
-    "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
+    "MNE_CACHE_DIR": "str, path to the temporary and managed cache directory",
     "MNE_COREG_ADVANCED_RENDERING": (
         "bool, whether to use advanced OpenGL rendering in coreg"
     ),
@@ -170,6 +172,7 @@ _known_config_types = {
     "MNE_DATASETS_TESTING_PATH": "str, path for testing data",
     "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
     "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
+    "MNE_DATASETS_LITE_DATA_PATH": "str, path for lite_data data",
     "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
     "MNE_DATASETS_PHANTOM_KIT_PATH": "str, path for phantom_kit data",
     "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
@@ -186,6 +189,10 @@ _known_config_types = {
     "MNE_MEMMAP_MIN_SIZE": (
         "str, threshold on the minimum size of arrays passed to the workers that "
         "triggers automated memory mapping, e.g., 1M or 0.5G"
+    ),
+    "MNE_PROPAGATE_DOC_CHANGES": (
+        "bool, propagate edits made to a shared docstring back to docdict and every "
+        "other docstring using it (tools/hooks/check_static_docs.py; developers only)"
     ),
     "MNE_REPR_HTML": (
         "bool, represent some objects with rich HTML in a notebook environment"
@@ -221,6 +228,24 @@ _known_config_wildcards = (
 )
 
 
+_use_filelock = True
+
+
+@contextlib.contextmanager
+def _no_filelock():
+    """Skip the config file lock, to avoid importing filelock.
+
+    Used only for the single config read during ``import mne``: filelock pulls in
+    asyncio and sqlite3, which costs ~20 ms on every interpreter start.
+    """
+    global _use_filelock
+    _use_filelock = False
+    try:
+        yield
+    finally:
+        _use_filelock = True
+
+
 @contextlib.contextmanager
 def _open_lock(path, *args, **kwargs):
     """
@@ -236,14 +261,17 @@ def _open_lock(path, *args, **kwargs):
     ----------
     path : str
         The path to the file to be opened.
-    *args, **kwargs : optional
-        Additional arguments and keyword arguments to be passed to the
-        `open` function.
+    *args : list
+        Additional arguments to be passed to the `open` function.
+    **kwargs : dict
+        Additional keyword arguments to be passed to the `open` function.
 
     """
-    filelock = _soft_import(
-        "filelock", purpose="parallel config set and get", strict=False
-    )
+    filelock = None
+    if _use_filelock:
+        filelock = _soft_import(
+            "filelock", purpose="parallel config set and get", strict=False
+        )
 
     lock_context = contextlib.nullcontext()  # default to no lock
 
@@ -568,7 +596,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
-@fill_doc
+@fill_doc_static("info_not_none")
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -580,7 +608,9 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     ----------
     stim_channel : str | list of str | None
         The stim channel selected by the user.
-    %(info_not_none)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
 
     Returns
     -------
@@ -633,6 +663,13 @@ def _get_root_dir():
     return root_dir
 
 
+_blas_rename = dict(
+    openblas="OpenBLAS",
+    mkl="MKL",
+    accelerate="Accelerate",
+)
+
+
 def _get_numpy_libs():
     bad_lib = "unknown linalg bindings"
     try:
@@ -640,18 +677,57 @@ def _get_numpy_libs():
     except Exception as exc:
         return bad_lib + f" (threadpoolctl module not found: {exc})"
     pools = threadpool_info()
-    rename = dict(
-        openblas="OpenBLAS",
-        mkl="MKL",
-    )
     for pool in pools:
         if pool["internal_api"] in ("openblas", "mkl"):
+            layer = pool.get("threading_layer")
+            layer = f" via {layer}" if layer else ""
+            name = pool["internal_api"]
+            name = _blas_rename.get(name, name)
             return (
-                f"{rename[pool['internal_api']]} "
+                f"{name} "
                 f"{pool['version']} with "
                 f"{pool['num_threads']} thread{_pl(pool['num_threads'])}"
+                f"{layer}"
             )
-    return bad_lib
+    return _get_numpy_build_blas() or bad_lib
+
+
+def _get_numpy_build_blas():
+    """Name the BLAS from the build config, for backends threadpoolctl can't see."""
+    # Accelerate has no threadpoolctl controller, so macOS wheels otherwise report only
+    # "unknown linalg bindings"
+    import numpy as np
+
+    try:
+        blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        name = blas["name"].lower()
+    except Exception:
+        return None
+    version = blas.get("version", "")
+    # conda's libblas is a switchable interface; macOS installs often point it at
+    # Accelerate, which threadpoolctl can't see
+    if name in ("blas", "cblas") and "veclib" in _get_runtime_blas_path().lower():
+        name, version = "accelerate", ""  # version was the interface's
+    name = _blas_rename.get(name, name)
+    if version and version != "unknown":  # Accelerate reports a literal "unknown"
+        name = f"{name} {version}"
+    return f"{name}, threads not introspectable"
+
+
+def _get_runtime_blas_path():
+    """Get the path of the library actually providing NumPy's cblas_dgemm."""
+    import ctypes
+
+    try:  # private module, POSIX-only dladdr, and the symbol can be named differently
+        from numpy._core import _multiarray_umath
+
+        dgemm = ctypes.CDLL(_multiarray_umath.__file__).cblas_dgemm
+        info = (ctypes.c_void_p * 4)()  # Dl_info, whose first field is dli_fname
+        if ctypes.CDLL(None).dladdr(ctypes.cast(dgemm, ctypes.c_void_p), info):
+            return ctypes.string_at(info[0]).decode()
+    except Exception:
+        pass
+    return ""
 
 
 _gpu_cmd = """\
@@ -830,6 +906,7 @@ def sys_info(
         "dipy",
         "openmeeg",
         "python-picard",
+        "jamica",
         "cupy",
         "pandas",
         "h5io",
@@ -894,9 +971,11 @@ def sys_info(
             "nbclient",
             "nbformat",
             "nitime",
+            "pyvista-js",
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "pynwb",
             "twine",
             "",
             "# Documentation",
@@ -1003,6 +1082,9 @@ def sys_info(
 
 
 def _get_latest_version(timeout):
+    from urllib.error import URLError
+    from urllib.request import urlopen
+
     # Bandit complains about urlopen, but we know the URL here
     url = "https://api.github.com/repos/mne-tools/mne-python/releases/latest"
     try:
@@ -1024,6 +1106,8 @@ def _check_mne_version(timeout):
     rel_ver = _get_latest_version(timeout)
     if not rel_ver[0].isnumeric():
         return None, (f"unable to check for latest version on GitHub, {rel_ver}")
+    from packaging.version import parse
+
     rel_ver = parse(rel_ver)
     this_ver = parse(importlib.metadata.version("mne"))
     if this_ver > rel_ver:

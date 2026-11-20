@@ -296,7 +296,7 @@ DEFAULTS: dict[str, Any] = dict(
     ),
     report_coreg=dict(dig=True, meg=("helmet", "sensors"), show_axes=True),
     noise_std=dict(grad=5e-13, mag=20e-15, eeg=0.2e-6),
-    eloreta_options=dict(eps=1e-6, max_iter=20, force_equal=False),
+    eloreta_options=dict(eps=1e-6, max_iter=20, force_equal=None),
     depth_mne=dict(
         exp=0.8,
         limit=10.0,
@@ -405,6 +405,9 @@ def _handle_default(k, v=None):
 
 
 HEAD_SIZE_DEFAULT = 0.095  # in [m]
+# default clipping for Raw.plot; it lives here rather than in mne.viz.raw so
+# that mne.io.base can use it as a default argument without importing mne.viz
+_RAW_CLIP_DEF: Final = 3
 _BORDER_DEFAULT: Final = "mean"
 _INTERPOLATION_DEFAULT: Final = "cubic"
 _EXTRAPOLATE_DEFAULT: Final = "auto"

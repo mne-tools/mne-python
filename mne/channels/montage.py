@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from .._fiff._digitization import (
+    DigPoint,
     _coord_frame_const,
     _count_points_by_type,
     _ensure_fiducials_head,
@@ -29,11 +30,9 @@ from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..fixes import _reshape_view
 from ..transforms import (
     Transform,
     _ensure_trans,
-    _fit_matched_points,
     _frame_to_str,
     _quat_to_affine,
     _sph_to_cart,
@@ -49,14 +48,13 @@ from ..utils import (
     _pl,
     _validate_type,
     check_fname,
-    copy_function_doc_to_method_doc,
-    fill_doc,
+    copy_function_doc_to_method_doc_static,
+    fill_doc_static,
     legacy,
-    verbose,
+    verbose_static,
     warn,
 )
 from ..utils.docs import docdict
-from ..viz import plot_montage
 from ._dig_montage_utils import (
     _parse_brainvision_dig_montage,
     _read_dig_montage_curry,
@@ -225,16 +223,6 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
 ]
 
-
-# Deprecated montage names: removed in MNE 1.13, to be errored in MNE 1.14.
-_DEPRECATED_STANDARD_MONTAGES = {
-    "standard_1005": "colin27_1005",
-    "standard_1020": "colin27_1020",
-    "standard_alphabetic": "colin27_alphabetic",
-    "standard_postfixed": "colin27_postfixed",
-    "standard_prefixed": "colin27_prefixed",
-    "standard_primed": "colin27_primed",
-}
 
 # We could eventually add mne/data/helmets/Kernel_Flux_ch_pos.txt if we added
 # the normals and deduplicate... but can wait until someone has a use case!
@@ -412,7 +400,7 @@ class DigMontage:
             " {fid:d} fiducials, {eeg:d} channels>"
         ).format(**n_points)
 
-    @copy_function_doc_to_method_doc(plot_montage)
+    @copy_function_doc_to_method_doc_static("func:mne.viz.plot_montage")
     def plot(
         self,
         *,
@@ -424,6 +412,73 @@ class DigMontage:
         axes=None,
         verbose=None,
     ):
+        """Plot a montage.
+
+        Parameters
+        ----------
+        scale : float
+            Determines the scale of the channel points and labels; values < 1 will scale
+            down, whereas values > 1 will scale up.
+        show_names : bool | list
+            Whether to display all channel names. If a list, only the channel
+            names in the list are shown. Defaults to True.
+        kind : str
+            Whether to plot the montage as '3d' or 'topomap' (default).
+        show : bool
+            Show figure if True.
+        sphere : float | array-like of float | instance of ConductorModel | {"auto", "cardinal", "eeg", "extra", "hpi", "eeglab"} | list of str | None
+            The sphere parameters to use for the head outline.
+            Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+            meters, or a single float to give just the radius (origin assumed 0, 0, 0).
+            Can also be an instance of a spherical :class:`~mne.bem.ConductorModel` to
+            use the origin and radius from that object.
+            Can also be a ``str``, in which case:
+
+            - ``'auto'``: the sphere is fit to external digitization points first, and
+              to external + EEG digitization points if the former fails.
+
+            - ``'eeglab'``: the head circle is defined by EEG electrodes ``'Fpz'``,
+              ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will be
+              approximated from the coordinates of ``'Oz'``).
+
+              - ``'extra'``: the sphere is fit to external digitization points.
+
+              - ``'eeg'``: the sphere is fit to EEG digitization points.
+
+              - ``'cardinal'``: the sphere is fit to cardinal digitization points.
+
+              - ``'hpi'``: the sphere is fit to HPI coil digitization points.
+
+            Can also be a list of ``str``, in which case the sphere is fit to the
+            specified digitization points, which can be any combination of ``'extra'``,
+            ``'eeg'``, ``'cardinal'``, and ``'hpi'``, as specified above.
+            ``None`` (the default) will look for an existing head outline in the
+            ``.info`` dictionary and use that. If no outline is present, it is
+            equivalent to ``'auto'`` when enough extra digitization points are
+            available, and ``(0, 0, 0, 0.095)`` otherwise.
+
+            .. versionadded:: 0.20
+            .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+            .. versionchanged:: 1.11 Added ``'extra'``, ``'eeg'``, ``'cardinal'``,
+               ``'hpi'`` and list of ``str`` options.
+        axes : instance of Axes | instance of Axes3D | None
+            Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+            of Axes3D. If None (default), a new axes will be created.
+
+            .. versionadded:: 1.4
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure object.
+        """  # noqa: E501
+        from ..viz import plot_montage
+
         return plot_montage(
             self,
             scale=scale,
@@ -434,7 +489,7 @@ class DigMontage:
             axes=axes,
         )
 
-    @verbose
+    @verbose_static("mapping_rename_channels_duplicates", "on_missing_ch_names")
     def rename_channels(
         self, mapping, allow_duplicates=False, *, on_missing="raise", verbose=None
     ):
@@ -442,11 +497,31 @@ class DigMontage:
 
         Parameters
         ----------
-        %(mapping_rename_channels_duplicates)s
-        %(on_missing_ch_names)s
+        mapping : dict | callable
+            A dictionary mapping the old channel to a new channel name
+            e.g. ``{'EEG061' : 'EEG161'}``. Can also be a callable function
+            that takes and returns a string.
+
+            .. versionchanged:: 0.10.0
+               Support for a callable function.
+        allow_duplicates : bool
+            If True (default False), allow duplicates, which will automatically
+            be renamed with ``-N`` at the end.
+
+            .. versionadded:: 0.22.0
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
 
             .. versionadded:: 1.11.0
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -460,7 +535,7 @@ class DigMontage:
         self.ch_names = temp_info["ch_names"]
         return self
 
-    @verbose
+    @verbose_static("overwrite")
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save digitization points to FIF.
 
@@ -468,8 +543,14 @@ class DigMontage:
         ----------
         fname : path-like
             The filename to use. Should end in ``-dig.fif`` or ``-dig.fif.gz``.
-        %(overwrite)s
-        %(verbose)s
+        overwrite : bool
+            If True (default False), overwrite the destination file if it
+            exists.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         See Also
         --------
@@ -552,7 +633,18 @@ class DigMontage:
         return deepcopy(self)
 
     def __add__(self, other):
-        """Add two DigMontages."""
+        """Add two DigMontages.
+
+        Parameters
+        ----------
+        other : instance of DigMontage
+            The montage to add.
+
+        Returns
+        -------
+        montage : instance of DigMontage
+            A new montage containing the points of both montages.
+        """
         out = self.copy()
         out += other
         return out
@@ -624,7 +716,7 @@ class DigMontage:
         )
         return positions
 
-    @verbose
+    @verbose_static()
     def apply_trans(self, trans, verbose=None):
         """Apply a transformation matrix to the montage.
 
@@ -632,7 +724,11 @@ class DigMontage:
         ----------
         trans : instance of mne.transforms.Transform
             The transformation matrix to be applied.
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
         """
         _validate_type(trans, Transform, "trans")
         coord_frame = self.get_positions()["coord_frame"]
@@ -641,7 +737,7 @@ class DigMontage:
             d["r"] = apply_trans(trans, d["r"])
             d["coord_frame"] = trans["to"]
 
-    @verbose
+    @verbose_static("subject", "subjects_dir")
     def add_estimated_fiducials(self, subject, subjects_dir=None, verbose=None):
         """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
 
@@ -653,9 +749,17 @@ class DigMontage:
 
         Parameters
         ----------
-        %(subject)s
-        %(subjects_dir)s
-        %(verbose)s
+        subject : str
+            The FreeSurfer subject name.
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -693,14 +797,21 @@ class DigMontage:
         self.dig = fids_mri + self.dig
         return self
 
-    @verbose
+    @verbose_static("subjects_dir")
     def add_mni_fiducials(self, subjects_dir=None, verbose=None):
         """Add fiducials to a montage in MNI space.
 
         Parameters
         ----------
-        %(subjects_dir)s
-        %(verbose)s
+        subjects_dir : path-like | None
+            The path to the directory containing the FreeSurfer subjects
+            reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+            variable.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -735,13 +846,21 @@ class DigMontage:
         self.dig = fids_mni + self.dig
         return self
 
-    @verbose
+    def _remove_dig_points(self, mask):
+        self.dig = [d for d, m in zip(self.dig, mask) if not m]
+        return self
+
+    @verbose_static()
     def remove_fiducials(self, verbose=None):
         """Remove the fiducial points from a montage.
 
         Parameters
         ----------
-        %(verbose)s
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
 
         Returns
         -------
@@ -757,9 +876,44 @@ class DigMontage:
         with intracranial data to BIDS format, the coordinate frame
         should not be changed by removing fiducials.
         """
-        for d in self.dig.copy():
-            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
-                self.dig.remove(d)
+        mask = [d["kind"] == FIFF.FIFFV_POINT_CARDINAL for d in self.dig]
+        return self._remove_dig_points(mask)
+
+    @fill_doc_static("on_missing_ch_names")
+    def drop_channels(self, ch_names, on_missing="raise"):
+        """Drop channel(s).
+
+        Parameters
+        ----------
+        ch_names : iterable or str
+            Iterable (e.g. list) of channel name(s) or channel name to remove.
+        on_missing : 'raise' | 'warn' | 'ignore'
+            Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+            warning, or ``'ignore'`` to ignore
+            when entries in ch_names are not present in the raw instance.
+
+            .. versionadded:: 0.23.0
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The modified instance.
+
+        See Also
+        --------
+        rename_channels
+        remove_fiducials
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        from .channels import _check_drop_ch_names
+
+        drop_chs = set(_check_drop_ch_names(ch_names, self.ch_names, on_missing))
+        mask = [name in drop_chs for name in self._get_dig_names()]
+        self._remove_dig_points(mask)
+        self.ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
         return self
 
 
@@ -883,7 +1037,7 @@ def read_dig_dat(fname):
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
-@verbose
+@verbose_static()
 def read_dig_fif(fname, *, verbose=None):
     r"""Read digitized points from a .fif file.
 
@@ -891,7 +1045,11 @@ def read_dig_fif(fname, *, verbose=None):
     ----------
     fname : path-like
         FIF file from which to read digitization locations.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1024,9 +1182,9 @@ def read_dig_hpts(fname, unit="mm"):
         label[ii]: this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "eeg"
     }
     hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "hpi"])
-    hpi = _reshape_view(hpi, (-1, 3))  # in case it's empty
+    hpi = hpi.reshape((-1, 3), copy=False)  # in case it's empty
     hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz) if kind[ii] == "extra"])
-    hsp = _reshape_view(hsp, (-1, 3))  # in case it's empty
+    hsp = hsp.reshape((-1, 3), copy=False)  # in case it's empty
     return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
 
 
@@ -1204,7 +1362,7 @@ def _set_montage_fnirs(info, montage):
     stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
     place.
     """
-    from ..preprocessing.nirs import _validate_nirs_info
+    from ..preprocessing.nirs import _parse_nirs_ch_name, _validate_nirs_info
 
     # Validate that the fNIRS info is correctly formatted
     picks = _validate_nirs_info(info)
@@ -1212,8 +1370,8 @@ def _set_montage_fnirs(info, montage):
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
     for ch_idx in picks:
-        ch = info["chs"][ch_idx]["ch_name"]
-        source, detector = ch.split(" ")[0].split("_")
+        source, detector, _ = _parse_nirs_ch_name(info["chs"][ch_idx]["ch_name"])
+        source, detector = f"S{source}", f"D{detector}"
         source_pos = montage.dig[montage.ch_names.index(source) + num_ficiduals]["r"]
         detector_pos = montage.dig[montage.ch_names.index(detector) + num_ficiduals][
             "r"
@@ -1230,7 +1388,9 @@ def _set_montage_fnirs(info, montage):
         info["dig"] = montage.dig
 
 
-@fill_doc
+@fill_doc_static(
+    "info_not_none", "montage", "match_case", "match_alias", "on_missing_montage"
+)
 def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="raise"):
     """Apply montage to data.
 
@@ -1242,11 +1402,36 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
 
     Parameters
     ----------
-    %(info_not_none)s
-    %(montage)s
-    %(match_case)s
-    %(match_alias)s
-    %(on_missing_montage)s
+    info : mne.Info
+        The :class:`mne.Info` object with information about the
+        sensors and methods of measurement.
+    montage : None | str | DigMontage
+        A montage containing channel positions. If a string or
+        :class:`~mne.channels.DigMontage` is
+        specified, the existing channel information will be updated with the
+        channel positions from the montage. Valid strings are the names of the
+        built-in montages that ship with MNE-Python; you can list those via
+        :func:`mne.channels.get_builtin_montages`.
+        If ``None`` (default), the channel positions will be removed from the
+        :class:`~mne.Info`.
+    match_case : bool
+        If True (default), channel name matching will be case sensitive.
+
+        .. versionadded:: 0.20
+    match_alias : bool | dict
+        Whether to use a lookup table to match unrecognized channel location names
+        to their known aliases. If True, uses the mapping in
+        ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+        will be used instead, and should map from non-standard channel names to
+        names in the specified ``montage``. Default is ``False``.
+
+        .. versionadded:: 0.23
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when channels have missing coordinates.
+
+        .. versionadded:: 0.20.1
 
     Notes
     -----
@@ -1262,14 +1447,6 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             ch["loc"] = np.full(12, np.nan)
         return
     if isinstance(montage, str):  # load builtin montage
-        if montage in _DEPRECATED_STANDARD_MONTAGES:
-            new_name = _DEPRECATED_STANDARD_MONTAGES[montage]
-            warn(
-                f"Montage name '{montage}' is deprecated and will be removed in MNE "
-                f"1.14. Use '{new_name}' instead.",
-                FutureWarning,
-            )
-            montage = new_name
         _check_option(
             parameter="montage",
             value=montage,
@@ -1420,13 +1597,20 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
     del ch_pos
 
-    # XXX this is probably wrong as it uses the order from the montage
-    # rather than the order of our info['ch_names'] ...
     digpoints = [
-        mnt_head.dig[ii]
+        mnt_head.dig[ii] if name is None else DigPoint(mnt_head.dig[ii], ident=0)
         for ii, name in enumerate(dig_names_use)
-        if name in (info_names_use + ref_names)
+        if name in ref_names
     ]
+    # renumber so enforce_order (which sorts by ident) keeps info["ch_names"] order
+    dig_idx = {name: ii for ii, name in enumerate(dig_names_use)}
+    ch_names_dig = [
+        name
+        for name in dict.fromkeys(info_names_use)
+        if name in dig_idx and name not in ref_names
+    ]
+    for ident, name in enumerate(ch_names_dig, 1):
+        digpoints.append(DigPoint(mnt_head.dig[dig_idx[name]], ident=ident))
 
     # get a copy of the old dig
     if info["dig"] is not None:
@@ -1627,7 +1811,7 @@ def _is_polhemus_fastscan(fname):
     return "FastSCAN" in header
 
 
-@verbose
+@verbose_static("on_header_missing")
 def read_polhemus_fastscan(
     fname, unit="mm", on_header_missing="raise", *, verbose=None
 ):
@@ -1640,8 +1824,16 @@ def read_polhemus_fastscan(
     unit : ``'m'`` | ``'cm'`` | ``'mm'``
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
         exported in millimeters. Defaults to ``'mm'``.
-    %(on_header_missing)s
-    %(verbose)s
+    on_header_missing : str
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore when the FastSCAN header is missing.
+
+        .. versionadded:: 0.22
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1679,7 +1871,7 @@ def _read_eeglab_locations(fname):
     return ch_names, pos
 
 
-@verbose
+@verbose_static()
 def read_custom_montage(
     fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None, *, verbose=None
 ):
@@ -1703,7 +1895,11 @@ def read_custom_montage(
         for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1801,7 +1997,7 @@ def read_custom_montage(
     return montage
 
 
-@verbose
+@verbose_static()
 def read_meg_canonical_info(system, *, verbose=None):
     """Load canonical MEG sensor definitions from CSV files.
 
@@ -1810,7 +2006,11 @@ def read_meg_canonical_info(system, *, verbose=None):
     system : str
         The MEG system name. Currently supported: 'neuromag', 'ctf151' or
         'ctf275'.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -1962,11 +2162,13 @@ def compute_dev_head_t(montage):
             f" points in device and {len(hpi_head)} points in head coordinate systems)"
         )
 
+    from .._transforms_numba import _fit_matched_points
+
     trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])
     return Transform(fro="meg", to="head", trans=trans)
 
 
-@verbose
+@verbose_static("on_missing_fiducials")
 def compute_native_head_t(montage, *, on_missing="warn", verbose=None):
     """Compute the native-to-head transformation for a montage.
 
@@ -1977,10 +2179,17 @@ def compute_native_head_t(montage, *, on_missing="warn", verbose=None):
     ----------
     montage : instance of DigMontage
         The montage.
-    %(on_missing_fiducials)s
+    on_missing : 'raise' | 'warn' | 'ignore'
+        Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+        warning, or ``'ignore'`` to ignore
+        when some necessary fiducial points are missing.
 
         .. versionadded:: 1.2
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -2053,14 +2262,6 @@ def make_standard_montage(kind, head_size="auto"):
     from ._standard_montage_utils import standard_montage_look_up_table
 
     _validate_type(kind, str, "kind")
-    if kind in _DEPRECATED_STANDARD_MONTAGES:
-        new_kind = _DEPRECATED_STANDARD_MONTAGES[kind]
-        warn(
-            f"Montage name '{kind}' is deprecated and will be removed in MNE 1.14. Use "
-            f"'{new_kind}' instead.",
-            FutureWarning,
-        )
-        kind = new_kind
     _check_option(
         parameter="kind",
         value=kind,

@@ -91,7 +91,7 @@ def test_nsx_ver_31():
             input_fname=nsx_31_fname,
             eog=None,
             misc=None,
-            test_scaling=False,
+            test_scaling=False,  # synthetic data with a +/-5 V analog range
             test_rank=False,
         )
     raw_data, _ = raw[:]
@@ -162,7 +162,7 @@ def test_nsx_ver_22():
         input_fname=nsx_22_fname,
         eog=None,
         misc=None,
-        test_scaling=False,  # XXX this should be True
+        test_scaling=False,  # synthetic data with a +/-5 V analog range
         test_rank=False,
     )
     raw_data, _ = raw[:]

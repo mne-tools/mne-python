@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "8df1a2049440452c2eeef9d81106841489f60bcb",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14300.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/beamformer/_compute_beamformer.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/beamformer/tests/test_lcmv.py": {
+      "a": 1,
+      "d": 0
+    },
+    "tutorials/inverse/50_beamformer_lcmv.py": {
+      "a": 4,
+      "d": 5
+    },
+    "tutorials/stats-sensor-space/10_background_stats.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

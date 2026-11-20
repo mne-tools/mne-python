@@ -5,7 +5,7 @@
 import json
 import pickle
 import string
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -54,7 +54,7 @@ from mne._fiff.meas_info import (
 )
 from mne._fiff.proj import Projection
 from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
-from mne._fiff.write import DATE_NONE, _generate_meas_id
+from mne._fiff.write import DATE_NONE, _generate_meas_id, write_layer_struct
 from mne.channels import (
     equalize_channels,
     make_standard_montage,
@@ -281,8 +281,14 @@ def test_info():
     info2 = Info(info_dict)
     assert info == info2
 
+    # a self-referencing entry must terminate and remap to the copy (gh-14260)
+    with info._unlock():
+        info["temp"] = info
+    info2 = info.copy()
+    assert info2["temp"] is info2
 
-def test_read_write_info(tmp_path):
+
+def test_read_write_info(tmp_path, monkeypatch):
     """Test IO of info."""
     info = read_info(raw_fname)
     temp_file = tmp_path / "info.fif"
@@ -308,6 +314,8 @@ def test_read_write_info(tmp_path):
             info["gantry_angle"] = 0  # Elekta supine position
     gantry_angle = info["gantry_angle"]
 
+    info.set_head_sphere([0.1, 0.2, 0.3, 0.4])
+
     meas_id = info["meas_id"]
     with pytest.raises(FileExistsError, match="Destination file exists"):
         write_info(temp_file, info)
@@ -322,6 +330,18 @@ def test_read_write_info(tmp_path):
     for key in ["secs", "usecs", "version"]:
         assert info["meas_id"][key] == meas_id[key]
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
+    assert_allclose(info["head_sphere"], [0.1, 0.2, 0.3, 0.4])
+
+    # a conductor model whose outermost layer is not the scalp is not a head sphere
+    def _write_brain_layer(fid, kind, layers):
+        layers = [dict(layer, id=FIFF.FIFFV_BEM_SURF_ID_BRAIN) for layer in layers]
+        write_layer_struct(fid, kind, layers)
+
+    monkeypatch.setattr(meas_info, "write_layer_struct", _write_brain_layer)
+    write_info(temp_file, info, overwrite=True)
+    assert read_info(temp_file).get("head_sphere") is None
+    monkeypatch.undo()
+    write_info(temp_file, info, overwrite=True)
 
     # Test that writing twice produces the same file
     m1 = _empty_hash()
@@ -350,7 +370,7 @@ def test_read_write_info(tmp_path):
 
     # Check that having a very old date in fine until you try to save it to fif
     with info._unlock(check_after=True):
-        info["meas_date"] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        info["meas_date"] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=UTC)
     fname = tmp_path / "test.fif"
     with pytest.raises(RuntimeError, match="must be between "):
         write_info(fname, info, overwrite=True)
@@ -406,7 +426,7 @@ def test_info_serialization_special_types():
     info = create_info(ch_names=["EEG1"], sfreq=1000.0, ch_types="eeg")
 
     # Test meas_date (datetime)
-    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=timezone.utc)
+    meas_date = datetime(2023, 11, 13, 10, 30, 0, tzinfo=UTC)
     with info._unlock():
         info["meas_date"] = meas_date
 
@@ -719,6 +739,17 @@ def test_check_consistency():
     with pytest.raises(TypeError, match=r'subject_info\["height"\] must be an .*'):
         info2["subject_info"] = {"height": "bad"}
 
+    # bad head sphere
+    info2 = info.copy()
+    with info2._unlock():
+        info2["head_sphere"] = "foo"
+    with pytest.raises(TypeError, match="must be an ndarray"):
+        info2._check_consistency()
+    with info2._unlock():
+        info2["head_sphere"] = np.array([1, 2, 3])
+    with pytest.raises(TypeError, match="with 4 elements"):
+        info2._check_consistency()
+
 
 def _test_anonymize_info(base_info, tmp_path):
     """Test that sensitive information can be anonymized."""
@@ -726,7 +757,7 @@ def _test_anonymize_info(base_info, tmp_path):
     assert isinstance(base_info, Info)
     base_info = base_info.copy()
 
-    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=UTC)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_desc = "Anonymized using a time shift" + " to preserve age at acquisition"
@@ -739,7 +770,7 @@ def _test_anonymize_info(base_info, tmp_path):
 
     # Fake some additional data
     _complete_info(base_info)
-    meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=UTC)
     with base_info._unlock():
         base_info["meas_date"] = meas_date
         base_info["subject_info"].update(
@@ -940,7 +971,7 @@ def test_meas_date_convert(stamp, dt):
     meas_datetime = _stamp_to_dt(stamp)
     stamp2 = _dt_to_stamp(meas_datetime)
     assert stamp == stamp2
-    assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
+    assert meas_datetime == datetime(*dt, tzinfo=UTC)
     # smoke test for info __repr__
     info = create_info(1, 1000.0, "eeg")
     with info._unlock():
@@ -988,7 +1019,7 @@ def _complete_info(info):
     info["helium_info"] = dict(
         he_level_raw=np.float32(12.34),
         helium_level=np.float32(45.67),
-        meas_date=datetime(2024, 11, 14, 14, 8, 2, tzinfo=timezone.utc),
+        meas_date=datetime(2024, 11, 14, 14, 8, 2, tzinfo=UTC),
         orig_file_guid="e",
     )
     info["experimenter"] = "f"
@@ -996,7 +1027,7 @@ def _complete_info(info):
     with info._unlock():
         info["proj_id"] = 1
         info["proj_name"] = "h"
-        info["utc_offset"] = "i"
+        info["utc_offset"] = "+01:00"
         d = (1717707794, 2)
         info["proc_history"] = [
             dict(
@@ -1090,10 +1121,26 @@ def test_anonymize_with_io(tmp_path, daysback):
     """Test that IO does not break anonymization and all fields."""
     raw = read_raw_fif(raw_fname).crop(0, 1)
     _complete_info(raw.info)
+    # maxwell_filter writes records whose stamps are the DATE_NONE placeholder;
+    # shifting those overflows the int32 stamp for large daysback (gh-14236)
+    raw.info["proc_history"].insert(
+        0,
+        dict(
+            block_id=_generate_meas_id(),
+            experimenter="m",
+            max_info=dict(
+                max_st=dict(), sss_ctc=dict(), sss_cal=dict(), sss_info=dict(in_order=8)
+            ),
+            date=DATE_NONE,
+        ),
+    )
     temp_path = tmp_path / "tmp_raw.fif"
     raw.save(temp_path)
     raw2 = read_raw_fif(temp_path).load_data()
     raw2.anonymize(daysback=daysback)
+    record = raw2.info["proc_history"][0]
+    assert (record["block_id"]["secs"], record["block_id"]["usecs"]) == DATE_NONE
+    assert record["date"] == DATE_NONE
     raw2.save(temp_path, overwrite=True)
     raw3 = read_raw_fif(temp_path)
     d = object_diff(raw2.info, raw3.info)
@@ -1251,6 +1298,74 @@ def test_invalid_set_meas_date():
     info = create_info(1, 1000, "eeg")
     with pytest.raises(TypeError, match=r"meas_date must be an instance of"):
         info.set_meas_date("2025-01-01 00:00:00.000000")
+
+
+def test_set_meas_date_timezone(tmp_path, monkeypatch):
+    """Test set_meas_date with timezone-aware datetime and utc_offset (#9953)."""
+    from datetime import datetime, timedelta, timezone
+
+    info = create_info(1, 1000, "eeg")
+
+    # Timezone-naive datetime should raise ValueError
+    naive_dt = datetime(2021, 11, 4, 11, 50, 49)
+    with pytest.raises(ValueError, match="timezone-aware"):
+        info.set_meas_date(naive_dt)
+
+    # Positive UTC offset (e.g. Europe/Berlin +02:00)
+    tz_plus2 = timezone(timedelta(hours=2))
+    dt_plus2 = datetime(2021, 11, 4, 11, 50, 49, 123456, tzinfo=tz_plus2)
+    info.set_meas_date(dt_plus2)
+    assert info["utc_offset"] == "+02:00"
+    expected_utc = datetime(2021, 11, 4, 9, 50, 49, 123456, tzinfo=UTC)
+    assert info["meas_date"] == expected_utc
+
+    # Negative UTC offset (e.g. America/New_York -05:00)
+    tz_minus5 = timezone(timedelta(hours=-5))
+    dt_minus5 = datetime(2021, 11, 4, 6, 30, 0, tzinfo=tz_minus5)
+    info.set_meas_date(dt_minus5)
+    assert info["utc_offset"] == "-05:00"
+    with info._unlock():
+        info["utc_offset"] = "-0500"
+    with pytest.raises(RuntimeError, match="sHH:MM"):
+        info._check_consistency()
+    assert info["meas_date"] == datetime(2021, 11, 4, 11, 30, 0, tzinfo=UTC)
+
+    # UTC datetime should clear / not set utc_offset
+    dt_utc = datetime(2021, 11, 4, 11, 50, 49, tzinfo=UTC)
+    info.set_meas_date(dt_utc)
+    assert info["utc_offset"] is None
+    assert info["meas_date"] == dt_utc
+
+    # None should clear both
+    info.set_meas_date(None)
+    assert info["meas_date"] is None
+    assert info["utc_offset"] is None
+
+    # Test RawArray set_meas_date and FIFF I/O round-trip
+    from ...io import RawArray, read_raw_fif
+
+    raw = RawArray(np.zeros((1, 100)), create_info(1, 1000, "eeg"))
+    raw.set_meas_date(dt_plus2)
+    assert raw.info["utc_offset"] == "+02:00"
+    assert raw.info["meas_date"] == expected_utc
+
+    fname = tmp_path / "test_raw.fif"
+    raw.save(fname, overwrite=True)
+    raw_loaded = read_raw_fif(fname)
+    assert raw_loaded.info["utc_offset"] == "+02:00"
+    assert raw_loaded.info["meas_date"] == expected_utc
+
+    # Legacy sHHMM offsets written by MNE < 1.14 are converted on read
+    with raw.info._unlock():
+        raw.info["utc_offset"] = "+0200"
+    with monkeypatch.context() as m:
+        m.setattr(Info, "_check_consistency", lambda *args, **kwargs: None)
+        raw.save(fname, overwrite=True)
+    assert read_raw_fif(fname).info["utc_offset"] == "+02:00"
+
+    # Anonymization should clear utc_offset
+    raw_loaded.anonymize()
+    assert raw_loaded.info["utc_offset"] is None
 
 
 @pytest.mark.slowtest

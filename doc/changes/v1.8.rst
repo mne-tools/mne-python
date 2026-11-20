@@ -34,7 +34,7 @@ Bugfixes
 - Fix overflow when plotting source estimates where data is all zero (or close to zero), and fix the range of allowed values for the colorbar sliders, by `Marijn van Vliet`_. (`#12612 <https://github.com/mne-tools/mne-python/pull/12612>`__)
 - Fix adding channels to :class:`~mne.time_frequency.EpochsTFR` objects, by `Clemens Brunner`_. (`#12616 <https://github.com/mne-tools/mne-python/pull/12616>`__)
 - Fix for new sklearn metadata routing protocol in decoding search_light, by `Alex Gramfort`_ (`#12620 <https://github.com/mne-tools/mne-python/pull/12620>`__)
-- Fix bug where :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_array_multitaper`, and :func:`mne.time_frequency.csd_array_fourier` would return cross-spectral densities with the ``fmin`` and ``fmax`` frequencies missing, by `Thomas Binns`_ (`#12633 <https://github.com/mne-tools/mne-python/pull/12633>`__)
+- Fix bug where :func:`mne.time_frequency.csd_multitaper`, :func:`mne.time_frequency.csd_fourier`, :func:`mne.time_frequency.csd_array_multitaper`, and :func:`mne.time_frequency.csd_array_fourier` would return cross-spectral densities with the ``fmin`` and ``fmax`` frequencies missing, by `Thomas Binns`_ (:gh:`12633`)
 - Output types of sparse arrays were changed from ``matrix`` to ``array`` in
   :func:`~mne.channels.read_ch_adjacency`, :func:`~mne.channels.find_ch_adjacency`,
   :func:`~mne.stats.combine_adjacency`, :func:`~mne.spatio_temporal_src_adjacency`,
@@ -45,7 +45,7 @@ Bugfixes
   for both ``np.matrix`` and ``np.ndarray`` objects, and if a matrix is desired
   the outputs can be cast directly, for example as ``scipy.sparse.csr_matrix(out)``.
   Changed by `Eric Larson`_. (`#12646 <https://github.com/mne-tools/mne-python/pull/12646>`__)
-- Fix incorrect RuntimeWarning (different channel filter settings) in EDF/BDF import, by `Clemens Brunner`_. (`#12661 <https://github.com/mne-tools/mne-python/pull/12661>`__)
+- Fix incorrect RuntimeWarning (different channel filter settings) in EDF/BDF import, by `Clemens Brunner`_. (:gh:`12661`)
 - In :func:`mne.export.export_raw` (``fmt='edf'``), when padding data to create equal-length data blocks,
   edge-padding is favored over zero-padding in order to avoid accidentally enlarging physical range, by `Qian Chu`_. (`#12676 <https://github.com/mne-tools/mne-python/pull/12676>`__)
 - In :func:`mne.io.read_raw_eyelink`, gracefully handle missing datetime in file by `Scott Huberty`_. (`#12687 <https://github.com/mne-tools/mne-python/pull/12687>`__)
@@ -171,3 +171,5 @@ Authors
 * Stefan Appelhoff
 * Thomas S. Binns
 * Xabier de Zuazo+
+
+.. include:: names.inc

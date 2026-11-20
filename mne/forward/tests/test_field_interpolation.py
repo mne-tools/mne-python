@@ -18,7 +18,6 @@ from numpy.testing import (
 import mne
 from mne import Epochs, make_fixed_length_events, pick_types, read_evokeds
 from mne.datasets import testing
-from mne.fixes import _reshape_view
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._field_interpolation import _setup_dots
 from mne.forward._lead_dots import (
@@ -80,7 +79,7 @@ def test_legendre_val():
     ctheta = rng.random((20, 30)) * 2.0 - 1.0
     beta = rng.random((20, 30)) * 0.8
     c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), leg_fun, n_fact)
-    c1 = _reshape_view(c1, beta.shape)
+    c1 = c1.reshape(beta.shape, copy=False)
 
     # compare to numpy
     n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]
@@ -155,7 +154,7 @@ def test_make_field_map_eeg():
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_make_field_map_meg():
+def test_make_field_map_meg(monkeypatch):
     """Test interpolation of MEG field onto helmet | head."""
     evoked = read_evokeds(evoked_fname, condition="Left Auditory")
     info = evoked.info
@@ -186,9 +185,20 @@ def test_make_field_map_meg():
     # now do it with make_field_map
     evoked.pick(picks="meg")
     evoked.info.normalize_proj()  # avoid projection warnings
-    fmd = make_field_map(
-        evoked, None, subject="sample", subjects_dir=subjects_dir, origin="auto"
-    )
+    n_svd = 0
+    svd = np.linalg.svd
+
+    def counted_svd(*args, **kwargs):
+        nonlocal n_svd
+        n_svd += 1
+        return svd(*args, **kwargs)
+
+    with monkeypatch.context() as m:
+        m.setattr(np.linalg, "svd", counted_svd)
+        fmd = make_field_map(
+            evoked, None, subject="sample", subjects_dir=subjects_dir, origin="auto"
+        )
+    assert n_svd == 1  # the truncation and pseudoinverse share a decomposition
     assert len(fmd) == 1
     assert_array_equal(fmd[0]["data"].shape, (304, 106))  # maps data onto surf
     assert len(fmd[0]["ch_names"]) == 106

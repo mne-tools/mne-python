@@ -3,14 +3,13 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.ndimage import gaussian_filter
 
 from ..._fiff.constants import FIFF
-from ...utils import _validate_type, fill_doc, logger
+from ...utils import _validate_type, fill_doc_static, logger
 from ..utils import plt_show
 
 
-@fill_doc
+@fill_doc_static("cmap", "vlim_plot_topomap", "axes_plot_topomap", "show")
 def plot_gaze(
     epochs,
     *,
@@ -44,12 +43,30 @@ def plot_gaze(
     sigma : float | None
         The amount of Gaussian smoothing applied to the heatmap data (standard
         deviation in pixels). If ``None``, no smoothing is applied. Default is 25.
-    %(cmap)s
+    cmap : str | matplotlib.colors.Colormap | None
+            The :class:`~matplotlib.colors.Colormap` to use. If a :class:`str`, must
+            be a valid Matplotlib colormap name. Default is
+            ``None``, which will use the Matplotlib default colormap.
     alpha : float
         The opacity of the heatmap (default is 1).
-    %(vlim_plot_topomap)s
-    %(axes_plot_topomap)s
-    %(show)s
+    vlim : tuple of length 2
+        Lower and upper bounds of the colormap, typically a numeric value in the
+        same units as the data.
+        If both entries are ``None``, the bounds are set at
+        ``(min(data), max(data))``.
+        Providing ``None`` for just one entry will set the corresponding boundary
+        at the min/max of the data. Defaults to ``(None, None)``.
+    axes : instance of Axes | None
+        The axes to plot into. If ``None``, a new :class:`~matplotlib.figure.Figure`
+        will be created. Default is ``None``.
+    show : bool
+        Show the figure if ``True``. When shown, blocking follows
+        :func:`matplotlib.pyplot.show`: the call blocks until the window is closed
+        unless Matplotlib's interactive mode is on (enabled with
+        :func:`matplotlib.pyplot.ion` or IPython's ``%%matplotlib`` magic command),
+        in which case it returns immediately. Interactive mode is off by default, so
+        a plain script or REPL blocks. Pass ``show=False`` to build several figures
+        and display them together with a single :func:`matplotlib.pyplot.show` call.
 
     Returns
     -------
@@ -60,6 +77,8 @@ def plot_gaze(
     -----
     .. versionadded:: 1.6
     """
+    from scipy.ndimage import gaussian_filter
+
     from mne import BaseEpochs
     from mne._fiff.pick import _picks_to_idx
 

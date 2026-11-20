@@ -2,24 +2,8 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import docutils
 from docutils.nodes import reference
-
-# Adapted from sphinx
-if docutils.__version_info__[:2] < (0, 22):
-    from docutils.parsers.rst import roles
-
-    def _normalize_options(options):
-        if options is None:
-            return {}
-        n_options = options.copy()
-        roles.set_classes(n_options)
-        return n_options
-
-else:
-    from docutils.parsers.rst.roles import (
-        normalize_options as _normalize_options,
-    )
+from docutils.parsers.rst.roles import normalize_options as _normalize_options
 
 
 def gh_role(name, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006

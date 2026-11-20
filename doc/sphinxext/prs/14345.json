@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "073a8d4d144659e32a0406c8e135caf44a2b6421",
+  "authors": [
+    {
+      "n": "Scott Huberty",
+      "e": "52462026+scott-huberty@users.noreply.github.com",
+      "l": "scott-huberty"
+    },
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 9,
+      "d": 1
+    },
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 0,
+      "d": 8
+    },
+    "tools/ci/macos-intel/pixi.lock": {
+      "a": 5953,
+      "d": 5948
+    }
+  }
+}

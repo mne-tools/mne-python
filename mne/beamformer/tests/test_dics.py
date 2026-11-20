@@ -25,7 +25,6 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
-from mne.fixes import _reshape_view
 from mne.io import read_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
@@ -271,7 +270,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         exp=None,
         noise_cov=noise_cov,
     )
-    G = _reshape_view(G, (n_channels, n_verts, n_orient))
+    G = G.reshape((n_channels, n_verts, n_orient), copy=False)
     G = G.transpose(1, 2, 0).conj()  # verts, orient, ch
     _assert_weight_norm(filters, G)
 

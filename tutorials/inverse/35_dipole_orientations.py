@@ -279,7 +279,7 @@ mne.viz.set_3d_view(figure=brain_loose, focalpoint=(0.0, 0.0, 50))
 # Only retain vector magnitudes
 stc = apply_inverse(left_auditory, inv, pick_ori=None)
 
-# Visualize it at the moment of peak activity
+# Visualize it at the moment of peak activity.
 _, time_max = stc.get_peak(hemi="lh")
 brain = stc.plot(
     surface="white",

@@ -1,0 +1,43 @@
+{# Adapted from towncrier's templates/default.rst (https://github.com/twisted/towncrier,
+   MIT license), adding the changelog anchor and "Version" title prefix that the release
+   page needs, and pulling :newcontrib: entries to the top of each category. #}
+{% if render_title %}
+{% set title = "Version " + versiondata.version + " (" + versiondata.date + ")" %}
+{% if versiondata.version.replace(".", "").isdigit() %}
+.. _changes_{{ versiondata.version | replace(".", "_") }}:
+
+{% endif %}
+{{ title }}
+{{ top_underline * title|length }}
+{% endif %}
+{% for section, _ in sections.items() %}
+{% set underline = underlines[0] %}{% if section %}{{section}}
+{{ underline * section|length }}{% set underline = underlines[1] %}
+
+{% endif %}
+
+{% if sections[section] %}
+{% for category, val in definitions.items() if category in sections[section]%}
+{{ definitions[category]['name'] }}
+{{ underline * definitions[category]['name']|length }}
+
+{% for newcontrib in [true, false] %}
+{% for text, values in sections[section][category].items() if (":newcontrib:" in text) == newcontrib %}
+- {% if text %}{{ text }}{% if values %} ({{ values|join(', ') }}){% endif %}{% else %}{{ values|join(', ') }}{% endif  %}
+
+{% endfor %}
+{% endfor %}
+
+{% if sections[section][category]|length == 0 %}
+No significant changes.
+
+{% else %}
+{% endif %}
+
+{% endfor %}
+{% else %}
+No significant changes.
+
+
+{% endif %}
+{% endfor %}

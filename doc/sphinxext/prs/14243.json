@@ -1,0 +1,20 @@
+{
+  "merge_commit_sha": "03e4240874d74742e981c108b222377b636e735d",
+  "authors": [
+    {
+      "n": "Marijn van Vliet",
+      "e": "w.m.vanvliet@gmail.com",
+      "l": "wmvanvliet"
+    }
+  ],
+  "changes": {
+    "mne/gui/_dipolefit.py": {
+      "a": 29,
+      "d": 77
+    },
+    "mne/gui/tests/test_dipolefit.py": {
+      "a": 2,
+      "d": 24
+    }
+  }
+}

@@ -237,3 +237,5 @@ The committer list for this release is the following (preceded by number of comm
 *   1  Romain Trachel
 *   1  mads jensen
 *   1  sviter
+
+.. include:: names.inc

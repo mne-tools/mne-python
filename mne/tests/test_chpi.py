@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal, assert_array_less
 from scipy.interpolate import interp1d
+from scipy.signal import welch
 from scipy.spatial.distance import cdist
 
 from mne import pick_info, pick_types
@@ -53,7 +54,6 @@ from mne.utils import (
     _record_warnings,
     assert_meg_snr,
     catch_logging,
-    check_version,
     object_diff,
     verbose,
 )
@@ -481,10 +481,9 @@ def test_initial_fit_redo():
     angles = np.rad2deg(np.arccos(np.abs(np.sum(coil_ori * py_ori, axis=1))))
     assert_array_less(angles, 20)
 
-    # check resulting dev_head_t (also the one place we exercise the deprecated
-    # default value of ``weighted``, see gh-11330)
-    with pytest.warns(FutureWarning, match="weighted will change"):
-        head_pos = compute_head_pos(raw.info, chpi_locs)
+    # check resulting dev_head_t (also the one place we exercise the default
+    # value of ``weighted``, see gh-11330)
+    head_pos = compute_head_pos(raw.info, chpi_locs)
     assert head_pos.shape == (1, 10)
     nm_pos = raw.info["dev_head_t"]["trans"]
     dist = 1000 * np.linalg.norm(nm_pos[:3, 3] - head_pos[0, 4:7])
@@ -494,7 +493,7 @@ def test_initial_fit_redo():
     )
     assert 0.1 < angle < 2
     gof = head_pos[0, 7]
-    assert_allclose(gof, 0.9999, atol=1e-4)
+    assert_allclose(gof, 0.9998, atol=1e-4)
 
 
 def test_fit_chpi_quat_weighted():
@@ -730,7 +729,6 @@ def test_calculate_chpi_coil_locs_artemis():
 def assert_suppressed(new, old, suppressed, retained):
     """Assert that some frequencies are suppressed and others aren't."""
     __tracebackhide__ = True
-    from scipy.signal import welch
 
     picks = pick_types(new.info, meg="grad")
     sfreq = new.info["sfreq"]
@@ -756,19 +754,48 @@ def test_chpi_subtraction_filter_chpi():
     raw.info["bads"] = ["MEG0111"]
     raw.del_proj()
     raw_orig = raw.copy().crop(0, 16)
-    with catch_logging() as log:
-        filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
-    log = log.getvalue()
-    assert "No average EEG" not in log
-    assert "5 cHPI" in log
-    # MaxFilter doesn't do quite as well as our algorithm with the last bit
-    raw.crop(0, 16)
     # remove cHPI status chans
     raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
     raw_c.pick(["meg", "eeg", "eog", "ecg", "stim", "misc"])
-    assert_meg_snr(raw, raw_c, 143, 624)
+    # interp=None reproduces the pre-1.13 zero-order-hold subtraction, which
+    # closely matches MaxFilter (which also does not remove line freqs here)
+    raw_zoh = raw.copy()
+    with catch_logging() as log:
+        filter_chpi(
+            raw_zoh, include_line=False, t_window=0.2, interp=None, verbose=True
+        )
+    log = log.getvalue()
+    assert "No average EEG" not in log
+    assert "5 cHPI" in log
+    raw_zoh.crop(0, 16)
+    # MaxFilter doesn't do quite as well as our algorithm with the last bit
+    assert_meg_snr(raw_zoh, raw_c, 143, 624)
     # cHPI suppressed but not line freqs (or others)
+    assert_suppressed(raw_zoh, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    # the default interp="hann" smoothly interpolates the amplitude envelope,
+    # avoiding zero-order-hold step discontinuities and removing cHPI at least
+    # as well (thereby improving on, and diverging from, MaxFilter)
+    filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
+    raw.crop(0, 16)
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    # hann also suppresses the broadband "step" artifacts that the zero-order
+    # hold (interp=None) injects: with the default (auto) window, the leakage in
+    # a band between the removed line harmonics (360 and 420 Hz), where only that
+    # artifact appears, drops by ~10 dB.
+    raw_hann = raw_orig.copy()
+    filter_chpi(raw_hann, verbose="error")
+    raw_zoh_auto = raw_orig.copy()
+    filter_chpi(raw_zoh_auto, interp=None, verbose="error")
+    picks = pick_types(raw_orig.info, meg=True)
+    orig = raw_orig.get_data(picks)
+    kwargs = dict(fs=raw_orig.info["sfreq"], window="hann", nperseg=1024)
+    f, p_hann = welch(orig - raw_hann.get_data(picks), **kwargs)
+    _, p_zoh = welch(orig - raw_zoh_auto.get_data(picks), **kwargs)
+    fb = (f >= 370) & (f <= 410)  # between the removed 360 and 420 Hz harmonics
+    leak_db = 10 * np.log10(
+        np.median(p_hann[:, fb], axis=0).mean() / np.median(p_zoh[:, fb], axis=0).mean()
+    )
+    assert -15 < leak_db < -8, leak_db  # observed ≈ -11.5 dB
     raw = raw_orig.copy()
     with catch_logging() as log:
         filter_chpi(raw, include_line=True, t_window=0.2, verbose=True)
@@ -936,11 +963,6 @@ def assert_slopes_correlated(actual_meas, desired_meas, *, lim=(0.99, 1.0)):
 @testing.requires_testing_data
 def test_refit_hpi_locs_basic():
     """Test that HPI locations can be refit."""
-    if not check_version("scipy", "1.14"):
-        # TODO VERSION remove when scipy >= 1.14 is required (gh mne-python #13814)
-        # Test fails on "old" job with SciPy 1.12 and 1.13. Will need to see after
-        # 2026-06-24 whether bumping min SciPy version to 1.14 fixes this.
-        pytest.xfail("SciPy 1.13 has an lwork bug affecting this test")
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes").crop(0, 2).load_data()
     # These should be similar (and both should work)
     locs = compute_chpi_amplitudes(raw, t_step_min=2, t_window=1)

@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "a91b108a3f2f18327cc952f5ca24bf1abd7868f1",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "environment.yml": {
+      "a": 1,
+      "d": 1
+    },
+    "pyproject.toml": {
+      "a": 1,
+      "d": 1
+    },
+    "tools/install_pre_requirements.sh": {
+      "a": 2,
+      "d": 1
+    }
+  }
+}

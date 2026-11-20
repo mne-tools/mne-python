@@ -1,0 +1,1 @@
+Fix bug with ``method="eLORETA"`` in :func:`mne.minimum_norm.apply_inverse` and related functions where loose-orientation inverses (e.g., ``loose=0.2``) did not vary smoothly and consistently between fixed and free orientation, by `Eric Larson`_.

@@ -19,7 +19,9 @@ def _read_dig_montage_egi(
             "hsp, hpi, elp, point_names, fif must all be None if egi is not None"
         )
     _check_fname(fname, overwrite="read", must_exist=True)
-    defusedxml = _soft_import("defusedxml", "reading EGI montages")
+    _soft_import("defusedxml", "reading EGI montages")
+    import defusedxml.ElementTree
+
     root = defusedxml.ElementTree.parse(fname).getroot()
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
     sensors = root.find(f"{ns}sensorLayout/{ns}sensors")
@@ -67,7 +69,9 @@ def _read_dig_montage_egi(
 
 def _parse_brainvision_dig_montage(fname, scale):
     FID_NAME_MAP = {"Nasion": "nasion", "RPA": "rpa", "LPA": "lpa"}
-    defusedxml = _soft_import("defusedxml", "reading BrainVision montages")
+    _soft_import("defusedxml", "reading BrainVision montages")
+    import defusedxml.ElementTree
+
     root = defusedxml.ElementTree.parse(fname).getroot()
     sensors = root.find("CapTrakElectrodeList")
 

@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "34509ed4df987762eb3f33f8b09334ec072bb14c",
+  "authors": [
+    {
+      "n": "Anton Karpov",
+      "e": "30812217+karpovantonme@users.noreply.github.com",
+      "l": "karpovantonme"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14125.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 5,
+      "d": 4
+    }
+  }
+}

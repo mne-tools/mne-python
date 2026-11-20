@@ -11,10 +11,16 @@ from ...utils import logger
 from .constants import CTF
 from .res4 import _make_ctf_name
 
+# Keys are matched against the lower-cased descriptor line, so entries must be
+# lower case. "lpa"/"rpa" are an alternate spelling seen in the wild alongside
+# a capitalized "Nasion"; CTF's own reader (readCTFds.m) takes the coil name
+# positionally and does not check it against a vocabulary at all.
 _kind_dict = {
     "nasion": CTF.CTFV_COIL_NAS,
     "left ear": CTF.CTFV_COIL_LPA,
     "right ear": CTF.CTFV_COIL_RPA,
+    "lpa": CTF.CTFV_COIL_LPA,
+    "rpa": CTF.CTFV_COIL_RPA,
     "spare": CTF.CTFV_COIL_SPARE,
 }
 
@@ -33,21 +39,24 @@ def _read_one_coil_point(fid):
     if len(one) == 0:
         return None
     one = one.strip().decode("utf-8")
-    if "Unable" in one:
+    # The descriptor is free text written by the acquisition software, and its
+    # capitalization varies between systems, so match it case-insensitively.
+    one_lower = one.lower()
+    if "unable" in one_lower:
         raise RuntimeError("HPI information not available")
 
     # Hopefully this is an unambiguous interpretation
     p = dict()
-    p["valid"] = "measured" in one
+    p["valid"] = "measured" in one_lower
     for key, val in _coord_dict.items():
-        if key in one:
+        if key in one_lower:
             p["coord_frame"] = val
             break
     else:
         p["coord_frame"] = -1
 
     for key, val in _kind_dict.items():
-        if key in one:
+        if key in one_lower:
             p["kind"] = val
             break
     else:

@@ -1,0 +1,3 @@
+Add timing metadata to GIFTI files written by
+:meth:`mne.SourceEstimate.save_as_surface`, allowing readers to recover the
+original time axis, by `Peter Molfese`_.

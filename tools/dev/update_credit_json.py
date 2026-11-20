@@ -1,13 +1,14 @@
-"""Collect credit information for PRs.
+"""Collect credit information for recently merged PRs.
 
-The initial run takes a long time (hours!) due to GitHub rate limits, even with
-a personal GITHUB_TOKEN.
+A full-history rebuild (removing the cutoff below) takes a long time (hours!)
+due to GitHub rate limits, even with a personal GITHUB_TOKEN.
 """
 
 # Authors: The MNE-Python contributors.
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import datetime
 import json
 import os
 import re
@@ -20,9 +21,6 @@ auth = Auth.Token(os.environ["GITHUB_TOKEN"])
 g = Github(auth=auth, per_page=100)
 out_path = Path(__file__).parents[2] / "doc" / "sphinxext" / "prs"
 out_path.mkdir(exist_ok=True)
-# manually update this when the oldest open PR changes to speed things up
-# (don't need to look any farther back than this)
-oldest_pr = 9176
 
 # JSON formatting
 json_kwargs = dict(indent=2, ensure_ascii=False, sort_keys=False)
@@ -34,19 +32,21 @@ json_kwargs = dict(indent=2, ensure_ascii=False, sort_keys=False)
 
 repo = g.get_repo("mne-tools/mne-python")
 co_re = re.compile("Co-authored-by: ([^<>]+) <([^()>]+)>")
-# We go in descending order of updates and `break` when we encounter a PR we have
-# already committed a file for.
-pulls_iter = repo.get_pulls(state="closed", sort="created", direction="desc")
+# Iterate closed PRs by last-updated time: merging always bumps updated_at, so
+# every PR merged within the lookback window is seen regardless of how old or
+# low-numbered it is (the monthly action runs far more often than this window).
+# For a full-history rebuild, remove the cutoff `break` below.
+cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=90)
+pulls_iter = repo.get_pulls(state="closed", sort="updated", direction="desc")
 iter_ = tqdm(pulls_iter, unit="pr", desc="Traversing")
-last = 0
 n_added = 0
 for pull in iter_:
     fname_out = out_path / f"{pull.number}.json"
-    if pull.number < oldest_pr:
+    if pull.updated_at < cutoff:
         iter_.close()
         print(
-            f"After checking {iter_.n + 1} and adding {n_added} PR(s), "
-            f"found PR number less than oldest existing file {fname_out}, stopping"
+            f"After checking {iter_.n + 1} and adding {n_added} PR(s), reached "
+            f"PRs last updated before {cutoff.date()}, stopping"
         )
         break
     if fname_out.is_file():
@@ -59,13 +59,16 @@ for pull in iter_:
     # One option is to do a git diff between pull.base and pull.head,
     # but let's see if we can stay pythonic
     out["merge_commit_sha"] = pull.merge_commit_sha
-    # Prefer the GitHub username information because it should be most up to date
-    name, email = pull.user.name, pull.user.email
-    if name is None and email is None:
-        # no usable GitHub user information, pull it from the first commit
-        author = pull.get_commits()[0].commit.author
-        name, email = author.name, author.email
-    out["authors"] = [dict(n=name, e=email)]
+    # Prefer the GitHub username information because it should be most up to date.
+    # The user's public email is rarely set, so fall back to the canonical GitHub
+    # noreply address, which is what .mailmap entries can then be keyed on.
+    name, email, login = pull.user.name, pull.user.email, pull.user.login
+    if email is None:
+        email = f"{pull.user.id}+{login}@users.noreply.github.com"
+    if name is None:
+        # no GitHub profile name, pull it from the first commit
+        name = pull.get_commits()[0].commit.author.name
+    out["authors"] = [dict(n=name, e=email, l=login)]
     # For PR 54 for example this is empty for some reason!
     if out["merge_commit_sha"]:
         try:

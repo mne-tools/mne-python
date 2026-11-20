@@ -8,7 +8,6 @@
 import os
 
 import numpy as np
-from scipy.sparse import csr_array, eye_array
 
 from ._fiff.constants import FIFF
 from ._fiff.open import fiff_open
@@ -24,16 +23,15 @@ from ._fiff.write import (
 )
 from .surface import (
     _compute_nearest,
-    _find_nearest_tri_pts,
     _get_tri_supp_geom,
     _normalize_vectors,
     _triangle_neighbors,
     read_surface,
 )
-from .utils import get_subjects_dir, logger, verbose, warn
+from .utils import get_subjects_dir, logger, verbose_static, warn
 
 
-@verbose
+@verbose_static()
 def read_morph_map(
     subject_from, subject_to, subjects_dir=None, xhemi=False, verbose=None
 ):
@@ -55,7 +53,11 @@ def read_morph_map(
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes of
         :func:`mne.compute_source_morph`.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -205,6 +207,10 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
+    from scipy.sparse import csr_array, eye_array
+
+    from ._surface_numba import _find_nearest_tri_pts
+
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from

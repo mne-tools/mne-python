@@ -52,7 +52,6 @@ from mne.time_frequency.tfr import (
     write_tfrs,
 )
 from mne.utils import _import_h5io_funcs, catch_logging, grand_average
-from mne.utils._testing import _get_suptitle
 from mne.viz.utils import (
     _channel_type_prettyprint,
     _fake_click,
@@ -669,7 +668,7 @@ def test_tfr_io(inst, average_tfr, request, tmp_path):
         minute=0,
         second=sec_microsec_tuple[0],
         microsecond=sec_microsec_tuple[1],
-        tzinfo=datetime.timezone.utc,
+        tzinfo=datetime.UTC,
     )
     assert tfr_loaded.info["meas_date"] == want
     with tfr.info._unlock():
@@ -953,7 +952,7 @@ def test_tfr_plot_joint(
     popup_fig = plt.figure(fignums[-1])
     assert re.match(
         r"-?\d{1,2}\.\d{3} - -?\d{1,2}\.\d{3} s,\n\d{1,2}\.\d{2} - \d{1,2}\.\d{2} Hz",
-        _get_suptitle(popup_fig),
+        popup_fig.get_suptitle(),
     )
 
 
@@ -1335,6 +1334,14 @@ def test_epochstfr_getitem(epochs_full, n_drop, as_tfr_array):
     subset_ints = tfr[[0, 1, 2]]
     subset_slice = tfr[:3]
     assert subset_ints == subset_slice
+    # gh-14260: selections own C-ordered data, they don't alias or inherit the
+    # (non-contiguous) layout of the parent
+    assert not tfr._data.flags["C_CONTIGUOUS"]
+    for sub in (subset_ints, subset_slice):
+        assert all(sub._data.flags[f] for f in ("C_CONTIGUOUS", "OWNDATA", "WRITEABLE"))
+        assert sub._data.dtype == tfr._data.dtype
+        assert not np.shares_memory(sub._data, tfr._data)
+    assert tfr[[]].shape == (0,) + tfr.shape[1:]
     # test iteration
     for ix, epo in enumerate(tfr):
         assert_array_equal(tfr[ix].data, epo.data.obj[np.newaxis])
@@ -1724,7 +1731,8 @@ def test_tfr_copy(average_tfr):
 
 
 @pytest.mark.parametrize(
-    "mode", ("mean", "ratio", "logratio", "percent", "zscore", "zlogratio")
+    "mode",
+    ("mean", "ratio", "logratio", "meanlogratio", "percent", "zscore", "zlogratio"),
 )
 def test_tfr_apply_baseline(average_tfr, mode):
     """Test TFR baselining."""
@@ -1794,7 +1802,7 @@ def test_tfr_plot_combine(epochs_tfr, picks, combine):
             want = rf"{'RMS' if combine == 'rms' else 'Mean'} of \d{{1,3}} {ch_type}s"
         else:
             want = epochs_tfr.ch_names[picks[ix]]
-        assert re.search(want, _get_suptitle(_fig))
+        assert re.search(want, _fig.get_suptitle())
 
 
 def test_tfr_plot_extras(epochs_tfr):
@@ -1803,7 +1811,7 @@ def test_tfr_plot_extras(epochs_tfr):
     picks = [1]
     mask = np.ones(epochs_tfr.data.shape[2:], bool)
     fig = epochs_tfr.plot(picks=picks, mask=mask, title="Foo")
-    assert _get_suptitle(fig[0]) == "Foo"
+    assert fig[0].get_suptitle() == "Foo"
     mask = np.ones(epochs_tfr.data.shape[1:], bool)
     with pytest.raises(ValueError, match="mask must have the same shape as the data"):
         epochs_tfr.plot(picks=picks, mask=mask)
@@ -1937,3 +1945,29 @@ def test_combine_tfr_error_catch(average_tfr):
         match="Aggregating multitaper tapers across TFR datasets is not supported.",
     ):
         combine_tfr([average_tfr_taper, average_tfr_taper])
+
+
+def test_tfr_get_data(average_tfr, epochs_tfr):
+    """Test get_data indexing and copy semantics for AverageTFR and EpochsTFR."""
+    for inst in (average_tfr, epochs_tfr):
+        data = inst.get_data()
+        assert not np.shares_memory(data, inst._data)
+        picks = [0, 1]
+        fmin, fmax = inst.freqs[1], inst.freqs[2]
+        tmin, tmax = inst.times[2], inst.times[5]
+        sub_data, sub_times, sub_freqs = inst.get_data(
+            picks=picks,
+            fmin=fmin,
+            fmax=fmax,
+            tmin=tmin,
+            tmax=tmax,
+            return_times=True,
+            return_freqs=True,
+        )
+        assert not np.shares_memory(sub_data, inst._data)
+        assert_allclose(sub_freqs, inst.freqs[1:3])
+        assert_allclose(sub_times, inst.times[2:6])
+        if inst is average_tfr:
+            assert_array_equal(sub_data, inst._data[picks, 1:3, 2:6])
+        else:
+            assert_array_equal(sub_data, inst._data[:, picks, 1:3, 2:6])

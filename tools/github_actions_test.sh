@@ -2,6 +2,13 @@
 
 set -eo pipefail
 
+# An unset value disables the check in conftest entirely, so every job has to say what it
+# is allowed to skip rather than silently skipping anything
+test -n "${MNE_TEST_ALLOW_SKIP}" || {
+  echo "::error::MNE_TEST_ALLOW_SKIP is unset, so skips would go untracked"
+  exit 1
+}
+
 if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
 elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
@@ -14,7 +21,7 @@ elif [[ "${CI_OS_NAME}" == "macos"* ]]; then
 elif [[ "${CI_OS_NAME}" == "windows"* ]]; then
   CONDITION="not (slowtest or pgtest)"
 else
-  echo "✕ ERROR: Unrecognized CI_OS_NAME=${CI_OS_NAME}"
+  echo "::error::Unrecognized CI_OS_NAME=${CI_OS_NAME}"
   exit 1
 fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then
@@ -40,6 +47,8 @@ if [[ ! -z "$CONDA_ENV" ]] && [[ "${CI_OS_NAME}" != "windows"* ]] && [[ "${MNE_C
   test -f ${INSTALL_PATH}/doc/api/reading_raw_data.rst
   cd $INSTALL_PATH
   cp -av $PROJ_PATH/pyproject.toml .
+  mkdir -p tools/hooks
+  cp -av $PROJ_PATH/tools/hooks/check_static_docs.py tools/hooks/
   set +x
   echo "::endgroup::"
 fi

@@ -1,0 +1,1 @@
+Fix :class:`~mne.preprocessing.eyetracking.Calibration` to accept array-like inputs, by `Ishaan Maheshwari`_.

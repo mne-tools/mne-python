@@ -1,0 +1,68 @@
+{
+  "merge_commit_sha": "60990d618ad14c99286b09adab445212adc62a2a",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 16,
+      "d": 0
+    },
+    ".github/workflows/tests.yml": {
+      "a": 16,
+      "d": 2
+    },
+    ".gitignore": {
+      "a": 1,
+      "d": 0
+    },
+    "azure-pipelines.yml": {
+      "a": 21,
+      "d": 0
+    },
+    "mne/conftest.py": {
+      "a": 52,
+      "d": 45
+    },
+    "pyproject.toml": {
+      "a": 2,
+      "d": 2
+    },
+    "tools/circleci_bash_env.sh": {
+      "a": 7,
+      "d": 0
+    },
+    "tools/get_numba_version.sh": {
+      "a": 23,
+      "d": 0
+    },
+    "tools/github_actions_env_vars.sh": {
+      "a": 28,
+      "d": 0
+    },
+    "tools/pylock.ci-old.toml": {
+      "a": 3,
+      "d": 3
+    },
+    "tutorials/forward/30_forward.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/preprocessing/59_head_positions.py": {
+      "a": 2,
+      "d": 2
+    },
+    "tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

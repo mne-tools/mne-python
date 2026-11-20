@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "d529cf01343bf61b3a3e354da54881746848af73",
+  "authors": [
+    {
+      "n": "Pragnya Khandelwal",
+      "e": "prag1704@gmail.com",
+      "l": "PragnyaKhandelwal"
+    },
+    {
+      "n": "Scott Huberty",
+      "e": "seh33@uw.edu"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14143.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "examples/io/read_impedances.py": {
+      "a": 35,
+      "d": 1
+    }
+  }
+}

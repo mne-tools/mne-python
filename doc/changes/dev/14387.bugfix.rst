@@ -1,0 +1,1 @@
+Fix bug in covariance algebra where SSP projections were checked against the first covariance instead of the second covariance, by `Ishaan Maheshwari`_.

@@ -1,0 +1,48 @@
+{
+  "merge_commit_sha": "1a80df5b622076cdbc61f54e5acab78acbebeea0",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14412.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/coreg.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/gui/_coreg.py": {
+      "a": 129,
+      "d": 26
+    },
+    "mne/gui/tests/test_coreg.py": {
+      "a": 30,
+      "d": 0
+    },
+    "mne/gui/tests/test_gui_api.py": {
+      "a": 11,
+      "d": 0
+    },
+    "mne/tests/test_coreg.py": {
+      "a": 9,
+      "d": 0
+    },
+    "mne/viz/backends/_abstract.py": {
+      "a": 11,
+      "d": 1
+    },
+    "mne/viz/backends/_notebook.py": {
+      "a": 15,
+      "d": 3
+    },
+    "mne/viz/backends/_qt.py": {
+      "a": 38,
+      "d": 9
+    }
+  }
+}

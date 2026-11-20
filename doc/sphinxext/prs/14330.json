@@ -1,0 +1,16 @@
+{
+  "merge_commit_sha": "8eb8e4212bba0aa69a976cb13349902a10bbdaa2",
+  "authors": [
+    {
+      "n": "Thomas S. Binns",
+      "e": "t.s.binns@outlook.com",
+      "l": "tsbinns"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

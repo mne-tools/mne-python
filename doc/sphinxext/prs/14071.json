@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "e9bfb396207637c6eb7e6bbc46284a0572274b20",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/tests/test_reference.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 29,
+      "d": 13
+    },
+    "mne/chpi.py": {
+      "a": 4,
+      "d": 0
+    },
+    "mne/dipole.py": {
+      "a": 6,
+      "d": 2
+    }
+  }
+}

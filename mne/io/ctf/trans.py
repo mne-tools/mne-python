@@ -9,7 +9,6 @@ import numpy as np
 from ..._fiff.constants import FIFF
 from ...transforms import (
     Transform,
-    _fit_matched_points,
     _quat_to_affine,
     apply_trans,
     combine_transforms,
@@ -30,6 +29,8 @@ def _make_transform_card(fro, to, r_lpa, r_nasion, r_rpa):
 def _quaternion_align(from_frame, to_frame, from_pts, to_pts, diff_tol=1e-4):
     """Perform an alignment using the unit quaternions (modifies points)."""
     assert from_pts.shape[1] == to_pts.shape[1] == 3
+    from ..._transforms_numba import _fit_matched_points
+
     trans = _quat_to_affine(_fit_matched_points(from_pts, to_pts)[0])
 
     # Test the transformation and print the results

@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "3102f04423690156f23b52c23dae6f73007ac414",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/time_frequency/csd.py": {
+      "a": 14,
+      "d": 20
+    },
+    "mne/time_frequency/multitaper.py": {
+      "a": 5,
+      "d": 10
+    },
+    "mne/time_frequency/tests/test_csd.py": {
+      "a": 14,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 2,
+      "d": 2
+    }
+  }
+}

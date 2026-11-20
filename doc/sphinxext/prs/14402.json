@@ -1,0 +1,32 @@
+{
+  "merge_commit_sha": "230042721a578141c55ad86988afd29cf68db9c2",
+  "authors": [
+    {
+      "n": "Ishaan Maheshwari",
+      "e": "145560898+ishaaaan17@users.noreply.github.com",
+      "l": "ishaaaan17"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14402.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/time_frequency/spectrum.py": {
+      "a": 6,
+      "d": 7
+    },
+    "mne/time_frequency/tests/test_spectrum.py": {
+      "a": 19,
+      "d": 0
+    },
+    "mne/time_frequency/tests/test_tfr.py": {
+      "a": 26,
+      "d": 0
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 7,
+      "d": 11
+    }
+  }
+}

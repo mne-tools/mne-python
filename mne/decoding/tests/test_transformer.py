@@ -19,7 +19,6 @@ from sklearn.decomposition import PCA
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from mne import Epochs, EpochsArray, create_info, io, pick_types, read_events
 from mne.decoding import (
@@ -31,6 +30,7 @@ from mne.decoding import (
     UnsupervisedSpatialFilter,
     Vectorizer,
 )
+from mne.decoding.tests._sklearn import parametrize_with_checks
 from mne.defaults import DEFAULTS
 from mne.utils import use_log_level
 
@@ -100,6 +100,9 @@ def test_scaler(info, method):
 
     X2 = scaler.fit(epochs_data, y).transform(epochs_data)
     assert_array_equal(X, X2)
+    X_one = epochs_data[..., :1].copy()  # reshape is then a view of the input
+    assert_array_equal(scaler.transform(X_one), X[..., :1])
+    assert_array_equal(X_one, epochs_data[..., :1])
 
     # inverse_transform
     Xi = scaler.inverse_transform(X)
@@ -262,9 +265,9 @@ def test_unsupervised_spatial_filter():
 
     # Test fit
     n_components = 4
-    usf = UnsupervisedSpatialFilter(PCA(n_components))
+    usf = UnsupervisedSpatialFilter(PCA(n_components, random_state=0))
     usf.fit(X)
-    usf1 = UnsupervisedSpatialFilter(PCA(n_components))
+    usf1 = UnsupervisedSpatialFilter(PCA(n_components, random_state=0))
 
     # test transform
     assert_equal(usf.transform(X).ndim, 3)
@@ -274,9 +277,9 @@ def test_unsupervised_spatial_filter():
     assert_array_almost_equal(usf.inverse_transform(usf.transform(X)), X)
 
     # Test with average param
-    usf = UnsupervisedSpatialFilter(PCA(4), average=True)
+    usf = UnsupervisedSpatialFilter(PCA(4, random_state=0), average=True)
     usf.fit_transform(X)
-    usf = UnsupervisedSpatialFilter(PCA(4), 2)
+    usf = UnsupervisedSpatialFilter(PCA(4, random_state=0), 2)
     with pytest.raises(TypeError, match="average must be"):
         usf.fit(X)
 
@@ -335,7 +338,7 @@ def test_bad_triage():
         Scaler(scalings="mean"),
         # Not easy to test Scaler(info) b/c number of channels must match
         TemporalFilter(),
-        UnsupervisedSpatialFilter(PCA()),
+        UnsupervisedSpatialFilter(PCA(random_state=0)),
         Vectorizer(),
     ]
 )

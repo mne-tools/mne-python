@@ -4,10 +4,10 @@
 
 import numpy as np
 
-from ..fixes import _reshape_view, _safe_svd
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose_static, warn
 from .mxne_inverse import (
     _check_ori,
     _compute_residual,
@@ -18,7 +18,7 @@ from .mxne_inverse import (
 )
 
 
-@verbose
+@verbose_static()
 def _gamma_map_opt(
     M,
     G,
@@ -51,7 +51,11 @@ def _gamma_map_opt(
     gammas : array, shape=(n_sources,)
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -177,7 +181,7 @@ def _gamma_map_opt(
     return x_active, active_set
 
 
-@verbose
+@verbose_static("loose", "depth", "rank_none", "pick_ori")
 def gamma_map(
     evoked,
     forward,
@@ -219,8 +223,26 @@ def gamma_map(
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter (noise variance).
-    %(loose)s
-    %(depth)s
+    loose : float | 'auto' | dict
+        Value that weights the source variances of the dipole components
+        that are parallel (tangential) to the cortical surface. Can be:
+
+        - float between 0 and 1 (inclusive)
+            If 0, then the solution is computed with fixed orientation.
+            If 1, it corresponds to free orientations.
+        - ``'auto'`` (default)
+            Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+            1.0 for other source spaces (volume or mixed).
+        - dict
+            Mapping from the key for a given source space type (surface, volume,
+            discrete) to the loose value. Useful mostly for mixed source spaces.
+    depth : None | float | dict
+        How to weight (or normalize) the forward using a depth prior.
+        If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+        to use. None is equivalent to 0, meaning no depth weighting is performed.
+        It can also be a :class:`dict` containing keyword arguments to pass to
+        :func:`mne.forward.compute_depth_prior` (see docstring for details and
+        defaults).
     xyz_same_gamma : bool
         Use same gamma for xyz current components at each source space point.
         Recommended for free-orientation forward solutions.
@@ -239,11 +261,73 @@ def gamma_map(
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
-    %(rank_none)s
+    rank : None | 'info' | 'full' | dict
+        This controls the rank computation that can be read from the
+        measurement info or estimated from the data. When a noise covariance
+        is used for whitening, this should reflect the rank of that covariance,
+        otherwise amplification of noise components can occur in whitening (e.g.,
+        often during source localization).
+
+        :data:`python:None`
+            The rank will be estimated from the data after proper scaling of
+            different channel types.
+        ``'info'``
+            The rank is inferred from ``info``. If data have been processed
+            with Maxwell filtering, the Maxwell filtering header is used.
+            Otherwise, the channel counts themselves are used.
+            In both cases, the number of projectors is subtracted from
+            the (effective) number of channels in the data.
+            For example, if Maxwell filtering reduces the rank to 68, with
+            two projectors the returned value will be 66.
+        ``'full'``
+            The rank is assumed to be full, i.e. equal to the
+            number of good channels. If a `~mne.Covariance` is passed, this can
+            make sense if it has been (possibly improperly) regularized without
+            taking into account the true data rank.
+        :class:`dict`
+            Calculate the rank only for a subset of channel types, and explicitly
+            specify the rank for the remaining channel types. This can be
+            extremely useful if you already **know** the rank of (part of) your
+            data, for instance in case you have calculated it earlier.
+
+            This parameter must be a dictionary whose **keys** correspond to
+            channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+            ``'eeg'``), and whose **values** are integers representing the
+            respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+            a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+            respectively.
+
+            The ranks for all channel types present in the data, but
+            **not** specified in the dictionary will be estimated empirically.
+            That is, if you passed a dataset containing magnetometer, gradiometer,
+            and EEG data together with the dictionary from the previous example,
+            only the gradiometer rank would be determined, while the specified
+            magnetometer and EEG ranks would be taken for granted.
+
+        The default is ``None``.
 
         .. versionadded:: 0.18
-    %(pick_ori)s
-    %(verbose)s
+    pick_ori : None | "normal" | "vector"
+
+        Options:
+
+        - ``None``
+            Pooling is performed by taking the norm of loose/free
+            orientations. In case of a fixed source space no norm is computed
+            leading to signed source activity.
+        - ``"normal"``
+            Only the normal to the cortical surface is kept. This is only
+            implemented when working with loose orientations.
+
+        - ``"vector"``
+            No pooling of the orientations is done, and the vector result
+            will be returned in the form of a :class:`mne.VectorSourceEstimate`
+            object.
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------
@@ -306,7 +390,7 @@ def gamma_map(
             X_xyz = np.zeros((len(active_src), 3, X.shape[1]), dtype=X.dtype)
             idx = np.searchsorted(active_src, idx)
             X_xyz[idx, offset, :] = X
-            X_xyz = _reshape_view(X_xyz, (len(active_src) * 3, X.shape[1]))
+            X_xyz = X_xyz.reshape((len(active_src) * 3, X.shape[1]), copy=False)
             X = X_xyz
         active_set = (active_src[:, np.newaxis] * 3 + np.arange(3)).ravel()
     source_weighting[source_weighting == 0] = 1  # zeros

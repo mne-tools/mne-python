@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "342d689b3c9eb52f871fd89f2519d6198a8ade12",
+  "authors": [
+    {
+      "n": "kalomak",
+      "e": "31903287+kalomak@users.noreply.github.com",
+      "l": "kalomak"
+    },
+    {
+      "n": "autofix-ci[bot]",
+      "e": "114827586+autofix-ci[bot]@users.noreply.github.com"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14323.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/channels/interpolation.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/channels/tests/test_interpolation.py": {
+      "a": 35,
+      "d": 9
+    }
+  }
+}

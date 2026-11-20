@@ -3,9 +3,14 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.signal import get_window
 
-from .utils import _ensure_int, _validate_type, logger, verbose
+from .utils import (
+    _ensure_int,
+    _validate_type,
+    _verbose_control,
+    check_version,
+    logger,
+)
 
 ###############################################################################
 # Class for interpolation between adjacent points
@@ -23,6 +28,12 @@ class _Interp2:
         arrays that must be interpolated.
     interp : str
         Can be 'zero', 'linear', 'hann', or 'cos2' (same as hann).
+    offset : int
+        The position of the first point that will be fed, in the same units as
+        ``control_points``. Use it to process a segment that does not start at the
+        beginning of the signal the control points refer to: feeding ``n`` points then
+        yields exactly what a continuous pass would yield for ``offset`` to
+        ``offset + n``, interpolation phase included.
 
     Notes
     -----
@@ -42,7 +53,9 @@ class _Interp2:
 
     """
 
-    def __init__(self, control_points, values, interp="hann", *, name="Interp2"):
+    def __init__(
+        self, control_points, values, interp="hann", *, name="Interp2", offset=0
+    ):
         # set up interpolation
         self.control_points = np.array(control_points, int).ravel()
         if not np.array_equal(np.unique(self.control_points), self.control_points):
@@ -76,8 +89,13 @@ class _Interp2:
             values = val
         self.values = values
         self.n_last = None
-        self._position = 0  # start at zero
-        self._left_idx = 0
+        self._position = offset = _ensure_int(offset, "offset")
+        if offset < 0:
+            raise ValueError(f"offset must be non-negative, got {offset}")
+        # The last control point at or before offset is the one in effect there, so
+        # feeding resumes mid-interval with the correct interpolation phase.
+        left_idx = np.searchsorted(self.control_points, offset, "right") - 1
+        self._left_idx = max(left_idx, 0)
         self._left = self._right = self._use_interp = None
         self.name = name
         known_types = ("cos2", "linear", "zero", "hann")
@@ -94,9 +112,13 @@ class _Interp2:
         logger.debug(f"    ~ {self.name} Feed {n_pts} ({self._position}-{stop})")
         used = np.zeros(n_pts, bool)
         if self._left is None:  # first one
-            logger.debug(f"    ~   {self.name} Eval @ 0 ({self.control_points[0]})")
-            self._left = self.values(self.control_points[0])
-            if len(self.control_points) == 1:
+            left_idx = self._left_idx
+            logger.debug(
+                f"    ~   {self.name} Eval @ {left_idx} "
+                f"({self.control_points[left_idx]})"
+            )
+            self._left = self.values(self.control_points[left_idx])
+            if left_idx == len(self.control_points) - 1:  # nothing to interpolate to
                 self._right = self._left
         n_used = 0
 
@@ -242,8 +264,10 @@ class _COLA:
         The overlap between windows.
     window : str
         The window to use. Default is "hann".
-    tol : float
-        The tolerance for COLA checking.
+    offset : int
+        The index of the first sample that will be fed. Use it to process a segment
+        that does not start at the beginning of the signal that ``process`` is based
+        on: ``offset`` is added to the ``start`` and ``stop`` handed to ``process``.
 
     Notes
     -----
@@ -265,7 +289,7 @@ class _COLA:
     window are asymmetric.
     """
 
-    @verbose
+    @_verbose_control
     def __init__(
         self,
         process,
@@ -275,11 +299,14 @@ class _COLA:
         n_overlap,
         sfreq,
         window="hann",
-        tol=1e-10,
         *,
         name="COLA",
+        offset=0,
         verbose=None,
     ):
+        from scipy.signal import get_window
+
+        self._offset = _ensure_int(offset, "offset")
         n_samples = _ensure_int(n_samples, "n_samples")
         n_overlap = _ensure_int(n_overlap, "n_overlap")
         n_total = _ensure_int(n_total, "n_total")
@@ -311,8 +338,8 @@ class _COLA:
         self._window = get_window(
             window, self._n_samples, fftbins=bool((self._n_samples - 1) % 2)
         )
-        self._window /= _check_cola(
-            self._window, self._n_samples, self._step, window_name, tol=tol
+        self._window = _ensure_cola(
+            self._window, self._n_samples, self._step, window_name
         )
         self.starts = np.arange(0, n_total - self._n_samples + 1, self._step)
         self.stops = self.starts + self._n_samples
@@ -336,7 +363,7 @@ class _COLA:
         """Compute from current processing window start and buffer len."""
         return self.starts[self._idx] + self._in_buffers[0].shape[-1]
 
-    @verbose
+    @_verbose_control
     def feed(self, *datas, verbose=None, **kwargs):
         """Pass in a chunk of data."""
         # Append to our input buffer
@@ -389,12 +416,12 @@ class _COLA:
                 this_window = np.pad(
                     self._window, (0, this_len - len(this_window)), "constant"
                 )
-                for offset in range(self._step, len(this_window), self._step):
-                    n_use = len(this_window) - offset
-                    this_window[offset:] += self._window[:n_use]
+                for shift in range(self._step, len(this_window), self._step):
+                    n_use = len(this_window) - shift
+                    this_window[shift:] += self._window[:n_use]
             if self._idx == 0:
-                for offset in range(self._n_samples - self._step, 0, -self._step):
-                    this_window[:offset] += self._window[-offset:]
+                for n_use in range(self._n_samples - self._step, 0, -self._step):
+                    this_window[:n_use] += self._window[-n_use:]
             this_proc = [in_[..., :this_len].copy() for in_ in self._in_buffers]
             logger.debug(
                 f"    * {self.name}[:] Processing {start}:{stop} "
@@ -406,7 +433,12 @@ class _COLA:
                 raise RuntimeError("internal indexing error")
             start = self._store.idx
             stop = self._store.idx + this_len
-            outs = self._process(*this_proc, start=start, stop=stop, **kwargs)
+            outs = self._process(
+                *this_proc,
+                start=start + self._offset,
+                stop=stop + self._offset,
+                **kwargs,
+            )
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
                 self._out_buffers = [
@@ -433,8 +465,8 @@ class _COLA:
                 ob[..., -delta:] = 0.0
 
 
-def _check_cola(win, nperseg, step, window_name, tol=1e-10):
-    """Check whether the Constant OverLap Add (COLA) constraint is met."""
+def _ensure_cola(win, nperseg, step, window_name, tol=1e-10):
+    """Normalize a window to meet the Constant OverLap Add (COLA) constraint."""
     # adapted from SciPy
     binsums = np.sum(
         [win[ii * step : (ii + 1) * step] for ii in range(nperseg // step)], axis=0
@@ -442,14 +474,26 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     if nperseg % step != 0:
         binsums[: nperseg % step] += win[-(nperseg % step) :]
     const = np.median(binsums)
+    win = win / const
     deviation = np.max(np.abs(binsums - const))
     if deviation > tol:
-        raise ValueError(
+        msg = (
             f"segment length {nperseg} with step {step} for {window_name} "
             "window type does not provide a constant output "
             f"({100 * deviation / const:g}% deviation)"
         )
-    return const
+        # TODO VERSION: remove when SciPy 1.16 is the minimum
+        if not check_version("scipy", "1.16"):
+            raise ValueError(
+                f"{msg}, upgrade to SciPy 1.16+ to adjust the window automatically "
+                "or choose a different window length"
+            )
+        from scipy.signal import closest_STFT_dual_window
+
+        logger.info(f"    Adjusting to the closest COLA window because {msg}")
+        # windows whose STFT dual is rectangular are exactly the COLA ones
+        win, _ = closest_STFT_dual_window(np.ones(nperseg), step, win, scaled=False)
+    return win
 
 
 class _Storer:

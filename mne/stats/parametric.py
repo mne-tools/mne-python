@@ -6,8 +6,6 @@ from functools import reduce
 from string import ascii_uppercase
 
 import numpy as np
-from scipy import stats
-from scipy.signal import detrend
 
 from ..utils import _check_option
 
@@ -168,6 +166,9 @@ def f_oneway(*args, sigma=0.0, method="relative"):
     _check_option("method", method, ["absolute", "relative"])
     if sigma < 0:
         raise ValueError(f"sigma must be >= 0, got {sigma}")
+    # compute in double precision to avoid integer overflow (keeping complex)
+    args = [np.asarray(a) for a in args]
+    args = [a.astype(np.promote_types(a.dtype, np.float64), copy=False) for a in args]
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -262,6 +263,8 @@ def _get_contrast_indices(effect_idx, n_factors):  # noqa: D401
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """Set up contrasts."""
+    from scipy.signal import detrend
+
     sc = []
     n_factors = len(factor_levels)
     # prepare computation of Kronecker products
@@ -321,6 +324,8 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects="A*B", pvalue=0.05):
     -----
     .. versionadded:: 0.10
     """
+    from scipy import stats
+
     effect_picks, _ = _map_effects(len(factor_levels), effects)
 
     F_threshold = []
@@ -386,6 +391,8 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
     -----
     .. versionadded:: 0.10
     """
+    from scipy import stats
+
     out_reshape = (-1,)
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
@@ -438,6 +445,8 @@ def f_mway_rm(data, factor_levels, effects="all", correction=False, return_pvals
 
 def _parametric_ci(arr, ci=0.95):
     """Calculate the `ci`% parametric confidence interval for `arr`."""
+    from scipy import stats
+
     mean = arr.mean(0)
     if len(arr) < 2:  # can't compute standard error
         sigma = np.full_like(mean, np.nan)

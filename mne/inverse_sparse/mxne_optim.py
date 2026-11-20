@@ -14,7 +14,7 @@ from ..utils import (
     _validate_type,
     logger,
     sum_squared,
-    verbose,
+    verbose_static,
     warn,
 )
 from .mxne_debiasing import compute_bias
@@ -154,6 +154,7 @@ def _mixed_norm_solver_cd(
         tol=tol / sum_squared(M),
         fit_intercept=False,
         max_iter=maxit,
+        random_state=0,
         warm_start=True,
     )
     if init is not None:
@@ -339,7 +340,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, alpha_lc, list_G_j_c):
             active_set[idx] = True
 
 
-@verbose
+@verbose_static()
 def mixed_norm_solver(
     M,
     G,
@@ -374,7 +375,11 @@ def mixed_norm_solver(
         The number of iterations.
     tol : float
         Tolerance on dual gap for convergence checking.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -560,7 +565,7 @@ def mixed_norm_solver(
         return X, active_set, E
 
 
-@verbose
+@verbose_static()
 def iterative_mixed_norm_solver(
     M,
     G,
@@ -596,7 +601,11 @@ def iterative_mixed_norm_solver(
         The number of iterations.
     tol : float
         Tolerance on dual gap for convergence checking.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -1371,7 +1380,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     return X, Z, active_set, E, gap
 
 
-@verbose
+@verbose_static()
 def tf_mixed_norm_solver(
     M,
     G,
@@ -1427,7 +1436,11 @@ def tf_mixed_norm_solver(
         Return final duality gap.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
 
     Returns
     -------

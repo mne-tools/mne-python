@@ -7,12 +7,10 @@ import re
 import struct
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
+from typing import IO, Any
 
 import numpy as np
-from scipy.sparse import csc_array, csr_array
 
-from ..fixes import _reshape_view
 from ..utils import _check_option, warn
 from ..utils.numerics import _julian_to_date
 from .constants import (
@@ -51,7 +49,7 @@ class Tag:
         )
 
     @property
-    def next_pos(self):
+    def next_pos(self) -> int | None:
         """The next tag position."""
         if self.next == FIFF.FIFFV_NEXT_SEQ:  # 0
             return self.pos + 16 + self.size
@@ -73,6 +71,7 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
             raise ValueError(
                 f"Wrong shape specified, requested {want_shape} but got {have_shape}"
             )
+        assert rlims is not None  # always given with shape
         if not len(rlims) == 2:
             raise ValueError("rlims must have two elements")
         n_row_out = rlims[1] - rlims[0]
@@ -149,6 +148,8 @@ def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
+    from scipy.sparse import csc_array, csr_array
+
     if shape is not None or rlims is not None:
         raise ValueError("Row reading not implemented for matrices yet")
 
@@ -178,7 +179,7 @@ def _read_matrix(fid, tag, shape, rlims):
             data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
-        data = _reshape_view(data, dims)
+        data = data.reshape(dims, copy=False)
     else:
         # Find dimensions and return to the beginning of tag data
         ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
@@ -293,6 +294,15 @@ def _read_dig_point_struct(fid, tag, shape, rlims, *, string=False):
     return out
 
 
+# fiffLayerRec: the layer descriptor of a layered sphere model
+_LAYER_DTYPE = np.dtype([("id", ">i4"), ("rad", ">f4")])
+
+
+def _read_layer_struct(fid, tag, shape, rlims):
+    """Read an array of layer structs (fiffLayerRec)."""
+    return _frombuffer_rows(fid, tag.size, dtype=_LAYER_DTYPE, shape=shape, rlims=rlims)
+
+
 def _read_coord_trans_struct(fid, tag, shape, rlims):
     """Read coord trans struct tag."""
     from ..transforms import Transform
@@ -320,7 +330,7 @@ _ch_coord_dict = {
 
 def _read_ch_info_struct(fid, tag, shape, rlims):
     """Read channel info struct tag."""
-    d = dict(
+    d: dict[str, Any] = dict(
         scanno=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
         logno=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
         kind=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
@@ -388,6 +398,7 @@ _call_dict = {
     FIFF.FIFFT_DIG_POINT_STRUCT: _read_dig_point_struct,
     FIFF.FIFFT_DIG_STRING_STRUCT: partial(_read_dig_point_struct, string=True),
     FIFF.FIFFT_COORD_TRANS_STRUCT: _read_coord_trans_struct,
+    FIFF.FIFFT_LAYER_STRUCT: _read_layer_struct,
     FIFF.FIFFT_CH_INFO_STRUCT: _read_ch_info_struct,
     FIFF.FIFFT_OLD_PACK: _read_old_pack,
     FIFF.FIFFT_DIR_ENTRY_STRUCT: _read_dir_entry_struct,
@@ -402,6 +413,7 @@ _call_dict_names = {
     FIFF.FIFFT_DIG_POINT_STRUCT: "dps",
     FIFF.FIFFT_DIG_STRING_STRUCT: "dss",
     FIFF.FIFFT_COORD_TRANS_STRUCT: "cts",
+    FIFF.FIFFT_LAYER_STRUCT: "lay",
     FIFF.FIFFT_CH_INFO_STRUCT: "cis",
     FIFF.FIFFT_OLD_PACK: "op_",
     FIFF.FIFFT_DIR_ENTRY_STRUCT: "dir",
@@ -425,7 +437,12 @@ for key, dtype in _simple_dict.items():
     _call_dict_names[key] = dtype
 
 
-def read_tag(fid, pos, shape=None, rlims=None):
+def read_tag(
+    fid: IO[bytes],
+    pos: int,
+    shape: tuple[int, int] | None = None,
+    rlims: tuple[int, int] | None = None,
+) -> Tag:
     """Read a Tag from a file at a given position.
 
     Parameters
@@ -464,7 +481,7 @@ def read_tag(fid, pos, shape=None, rlims=None):
     return tag
 
 
-def find_tag(fid, node, findkind):
+def find_tag(fid: IO[bytes], node: dict[str, Any], findkind: int) -> Tag | None:
     """Find Tag in an open FIF file descriptor.
 
     Parameters
@@ -488,7 +505,7 @@ def find_tag(fid, node, findkind):
     return None
 
 
-def has_tag(node, kind):
+def has_tag(node: dict[str, Any], kind: int) -> bool:
     """Check if the node contains a Tag of a given kind."""
     for d in node["directory"]:
         if d.kind == kind:

@@ -36,7 +36,7 @@ raw = io.read_raw_ctf(raw_fname, preload=True)  # Take first run
 raw.resample(100)
 raw.filter(1.0, None)  # high-pass
 reject = dict(mag=5e-12)
-ica = ICA(n_components=0.95, max_iter="auto", random_state=0)
+ica = ICA(n_components=0.95, max_iter="auto", rng=97)
 ica.fit(raw, reject=reject)
 # compute correlation scores, get bad indices sorted by score
 eog_epochs = create_eog_epochs(raw, ch_name="MRT31-2908", reject=reject)

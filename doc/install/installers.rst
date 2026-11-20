@@ -17,7 +17,7 @@ Platform-specific installers
         :class-content: text-center
         :name: install-linux
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.1/MNE-Python-1.12.1_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.13.2/MNE-Python-1.13.2_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -25,20 +25,20 @@ Platform-specific installers
 
             |cloud-arrow-down| |ensp| Download for Linux
 
-        **Supported platforms:** Ubuntu 20.04 (Focal Fossa) and newer
+        **Supported platforms:** Linux with glibc 2.28 or newer (e.g., Ubuntu 20.04, Debian 10, RHEL 8)
 
         Run the installer in a terminal via:
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.12.1_0-Linux.sh
+            $ sh ./MNE-Python-1.13.2_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
         :name: install-macos-intel
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.1/MNE-Python-1.12.1_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.13.2/MNE-Python-1.13.2_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -47,14 +47,14 @@ Platform-specific installers
             |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
         **Supported platforms:**
-        macOS 10.15 (Catalina) and newer
+        macOS 14 (Sonoma) and newer
 
 
     .. tab-item:: macOS (Apple Silicon)
         :class-content: text-center
         :name: install-macos-apple
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.1/MNE-Python-1.12.1_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.13.2/MNE-Python-1.13.2_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -64,13 +64,13 @@ Platform-specific installers
 
 
         **Supported platforms:**
-        macOS 10.15 (Catalina) and newer
+        macOS 15.5 (Sequoia) and newer
 
     .. tab-item:: Windows
         :class-content: text-center
         :name: install-windows
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.12.1/MNE-Python-1.12.1_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.13.2/MNE-Python-1.13.2_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
@@ -164,7 +164,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /home/username/mne-python/1.12.1_0/bin/python
+               /home/username/mne-python/1.13.2_0/bin/python
                $ rm -Rf /home/$USER/mne-python
                $ rm /home/$USER/.local/share/applications/mne-python-*.desktop
 
@@ -178,7 +178,7 @@ To remove the MNE-Python distribution provided by our installers above:
            .. code-block:: bash
 
                $ which python
-               /Users/username/Applications/MNE-Python/1.12.1_0/.mne-python/bin/python
+               /Users/username/Applications/MNE-Python/1.13.2_0/.mne-python/bin/python
                $ rm -Rf /Users/$USER/Applications/MNE-Python  # if user-specific
                $ rm -Rf /Applications/MNE-Python              # if system-wide
 
@@ -186,3 +186,5 @@ To remove the MNE-Python distribution provided by our installers above:
            :name: uninstall-windows
 
            To uninstall MNE-Python, you can remove the application using the `Windows Control Panel <https://support.microsoft.com/en-us/windows/uninstall-or-remove-apps-and-programs-in-windows-4b55f974-2cc6-2d2b-d092-5905080eaf98>`__.
+
+.. include:: ../links.inc

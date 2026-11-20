@@ -4,9 +4,10 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne._ola import _COLA, _Interp2, _Storer
+from mne.utils import catch_logging, check_version
 
 
 def test_interp_2pt():
@@ -84,6 +85,25 @@ def test_interp_2pt():
         assert_allclose(out, expected)
 
 
+@pytest.mark.parametrize("interp", ("zero", "linear", "hann"))
+def test_interp_2pt_offset(interp):
+    """Test that starting mid-stream matches a continuous pass."""
+    # control points deliberately uneven, so that most offsets land mid-interval
+    control_points = [0, 100, 240, 390, 520, 680, 800]
+    values = np.array(control_points, float)
+    want = _Interp2(control_points, values, interp).feed(900)[0]
+    for offset in range(0, 900, 7):
+        interper = _Interp2(control_points, values, interp, offset=offset)
+        assert_allclose(interper.feed(900 - offset)[0], want[offset:], atol=1e-12)
+    # state must carry across feeds of differing size, as when a segment is read
+    # in buffer-sized blocks
+    interper = _Interp2(control_points, values, interp, offset=300)
+    out = np.concatenate([interper.feed(n)[0] for n in (70, 130, 100, 300)])
+    assert_allclose(out, want[300:900], atol=1e-12)
+    with pytest.raises(ValueError, match="offset must be non-negative"):
+        _Interp2(control_points, values, interp, offset=-1)
+
+
 @pytest.mark.parametrize("ndim", (1, 2, 3))
 def test_cola(ndim):
     """Test COLA processing."""
@@ -126,3 +146,42 @@ def test_cola(ndim):
                             cola.feed(signal[..., n_input : n_input + next_len])
                             n_input += next_len
                         assert_allclose(out, signal / 2.0, atol=1e-7)
+
+    # non-COLA windows (hann with odd n_samples and n_overlap=n_samples // 2)
+    args = (processor, out, n_total, 101, 50, sfreq)
+    # TODO VERSION: remove when SciPy 1.16 is the minimum
+    if not check_version("scipy", "1.16"):
+        with pytest.raises(ValueError, match="upgrade to SciPy 1.16"):
+            _COLA(*args)
+        return
+    out[:] = 0.0
+    with catch_logging() as log:
+        _COLA(*args, verbose=True).feed(signal)
+    assert "closest COLA window" in log.getvalue()
+    assert_allclose(out, signal / 2.0, atol=1e-7)
+
+
+def test_cola_offset():
+    """Test that COLA shifts the limits it hands to the processor."""
+    n_total, n_samples, n_overlap, offset = 1000, 100, 50, 4321
+    limits = list()
+
+    def processor(x, *, start, stop):
+        limits.append((start, stop))
+        return (x,)
+
+    signal = np.zeros(n_total)
+    runs = list()
+    for use_offset in (0, offset):
+        limits.clear()
+        _COLA(
+            processor,
+            np.zeros(n_total),
+            n_total,
+            n_samples,
+            n_overlap,
+            1000.0,
+            offset=use_offset,
+        ).feed(signal)
+        runs.append(np.array(limits))
+    assert_array_equal(runs[1] - offset, runs[0])

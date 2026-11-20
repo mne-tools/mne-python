@@ -3,16 +3,16 @@
 # Copyright the MNE-Python contributors.
 
 import numpy as np
-from scipy.fft import irfft, rfft
 
 from .utils import (
     _check_option,
     _explain_exception,
-    fill_doc,
+    _verbose_control,
+    fill_doc_static,
     get_config,
     logger,
     sizeof_fmt,
-    verbose,
+    verbose_static,
     warn,
 )
 
@@ -42,7 +42,7 @@ def get_cuda_memory(kind="available"):
     return sizeof_fmt(mem)
 
 
-@verbose
+@verbose_static()
 def init_cuda(ignore_config=False, verbose=None):
     """Initialize CUDA functionality.
 
@@ -59,7 +59,11 @@ def init_cuda(ignore_config=False, verbose=None):
     ----------
     ignore_config : bool
         If True, ignore the config value MNE_USE_CUDA and force init.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     global _cuda_capable
     if _cuda_capable:
@@ -90,7 +94,7 @@ def init_cuda(ignore_config=False, verbose=None):
     logger.info(f"Enabling CUDA with {get_cuda_memory()} available memory")
 
 
-@verbose
+@verbose_static()
 def set_cuda_device(device_id, verbose=None):
     """Set the CUDA device temporarily for the current session.
 
@@ -98,7 +102,11 @@ def set_cuda_device(device_id, verbose=None):
     ----------
     device_id : int
         Numeric ID of the CUDA-capable device you want MNE-Python to use.
-    %(verbose)s
+    verbose : bool | str | int | None
+        Control verbosity of the logging output. If ``None``, use the default
+        verbosity level. See the :ref:`logging documentation <tut-logging>` and
+        :func:`mne.verbose` for details. Should only be passed as a keyword
+        argument.
     """
     if _cuda_capable:
         _set_cuda_device(device_id, verbose)
@@ -113,13 +121,74 @@ def set_cuda_device(device_id, verbose=None):
         )
 
 
-@verbose
+@_verbose_control
 def _set_cuda_device(device_id, verbose=None):
     """Set the CUDA device."""
     import cupy
 
     cupy.cuda.Device(device_id).use()
     logger.info(f"Now using CUDA device {device_id}")
+
+
+def _setup_cuda_hilbert(n_jobs, n_fft):
+    """Set up CUDA for a Hilbert transform."""
+    multiplier = None
+    if isinstance(n_jobs, str):
+        _check_option("n_jobs", n_jobs, ("cuda",))
+        n_jobs = 1
+        init_cuda()
+        if _cuda_capable:
+            import cupy
+
+            try:
+                multiplier = cupy.asarray(_hilbert_multiplier(n_fft, np, dtype=np.int8))
+                logger.info("Using CUDA for Hilbert transform")
+            except Exception as exp:
+                logger.info(
+                    "CUDA not used, could not allocate the Hilbert multiplier "
+                    f'("{exp}"), falling back to n_jobs=None'
+                )
+        else:
+            logger.info(
+                "CUDA not used, CUDA could not be initialized, "
+                "falling back to n_jobs=None"
+            )
+    return n_jobs, multiplier
+
+
+def _cuda_hilbert(x, n_fft, envelope, multiplier):
+    """Compute an analytic signal on the GPU."""
+    import cupy
+
+    if np.iscomplexobj(x):
+        raise ValueError("x must be real.")
+    out = _fft_hilbert(cupy.asarray(x), n_fft, envelope, cupy, multiplier)
+    return cupy.asnumpy(out)
+
+
+def _hilbert_multiplier(n_fft, xp, dtype):
+    """Create the frequency-domain multiplier for an analytic signal."""
+    multiplier = xp.zeros(n_fft, dtype=dtype)
+    multiplier[0] = 1
+    if n_fft % 2 == 0:
+        multiplier[1 : n_fft // 2] = 2
+        multiplier[n_fft // 2] = 1
+    else:
+        multiplier[1 : (n_fft + 1) // 2] = 2
+    return multiplier
+
+
+def _fft_hilbert(x, n_fft, envelope, xp, multiplier=None):
+    """Compute an analytic signal with a NumPy-compatible array module."""
+    n_x = x.shape[-1]
+    x_fft = xp.fft.fft(x, n=n_fft, axis=-1)
+    if multiplier is None:
+        multiplier = _hilbert_multiplier(n_fft, xp, x_fft.real.dtype)
+    x_fft *= multiplier
+    out = xp.fft.ifft(x_fft, axis=-1)[..., :n_x]
+    if envelope:
+        out = xp.abs(out)
+    return out
 
 
 ###############################################################################
@@ -166,6 +235,8 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft, kind="FFT FIR filtering"
     -----
     This function is designed to be used with fft_multiply_repeated().
     """
+    from scipy.fft import irfft, rfft
+
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft, h_fft=rfft(h, n=n_fft))
     if isinstance(n_jobs, str):
         _check_option("n_jobs", n_jobs, ("cuda",))
@@ -261,6 +332,8 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     -----
     This function is designed to be used with fft_resample().
     """
+    from scipy.fft import irfft, rfft
+
     cuda_dict = dict(use_cuda=False, rfft=rfft, irfft=irfft)
     rfft_len_x = len(W) // 2 + 1
     # fold the window onto inself (should be symmetric) and truncate
@@ -311,7 +384,7 @@ def _cuda_irfft_get(x, n, axis=-1):
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
 
-@fill_doc
+@fill_doc_static("pad_resample")
 def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_limited"):
     """Do FFT resampling with a filter function (possibly using CUDA).
 
@@ -328,7 +401,13 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_li
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    %(pad_resample)s
+    pad : str
+        The type of padding to use. When ``method="fft"``, supports
+        all :func:`numpy.pad` ``mode`` options. Can also be ``"reflect_limited"``,
+        which pads with a reflected version of each vector mirrored on the first
+        and last values of the vector, followed by zeros.
+        When ``method="polyphase"``, supports all modes of
+        :func:`scipy.signal.upfirdn`.
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
@@ -366,28 +445,35 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None, pad="reflect_li
 
 # this has to go in mne.cuda instead of mne.filter to avoid import errors
 def _smart_pad(x, n_pad, pad="reflect_limited"):
-    """Pad vector x."""
+    """Pad the last axis of x."""
     n_pad = np.asarray(n_pad)
     assert n_pad.shape == (2,)
     if (n_pad == 0).all():
         return x
     elif (n_pad < 0).any():
         raise RuntimeError("n_pad must be non-negative")
+    n_times = x.shape[-1]
     if pad == "reflect_limited":
-        l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
-        r_z_pad = np.zeros(max(n_pad[1] - len(x) + 1, 0), dtype=x.dtype)
+        l_z_pad = np.zeros(
+            x.shape[:-1] + (max(n_pad[0] - n_times + 1, 0),), dtype=x.dtype
+        )
+        r_z_pad = np.zeros(
+            x.shape[:-1] + (max(n_pad[1] - n_times + 1, 0),), dtype=x.dtype
+        )
         out = np.concatenate(
             [
                 l_z_pad,
-                2 * x[0] - x[n_pad[0] : 0 : -1],
+                2 * x[..., :1] - x[..., n_pad[0] : 0 : -1],
                 x,
-                2 * x[-1] - x[-2 : -n_pad[1] - 2 : -1],
+                2 * x[..., -1:] - x[..., -2 : -n_pad[1] - 2 : -1],
                 r_z_pad,
-            ]
+            ],
+            axis=-1,
         )
     else:
         kwargs = dict()
         if pad == "reflect":
             kwargs["reflect_type"] = "odd"
-        out = np.pad(x, (tuple(n_pad),), pad, **kwargs)
+        pad_width = [(0, 0)] * (x.ndim - 1) + [tuple(n_pad)]
+        out = np.pad(x, pad_width, pad, **kwargs)
     return out

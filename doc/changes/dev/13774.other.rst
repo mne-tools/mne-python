@@ -1,0 +1,1 @@
+Clarify in the cluster permutation test docstrings that a single supra-threshold sample with no supra-threshold neighbors forms its own cluster, by `Athish M`_.

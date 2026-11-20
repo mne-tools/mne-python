@@ -7,6 +7,8 @@ import pytest
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 from scipy.signal import welch
 
+from mne import Annotations, create_info
+from mne.io import RawArray
 from mne.time_frequency import psd_array_multitaper, psd_array_welch
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.psd import _median_biases
@@ -58,6 +60,53 @@ def test_bad_annot_handling():
     np.testing.assert_allclose(got[0], want[0], rtol=1e-15, atol=0)
 
 
+def test_psd_welch_short_spans():
+    """Good spans shorter than n_per_seg are kept with a shrunk window (gh-13039)."""
+    sfreq, n_fft, n_overlap = 100.0, 256, 128
+    rng = np.random.default_rng(0)
+    times = np.arange(60 * int(sfreq)) / sfreq
+    x = np.sin(2 * np.pi * 10 * times) + 0.1 * rng.standard_normal((2, times.size))
+    kwargs = dict(sfreq=sfreq, n_fft=n_fft, n_overlap=n_overlap)
+    psds, freqs = psd_array_welch(x, **kwargs)
+    band = (freqs >= 8) & (freqs <= 12)
+    # mark every 100th sample bad, so every good span (99 samples) is < n_per_seg
+    x_frag = x.copy()
+    x_frag[:, 99::100] = np.nan
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        psds_frag, freqs_frag = psd_array_welch(x_frag, **kwargs)
+    assert_array_equal(freqs_frag, freqs)
+    # alpha-band power must match the uninterrupted signal (zero-padding would not)
+    assert_allclose(psds_frag[:, band].sum(-1), psds[:, band].sum(-1), rtol=0.1)
+    # a fixed-length window array cannot be shrunk to fit a short span
+    with pytest.raises(ValueError, match="fixed-length window"):
+        psd_array_welch(x_frag, window=np.hamming(n_fft), **kwargs)
+
+
+def test_compute_psd_welch_short_span_annotations():
+    """Test n_per_seg shorter than n_overlap warning and band power change."""
+    sfreq = 100.0
+    n_times = int(60 * sfreq)
+    rng = np.random.default_rng(42)
+    times = np.arange(n_times) / sfreq
+    data = np.sin(2 * np.pi * 10 * times) + 0.1 * rng.standard_normal((2, n_times))
+    raw = RawArray(data, create_info(2, sfreq, "eeg"))
+    kwargs = dict(method="welch", n_fft=256, n_overlap=128)
+    ref = raw.compute_psd(**kwargs)
+
+    # leave a 1 s good span (100 samples < n_overlap) between two bad segments
+    raw.set_annotations(Annotations([10.0, 21.0], [10.0, 10.0], "bad_segment"))
+    # test warning
+    with pytest.warns(RuntimeWarning, match="shorter than n_per_seg"):
+        spec = raw.compute_psd(**kwargs)
+    # alpha-band power should match the uninterrupted recording closely
+    band = (spec.freqs >= 8) & (spec.freqs <= 12)
+    assert_allclose(
+        spec.get_data()[:, band].sum(axis=-1),
+        ref.get_data()[:, band].sum(axis=-1),
+        rtol=0.1,
+    )
+
+
 def _make_psd_data():
     """Make noise data with sinusoids in 2 out of 7 channels."""
     rng = np.random.default_rng(0)
@@ -76,6 +125,7 @@ def _make_psd_data():
     [
         (psd_array_welch, dict(n_fft=128, window="hann")),
         (psd_array_multitaper, dict(low_bias=True)),
+        (psd_array_multitaper, dict(low_bias=True, n_per_seg=256, n_overlap=64)),
     ],
 )
 def test_psd(psd_func, psd_kwargs):
@@ -121,22 +171,44 @@ def test_psd_array_welch_nperseg_kwarg():
     with pytest.raises(ValueError, match="n_overlap cannot be greater"):
         kwargs.update(n_per_seg=64)
         psd_array_welch(data, sfreq, n_fft=128, n_overlap=90, **kwargs)
+    with pytest.raises(ValueError, match="n_overlap .* must be less than n_per_seg"):
+        psd_array_multitaper(data, sfreq, n_per_seg=64, n_overlap=90)
+    with pytest.raises(ValueError, match="n_overlap .* must be non-negative"):
+        psd_array_multitaper(data, sfreq, n_per_seg=64, n_overlap=-1)
+    with pytest.raises(ValueError, match='average must be None when output="complex"'):
+        psd_array_multitaper(
+            data, sfreq, n_per_seg=64, output="complex", average="mean"
+        )
     # test bad fmin/fmax
     with pytest.raises(ValueError, match="No frequencies found"):
         psd_array_welch(data, sfreq, fmin=10, fmax=1)
 
 
-def test_complex_multitaper():
+@pytest.mark.parametrize("normalization", ("length", "full"))
+@pytest.mark.parametrize("n_per_seg", (None, 128))
+def test_complex_multitaper(normalization, n_per_seg):
     """Test complex-valued multitaper output."""
     data, sfreq, _ = _make_psd_data()
+    kwargs = dict(n_per_seg=n_per_seg, average=None) if n_per_seg else dict()
     psd_complex, freq_complex, weights = psd_array_multitaper(
-        data[:4, :500], sfreq, output="complex"
+        data[:4, :500],
+        sfreq,
+        output="complex",
+        normalization=normalization,
+        **kwargs,
     )
-    psd, freq = psd_array_multitaper(data[:4, :500], sfreq, output="power")
+    psd, freq = psd_array_multitaper(
+        data[:4, :500], sfreq, output="power", normalization=normalization, **kwargs
+    )
     assert_array_equal(freq_complex, freq)
-    assert psd_complex.ndim == 3  # channels x tapers x freqs
-    psd_from_complex = _psd_from_mt(psd_complex, weights)
-    assert_allclose(psd_from_complex, psd)
+    if n_per_seg is None:
+        assert psd_complex.ndim == 3  # channels x tapers x freqs
+        psd_from_complex = _psd_from_mt(psd_complex, weights)
+        assert_allclose(psd_from_complex, psd)
+    else:
+        assert psd_complex.ndim == 4  # channels x tapers x freqs x segments
+        for s in range(psd_complex.shape[-1]):
+            assert_allclose(_psd_from_mt(psd_complex[..., s], weights), psd[..., s])
 
 
 # Copied from SciPy
@@ -145,21 +217,53 @@ def _median_bias(n):
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
 
 
+def test_complex_welch():
+    """Test complex-valued Welch output."""
+    data, sfreq, _ = _make_psd_data()
+    data = data[:4]
+    kwargs = dict(n_fft=256, n_overlap=0, verbose=False)
+    for average in ("mean", "median"):
+        with pytest.raises(ValueError, match='output="complex"'):
+            psd_array_welch(data, sfreq, average=average, output="complex", **kwargs)
+
+    coefs, freqs = psd_array_welch(
+        data, sfreq, average=None, output="complex", **kwargs
+    )
+    assert coefs.shape[-1] > 1
+    scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
+    segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
+    for average in ("mean", "median"):
+        power, freqs_power = psd_array_welch(
+            data, sfreq, average=average, output="power", **kwargs
+        )
+        assert_array_equal(freqs, freqs_power)
+        if average == "mean":
+            converted = segment_power.mean(axis=-1)
+        else:
+            converted = np.median(segment_power, axis=-1) / _median_bias(
+                segment_power.shape[-1]
+            )
+        assert_allclose(converted, power)
+
+
+@pytest.mark.parametrize("func", (psd_array_welch, psd_array_multitaper))
 @pytest.mark.parametrize("crop", (False, True))
-def test_psd_array_welch_average_kwarg(crop):
-    """Test `average` kwarg of psd_array_welch()."""
+def test_psd_array_welch_average_kwarg(func, crop):
+    """Test `average` kwarg of psd_array_welch() and psd_array_multitaper()."""
     data, sfreq, _ = _make_psd_data()
     # prepare kwargs
     n_per_seg = 32
-    kwargs = dict(fmin=0, fmax=np.inf, n_fft=64, n_per_seg=n_per_seg, n_overlap=0)
+    kwargs = dict(fmin=0, fmax=np.inf, n_per_seg=n_per_seg, n_overlap=0)
+    if func is psd_array_welch:
+        kwargs["n_fft"] = 64
     # optionally crop data by n_per_seg so that we are sure to test both an
     # odd number and an even number of estimates (for median bias)
     if crop:
         data = data[..., :-n_per_seg]
     # run with average=mean/median/None
-    psds_mean, freqs_mean = psd_array_welch(data, sfreq, average="mean", **kwargs)
-    psds_median, freqs_median = psd_array_welch(data, sfreq, average="median", **kwargs)
-    psds_unagg, freqs_unagg = psd_array_welch(data, sfreq, average=None, **kwargs)
+    psds_mean, freqs_mean = func(data, sfreq, average="mean", **kwargs)
+    psds_median, freqs_median = func(data, sfreq, average="median", **kwargs)
+    psds_unagg, freqs_unagg = func(data, sfreq, average=None, **kwargs)
     # Frequencies should be equal across all "average" types, as we feed in
     # the exact same data.
     assert_array_equal(freqs_mean, freqs_median)

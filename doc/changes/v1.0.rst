@@ -305,3 +305,5 @@ Authors
 * Stefan Appelhoff
 * Steve Matindi
 * Thomas Hartmann
+
+.. include:: names.inc

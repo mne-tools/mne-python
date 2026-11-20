@@ -58,6 +58,26 @@ ricoh_systems_paths += [
 berlin_path = data_path / "KIT" / "data_berlin.con"
 
 
+def test_block_size_in_raw_extras(monkeypatch):
+    """Test that the per-file block size controls binary reads."""
+    raw = read_raw_kit(sqd_path, preload=False)
+    assert raw._raw_extras[0]["max_block_samples"] == 5461
+    want = raw.get_data(start=0, stop=7)
+    raw._raw_extras[0]["max_block_samples"] = 3
+    counts = []
+    fromfile = np.fromfile
+
+    def _fromfile(fid, dtype, count):
+        counts.append(count)
+        return fromfile(fid, dtype, count)
+
+    monkeypatch.setattr(np, "fromfile", _fromfile)
+    got = raw.get_data(start=0, stop=7)
+
+    assert counts == [576, 576, 192]
+    assert_array_equal(got, want)
+
+
 @requires_testing_data
 def test_data(tmp_path):
     """Test reading raw kit files."""
