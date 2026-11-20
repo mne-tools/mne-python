@@ -1,0 +1,1 @@
+Interpolate values in channel-picking, MRI, Curry, KIT, morphing, and adjacency error messages, by :newcontrib:`Eva B`.

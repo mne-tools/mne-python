@@ -462,7 +462,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
             raise OSError(
                 f"No fiducials file found for {subject}. The fiducials "
                 "file should be named "
-                "{subject}/bem/{subject}-fiducials.fif. In "
+                f"{subject}/bem/{subject}-fiducials.fif. In "
                 "order to scale an MRI without fiducials set "
                 "skip_fiducials=True."
             )
