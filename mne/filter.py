@@ -1863,6 +1863,13 @@ def notch_filter(
     if freqs is not None:
         if notch_widths is None:
             notch_widths = freqs / 200.0
+            # TODO VERSION: Switch to freqs / 100 in MNE 1.15
+            warn(
+                "`notch_widths=None` will change from `freqs / 200` to `freqs / 100` "
+                "in MNE 1.15. Consider specifying `notch_widths` explicitly to avoid "
+                "this warning.",
+                FutureWarning,
+            )
         elif np.any(notch_widths < 0):
             raise ValueError("notch_widths must be >= 0")
         else:
