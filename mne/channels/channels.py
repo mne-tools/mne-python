@@ -57,6 +57,11 @@ from ..utils import (
 )
 
 _ALLOWED_INTERPOLATION_MODES = ("accurate", "fast")
+_SUB_TO_SUPER = {
+    sub: super_type
+    for super_type in ("meg", "fnirs")
+    for sub in _second_rules[super_type][1].values()
+}
 
 
 def _get_meg_system(info):
@@ -1160,11 +1165,12 @@ class InterpolationMixin:
         # check for channels with invalid position(s)
         # vectorized, as e.g. autoreject passes many bads on each call
         name_to_idx = {name: ii for ii, name in enumerate(self.ch_names)}
+        bads = [ch for ch in self.info["bads"] if ch in name_to_idx]
         locs = np.array(
-            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in self.info["bads"]]
+            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in bads]
         ).reshape(-1, 3)
         invalid = np.all(np.abs(locs) <= 1e-16, axis=1) | np.isnan(locs).any(axis=1)
-        invalid_chs = [ch for ch, inv in zip(self.info["bads"], invalid) if inv]
+        invalid_chs = [ch for ch, inv in zip(bads, invalid) if inv]
 
         if invalid_chs:
             if on_bad_position == "raise":
@@ -1210,22 +1216,23 @@ class InterpolationMixin:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
-        bads = set(self.info["bads"])
-
-        def _has_bads(picks):
-            idx = _picks_to_idx(self.info, picks, exclude=(), allow_empty=True)
-            return any(self.ch_names[pi] in bads for pi in idx)
-
-        if not _has_bads(list(method)):
+        if not bads:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
-        for ch_type in method.copy():
-            if not _has_bads(ch_type):
-                method.pop(ch_type)
+
+        bad_types = {
+            _SUB_TO_SUPER.get(t, t)
+            for ch in bads
+            for t in (channel_type(self.info, name_to_idx[ch]),)
+        }
+        method = {k: v for k, v in method.items() if k in bad_types}
+        if not method:
+            warn("No bad channels to interpolate. Doing nothing...")
+            return self
         picks = _picks_to_idx(
             self.info, list(method), exclude=exclude, allow_empty=True
         )
-        interpolated = set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
+        interpolated = set(bads) & {self.ch_names[pi] for pi in picks}
         logger.info("Interpolating bad channels.")
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):
