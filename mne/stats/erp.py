@@ -366,7 +366,7 @@ def compute_frac_peak_latency(
         below_threshold = np.where(
             data_masked[i, : peak_idx[i] + 1] < frac_amplitudes[i]
         )[0]
-        if len(below_threshold) > 0:
+        if len(below_threshold) > 0 and below_threshold[-1] < peak_idx[i]:
             frac_peak_onset[i] = below_threshold[-1] + 1
     frac_peak_onset_latency = times[mask][frac_peak_onset]
 

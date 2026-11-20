@@ -86,6 +86,16 @@ def test_compute_frac_peak_latency(mode):
     assert_allclose(latencies["fractional_peak_onset"][0], 0.25, atol=2e-3)
     assert_allclose(latencies["fractional_peak_offset"][0], 0.35, atol=2e-3)
 
+    if mode != "abs":
+        # strict=False permits the opposite polarity, even if the threshold
+        # cannot be reached. Preserve the window-start onset in that case.
+        opposite = evoked.copy()
+        opposite.data[:] = 1e-6 if mode == "neg" else -1e-6
+        latencies = compute_frac_peak_latency(
+            opposite, start=0.0, stop=0.4, mode=mode, strict=False
+        )
+        assert_allclose(latencies["fractional_peak_onset"], 0.0)
+
     # an earlier, smaller deflection that exceeds the threshold must not be taken
     # as the onset of the peak: onset and offset are both searched from the peak
     times = evoked.times
