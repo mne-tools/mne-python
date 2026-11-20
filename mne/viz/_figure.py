@@ -7,8 +7,9 @@
 import importlib
 import inspect
 import re
+import weakref
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from contextlib import contextmanager
 from contextvars import copy_context
 from copy import deepcopy
@@ -30,7 +31,11 @@ from ..utils import (
     verbose_static,
 )
 from .backends._utils import VALID_BROWSE_BACKENDS
-from .utils import _get_color_list, _setup_plot_projector, _show_browser
+from .utils import (
+    _get_color_list,
+    _setup_plot_projector,
+    _show_browser,
+)
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -289,6 +294,7 @@ class BrowserBase(ABC):
         else:
             current_ch_names.append(ch_pick)
         self.mne.inst.annotations.ch_names[annot_idx] = tuple(current_ch_names)
+        self._publish_annotations_change()
 
     def _toggle_bad_epoch(self, xtime):
         epoch_num = self._get_epoch_num_from_time(xtime)
@@ -357,13 +363,11 @@ class BrowserBase(ABC):
                 * self.mne.info["sfreq"]
             ).astype(int)
         else:
-            # ensure our end time includes the last sample
-            disp_duration = (
-                np.ceil(self.mne.duration * self.mne.info["sfreq"])
-                / self.mne.info["sfreq"]
-            )
-            stop_sec = start_sec + disp_duration
-            start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
+            # ensure our end time includes the last sample. Counting from the
+            # start sample (instead of converting the end time to a sample)
+            # keeps rounding errors from dropping the last sample.
+            start = self.mne.inst.time_as_index(start_sec)[0]
+            stop = start + int(np.ceil(self.mne.duration * self.mne.info["sfreq"]))
 
         return start, stop
 
@@ -521,7 +525,10 @@ class BrowserBase(ABC):
 
     def _close_impl(self, event=None):
         """Handle close events in the context that created the browser."""
+        from matplotlib.figure import FigureBase
         from matplotlib.pyplot import close
+
+        from .ui_events import _delete_event_channel, _event_channels
 
         logger.debug(f"Closing {self.mne.instance_type} browser...")
         # write out bad epochs (after converting epoch numbers to indices)
@@ -551,6 +558,208 @@ class BrowserBase(ABC):
             fig = self.mne.child_figs[-1]
             close(fig)
             self._close_event(fig)
+        # Remove our UI-event channel (matplotlib figures do this on close_event)
+        if not isinstance(self, FigureBase) and self in _event_channels:
+            _delete_event_channel(weakfig=weakref.ref(self))
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # UI EVENTS (keep linked browsers in sync, see mne.viz.ui_events.link)
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Backends opt in by implementing _set_time_window() and
+    # _refresh_annotations() (then _get_browser() calls _setup_ui_events()), and
+    # by calling _publish_time_window() whenever the user changed the time
+    # window and _publish_annotations_change() whenever the user changed
+    # annotations.
+
+    @classmethod
+    def _supports_ui_events(cls):
+        """Whether this browser backend implements syncing via UI events."""
+        return (
+            cls._set_time_window is not BrowserBase._set_time_window
+            and cls._refresh_annotations is not BrowserBase._refresh_annotations
+        )
+
+    def _setup_ui_events(self):
+        """Subscribe to the UI events that keep linked browsers in sync."""
+        from .ui_events import subscribe
+
+        # Epochs browsers have a concatenated (not continuous) time axis and no
+        # annotation editing, so they don't take part.
+        if self.mne.is_epochs:
+            return
+        self.mne.annotations_snapshot = self._annotations_snapshot()
+        # The callbacks only hold a weak reference to us, so that our event
+        # channel doesn't keep us alive after closing (with non-interactive
+        # matplotlib backends, closing doesn't remove the event channel).
+        for event_name, method in (
+            ("time_window_change", self._on_time_window_change),
+            ("annotations_change", self._on_annotations_change),
+        ):
+            subscribe(self, event_name, _weak_callback(method))
+
+    def _browser_to_acq_time(self, time):
+        """Convert a time on the browser's x-axis to acquisition time."""
+        return time - self.mne.first_time + self.mne.inst._first_time
+
+    def _acq_to_browser_time(self, time):
+        """Convert an acquisition time to a time on the browser's x-axis."""
+        return time + self.mne.first_time - self.mne.inst._first_time
+
+    def _publish_time_window(self):
+        """Tell linked figures that the visible time window has changed."""
+        from .ui_events import TimeWindowChange, publish
+
+        if not hasattr(self.mne, "annotations_snapshot"):
+            return  # we didn't set up UI events (e.g., epochs browser)
+        tmin = float(self._browser_to_acq_time(self.mne.t_start))
+        publish(self, TimeWindowChange(tmin=tmin, tmax=tmin + self.mne.duration))
+
+    def _on_time_window_change(self, event):
+        """Follow the time window of a linked figure."""
+        from .ui_events import disable_ui_events
+
+        source = event.source
+        if source is self:
+            return
+        if isinstance(source, BrowserBase) and not source.mne.is_epochs:
+            # Use the other browser's window directly, shifted by the difference
+            # of the time axes (exactly 0. if they are the same). Going through
+            # the acquisition time instead (t + offset - offset) can be off by
+            # one ulp, which can make us load the data one sample earlier.
+            offset = self._browser_to_acq_time(0.0) - source._browser_to_acq_time(0.0)
+            t_start = source.mne.t_start - offset
+            duration = source.mne.duration
+            sfreq = self.mne.info["sfreq"]
+            if offset != 0 and sfreq == source.mne.info["sfreq"]:
+                # The time axes differ, so rounding errors could still make us
+                # start one sample off. If so, start in the middle of the right
+                # sample (the plotted range is determined by the samples).
+                want = (
+                    source._get_start_stop()[0]
+                    + source.mne.inst.first_samp
+                    - self.mne.inst.first_samp
+                )
+                start = self.mne.inst.time_as_index(t_start - self.mne.first_time)
+                if start[0] != want:
+                    t_start = self.mne.first_time + (want + 0.5) / sfreq
+        else:
+            t_start = self._acq_to_browser_time(event.tmin)
+            duration = event.tmax - event.tmin
+        # don't echo the change back to the figures we're linked to
+        with disable_ui_events(self):
+            self._set_time_window(t_start, duration)
+
+    def _set_time_window(self, t_start, duration):
+        """Show the given time window (in browser time), clipped to the data."""
+        raise NotImplementedError
+
+    def _annotations_snapshot(self):
+        """Get our annotations as a multiset of (onset, duration, desc, ch_names)."""
+        annotations = self.mne.inst.annotations
+        return Counter(
+            zip(
+                annotations.onset.tolist(),
+                annotations.duration.tolist(),
+                annotations.description.tolist(),
+                [tuple(ch_names) for ch_names in annotations.ch_names],
+            )
+        )
+
+    def _publish_annotations_change(self):
+        """Tell linked figures how our annotations changed since the last time."""
+        from .ui_events import AnnotationsChange, publish
+
+        if not hasattr(self.mne, "annotations_snapshot"):
+            return  # we didn't set up UI events (e.g., epochs browser)
+        old = self.mne.annotations_snapshot
+        new = self._annotations_snapshot()
+        self.mne.annotations_snapshot = new
+        added = tuple(sorted((new - old).elements()))
+        removed = tuple(sorted((old - new).elements()))
+        if added or removed:
+            publish(self, AnnotationsChange(added=added, removed=removed))
+
+    def _on_annotations_change(self, event):
+        """Mirror the annotation edits made in a linked figure."""
+        if event.source is self:
+            return
+        source_inst = getattr(getattr(event.source, "mne", None), "inst", None)
+        # Browsers of the same data object share the Annotations object, so the
+        # edit is already there and only needs to be drawn.
+        if getattr(source_inst, "annotations", None) is not self.mne.inst.annotations:
+            self._apply_annotations_change(event.added, event.removed)
+        self.mne.annotations_snapshot = self._annotations_snapshot()
+        self._refresh_annotations(new_labels=self._update_annotation_labels())
+
+    def _clip_annotation(self, onset, duration, ch_names):
+        """Clip an annotation to our data, like raw.set_annotations() does.
+
+        Returns None if it's outside of our data or only for channels we don't
+        have.
+        """
+        inst = self.mne.inst
+        data_start = inst._first_time
+        data_stop = data_start + inst.n_times / inst.info["sfreq"]
+        start, stop = max(onset, data_start), min(onset + duration, data_stop)
+        our_ch_names = tuple(ch for ch in ch_names if ch in inst.ch_names)
+        if stop < start or (len(ch_names) and not len(our_ch_names)):
+            return None
+        return start, stop - start, our_ch_names
+
+    def _apply_annotations_change(self, added, removed):
+        """Remove and add annotations as a linked figure did."""
+        annotations = self.mne.inst.annotations
+        # Onsets may differ by rounding errors when the annotations were
+        # transferred between objects, so we allow for half a sample of slack.
+        atol = 0.5 / self.mne.info["sfreq"]
+        to_delete = list()
+        for onset, duration, description, ch_names in removed:
+            clipped = self._clip_annotation(onset, duration, ch_names)
+            if clipped is None:
+                continue  # we never had it
+            onset, duration, ch_names = clipped
+            match = (
+                np.isclose(annotations.onset, onset, rtol=0, atol=atol)
+                & np.isclose(annotations.duration, duration, rtol=0, atol=atol)
+                & (annotations.description == description)
+                & np.array([tuple(ch) == ch_names for ch in annotations.ch_names], bool)
+            )
+            match[to_delete] = False
+            if match.any():  # the topmost one, like when clicking on spans
+                to_delete.append(np.flatnonzero(match)[-1])
+        annotations.delete(to_delete)
+        for onset, duration, description, ch_names in added:
+            clipped = self._clip_annotation(onset, duration, ch_names)
+            if clipped is not None:
+                onset, duration, ch_names = clipped
+                annotations.append(
+                    onset,
+                    duration,
+                    description,
+                    ch_names=[ch_names] if len(ch_names) else None,
+                )
+
+    def _update_annotation_labels(self):
+        """Give new annotation labels a color, keeping existing visibilities.
+
+        Returns whether there were new labels.
+        """
+        if set(self._get_annotation_labels()) <= set(
+            self.mne.annotation_segment_colors
+        ):
+            return False
+        visible = self.mne.visible_annotations
+        checkboxes = getattr(self.mne, "show_hide_annotation_checkboxes", None)
+        self._setup_annotation_colors()  # resets visibilities and checkboxes
+        for label, is_visible in visible.items():
+            if label in self.mne.visible_annotations:
+                self.mne.visible_annotations[label] = is_visible
+        self.mne.show_hide_annotation_checkboxes = checkboxes
+        return True
+
+    def _refresh_annotations(self, *, new_labels):
+        """Redraw the annotations after they were changed in a linked figure."""
+        raise NotImplementedError
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHILD FIGURES
@@ -744,6 +953,18 @@ class BrowserBase(ABC):
         pass
 
 
+def _weak_callback(method):
+    """Make a UI-event callback that doesn't keep the method's object alive."""
+    weak_method = weakref.WeakMethod(method)
+
+    def callback(event):
+        method = weak_method()
+        if method is not None:
+            method(event)
+
+    return callback
+
+
 def _load_backend(backend_name):
     global backend
     if backend_name == "matplotlib":
@@ -772,6 +993,8 @@ def _get_browser(show, block, **kwargs):
     get_browser_backend()  # sets the module-level `backend` used just below
     # Initialize Browser
     fig = backend._init_browser(**kwargs)
+    if fig._supports_ui_events():  # e.g., older mne-qt-browser versions don't
+        fig._setup_ui_events()
     _show_browser(show=show, block=block, fig=fig)
 
     return fig

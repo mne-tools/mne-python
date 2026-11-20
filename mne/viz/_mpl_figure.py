@@ -794,9 +794,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 denom = 1 if key.startswith("shift") else self.mne.n_epochs
             else:
                 denom = 1 if key.startswith("shift") else 4
-            t_max = last_time - self.mne.duration
+            # (the x-axis starts at first_time, e.g. with show_first_samp=True)
+            t_max = self.mne.first_time + last_time - self.mne.duration
             t_start = self.mne.t_start + direction * self.mne.duration / denom
-            self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
+            # (not np.clip: rounding can make t_max < first_time, start must win)
+            self.mne.t_start = max(min(t_start, t_max), self.mne.first_time)
             if self.mne.t_start != old_t_start:
                 self._update_hscroll()
                 self._redraw(annotations=True, skip_hscroll=True)
@@ -843,8 +845,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 new_dur = self.mne.duration * dur_delta
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
-                if self.mne.t_start + self.mne.duration > last_time:
-                    self.mne.t_start = last_time - self.mne.duration
+                end_time = self.mne.first_time + last_time
+                if self.mne.t_start + self.mne.duration > end_time:
+                    self.mne.t_start = max(
+                        end_time - self.mne.duration, self.mne.first_time
+                    )
                 self._update_hscroll()
                 self._redraw(annotations=True, skip_hscroll=True)
         elif key == "?":  # help window
@@ -961,6 +966,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
+                self._publish_annotations_change()
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
@@ -1341,6 +1347,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         fig.set_size_inches(
             ANNOTATION_FIG_W, ANNOTATION_FIG_MIN_H + radio_button_h, forward=True
         )
+        # disconnect the old widgets, as their artists are about to be removed
+        # (their draw-event callbacks would fail if they're still alive)
+        for widget in (
+            getattr(ax, "buttons", None),
+            self.mne.show_hide_annotation_checkboxes,
+        ):
+            if widget is not None:
+                widget.disconnect_events()
         # populate center axes with labels & radio buttons
         ax.clear()
         title = "Existing labels:" if len(labels) else "No existing labels"
@@ -1485,6 +1499,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if not self.mne.visible_annotations[buttons.value_selected]:
                 self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
             self._redraw(update_data=False, annotations=True)
+            self._publish_annotations_change()
 
     def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
@@ -1526,6 +1541,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._draw_annotations()
         self._remove_annotation_hover_line()
         self.canvas.draw_idle()
+        self._publish_annotations_change()
 
     def _clear_annotations(self, *, skip_hscroll=False):
         """Clear all annotations from the figure."""
@@ -1905,6 +1921,37 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Update the horizontal scrollbar (time) selection indicator."""
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
+        # every change of t_start / duration ends up here, so tell linked figures
+        self._publish_time_window()
+
+    def _set_time_window(self, t_start, duration):
+        """Show the given time window (in browser time), clipped to the data."""
+        first_time = self.mne.first_time
+        last_time = first_time + self.mne.n_times / self.mne.info["sfreq"]
+        min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]  # like "home" key
+        duration = float(np.clip(duration, min_dur, last_time - first_time))
+        # (not np.clip: rounding can make the upper bound < first_time)
+        t_start = float(max(min(t_start, last_time - duration), first_time))
+        if t_start == self.mne.t_start and duration == self.mne.duration:
+            return
+        self.mne.t_start = t_start
+        self.mne.duration = duration
+        self._update_hscroll()
+        self._redraw(annotations=True, skip_hscroll=True)
+
+    def _refresh_annotations(self, *, new_labels):
+        """Redraw the annotations after they were changed in a linked figure."""
+        fig = self.mne.fig_annotation
+        if new_labels and fig is not None:  # show new labels in the dialog
+            selected = getattr(fig.mne.radio_ax.buttons, "value_selected", None)
+            self._update_annotation_fig(draw=False)  # this selects the 1st label
+            labels = [label.get_text() for label in fig.mne.radio_ax.buttons.labels]
+            if selected in labels:  # restore the user's selection
+                fig._set_active_button(labels.index(selected), draw=False)
+            fig._radiopress(event=None, draw=False)
+            fig.canvas.draw_idle()
+        self._remove_annotation_hover_line()
+        self._redraw(update_data=False, annotations=True)
 
     def _check_update_hscroll_clicked(self, event):
         """Handle clicks on horizontal scrollbar."""
