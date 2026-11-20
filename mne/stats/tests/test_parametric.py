@@ -67,6 +67,20 @@ def test_map_effects():
 
     pytest.raises(ValueError, _map_effects, n_factors=2, effects="C")
 
+    # several interactions in a list are valid
+    selection, names = _map_effects(n_factors=3, effects=["A:B", "A:C"])
+    assert names == ["A:B", "A:C"]
+    assert selection == [2, 4]
+    selection, names = _map_effects(
+        n_factors=3, effects=["A", "B", "C", "A:B", "A:C", "B:C", "A:B:C"]
+    )
+    assert len(names) == len(selection) == 7
+
+    # a single bad name in a list gets the informative error, too
+    for effects in (["Z"], ["A", "Z"], ["A", "A:Z"], ["A:D", "B:D"]):
+        with pytest.raises(ValueError, match="Effect names: .* are not valid"):
+            _map_effects(n_factors=3, effects=effects)
+
     pytest.raises(ValueError, _map_effects, n_factors=27, effects="all")
 
 

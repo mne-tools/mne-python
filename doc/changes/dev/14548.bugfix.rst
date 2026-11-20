@@ -1,0 +1,1 @@
+Fix interaction effect lists and invalid effect validation in :func:`mne.stats.f_mway_rm`, by :newcontrib:`Eva B`.

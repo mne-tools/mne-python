@@ -219,14 +219,6 @@ def _map_effects(n_factors, effects):
             pass  # handle later
         else:
             raise ValueError(f'"{effects}" is not a valid option for "effects"')
-    if isinstance(effects, list):
-        bad_names = [e for e in effects if e not in factor_names]
-        if len(bad_names) > 1:
-            raise ValueError(
-                f"Effect names: {bad_names} are not valid. They should consist of the "
-                f"first `n_factors` ({n_factors}) characters from the alphabet"
-            )
-
     indices = list(np.arange(2**n_factors - 1))
     names = list()
     for this_effect in indices:
@@ -235,6 +227,16 @@ def _map_effects(n_factors, effects):
         this_name = [factor_names[e] for e in this_code]
         this_name.sort()
         names.append(":".join(this_name))
+
+    if isinstance(effects, list):
+        # validate against main effects *and* interactions (e.g. "A:B")
+        bad_names = [e for e in effects if e not in names]
+        if len(bad_names) > 0:
+            raise ValueError(
+                f"Effect names: {bad_names} are not valid. They should consist of the "
+                f"first `n_factors` ({n_factors}) characters from the alphabet, joined "
+                f'by ":" for interactions. Valid effect names are: {names}'
+            )
 
     if effects is None or isinstance(effects, str):
         effects_ = names
