@@ -654,7 +654,7 @@ class _TimeViewerMixin:
                 hemi_data = overlay_data.get(hemi_key)
                 if hemi_data is None:
                     continue
-                arr = hemi_data["array"]
+                arr = hemi_data.array
                 if arr.ndim == 1:
                     continue  # static data — no time axis
                 if arr.ndim == 3:
@@ -697,7 +697,7 @@ class _TimeViewerMixin:
             if act_data is None:
                 continue
             hemi_data = self._data[hemi]
-            vertices = hemi_data["vertices"]
+            vertices = hemi_data.vertices
 
             # simulate a picked renderer
             if self._hemi in ("both", "rh") or hemi == "vol":
@@ -757,11 +757,11 @@ class _TimeViewerMixin:
         for hemi in ["vol", "lh", "rh"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                act_data = hemi_data["array"]
+                act_data = hemi_data.array
                 if act_data.ndim == 3:
                     act_data = np.linalg.norm(act_data, axis=1)
-                smooth_mat = hemi_data.get("smooth_mat")
-                vertices = hemi_data["vertices"]
+                smooth_mat = hemi_data.smooth_mat
+                vertices = hemi_data.vertices
                 if hemi == "vol" and smooth_mat is None:  # not subcortical meshes
                     smooth_mat = csr_array(
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
@@ -1082,7 +1082,7 @@ class _TimeViewerMixin:
             hemi = "vol"
         if self.act_data_smooth[hemi][0] is None:  # no data to add for hemi
             return
-        if hemi == "vol" and "grid" not in self._data[hemi]:
+        if hemi == "vol" and self._data[hemi].grid is None:
             return  # picking on subcortical surfaces is not supported yet
         pos = np.array(vtk_picker.GetPickPosition())
         if hemi == "vol":
@@ -1091,9 +1091,9 @@ class _TimeViewerMixin:
             # camera-to-click array, which fortunately we can get "just"
             # by inspecting the points that are sufficiently close to the
             # ray.
-            grid = self._data[hemi]["grid"]
-            vertices = self._data[hemi]["vertices"]
-            coords = self._data[hemi]["grid_coords"][vertices]
+            grid = self._data[hemi].grid
+            vertices = self._data[hemi].vertices
+            coords = self._data[hemi].grid_coords[vertices]
             scalars = grid.point_data["values"][vertices]
             spacing = np.array(grid.GetSpacing())
             max_dist = np.max(spacing) / 2.0
@@ -1115,7 +1115,7 @@ class _TimeViewerMixin:
             source_id = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[source_id]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
-            # shape = self._data[hemi]['grid_shape']
+            # shape = self._data[hemi].grid_shape
             # taking into account the cell vs point difference (spacing/2)
             # shift = np.array(grid.GetOrigin()) + spacing / 2.
             # ijk = np.round((pos - shift) / spacing).astype(int)
@@ -1144,9 +1144,8 @@ class _TimeViewerMixin:
         if self._data is None:
             return
         if event.hemi == "vol":
-            try:
-                mesh = self._data[event.hemi]["grid"]
-            except KeyError:
+            mesh = getattr(self._data.get("vol"), "grid", None)
+            if mesh is None:
                 return
         else:
             try:
@@ -1235,7 +1234,7 @@ class _TimeViewerMixin:
             center -= np.array(mesh.spacing, float) / 2.0
             # In case we ever need to debug problems with this, the following code
             # can be uncommented (it should match!)
-            # want = apply_trans(self._data[hemi]["grid_src_mri_t"], ijk)
+            # want = apply_trans(self._data[hemi].grid_src_mri_t, ijk)
             # assert np.allclose(center, want, atol=1e-6), f"{center=} vs {want=}"
             #
             # And to make the value at vert 21334 for fsaverage-5 visible:
@@ -1416,8 +1415,8 @@ class _TimeViewerMixin:
             xfm = read_talxfm(self._subject, self._subjects_dir)
             if self._units == "mm":
                 xfm["trans"][:3, 3] *= 1000.0
-            ijk = np.unravel_index(vertex_id, self._data[hemi]["grid_shape"], order="F")
-            src_mri_t = self._data[hemi]["grid_src_mri_t"]
+            ijk = np.unravel_index(vertex_id, self._data[hemi].grid_shape, order="F")
+            src_mri_t = self._data[hemi].grid_src_mri_t
             mni = apply_trans(xfm["trans"] @ src_mri_t, ijk)
         else:
             hemi_str = "L" if hemi == "lh" else "R"

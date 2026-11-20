@@ -1579,9 +1579,9 @@ def test_mixed_sources_plot_surface(renderer_interactive):
         colorbar=False,
         brain_alpha=0.1,
     )
-    mesh = brain._data["vol"]["subcortical_mesh"]
+    mesh = brain._data["vol"].subcortical_mesh
     assert_allclose(mesh._polydata.points, src[2]["rr"] * 1000, atol=1e-2)
-    glyphs = brain._data["vol"]["glyph_dataset"]
+    glyphs = brain._data["vol"].glyph_dataset
     assert_allclose(glyphs.points, src[2]["rr"][src[2]["vertno"]] * 1000, atol=1e-2)
     # gray base layer with the cortex alpha, data layer with the volume alpha
     assert mesh._overlays["curv"]._opacity == 0.1
