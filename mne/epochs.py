@@ -717,7 +717,9 @@ class BaseEpochs(
             if drop_log is None:
                 self.drop_log = tuple(
                     () if k in self.selection else ("IGNORED",)
-                    for k in range(max(len(self.events), max(self.selection) + 1))
+                    for k in range(
+                        max(len(self.events), max(self.selection, default=-1) + 1)
+                    )
                 )
             else:
                 self.drop_log = drop_log
@@ -741,7 +743,7 @@ class BaseEpochs(
             self._check_events_outside_data(on_outside, raw)
 
             # then subselect
-            sub = np.where(np.isin(selection, self.selection))[0]
+            sub = selected[np.isin(selection, self.selection)]
             if isinstance(metadata, list):
                 metadata = [metadata[s] for s in sub]
             elif metadata is not None:

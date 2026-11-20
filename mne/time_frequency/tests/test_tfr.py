@@ -723,12 +723,23 @@ def test_roundtrip_from_legacy_func(epochs, tmp_path):
     assert read_tfrs(fname) == tfr
 
 
-def test_raw_tfr_init(raw):
+def test_raw_tfr_init(raw, tmp_path):
     """Test the RawTFR and RawTFRArray constructors."""
     one = RawTFR(inst=raw, method="morlet", freqs=freqs_linspace)
     two = RawTFRArray(one.info, one.data, one.times, one.freqs, method="morlet")
+    # Array-backed and legacy files use samples relative to time zero.
+    state = two.__getstate__()
+    for key in ("first_samp", "raw_sfreq", "bad_intervals"):
+        del state[key]
+    legacy = RawTFR(inst=state)
+    events = np.array([[10, 0, 1], [10, 0, 2]])
+    got = EpochsTFR.from_raw_tfr(legacy, events, tmin=0, tmax=0, event_repeated="merge")
+    assert got.event_id == {"1/2": 3}
+    assert_array_equal(got.data[0], two.data[..., 10:11])
     # some attributes we know won't match:
-    for attr in ("_data_type", "_inst_type"):
+    assert one._first_samp == raw.first_samp
+    assert two._first_samp == 0
+    for attr in ("_data_type", "_inst_type", "_first_samp"):
         assert getattr(one, attr) != getattr(two, attr)
         delattr(one, attr)
         delattr(two, attr)
@@ -739,6 +750,54 @@ def test_raw_tfr_init(raw):
     # test missing method/freqs
     with pytest.raises(ValueError, match="RawTFR got unsupported parameter value"):
         RawTFR(inst=raw)
+
+    # Keep metadata aligned through event filtering, duplicates, and rejection.
+    pd = pytest.importorskip("pandas")
+    raw.crop(tmax=2)
+    raw.set_annotations(mne.Annotations([0.8], [0.12], ["BAD motion"]))
+    sfreq = raw.info["sfreq"]
+    tfr = raw.compute_tfr(
+        "morlet", freqs_linspace, tmin=1 / sfreq, decim=2, reject_by_annotation=False
+    )
+    assert_allclose(tfr.times[0], 1 / sfreq)
+    samples = np.array([1, 11, 31, 31, round(0.85 * sfreq), raw.n_times - 1])
+    events = np.column_stack(
+        (raw.first_samp + samples, np.zeros(6, int), [1, 2, 1, 1, 1, 1])
+    )
+    kwargs = dict(
+        event_id=1,
+        tmin=-4 / sfreq,
+        tmax=4 / sfreq,
+        event_repeated="drop",
+        metadata=pd.DataFrame({"trial": range(6)}),
+    )
+    epochs = EpochsTFR.from_raw_tfr(tfr, events, **kwargs)
+    assert epochs.drop_log == (
+        ("NO_DATA",),
+        ("IGNORED",),
+        (),
+        ("DROP DUPLICATE",),
+        ("BAD motion",),
+        ("TOO_SHORT",),
+    )
+    assert_array_equal(epochs.events, events[[2]])
+    assert_array_equal(epochs.metadata["trial"], [2])
+    assert_array_equal(epochs.selection, [2])
+    assert_array_equal(epochs.metadata.index, [2])
+    assert_allclose(epochs.times, np.arange(-2, 3) / tfr.sfreq)
+    assert_array_equal(epochs.data[0], tfr.data[..., 13:18])
+    keep_bad = EpochsTFR.from_raw_tfr(tfr, events, reject_by_annotation=False, **kwargs)
+    assert_array_equal(keep_bad.selection, [2, 4])
+    with pytest.raises(ValueError, match="No matching events"):
+        EpochsTFR.from_raw_tfr(tfr, events, event_id=99)
+    with pytest.raises(ValueError, match="No desired events"):
+        EpochsTFR.from_raw_tfr(tfr, events, event_id=99, on_missing="ignore")
+    empty = EpochsTFR.from_raw_tfr(tfr, events[:1], tmin=-4 / sfreq, tmax=4 / sfreq)
+    assert empty.shape == (0, *tfr.shape[:-1], 5)
+    pytest.importorskip("h5io")
+    fname = tmp_path / "cropped-tfr.h5"
+    tfr.save(fname)
+    assert EpochsTFR.from_raw_tfr(read_tfrs(fname), events, **kwargs) == epochs
 
 
 def test_average_tfr_init(full_evoked):
@@ -1552,7 +1611,16 @@ def test_raw_compute_tfr(raw, method, output, picks, tmp_path):
         pytest.importorskip("h5io")
         fname = tmp_path / "temp_tfr.hdf5"
         full_tfr.save(fname, overwrite=True)
-        assert read_tfrs(fname) == full_tfr
+        restored = read_tfrs(fname)
+        assert restored == full_tfr
+        full_tfr = restored
+    events = np.array([[raw.first_samp + 10, 0, 1]])
+    epochs = EpochsTFR.from_raw_tfr(
+        full_tfr, events, tmin=0, tmax=2 / full_tfr.sfreq, picks=mag_names
+    )
+    assert epochs.ch_names == mag_names
+    assert_array_equal(epochs.data[0], want[..., 10:13])
+    assert_array_equal(epochs.weights, full_tfr.weights)
 
 
 @parametrize_morlet_multitaper
