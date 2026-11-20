@@ -41,3 +41,16 @@ def test_peak_finder():
     # check values
     peak_inds, peak_mags = peak_finder([0, 2, 5, 0, 6, -1])
     assert_array_equal(peak_inds, [2, 4])
+
+    # integer data with plateaus gives the same peaks as float data
+    x = [0, 0, 3, 3, 0, 0, 5, 5, 5, 0, 1]
+    peak_inds, peak_mags = peak_finder(np.array(x, int), thresh=1)
+    peak_inds_float, peak_mags_float = peak_finder(np.array(x, float), thresh=1)
+    assert_array_equal(peak_inds, [2, 6])
+    assert_array_equal(peak_inds, peak_inds_float)
+    assert_array_equal(peak_mags, peak_mags_float)
+
+    # no minimum found in a monotonic function
+    peak_inds, peak_mags = peak_finder(np.arange(5.0), thresh=10, extrema=-1)
+    assert len(peak_inds) == len(peak_mags) == 0
+    assert_equal(peak_mags.dtype, np.dtype("float64"))

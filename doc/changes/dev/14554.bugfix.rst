@@ -1,0 +1,1 @@
+Handle integer data and empty minima in :func:`mne.preprocessing.peak_finder`, by :newcontrib:`Eva B`.
