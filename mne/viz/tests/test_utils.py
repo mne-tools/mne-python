@@ -11,10 +11,10 @@ from cycler import cycler
 from matplotlib import rc_context
 from numpy.testing import assert_allclose
 
-from mne import read_evokeds
+from mne import create_info, read_evokeds
 from mne.epochs import Epochs
 from mne.event import read_events
-from mne.io import read_raw_fif
+from mne.io import RawArray, read_raw_fif
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.viz.ui_events import ColormapRange, link, subscribe
 from mne.viz.utils import (
@@ -188,6 +188,14 @@ def test_auto_scale():
         assert scalings_new["eeg"] != "auto"
         # make sure an all-zero channel doesn't cause scaling=0 (gh 13376)
         assert scalings_new["stim"] > 0
+
+    # remove_dc should subtract the mean of each segment, so a 1 Hz sine on a DC
+    # offset keeps the IQR of the sine instead of being zeroed out
+    sfreq = 100.0
+    sine = 1e-3 * np.sin(2 * np.pi * np.arange(int(20 * sfreq)) / sfreq)
+    raw_sin = RawArray(5 + sine[np.newaxis], create_info(1, sfreq, "misc"))
+    scalings_new = _compute_scalings(None, raw_sin, remove_dc=True, duration=10)
+    assert_allclose(scalings_new["misc"], np.subtract(*np.percentile(sine, [75, 25])))
 
     with pytest.raises(ValueError, match="Must supply either Raw or Epochs"):
         _compute_scalings(scalings_def, rand_data)
