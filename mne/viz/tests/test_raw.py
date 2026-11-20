@@ -1873,9 +1873,12 @@ def test_link_browsers_backends(raw, browser_backend):
     raw.set_annotations(None)
     raw2 = raw.copy().crop(tmin=1.0)  # starts later in the acquisition
     fig1 = raw.plot(duration=5.0)
-    if not fig1._supports_ui_events():
-        pytest.skip("This version of the browser backend doesn't support UI events")
     fig2 = raw2.plot(duration=5.0)
+    if not fig1._supports_ui_events():  # e.g., mne-qt-browser <= 0.7.5
+        # (not a skip, CI doesn't allow unexpected skips)
+        with pytest.raises(NotImplementedError, match="not supported by this"):
+            ui_events.link(fig1, fig2)
+        return
     ui_events.link(fig1, fig2)
 
     def assert_synced():
