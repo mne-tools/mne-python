@@ -187,10 +187,6 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         return  # nothing to check
 
     pair_vals = np.array(pair_vals)
-    if pair_vals.shape[0] < 2:
-        raise ValueError(
-            f"At least two {error_word} must exist in info, got {list(pair_vals)}"
-        )
     # In principle we do not need to require that these be sorted --
     # all we need to do is change our sorted() below to make use of a
     # pair_vals.index(...) in a sort key -- but in practice we always want
@@ -198,11 +194,15 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # work with a naive string sort, so let's just enforce sorted-ness here
     is_str = pair_vals.dtype.kind == "U"
     if is_str:
-        if pair_vals.tolist() != ["hbo", "hbr"]:
+        if pair_vals.tolist() not in (["hbo"], ["hbr"], ["hbo", "hbr"]):
             raise ValueError(
-                f'The {error_word} in info must be ["hbo", "hbr"], but got '
-                f"{pair_vals} instead"
+                f"The {error_word} in info must be hbo, hbr, or both, but got "
+                f"{pair_vals.tolist()} instead"
             )
+    elif pair_vals.shape[0] < 2:
+        raise ValueError(
+            f"At least two {error_word} must exist in info, got {list(pair_vals)}"
+        )
     elif not np.array_equal(np.unique(pair_vals), pair_vals):
         raise ValueError(
             f"The {error_word} in info must be unique and sorted, but got "
