@@ -293,6 +293,94 @@ class ChannelsSelect(UIEvent):
     ch_names: list[str]
 
 
+@dataclass
+@fill_doc_static("ui_event_name_source")
+class TimeWindowChange(UIEvent):
+    """Indicates that the user has changed the visible time window.
+
+    This event is published by the 2D data browsers (e.g.,
+    :meth:`mne.io.Raw.plot`) whenever the user scrolls or zooms in time.
+    Linking two browsers with :func:`link` keeps their time windows in sync.
+
+    Parameters
+    ----------
+    tmin : float
+        The new start of the time window in seconds.
+    tmax : float
+        The new end of the time window in seconds.
+
+    Attributes
+    ----------
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    tmin : float
+        The new start of the time window in seconds.
+    tmax : float
+        The new end of the time window in seconds.
+
+    Notes
+    -----
+    Times are relative to the start of the acquisition, i.e., they include
+    ``raw.first_time``, just like the onsets in ``raw.annotations``. This makes
+    them comparable across browsers showing cropped copies of the same data, or
+    using different ``show_first_samp`` settings.
+
+    .. versionadded:: 1.14
+    """
+
+    tmin: float
+    tmax: float
+
+
+@dataclass
+@fill_doc_static("ui_event_name_source")
+class AnnotationsChange(UIEvent):
+    """Indicates that the user has edited annotations.
+
+    This event is published by the 2D data browsers (e.g.,
+    :meth:`mne.io.Raw.plot`) whenever the user adds, removes, or modifies
+    annotations. Linking two browsers with :func:`link` mirrors the edits made
+    in one browser in the other one. A modified annotation is described as the
+    removal of the old annotation and the addition of the new one.
+
+    Parameters
+    ----------
+    added : tuple of tuple
+        The annotations that were added, as
+        ``(onset, duration, description, ch_names)`` tuples, where ``ch_names``
+        is a tuple of channel names (empty for annotations that apply to all
+        channels).
+    removed : tuple of tuple
+        The annotations that were removed, in the same format as ``added``.
+
+    Attributes
+    ----------
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    added : tuple of tuple
+        The annotations that were added, as
+        ``(onset, duration, description, ch_names)`` tuples, where ``ch_names``
+        is a tuple of channel names (empty for annotations that apply to all
+        channels).
+    removed : tuple of tuple
+        The annotations that were removed, in the same format as ``added``.
+
+    Notes
+    -----
+    Onsets follow the convention of ``raw.annotations.onset``, i.e., they are
+    relative to the start of the acquisition and include ``raw.first_time``.
+
+    .. versionadded:: 1.14
+    """
+
+    added: tuple = ()
+    removed: tuple = ()
+
+
 class _TimeUpdated(UIEvent):
     """Brain has moved to a new time point (event name ``"__time_updated"``)."""
 
@@ -349,10 +437,18 @@ def _get_event_channel(fig):
     import matplotlib.figure
 
     from ._brain import Brain
+    from ._figure import BrowserBase
     from .evoked_field import EvokedField
 
     # Create the event channel if it doesn't exist yet
     if fig not in _event_channels:
+        if isinstance(fig, BrowserBase) and not fig._supports_ui_events():
+            raise NotImplementedError(
+                "UI events (e.g., mne.viz.ui_events.link) are not supported by "
+                f"this browser ({type(fig).__name__}). Use a version of the browser "
+                "backend that supports them (e.g., a newer mne-qt-browser), or "
+                'mne.viz.set_browser_backend("matplotlib") before plotting.'
+            )
         # The channel itself is a dict mapping string event names to a list of
         # subscribers. No subscribers yet for this new event channel.
         _event_channels[fig] = dict()
@@ -365,10 +461,16 @@ def _get_event_channel(fig):
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
-        _validate_type(fig, (matplotlib.figure.FigureBase, Brain, EvokedField), "fig")
+        _validate_type(
+            fig,
+            (matplotlib.figure.FigureBase, Brain, EvokedField, BrowserBase),
+            "fig",
+        )
         this_delete_event_channel = partial(_delete_event_channel, weakfig=weakfig)
         if isinstance(fig, matplotlib.figure.FigureBase):
             fig.canvas.mpl_connect("close_event", this_delete_event_channel)
+        elif isinstance(fig, BrowserBase):
+            pass  # BrowserBase._close() deletes the channel
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
             fig._renderer._window_close_connect(this_delete_event_channel, after=False)
