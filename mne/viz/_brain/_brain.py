@@ -7,6 +7,7 @@ import os
 import os.path as op
 import time
 import weakref
+from dataclasses import dataclass
 from io import BytesIO
 
 import numpy as np
@@ -66,6 +67,28 @@ def _seen_radius(bounds, direction):
     corners = np.array(np.meshgrid(*bounds.T)).reshape(3, -1).T - bounds.mean(axis=0)
     corners -= np.outer(corners @ direction, direction)
     return np.linalg.norm(corners, axis=1).max()
+
+
+@dataclass
+class _HemiData:
+    """The data of one overlay for one hemisphere (or the volume)."""
+
+    array: np.ndarray
+    vertices: np.ndarray
+    alpha: float | None = None  # only set for volumes
+    smooth_mat: object = None
+    glyph_dataset: object = None
+    glyph_mapper: object = None
+    glyph_actor: list | None = None
+    grid: object = None
+    grid_mesh: object = None
+    grid_coords: np.ndarray | None = None
+    grid_src_mri_t: np.ndarray | None = None
+    grid_shape: tuple | None = None
+    grid_volume_pos: object = None
+    grid_volume_neg: object = None
+    subcortical_mesh: object = None
+    subcortical_vertno: np.ndarray | None = None
 
 
 def _resolve_offset(offset, surf, hemi):
@@ -1005,12 +1028,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         self._all_data[key]["time_idx"] = time_idx
         self._all_data[key]["transparent"] = transparent
         # data specific for a hemi
-        self._all_data[key][hemi] = dict()
-        self._all_data[key][hemi]["glyph_dataset"] = None
-        self._all_data[key][hemi]["glyph_mapper"] = None
-        self._all_data[key][hemi]["glyph_actor"] = None
-        self._all_data[key][hemi]["array"] = array
-        self._all_data[key][hemi]["vertices"] = vertices
+        self._all_data[key][hemi] = _HemiData(array=array, vertices=vertices)
         if (
             stc is None
             and hemi in ("lh", "rh")
@@ -1025,13 +1043,13 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             stc_verts, stc_data = list(), list()
             for stc_hemi in ("lh", "rh"):
                 hemi_data = self._all_data[key].get(stc_hemi)
-                if not isinstance(hemi_data, dict) or "array" not in hemi_data:
+                if hemi_data is None:
                     stc_verts.append(np.array([], int))
                     continue
-                stc_array = hemi_data["array"]
+                stc_array = hemi_data.array
                 if stc_array.ndim == 1:
                     stc_array = stc_array[:, np.newaxis]
-                stc_verts.append(hemi_data["vertices"])
+                stc_verts.append(hemi_data.vertices)
                 stc_data.append(stc_array)
             if time is not None and len(time) > 1:
                 tmin, tstep = time[0], time[1] - time[0]
@@ -1207,10 +1225,10 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         )
         alpha = volume_options["alpha"]
         if alpha is None:
-            alpha = 0.4 if self._data[hemi]["array"].ndim == 3 else 1.0
+            alpha = 0.4 if self._data[hemi].array.ndim == 3 else 1.0
         alpha = np.clip(float(alpha), 0.0, 1.0)
         if src.kind == "subcortical_surf":
-            self._data[hemi]["alpha"] = alpha
+            self._data[hemi].alpha = alpha
             return self._add_subcortical_surf_data(hemi, src, trans), None
         resolution = volume_options["resolution"]
         surface_alpha = volume_options["surface_alpha"]
@@ -1221,8 +1239,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             silhouette_alpha = surface_alpha / 4.0
         silhouette_linewidth = volume_options["silhouette_linewidth"]
         del volume_options
-        volume_pos = self._data[hemi].get("grid_volume_pos")
-        volume_neg = self._data[hemi].get("grid_volume_neg")
+        volume_pos = self._data[hemi].grid_volume_pos
+        volume_neg = self._data[hemi].grid_volume_neg
         center = self._data["center"]
         if volume_pos is None:
             xyz = np.meshgrid(*[np.arange(s) for s in src[0]["shape"]], indexing="ij")
@@ -1236,8 +1254,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             coords = np.array([c.ravel(order="F") for c in xyz]).T
             coords = apply_trans(src_mri_t, coords)
             self.geo[hemi] = Bunch(coords=coords)
-            vertices = self._data[hemi]["vertices"]
-            assert self._data[hemi]["array"].shape[0] == len(vertices)
+            vertices = self._data[hemi].vertices
+            assert self._data[hemi].array.shape[0] == len(vertices)
             # MNE constructs the source space on a uniform grid in MRI space,
             # but mne coreg can change it to be non-uniform, so we need to
             # use all three elements here
@@ -1262,14 +1280,14 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 center,
                 interpolation,
             )
-            self._data[hemi]["alpha"] = alpha  # incorrectly set earlier
-            self._data[hemi]["grid"] = grid
-            self._data[hemi]["grid_mesh"] = grid_mesh
-            self._data[hemi]["grid_coords"] = coords
-            self._data[hemi]["grid_src_mri_t"] = src_mri_t
-            self._data[hemi]["grid_shape"] = dimensions
-            self._data[hemi]["grid_volume_pos"] = volume_pos
-            self._data[hemi]["grid_volume_neg"] = volume_neg
+            self._data[hemi].alpha = alpha  # incorrectly set earlier
+            self._data[hemi].grid = grid
+            self._data[hemi].grid_mesh = grid_mesh
+            self._data[hemi].grid_coords = coords
+            self._data[hemi].grid_src_mri_t = src_mri_t
+            self._data[hemi].grid_shape = dimensions
+            self._data[hemi].grid_volume_pos = volume_pos
+            self._data[hemi].grid_volume_neg = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
             volume_pos, name=None, culling=False, reset_camera=False, render=False
         )
@@ -1278,7 +1296,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             actor_neg, _ = self._renderer.plotter.add_actor(
                 volume_neg, name=None, culling=False, reset_camera=False, render=False
             )
-        grid_mesh = self._data[hemi]["grid_mesh"]
+        grid_mesh = self._data[hemi].grid_mesh
         if grid_mesh is not None:
             actor_mesh, prop = self._renderer.plotter.add_actor(
                 grid_mesh,
@@ -1306,7 +1324,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
 
     def _add_subcortical_surf_data(self, hemi, src, trans):
         hemi_data = self._data[hemi]
-        mesh = hemi_data.get("subcortical_mesh")
+        mesh = hemi_data.subcortical_mesh
         if mesh is not None:  # already created in another view
             self._renderer.plotter.add_actor(mesh._actor, render=False)
             return mesh._actor
@@ -1328,9 +1346,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         self.geo[hemi] = Bunch(coords=rr)  # e.g., for vector glyphs
         tris = np.concatenate([s["tris"] + off for s, off in zip(src, offsets)])
         vertices = np.concatenate([s["vertno"] + off for s, off in zip(src, offsets)])
-        if len(vertices) != len(hemi_data["vertices"]):
+        if len(vertices) != len(hemi_data.vertices):
             raise ValueError(
-                f"The stc has {len(hemi_data['vertices'])} subcortical vertices but "
+                f"The stc has {len(hemi_data.vertices)} subcortical vertices but "
                 f"src has {len(vertices)}, they must match"
             )
         mesh = LayeredMesh(self._renderer, vertices=rr, triangles=tris, normals=nn)
@@ -1344,16 +1362,16 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             opacity=self._alpha,
             name="curv",
         )
-        hemi_data["subcortical_vertno"] = vertices  # smoothed by set_data_smoothing
-        hemi_data["subcortical_mesh"] = mesh
+        hemi_data.subcortical_vertno = vertices  # smoothed by set_data_smoothing
+        hemi_data.subcortical_mesh = mesh
         return mesh._actor
 
     @property
     def _subcortical_meshes(self):
         return [
-            key_data["vol"]["subcortical_mesh"]
+            key_data["vol"].subcortical_mesh
             for key_data in self._all_data.values()
-            if "subcortical_mesh" in key_data.get("vol", {})
+            if "vol" in key_data and key_data["vol"].subcortical_mesh is not None
         ]
 
     def add_label(
@@ -2214,10 +2232,10 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 hemi_data = data.get(h)
                 if hemi_data is None:
                     continue
-                glyph_dataset = hemi_data.get("glyph_dataset")
+                glyph_dataset = hemi_data.glyph_dataset
                 if glyph_dataset is None:
                     continue
-                vertices = hemi_data["vertices"]
+                vertices = hemi_data.vertices
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
         self._unfold = float(unfold)
@@ -2406,13 +2424,13 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         for hemi in ["lh", "rh", "vol"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                mesh = self.layered_meshes.get(hemi, hemi_data.get("subcortical_mesh"))
+                mesh = self.layered_meshes.get(hemi, hemi_data.subcortical_mesh)
                 if mesh is not None:
                     mesh.update_overlay(
                         name=self._active_data_key,
                         colormap=self._data["ctable"],
                         # like volumes, subcortical meshes use volume_options alpha
-                        opacity=alpha if hemi != "vol" else hemi_data["alpha"],
+                        opacity=alpha if hemi != "vol" else hemi_data.alpha,
                         rng=rng,
                     )
                     self._renderer._set_colormap_range(
@@ -2424,20 +2442,20 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         fmt=fmt,
                     )
 
-                grid_volume_pos = hemi_data.get("grid_volume_pos")
-                grid_volume_neg = hemi_data.get("grid_volume_neg")
+                grid_volume_pos = hemi_data.grid_volume_pos
+                grid_volume_neg = hemi_data.grid_volume_neg
                 for grid_volume in (grid_volume_pos, grid_volume_neg):
                     if grid_volume is not None:
                         self._renderer._set_volume_range(
                             grid_volume,
                             ctable,
-                            hemi_data["alpha"],
+                            hemi_data.alpha,
                             self._scalar_bar,
                             rng,
                             fmt=fmt,
                         )
 
-                glyph_actor = hemi_data.get("glyph_actor")
+                glyph_actor = hemi_data.glyph_actor
                 if glyph_actor is not None:
                     for glyph_actor_ in glyph_actor:
                         self._renderer._set_colormap_range(
@@ -2457,13 +2475,13 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
 
         morph_n_steps = "nearest" if n_steps == -1 else n_steps
         for key_data in self._all_data.values():
-            hemi_data = key_data.get("vol", {})
-            if "subcortical_mesh" in hemi_data:
-                mesh = hemi_data["subcortical_mesh"]
-                vertno = hemi_data["subcortical_vertno"]
+            hemi_data = key_data.get("vol")
+            if hemi_data is not None and hemi_data.subcortical_mesh is not None:
+                mesh = hemi_data.subcortical_mesh
+                vertno = hemi_data.subcortical_vertno
                 full = len(vertno) == len(mesh._vertices)
                 with use_log_level(False):
-                    hemi_data["smooth_mat"] = _hemi_morph(
+                    hemi_data.smooth_mat = _hemi_morph(
                         mesh._triangles,
                         np.arange(len(mesh._vertices)),
                         vertno,
@@ -2476,12 +2494,12 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
                     continue
-                if len(hemi_data["array"]) >= self.geo[hemi].x.shape[0]:
+                if len(hemi_data.array) >= self.geo[hemi].x.shape[0]:
                     continue
-                vertices = hemi_data["vertices"]
+                vertices = hemi_data.vertices
                 if vertices is None:
                     raise ValueError(
-                        f"len(data) < nvtx ({len(hemi_data['array'])} < "
+                        f"len(data) < nvtx ({len(hemi_data.array)} < "
                         f"{self.geo[hemi].x.shape[0]}): the vertices "
                         "parameter must not be None"
                     )
@@ -2494,7 +2512,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         maps=None,
                         warn=False,
                     )
-                hemi_data["smooth_mat"] = smooth_mat
+                hemi_data.smooth_mat = smooth_mat
         self._update_current_time_idx(self._data["time_idx"])
         self._data["smoothing_steps"] = n_steps
 
@@ -2531,7 +2549,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 for hemi in ["lh", "rh", "vol"]:
                     hemi_data = key_data.get(hemi)
                     if hemi_data is not None:
-                        array = hemi_data["array"]
+                        array = hemi_data.array
                         if array.ndim > 1:
                             self._time_interp_funcs[(data_key, hemi)] = _safe_interp1d(
                                 idx,
@@ -2561,7 +2579,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
                     continue
-                array = hemi_data["array"]
+                array = hemi_data.array
                 # interpolate in time
                 vectors = None
                 if array.ndim == 1:
@@ -2586,9 +2604,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
 
                 # update the volume interpolation (active key only)
                 if data_key == self._active_data_key:
-                    grid = hemi_data.get("grid")
+                    grid = hemi_data.grid
                     if grid is not None:
-                        vertices = hemi_data["vertices"]
+                        vertices = hemi_data.vertices
                         values = self._current_act_data[hemi]
                         rng = self._cmap_range
                         fill = 0 if active["center"] is not None else rng[0]
@@ -2603,9 +2621,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         #     grid.point_data["values"][21334] = values.max()
 
                 # update the mesh scalar values
-                mesh = self.layered_meshes.get(hemi, hemi_data.get("subcortical_mesh"))
+                mesh = self.layered_meshes.get(hemi, hemi_data.subcortical_mesh)
                 if mesh is not None:
-                    mesh.smooth_mat = hemi_data.get("smooth_mat")
+                    mesh.smooth_mat = hemi_data.smooth_mat
                     key_rng = [
                         (
                             -key_data["fmax"]
@@ -2687,20 +2705,22 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
         # subcortical meshes are combined, so use their offset vertex numbers
-        vertices = hemi_data.get("subcortical_vertno", hemi_data["vertices"])
+        vertices = hemi_data.subcortical_vertno
+        if vertices is None:
+            vertices = hemi_data.vertices
         vector_alpha = self._data["vector_alpha"]
         scale_factor = self._data["scale_factor"]
         vertices = slice(None) if vertices is None else vertices
         x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-        if hemi_data["glyph_actor"] is None:
+        if hemi_data.glyph_actor is None:
             add = True
-            hemi_data["glyph_actor"] = list()
+            hemi_data.glyph_actor = list()
         else:
             add = False
         count = 0
         for _ in self._iter_views(hemi):
-            if hemi_data["glyph_dataset"] is None:
+            if hemi_data.glyph_dataset is None:
                 glyph_mapper, glyph_dataset = self._renderer.quiver3d(
                     x,
                     y,
@@ -2714,12 +2734,12 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                     scale=scale_factor,
                     opacity=vector_alpha,
                 )
-                hemi_data["glyph_dataset"] = glyph_dataset
-                hemi_data["glyph_mapper"] = glyph_mapper
+                hemi_data.glyph_dataset = glyph_dataset
+                hemi_data.glyph_mapper = glyph_mapper
             else:
-                glyph_dataset = hemi_data["glyph_dataset"]
+                glyph_dataset = hemi_data.glyph_dataset
                 glyph_dataset.point_data["vec"] = vectors
-                glyph_mapper = hemi_data["glyph_mapper"]
+                glyph_mapper = hemi_data.glyph_mapper
             if add:
                 # TODO: VTK mapper/actor API, see _add_volume_data
                 glyph_actor = self._renderer._actor(glyph_mapper)
@@ -2727,9 +2747,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 prop.SetLineWidth(2.0)
                 prop.SetOpacity(vector_alpha)
                 self._renderer.plotter.add_actor(glyph_actor, render=False)
-                hemi_data["glyph_actor"].append(glyph_actor)
+                hemi_data.glyph_actor.append(glyph_actor)
             else:
-                glyph_actor = hemi_data["glyph_actor"][count]
+                glyph_actor = hemi_data.glyph_actor[count]
             count += 1
             self._renderer._set_colormap_range(
                 actor=glyph_actor,
@@ -2794,8 +2814,17 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
 
     @property
     def data(self):
-        """Data used by time viewer and color bar widgets."""
-        return self._data
+        """Data used by time viewer and color bar widgets.
+
+        This is for reference only: it might contain copies of the data, and
+        modifying it has no effect on the brain itself.
+        """
+        if self._data is None:
+            return None
+        return {  # the per-hemisphere data as plain dicts, as before
+            key: vars(val) if isinstance(val, _HemiData) else val
+            for key, val in self._data.items()
+        }
 
     @property
     def _data(self):
