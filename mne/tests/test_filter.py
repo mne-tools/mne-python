@@ -363,8 +363,16 @@ def test_notch_filters(method, filter_length, line_freq, tol, offset):
         with pytest.raises(ValueError, match="freqs=None can only be used wi"):
             notch_filter(a, sfreq, None, kind)
     with catch_logging() as log_file:
+        # TODO VERSION: Remove in v1.15 when notch_widths=None no longer warns
+        notch_widths = np.atleast_1d(line_freq) / 200 if line_freq is not None else None
         b = notch_filter(
-            a, sfreq, line_freq, filter_length, method=method, verbose=True
+            a,
+            sfreq,
+            line_freq,
+            filter_length,
+            notch_widths=notch_widths,
+            method=method,
+            verbose=True,
         )
     if line_freq is None:
         # each line should be detected in all windows (a rare spurious
@@ -388,6 +396,15 @@ def test_notch_filters(method, filter_length, line_freq, tol, offset):
     # and other frequencies should be mostly untouched (FIR removes a band)
     err = np.sqrt(np.mean((b - noise) ** 2))
     assert err < (0.1 if method == "spectrum_fit" else 0.2), err
+
+
+# TODO VERSION: Remove in v1.15 when notch_widths=None no longer warns
+def test_notch_filter_width_warning():
+    """Test that notch_widths=None warns about change to freqs/100."""
+    rng = np.random.default_rng(0)
+    x = rng.normal(0, 1, (1, 200))
+    with pytest.warns(FutureWarning, match="`notch_widths=None` will change"):
+        notch_filter(x, 10, 2, notch_widths=None)
 
 
 @resample_method_parametrize
