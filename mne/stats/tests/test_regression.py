@@ -160,7 +160,7 @@ def test_continuous_regression_with_overlap():
 
 
 def test_continuous_regression_list_covariates():
-    """Test list covariates on synthetic data without external datasets."""
+    """Test that linear_regression_raw accepts covariates given as a list."""
     data = np.random.default_rng(0).standard_normal((1, 3000)) * 1e-5
     raw = RawArray(data, mne.create_info(1, 100, "eeg"))
     events = np.array([[sample, 0, 1] for sample in range(100, 2900, 200)])

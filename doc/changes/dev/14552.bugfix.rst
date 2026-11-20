@@ -1,1 +1,1 @@
-Accept list-valued covariates in :func:`mne.stats.linear_regression_raw`, by :newcontrib:`Eva B`.
+Fix bug where :func:`mne.stats.linear_regression_raw` raised an error when covariate values were passed as a list instead of an array, by :newcontrib:`Eva B`.
