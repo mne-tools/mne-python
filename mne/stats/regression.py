@@ -414,7 +414,7 @@ def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
     has_val = np.unique(X.nonzero()[0])
 
     # reject positions based on extreme steps in the data
-    if reject is not None:
+    if reject is not None or flat is not None:
         _, inds = _reject_data_segments(
             data, reject, flat, decim=None, info=info, tstep=tstep
         )
