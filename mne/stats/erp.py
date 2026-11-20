@@ -344,6 +344,8 @@ def compute_frac_peak_latency(
         which the peak amplitude reaches the fractional threshold. If
         ``average=True``, contains a single row whose 'channel' value is
         ``'Average'``.
+        Onset is searched backward from the selected peak, so earlier deflections
+        separated from the peak by a subthreshold interval are excluded.
     """
     pd = _check_pandas_installed(strict=True)
     _check_option("mode", mode, ["abs", "neg", "pos"])
@@ -356,9 +358,16 @@ def compute_frac_peak_latency(
     transformed_peak = data_masked[np.arange(data_masked.shape[0]), peak_idx]
     frac_amplitudes = frac * transformed_peak[:, np.newaxis]
 
-    # Find the first time point before the peak where the signal reaches the
-    # fractional threshold
-    frac_peak_onset = np.argmax(data_masked >= frac_amplitudes, axis=1)
+    # Search backward from the peak for the time point at which the signal first
+    # reaches the fractional threshold; the start of the window if it is above the
+    # threshold all the way back
+    frac_peak_onset = np.zeros(data_masked.shape[0], int)
+    for i in range(data_masked.shape[0]):
+        below_threshold = np.where(
+            data_masked[i, : peak_idx[i] + 1] < frac_amplitudes[i]
+        )[0]
+        if len(below_threshold) > 0 and below_threshold[-1] < peak_idx[i]:
+            frac_peak_onset[i] = below_threshold[-1] + 1
     frac_peak_onset_latency = times[mask][frac_peak_onset]
 
     # Find the first time point after the peak where the signal falls back to
