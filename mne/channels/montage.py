@@ -29,7 +29,9 @@ from .._fiff.meas_info import create_info
 from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
+from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..surface import _project_onto_surface
 from ..transforms import (
     Transform,
     _ensure_trans,
@@ -837,9 +839,6 @@ class DigMontage:
 
         .. versionadded:: 1.14
         """
-        from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
-        from ..surface import _project_onto_surface
-
         head_mri_t = _get_trans(trans, "head", "mri", allow_none=False)[0]
         _validate_type(bem, ("path-like", ConductorModel), "bem")
         bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel,))
