@@ -74,11 +74,27 @@ def test_compute_area():
     assert_allclose(signed["area"][2], -1e-7, rtol=1e-3)
 
 
-def test_compute_frac_peak_latency():
+@pytest.mark.parametrize("mode", ["pos", "neg", "abs"])
+def test_compute_frac_peak_latency(mode):
     """Test fractional peak latency against known half-amplitude crossings."""
     evoked = _triangle_evoked()
+    if mode == "neg":
+        evoked.data *= -1
     latencies = compute_frac_peak_latency(
-        evoked, frac=0.5, start=0.2, stop=0.4, mode="pos"
+        evoked, frac=0.5, start=0.2, stop=0.4, mode=mode
+    )
+    assert_allclose(latencies["fractional_peak_onset"][0], 0.25, atol=2e-3)
+    assert_allclose(latencies["fractional_peak_offset"][0], 0.35, atol=2e-3)
+
+    # an earlier, smaller deflection that exceeds the threshold must not be taken
+    # as the onset of the peak: onset and offset are both searched from the peak
+    times = evoked.times
+    data = evoked.data.copy()
+    sign = -1 if mode == "neg" else 1
+    data[0] += sign * 0.7e-6 * np.clip(1 - np.abs(times - 0.1) / 0.05, 0, None)
+    bumpy = EvokedArray(data, evoked.info, tmin=times[0])
+    latencies = compute_frac_peak_latency(
+        bumpy, frac=0.5, start=0.0, stop=0.4, mode=mode, picks=["ch0"]
     )
     assert_allclose(latencies["fractional_peak_onset"][0], 0.25, atol=2e-3)
     assert_allclose(latencies["fractional_peak_offset"][0], 0.35, atol=2e-3)
