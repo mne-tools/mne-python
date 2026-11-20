@@ -1,0 +1,1 @@
+Use the sample standard deviation when calculating :func:`mne.stats.erp.compute_sme`, by :newcontrib:`Eva B`.
