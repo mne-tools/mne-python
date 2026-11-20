@@ -287,6 +287,8 @@ def test_marching_cubes(dtype, value, smooth, order):
     assert len(out) == 1
     verts, triangles = out[0]
     assert verts.flags.owndata and triangles.flags.owndata  # not views on VTK data
+    verts_empty, tris_empty = _marching_cubes(data, [value + 1])[0]
+    assert verts_empty.shape == (0, 3) and tris_empty.shape == (0, 3)
     # verts and faces are rather large so use checksum
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)

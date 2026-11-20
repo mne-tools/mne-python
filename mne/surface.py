@@ -1958,6 +1958,9 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
             selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
+        if polydata.GetPoints() is None:
+            out.append((np.zeros((0, 3)), np.zeros((0, 3), int)))
+            continue
         rr = vtk_to_numpy(polydata.GetPoints().GetData())
         tris = vtk_to_numpy(polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
         # copy, as views on VTK memory would keep the VTK arrays alive
