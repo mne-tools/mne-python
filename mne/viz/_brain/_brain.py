@@ -2814,7 +2814,11 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
 
     @property
     def data(self):
-        """Data used by time viewer and color bar widgets."""
+        """Data used by time viewer and color bar widgets.
+
+        This is for reference only: it might contain copies of the data, and
+        modifying it has no effect on the brain itself.
+        """
         if self._data is None:
             return None
         return {  # the per-hemisphere data as plain dicts, as before
