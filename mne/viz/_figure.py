@@ -591,11 +591,11 @@ class BrowserBase(ABC):
         # The callbacks only hold a weak reference to us, so that our event
         # channel doesn't keep us alive after closing (with non-interactive
         # matplotlib backends, closing doesn't remove the event channel).
-        for event_name, method_name in (
-            ("time_window_change", "_on_time_window_change"),
-            ("annotations_change", "_on_annotations_change"),
+        for event_name, method in (
+            ("time_window_change", self._on_time_window_change),
+            ("annotations_change", self._on_annotations_change),
         ):
-            subscribe(self, event_name, _weak_callback(self, method_name))
+            subscribe(self, event_name, _weak_callback(method))
 
     def _browser_to_acq_time(self, time):
         """Convert a time on the browser's x-axis to acquisition time."""
@@ -953,14 +953,14 @@ class BrowserBase(ABC):
         pass
 
 
-def _weak_callback(obj, method_name):
-    """Make a UI-event callback that calls a method without keeping obj alive."""
-    weak_obj = weakref.ref(obj)
+def _weak_callback(method):
+    """Make a UI-event callback that doesn't keep the method's object alive."""
+    weak_method = weakref.WeakMethod(method)
 
     def callback(event):
-        obj = weak_obj()
-        if obj is not None:
-            getattr(obj, method_name)(event)
+        method = weak_method()
+        if method is not None:
+            method(event)
 
     return callback
 
