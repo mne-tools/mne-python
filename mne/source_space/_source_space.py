@@ -42,6 +42,7 @@ from ..bem import ConductorModel, read_bem_surfaces
 from ..fixes import _get_img_fdata
 from ..parallel import parallel_func
 from ..surface import (
+    _apply_trans_mesh,
     _CheckInside,
     _CheckInsideSphere,
     _compute_nearest,
@@ -2262,9 +2263,7 @@ def setup_subcortical_source_space(
                 continue
             if keep_largest_component:
                 rr, tris = _keep_largest_component(rr, tris)
-            rr = apply_trans(vox_mri_t, rr)
-            if np.linalg.det(vox_mri_t[:3, :3]) < 0:
-                tris = tris[:, ::-1]  # so normals point outward
+            rr, tris = _apply_trans_mesh(vox_mri_t, rr, tris)
             s = _surf_from_mesh(rr, tris, subject)
             s["seg_name"] = seg_name
             s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + seg_id

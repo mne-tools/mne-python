@@ -13,7 +13,7 @@ from ..._freesurfer import (
     read_freesurfer_lut,
 )
 from ...defaults import DEFAULTS
-from ...surface import _marching_cubes
+from ...surface import _apply_trans_mesh, _marching_cubes
 from ...transforms import (
     Transform,
     _frame_to_str,
@@ -341,7 +341,7 @@ class _SceneMixin:
                     f"{repr(label)} in anatomical segmentation file "
                 )
                 continue
-            verts = apply_trans(vox_mri_t, verts)
+            verts, triangles = _apply_trans_mesh(vox_mri_t, verts, triangles)
             for _ in self._iter_views("vol"):
                 actor, _ = self._renderer.mesh(
                     *verts.T,
