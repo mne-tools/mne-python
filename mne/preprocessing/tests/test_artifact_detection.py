@@ -164,7 +164,8 @@ def test_muscle_annotation(meas_date, events):
     raw = read_raw_fif(raw_fname, allow_maxshield="yes").load_data()
     if meas_date is None:
         raw.set_meas_date(None)
-    raw.notch_filter([50, 110, 150])
+    notch_freqs = np.array([50, 110, 150])
+    raw.notch_filter(notch_freqs, notch_widths=notch_freqs / 200.0)
     # Check 2 muscle segments are detected
     annot_muscle, scores = annotate_muscle_zscore(raw, ch_type="mag", threshold=10)
     assert annot_muscle.orig_time == raw.info["meas_date"]

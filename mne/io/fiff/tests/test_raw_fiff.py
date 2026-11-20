@@ -1181,8 +1181,14 @@ def test_filter():
     # do a very simple check on line filtering
     raw_bs = raw.copy().filter(60.0 + trans, 60.0 - trans, **filter_params)
     data_bs, _ = raw_bs[picks, :]
+    notch_freq = 60.0
     raw_notch = raw.copy().notch_filter(
-        60.0, picks=picks, n_jobs=2, method="fir", trans_bandwidth=2 * trans
+        notch_freq,
+        notch_widths=notch_freq / 200.0,
+        picks=picks,
+        n_jobs=2,
+        method="fir",
+        trans_bandwidth=2 * trans,
     )
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
