@@ -1,0 +1,1 @@
+Add :func:`~mne.viz.plot_stat_cluster` that plots the spatial extent of a cluster on top of a brain by `Shristi Baral`_.
