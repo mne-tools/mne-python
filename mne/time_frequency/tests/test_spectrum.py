@@ -230,6 +230,31 @@ def test_spectrum_copy(raw_spectrum):
     assert raw_spectrum.freqs is not None
 
 
+def test_welch_complex_io(raw, tmp_path):
+    """Read spectra saved both before and after Welch endpoint scaling."""
+    pytest.importorskip("h5io")
+    pytest.importorskip("h5py")
+    _, write_hdf5 = _import_h5io_funcs()
+    kwargs = dict(method="welch", average=None, n_fft=64, remove_dc=False)
+    spectrum = raw.compute_psd(output="complex", **kwargs)
+    fname = tmp_path / "spectrum.h5"
+    spectrum.save(fname)
+    assert spectrum == read_spectrum(fname)
+
+    # Older files stored the unscaled SciPy coefficients.
+    state = spectrum.__getstate__()
+    old_coefs = spectrum.get_data()
+    old_coefs[..., [0, -1], :] *= np.sqrt(2.0)
+    state["data"] = old_coefs
+    write_hdf5(fname, state, title="mnepython", overwrite=True)
+    loaded = read_spectrum(fname)
+    assert_array_equal(loaded.get_data(), old_coefs)
+    assert_allclose(
+        loaded._prepare_data_for_plot(loaded.get_data()),
+        np.median((old_coefs * old_coefs.conj()).real * 2, axis=-1),
+    )
+
+
 @pytest.mark.parametrize("weights", ["nave", "equal", [1, -1]])
 def test_combine_spectrum(raw_spectrum, weights):
     """Test `combine_spectrum()` works."""
@@ -456,7 +481,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
         if output == "complex":
 
             def _fun(x):
-                return np.mean(np.real(x * np.conj(x)))  # use mean to aggregate
+                return np.mean(np.real(x * np.conj(x)) * 2)
 
             agg_df = gb.agg(_fun)
         else:
@@ -686,14 +711,15 @@ def test_spectrum_array(kind, method, output, average, tmp_path, request):
 
 
 @pytest.mark.parametrize(
-    "method, output, average",
+    "method, output, average, n_per_seg",
     [
-        ("welch", "power", "mean"),  # test with precomputed spectrum
-        ("welch", "complex", False),  # test aggr over segments & conversion to power
-        ("multitaper", "complex", None),  # test aggr over tapers & conversion to power
+        ("welch", "power", "mean", None),  # test with precomputed spectrum
+        ("welch", "complex", False, 256),  # aggregate segments
+        ("multitaper", "complex", None, None),
+        ("multitaper", "complex", None, 256),  # aggregate tapers and segments
     ],  # additional variants don't improve coverage
 )
-def test_plot_spectrum(method, output, average, request):
+def test_plot_spectrum(method, output, average, n_per_seg, request):
     """Test plotting EpochsSpectrum(Array).
 
     Testing Spectrum(Array) with raw data doesn't improve coverage.
@@ -702,10 +728,21 @@ def test_plot_spectrum(method, output, average, request):
         spectrum = request.getfixturevalue("epochs_spectrum")
     else:
         data = request.getfixturevalue("epochs")
-        kwargs = dict()
+        kwargs = dict(n_per_seg=n_per_seg, average=average)
         if method == "welch":
-            kwargs.update(average=average)
+            kwargs.update(n_fft=256)
         spectrum = data.compute_psd(method=method, output=output, **kwargs)
+        power = data.compute_psd(method=method, output="power", **kwargs)
+        want = power._prepare_data_for_plot(power.get_data())
+        assert_allclose(spectrum._prepare_data_for_plot(spectrum.get_data()), want)
+        if method == "welch":
+            array = EpochsSpectrumArray(
+                spectrum.get_data(),
+                spectrum.info,
+                spectrum.freqs,
+                dim_names=spectrum._dims,
+            )
+            assert_allclose(array._prepare_data_for_plot(array.get_data()), want)
     spectrum.info["bads"] = spectrum.ch_names[:1]  # one grad channel
     spectrum.plot(average=True, amplitude=True, spatial_colors=True)
     spectrum.plot(average=True, amplitude=False, spatial_colors=False)
@@ -742,13 +779,13 @@ def test_plot_spectrum_array_with_bads():
 
 @pytest.mark.parametrize("dB", (False, True))
 @pytest.mark.parametrize("amplitude", (False, True))
-def test_plot_spectrum_dB(raw_spectrum, dB, amplitude):
+@pytest.mark.parametrize("peak, power", [(3.0, 3.0), (1 + 1j, 4.0)])
+def test_plot_spectrum_dB(raw_spectrum, dB, amplitude, peak, power):
     """Test that we properly handle amplitude/power and dB."""
     idx = 7
-    power = 3
     freqs = np.linspace(1, 100, 100)
-    data = np.full((1, freqs.size), np.finfo(float).tiny)
-    data[0, idx] = power
+    data = np.ones((1, freqs.size), dtype=type(peak))
+    data[0, idx] = peak
     info = create_info(ch_names=["delta"], sfreq=1000, ch_types="eeg")
     psd = SpectrumArray(data=data, info=info, freqs=freqs)
     with pytest.warns(RuntimeWarning, match="Channel locations not available"):
