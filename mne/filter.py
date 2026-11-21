@@ -2259,6 +2259,11 @@ def resample(
     we have adapted for our use here. Choices of npad and window have
     important consequences, and the default choices should work well
     for most natural signals.
+
+    When ``method="fft"`` and ``x`` contains ``NaN`` values, ``NaN`` segments
+    are temporarily filled via linear interpolation (holding the nearest valid
+    edge value at boundaries) prior to FFT resampling, and ``NaN`` values are
+    then restored at the corresponding resampled positions.
     """
     _validate_type(method, str, "method")
     _validate_type(pad, str, "pad")
@@ -2343,6 +2348,19 @@ def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
     from scipy import fft, signal
 
     x_len = x_flat.shape[-1]
+    nan_mask = np.isnan(x_flat)
+    has_nan = bool(nan_mask.any())
+    if has_nan:
+        x_flat = x_flat.copy()
+        samples = np.arange(x_len)
+        for xi in np.flatnonzero(nan_mask.any(axis=1)):
+            valid = ~nan_mask[xi]
+            if valid.any():
+                x_flat[xi, nan_mask[xi]] = np.interp(
+                    samples[nan_mask[xi]], samples[valid], x_flat[xi, valid]
+                )
+            else:
+                x_flat[xi] = 0.0
     pad = "reflect_limited" if pad == "auto" else pad
     if (isinstance(window, str) and window == "auto") or window is None:
         window = "boxcar"
@@ -2391,6 +2409,12 @@ def _resample_fft(x_flat, *, ratio, final_len, pad, window, npad, n_jobs):
             p_fun(x_, new_len, npads, to_removes, cuda_dict, pad) for x_ in x_flat
         )
         y = np.array(y)
+
+    if has_nan:
+        nearest = np.minimum(
+            np.rint(np.arange(final_len) / ratio).astype(int), x_len - 1
+        )
+        y[nan_mask[:, nearest]] = np.nan
 
     return y
 
