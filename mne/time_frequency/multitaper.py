@@ -331,7 +331,12 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=No
 
 
 @verbose_static(
-    "fmin_fmax_psd", "normalization", "remove_dc", "n_jobs", "max_iter_multitaper"
+    "fmin_fmax_psd",
+    "normalization",
+    "remove_dc",
+    "n_jobs",
+    "max_iter_multitaper",
+    "notes_fourier_coefficient_scaling",
 )
 def psd_array_multitaper(
     x,
@@ -390,9 +395,7 @@ def psd_array_multitaper(
 
         * ``'power'`` : the power spectral density is returned.
         * ``'complex'`` : the complex Fourier coefficients are returned per
-          taper. The DC coefficient and the Nyquist coefficient (for even-length
-          FFTs) are divided by the square root of two. Thus, the one-sided power for
-          each taper is ``2 * abs(coefs) ** 2`` at every frequency.
+          taper.
     n_jobs : int | None
         The number of jobs to run in parallel. If ``-1``, it is set
         to the number of CPU cores. Requires the :mod:`joblib` package.
@@ -450,6 +453,11 @@ def psd_array_multitaper(
 
     Notes
     -----
+    For one-sided spectra, the DC coefficient and, for even-length FFTs, the Nyquist
+    coefficient are divided by the square root of two. At every frequency,
+    ``(coefs * np.conj(coefs)).real * 2`` gives the power before averaging over
+    segments or tapers.
+
     .. versionadded:: 0.14.0
 
     References

@@ -44,8 +44,16 @@ def _median_biases(n):
     return biases
 
 
-def _decomp_aggregate_mask(epoch, func, average, freq_sl):
+def _decomp_aggregate_mask(epoch, func, average, freq_sl, output):
     _, _, spect = func(epoch)
+    if output == "complex":
+        if np.iscomplexobj(epoch):
+            # SciPy switches to a two-sided spectrum for complex input.
+            spect /= np.sqrt(2.0)
+        else:
+            spect[..., 0, :] /= np.sqrt(2.0)
+            if func.keywords["nfft"] % 2 == 0:
+                spect[..., -1, :] /= np.sqrt(2.0)
     spect = spect[..., freq_sl, :]
     # Do the averaging here (per epoch) to save memory
     if average == "mean":
@@ -64,7 +72,7 @@ def _spect_func(epoch, func, freq_sl, average, *, output="power"):
     # want to write (really, go back to) our own spectrogram implementation
     # that, if possible, averages after each transform, but this will incur
     # a lot of overhead because of the many Python calls required.
-    kwargs = dict(func=func, average=average, freq_sl=freq_sl)
+    kwargs = dict(func=func, average=average, freq_sl=freq_sl, output=output)
     if epoch.nbytes > 10e6:
         spect = np.apply_along_axis(_decomp_aggregate_mask, -1, epoch, **kwargs)
     else:
@@ -91,7 +99,9 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-@verbose_static("n_jobs", "window_psd", "remove_dc")
+@verbose_static(
+    "n_jobs", "window_psd", "remove_dc", "notes_fourier_coefficient_scaling"
+)
 def psd_array_welch(
     x,
     sfreq,
@@ -162,15 +172,9 @@ def psd_array_welch(
 
         * ``'power'`` : the power spectral density is returned.
         * ``'complex'`` : the complex Fourier coefficients are returned per
-          window. For one-sided spectra, the DC coefficient and the Nyquist
-          coefficient (for even-length FFTs) are divided by the square root of two.
-          For complex input, all coefficients are divided by the square root of two.
-          The power in each segment is ``2 * abs(coefs) ** 2`` at every frequency.
+          window.
 
         .. versionadded:: 1.4.0
-        .. versionchanged:: 1.14
-           Complex coefficients use the same one-sided scaling convention as
-           :func:`~mne.time_frequency.psd_array_multitaper`.
     verbose : bool | str | int | None
         Control verbosity of the logging output. If ``None``, use the default
         verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -191,6 +195,14 @@ def psd_array_welch(
 
     Notes
     -----
+    For one-sided spectra, the DC coefficient and, for even-length FFTs, the Nyquist
+    coefficient are divided by the square root of two. At every frequency,
+    ``(coefs * np.conj(coefs)).real * 2`` gives the power before averaging over
+    segments or tapers.
+
+    For complex-valued input, Welch uses a two-sided FFT and divides all
+    coefficients by the square root of two.
+
     .. versionadded:: 0.14.0
 
     References
@@ -316,10 +328,7 @@ def psd_array_welch(
             partial(_func, nperseg=min(w, n_per_seg), noverlap=min(n_overlap, w - 1))
             for w in span_lengths
         ]
-        if average is None:
-            agg_func = partial(np.concatenate, axis=-1)  # keep each span's segments
-        else:
-            agg_func = partial(np.average, axis=0, weights=weights)
+        agg_func = partial(np.average, weights=weights)
         if n_jobs > 1:
             logger.info(
                 f"Data split into {len(x_splits)} (probably unequal) chunks due to "
@@ -334,13 +343,13 @@ def psd_array_welch(
                 "per-channel contamination."
             )
         x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
-        agg_func = partial(np.concatenate, axis=0)
+        agg_func = np.concatenate
         funcs = [_func] * len(x_splits)
     f_spect = parallel(
         my_spect_func(d, func=fn, freq_sl=freq_sl, average=average, output=output)
         for d, fn in zip(x_splits, funcs)
     )
-    psds = agg_func(f_spect)
+    psds = agg_func(f_spect, axis=0)
     shape = dshape + (len(freqs),)
     if average is None:
         shape = shape + (-1,)
@@ -349,12 +358,4 @@ def psd_array_welch(
         psds[bad_ch] = np.nan
 
     psds = psds.reshape(shape, copy=False)
-    if output == "complex":
-        if np.isrealobj(x):
-            if freq_sl.start == 0:
-                psds[..., 0, :] /= np.sqrt(2.0)
-            if n_fft % 2 == 0 and freq_sl.stop == n_fft // 2 + 1:
-                psds[..., -1, :] /= np.sqrt(2.0)
-        else:  # SciPy uses a two-sided spectrum without doubling any bins
-            psds /= np.sqrt(2.0)
     return psds, freqs
