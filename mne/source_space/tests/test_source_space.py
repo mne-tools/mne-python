@@ -16,8 +16,10 @@ from numpy.testing import (
 import mne
 from mne import (
     SourceEstimate,
+    VolSourceEstimate,
     add_source_space_distances,
     compute_source_morph,
+    extract_label_time_course,
     get_volume_labels_from_src,
     make_sphere_model,
     morph_source_spaces,
@@ -719,6 +721,20 @@ def test_setup_subcortical_source_space(tmp_path):
         assert s["rr"].shape[1] == 3 and s["ntri"] > 0
         r = s["rr"][s["tris"]]
         assert np.einsum("ij,ij->i", r[:, 0], np.cross(r[:, 1], r[:, 2])).sum() > 0
+
+    # label time courses: one per structure; for a coherent (dipole-like) signal
+    # on a closed surface, a plain mean cancels but the sign flip does not
+    data = np.concatenate([s["nn"][s["vertno"], 2:] for s in src_label])
+    stc = VolSourceEstimate(data, [s["vertno"] for s in src_label], 0, 1)
+    with pytest.raises(ValueError, match="must be None"):
+        extract_label_time_course(stc, labels, src_label)
+    tc = {
+        mode: extract_label_time_course(stc, None, src_label, mode=mode)
+        for mode in ("mean", "mean_flip", "auto")
+    }
+    assert tc["mean"].shape == (len(labels), 1)
+    assert_array_equal(tc["auto"], tc["mean_flip"])
+    assert_array_less(5 * np.abs(tc["mean"]), np.abs(tc["mean_flip"]))
 
     # mesh input: an externally-supplied surface (path or rr/tris dict)
     rr, tris = read_surface(fname_surf)[:2]
