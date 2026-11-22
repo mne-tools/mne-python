@@ -942,6 +942,22 @@ class BaseEpochs(
 
         return self
 
+    @property
+    def _bad_mask(self):
+        """Bool array (n_epochs, n_channels): True where an epoch is NaN."""
+        if not self.preload:
+            return np.zeros((len(self.events), len(self.ch_names)), dtype=bool)
+        assert self._data is not None
+        return np.isnan(self._data).any(axis=-1)
+
+    @property
+    def nave_per_channel(self):
+        """Number of valid (non-NaN) epochs per channel.
+
+        :type: :class:`numpy.ndarray`, shape (n_channels,)
+        """
+        return np.sum(~self._bad_mask, axis=0)
+
     def _check_events_outside_data(self, on_outside, raw):
         """Warn when events fall outside the range of the recorded data (gh-12989)."""
         if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
