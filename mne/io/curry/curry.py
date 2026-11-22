@@ -763,7 +763,7 @@ def read_raw_curry(
         inst = Epochs(inst, **curry_epoch_info)
         if rectype == "evoked":
             raise NotImplementedError  # not sure this is even supported format
-    return inst  # ty: ignore[invalid-return-type]  # epochs branch
+    return inst  # ty: ignore[invalid-explicit-return]  # epochs branch
 
 
 class RawCurry(BaseRaw):

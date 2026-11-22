@@ -1058,6 +1058,8 @@ class InterpolationMixin:
         method=None,
         exclude=(),
         on_bad_position="warn",
+        *,
+        interpolation=None,
         verbose=None,
     ):
         """Interpolate bad MEG and EEG channels.
@@ -1111,6 +1113,14 @@ class InterpolationMixin:
             filled with :data:`~numpy.nan`.
 
             .. versionadded:: 1.12
+        interpolation : dict | None
+            Precomputed interpolation data from
+            :func:`mne.channels.compute_interpolation_data`, which maps ``"eeg"``
+            and/or ``"meg"`` to :class:`~mne.channels.InterpolationData`. For each
+            channel type present, ``method`` is ``"spline"`` (EEG) or ``"MNE"``
+            (MEG), and the ``origin`` and ``mode`` used to compute the data are used.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -1129,6 +1139,7 @@ class InterpolationMixin:
         .. versionadded:: 0.9.0
         """
         from .interpolation import (
+            InterpolationData,
             _interpolate_bads_ecog,
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
@@ -1139,13 +1150,21 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         _validate_type(method, (dict, str, None), "method")
+        _validate_type(interpolation, (dict, None), "interpolation")
+        interpolation = dict() if interpolation is None else interpolation
+        for key, data in interpolation.items():
+            _check_option("interpolation key", key, ("eeg", "meg"))
+            _validate_type(data, InterpolationData, f"interpolation[{key!r}]")
+            _check_option(f"interpolation[{key!r}]['kind']", data["kind"], (key,))
 
         # check for channels with invalid position(s)
-        invalid_chs = []
-        for ch in self.info["bads"]:
-            loc = self.info["chs"][self.ch_names.index(ch)]["loc"][:3]
-            if np.allclose(loc, 0.0, rtol=0, atol=1e-16) or np.isnan(loc).any():
-                invalid_chs.append(ch)
+        # vectorized, as e.g. autoreject passes many bads on each call
+        name_to_idx = {name: ii for ii, name in enumerate(self.ch_names)}
+        locs = np.array(
+            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in self.info["bads"]]
+        ).reshape(-1, 3)
+        invalid = np.all(np.abs(locs) <= 1e-16, axis=1) | np.isnan(locs).any(axis=1)
+        invalid_chs = [ch for ch, inv in zip(self.info["bads"], invalid) if inv]
 
         if invalid_chs:
             if on_bad_position == "raise":
@@ -1178,6 +1197,8 @@ class InterpolationMixin:
         keys2delete = set(method) - set(ch_types)
         for key in keys2delete:
             del method[key]
+        for key in set(interpolation) & set(method):
+            method[key] = dict(eeg="spline", meg="MNE")[key]
         valids = {
             "eeg": ("spline", "MNE", "nan"),
             "meg": ("MNE", "nan"),
@@ -1189,13 +1210,17 @@ class InterpolationMixin:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
-        idx = _picks_to_idx(self.info, list(method), exclude=(), allow_empty=True)
-        if idx.size == 0 or len(pick_info(self.info, idx)["bads"]) == 0:
+        bads = set(self.info["bads"])
+
+        def _has_bads(picks):
+            idx = _picks_to_idx(self.info, picks, exclude=(), allow_empty=True)
+            return any(self.ch_names[pi] in bads for pi in idx)
+
+        if not _has_bads(list(method)):
             warn("No bad channels to interpolate. Doing nothing...")
             return self
         for ch_type in method.copy():
-            idx = _picks_to_idx(self.info, ch_type, exclude=(), allow_empty=True)
-            if len(pick_info(self.info, idx)["bads"]) == 0:
+            if not _has_bads(ch_type):
                 method.pop(ch_type)
         picks = _picks_to_idx(
             self.info, list(method), exclude=exclude, allow_empty=True
@@ -1205,29 +1230,35 @@ class InterpolationMixin:
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):
             origin = _check_origin(origin, self.info)
-        for ch_type, interp in method.items():
-            if interp == "nan":
-                _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
-        if method.get("eeg", "") == "spline":
-            _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
-        meg_mne = method.get("meg", "") == "MNE"
-        eeg_mne = method.get("eeg", "") == "MNE"
-        if meg_mne or eeg_mne:
-            _interpolate_bads_meeg(
-                self,
-                mode=mode,
-                meg=meg_mne,
-                eeg=eeg_mne,
-                origin=origin,
-                exclude=exclude,
-                method=method,
-            )
-        if method.get("fnirs", "") == "nearest":
-            _interpolate_bads_nirs(self, exclude=exclude)
-        if method.get("ecog", "") == "spline":
-            _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
-        if method.get("seeg", "") == "spline":
-            _interpolate_bads_seeg(self, exclude=exclude)
+        # check once here rather than in each of the many pick_info calls below
+        self.info._check_consistency()
+        with self.info._skip_checks():
+            for ch_type, interp in method.items():
+                if interp == "nan":
+                    _interpolate_bads_nan(self, ch_type=ch_type, exclude=exclude)
+            if method.get("eeg", "") == "spline":
+                _interpolate_bads_eeg(
+                    self, origin=origin, exclude=exclude, data=interpolation.get("eeg")
+                )
+            meg_mne = method.get("meg", "") == "MNE"
+            eeg_mne = method.get("eeg", "") == "MNE"
+            if meg_mne or eeg_mne:
+                _interpolate_bads_meeg(
+                    self,
+                    mode=mode,
+                    meg=meg_mne,
+                    eeg=eeg_mne,
+                    origin=origin,
+                    exclude=exclude,
+                    method=method,
+                    meg_data=interpolation.get("meg"),
+                )
+            if method.get("fnirs", "") == "nearest":
+                _interpolate_bads_nirs(self, exclude=exclude)
+            if method.get("ecog", "") == "spline":
+                _interpolate_bads_ecog(self, origin=origin, exclude=exclude)
+            if method.get("seeg", "") == "spline":
+                _interpolate_bads_seeg(self, exclude=exclude)
 
         if reset_bads is True:
             if "nan" in method.values():

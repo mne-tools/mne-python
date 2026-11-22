@@ -11,9 +11,35 @@ import numpy as np
 from ..._fiff.pick import _picks_to_idx, pick_types
 from ...utils import _check_option, _validate_type, fill_doc_static, warn
 
-# Standardized fNIRS channel name regexs
-_S_D_F_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*)")
-_S_D_H_RE = re.compile(r"S(\d+)_D(\d+) (\w+)")
+# Standardized fNIRS channel name, e.g. "S1_D2 760" or "S1_D2 hbo"
+_S_D_RE = re.compile(r"S(\d+)_D(\d+) (\d+\.?\d*|\w+)")
+
+
+def _parse_nirs_ch_name(ch_name):
+    """Split an fNIRS channel name ``S<source>_D<detector> <value>``.
+
+    Parameters
+    ----------
+    ch_name : str
+        The channel name, e.g. ``"S1_D2 760"`` or ``"S1_D2 hbo"``.
+
+    Returns
+    -------
+    source : int
+        The source number.
+    detector : int
+        The detector number.
+    value : str
+        The wavelength or chromophore.
+    """
+    match = _S_D_RE.match(ch_name)
+    if match is None:
+        raise ValueError(
+            f"Cannot parse fNIRS channel name {repr(ch_name)}, expected "
+            '"S<source>_D<detector> <value>"'
+        )
+    source, detector, value = match.groups()
+    return int(source), int(detector), value
 
 
 @fill_doc_static("info_not_none", "picks_all_data")
@@ -88,9 +114,7 @@ def _channel_frequencies(info):
     picks = _picks_to_idx(
         info, ["fnirs_cw_amplitude", "fnirs_od"], exclude=[], allow_empty=True
     )
-    freqs = list()
-    for pick in picks:
-        freqs.append(round(float(_S_D_F_RE.match(info["ch_names"][pick]).groups()[2])))
+    freqs = [round(float(_parse_nirs_ch_name(info.ch_names[p])[2])) for p in picks]
     return np.array(freqs, int)
 
 
@@ -98,10 +122,7 @@ def _channel_chromophore(info):
     """Return the chromophore of each channel."""
     # Only valid for fNIRS data after conversion to haemoglobin
     picks = _picks_to_idx(info, ["hbo", "hbr"], exclude=[], allow_empty=True)
-    chroma = []
-    for ii in picks:
-        chroma.append(info["ch_names"][ii].split(" ")[1])
-    return chroma
+    return [_parse_nirs_ch_name(info.ch_names[p])[2] for p in picks]
 
 
 def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=True):
@@ -157,11 +178,9 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
     # All continuous wave fNIRS data
     if len(picks_wave):
         error_word = "frequencies"
-        use_RE = _S_D_F_RE
         picks = picks_wave
     elif len(picks_chroma):
         error_word = "chromophore"
-        use_RE = _S_D_H_RE
         picks = picks_chroma
     else:
         assert len(picks_moments) or len(picks_gated)
@@ -215,8 +234,9 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
 
     # Validate the channel naming scheme
     for pick in picks:
-        ch_name_info = use_RE.match(info["chs"][pick]["ch_name"])
-        if not bool(ch_name_info):
+        try:
+            _, _, value = _parse_nirs_ch_name(info.ch_names[pick])
+        except ValueError:
             picks = _throw_or_return_empty(
                 "NIRS channels have specified naming conventions. "
                 "The provided channel name can not be parsed: "
@@ -224,10 +244,15 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
                 throw_errors,
             )
             break
-        value = ch_name_info.groups()[2]
-        if len(picks_wave) > 0:
-            pass
-        else:  # picks_chroma
+        if len(picks_wave) > 0 and not value[0].isdigit():
+            picks = _throw_or_return_empty(
+                "NIRS channels have specified naming conventions. "
+                "Wavelength data must be labeled with a number. "
+                f"The failing channel is {info['chs'][pick]['ch_name']}",
+                throw_errors,
+            )
+            break
+        if len(picks_chroma) > 0:
             if value not in ["hbo", "hbr"]:
                 picks = _throw_or_return_empty(
                     "NIRS channels have specified naming conventions."
@@ -245,11 +270,7 @@ def _check_channels_ordered(info, pair_vals, *, throw_errors=True, check_bads=Tr
         # Extract a group of channels (e.g., all wavelengths for one S-D pair)
         group_picks = picks[ii : ii + len(pair_vals)]
 
-        # Parse channel names using regex to extract source, detector, and value info
-        group_info = [
-            (use_RE.match(info["ch_names"][pick]).groups() or (pick, 0, 0))
-            for pick in group_picks
-        ]
+        group_info = [_parse_nirs_ch_name(info.ch_names[pick]) for pick in group_picks]
 
         # Separate the parsed components:
         # source IDs, detector IDs, and values (freq/chromophore)
@@ -357,13 +378,12 @@ def _fnirs_spread_bads(info):
     # E.g. all channels belonging to S1D1, S1D2, etc.
     # Assumes valid channels (naming convention and number)
     ch_names = [info.ch_names[i] for i in picks]
-    match = re.compile(r"^(S\d+_D\d+) ")
 
     # Create dict with keys corresponding to SD pairs
     # Defaultdict would require another import
     sd_groups = {}
     for ch_name in ch_names:
-        sd_pair = match.match(ch_name).group(1)
+        sd_pair = _parse_nirs_ch_name(ch_name)[:2]
         if sd_pair not in sd_groups:
             sd_groups[sd_pair] = [ch_name]
         else:
@@ -385,15 +405,12 @@ def _fnirs_optode_names(info):
     )
     picks_chroma = _picks_to_idx(info, ["hbo", "hbr"], exclude=[], allow_empty=True)
 
-    if len(picks_wave) > 0:
-        regex = _S_D_F_RE
-    elif len(picks_chroma) > 0:
-        regex = _S_D_H_RE
-    else:
+    if len(picks_wave) == 0 and len(picks_chroma) == 0:
         return [], []
 
-    sources = np.unique([int(regex.match(ch).groups()[0]) for ch in info.ch_names])
-    detectors = np.unique([int(regex.match(ch).groups()[1]) for ch in info.ch_names])
+    parsed = [_parse_nirs_ch_name(ch) for ch in info.ch_names]
+    sources = np.unique([source for source, _, _ in parsed])
+    detectors = np.unique([detector for _, detector, _ in parsed])
 
     src_names = [f"S{s}" for s in sources]
     det_names = [f"D{d}" for d in detectors]
@@ -403,12 +420,13 @@ def _fnirs_optode_names(info):
 
 def _optode_position(info, optode):
     """Find the position of an optode."""
-    idx = [optode in a for a in info.ch_names].index(True)
-
     if "S" in optode:
-        loc_idx = range(3, 6)
+        group, loc_idx = 0, range(3, 6)
     elif "D" in optode:
-        loc_idx = range(6, 9)
+        group, loc_idx = 1, range(6, 9)
+    # Compare optode numbers, so that e.g. D1 does not match D13
+    number = int(optode[1:])
+    idx = [_parse_nirs_ch_name(ch)[group] == number for ch in info.ch_names].index(True)
 
     return info["chs"][idx]["loc"][loc_idx]
 

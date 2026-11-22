@@ -9,7 +9,9 @@ Contributor names are resolved from the PR JSON files in this order:
    word, abbreviation, ALL-CAPS) carry a trailing ``# credit: name-ok``
    comment (valid mailmap syntax, and robust to the line-sorting pre-commit
    hook).
-2. GitHub-derived names stored in the JSON files, when they look like real
+2. doc/changes/names.inc: the name that links to the author's GitHub profile
+   there, since that is the name their changelog entries already use.
+3. GitHub-derived names stored in the JSON files, when they look like real
    two-part names.
 
 Anything else is reported as a ready-to-paste ``.mailmap`` suggestion, or
@@ -248,7 +250,9 @@ class _Unresolved:
         return entry
 
 
-def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins):
+def _resolve_name(
+    author, pr, data, mailmap, names_inc_logins, fallback_names, unresolved, logins
+):
     """Resolve one PR JSON author dict to a display name (or None to skip)."""
     name, email, login = author.get("n"), author.get("e"), author.get("l")
     if _is_bot(name, email):
@@ -256,6 +260,12 @@ def _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
     resolved = mailmap.names.get(email)
     if resolved is not None:
         logins.setdefault(resolved, _github_login(author))
+        return resolved
+    login = _github_login(author)
+    linked = names_inc_logins.get((login or "").lower(), ())
+    if len(linked) == 1:  # ambiguous links are reported in generate_credit_rst
+        (resolved,) = linked
+        logins.setdefault(resolved, login)
         return resolved
     # GitHub-derived fallback; first good name seen for an email wins so that
     # later profile-name tweaks don't split one person into two entries
@@ -299,6 +309,7 @@ def _load_pr_ignores():
 def _load_pr_stats(mailmap):
     """Aggregate per-file line-change stats for every author of every PR."""
     ignores = _load_pr_ignores()
+    names_inc_logins = _names_inc_logins()
     fallback_names = dict()  # email -> good GitHub-derived name
     unresolved = dict()  # email (or name#pr) -> _Unresolved
     logins = dict()  # credited name -> GitHub login (None if unknown)
@@ -313,7 +324,16 @@ def _load_pr_stats(mailmap):
         data = json.loads(fname.read_text("utf-8"))
         assert data != {}, fname
         names = [
-            _resolve_name(author, pr, data, mailmap, fallback_names, unresolved, logins)
+            _resolve_name(
+                author,
+                pr,
+                data,
+                mailmap,
+                names_inc_logins,
+                fallback_names,
+                unresolved,
+                logins,
+            )
             for author in data["authors"]
         ]
         for author, name in zip(data["authors"], names):
@@ -335,20 +355,32 @@ def _load_pr_stats(mailmap):
     return stats, commits, ignores, unresolved, logins, emails
 
 
+def _read_names_inc():
+    """Read the (name, URL) pairs of the doc/changes/names.inc links."""
+    return re.findall(
+        r"^\.\. _(.+?):\s+(\S+)\s*$",
+        (doc_root / "changes" / "names.inc").read_text("utf-8"),
+        re.M,
+    )
+
+
 def _load_names_inc():
     """Map contributor names to their doc/changes/names.inc link.
 
     Keys are normalized the way docutils normalizes reST reference names, i.e.
     case-insensitively and with collapsed whitespace.
     """
-    return {
-        _reference_key(name): url
-        for name, url in re.findall(
-            r"^\.\. _(.+?):\s+(\S+)\s*$",
-            (doc_root / "changes" / "names.inc").read_text("utf-8"),
-            re.M,
-        )
-    }
+    return {_reference_key(name): url for name, url in _read_names_inc()}
+
+
+def _names_inc_logins():
+    """Map each GitHub login linked from names.inc to the names linking to it."""
+    linked = defaultdict(set)
+    for name, url in _read_names_inc():
+        match = re.fullmatch(r"https?://(?:www\.)?github\.com/([^/]+)/?", url)
+        if match:
+            linked[match.group(1).lower()].add(name)
+    return linked
 
 
 def _check_names_inc(names, urls):
@@ -364,7 +396,7 @@ def _append_names_inc_anchors(anchors):
     path.write_text("\n".join(lines) + "\n", "utf-8")
 
 
-def _append_commit_mailmap_entries(emails, logins, urls):
+def _append_commit_mailmap_entries(emails, logins, urls, name_ok):
     """Point commit addresses at the names we credit, so git agrees with us.
 
     The PR JSON knows a contributor by their GitHub profile, git by whatever
@@ -410,7 +442,8 @@ def _append_commit_mailmap_entries(emails, logins, urls):
         for _, name, email in these:
             if (name, email) != (credited, canonical):
                 alias = f" <{email}>" if email != canonical else ""
-                entries.append(f"{credited} <{canonical}>{alias}")
+                marker = "" if _good_name(credited, name_ok=name_ok) else NAME_OK_MARKER
+                entries.append(f"{credited} <{canonical}>{alias} {marker}".rstrip())
     if entries:
         _append_mailmap_entries(entries)
         sphinx_logger.info(f"Added {len(entries)} commit .mailmap entries")
@@ -473,6 +506,13 @@ def generate_credit_rst(
 
     all_names = {name for these in stats.values() for name in these}
     duplicates = _similar_names(all_names)
+    duplicates += [
+        f"doc/changes/names.inc links github.com/{login} as "
+        + " and ".join(map(repr, sorted(names)))
+        + "; keep only the name changelogs should use"
+        for login, names in sorted(_names_inc_logins().items())
+        if len({_fold(name) for name in names}) > 1  # accent variants are fine
+    ]
     if duplicates:
         errors.append(
             f"{len(duplicates)} possible duplicate contributor(s):\n"
@@ -497,7 +537,7 @@ def generate_credit_rst(
             urls = _load_names_inc()
             missing_anchors = _check_names_inc(all_names, urls)
     if fix_mailmap:
-        _append_commit_mailmap_entries(emails, logins, urls)
+        _append_commit_mailmap_entries(emails, logins, urls, mailmap.name_ok)
     if missing_anchors:
         suggestions = []
         for name in missing_anchors:
@@ -575,9 +615,11 @@ def _write_newcontrib_stubs(commits):
     for name, pr in commits:
         first_pr[name] = min(int(pr), first_pr.get(name, int(pr)))
     # one entry per contributor per release is enough, so skip anyone a
-    # fragment already credits (including a stub an earlier run left)
-    credited = set()
+    # fragment already credits, and any PR that already has a fragment (which
+    # may spell their name differently), including a stub an earlier run left
+    credited, with_fragment = set(), set()
     for path in (changes / "dev").glob("*.rst"):
+        with_fragment.add(int(path.name.split(".")[0]))
         text = path.read_text("utf-8")
         credited |= {
             _fold(name)  # accents are spelled inconsistently across changelogs
@@ -586,7 +628,7 @@ def _write_newcontrib_stubs(commits):
         }
     todo = defaultdict(list)  # PR number -> new contributors it never credited
     for name, pr in first_pr.items():
-        if pr > cutoff and _fold(name) not in credited:
+        if pr > cutoff and pr not in with_fragment and _fold(name) not in credited:
             todo[pr].append(name)
     stubs = []
     try:

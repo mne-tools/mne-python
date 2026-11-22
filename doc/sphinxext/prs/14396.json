@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "c42e7264f0a6be8af52325b088b868f37734a55d",
+  "authors": [
+    {
+      "n": "Stefan Appelhoff",
+      "e": "stefan.appelhoff@mailbox.org",
+      "l": "sappelhoff"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14396.bugfix.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/io/eeglab/eeglab.py": {
+      "a": 33,
+      "d": 23
+    },
+    "mne/io/eeglab/tests/test_eeglab.py": {
+      "a": 41,
+      "d": 2
+    }
+  }
+}

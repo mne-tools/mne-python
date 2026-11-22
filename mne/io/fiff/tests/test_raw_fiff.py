@@ -2250,3 +2250,20 @@ def test_fif_files(fname):
         test_kwargs=False,
         test_preloading=False,
     )
+
+
+def test_save_file_like():
+    """Test saving raw data to binary file-like objects."""
+    raw = read_raw_fif(test_fif_fname, preload=True)
+    cropped = raw.copy().crop(0, 1).pick(raw.ch_names[:2])
+    out = BytesIO()
+    assert cropped.save(out) == []
+    assert not out.closed
+    assert_allclose(
+        read_raw_fif(out, preload=True).get_data(),
+        cropped.get_data(),
+        rtol=1e-6,
+        atol=1e-20,
+    )
+    with pytest.raises(ValueError, match="Cannot split file-like output"):
+        raw.save(BytesIO(), buffer_size_sec=0.5, split_size="5MB")

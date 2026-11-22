@@ -73,6 +73,7 @@ mne-nirs # categories: modalities
 mne-rsa # categories: stats
 mne-rt # categories: visu
 mnelab # categories: visu
+mvpure-py # categories: connectivity
 neurodsp # categories: oscillations
 neurokit2 # categories: organization, modalities
 niseq # categories: stats

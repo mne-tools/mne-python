@@ -521,6 +521,21 @@ def test_plot_raw_ssp_interaction(raw, browser_backend):
     assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
 
 
+def test_plot_raw_proj_data(raw, browser_backend):
+    """Test that the shown channels get the full projector applied."""
+    raw.del_proj([1, 2])  # with all three, nothing would be left of the three mags
+    fig = raw.plot(proj=True, remove_dc=False, n_channels=3, precompute=False)
+    assert fig.mne.projector is not None
+    picks = np.array([8, 1, 2])  # unordered subset: each mag needs all of them
+    start, stop = 10, 110
+    got = fig._process_data(raw[:, start:stop][0], start, stop, picks)
+    want = raw.copy().apply_proj()[picks, start:stop][0]
+    # the projs do something
+    assert not np.allclose(want, raw[picks, start:stop][0], atol=0)
+    # each channel is rescaled for display (backend-dependent), so compare shapes
+    assert_allclose(got / got[:, :1], want / want[:, :1], rtol=1e-7)
+
+
 def test_plot_raw_child_figures(raw, browser_backend):
     """Test spawning and closing of child figures."""
     ismpl = browser_backend.name == "matplotlib"

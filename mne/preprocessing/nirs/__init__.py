@@ -15,6 +15,7 @@ from .nirs import (
     _validate_nirs_info,
     _fnirs_optode_names,
     _optode_position,
+    _parse_nirs_ch_name,
     _reorder_nirx,
     _warn_channel,
 )

@@ -776,6 +776,9 @@ def test_pick_channels_matches_by_name():
     # a name that is not present is an error, not a silent skip
     with pytest.raises(ValueError, match="Missing channels"):
         pick_channels(ch_names, ["a", "nope"], ordered=True)
+    # picking from non-unique names is ambiguous
+    with pytest.raises(RuntimeError, match="not a unique list"):
+        pick_channels(["a", "b", "a"], ["b"])
 
 
 def test_picks_to_idx_duplicate_names():

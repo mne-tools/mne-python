@@ -92,6 +92,9 @@ _known_config_types = {
         "int, number of samples to use for full-screen antialiasing"
     ),
     "MNE_3D_OPTION_SMOOTH_SHADING": ("bool, whether to use smooth shading in 3D plots"),
+    "MNE_3D_OPTION_SSAO": (
+        "bool, whether to use screen-space ambient occlusion in 3D plots"
+    ),
     "MNE_3D_OPTION_THEME": ("str, the color theme (light or dark) to use for 3D plots"),
     "MNE_BROWSE_RAW_SIZE": (
         "tuple, width and height of the raw browser window (in inches)"
@@ -972,6 +975,7 @@ def sys_info(
             "imageio",
             "imageio-ffmpeg",
             "snirf",
+            "pynwb",
             "twine",
             "",
             "# Documentation",

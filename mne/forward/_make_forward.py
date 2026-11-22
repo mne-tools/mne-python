@@ -705,6 +705,10 @@ def make_forward_solution(
     To create a fixed-orientation forward solution, use this function
     followed by :func:`mne.convert_forward_solution`.
 
+    When a BEM model is used, EEG electrode positions are projected onto its
+    scalp surface before computing the forward solution. To get these projected
+    positions, use :meth:`mne.channels.DigMontage.project_onto_scalp`.
+
     .. note::
         If the BEM solution was computed with `OpenMEEG <https://openmeeg.github.io>`__
         in :func:`mne.make_bem_solution`, then OpenMEEG will automatically

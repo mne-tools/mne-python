@@ -436,7 +436,7 @@ class RawNIRX(BaseRaw):
         else:
             inf = ConfigParser(allow_no_value=True)
             inf.read(files["inf"])
-            inf = inf._sections["Subject Demographics"]  # ty: ignore[unresolved-attribute]
+            inf = inf._sections["Subject Demographics"]  # ty: ignore[missing-attribute]
 
         # Store subject information from inf file in mne format
         # Note: NIRX also records "Study Type", "Experiment History",

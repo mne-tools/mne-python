@@ -1,0 +1,1 @@
+The ``method_params["force_equal"]`` option for ``method="eLORETA"`` in :func:`mne.minimum_norm.apply_inverse` and related functions is deprecated and has no effect, as it is no longer needed for loose-orientation inverses, by `Eric Larson`_.

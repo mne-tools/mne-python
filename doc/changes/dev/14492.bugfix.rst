@@ -1,0 +1,1 @@
+Fix :func:`mne.transforms.rot_to_quat` returning wrong quaternions for some rotations near 180°, which made some MEG sensors appear rotated incorrectly in 3D plots, by `Eric Larson`_.

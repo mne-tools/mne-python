@@ -2173,7 +2173,9 @@ def _qt_activate_layouts(window, widget):
     processed = set()
     while widget is not None and widget not in processed:
         layout = widget.layout()
-        if layout is not None:
+        # isinstance rather than "is not None": pyvistaqt main can make PySide
+        # return a stale non-QLayout wrapper here (intermittent on PySide6 6.12)
+        if isinstance(layout, QLayout):
             layout.activate()
         processed.add(widget)
         widget = widget.parentWidget()

@@ -120,22 +120,21 @@ dip = mne.read_dipole(sample_dir / "sample_audvis_set1.dip")
 cmap = plt.colormaps["YlOrRd"]
 colors = [cmap(gof / dip.gof.max()) for gof in dip.gof]
 brain.add_dipole(dip, trans, colors=colors, scales=list(dip.amplitude * 1e8))
-brain.show_view(azimuth=-20, elevation=60, distance=300)
+brain.show_view(azimuth=-20, elevation=60, distance=400)
 img = brain.screenshot()  # for next section
 
 # %%
 # Create a screenshot for exporting the brain image
 # -------------------------------------------------
-# Also, we can a static image of the brain using ``screenshot`` (above),
+# Also, we can make a static image of the brain using ``screenshot`` (above),
 # which will allow us to add a colorbar. This is useful for figures in
 # publications.
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 ax.imshow(img)
 ax.axis("off")
-cax = fig.add_axes([0.9, 0.1, 0.05, 0.8])
 norm = Normalize(vmin=0, vmax=dip.gof.max())
-fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), ax=ax)
 fig.suptitle("Dipole Fits Scaled by Amplitude and Colored by GOF")
 
 
@@ -238,7 +237,7 @@ coords = brain.geo["lh"].coords  # vertex positions in mm
 
 
 def gaussian_patch(coords, center, sigma=15.0):
-    """Gaussian blob of activity centred on a surface coordinate (mm)."""
+    """Gaussian blob of activity centered on a surface coordinate (mm)."""
     d = np.linalg.norm(coords - center, axis=1)
     return np.exp(-(d**2) / (2 * sigma**2))
 
@@ -269,3 +268,33 @@ brain.add_data(
     smoothing_steps=5,
 )
 brain.show_view(azimuth=180, elevation=70, distance=380, focalpoint=(0, 10, 20))
+
+# %%
+# Plot data on subcortical structures
+# -----------------------------------
+#
+# :func:`mne.setup_subcortical_source_space` builds surface source spaces for
+# subcortical structures. Their data is added with ``hemi="vol"`` together with
+# the source space. Because the meshes are in real anatomical coordinates, use a
+# non-inflated cortical surface such as ``surf="white"``. Here we show a synthetic
+# gradient along the anterior-posterior axis of the left amygdala and hippocampus.
+# :meth:`mne.MixedSourceEstimate.plot` shows them in the same way.
+
+src = mne.setup_subcortical_source_space(
+    "sample", label=["Left-Hippocampus", "Left-Amygdala"], subjects_dir=subjects_dir
+)
+rr = np.concatenate([s["rr"][s["vertno"]] for s in src])
+data = (rr[:, 1] - rr[:, 1].min()) / np.ptp(rr[:, 1])
+brain = mne.viz.Brain(
+    "sample", subjects_dir=subjects_dir, hemi="lh", surf="white", **brain_kwargs
+)
+brain.add_data(
+    data,
+    hemi="vol",
+    vertices=np.concatenate([s["vertno"] for s in src]),
+    src=src,
+    fmin=0,
+    fmax=1,
+    colormap="viridis",
+)
+brain.show_view(azimuth=150, elevation=90, distance=400, focalpoint=(0, -10, 10))

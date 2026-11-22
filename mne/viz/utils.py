@@ -803,7 +803,7 @@ class _BlitManager:
 
     def _draw_artists(self):
         for artist in sorted(self._artists, key=lambda artist: artist.get_zorder()):
-            self._fig.draw_artist(artist)
+            self._fig.figure.draw_artist(artist)
 
     def _on_draw(self, event=None):
         """Drop the cached background after a full redraw (draw_event callback)."""
@@ -1599,7 +1599,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data[:, : this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
             this_data = this_data.T.reshape(-1, length, shape[0])  # segment
-            this_data -= np.nanmean(this_data, 0)  # subtract segment means
+            this_data -= np.nanmean(this_data, 1, keepdims=True)  # segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
         this_data = this_data.ravel()
         this_data = this_data[np.isfinite(this_data)]

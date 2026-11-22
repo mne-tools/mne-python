@@ -25,7 +25,7 @@ Platform-specific installers
 
             |cloud-arrow-down| |ensp| Download for Linux
 
-        **Supported platforms:** Ubuntu 20.04 (Focal Fossa) and newer
+        **Supported platforms:** Linux with glibc 2.28 or newer (e.g., Ubuntu 20.04, Debian 10, RHEL 8)
 
         Run the installer in a terminal via:
 
@@ -47,7 +47,7 @@ Platform-specific installers
             |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
         **Supported platforms:**
-        macOS 10.15 (Catalina) and newer
+        macOS 14 (Sonoma) and newer
 
 
     .. tab-item:: macOS (Apple Silicon)
@@ -64,7 +64,7 @@ Platform-specific installers
 
 
         **Supported platforms:**
-        macOS 10.15 (Catalina) and newer
+        macOS 15.5 (Sequoia) and newer
 
     .. tab-item:: Windows
         :class-content: text-center

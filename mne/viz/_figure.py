@@ -419,9 +419,12 @@ class BrowserBase(ABC):
             # thread is the loading-thread only available in Qt-backend
             if thread:
                 thread.processText.emit("Applying Projectors...")
-            data = self.mne.projector @ data
-        # get only the channels we're displaying
-        data = data[picks]
+            # only compute the channels we're displaying (far fewer rows than
+            # projecting everything and then picking)
+            data = self.mne.projector[picks] @ data
+        else:
+            # get only the channels we're displaying
+            data = data[picks]
         # remove DC
         dc_offset = None
         if self.mne.remove_dc:

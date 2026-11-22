@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "06b92b339facc67e625d942e9f61d289c8b92a4a",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14359.other.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/viz/_brain/_brain.py": {
+      "a": 6,
+      "d": 1463
+    },
+    "mne/viz/_brain/_time_viewer.py": {
+      "a": 1482,
+      "d": 0
+    },
+    "mne/viz/_brain/colormap.py": {
+      "a": 2,
+      "d": 0
+    }
+  }
+}

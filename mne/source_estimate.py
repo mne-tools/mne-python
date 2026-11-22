@@ -307,6 +307,11 @@ def read_source_estimate(fname, subject=None):
             raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
+        # "foo.stc" -> "foo" if "foo-rh.stc" exists, but keep legacy stems
+        # like "foo.w" (for "foo.w-rh.stc") intact
+        for ext in (".stc", ".w"):
+            if fname.endswith(ext) and op.exists(fname[: -len(ext)] + f"-rh{ext}"):
+                fname = fname[: -len(ext)]
         stc_exist = [op.exists(f) for f in [fname + "-rh.stc", fname + "-lh.stc"]]
         w_exist = [op.exists(f) for f in [fname + "-rh.w", fname + "-lh.w"]]
         if all(stc_exist) and ftype != "w":
@@ -388,6 +393,14 @@ def read_source_estimate(fname, subject=None):
     if kwargs["data"].ndim < 3:
         klass = klass._scalar_class
     return klass(**kwargs)
+
+
+def _check_save_ftype(fname, ftype):
+    if ftype == "auto":
+        ext = op.splitext(fname)[1][1:]
+        ftype = ext if ext in ("h5", "w") else "stc"
+    _check_option("ftype", ftype, ["stc", "w", "h5"])
+    return ftype
 
 
 def _get_src_type(src, vertices, warn_text=None):
@@ -947,6 +960,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -1107,6 +1121,15 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -1170,6 +1193,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -2129,7 +2153,11 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
         src : instance of SourceSpaces
-            The source space of the forward solution.
+            The source space of the forward solution. For each hemisphere,
+            ``self.vertices[hemi]`` must equal ``src[hemi]['vertno']`` in both values
+            and order (``hemi=0`` for lh, ``hemi=1`` for rh).
+            Sparse or restricted estimates with different vertices
+            are not supported.
         scale : float
             Scale factor to apply to the data (functional) values.
         scale_rr : float
@@ -2138,7 +2166,18 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
+        Both the anatomical and time-series GIFTI files store the mapping back to
+        the full-resolution parent surface as image metadata.
+        ``MNEParentVertexIndices`` holds space-separated, zero-based parent vertex
+        numbers (FreeSurfer vertex numbers for FreeSurfer-derived source spaces),
+        one per exported vertex and data row. ``MNEParentVertexCount``,
+        ``MNEParentHemisphere``, and (when known) ``MNEParentSubject`` describe
+        the parent surface.
+
         .. versionchanged:: 1.14
+            Anatomical and time-series GIFTI files store parent-mesh vertex
+            correspondence in file-level metadata.
+            Source-estimate and source-space vertices must match.
             The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
             seconds as image metadata. Each data array also stores its zero-based
             sample index and time value in seconds.
@@ -2147,12 +2186,20 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         """
         nib = _import_nibabel()
         _check_option("src.kind", src.kind, ("surface", "mixed"))
+        hemis = ("lh", "rh")
+        for vertices, parent, hemi in zip(self.vertices, src, hemis):
+            if not np.array_equal(vertices, parent["vertno"]):
+                raise ValueError(
+                    f"Source estimate vertices for {hemi} must match "
+                    "src['vertno'] in values and order. Use the source space "
+                    "used to compute the estimate, e.g. fwd['src'] or "
+                    "inv['src'], rather than one read from disk."
+                )
         ss = get_decimated_surfaces(src)
         assert len(ss) == 2  # should be guaranteed by _check_option above
 
         # Create lists to put DataArrays into
-        hemis = ("lh", "rh")
-        for s, hemi in zip(ss, hemis):
+        for s, parent, hemi in zip(ss, src, hemis):
             darrays = list()
             darrays.append(
                 nib.gifti.gifti.GiftiDataArray(
@@ -2172,7 +2219,16 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             )
 
             # Make the output GIFTI for anatomicals
-            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays)
+            parent_meta = nib.gifti.GiftiMetaData(
+                {
+                    "MNEParentVertexIndices": " ".join(map(str, parent["vertno"])),
+                    "MNEParentVertexCount": str(len(parent["rr"])),
+                    "MNEParentHemisphere": hemi,
+                }
+            )
+            if parent.get("subject_his_id") is not None:
+                parent_meta["MNEParentSubject"] = parent["subject_his_id"]
+            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays, meta=parent_meta)
 
             # actually save the file
             nib.save(topo_gi_hemi, f"{fname}-{hemi}.gii")
@@ -2182,6 +2238,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             data = getattr(self, f"{hemi}_data") * scale
             image_meta = nib.gifti.GiftiMetaData(
                 {
+                    **parent_meta,
                     "TimeStart": repr(float(self.tmin)),
                     "TimeStep": repr(float(self.tstep)),
                     "TimeUnits": "s",
@@ -2420,7 +2477,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     """
 
     @verbose_static("overwrite")
-    def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -2430,10 +2487,14 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             spaces are obtained by adding ``"-lh.stc"`` and ``"-rh.stc"`` (or
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
-        ftype : str
-            File format to use. Allowed values are ``"stc"`` (default),
-            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
-            time point.
+        ftype : "auto" | "stc" | "w" | "h5"
+            File format to use. If ``"auto"`` (default), the format is
+            inferred from the extension of ``fname`` (``".h5"`` or ``".w"``),
+            falling back to ``"stc"``. The ``"w"`` format only supports a
+            single time point.
+
+            .. versionchanged:: 1.14
+               Added and defaulted to ``"auto"``.
         overwrite : bool
             If True (default False), overwrite the destination file if it
             exists.
@@ -2446,10 +2507,19 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             argument.
         """
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
-        _check_option("ftype", ftype, ["stc", "w", "h5"])
+        ftype = _check_save_ftype(fname, ftype)
 
         lh_data = self.data[: len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno) :]
+
+        if ftype in ("stc", "w"):
+            # strip existing tags to avoid duplicate extensions
+            for tag in (f"-lh.{ftype}", f"-rh.{ftype}", f".{ftype}"):
+                if fname.endswith(tag):
+                    fname = fname[: -len(tag)]
+                    break
+            fname_l = str(_check_fname(f"{fname}-lh.{ftype}", overwrite=overwrite))
+            fname_r = str(_check_fname(f"{fname}-rh.{ftype}", overwrite=overwrite))
 
         if ftype == "stc":
             if np.iscomplexobj(self.data):
@@ -2460,8 +2530,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                     "real numbers before saving."
                 )
             logger.info("Writing STC to disk...")
-            fname_l = str(_check_fname(fname + "-lh.stc", overwrite=overwrite))
-            fname_r = str(_check_fname(fname + "-rh.stc", overwrite=overwrite))
             _write_stc(
                 fname_l,
                 tmin=self.tmin,
@@ -2480,8 +2548,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             if self.shape[1] != 1:
                 raise ValueError("w files can only contain a single time point.")
             logger.info("Writing STC to disk (w format)...")
-            fname_l = str(_check_fname(fname + "-lh.w", overwrite=overwrite))
-            fname_r = str(_check_fname(fname + "-rh.w", overwrite=overwrite))
             _write_w(fname_l, vertices=self.lh_vertno, data=lh_data[:, 0])
             _write_w(fname_r, vertices=self.rh_vertno, data=rh_data[:, 0])
         elif ftype == "h5":
@@ -2825,6 +2891,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -2972,6 +3039,15 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -3029,6 +3105,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -3068,6 +3145,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -3228,6 +3306,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -3288,6 +3375,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -3789,7 +3877,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     """
 
     @verbose_static("overwrite")
-    def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -3797,10 +3885,14 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         fname : path-like
             The stem of the file name. The stem is extended with ``"-vl.stc"``
             or ``"-vl.w"``.
-        ftype : str
-            File format to use. Allowed values are ``"stc"`` (default),
-            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
-            time point.
+        ftype : "auto" | "stc" | "w" | "h5"
+            File format to use. If ``"auto"`` (default), the format is
+            inferred from the extension of ``fname`` (``".h5"`` or ``".w"``),
+            falling back to ``"stc"``. The ``"w"`` format only supports a
+            single time point.
+
+            .. versionchanged:: 1.14
+               Added and defaulted to ``"auto"``.
         overwrite : bool
             If True (default False), overwrite the destination file if it
             exists.
@@ -3814,7 +3906,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         """
         # check overwrite individually below
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
-        _check_option("ftype", ftype, ["stc", "w", "h5"])
+        ftype = _check_save_ftype(fname, ftype)
         if ftype != "h5" and len(self.vertices) != 1:
             raise ValueError(
                 "Can only write to .stc or .w if a single volume "
@@ -3932,6 +4024,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -4079,6 +4172,15 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -4134,6 +4236,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,

@@ -163,7 +163,7 @@ class DigPoint(dict):
             coord_frame=self["coord_frame"],
         )
 
-    def __eq__(self, other: dict) -> bool:  # ty: ignore[invalid-method-override]
+    def __eq__(self, other: dict) -> bool:  # ty: ignore[incompatible-method-override]
         """Compare two DigPoints.
 
         Two digpoints are equal if they are the same kind, share the same

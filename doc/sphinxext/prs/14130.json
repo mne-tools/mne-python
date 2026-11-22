@@ -1,0 +1,60 @@
+{
+  "merge_commit_sha": "47797972e7c38f036b500c32091215d5f976aa71",
+  "authors": [
+    {
+      "n": "Payam",
+      "e": "payam.sadeghi74@gmail.com",
+      "l": "payamsash"
+    },
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com"
+    }
+  ],
+  "changes": {
+    "doc/api/forward.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/dev/14130.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/_fiff/constants.py": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/_fiff/tests/test_constants.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/source_estimate.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/source_space/__init__.pyi": {
+      "a": 2,
+      "d": 0
+    },
+    "mne/source_space/_source_space.py": {
+      "a": 231,
+      "d": 11
+    },
+    "mne/source_space/tests/test_source_space.py": {
+      "a": 67,
+      "d": 0
+    },
+    "mne/surface.py": {
+      "a": 17,
+      "d": 0
+    },
+    "tools/vulture_allowlist.py": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

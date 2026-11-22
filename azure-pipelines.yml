@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Test | Runs the unit test suite on Windows, the ultraslow tests on Linux, and tests for Qt bindings on Linux | On pushes to pull requests; on merges to ``main`` and ``maint/*`` branches |
+
 trigger:
   # start a new build for every push
   batch: false

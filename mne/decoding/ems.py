@@ -5,6 +5,8 @@
 from collections import Counter
 
 import numpy as np
+
+from ._check import _sklearn  # noqa: F401, isort: skip
 from sklearn.base import BaseEstimator
 
 from .._fiff.pick import _picks_to_idx, pick_info, pick_types

@@ -1,0 +1,116 @@
+{
+  "merge_commit_sha": "995ee6255b04e45eba4e196fe95957d93539ee95",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    "mne/_fiff/reference.py": {
+      "a": 5,
+      "d": 2
+    },
+    "mne/_surface_numba.py": {
+      "a": 85,
+      "d": 12
+    },
+    "mne/beamformer/_rap_music.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/bem.py": {
+      "a": 21,
+      "d": 25
+    },
+    "mne/conftest.py": {
+      "a": 10,
+      "d": 10
+    },
+    "mne/decoding/tests/test_transformer.py": {
+      "a": 3,
+      "d": 0
+    },
+    "mne/decoding/transformer.py": {
+      "a": 11,
+      "d": 5
+    },
+    "mne/dipole.py": {
+      "a": 1,
+      "d": 3
+    },
+    "mne/forward/_compute_forward.py": {
+      "a": 37,
+      "d": 59
+    },
+    "mne/forward/_compute_forward_numba.py": {
+      "a": 55,
+      "d": 123
+    },
+    "mne/forward/_lead_dots.py": {
+      "a": 2,
+      "d": 2
+    },
+    "mne/forward/_make_forward.py": {
+      "a": 1,
+      "d": 5
+    },
+    "mne/forward/forward.py": {
+      "a": 1,
+      "d": 1
+    },
+    "mne/forward/tests/test_make_forward.py": {
+      "a": 8,
+      "d": 12
+    },
+    "mne/morph.py": {
+      "a": 9,
+      "d": 3
+    },
+    "mne/preprocessing/ica.py": {
+      "a": 30,
+      "d": 32
+    },
+    "mne/source_estimate.py": {
+      "a": 4,
+      "d": 1
+    },
+    "mne/stats/_cluster_level_numba.py": {
+      "a": 0,
+      "d": 28
+    },
+    "mne/stats/cluster_level.py": {
+      "a": 15,
+      "d": 49
+    },
+    "mne/surface.py": {
+      "a": 42,
+      "d": 71
+    },
+    "mne/time_frequency/_stockwell.py": {
+      "a": 4,
+      "d": 2
+    },
+    "mne/time_frequency/csd.py": {
+      "a": 3,
+      "d": 1
+    },
+    "mne/time_frequency/tfr.py": {
+      "a": 6,
+      "d": 2
+    },
+    "mne/utils/config.py": {
+      "a": 20,
+      "d": 0
+    },
+    "mne/utils/tests/test_config.py": {
+      "a": 14,
+      "d": 1
+    },
+    "tools/github_actions_dependencies.sh": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

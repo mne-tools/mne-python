@@ -3,7 +3,7 @@
 Papers citing MNE-Python
 ========================
 
-Estimates provided by OpenAlex as of 1 October 2026:
+Estimates provided by OpenAlex as of 1 November 2026:
 
-- `MNE (2,222) <https://openalex.org/works?filter=cites:W2135595031>`_
-- `MNE-Python (4,207) <https://openalex.org/works?filter=cites:W2169918686>`_
+- `MNE (1,962) <https://openalex.org/works?filter=cites:W2135595031>`_
+- `MNE-Python (3,838) <https://openalex.org/works?filter=cites:W2169918686>`_

@@ -106,9 +106,7 @@ def test_compute_fine_cal(kind):
         cal = cal_mf_fname
         err_limit = 5
         angle_limit = 5
-        gwoma = [66, 68]
-        ggoma = [55, 150]
-        ggwma = [52, 86]
+        got_orig_min_angle, got_want_max_angle = 1.3, 0.6
         sfs = [26, 27, 61, 63, 61, 63, 68, 70]
         cl3 = [0.6, 0.7]
     else:
@@ -118,9 +116,7 @@ def test_compute_fine_cal(kind):
         err_limit = 10
         angle_limit = 10
         cl["grad"] = (0.0, 0.1)
-        gwoma = [48, 52]
-        ggoma = [10, 82]
-        ggwma = [13, 135]
+        got_orig_min_angle, got_want_max_angle = 3.0, 4.0
         sfs = [34, 35, 27, 28, 50, 53, 75, 79]  # ours is better!
         cl3 = [-0.3, -0.1]
     raw = read_raw_fif(erm)
@@ -158,12 +154,6 @@ def test_compute_fine_cal(kind):
     orig_trans = _loc_to_coil_trans(orig_locs)
     want_trans = _loc_to_coil_trans(want_locs)
     got_trans = _loc_to_coil_trans(got_locs)
-    want_orig_angles, want_orig_dist = angle_distance_between_rigid(
-        want_trans,
-        orig_trans,
-        angle_units="deg",
-        distance_units="mm",
-    )
     got_want_angles, got_want_dist = angle_distance_between_rigid(
         got_trans,
         want_trans,
@@ -178,6 +168,8 @@ def test_compute_fine_cal(kind):
     )
     assert_array_less(got_want_dist, 0.01)
     assert_array_less(got_orig_dist, 0.01)
+    assert_array_less(got_want_angles, got_want_max_angle)
+    assert got_orig_angles.max() > got_orig_min_angle, got_orig_angles.max()
     for key in ("mag", "grad"):
         # imb_cals value
         p = np.searchsorted(meg_picks, pick_types(raw.info, meg=key, exclude=()))
@@ -185,21 +177,6 @@ def test_compute_fine_cal(kind):
             np.linalg.norm(want_imb[p]) * np.linalg.norm(got_imb[p])
         )
         assert cl[key][0] < r2 <= cl[key][1], f"{key}: {r2:0.3f}"
-        # rotation angles
-        want_orig_max_angle = want_orig_angles[p].max()
-        got_orig_max_angle = got_orig_angles[p].max()
-        got_want_max_angle = got_want_angles[p].max()
-        if key == "mag":
-            assert 8 < want_orig_max_angle < 11, want_orig_max_angle
-            assert 1 < got_orig_max_angle < 8, got_orig_max_angle
-            assert 8 < got_want_max_angle < 11, got_want_max_angle
-        else:
-            # Some of these angles are large, but mostly this has to do with
-            # processing a very short (one 10-s segment), downsampled (90 Hz)
-            # file
-            assert gwoma[0] < want_orig_max_angle < gwoma[1]
-            assert ggoma[0] < got_orig_max_angle < ggoma[1]
-            assert ggwma[0] < got_want_max_angle < ggwma[1]
 
     kwargs = dict(bad_condition="warning", cross_talk=ctc, coord_frame="meg")
     raw_sss = maxwell_filter(raw, **kwargs)
