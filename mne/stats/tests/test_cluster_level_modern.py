@@ -7,7 +7,7 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
 from mne import EpochsArray, EvokedArray, combine_evoked, create_info
 from mne.channels import find_ch_adjacency
@@ -479,3 +479,40 @@ def test_cluster_result_plot_joint_errors():
         result.plot_joint(info, times[:5])
     with pytest.raises(ValueError, match="times_sec does not match"):
         result.plot_joint(info, np.arange(10) / 50.0)  # wrong sfreq
+
+
+def test_cluster_result_plot_joint_mask():
+    """Test plot_joint highlights only significant clusters."""
+    # TODO put in fixture if reused
+    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
+    times = np.arange(10) / 100.0
+    sig = np.zeros((4, 10), bool)
+    sig[:2, 2:5] = True  # Fz, Cz at 20-40 ms
+    nonsig = np.zeros((4, 10), bool)
+    nonsig[3, 7:9] = True
+    stat_obs = 2.0 * sig
+    stat_obs[1, 3] = -4.0  # |peak| of the significant cluster
+    stat_obs[3, 8] = 9.0  # larger, but not significant
+    result = ClusterResult(
+        stat_obs=stat_obs,
+        clusters=[sig, nonsig],
+        cluster_p_values=np.array([0.01, 0.2]),
+        H0=np.array([]),
+        stat_fun=ttest_1samp_no_p,
+        n_permutations=1,
+    )
+
+    def call(**kwargs):
+        with mock.patch("mne.viz.evoked.plot_evoked_joint") as plot:
+            result.plot_joint(info, times, **kwargs)
+        return plot.call_args.kwargs
+
+    # test sign mask is plotted (padding on both ends)
+    kw = call()
+    assert_array_equal(kw["topomap_args"]["mask"], sig)
+    assert_allclose(kw["ts_args"]["highlight"], [(0.015, 0.045)])
+    assert_allclose(kw["times"], [0.03])
+    assert_array_equal(call(picks=["Cz", "Pz"])["topomap_args"]["mask"], sig[1:3])
+    for alpha in (None, 0.001):  # test nothing to highlight
+        kw = call(cluster_alpha=alpha)
+        assert "mask" not in kw["topomap_args"] and "highlight" not in kw["ts_args"]
