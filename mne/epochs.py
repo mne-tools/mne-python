@@ -1536,12 +1536,16 @@ class BaseEpochs(
             n_events = len(self.events)
             fun = _check_combine(mode, valid=("mean", "median", "std"))
             data = fun(self._data)
-            if np.isnan(data).any():
+            pick_idx = _picks_to_idx(self.info, picks, "data_or_ica", ())
+            nan_chs = np.isnan(data[pick_idx]).any(axis=-1)
+            if nan_chs.any():
+                bad_names = [self.ch_names[p] for p in pick_idx[nan_chs]]
                 raise ValueError(
                     "Cannot average epochs containing NaNs (possibly introduced by "
-                    "mark_bad_channels_per_epoch): any channel with a rejected epoch "
-                    "would average to NaN. Extract the data with get_data() and use "
-                    "np.nanmean over the epoch axis if you need per-channel averages."
+                    "mark_bad_channels_per_epoch) in the picked channels "
+                    f"{bad_names}: they would average to NaN. Extract the data with "
+                    "get_data() and use np.nanmean over the epoch axis if you need "
+                    "per-channel averages."
                 )
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
