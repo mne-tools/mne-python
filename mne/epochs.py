@@ -940,15 +940,6 @@ class BaseEpochs(
         # Set bad epochs to NaN
         data[reject_mask] = np.nan
 
-        # store mask for updating nave
-        self.reject_mask = reject_mask
-
-        # store nave per channel for updating nave
-        valid_epochs_per_channel = np.sum(~reject_mask, axis=0)
-
-        # currently no documentation on that attribute
-        self.nave_per_channel = valid_epochs_per_channel
-
         return self
 
     def _check_events_outside_data(self, on_outside, raw):
