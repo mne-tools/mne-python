@@ -1,7 +1,6 @@
-Add mark_bad_epochs_by_channel method to :class:mne.Epochs for channel-specific epoch rejection
-
-This method allows users to mark bad epochs on a per-channel basis by setting 
-them to NaN. An additional nave_per_channel attribute for epochs is to reflect the number of valid epochs per channel.  
-Averaging epochs with NaNs will fail.
-
-Contributed by `Carina Forster`_.
+Add :meth:`mne.Epochs.mark_bad_channels_per_epoch` for channel-specific epoch rejection. 
+The method sets the data of the selected epoch/channel combinations to ``NaN`` (preloaded epochs only),
+and the new property :attr:`mne.Epochs.nave_per_channel` returns the number of valid epochs for each channel.
+Averaging with :meth:`mne.Epochs.average` raises an error if any of the picked channels contain rejected epochs, 
+because source estimation assumes a single ``nave`` for all channels. 
+By `Carina Forster`_.
