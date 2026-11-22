@@ -108,6 +108,7 @@ def test_1d_filter(n_signal, n_filter, filter_type):
     x = rng.standard_normal(n_signal)
     if filter_type == "random":
         h = rng.standard_normal(n_filter)
+        x[n_signal // 2] = np.nan  # should only spread by the filter length
     else:  # filter_type == 'identity'
         h = np.concatenate([[1.0], np.zeros(n_filter - 1)])
     # ensure we pad the signal the same way for both filters

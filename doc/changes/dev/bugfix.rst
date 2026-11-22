@@ -1,0 +1,1 @@
+Fix overlap-add FIR filtering (e.g., :meth:`mne.io.Raw.filter` and :func:`mne.filter.filter_data`) spreading NaNs over entire FFT blocks when the data contain non-finite values; affected segments now fall back to time-domain convolution so non-finite values spread by at most the filter length, by :newcontrib:`Aariv Patel`.

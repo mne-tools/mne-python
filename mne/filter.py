@@ -338,12 +338,10 @@ def _overlap_add_filter(
     parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
     if n_jobs == 1:
         for p in picks:
-            x[p] = _1d_overlap_filter(
-                x[p], len(h), n_edge, phase, cuda_dict, pad, n_fft
-            )
+            x[p] = _1d_overlap_filter(x[p], h, n_edge, phase, cuda_dict, pad, n_fft)
     else:
         data_new = parallel(
-            p_fun(x[p], len(h), n_edge, phase, cuda_dict, pad, n_fft) for p in picks
+            p_fun(x[p], h, n_edge, phase, cuda_dict, pad, n_fft) for p in picks
         )
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
@@ -352,8 +350,9 @@ def _overlap_add_filter(
     return x
 
 
-def _1d_overlap_filter(x, n_h, n_edge, phase, cuda_dict, pad, n_fft):
+def _1d_overlap_filter(x, h, n_edge, phase, cuda_dict, pad, n_fft):
     """Do one-dimensional overlap-add FFT FIR filtering."""
+    n_h = len(h)
     # pad to reduce ringing
     x_ext = _smart_pad(x, (n_edge, n_edge), pad)
     n_x = len(x_ext)
@@ -371,7 +370,12 @@ def _1d_overlap_filter(x, n_h, n_edge, phase, cuda_dict, pad, n_fft):
         seg = x_ext[start:stop]
         seg = np.concatenate([seg, np.zeros(n_fft - len(seg))])
 
-        prod = _fft_multiply_repeated(seg, cuda_dict)
+        if np.isfinite(seg).all():
+            prod = _fft_multiply_repeated(seg, cuda_dict)
+        else:
+            # use slower time-domain convolution so that non-finite values
+            # spread by at most the filter length rather than the whole block
+            prod = np.convolve(seg, h)[:n_fft]
 
         start_filt = max(0, start - shift)
         stop_filt = min(start - shift + n_fft, n_x)
