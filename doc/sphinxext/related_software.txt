@@ -41,6 +41,7 @@
 ## ========================================================
 # best-python # categories: io
 # conpy # categories: connectivity
+# eeglab2mne # categories: io
 # eelbrain # categories: stats, visu
 # mne-hcp # categories: io
 # posthoc # categories: stats
