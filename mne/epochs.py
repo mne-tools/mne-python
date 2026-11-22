@@ -899,34 +899,45 @@ class BaseEpochs(
         self.set_annotations(annotations, on_missing="ignore")
 
     def mark_bad_channels_per_epoch(self, reject_mask=None):
-        """Mark bad channels on an epoch by epoch basis.
+        """Mark bad channels on an epoch-by-epoch basis.
 
-        Warning: This is only useful for channel-wise analyses.
+        The data of the flagged epoch/channel combinations are set to ``NaN``. The
+        epochs themselves are not dropped, so the other channels of the same epoch
+        remain usable.
 
         Parameters
         ----------
-        reject_mask : np.ndarray, shape (n_epochs, n_channels) | None
-            Boolean mask where True indicates an epoch marked with
-            NaN for a specific channel.
-            If None, no epochs are marked.
+        reject_mask : array-like of bool, shape (n_epochs, n_channels) | None
+            Boolean mask where ``True`` marks the data of that epoch and channel as
+            bad (sets it to ``NaN``). If ``None``, nothing is marked.
 
         Returns
         -------
         epochs : instance of Epochs
-            The epochs object with bad epochs marked with NaNs per channel.
-            Operates in-place.
+            The epochs object with the marked epoch/channel combinations set to
+            ``NaN``. Operates in-place.
+
+        Notes
+        -----
+        This is only useful for channel-wise analyses (e.g., of ECoG or LFP
+        recordings). The rejection is stored as ``NaN`` values in the data, so it
+        is preserved when selecting epochs or channels. The number of valid epochs
+        per channel is available as :attr:`mne.Epochs.nave_per_channel`.
+
+        Epochs containing ``NaN`` cannot be averaged in the usual way:
+        :meth:`mne.Epochs.average` raises an error if any of the picked channels
+        has marked epochs. Use :meth:`mne.Epochs.get_data` and :func:`numpy.nanmean`
+        for per-channel averages.
         """
         if reject_mask is None:
             return self
 
-        if not self.preload:
-            raise ValueError("Epochs must be preloaded.")
-
+        _check_preload(self, "mark_bad_channels_per_epoch")
         data = self._data
         assert data is not None  # preloaded => _data is an ndarray
 
+        reject_mask = np.asarray(reject_mask)
         n_epochs, n_channels, _ = data.shape
-
         if reject_mask.shape != (n_epochs, n_channels):
             raise ValueError(
                 f"reject_mask must have shape ({n_epochs}, {n_channels}), "
@@ -934,12 +945,9 @@ class BaseEpochs(
             )
 
         # required: bool -> boolean indexing, not int
-        if not np.issubdtype(reject_mask.dtype, np.bool_):
-            reject_mask = reject_mask.astype(bool)
+        reject_mask = reject_mask.astype(bool, copy=False)
 
-        # Set bad epochs to NaN
         data[reject_mask] = np.nan
-
         return self
 
     @property
