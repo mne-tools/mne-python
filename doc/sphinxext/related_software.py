@@ -68,6 +68,10 @@ MANUAL_PACKAGES = {
         "Home-page": "https://github.com/aaltoimaginglanguage/conpy",
         "Summary": "Functions and classes for performing connectivity analysis on MEG data.",  # noqa: E501
     },
+    "eeglab2mne": {
+        "Home-page": "https://github.com/sccn/eeglab2mne",
+        "Summary": "A tool to convert EEGLAB data to MNE-Python objects.",
+    },
     # no wheels
     "eelbrain": {
         "Home-page": "https://eelbrain.readthedocs.io",
