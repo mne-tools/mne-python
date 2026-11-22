@@ -1,0 +1,1 @@
+Fix bug where :meth:`mne.viz.Brain.add_volume_labels` raised an ``AttributeError`` instead of warning for labels not present in the anatomical segmentation, by `Payam Sadeghi-Shabestari`_.

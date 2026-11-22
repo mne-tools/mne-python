@@ -452,9 +452,9 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper, depth)
         ),  # sparse default
         pytest.param("dSPM", 85, 87, 0.8, 0.2, marks=pytest.mark.slowtest),
         pytest.param("sLORETA", 100, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
-        pytest.param("eLORETA", 99, 100, None, 0.2, marks=pytest.mark.slowtest),
-        pytest.param("eLORETA", 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
-        pytest.param("eLORETA", 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
+        pytest.param("eLORETA", 100, 100, None, 0.2, marks=pytest.mark.slowtest),
+        pytest.param("eLORETA", 100, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
+        pytest.param("eLORETA", 100, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
     ],
 )
 @pytest.mark.parametrize("pick_ori", (None, "vector"))
@@ -528,17 +528,6 @@ def test_localization_bias_loose(
             "sLORETA", 93, 95, 0.95, 0.96, {}, 0.8, 1, marks=pytest.mark.slowtest
         ),
         pytest.param(
-            "eLORETA",
-            93,
-            100,
-            0.95,
-            0.96,
-            dict(method_params=dict(force_equal=True)),
-            None,
-            1,
-            marks=pytest.mark.slowtest,
-        ),
-        pytest.param(
             "eLORETA", 100, 100, 0.98, 0.99, {}, None, 1.0, marks=pytest.mark.slowtest
         ),
         pytest.param(
@@ -598,6 +587,14 @@ def test_apply_inverse_sphere(evoked, tmp_path):
     stc = apply_inverse(evoked, inv, method="eLORETA", method_params=dict(eps=1e-2))
     # assert zero localization bias
     assert_array_equal(np.argmax(stc.data, axis=0), np.repeat(np.arange(101), 3))
+    with pytest.warns(FutureWarning, match="force_equal"):
+        stc_fe = apply_inverse(
+            evoked,
+            inv,
+            method="eLORETA",
+            method_params=dict(eps=1e-2, force_equal=True),
+        )
+    assert_allclose(stc_fe.data, stc.data)
 
 
 @pytest.mark.slowtest
@@ -605,7 +602,7 @@ def test_apply_inverse_sphere(evoked, tmp_path):
 @pytest.mark.parametrize("lambda2", [1.0 / 9.0, 0.0])
 def test_apply_inverse_eLORETA_MNE_equiv(bias_params_free, loose, lambda2):
     """Test that eLORETA with no iterations is the same as MNE."""
-    method_params = dict(max_iter=0, force_equal=False)
+    method_params = dict(max_iter=0)
     pick_ori = None if loose == 0 else "vector"
     evoked, fwd, noise_cov, _, _ = bias_params_free
     inv = make_inverse_operator(
@@ -726,8 +723,9 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 @pytest.mark.parametrize(
     "looses, vmin, vmax, nmin, nmax",
     [
-        ((1.0, 0.8), 0.87, 0.94, 0.9, 1.1),  # almost the same as free
-        ((0.0, 0.2), 0.3, 0.6, 2, 4),  # similar to fixed
+        ((1.0, 0.8), 0.88, 0.92, 0.93, 0.98),  # similar to free
+        ((0.0, 0.2), 0.35, 0.6, 3, 4.5),  # similar to fixed
+        ((0.0, 1e-4), 0.998, 1.0, 3e3, 1e5),  # almost the same as fixed
     ],
 )
 def test_orientation_prior(bias_params_free, method, looses, vmin, vmax, nmin, nmax):
@@ -742,7 +740,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax, nmin, n
         else:
             pick_ori = "vector"
         stcs.append(apply_inverse(evoked, inv, method=method, pick_ori=pick_ori))
-        if loose in (1.0, 0.2):
+        if loose in (1.0, 0.2, 1e-4):
             assert vec_stc is None
             vec_stc = apply_inverse(evoked, inv, method=method, pick_ori="vector")
     assert vec_stc is not None
