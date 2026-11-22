@@ -934,7 +934,7 @@ class BaseEpochs(
 
         _check_preload(self, "mark_bad_channels_per_epoch")
         data = self._data
-        assert data is not None  # preloaded => _data is an ndarray
+        assert data is not None
 
         reject_mask = np.asarray(reject_mask)
         n_epochs, n_channels, _ = data.shape
@@ -948,6 +948,7 @@ class BaseEpochs(
         reject_mask = reject_mask.astype(bool, copy=False)
 
         data[reject_mask] = np.nan
+
         return self
 
     @property
