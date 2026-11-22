@@ -1637,15 +1637,12 @@ class BaseEpochs(
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
         # don't apply baseline correction; we'll set evoked.baseline manually
-
-        nave = n_events
-
         evoked = EvokedArray(
             data,
             info,
             tmin=self.times[0],
             comment=comment,
-            nave=nave,
+            nave=n_events,
             kind=kind,
             baseline=None,
         )
