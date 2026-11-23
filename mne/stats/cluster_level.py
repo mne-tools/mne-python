@@ -160,6 +160,19 @@ def _get_components(x_in, adjacency):
     return _labels_to_clusters(active, labels)
 
 
+def _prune_by_adjacent_channels(x_in, ch_adjacency, min_adjacent):
+    """Drop points with fewer than ``min_adjacent`` active adjacent channels.
+
+    ``x_in`` is a flat boolean mask whose last axis (when unflattened) holds the
+    channels, as in :func:`cluster_test`. Only channels in the same slice (same time
+    and frequency) are counted, and the point itself is not. Points are tested
+    against the unpruned mask (one pass), so the result does not depend on order.
+    """
+    mask = x_in.reshape(-1, ch_adjacency.shape[0])
+    n_adjacent = (ch_adjacency @ mask.T.astype(int)).T - ch_adjacency.diagonal()
+    return (mask & (n_adjacent >= min_adjacent)).ravel()
+
+
 def _find_clusters(
     x,
     threshold,
@@ -171,6 +184,7 @@ def _find_clusters(
     t_power=1,
     show_info=False,
     sums_only=False,
+    spatial_prune=None,
 ):
     """Find all clusters which are above/below a certain threshold.
 
@@ -219,6 +233,11 @@ def _find_clusters(
         TFCE (a dict ``threshold``), which always needs the cluster indices.
         Used to speed up the permutation loop, where only the maximum
         per-permutation cluster statistic is needed.
+    spatial_prune : tuple | None
+        ``(ch_adjacency, min_adjacent)``: before clustering, drop the points
+        with fewer than ``min_adjacent`` supra-threshold adjacent channels (see
+        :func:`_prune_by_adjacent_channels`). Requires channels as the last axis
+        of the unflattened data. None (default) keeps every point.
 
     Returns
     -------
@@ -312,6 +331,8 @@ def _find_clusters(
             x_ins = [np.logical_and(x > thresh, include)]
         # loop over tails
         for x_in in x_ins:
+            if spatial_prune is not None:
+                x_in = _prune_by_adjacent_channels(x_in, *spatial_prune)
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(
                     x,
@@ -534,6 +555,7 @@ def _do_permutations(
     sample_shape,
     buffer_size,
     progress_bar,
+    spatial_prune=None,
 ):
     n_samp, n_vars = X_full.shape
 
@@ -590,6 +612,7 @@ def _do_permutations(
             include=include,
             t_power=t_power,
             sums_only=True,
+            spatial_prune=spatial_prune,
         )
         perm_clusters_sums = out[1]
 
@@ -655,6 +678,7 @@ def _do_1samp_permutations(
     sample_shape,
     buffer_size,
     progress_bar,
+    spatial_prune=None,
 ):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
@@ -727,6 +751,7 @@ def _do_1samp_permutations(
             include=include,
             t_power=t_power,
             sums_only=True,
+            spatial_prune=spatial_prune,
         )
         perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
@@ -836,6 +861,7 @@ def _permutation_cluster_test(
     check_disjoint,
     buffer_size,
     within_subject=False,
+    spatial_prune=None,
 ):
     """Aux Function.
 
@@ -937,6 +963,7 @@ def _permutation_cluster_test(
         partitions=partitions,
         t_power=t_power,
         show_info=True,
+        spatial_prune=spatial_prune,
     )
     clusters, cluster_stats = out
 
@@ -1054,6 +1081,7 @@ def _permutation_cluster_test(
                     sample_shape,
                     buffer_size,
                     progress_bar.subset(idx),
+                    spatial_prune,
                 )
                 for idx, order in split_list(orders, n_jobs, idx=True)
             )
@@ -2273,10 +2301,12 @@ def _auto_adjacency(inst, sample_shape):
     For MNE objects the channel dimension gets a real sensor adjacency (neighboring
     sensors, from the montage) and the remaining dimensions a regular lattice. Plain
     arrays carry no sensor information, so every dimension gets a lattice.
+
+    Returns the adjacency and the channel adjacency alone (None for plain arrays).
     """
     if isinstance(inst, np.ndarray):
         logger.info("Using a regular lattice adjacency for array data.")
-        return None  # ndimage lattice over every dimension
+        return None, None  # ndimage lattice over every dimension
     ch_types = set(inst.get_channel_types())
     if len(ch_types) > 1:
         raise ValueError(
@@ -2299,7 +2329,7 @@ def _auto_adjacency(inst, sample_shape):
         f"{ch_adjacency.shape[0]} channels, combined with a lattice over the "
         f"remaining {len(sample_shape) - 1} dimension{_pl(len(sample_shape) - 1)}."
     )
-    return combine_adjacency(*sample_shape[:-1], ch_adjacency)
+    return combine_adjacency(*sample_shape[:-1], ch_adjacency), ch_adjacency
 
 
 # TODO: design/analysis features FieldTrip's cluster stats support that
@@ -2311,8 +2341,6 @@ def _auto_adjacency(inst, sample_shape):
 #   (ft_statfun_depsamplesFmultivariate)
 # - activation-versus-baseline tests (ft_statfun_actvsblT)
 # - control variables / stratified or blocked resampling (cfg.cvar, cfg.wvar)
-# - requiring a minimum number of neighboring channels for cluster membership
-#   (cfg.minnbchan)
 # - the weighted cluster mass statistic (cfg.clusterstatistic='wcm');
 #   ``t_power`` covers maxsum (t_power=1) and maxsize (t_power=0) only
 @verbose_static(
@@ -2338,6 +2366,7 @@ def cluster_test(
     n_permutations: str | int = 1024,
     adjacency: sparse.sparray | Literal["auto", False] = "auto",
     max_step: int = 1,  # TODO may need to provide `max_step_time` and `max_step_freq`
+    min_adjacent_channels: int = 0,
     exclude: list | None = None,  # TODO needs rethink because user passes MNE objects
     step_down_p: float = 0.0,
     t_power: float = 1.0,
@@ -2454,6 +2483,16 @@ def cluster_test(
            adjacency yourself if that distinction matters.
     max_step : int
         Maximum distance between samples (time points). Default is 1.
+    min_adjacent_channels : int
+        Minimum number of adjacent channels that must also exceed the threshold, at
+        the same time (and frequency) point, for a location to be part of a cluster.
+        Locations with fewer are dropped before clusters are formed, for the observed
+        data and for every permutation, in a single pass. Adjacent channels are those
+        of the sensor adjacency (see ``adjacency``). The default 0 keeps every
+        location above the threshold. Only supported with ``adjacency="auto"`` and
+        MNE objects, which provide the sensor adjacency.
+
+        .. versionadded:: 1.14
     exclude : array-like of bool | None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as the channels/vertices
@@ -2641,17 +2680,31 @@ def cluster_test(
     contrast = None  # set below if a subtraction is performed
 
     # resolve adjacency now, while we still know the per-observation shape
+    ch_adjacency = None
     if isinstance(adjacency, str):
         _check_option(
             "adjacency", adjacency, ("auto",), extra="when passed as a string"
         )
-        adjacency = _auto_adjacency(df[dv_name].iloc[0], X[0].shape[1:])
+        adjacency, ch_adjacency = _auto_adjacency(df[dv_name].iloc[0], X[0].shape[1:])
     elif adjacency is None:
         raise ValueError(
             'adjacency=None is not supported by cluster_test; pass "auto" (the '
             "default) to infer sensor adjacency from the data, an explicit sparse "
             "matrix, or False to treat every location as independent."
         )
+    _validate_type(min_adjacent_channels, "int", "min_adjacent_channels")
+    if min_adjacent_channels < 0:
+        raise ValueError(
+            f"min_adjacent_channels must be at least 0, got {min_adjacent_channels}."
+        )
+    spatial_prune = None
+    if min_adjacent_channels > 0:
+        if ch_adjacency is None:
+            raise ValueError(
+                'min_adjacent_channels > 0 requires adjacency="auto" with MNE objects '
+                "(Evoked, Epochs or TFR), which provide the sensor adjacency."
+            )
+        spatial_prune = (ch_adjacency, min_adjacent_channels)
 
     _validate_type(reference, (str, None), "reference")
     if reference is not None:
@@ -2760,6 +2813,7 @@ def cluster_test(
         rng=rng,
         # repeated-measures ANOVA: permute within subjects only
         within_subject=kind == "within_rm",
+        spatial_prune=spatial_prune,
     )
 
     stat_obs = stat_obs.T

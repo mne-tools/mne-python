@@ -419,3 +419,94 @@ def test_cluster_test_adjacency():
     )
     with pytest.raises(ValueError, match='"auto" could not infer sensor adjacency'):
         cluster_test(df_no_montage, "data ~ condition", **kwargs)
+
+
+def test_cluster_test_min_adjacent_channels():
+    """Test the minimum number of significant adjacent channels."""
+    from scipy.sparse import csr_array
+
+    from mne.stats.cluster_level import _get_components, _prune_by_adjacent_channels
+
+    # three channels in a line, with the diagonal set like find_ch_adjacency does
+    line = (
+        np.eye(3, dtype=bool) | np.eye(3, k=1, dtype=bool) | np.eye(3, k=-1, dtype=bool)
+    )
+    ch_adjacency = csr_array(line)
+
+    def prune(mask, k):  # mask is (n_slices, n_channels), channels last
+        flat = np.array(mask, bool).ravel()
+        return _prune_by_adjacent_channels(flat, ch_adjacency, k).reshape(-1, 3)
+
+    # k=0 changes nothing, and the input is never modified
+    mask = np.array([[1, 0, 1], [0, 1, 0]], bool)
+    assert_array_equal(prune(mask, 0), mask)
+    # an isolated channel has no significant neighbor ...
+    assert_array_equal(prune(mask, 1), np.zeros_like(mask))
+    # ... and neighbors in other slices (time or frequency) do not count
+    assert_array_equal(prune([[1, 0, 0], [0, 1, 0]], 1), np.zeros((2, 3), bool))
+    # one pass: in a chain A-B-C only B has two neighbors (and the ends are dropped
+    # even though B would be left with none afterwards)
+    assert_array_equal(prune([[1, 1, 1]], 1), [[1, 1, 1]])
+    assert_array_equal(prune([[1, 1, 1]], 2), [[0, 1, 0]])
+    assert_array_equal(prune([[1, 1, 1]], 3), [[0, 0, 0]])
+
+    # a bridge: channel 3 alone at t1 and t2 joins two otherwise separate clusters
+    bridge = np.array([[1, 0, 0, 1, 1], [1, 0, 0, 1, 1], [1, 1, 1, 1, 1]], bool).T
+    adjacency = combine_adjacency(5, ch_adjacency)
+    assert len(_get_components(bridge.ravel(), adjacency)) == 1
+    pruned = prune(bridge, 1)
+    assert_array_equal(pruned[1:3, 2], [False, False])
+    assert_array_equal(pruned[[0, 3, 4]], bridge[[0, 3, 4]])
+    assert len(_get_components(pruned.ravel(), adjacency)) == 2
+
+    # end to end: a lone channel at t3:t6, and every channel at t8:t10
+    rng = np.random.default_rng(seed=3)
+    ch_names = ["Fz", "Cz", "Pz", "C3", "C4"]
+    n_sub, n_chan, n_times = 8, len(ch_names), 10
+    info = create_info(ch_names, sfreq=100.0, ch_types="eeg")
+    info.set_montage("spherical_1020")
+    rows = list()
+    for si in range(n_sub):
+        base = rng.normal(size=(n_chan, n_times))
+        for cond in ("a", "b"):
+            data = base + rng.normal(scale=0.5, size=(n_chan, n_times))
+            if cond == "b":
+                data[1, 3:6] += 2.0
+                data[:, 8:] += 2.0
+            rows.append(dict(data=EvokedArray(data, info), condition=cond, subject=si))
+    df = pd.DataFrame(rows)
+    kwargs = dict(within_id="subject", n_permutations=128, rng=0, out_type="mask")
+    kwargs.update(threshold=5.0)
+    plain = cluster_test(df, "data ~ condition", **kwargs)
+    kept = cluster_test(df, "data ~ condition", min_adjacent_channels=1, **kwargs)
+    assert len(plain.clusters) == 2
+    assert len(kept.clusters) == 1
+    assert_array_equal(kept.clusters[0], plain.clusters[1])
+    # the same filter runs on the permutations, so the null can only shrink
+    # (H0 holds the signed maximum of largest magnitude for a two-tailed test)
+    kwargs.update(threshold=1.0)
+    plain = cluster_test(df, "data ~ condition", **kwargs)
+    kept = cluster_test(df, "data ~ condition", min_adjacent_channels=2, **kwargs)
+    assert np.all(np.abs(kept.H0) <= np.abs(plain.H0))
+    assert np.any(np.abs(kept.H0) < np.abs(plain.H0))
+
+    # only adjacency="auto" with sensor data is supported
+    ch_adj, _ = find_ch_adjacency(info, ch_type=None)
+    explicit = combine_adjacency(n_times, ch_adj)
+    for adjacency in (False, explicit):
+        with pytest.raises(ValueError, match='requires adjacency="auto"'):
+            cluster_test(
+                df,
+                "data ~ condition",
+                min_adjacent_channels=1,
+                adjacency=adjacency,
+                **kwargs,
+            )
+    df_array = df.copy()
+    df_array["data"] = df["data"].map(lambda ev: ev.data.T)
+    with pytest.raises(ValueError, match="sensor adjacency"):
+        cluster_test(df_array, "data ~ condition", min_adjacent_channels=1, **kwargs)
+    with pytest.raises(ValueError, match="must be at least 0"):
+        cluster_test(df, "data ~ condition", min_adjacent_channels=-1, **kwargs)
+    with pytest.raises(TypeError, match="min_adjacent_channels"):
+        cluster_test(df, "data ~ condition", min_adjacent_channels=1.5, **kwargs)
