@@ -176,6 +176,19 @@ def test_new_cluster_api(Inst):
     for clu1, clu2 in zip(result_new_api.clusters, clusters):
         assert_array_equal(clu1, clu2.T)
 
+    # min_adjacent_channels, for every kind of data. The channels come first in the
+    # output, and a cluster can only keep a channel with an adjacent channel in the
+    # same cluster at the same time (and frequency).
+    res = cluster_test(df, "data~condition", min_adjacent_channels=1, **kwargs)
+    # (combine_adjacency above zeroes the diagonal of ch_adjacency in place)
+    neighbors = ((ch_adjacency.toarray() != 0) & ~np.eye(n_chan, dtype=bool)).astype(
+        int
+    )
+    assert len(res.clusters) > 0
+    for clust in res.clusters:
+        members = clust.reshape(n_chan, -1)
+        assert np.all((neighbors @ members)[members])
+
 
 @pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
 def test_cluster_test_rm_anova():
