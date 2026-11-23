@@ -1,0 +1,1 @@
+Fix :func:`mne.read_forward_solution` and :func:`mne.minimum_norm.read_inverse_operator` incorrectly overwriting subcortical surface source space IDs, by `Aditya Kumar Singh`_.

@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import copy
 import gc
 from pathlib import Path
 
@@ -21,11 +22,14 @@ from mne import (
     apply_forward_raw,
     average_forward_solutions,
     convert_forward_solution,
+    create_info,
     pick_types_forward,
     read_evokeds,
     read_forward_solution,
+    read_source_spaces,
     write_forward_solution,
 )
+from mne._fiff.constants import FIFF
 from mne._fiff.pick import pick_channels_forward
 from mne.channels import equalize_channels
 from mne.datasets import testing
@@ -39,6 +43,8 @@ from mne.forward import (
 )
 from mne.io import read_info
 from mne.label import read_label
+from mne.source_space import SourceSpaces
+from mne.transforms import Transform
 from mne.utils import _record_warnings, requires_mne, run_subprocess
 
 data_path = testing.data_path(download=False)
@@ -525,3 +531,102 @@ def test_equalize_channels():
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ["EEG 001", "EEG 002"]
     assert fwd2.ch_names == ["EEG 001", "EEG 002"]
+
+
+def test_forward_subcortical_io(tmp_path):
+    """Test reading forward solution with subcortical and mixed source spaces."""
+    base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
+    src = read_source_spaces(base_dir / "small-src.fif.gz", verbose=False)
+
+    sub_s = copy.deepcopy(src[0])
+    sub_s["id"] = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + 18
+    sub_s["seg_name"] = "Left-Amygdala"
+    mixed_src = SourceSpaces([src[0], src[1], sub_s])
+    sub_only_src = SourceSpaces([sub_s])
+
+    info = create_info(["MEG 001"], 1000.0, ["mag"])
+    with info._unlock():
+        info["mri_file"] = "mri"
+        info["mri_id"] = None
+        info["meas_file"] = "meas"
+        info["meas_id"] = None
+        info["mri_head_t"] = Transform("mri", "head", np.eye(4))
+        info["dev_head_t"] = Transform("meg", "head", np.eye(4))
+
+    for this_src, expected_kind in [
+        (mixed_src, "mixed"),
+        (sub_only_src, "subcortical_surf"),
+    ]:
+        n_vert = sum(s["nuse"] for s in this_src)
+        sol_data = np.zeros((1, n_vert * 3))
+        fwd = Forward(
+            sol=dict(
+                data=sol_data,
+                nrow=1,
+                ncol=n_vert * 3,
+                row_names=["MEG 001"],
+                col_names=[],
+            ),
+            source_ori=FIFF.FIFFV_MNE_FREE_ORI,
+            nsource=n_vert,
+            nchan=1,
+            coord_frame=FIFF.FIFFV_COORD_HEAD,
+            info=info,
+            src=this_src,
+            source_nn=np.zeros((n_vert * 3, 3)),
+            surf_ori=False,
+            mri_head_t=Transform("mri", "head", np.eye(4)),
+            sol_grad=None,
+            _orig_source_ori=FIFF.FIFFV_MNE_FREE_ORI,
+            _orig_sol=sol_data,
+            _orig_sol_grad=None,
+        )
+
+        fname = tmp_path / f"test-{expected_kind}-fwd.fif"
+        write_forward_solution(fname, fwd, overwrite=True, verbose=False)
+        fwd_read = read_forward_solution(fname, verbose=False)
+
+        assert fwd_read["src"].kind == expected_kind
+        assert [s["id"] for s in fwd_read["src"]] == [s["id"] for s in this_src]
+        assert [s.get("seg_name") for s in fwd_read["src"]] == [
+            s.get("seg_name") for s in this_src
+        ]
+
+    # Legacy forward solution without FIFF_MNE_SOURCE_SPACE_ID
+    legacy_s0 = copy.deepcopy(src[0])
+    legacy_s0["id"] = FIFF.FIFFV_MNE_SURF_UNKNOWN
+    legacy_s1 = copy.deepcopy(src[1])
+    legacy_s1["id"] = FIFF.FIFFV_MNE_SURF_UNKNOWN
+    legacy_src = SourceSpaces([legacy_s0, legacy_s1])
+    n_vert = sum(s["nuse"] for s in legacy_src)
+    sol_data = np.zeros((1, n_vert * 3))
+    fwd_legacy = Forward(
+        sol=dict(
+            data=sol_data,
+            nrow=1,
+            ncol=n_vert * 3,
+            row_names=["MEG 001"],
+            col_names=[],
+        ),
+        source_ori=FIFF.FIFFV_MNE_FREE_ORI,
+        nsource=n_vert,
+        nchan=1,
+        coord_frame=FIFF.FIFFV_COORD_HEAD,
+        info=info,
+        src=legacy_src,
+        source_nn=np.zeros((n_vert * 3, 3)),
+        surf_ori=False,
+        mri_head_t=Transform("mri", "head", np.eye(4)),
+        sol_grad=None,
+        _orig_source_ori=FIFF.FIFFV_MNE_FREE_ORI,
+        _orig_sol=sol_data,
+        _orig_sol_grad=None,
+    )
+    fname_legacy = tmp_path / "test-legacy-fwd.fif"
+    write_forward_solution(fname_legacy, fwd_legacy, overwrite=True, verbose=False)
+    fwd_legacy_read = read_forward_solution(fname_legacy, verbose=False)
+    assert fwd_legacy_read["src"].kind == "surface"
+    assert [s["id"] for s in fwd_legacy_read["src"]] == [
+        FIFF.FIFFV_MNE_SURF_LEFT_HEMI,
+        FIFF.FIFFV_MNE_SURF_RIGHT_HEMI,
+    ]
