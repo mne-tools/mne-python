@@ -145,6 +145,12 @@ cluster_result = mne.stats.cluster_test(
 # ``"auto"`` will say so rather than guess; you can then set one, or build the
 # matrix yourself with :func:`mne.channels.find_ch_adjacency` and
 # :func:`mne.stats.combine_adjacency`.
+#
+# With ``adjacency="auto"`` you can also pass ``min_adjacent_channels=k`` to keep a
+# location in a cluster only if at least ``k`` neighboring channels also exceed the
+# threshold at the same time point. Isolated locations, and thin bridges between
+# larger clusters, are then dropped before clusters are formed, in the observed data
+# and in every permutation.
 
 print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 
