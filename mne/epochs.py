@@ -5126,8 +5126,8 @@ class Epochs(BaseEpochs):
         - 'IGNORED'
             If it isn't part of the current subset defined by the user
         - 'NO_DATA' or 'TOO_SHORT'
-            If epoch didn't contain enough data names of channels that exceeded
-            the amplitude threshold
+            If the epoch didn't contain enough data. For 'TOO_SHORT',
+            the names of channels exceeding the amplitude threshold are included.
         - 'EQUALIZED_COUNTS'
             See :meth:`~mne.Epochs.equalize_event_counts`
         - 'USER'
