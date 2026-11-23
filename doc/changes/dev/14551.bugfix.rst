@@ -1,1 +1,1 @@
-Apply flat-segment rejection in :func:`mne.stats.linear_regression_raw` when ``reject`` is not supplied, by :newcontrib:`Eva B`.
+Fix bug in :func:`mne.stats.linear_regression_raw` where ``flat`` was silently ignored unless ``reject`` was also passed, by :newcontrib:`Eva B`.
