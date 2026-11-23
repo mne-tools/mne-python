@@ -58,7 +58,7 @@ from .._fiff.pick import (
 from ..defaults import DEFAULTS
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, logger
-from ._figure import BrowserBase
+from ._figure import _SAMPLE_SNAP, BrowserBase
 from .utils import (
     _BLIT_KWARGS,
     DraggableLine,
@@ -1929,10 +1929,18 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         first_time = self.mne.first_time
         last_time = first_time + self.mne.n_times / self.mne.info["sfreq"]
         min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]  # like "home" key
-        duration = float(np.clip(duration, min_dur, last_time - first_time))
+        # Show the part of the window that we have data for. If that's nothing,
+        # show the part of our data that is closest.
+        stop = max(min(t_start + duration, last_time), first_time)
+        t_start = max(min(t_start, last_time), first_time)
+        duration = float(np.clip(stop - t_start, min_dur, last_time - first_time))
         # (not np.clip: rounding can make the upper bound < first_time)
         t_start = float(max(min(t_start, last_time - duration), first_time))
-        if t_start == self.mne.t_start and duration == self.mne.duration:
+        tol = _SAMPLE_SNAP / self.mne.info["sfreq"]
+        if (
+            abs(t_start - self.mne.t_start) < tol
+            and abs(duration - self.mne.duration) < tol
+        ):
             return
         self.mne.t_start = t_start
         self.mne.duration = duration

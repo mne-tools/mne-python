@@ -1674,11 +1674,11 @@ def test_link_browsers_time_alignment(raw, mpl_backend):
     fig1._fake_click((0.0, 0.5), ax=fig1.mne.ax_hscroll, xform="data")
     assert fig1.mne.t_start == 0
     assert_allclose(fig2.mne.t_start, raw_crop.first_time, atol=1e-12)
-    # a window longer than raw_crop clips to its length
+    # a window longer than raw_crop shows the part of it that raw_crop has data for
     for _ in range(15):
         fig1._fake_keypress("end")
     assert fig1.mne.duration > raw_crop.n_times / sfreq
-    assert_allclose(fig2.mne.duration, raw_crop.n_times / sfreq)
+    assert_allclose(fig2.mne.duration, raw_crop.n_times / sfreq, atol=1 / sfreq)
     assert_allclose(fig2.mne.t_start, raw_crop.first_time, atol=1e-12)
     # the browsers never left their data range
     for fig, inst in ((fig1, raw), (fig2, raw_crop)):
@@ -1953,6 +1953,127 @@ def test_link_browsers_backends(raw, browser_backend):
     assert fig1.mne.t_start < t_start
 
 
+def test_link_browsers_custom_publisher(raw, mpl_backend):
+    """Test that browsers follow events from figures that aren't browsers."""
+    import matplotlib.pyplot as plt
+
+    from mne.viz import ui_events
+
+    raw.set_annotations(None)
+    sfreq = raw.info["sfreq"]
+    fig = raw.plot(duration=5.0)
+    custom = plt.figure()
+    ui_events.link(custom, fig)
+    first = raw.first_time
+    # time window: only tmin and tmax matter
+    ui_events.publish(
+        custom, ui_events.TimeWindowChange(tmin=first + 3, tmax=first + 6)
+    )
+    assert_allclose(fig.mne.t_start, 3.0, atol=1 / sfreq)
+    assert_allclose(fig.mne.duration, 3.0, atol=1 / sfreq)
+    # (numpy numbers are fine)
+    ui_events.publish(
+        custom,
+        ui_events.TimeWindowChange(
+            tmin=np.float32(first + 1), tmax=np.int64(first + 4)
+        ),
+    )
+    assert_allclose(fig.mne.t_start, 1.0, atol=1e-5)
+    # the window is clipped to the data we have
+    ui_events.publish(
+        custom, ui_events.TimeWindowChange(tmin=first - 10, tmax=first + 2)
+    )
+    assert fig.mne.t_start == fig.mne.first_time
+    assert_allclose(fig.mne.duration, 2.0, atol=1 / sfreq)
+    ui_events.publish(
+        custom, ui_events.TimeWindowChange(tmin=first + 1e6, tmax=first + 1e6 + 5)
+    )
+    assert fig.mne.t_start + fig.mne.duration <= raw.n_times / sfreq + 1e-9
+    assert fig.mne.t_start >= fig.mne.first_time
+    # invalid windows are ignored
+    window = _window(fig)
+    for tmin, tmax in ((5.0, 5.0), (6.0, 5.0), (np.nan, 5.0), (0.0, np.inf)):
+        ui_events.publish(custom, ui_events.TimeWindowChange(tmin=tmin, tmax=tmax))
+        assert _window(fig) == window
+    # we don't talk back to figures that only published
+    events = list()
+    ui_events.subscribe(
+        custom, "time_window_change", lambda event: events.append(event)
+    )
+    ui_events.publish(
+        custom, ui_events.TimeWindowChange(tmin=first + 2, tmax=first + 5)
+    )
+    assert len(events) == 1
+    # annotations: lists and strings are fine, edits are applied once
+    added = [(first + 1.0, 0.5, "BAD_a", ["MEG 0113"]), (first + 2.0, 1.0, "x", ())]
+    ui_events.publish(custom, ui_events.AnnotationsChange(added=added))
+    assert len(raw.annotations) == 2
+    assert_allclose(raw.annotations.onset, [first + 1.0, first + 2.0])
+    assert raw.annotations.ch_names[0] == ("MEG 0113",)
+    ui_events.publish(custom, ui_events.AnnotationsChange(removed=added[:1]))
+    assert list(raw.annotations.description) == ["x"]
+    # removing something we don't have does nothing
+    ui_events.publish(custom, ui_events.AnnotationsChange(removed=added[:1]))
+    assert list(raw.annotations.description) == ["x"]
+    plt.close(custom)
+
+
+def test_link_browsers_own_events(raw, mpl_backend):
+    """Test that a browser doesn't act on its own events."""
+    from mne.viz import ui_events
+
+    raw.set_annotations(None)
+    fig = raw.plot(duration=5.0)
+    fig2 = raw.copy().plot(duration=5.0)
+    ui_events.link(fig, fig2)
+    fig._fake_keypress("right")
+    t_start = fig.mne.t_start
+    # publishing the same window again doesn't move anything
+    ui_events.publish(
+        fig,
+        ui_events.TimeWindowChange(
+            tmin=fig.mne.t_start + raw.first_time,
+            tmax=fig.mne.t_start + fig.mne.duration + raw.first_time,
+        ),
+    )
+    assert fig.mne.t_start == t_start
+    # the same goes for the annotations of browsers sharing the object
+    fig._fake_keypress("a")  # (only to be sure the annotation mode doesn't matter)
+    raw.annotations.append(1.0, 1.0, "BAD_x")
+    fig._publish_annotations_change()
+    assert len(raw.annotations) == 1
+    assert fig2.mne.annotations_snapshot == fig2._annotations_snapshot()
+
+
+def test_link_browsers_stale_annotations(raw, mpl_backend):
+    """Test that edits aren't applied twice if a browser missed a change in code."""
+    from mne.viz import ui_events
+
+    raw.set_annotations(None)
+    raw.annotations.append(raw.first_time + 1.0, 1.0, "BAD_a")
+    fig1 = raw.plot(duration=10.0)
+    raw.annotations.append(raw.first_time + 3.0, 1.0, "BAD_a")  # fig1 doesn't know
+    fig2 = raw.plot(duration=10.0)  # (but fig2 does)
+    ui_events.link(fig1, fig2)
+    # fig1 reports the annotation made in code as well as the new one
+    fig1._publish_annotations_change()
+    assert len(raw.annotations) == 2
+    raw.annotations.append(raw.first_time + 6.0, 1.0, "BAD_a")
+    fig1._publish_annotations_change()
+    assert len(raw.annotations) == 3  # no duplicates
+    assert len(fig2.mne.annotation_segments) == 3  # (fig1 draws its own edits)
+    # a copy gets the edits it doesn't have yet, once
+    raw2 = raw.copy()
+    raw2.set_annotations(raw2.annotations[:1])
+    fig3 = raw2.plot(duration=10.0)
+    ui_events.link(fig1, fig3)
+    raw.annotations.append(raw.first_time + 8.0, 1.0, "BAD_a")
+    fig1._publish_annotations_change()
+    fig1._publish_annotations_change()  # (nothing new this time)
+    assert len(raw.annotations) == 4
+    assert len(raw2.annotations) == 2  # the one it had plus the new one
+
+
 @pytest.mark.parametrize("show_first_samp", [False, True])
 def test_link_browsers_same_samples(mpl_backend, show_first_samp):
     """Test that linked browsers show exactly the same samples (gh-13260)."""
@@ -1972,8 +2093,8 @@ def test_link_browsers_same_samples(mpl_backend, show_first_samp):
         assert fig1._get_start_stop() == fig2._get_start_stop()
         assert_array_equal(fig1.mne.data, fig2.mne.data)
     assert fig1.mne.t_start == 17.5
-    if not show_first_samp:  # same time axis: identical windows
-        assert _window(fig1) == _window(fig2)
+    if not show_first_samp:  # same time axis: same windows (up to a nudge)
+        assert_allclose(_window(fig1), _window(fig2), rtol=0, atol=1e-5)
 
 
 @pytest.mark.parametrize("link", [False, True])

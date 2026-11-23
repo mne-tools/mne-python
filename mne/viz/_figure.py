@@ -50,11 +50,18 @@ class BrowserParams:
         vars(self).update(**kwargs)
 
 
+# Fraction of a sample by which we nudge times that are aligned with samples, so
+# rounding errors can't make us select the neighboring sample.
+_SAMPLE_SNAP = 1e-3
+
+
 class BrowserBase(ABC):
     """A base class containing for the 2D browser.
 
     This class contains all backend-independent attributes and methods.
     """
+
+    _is_publishing = False  # whether we're in the middle of publishing a UI event
 
     def __init__(self, **kwargs):
         from ..epochs import BaseEpochs
@@ -612,39 +619,44 @@ class BrowserBase(ABC):
         if not hasattr(self.mne, "annotations_snapshot"):
             return  # we didn't set up UI events (e.g., epochs browser)
         tmin = float(self._browser_to_acq_time(self.mne.t_start))
-        publish(self, TimeWindowChange(tmin=tmin, tmax=tmin + self.mne.duration))
+        with self._publishing():
+            publish(self, TimeWindowChange(tmin=tmin, tmax=tmin + self.mne.duration))
+
+    @contextmanager
+    def _publishing(self):
+        """Mark that we are publishing, so we ignore our own events."""
+        was_publishing = self._is_publishing
+        self._is_publishing = True
+        try:
+            yield
+        finally:
+            self._is_publishing = was_publishing
 
     def _on_time_window_change(self, event):
-        """Follow the time window of a linked figure."""
+        """Show the time window of a UI event, to the best of our ability.
+
+        The event can come from anywhere (another browser, a custom figure, ...),
+        so only its ``tmin`` and ``tmax`` are used.
+        """
         from .ui_events import disable_ui_events
 
-        source = event.source
-        if source is self:
-            return
-        if isinstance(source, BrowserBase) and not source.mne.is_epochs:
-            # Use the other browser's window directly, shifted by the difference
-            # of the time axes (exactly 0. if they are the same). Going through
-            # the acquisition time instead (t + offset - offset) can be off by
-            # one ulp, which can make us load the data one sample earlier.
-            offset = self._browser_to_acq_time(0.0) - source._browser_to_acq_time(0.0)
-            t_start = source.mne.t_start - offset
-            duration = source.mne.duration
-            sfreq = self.mne.info["sfreq"]
-            if offset != 0 and sfreq == source.mne.info["sfreq"]:
-                # The time axes differ, so rounding errors could still make us
-                # start one sample off. If so, start in the middle of the right
-                # sample (the plotted range is determined by the samples).
-                want = (
-                    source._get_start_stop()[0]
-                    + source.mne.inst.first_samp
-                    - self.mne.inst.first_samp
-                )
-                start = self.mne.inst.time_as_index(t_start - self.mne.first_time)
-                if start[0] != want:
-                    t_start = self.mne.first_time + (want + 0.5) / sfreq
-        else:
-            t_start = self._acq_to_browser_time(event.tmin)
-            duration = event.tmax - event.tmin
+        if self._is_publishing:
+            return  # our own event, we're already showing it
+        tmin, tmax = float(event.tmin), float(event.tmax)
+        if not (np.isfinite(tmin) and np.isfinite(tmax)) or tmax <= tmin:
+            return  # not a valid time window
+        sfreq = self.mne.info["sfreq"]
+        t_start = self._acq_to_browser_time(tmin)
+        duration = tmax - tmin
+        # Converting between time axes can introduce rounding errors of a few ulps,
+        # which could make us start (or stop) one sample off when the window is
+        # aligned with our samples. Nudge those into the right sample.
+        samples = (t_start - self.mne.first_time) * sfreq
+        if abs(samples - round(samples)) < _SAMPLE_SNAP:
+            t_start = self.mne.first_time + (round(samples) + _SAMPLE_SNAP) / sfreq
+        samples = duration * sfreq
+        if abs(samples - round(samples)) < _SAMPLE_SNAP:
+            duration = (round(samples) - _SAMPLE_SNAP) / sfreq
         # don't echo the change back to the figures we're linked to
         with disable_ui_events(self):
             self._set_time_window(t_start, duration)
@@ -673,21 +685,37 @@ class BrowserBase(ABC):
             return  # we didn't set up UI events (e.g., epochs browser)
         old = self.mne.annotations_snapshot
         new = self._annotations_snapshot()
-        self.mne.annotations_snapshot = new
         added = tuple(sorted((new - old).elements()))
         removed = tuple(sorted((old - new).elements()))
         if added or removed:
-            publish(self, AnnotationsChange(added=added, removed=removed))
+            with self._publishing():
+                publish(self, AnnotationsChange(added=added, removed=removed))
+        self.mne.annotations_snapshot = new
+
+    @staticmethod
+    def _annotation_key(annotation):
+        """Get an annotation of a UI event in the format of our snapshots."""
+        onset, duration, description, ch_names = annotation
+        if isinstance(ch_names, str):
+            ch_names = (ch_names,)
+        return (float(onset), float(duration), str(description), tuple(ch_names))
 
     def _on_annotations_change(self, event):
-        """Mirror the annotation edits made in a linked figure."""
-        if event.source is self:
-            return
-        source_inst = getattr(getattr(event.source, "mne", None), "inst", None)
-        # Browsers of the same data object share the Annotations object, so the
-        # edit is already there and only needs to be drawn.
-        if getattr(source_inst, "annotations", None) is not self.mne.inst.annotations:
-            self._apply_annotations_change(event.added, event.removed)
+        """Mirror the annotation edits of a UI event.
+
+        The event can come from anywhere (another browser, a custom figure, ...),
+        so only the edits it describes are used. They are applied to our
+        annotations unless these already are the result of the edits (which is the
+        case when browsers of the same data object are linked, as they share the
+        ``Annotations``).
+        """
+        if self._is_publishing:
+            return  # our own event, we're already showing it
+        added = [self._annotation_key(annotation) for annotation in event.added]
+        removed = [self._annotation_key(annotation) for annotation in event.removed]
+        expected = (self.mne.annotations_snapshot - Counter(removed)) + Counter(added)
+        if self._annotations_snapshot() != expected:
+            self._apply_annotations_change(added, removed)
         self.mne.annotations_snapshot = self._annotations_snapshot()
         self._refresh_annotations(new_labels=self._update_annotation_labels())
 
@@ -706,32 +734,54 @@ class BrowserBase(ABC):
             return None
         return start, stop - start, our_ch_names
 
-    def _apply_annotations_change(self, added, removed):
-        """Remove and add annotations as a linked figure did."""
+    def _matching_annotations(self, onset, duration, description, ch_names):
+        """Get the indices of our annotations that are the given one."""
         annotations = self.mne.inst.annotations
         # Onsets may differ by rounding errors when the annotations were
         # transferred between objects, so we allow for half a sample of slack.
         atol = 0.5 / self.mne.info["sfreq"]
+        match = (
+            np.isclose(annotations.onset, onset, rtol=0, atol=atol)
+            & np.isclose(annotations.duration, duration, rtol=0, atol=atol)
+            & (annotations.description == description)
+            & np.array([tuple(ch) == ch_names for ch in annotations.ch_names], bool)
+        )
+        return np.flatnonzero(match)
+
+    def _apply_annotations_change(self, added, removed):
+        """Remove and add annotations as a linked figure did.
+
+        Only what's missing is added and only what's there is removed, so applying
+        the same edit twice (e.g., because we share our annotations with the
+        figure that made it) doesn't do any harm.
+        """
+        annotations = self.mne.inst.annotations
         to_delete = list()
         for onset, duration, description, ch_names in removed:
             clipped = self._clip_annotation(onset, duration, ch_names)
             if clipped is None:
                 continue  # we never had it
             onset, duration, ch_names = clipped
-            match = (
-                np.isclose(annotations.onset, onset, rtol=0, atol=atol)
-                & np.isclose(annotations.duration, duration, rtol=0, atol=atol)
-                & (annotations.description == description)
-                & np.array([tuple(ch) == ch_names for ch in annotations.ch_names], bool)
-            )
-            match[to_delete] = False
-            if match.any():  # the topmost one, like when clicking on spans
-                to_delete.append(np.flatnonzero(match)[-1])
+            match = [
+                idx
+                for idx in self._matching_annotations(
+                    onset, duration, description, ch_names
+                )
+                if idx not in to_delete
+            ]
+            if match:  # the topmost one, like when clicking on spans
+                to_delete.append(match[-1])
         annotations.delete(to_delete)
-        for onset, duration, description, ch_names in added:
+        for key, n_added in Counter(added).items():
+            onset, duration, description, ch_names = key
             clipped = self._clip_annotation(onset, duration, ch_names)
-            if clipped is not None:
-                onset, duration, ch_names = clipped
+            if clipped is None:
+                continue
+            onset, duration, ch_names = clipped
+            n_have = len(
+                self._matching_annotations(onset, duration, description, ch_names)
+            )
+            for _ in range(n_added - n_have):
                 annotations.append(
                     onset,
                     duration,
