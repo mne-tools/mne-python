@@ -446,9 +446,10 @@ def test_cluster_test_min_adjacent_channels():
     )
     ch_adjacency = csr_array(line)
 
-    def prune(mask, k):  # mask is (n_slices, n_channels), channels last
+    def prune(mask, k, adjacency=ch_adjacency):  # mask is (n_slices, n_channels)
         flat = np.array(mask, bool).ravel()
-        return _prune_by_adjacent_channels(flat, ch_adjacency, k).reshape(-1, 3)
+        pruned = _prune_by_adjacent_channels(flat, adjacency, k)
+        return pruned.reshape(-1, adjacency.shape[0])
 
     # k=0 changes nothing, and the input is never modified
     mask = np.array([[1, 0, 1], [0, 1, 0]], bool)
@@ -457,11 +458,21 @@ def test_cluster_test_min_adjacent_channels():
     assert_array_equal(prune(mask, 1), np.zeros_like(mask))
     # ... and neighbors in other slices (time or frequency) do not count
     assert_array_equal(prune([[1, 0, 0], [0, 1, 0]], 1), np.zeros((2, 3), bool))
-    # one pass: in a chain A-B-C only B has two neighbors (and the ends are dropped
-    # even though B would be left with none afterwards)
+    # repeated until stable: in a chain A-B-C only B has two neighbors, but once the
+    # ends are dropped B has none left
     assert_array_equal(prune([[1, 1, 1]], 1), [[1, 1, 1]])
-    assert_array_equal(prune([[1, 1, 1]], 2), [[0, 1, 0]])
-    assert_array_equal(prune([[1, 1, 1]], 3), [[0, 0, 0]])
+    assert_array_equal(prune([[1, 1, 1]], 2), [[0, 0, 0]])
+    # a triangle (channels 0-2) with a tail (3, 4) hanging off it: the tail goes one
+    # channel at a time, the triangle stays
+    edges = [(0, 1), (0, 2), (1, 2), (2, 3), (3, 4)]
+    dense = np.eye(5, dtype=bool)
+    for ii, jj in edges:
+        dense[ii, jj] = dense[jj, ii] = True
+    triangle_tail = csr_array(dense)
+    assert_array_equal(prune([[1] * 5], 2, triangle_tail), [[1, 1, 1, 0, 0]])
+    assert_array_equal(prune([[1] * 5], 3, triangle_tail), [[0] * 5])
+    # an inactive end of the tail leaves the next channel with a single neighbor
+    assert_array_equal(prune([[1, 1, 1, 1, 0]], 2, triangle_tail), [[1, 1, 1, 0, 0]])
 
     # a bridge: channel 3 alone at t1 and t2 joins two otherwise separate clusters
     bridge = np.array([[1, 0, 0, 1, 1], [1, 0, 0, 1, 1], [1, 1, 1, 1, 1]], bool).T

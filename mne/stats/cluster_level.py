@@ -165,12 +165,18 @@ def _prune_by_adjacent_channels(x_in, ch_adjacency, min_adjacent):
 
     ``x_in`` is a flat boolean mask whose last axis (when unflattened) holds the
     channels, as in :func:`cluster_test`. Only channels in the same slice (same time
-    and frequency) are counted, and the point itself is not. Points are tested
-    against the unpruned mask (one pass), so the result does not depend on order.
+    and frequency) are counted, and the point itself is not. Dropping a point can
+    leave its neighbors short, so this repeats until nothing more is dropped. What
+    remains is unique, whatever the order in which points are dropped.
     """
     mask = x_in.reshape(-1, ch_adjacency.shape[0])
-    n_adjacent = (ch_adjacency @ mask.T.astype(int)).T - ch_adjacency.diagonal()
-    return (mask & (n_adjacent >= min_adjacent)).ravel()
+    diagonal = ch_adjacency.diagonal()
+    while True:
+        n_adjacent = (ch_adjacency @ mask.T.astype(int)).T - diagonal
+        keep = mask & (n_adjacent >= min_adjacent)
+        if keep.sum() == mask.sum():  # keep is a subset of mask
+            return keep.ravel()
+        mask = keep
 
 
 def _find_clusters(
@@ -2487,9 +2493,11 @@ def cluster_test(
         Minimum number of adjacent channels that must also exceed the threshold, at
         the same time (and frequency) point, for a location to be part of a cluster.
         Locations with fewer are dropped before clusters are formed, for the observed
-        data and for every permutation, in a single pass. Adjacent channels are those
-        of the sensor adjacency (see ``adjacency``). The default 0 keeps every
-        location above the threshold. Only supported with ``adjacency="auto"`` and
+        data and for every permutation. Dropping a location can leave its neighbors
+        short of adjacent channels, so this is repeated until no more are dropped, as
+        for ``minnbchan`` in FieldTrip. Adjacent channels are those of the sensor
+        adjacency (see ``adjacency``). The default 0 keeps every location above the
+        threshold. Only supported with ``adjacency="auto"`` and
         MNE objects, which provide the sensor adjacency.
 
         .. versionadded:: 1.14
