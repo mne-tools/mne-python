@@ -157,3 +157,18 @@ def test_continuous_regression_with_overlap():
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver="err")
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
+
+
+def test_continuous_regression_list_covariates():
+    """Test that linear_regression_raw accepts covariates given as a list."""
+    data = np.random.default_rng(0).standard_normal((1, 3000)) * 1e-5
+    raw = RawArray(data, mne.create_info(1, 100, "eeg"))
+    events = np.array([[sample, 0, 1] for sample in range(100, 2900, 200)])
+    # covariates can be any array-like, e.g. a list
+    covariates = np.linspace(1, 2, len(events))
+    kwargs = dict(event_id={1: 1}, tmin=0)
+    evokeds = linear_regression_raw(raw, events, covariates={"c": covariates}, **kwargs)
+    evokeds_list = linear_regression_raw(
+        raw, events, covariates={"c": list(covariates)}, **kwargs
+    )
+    assert_allclose(evokeds["c"].data, evokeds_list["c"].data)

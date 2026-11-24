@@ -391,7 +391,7 @@ def _prepare_rerp_preds(
             values = np.ones((len(onsets), n_lags))
 
         else:  # for predictors from covariates, e.g. continuous ones
-            covs = covariates[cond]
+            covs = np.asarray(covariates[cond])
             if len(covs) != len(events):
                 error = (
                     f"Condition {cond} from ``covariates`` is not the same length as "
@@ -399,7 +399,7 @@ def _prepare_rerp_preds(
                 )
                 raise ValueError(error)
             onsets = -(events[np.where(covs != 0), 0] + tmin_)[0]
-            v = np.asarray(covs)[np.nonzero(covs)].astype(float)
+            v = covs[np.nonzero(covs)].astype(float)
             values = np.ones((len(onsets), n_lags)) * v[:, np.newaxis]
 
         cond_length[cond] = len(onsets)
