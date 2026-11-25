@@ -1,3 +1,5 @@
+__version__: str
+
 __all__ = [
     "AcqParserFIF",
     "Annotations",

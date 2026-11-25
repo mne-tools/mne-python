@@ -195,6 +195,8 @@ def pytest_configure(config: pytest.Config):
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
+    # raising in loky's manager thread kills it and hangs Parallel
+    always::UserWarning:joblib\.
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning

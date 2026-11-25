@@ -639,7 +639,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Parameters
         ----------
-        labels : Label | BiHemiLabel | list | tuple | str
+        labels : Label | BiHemiLabel | list | tuple | str | None
             If using a surface or mixed source space, this should be the
             :class:`~mne.Label`'s for which to extract the time course.
             If working with whole-brain volume source estimates, this must be one of:
@@ -651,8 +651,15 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
               and the second being a list or dict of ``volume_labels`` to extract
               (see :func:`mne.setup_volume_source_space` for details).
 
+            Each structure of a :func:`mne.setup_subcortical_source_space` source space
+            adds one time course after those of the labels, extracted using ``mode`` like
+            a label. Without cortical source spaces, ``labels`` must be ``None``.
+
             .. versionchanged:: 0.21.0
                Support for volume source estimates.
+
+            .. versionchanged:: 1.14
+               Support for subcortical surface source spaces.
         src : instance of SourceSpaces
             The source spaces for the source time courses.
         mode : str
@@ -3561,7 +3568,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        labels : Label | BiHemiLabel | list | tuple | str
+        labels : Label | BiHemiLabel | list | tuple | str | None
             If using a surface or mixed source space, this should be the
             :class:`~mne.Label`'s for which to extract the time course.
             If working with whole-brain volume source estimates, this must be one of:
@@ -3573,8 +3580,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
               and the second being a list or dict of ``volume_labels`` to extract
               (see :func:`mne.setup_volume_source_space` for details).
 
+            Each structure of a :func:`mne.setup_subcortical_source_space` source space
+            adds one time course after those of the labels, extracted using ``mode`` like
+            a label. Without cortical source spaces, ``labels`` must be ``None``.
+
             .. versionchanged:: 0.21.0
                Support for volume source estimates.
+
+            .. versionchanged:: 1.14
+               Support for subcortical surface source spaces.
         src : instance of SourceSpaces
             The source spaces for the source time courses.
         mode : str
@@ -5129,8 +5143,12 @@ def _get_default_label_modes():
     return sorted(_label_funcs.keys(), key=lambda x: (x is None, x)) + ["auto"]
 
 
-def _get_allowed_label_modes(stc):
-    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
+def _get_allowed_label_modes(stc, kind=None):
+    # subcortical surfaces have oriented sources like the cortex, even though
+    # their (scalar) source estimate class is a volume one
+    if isinstance(stc, _BaseVectorSourceEstimate) or (
+        isinstance(stc, _BaseVolSourceEstimate) and kind != "subcortical_surf"
+    ):
         return ("mean", "max", "auto")
     else:
         return _get_default_label_modes()
@@ -5149,6 +5167,8 @@ def _gen_extract_label_time_course(
     # loop through source estimates and extract time series
     from scipy import sparse
 
+    from .label import _ori_sign_flip
+
     if src is None and mode in ["mean", "max"]:
         kind = "surface"
     else:
@@ -5156,29 +5176,44 @@ def _gen_extract_label_time_course(
         kind = src.kind
     _check_option("mode", mode, _get_default_label_modes())
 
-    if kind in ("surface", "mixed"):
-        if not isinstance(labels, (list, tuple)):
-            labels = [labels]
+    n_cortex = 2 if kind == "surface" else 0
+    if kind in ("mixed", "subcortical_surf"):
+        # "mixed" need not start with cortex, e.g. subcortical + volume
+        for s in src[:2]:
+            if s["type"] != "surf" or s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
+                break
+            n_cortex += 1
+    if kind in ("surface", "mixed", "subcortical_surf"):
         use_sparse = False
+        if n_cortex:
+            if not isinstance(labels, (list, tuple)):
+                labels = [labels]
+        elif labels is not None:
+            raise ValueError(
+                "labels must be None for a source space without cortical source "
+                f"spaces, got {labels!r}"
+            )
+        else:
+            labels = []
     else:
         labels = _volume_labels(src, labels, mri_resolution)
         use_sparse = bool(mri_resolution)
     n_mode = len(labels)  # how many processed with the given mode
-    n_mean = len(src[2:]) if kind == "mixed" else 0
-    n_labels = n_mode + n_mean
+    # source spaces after the cortical ones each give one time course
+    n_extra = len(src) - n_cortex if kind in ("mixed", "subcortical_surf") else 0
+    n_labels = n_mode + n_extra
     vertno = func = None
     for si, stc in enumerate(stcs):
         _validate_type(stc, _BaseSourceEstimate, f"stcs[{si}]", "source estimate")
+        allowed_modes = _get_allowed_label_modes(stc, kind)
         _check_option(
             "mode",
             mode,
-            _get_allowed_label_modes(stc),
+            allowed_modes,
             "when using a vector and/or volume source estimate",
         )
-        if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
-            mode = "mean" if mode == "auto" else mode
-        else:
-            mode = "mean_flip" if mode == "auto" else mode
+        if mode == "auto":
+            mode = "mean_flip" if "mean_flip" in allowed_modes else "mean"
         if vertno is None:
             vertno = copy.deepcopy(stc.vertices)  # avoid keeping a ref
             nvert = np.array([len(v) for v in vertno])
@@ -5186,6 +5221,12 @@ def _gen_extract_label_time_course(
                 stc, labels, src, mode, allow_empty, use_sparse
             )
             func = _label_funcs[mode]
+            # subcortical surfaces are closed, so averaging without the sign flip
+            # cancels; volumes have no orientation (None)
+            extra_flip = [
+                _ori_sign_flip(s["nn"][v])[:, None] if s["type"] == "surf" else None
+                for s, v in zip(src[n_cortex:] if n_extra else [], vertno[n_cortex:])
+            ]
         # make sure the stc is compatible with the source space
         if len(vertno) != len(stc.vertices):
             raise ValueError("stc not compatible with source space")
@@ -5225,12 +5266,15 @@ def _gen_extract_label_time_course(
                 label_tc[i] = func(flip, this_data)
 
         if mode is not None:
-            offset = nvert[:-n_mean].sum()  # effectively :2 or :0
-            for i, nv in enumerate(nvert[2:]):
+            offset = nvert[:n_cortex].sum()
+            for i, (nv, flip) in enumerate(zip(nvert[n_cortex:], extra_flip)):
                 if nv != 0:
-                    v2 = offset + nv
-                    label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
-                    offset = v2
+                    this_data = stc.data[offset : offset + nv]
+                    if flip is None:
+                        label_tc[n_mode + i] = np.mean(this_data, axis=0)
+                    else:
+                        label_tc[n_mode + i] = func(flip, this_data)
+                    offset += nv
         yield label_tc
 
 
@@ -5264,7 +5308,7 @@ def extract_label_time_course(
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    labels : Label | BiHemiLabel | list | tuple | str
+    labels : Label | BiHemiLabel | list | tuple | str | None
         If using a surface or mixed source space, this should be the
         :class:`~mne.Label`'s for which to extract the time course.
         If working with whole-brain volume source estimates, this must be one of:
@@ -5276,8 +5320,15 @@ def extract_label_time_course(
           and the second being a list or dict of ``volume_labels`` to extract
           (see :func:`mne.setup_volume_source_space` for details).
 
+        Each structure of a :func:`mne.setup_subcortical_source_space` source space
+        adds one time course after those of the labels, extracted using ``mode`` like
+        a label. Without cortical source spaces, ``labels`` must be ``None``.
+
         .. versionchanged:: 0.21.0
            Support for volume source estimates.
+
+        .. versionchanged:: 1.14
+           Support for subcortical surface source spaces.
     src : instance of SourceSpaces
         The source spaces for the source time courses.
     mode : str

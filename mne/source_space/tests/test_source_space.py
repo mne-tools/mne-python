@@ -15,9 +15,12 @@ from numpy.testing import (
 
 import mne
 from mne import (
+    MixedSourceEstimate,
     SourceEstimate,
+    VolSourceEstimate,
     add_source_space_distances,
     compute_source_morph,
+    extract_label_time_course,
     get_volume_labels_from_src,
     make_sphere_model,
     morph_source_spaces,
@@ -695,11 +698,21 @@ def test_setup_subcortical_source_space(tmp_path):
             subjects_dir=subjects_dir,
         )
 
-    # label input: tessellate regions from the anatomical segmentation
+    # label input: tessellate regions from the anatomical segmentation; labels
+    # missing from the aseg (here Left-Thalamus, id 9) are skipped
     labels = ["Left-Amygdala", "Left-Hippocampus"]
-    src_label = setup_subcortical_source_space(
-        "sample", label=labels, aseg="aseg", subjects_dir=subjects_dir
-    )
+    with pytest.warns(RuntimeWarning, match="not found"):
+        src_label = setup_subcortical_source_space(
+            "sample",
+            label=labels + ["Left-Thalamus"],
+            aseg="aseg",
+            subjects_dir=subjects_dir,
+        )
+    with pytest.raises(ValueError, match="None of the requested"):
+        with pytest.warns(RuntimeWarning, match="not found"):
+            setup_subcortical_source_space(
+                "sample", label="Left-Thalamus", aseg="aseg", subjects_dir=subjects_dir
+            )
     assert src_label.kind == "subcortical_surf"
     assert len(src_label) == len(labels)
     for s, name in zip(src_label, labels):
@@ -707,6 +720,39 @@ def test_setup_subcortical_source_space(tmp_path):
         assert s["seg_name"] == name
         assert s["id"] == FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET + atlas_ids[name]
         assert s["rr"].shape[1] == 3 and s["ntri"] > 0
+        r = s["rr"][s["tris"]]
+        assert np.einsum("ij,ij->i", r[:, 0], np.cross(r[:, 1], r[:, 2])).sum() > 0
+
+    # label time courses: one per structure; for a coherent (dipole-like) signal
+    # on a closed surface, a plain mean cancels but the sign flip does not
+    data = np.concatenate([s["nn"][s["vertno"], 2:] for s in src_label])
+    stc = VolSourceEstimate(data, [s["vertno"] for s in src_label], 0, 1)
+    with pytest.raises(ValueError, match="must be None"):
+        extract_label_time_course(stc, labels, src_label)
+    tc = {
+        mode: extract_label_time_course(stc, None, src_label, mode=mode)
+        for mode in ("mean", "mean_flip", "auto")
+    }
+    assert tc["mean"].shape == (len(labels), 1)
+    assert_array_equal(tc["auto"], tc["mean_flip"])
+    assert_array_less(5 * np.abs(tc["mean"]), np.abs(tc["mean_flip"]))
+    # same flipped time courses after cortex, or with a volume and no cortex
+    src_cortex, src_vol = read_source_spaces(fname_src), read_source_spaces(fname_vol)
+    for src_mixed, labels_mixed, sl in (
+        (src_cortex + src_label, [], slice(-len(labels), None)),
+        (src_label + src_vol, None, slice(len(labels))),
+    ):
+        data = np.concatenate(
+            [
+                s["nn"][s["vertno"], 2:]
+                if s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+                else np.zeros((s["nuse"], 1))
+                for s in src_mixed
+            ]
+        )
+        stc = MixedSourceEstimate(data, [s["vertno"] for s in src_mixed], 0, 1)
+        tc_mixed = extract_label_time_course(stc, labels_mixed, src_mixed)
+        assert_allclose(tc_mixed[sl], tc["mean_flip"])
 
     # mesh input: an externally-supplied surface (path or rr/tris dict)
     rr, tris = read_surface(fname_surf)[:2]
