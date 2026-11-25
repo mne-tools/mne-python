@@ -83,6 +83,17 @@ def test_compute_frac_peak_latency():
     assert_allclose(latencies["fractional_peak_onset"][0], 0.25, atol=2e-3)
     assert_allclose(latencies["fractional_peak_offset"][0], 0.35, atol=2e-3)
 
+    # An earlier, smaller deflection must not determine the onset.
+    times = evoked.times
+    data = evoked.data.copy()
+    data[0] += 0.7e-6 * np.clip(1 - np.abs(times - 0.1) / 0.05, 0, None)
+    bumpy = EvokedArray(data, evoked.info, tmin=times[0])
+    latencies = compute_frac_peak_latency(
+        bumpy, frac=0.5, start=0.0, stop=0.4, mode="pos", picks=["ch0"]
+    )
+    assert_allclose(latencies["fractional_peak_onset"][0], 0.25, atol=2e-3)
+    assert_allclose(latencies["fractional_peak_offset"][0], 0.35, atol=2e-3)
+
 
 def test_compute_frac_area_latency():
     """Test fractional area latency on a symmetric triangle."""
