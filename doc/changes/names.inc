@@ -279,6 +279,7 @@
 .. _Maggie Clarke: https://github.com/mdclarke
 .. _Mainak Jas: https://jasmainak.github.io
 .. _Maksym Balatsko: https://github.com/mbalatsko
+.. _Malhaar Phadtare: https://github.com/Mal-1702
 .. _manoj kumar: https://github.com/MechCoder
 .. _Manorama Kadwani: https://github.com/synapse-stream
 .. _Manu Sutela: https://github.com/MJAS1
