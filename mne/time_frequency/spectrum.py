@@ -2196,11 +2196,24 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
             f"The number of frequencies in `data` ({got_n_freq}) must match the number "
             f"of elements in `freqs` ({want_n_freq})."
         )
+    if np.any(freqs < 0):
+        raise ValueError(
+            "Frequencies must be non-negative (one-sided spectrum), got negative "
+            "frequencies."
+        )
+    if np.any(freqs > info["sfreq"] / 2):
+        raise ValueError(
+            f"Frequencies cannot exceed the Nyquist frequency ({info['sfreq'] / 2} Hz)."
+        )
 
 
 @fill_doc_static("info_not_none", "freqs_tfr_array", "verbose", "notes_spectrum_array")
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
+
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
 
     Parameters
     ----------
@@ -2567,6 +2580,10 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
 )
 class EpochsSpectrumArray(EpochsSpectrum):
     """Data object for precomputed epoched spectral data (in NumPy array format).
+
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
 
     Parameters
     ----------

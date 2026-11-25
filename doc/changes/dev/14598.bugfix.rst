@@ -1,0 +1,1 @@
+Add validation to :class:`~mne.time_frequency.SpectrumArray` and :class:`~mne.time_frequency.EpochsSpectrumArray` to ensure frequencies are non-negative and do not exceed the Nyquist frequency, by `Ishaan Maheshwari`_.
