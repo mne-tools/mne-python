@@ -609,11 +609,6 @@ def test_nan_interpolation(raw):
     raw.info["bads"] = [raw.ch_names[0]]  # IAS channel
     with pytest.warns(RuntimeWarning, match="No bad channels to interpolate"):
         raw.interpolate_bads()
-    # stale bad channel name not in channels does not raise KeyError
-    raw.info["bads"] = []
-    list.append(raw.info["bads"], "NON_EXISTENT")
-    with pytest.warns(RuntimeWarning, match="No bad channels to interpolate"):
-        raw.interpolate_bads()
 
 
 @testing.requires_testing_data

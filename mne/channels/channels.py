@@ -1165,12 +1165,11 @@ class InterpolationMixin:
         # check for channels with invalid position(s)
         # vectorized, as e.g. autoreject passes many bads on each call
         name_to_idx = {name: ii for ii, name in enumerate(self.ch_names)}
-        bads = [ch for ch in self.info["bads"] if ch in name_to_idx]
         locs = np.array(
-            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in bads]
+            [self.info["chs"][name_to_idx[ch]]["loc"][:3] for ch in self.info["bads"]]
         ).reshape(-1, 3)
         invalid = np.all(np.abs(locs) <= 1e-16, axis=1) | np.isnan(locs).any(axis=1)
-        invalid_chs = [ch for ch, inv in zip(bads, invalid) if inv]
+        invalid_chs = [ch for ch, inv in zip(self.info["bads"], invalid) if inv]
 
         if invalid_chs:
             if on_bad_position == "raise":
@@ -1191,17 +1190,10 @@ class InterpolationMixin:
             _on_missing(on_bad_position, msg)
 
         method = _handle_default("interpolation_method", method)
-        ch_types = self.get_channel_types(unique=True)
-        # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
-        # "method" dictionary and keep only keys that correspond to existing channels.
-        for ch_type in ("meg", "fnirs"):
-            for sub_ch_type in _second_rules[ch_type][1].values():
-                if sub_ch_type in ch_types:
-                    ch_types.remove(sub_ch_type)
-                    if ch_type not in ch_types:
-                        ch_types.append(ch_type)
-        keys2delete = set(method) - set(ch_types)
-        for key in keys2delete:
+        ch_types = {
+            _SUB_TO_SUPER.get(t, t) for t in self.get_channel_types(unique=True)
+        }
+        for key in set(method) - ch_types:
             del method[key]
         for key in set(interpolation) & set(method):
             method[key] = dict(eeg="spline", meg="MNE")[key]
@@ -1216,15 +1208,10 @@ class InterpolationMixin:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
-        if not bads:
-            warn("No bad channels to interpolate. Doing nothing...")
-            return self
-
         bad_types = {
-            _SUB_TO_SUPER.get(t, t)
-            for ch in bads
-            for t in (channel_type(self.info, name_to_idx[ch]),)
+            channel_type(self.info, name_to_idx[ch]) for ch in self.info["bads"]
         }
+        bad_types = {_SUB_TO_SUPER.get(t, t) for t in bad_types}
         method = {k: v for k, v in method.items() if k in bad_types}
         if not method:
             warn("No bad channels to interpolate. Doing nothing...")
@@ -1232,7 +1219,7 @@ class InterpolationMixin:
         picks = _picks_to_idx(
             self.info, list(method), exclude=exclude, allow_empty=True
         )
-        interpolated = set(bads) & {self.ch_names[pi] for pi in picks}
+        interpolated = set(self.info["bads"]) & {self.ch_names[pi] for pi in picks}
         logger.info("Interpolating bad channels.")
         needs_origin = [key != "seeg" and val != "nan" for key, val in method.items()]
         if any(needs_origin):
