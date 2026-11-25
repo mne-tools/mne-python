@@ -157,3 +157,18 @@ def test_continuous_regression_with_overlap():
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver="err")
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
+
+
+def test_continuous_regression_flat():
+    """Test flat-only rejection without requiring an external dataset."""
+    # rejection based on flat alone (reject=None) must not be ignored
+    data = np.random.default_rng(0).standard_normal((1, 3000)) * 1e-5
+    data[0, 1000:1300] = 0.0
+    raw = RawArray(data, mne.create_info(1, 100, "eeg"))
+    events = np.array([[sample, 0, 1] for sample in range(100, 2900, 200)])
+    kwargs = dict(event_id={"a": 1}, tmin=0, tmax=0.5)
+    evoked_both = linear_regression_raw(
+        raw, events, reject=dict(eeg=1.0), flat=dict(eeg=1e-7), **kwargs
+    )["a"]
+    evoked_flat = linear_regression_raw(raw, events, flat=dict(eeg=1e-7), **kwargs)["a"]
+    assert_allclose(evoked_both.data, evoked_flat.data)

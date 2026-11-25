@@ -1,0 +1,1 @@
+Fix bug in :func:`mne.stats.linear_regression_raw` where ``flat`` was silently ignored unless ``reject`` was also passed, by :newcontrib:`Eva B`.
