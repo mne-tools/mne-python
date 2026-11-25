@@ -4,7 +4,7 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.datasets import testing
 from mne.io import read_raw_edf, read_raw_nihon
@@ -108,9 +108,9 @@ def test_nihon_extended_blocks(stem, n_chan, blocks):
     lazy = read_raw_nihon(fname)
     ends = np.cumsum(blocks)
     for start, stop in [(0, ends[-1])] + [(e - 5, e + 5) for e in ends[:-1]]:
-        assert_allclose(lazy[:, start:stop][0], raw[:, start:stop][0], rtol=0, atol=0)
+        assert_array_equal(lazy[:, start:stop][0], raw[:, start:stop][0])
     if len(blocks) > 2:  # a window spanning a whole middle block
-        assert_allclose(
+        assert_array_equal(
             lazy[:, ends[0] - 5 : ends[1] + 5][0], raw[:, ends[0] - 5 : ends[1] + 5][0]
         )
     if stem == "DA001000":  # a calibration recording: 50 µV pulses
