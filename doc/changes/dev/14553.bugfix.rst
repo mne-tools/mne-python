@@ -1,0 +1,1 @@
+Return negative infinite t-statistics for negative perfect fits in :func:`mne.stats.linear_regression`, by :newcontrib:`Eva B`.
