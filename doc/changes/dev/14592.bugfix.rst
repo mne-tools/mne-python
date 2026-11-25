@@ -1,0 +1,1 @@
+Fix bug where :func:`mne.io.read_raw_nihon` silently read high-density EEG-1200A files (extended block layout) as a single channel with the wrong duration, and where reads crossing a block boundary of a multi-block file failed, by `Nikhil Sinha`_.
