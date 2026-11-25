@@ -406,6 +406,7 @@ def test_project_onto_surface(method, ret_nn):
             err_msg=f"{kind} not in same direction as locs for {method}",
         )
 
+
 def test_warn_bad_coregistration():
     """Test warning for bad coregistration."""
     # case 1: good fit, median below 5 mm -> no warning
