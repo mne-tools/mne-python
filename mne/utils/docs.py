@@ -5369,6 +5369,11 @@ docdict["vmin_vmax_tfr_plot_topo"] = _vmin_vmax_template.format(
 # %%
 # W
 
+docdict["warn_spectrum_array"] = """\
+.. warning:: Input validation is minimal. Inconsistently or incorrectly
+             specifying parameters can lead to unexpected errors or
+             incorrect results downstream."""
+
 docdict["weight_norm"] = """
 weight_norm : str | None
     Can be:

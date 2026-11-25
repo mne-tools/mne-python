@@ -2198,8 +2198,8 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
         )
     if np.any(freqs < 0):
         raise ValueError(
-            "Frequencies must be non-negative (one-sided spectrum), got negative "
-            "frequencies."
+            "Frequencies must be non-negative (i.e., representing a one-sided "
+            "spectrum), got negative frequencies."
         )
     if np.any(freqs > info["sfreq"] / 2):
         raise ValueError(
@@ -2207,7 +2207,13 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
         )
 
 
-@fill_doc_static("info_not_none", "freqs_tfr_array", "verbose", "notes_spectrum_array")
+@fill_doc_static(
+    "info_not_none",
+    "freqs_tfr_array",
+    "verbose",
+    "notes_spectrum_array",
+    "warn_spectrum_array",
+)
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
 
@@ -2577,6 +2583,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     "event_id",
     "verbose",
     "notes_spectrum_array",
+    "warn_spectrum_array",
 )
 class EpochsSpectrumArray(EpochsSpectrum):
     """Data object for precomputed epoched spectral data (in NumPy array format).
