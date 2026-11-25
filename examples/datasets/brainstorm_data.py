@@ -43,7 +43,8 @@ raw.set_eeg_reference("average", projection=True)
 raw.compute_psd(tmax=60).plot(
     average=False, amplitude=False, picks="data", exclude="bads"
 )
-raw.notch_filter(np.arange(60, 181, 60), fir_design="firwin")
+notch_freqs = np.arange(60, 181, 60)
+raw.notch_filter(notch_freqs, notch_widths=notch_freqs / 200.0, fir_design="firwin")
 
 events = mne.find_events(raw, stim_channel="UPPT001")
 

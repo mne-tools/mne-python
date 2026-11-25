@@ -159,7 +159,9 @@ add_arrows(fig.axes[:2])
 
 meg_picks = mne.pick_types(raw.info, meg=True)
 freqs = (60, 120, 180, 240)
-raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
+raw_notch = raw.copy().notch_filter(
+    freqs=freqs, notch_widths=freqs / 200.0, picks=meg_picks
+)
 for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
     fig = data.compute_psd(fmax=250).plot(
         average=True, amplitude=False, picks="data", exclude="bads"
@@ -180,7 +182,11 @@ for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
 # line noise at those frequencies without affecting neighboring frequencies:
 
 raw_notch_fit = raw.copy().notch_filter(
-    freqs=freqs, picks=meg_picks, method="spectrum_fit", filter_length="10s"
+    freqs=freqs,
+    notch_widths=freqs / 200.0,
+    picks=meg_picks,
+    method="spectrum_fit",
+    filter_length="10s",
 )
 for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
     fig = data.compute_psd(fmax=250).plot(
