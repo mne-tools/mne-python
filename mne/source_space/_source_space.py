@@ -2154,8 +2154,8 @@ def setup_subcortical_source_space(
         This is **experimental** functionality. :class:`~mne.SourceSpaces`
         created by this function are not (yet) compatible with morphing
         (:class:`~mne.SourceMorph`), :func:`mne.extract_label_time_course`
-        does not yet know how to select vertices within a subcortical-surface
-        label, and plotting support is limited (for example,
+        gives one time course per structure but cannot yet select vertices
+        within one, and plotting support is limited (for example,
         :meth:`~mne.MixedSourceEstimate.plot` shows these source spaces, but
         picking time courses on them is not supported).
 

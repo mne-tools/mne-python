@@ -1,0 +1,1 @@
+:func:`mne.extract_label_time_course` now returns one time course per structure of :func:`mne.setup_subcortical_source_space` source spaces, extracted using ``mode`` (e.g., with sign flips), by `Payam Sadeghi-Shabestari`_.
