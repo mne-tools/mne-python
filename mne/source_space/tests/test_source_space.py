@@ -15,6 +15,7 @@ from numpy.testing import (
 
 import mne
 from mne import (
+    MixedSourceEstimate,
     SourceEstimate,
     VolSourceEstimate,
     add_source_space_distances,
@@ -735,6 +736,23 @@ def test_setup_subcortical_source_space(tmp_path):
     assert tc["mean"].shape == (len(labels), 1)
     assert_array_equal(tc["auto"], tc["mean_flip"])
     assert_array_less(5 * np.abs(tc["mean"]), np.abs(tc["mean_flip"]))
+    # same flipped time courses after cortex, or with a volume and no cortex
+    src_cortex, src_vol = read_source_spaces(fname_src), read_source_spaces(fname_vol)
+    for src_mixed, labels_mixed, sl in (
+        (src_cortex + src_label, [], slice(-len(labels), None)),
+        (src_label + src_vol, None, slice(len(labels))),
+    ):
+        data = np.concatenate(
+            [
+                s["nn"][s["vertno"], 2:]
+                if s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+                else np.zeros((s["nuse"], 1))
+                for s in src_mixed
+            ]
+        )
+        stc = MixedSourceEstimate(data, [s["vertno"] for s in src_mixed], 0, 1)
+        tc_mixed = extract_label_time_course(stc, labels_mixed, src_mixed)
+        assert_allclose(tc_mixed[sl], tc["mean_flip"])
 
     # mesh input: an externally-supplied surface (path or rr/tris dict)
     rr, tris = read_surface(fname_surf)[:2]

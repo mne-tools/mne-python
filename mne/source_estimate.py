@@ -5176,24 +5176,30 @@ def _gen_extract_label_time_course(
         kind = src.kind
     _check_option("mode", mode, _get_default_label_modes())
 
-    if kind == "subcortical_surf":
-        if labels is not None:
+    n_cortex = 2 if kind == "surface" else 0
+    if kind in ("mixed", "subcortical_surf"):
+        # "mixed" need not start with cortex, e.g. subcortical + volume
+        for s in src[:2]:
+            if s["type"] != "surf" or s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
+                break
+            n_cortex += 1
+    if kind in ("surface", "mixed", "subcortical_surf"):
+        use_sparse = False
+        if n_cortex:
+            if not isinstance(labels, (list, tuple)):
+                labels = [labels]
+        elif labels is not None:
             raise ValueError(
-                "labels must be None for a subcortical source space without "
-                f"cortical source spaces, got {labels!r}"
+                "labels must be None for a source space without cortical source "
+                f"spaces, got {labels!r}"
             )
-        labels = []
-        use_sparse = False
-    elif kind in ("surface", "mixed"):
-        if not isinstance(labels, (list, tuple)):
-            labels = [labels]
-        use_sparse = False
+        else:
+            labels = []
     else:
         labels = _volume_labels(src, labels, mri_resolution)
         use_sparse = bool(mri_resolution)
     n_mode = len(labels)  # how many processed with the given mode
     # source spaces after the cortical ones each give one time course
-    n_cortex = 2 if kind == "mixed" else 0
     n_extra = len(src) - n_cortex if kind in ("mixed", "subcortical_surf") else 0
     n_labels = n_mode + n_extra
     vertno = func = None
