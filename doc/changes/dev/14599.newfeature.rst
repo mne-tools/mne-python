@@ -1,0 +1,1 @@
+Added a helper function to warn about bad coregistration which points between head shape points and the MRI scalp which is above limit, by `Malhaar Phadtare`_.
