@@ -637,7 +637,9 @@ def test_plot_raw_keypresses(raw, browser_backend):
         fig_linked = raw.plot()
         link(fig, fig_linked)
         for key in ("right", "end", "left", "home"):
+            window = (fig.mne.t_start, fig.mne.duration)
             fig._fake_keypress(key)
+            assert (fig.mne.t_start, fig.mne.duration) != window
             assert fig_linked.mne.t_start == fig.mne.t_start
             assert fig_linked.mne.duration == fig.mne.duration
         # any figure can publish the event, the window is clipped to the data

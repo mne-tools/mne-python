@@ -59,7 +59,7 @@ from ..defaults import DEFAULTS
 from ..fixes import _close_event
 from ..utils import Bunch, _click_ch_name, logger
 from ._figure import BrowserBase
-from .ui_events import TimeWindowChange, disable_ui_events, publish, subscribe
+from .ui_events import TimeWindowChange, publish, subscribe
 from .utils import (
     _BLIT_KWARGS,
     DraggableLine,
@@ -688,10 +688,20 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         t_start = np.clip(event.tmin, self.mne.first_time, max_time)
         if t_start == self.mne.t_start and duration == self.mne.duration:
             return
+        self._show_time_window(t_start, duration)
+
+    def _change_time_window(self, t_start, duration):
+        """Handle the user changing the time window."""
+        if self.mne.is_epochs:  # no continuous time axis, so no UI event
+            self._show_time_window(t_start, duration)
+        else:
+            publish(self, TimeWindowChange(tmin=t_start, tmax=t_start + duration))
+
+    def _show_time_window(self, t_start, duration):
+        """Show the given time window."""
         self.mne.t_start = t_start
         self.mne.duration = duration
-        with disable_ui_events(self):
-            self._update_hscroll()
+        self._update_hscroll()
         self._redraw(annotations=True, skip_hscroll=True)
 
     def _get_size(self):
@@ -808,7 +818,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self._redraw(skip_hscroll=True)
         # scroll left/right
         elif key in ("right", "left", "shift+right", "shift+left"):
-            old_t_start = self.mne.t_start
             direction = 1 if key.endswith("right") else -1
             if self.mne.is_epochs:
                 denom = 1 if key.startswith("shift") else self.mne.n_epochs
@@ -816,10 +825,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 denom = 1 if key.startswith("shift") else 4
             t_max = last_time - self.mne.duration
             t_start = self.mne.t_start + direction * self.mne.duration / denom
-            self.mne.t_start = np.clip(t_start, self.mne.first_time, t_max)
-            if self.mne.t_start != old_t_start:
-                self._update_hscroll()
-                self._redraw(annotations=True, skip_hscroll=True)
+            t_start = np.clip(t_start, self.mne.first_time, t_max)
+            if t_start != self.mne.t_start:
+                self._change_time_window(t_start, self.mne.duration)
         # scale traces
         elif key in ("=", "+", "-"):
             scaler = 1 / 1.1 if key == "-" else 1.1
@@ -845,7 +853,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self._redraw(annotations=True, skip_hscroll=True)
         # change duration
         elif key in ("home", "end"):
-            old_dur = self.mne.duration
             dur_delta = 1 if key == "end" else -1
             if self.mne.is_epochs:
                 # prevent from showing zero epochs, or more epochs than we have
@@ -861,12 +868,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 # use multiplicative dur_delta
                 dur_delta = 5 / 4 if dur_delta > 0 else 4 / 5
                 new_dur = self.mne.duration * dur_delta
-            self.mne.duration = np.clip(new_dur, min_dur, last_time)
-            if self.mne.duration != old_dur:
-                if self.mne.t_start + self.mne.duration > last_time:
-                    self.mne.t_start = last_time - self.mne.duration
-                self._update_hscroll()
-                self._redraw(annotations=True, skip_hscroll=True)
+            duration = np.clip(new_dur, min_dur, last_time)
+            if duration != self.mne.duration:
+                t_start = min(self.mne.t_start, last_time - duration)
+                self._change_time_window(t_start, duration)
         elif key == "?":  # help window
             self._toggle_help_fig(event)
         elif key == "a":  # annotation mode
@@ -940,8 +945,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     self.mne.vscroll_drag_offset = event.ydata - self.mne.ch_start
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
-                if self._check_update_hscroll_clicked(event):
-                    self._redraw(annotations=True, skip_hscroll=True)
+                self._check_update_hscroll_clicked(event)
                 self.mne.hscroll_drag_offset = event.xdata - self.mne.t_start
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
@@ -1020,9 +1024,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
                 time = self.mne.boundary_times[ix]
             if self.mne.t_start != time:
-                self.mne.t_start = time
-                self._update_hscroll()
-                self._redraw(annotations=True)
+                self._change_time_window(time, self.mne.duration)
 
     def _scroll(self, event):
         """Handle scroll wheel events for channel navigation."""
@@ -1925,10 +1927,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Update the horizontal scrollbar (time) selection indicator."""
         self.mne.hsel_patch.set_xy((self.mne.t_start, 0))
         self.mne.hsel_patch.set_width(self.mne.duration)
-        # all ways of navigating in time end up here
-        if not self.mne.is_epochs:
-            tmin, tmax = self.mne.t_start, self.mne.t_start + self.mne.duration
-            publish(self, TimeWindowChange(tmin=tmin, tmax=tmax))
 
     def _check_update_hscroll_clicked(self, event):
         """Handle clicks on horizontal scrollbar."""
@@ -1943,10 +1941,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ix = np.searchsorted(self.mne.boundary_times[1:], time, side="right")
             time = self.mne.boundary_times[ix]
         if self.mne.t_start != time:
-            self.mne.t_start = time
-            self._update_hscroll()
-            return True
-        return False
+            self._change_time_window(time, self.mne.duration)
 
     def _check_update_vscroll_clicked(self, event):
         """Update vscroll patch on click, return True if location changed."""
