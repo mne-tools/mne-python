@@ -624,6 +624,8 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     vertex_id = sphere["vertex_id"]
     old_center = np.array(sphere["mesh"].center)
 
+    brain.add_foci([vertex_id], coords_as_verts=True, hemi="lh")
+    foci = brain._foci_data["lh"]["on_surface"][0]["glyph"]
     brain.show_view(azimuth=30, elevation=60)  # the morph keeps the user's view
     view = brain._renderer.get_camera()[2:4]
     # what the mouse rotates about, relative to the center of the brain
@@ -640,6 +642,7 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     new_center = np.array(sphere["mesh"].center)
     assert not np.allclose(new_center, old_center)
     assert_allclose(new_center, brain.geo["lh"].coords[vertex_id])
+    assert_allclose(foci.center, brain.geo["lh"].coords[vertex_id], atol=1e-4)
 
     brain.set_surf("white")  # no-op, same surf
     assert brain._surf == "white"
@@ -754,9 +757,7 @@ def test_brain_flat(renderer_interactive_pyvistaqt, brain_gc):
     assert len(brain._picked_patches["lh"]) == 0
 
     # switching back to 3D restores the triangulation, geometry and controls
-    # (it warns because the annotation picked above does not move with it)
-    with pytest.warns(RuntimeWarning, match="Foci and label"):
-        brain.set_surf("inflated")
+    brain.set_surf("inflated")
     assert mesh._polydata.n_cells == n_faces_3d
     assert mesh._polydata.n_cells > n_faces_flat
     assert_allclose(brain.geo["lh"].coords, coords_3d, atol=0)
@@ -1615,7 +1616,7 @@ def test_brain_traces_vertex(
         glyph_dataset = brain._data["lh"]["glyph_dataset"]
         vertices = brain._data["lh"]["vertices"]
         old_points = np.array(glyph_dataset.points)
-        with pytest.warns(RuntimeWarning, match="Foci and label"):
+        with pytest.warns(RuntimeWarning, match="Foci added with coordinates"):
             brain.set_surf("inflated")
         new_points = np.array(glyph_dataset.points)
         assert not np.allclose(old_points, new_points)
