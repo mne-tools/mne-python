@@ -14,7 +14,6 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (
     Annotations,
     BaseEpochs,
-    concatenate_epochs,
     create_info,
     grand_average,
     make_fixed_length_epochs,
@@ -683,11 +682,6 @@ def test_spectrum_array(kind, method, output, average, tmp_path, request):
         dim_names=dim_names,
         weights=spectrum.weights,
     )
-    if kind == "epochs":
-        joined = concatenate_epochs([spect_arr, spect_arr])
-        assert_array_equal(joined.data, np.concatenate([data, data]))
-        assert_array_equal(joined.weights, spectrum.weights)
-        assert joined.events is None
     _check_spectrum_equivalent(spectrum, spect_arr, tmp_path)
 
 

@@ -59,6 +59,7 @@ from mne.epochs import (
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
+from mne.time_frequency import EpochsSpectrumArray
 from mne.utils import (
     _dt_to_stamp,
     _record_warnings,
@@ -3882,6 +3883,16 @@ def test_concatenate_epochs():
         concatenate_epochs([spectrum, epochs.compute_psd(method="welch", n_fft=32)])
     with pytest.raises(TypeError, match="EpochsSpectrum"):
         concatenate_epochs([spectrum, epochs])
+    spect_arr = EpochsSpectrumArray(
+        data=spectrum.get_data(),
+        info=spectrum.info,
+        freqs=spectrum.freqs,
+        weights=spectrum.weights,
+    )
+    joined = concatenate_epochs([spect_arr, spect_arr])
+    assert_array_equal(joined.data, np.concatenate([spect_arr.data] * 2))
+    assert_array_equal(joined.weights, spect_arr.weights)
+    assert joined.events is None
 
     epochs2 = epochs.copy()
     epochs_list = [epochs, epochs2]
