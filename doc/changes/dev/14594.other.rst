@@ -1,1 +1,1 @@
-Doc fix in clarifying the ``NO_DATA`` and ``TOO_SHORT`` reasons in the ``drop_log`` documentation of :class:`mne.Epochs`, by :newcontrib:`Malhaar Phadtare`.
+Clarify the ``NO_DATA`` and ``TOO_SHORT`` reasons in the ``drop_log`` documentation of :class:`mne.Epochs`, by :newcontrib:`Malhaar Phadtare`.

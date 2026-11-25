@@ -5126,9 +5126,9 @@ class Epochs(BaseEpochs):
         - 'IGNORED'
             If it isn't part of the current subset defined by the user
         - 'NO_DATA'
-            If the epoch would start before the recording starts.
+            If the epoch would start before the recording starts
         - 'TOO_SHORT'
-            If the recordings ends before the epoch would end.
+            If the recording ends before the epoch would end
         - 'EQUALIZED_COUNTS'
             See :meth:`~mne.Epochs.equalize_event_counts`
         - 'USER'
