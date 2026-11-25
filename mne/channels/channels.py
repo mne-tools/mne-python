@@ -57,6 +57,11 @@ from ..utils import (
 )
 
 _ALLOWED_INTERPOLATION_MODES = ("accurate", "fast")
+_SUB_TO_SUPER = {
+    sub: super_type
+    for super_type in ("meg", "fnirs")
+    for sub in _second_rules[super_type][1].values()
+}
 
 
 def _get_meg_system(info):
@@ -1185,17 +1190,10 @@ class InterpolationMixin:
             _on_missing(on_bad_position, msg)
 
         method = _handle_default("interpolation_method", method)
-        ch_types = self.get_channel_types(unique=True)
-        # figure out if we have "mag" for "meg", "hbo" for "fnirs", ... to filter the
-        # "method" dictionary and keep only keys that correspond to existing channels.
-        for ch_type in ("meg", "fnirs"):
-            for sub_ch_type in _second_rules[ch_type][1].values():
-                if sub_ch_type in ch_types:
-                    ch_types.remove(sub_ch_type)
-                    if ch_type not in ch_types:
-                        ch_types.append(ch_type)
-        keys2delete = set(method) - set(ch_types)
-        for key in keys2delete:
+        ch_types = {
+            _SUB_TO_SUPER.get(t, t) for t in self.get_channel_types(unique=True)
+        }
+        for key in set(method) - ch_types:
             del method[key]
         for key in set(interpolation) & set(method):
             method[key] = dict(eeg="spline", meg="MNE")[key]
@@ -1210,18 +1208,14 @@ class InterpolationMixin:
             _check_option("method[key]", key, tuple(valids))
             _check_option(f"method['{key}']", method[key], valids[key])
         logger.info("Setting channel interpolation method to %s.", method)
-        bads = set(self.info["bads"])
-
-        def _has_bads(picks):
-            idx = _picks_to_idx(self.info, picks, exclude=(), allow_empty=True)
-            return any(self.ch_names[pi] in bads for pi in idx)
-
-        if not _has_bads(list(method)):
+        bad_types = {
+            channel_type(self.info, name_to_idx[ch]) for ch in self.info["bads"]
+        }
+        bad_types = {_SUB_TO_SUPER.get(t, t) for t in bad_types}
+        method = {k: v for k, v in method.items() if k in bad_types}
+        if not method:
             warn("No bad channels to interpolate. Doing nothing...")
             return self
-        for ch_type in method.copy():
-            if not _has_bads(ch_type):
-                method.pop(ch_type)
         picks = _picks_to_idx(
             self.info, list(method), exclude=exclude, allow_empty=True
         )

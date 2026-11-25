@@ -601,6 +601,15 @@ def test_nan_interpolation(raw):
     good_chs = raw.get_data()
     assert np.isfinite(good_chs).all()
 
+    # no bad channels to interpolate (empty bads)
+    raw.info["bads"] = []
+    with pytest.warns(RuntimeWarning, match="No bad channels to interpolate"):
+        raw.interpolate_bads()
+    # non-interpolated channel types (IAS)
+    raw.info["bads"] = [raw.ch_names[0]]  # IAS channel
+    with pytest.warns(RuntimeWarning, match="No bad channels to interpolate"):
+        raw.interpolate_bads()
+
 
 @testing.requires_testing_data
 def test_method_str():
