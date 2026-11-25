@@ -1,0 +1,1 @@
+Fix bug where :meth:`mne.io.Raw.plot` with ``show_first_samp=True`` drew event markers at the wrong times in the Matplotlib browser, by `Don Yin`_.

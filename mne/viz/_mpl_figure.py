@@ -2370,7 +2370,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.mne.event_times >= self.mne.times[0],
                 self.mne.event_times <= self.mne.times[-1],
             )
-            this_event_times = self.mne.event_times[mask]
+            this_event_times = self.mne.event_times[mask] + self.mne.first_time
             this_event_nums = self.mne.event_nums[mask]
             n_visible_events = len(this_event_times)
             colors = to_rgba_array(
