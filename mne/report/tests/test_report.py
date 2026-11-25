@@ -3,6 +3,7 @@
 # Copyright the MNE-Python contributors.
 
 import base64
+import gc
 import glob
 import os
 import pickle
@@ -37,7 +38,8 @@ from mne.report.report import (
 )
 from mne.utils import Bunch, _record_warnings
 from mne.utils._testing import assert_object_equal
-from mne.viz import plot_alignment
+from mne.viz import plot_alignment, ui_events
+from mne.viz._mpl_figure import MNEBrowseFigure
 
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
@@ -1016,6 +1018,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         "eog/0/fake EOG channel": [1],
     }
 
+    browsers = [f for f in ui_events._event_channels if isinstance(f, MNEBrowseFigure)]
     r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)
     r.add_events(events=events_fname, title="my events", sfreq=raw.info["sfreq"])
@@ -1107,6 +1110,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     img = re.search(r"base64,([^\"]+)\"", r._content[-1].html).group(1)
     img = plt.imread(BytesIO(base64.b64decode(img)), "webp")
     assert img.shape[1] <= r.img_max_width
+    gc.collect()  # the raw and ICA browsers must not be kept alive by UI events
+    assert [
+        f for f in ui_events._event_channels if isinstance(f, MNEBrowseFigure)
+    ] == browsers
     with pytest.raises(ValueError, match="source_segments must be at least 1"):
         r.add_ica(ica=ica, title="ica", inst=raw, plot_sources=True, source_segments=0)
     epochs_baseline = epochs_without_metadata.copy().load_data()

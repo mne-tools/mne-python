@@ -2965,6 +2965,10 @@ class BaseRaw(
         By default, the channel means are removed when ``remove_dc`` is set to
         ``True``. This flag can be toggled by pressing 'd'.
 
+        The matplotlib browser publishes and responds to the
+        :class:`~mne.viz.ui_events.TimeWindowChange` UI event, so linked browsers
+        (see :func:`mne.viz.ui_events.link`) show the same time window.
+
         MNE-Python provides two different backends for browsing plots (i.e.,
         :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
         and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is

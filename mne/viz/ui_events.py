@@ -293,6 +293,38 @@ class ChannelsSelect(UIEvent):
     ch_names: list[str]
 
 
+@dataclass
+@fill_doc_static("ui_event_name_source")
+class TimeWindowChange(UIEvent):
+    """Indicates that the user has changed the visible time window.
+
+    Parameters
+    ----------
+    tmin : float
+        The new start of the time window in seconds.
+    tmax : float
+        The new end of the time window in seconds.
+
+    Attributes
+    ----------
+    name : str
+        The name of the event (same as its class name but in snake_case).
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    tmin : float
+        The new start of the time window in seconds.
+    tmax : float
+        The new end of the time window in seconds.
+
+    Notes
+    -----
+    .. versionadded:: 1.14
+    """
+
+    tmin: float
+    tmax: float
+
+
 class _TimeUpdated(UIEvent):
     """Brain has moved to a new time point (event name ``"__time_updated"``)."""
 

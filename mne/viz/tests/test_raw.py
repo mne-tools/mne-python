@@ -31,6 +31,7 @@ from mne.utils import (
     set_config,
 )
 from mne.viz import plot_raw, plot_sensors
+from mne.viz.ui_events import TimeWindowChange, link, publish
 from mne.viz.utils import _fake_click, _fake_keypress
 
 base_dir = Path(__file__).parents[2] / "io" / "tests" / "data"
@@ -631,6 +632,22 @@ def test_plot_raw_keypresses(raw, browser_backend):
     )
     # Avoid annoying fullscreen issues by monkey-patching our handlers
     _monkeypatch_fig(fig, browser_backend)
+    # linked browsers follow each other's time window (only matplotlib for now)
+    if browser_backend.name == "matplotlib":
+        fig_linked = raw.plot()
+        link(fig, fig_linked)
+        for key in ("right", "end", "left", "home"):
+            window = (fig.mne.t_start, fig.mne.duration)
+            fig._fake_keypress(key)
+            assert (fig.mne.t_start, fig.mne.duration) != window
+            assert fig_linked.mne.t_start == fig.mne.t_start
+            assert fig_linked.mne.duration == fig.mne.duration
+        # any figure can publish the event, the window is clipped to the data
+        fig_other = plt.figure()
+        link(fig_other, fig_linked)
+        publish(fig_other, TimeWindowChange(tmin=-1.0, tmax=2.0))
+        assert fig_linked.mne.t_start == 0
+        assert fig_linked.mne.duration == 3.0
     # test for group_by='original'
     for key in 2 * keys + ("escape",):
         fig._fake_keypress(key)

@@ -84,6 +84,7 @@ from ..viz import (
 from ..viz._brain.view import views_dicts
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..viz.misc import _get_bem_plotting_surfaces, _plot_mri_contours
+from ..viz.ui_events import unsubscribe
 from ..viz.utils import _BlitManager, _ndarray_to_fig
 
 _BEM_VIEWS = ("axial", "sagittal", "coronal")
@@ -2398,6 +2399,9 @@ class Report:
                     show_scrollbars=False,
                     show=False,
                 )
+                # no UI events here, and their subscription would keep the browser
+                # alive after plt.close(), as that doesn't trigger close_event on Agg
+                unsubscribe(fig, "all")
                 if len(insts) == 1:
                     self._add_figure(
                         fig=fig,
@@ -4080,6 +4084,9 @@ class Report:
                     scalings=scalings,
                     show=False,
                 )
+            # no UI events here, and their subscription would keep the browser alive
+            # after plt.close(), as that doesn't trigger close_event on Agg
+            unsubscribe(fig, "all")
             images = [self._fig_to_img(fig=fig, image_format=image_format)]
 
             for start, duration in zip(t_starts[1:], durations[1:]):

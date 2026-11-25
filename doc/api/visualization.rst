@@ -131,4 +131,5 @@ UI Events
    FigureClosing
    PlaybackSpeed
    TimeChange
+   TimeWindowChange
    VertexSelect
