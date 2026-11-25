@@ -1,1 +1,1 @@
-Linked matplotlib raw data browsers (see :func:`mne.viz.ui_events.link`) now follow each other's time window via the new UI event :class:`mne.viz.ui_events.TimeWindowChange`, by :newcontrib:`Nikhil Sinha`.
+Linked matplotlib raw data browsers (see :func:`mne.viz.ui_events.link`) now follow each other's time window via the new UI event :class:`mne.viz.ui_events.TimeWindowChange`, by `Nikhil Sinha`_.
