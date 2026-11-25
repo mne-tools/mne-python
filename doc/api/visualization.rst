@@ -126,7 +126,6 @@ UI Events
    unlink
    disable_ui_events
    UIEvent
-   AnnotationsChange
    ColormapRange
    Contours
    FigureClosing

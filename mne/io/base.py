@@ -2965,24 +2965,9 @@ class BaseRaw(
         By default, the channel means are removed when ``remove_dc`` is set to
         ``True``. This flag can be toggled by pressing 'd'.
 
-        Several browsers can be kept in sync, e.g., to compare the original data
-        with a filtered copy, by linking them with :func:`mne.viz.ui_events.link`::
-
-            fig_raw = raw.plot()
-            fig_filt = raw_filtered.plot()
-            mne.viz.ui_events.link(fig_raw, fig_filt)
-
-        Linked browsers follow each other when scrolling or zooming in time (see
-        :class:`~mne.viz.ui_events.TimeWindowChange`), and annotations that are
-        added, modified, or removed in one browser are mirrored in the others (see
-        :class:`~mne.viz.ui_events.AnnotationsChange`). Times are matched based on
-        the acquisition time (i.e., including ``raw.first_time``), so cropped copies
-        of the data line up correctly. Linking is supported by the matplotlib
-        backend; linking a browser of a backend that doesn't support it raises an
-        error.
-
-        .. versionadded:: 1.14
-           Linking browsers with :func:`mne.viz.ui_events.link`.
+        The matplotlib browser publishes and responds to the
+        :class:`~mne.viz.ui_events.TimeWindowChange` UI event, so linked browsers
+        (see :func:`mne.viz.ui_events.link`) show the same time window.
 
         MNE-Python provides two different backends for browsing plots (i.e.,
         :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
