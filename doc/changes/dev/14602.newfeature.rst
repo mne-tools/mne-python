@@ -1,0 +1,1 @@
+Add :meth:`mne.viz.Brain.add_connectivity` and :meth:`mne.viz.Brain.remove_connectivity` to show connectivity between labels as lines between their centers, by `Payam Sadeghi-Shabestari`_.
