@@ -32,6 +32,7 @@ from ..coreg import (
     _mri_subject_has_bem,
     bem_fname,
     fid_fname,
+    read_mri_cfg,
     scale_mri,
 )
 from ..defaults import DEFAULTS
@@ -433,6 +434,7 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_scale_mode(self._defaults["scale_mode"])
         self._set_subject_to(self._defaults["subject_to"])
+        self._update_load_scaling()
         if trans is not None:
             self._load_trans(trans)
         self._redraw()  # we need the elements to be present now
@@ -675,6 +677,33 @@ class CoregistrationUI(HasTraits):
             style = dict(border="initial")
         self._forward_widget_command("subject_to", "set_style", style)
 
+    def _read_scaling_cfg(self):
+        """Read the scaling of the current subject, if it is a scaled subject.
+
+        Returns the cfg (or None) and a tooltip that says why it can't be loaded.
+        """
+        try:
+            cfg = read_mri_cfg(self._subject, self._subjects_dir)
+        except OSError:
+            return None, f"{self._subject} is not a scaled subject"
+        template = cfg["subject_from"]
+        return cfg, f"Show the scaling of {self._subject} relative to {template}"
+
+    def _update_load_scaling(self):
+        cfg, tooltip = self._read_scaling_cfg()
+        self._forward_widget_command("load_scaling", "set_enabled", cfg is not None)
+        self._forward_widget_command("load_scaling", "set_tooltip", tooltip)
+        self._forward_widget_command("scaled_from", "set_value", "")
+
+    def _load_scaling(self):
+        cfg, _ = self._read_scaling_cfg()
+        # the scale fields apply to the open subject, which is already scaled,
+        # so only report its scaling relative to the template
+        scale = " / ".join(f"{s:.2f}" for s in np.atleast_1d(cfg["scale"]) * 1e2)
+        self._forward_widget_command(
+            "scaled_from", "set_value", f"Scaled from {cfg['subject_from']}: {scale} %"
+        )
+
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
 
@@ -778,6 +807,7 @@ class CoregistrationUI(HasTraits):
         self._set_fiducials_file(fname)
         self._reset_fiducials()
         self._set_subject_to(self._subject_to)  # revalidate against the new subject
+        self._update_load_scaling()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -2018,6 +2048,11 @@ class CoregistrationUI(HasTraits):
             compact=True,
             layout=mri_scaling_layout,
         )
+        self._widgets["scaled_from"] = self._renderer._dock_add_label(
+            value="",
+            layout=mri_scaling_layout,
+            selectable=True,
+        )
         scale_params_layout = self._renderer._dock_add_group_box(
             name="Scaling Parameters",
             layout=mri_scaling_layout,
@@ -2066,6 +2101,11 @@ class CoregistrationUI(HasTraits):
             value=self._subject_to,
             placeholder="subject name",
             callback=self._set_subject_to,
+            layout=subject_to_layout,
+        )
+        self._widgets["load_scaling"] = self._renderer._dock_add_button(
+            name="Load scaling",
+            callback=self._load_scaling,
             layout=subject_to_layout,
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
