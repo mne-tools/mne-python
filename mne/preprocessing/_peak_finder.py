@@ -54,7 +54,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> peak_mags # doctest: +SKIP
     array([0.36900026, 1.76007351]) # doctest: +SKIP
     """
-    x0 = np.asanyarray(x0)
+    x0 = np.asanyarray(x0, dtype=float)
     s = x0.size
 
     if x0.ndim >= 2 or s == 0:
@@ -168,16 +168,16 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
             peak_mags = []
             peak_inds = []
 
-    # Change sign of data if was finding minima
-    if extrema < 0:
-        peak_mags *= -1.0
-
     # ensure output type array
     if not isinstance(peak_inds, np.ndarray):
         peak_inds = np.atleast_1d(peak_inds).astype("int64")
 
     if not isinstance(peak_mags, np.ndarray):
         peak_mags = np.atleast_1d(peak_mags).astype("float64")
+
+    # Change sign of data if was finding minima
+    if extrema < 0:
+        peak_mags *= -1.0
 
     # Plot if no output desired
     if len(peak_inds) == 0:
