@@ -1,0 +1,24 @@
+{
+  "merge_commit_sha": "5eda96edaf3ff810791a699d4ddbf7060243a953",
+  "authors": [
+    {
+      "n": "dependabot[bot]",
+      "e": "49699333+dependabot[bot]@users.noreply.github.com",
+      "l": "dependabot[bot]"
+    }
+  ],
+  "changes": {
+    ".github/workflows/autofix.yml": {
+      "a": 2,
+      "d": 2
+    },
+    ".github/workflows/scheduled_updates.yml": {
+      "a": 1,
+      "d": 1
+    },
+    ".github/workflows/tests.yml": {
+      "a": 1,
+      "d": 1
+    }
+  }
+}

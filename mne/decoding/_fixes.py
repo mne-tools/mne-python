@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from ._check import _sklearn  # noqa: F401, isort: skip
 from mne.utils import _soft_import
 
 

@@ -1609,7 +1609,11 @@ def label_sign_flip(label, src):
         ori.append(src[1]["nn"][vertno_sel])
     if len(ori) == 0:
         raise Exception(f'Unknown hemisphere type "{label.hemi}"')
-    ori = np.concatenate(ori, axis=0)
+    return _ori_sign_flip(np.concatenate(ori, axis=0))
+
+
+def _ori_sign_flip(ori):
+    """Compute the sign flip aligning source orientations to their main direction."""
     if len(ori) == 0:
         return np.array([], int)
 
@@ -2556,7 +2560,7 @@ def labels_to_stc(
 
     Parameters
     ----------
-    labels : Label | BiHemiLabel | list | tuple | str
+    labels : Label | BiHemiLabel | list | tuple | str | None
         If using a surface or mixed source space, this should be the
         :class:`~mne.Label`'s for which to extract the time course.
         If working with whole-brain volume source estimates, this must be one of:
@@ -2568,8 +2572,15 @@ def labels_to_stc(
           and the second being a list or dict of ``volume_labels`` to extract
           (see :func:`mne.setup_volume_source_space` for details).
 
+        Each structure of a :func:`mne.setup_subcortical_source_space` source space
+        adds one time course after those of the labels, extracted using ``mode`` like
+        a label. Without cortical source spaces, ``labels`` must be ``None``.
+
         .. versionchanged:: 0.21.0
            Support for volume source estimates.
+
+        .. versionchanged:: 1.14
+           Support for subcortical surface source spaces.
     values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float

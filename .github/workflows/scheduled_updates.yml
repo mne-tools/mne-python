@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Scheduled updates | Opens pull requests to keep selected package dependencies and pre-commit hooks up to date | Every Monday |
+
 name: Scheduled updates
 
 on:  # yamllint disable-line rule:truthy
@@ -53,11 +56,11 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: Warpbuilds/action-debugger@v1.3
+        uses: Warpbuilds/action-debugger@v2
         timeout-minutes: 10
         with:
           detached: true
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: ">=0.9"
           activate-environment: true
@@ -80,7 +83,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v3.0.2
+      - uses: j178/prek-action@v3.1.1
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         env:

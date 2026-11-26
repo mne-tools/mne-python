@@ -1,0 +1,28 @@
+{
+  "merge_commit_sha": "614fb79c5c72ac2977cd9bebfb3258fd55a609d4",
+  "authors": [
+    {
+      "n": "Ishaan Maheshwari",
+      "e": "145560898+ishaaaan17@users.noreply.github.com",
+      "l": "ishaaaan17"
+    }
+  ],
+  "changes": {
+    "doc/changes/dev/14377.newfeature.rst": {
+      "a": 1,
+      "d": 0
+    },
+    "doc/changes/names.inc": {
+      "a": 1,
+      "d": 0
+    },
+    "mne/baseline.py": {
+      "a": 4,
+      "d": 5
+    },
+    "mne/tests/test_epochs.py": {
+      "a": 12,
+      "d": 0
+    }
+  }
+}

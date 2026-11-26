@@ -1,3 +1,6 @@
+# | name | description | runs-when |
+# | Sponsor review | Opens issues as reminders to check whether the current sponsors and supporting institutions listed on the website are up to date | 1st February, June, and October |
+
 name: Sponsor review
 
 on:  # yamllint disable-line rule:truthy
@@ -16,7 +19,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: ">=0.9"
           activate-environment: true

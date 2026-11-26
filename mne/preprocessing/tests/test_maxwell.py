@@ -773,6 +773,8 @@ def test_bads_reconstruction():
 @pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
+# GESDD does not converge on (at least) Apple M2 Pro CI runners
+@pytest.mark.filterwarnings("ignore:SVD error.*GESVD instead:RuntimeWarning")
 def test_spatiotemporal():
     """Test Maxwell filter (tSSS) spatiotemporal processing."""
     # Load raw testing data

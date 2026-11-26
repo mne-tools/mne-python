@@ -190,6 +190,96 @@ def _read_21e_file(fname):
     return _chan_labels
 
 
+def _read_legacy_controlblocks(fid, chan_labels):
+    """Read the control and data blocks of single-layout files."""
+    fid.seek(0x0091)
+    n_ctlblocks = np.fromfile(fid, np.uint8, 1)[0]
+    controlblocks = []
+    for i_ctl_block in range(n_ctlblocks):
+        t_controlblock = {}
+        fid.seek(0x0092 + i_ctl_block * 20)
+        t_ctl_address = np.fromfile(fid, np.uint32, 1)[0]
+        t_controlblock["address"] = t_ctl_address
+        fid.seek(t_ctl_address + 17)
+        n_datablocks = np.fromfile(fid, np.uint8, 1)[0]
+        t_controlblock["n_datablocks"] = n_datablocks
+        t_controlblock["datablocks"] = []
+        for i_data_block in range(n_datablocks):
+            t_datablock = {}
+            fid.seek(t_ctl_address + i_data_block * 20 + 18)
+            t_data_address = np.fromfile(fid, np.uint32, 1)[0]
+            t_datablock["address"] = t_data_address
+
+            fid.seek(t_data_address + 0x26)
+            t_n_channels = np.fromfile(fid, np.uint8, 1)[0].astype(np.int64)
+            t_datablock["n_channels"] = t_n_channels
+
+            t_channels = []
+            for i_ch in range(t_n_channels):
+                fid.seek(t_data_address + 0x27 + (i_ch * 10))
+                t_idx = np.fromfile(fid, np.uint8, 1)[0]
+                t_channels.append(chan_labels[t_idx])
+
+            t_datablock["channels"] = t_channels
+
+            fid.seek(t_data_address + 0x1C)
+            t_record_duration = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
+            t_datablock["duration"] = t_record_duration
+
+            fid.seek(t_data_address + 0x1A)
+            sfreq = np.fromfile(fid, np.uint16, 1)[0] & 0x3FFF
+            t_datablock["sfreq"] = sfreq.astype(np.int64)
+
+            t_datablock["n_samples"] = np.int64(t_record_duration * sfreq // 10)
+            t_datablock["data_offset"] = int(t_data_address + 0x27 + t_n_channels * 10)
+            t_controlblock["datablocks"].append(t_datablock)
+        controlblocks.append(t_controlblock)
+    return n_ctlblocks, controlblocks
+
+
+def _read_extended_controlblocks(fid, address, chan_labels):
+    """Read the extended block chain of high-density files (e.g. EEG-1200A).
+
+    Same structure as the legacy blocks, but entries are 24 bytes (a 64-bit
+    address followed by a 16-byte label) and the data block headers hold a
+    32-bit sampling frequency, a 16-bit channel count and 16-bit channel indices.
+    """
+    fid.seek(address + 0x11)
+    n_ctlblocks = np.fromfile(fid, np.uint8, 1)[0]
+    controlblocks = []
+    for i_ctl_block in range(n_ctlblocks):
+        fid.seek(address + 0x12 + i_ctl_block * 24)
+        ctl_address = int(np.fromfile(fid, np.uint64, 1)[0])
+        fid.seek(ctl_address + 0x11)
+        n_datablocks = np.fromfile(fid, np.uint8, 1)[0]
+        datablocks = []
+        for i_data_block in range(n_datablocks):
+            fid.seek(ctl_address + 0x14 + i_data_block * 24)
+            data_address = int(np.fromfile(fid, np.uint64, 1)[0])
+            fid.seek(data_address + 0x28)
+            sfreq, duration = np.fromfile(fid, np.uint32, 2).astype(np.int64)
+            fid.seek(data_address + 0x44)
+            n_channels = int(np.fromfile(fid, np.uint16, 1)[0])
+            # 10-byte records, the first two bytes index into the 21E labels
+            fid.seek(data_address + 0x48)
+            records = np.fromfile(fid, [("idx", "<u2"), ("rest", "V8")], n_channels)
+            datablocks.append(
+                dict(
+                    address=data_address,
+                    n_channels=n_channels,
+                    channels=[chan_labels[idx] for idx in records["idx"]],
+                    duration=duration,
+                    sfreq=sfreq,
+                    n_samples=duration * sfreq // 10,
+                    data_offset=data_address + 0x48 + n_channels * 10,
+                )
+            )
+        controlblocks.append(
+            dict(address=ctl_address, n_datablocks=n_datablocks, datablocks=datablocks)
+        )
+    return n_ctlblocks, controlblocks
+
+
 def _read_nihon_header(fname):
     # Read the Nihon Kohden EEG file header
     fname = _ensure_path(fname)
@@ -214,48 +304,16 @@ def _read_nihon_header(fname):
             raise ValueError("Not a valid Nihon Kohden EEG file (waveform block)")
         header["version"] = version
 
-        fid.seek(0x0091)
-        n_ctlblocks = np.fromfile(fid, np.uint8, 1)[0]
+        # high-density files (e.g. EEG-1200A); their legacy blocks hold only 1 channel
+        fid.seek(0x03EE)
+        ext_address = np.fromfile(fid, np.uint32, 1)[0]
+        if ext_address:
+            n_ctlblocks, controlblocks = _read_extended_controlblocks(
+                fid, ext_address, _chan_labels
+            )
+        else:
+            n_ctlblocks, controlblocks = _read_legacy_controlblocks(fid, _chan_labels)
         header["n_ctlblocks"] = n_ctlblocks
-        controlblocks = []
-        for i_ctl_block in range(n_ctlblocks):
-            t_controlblock = {}
-            fid.seek(0x0092 + i_ctl_block * 20)
-            t_ctl_address = np.fromfile(fid, np.uint32, 1)[0]
-            t_controlblock["address"] = t_ctl_address
-            fid.seek(t_ctl_address + 17)
-            n_datablocks = np.fromfile(fid, np.uint8, 1)[0]
-            t_controlblock["n_datablocks"] = n_datablocks
-            t_controlblock["datablocks"] = []
-            for i_data_block in range(n_datablocks):
-                t_datablock = {}
-                fid.seek(t_ctl_address + i_data_block * 20 + 18)
-                t_data_address = np.fromfile(fid, np.uint32, 1)[0]
-                t_datablock["address"] = t_data_address
-
-                fid.seek(t_data_address + 0x26)
-                t_n_channels = np.fromfile(fid, np.uint8, 1)[0].astype(np.int64)
-                t_datablock["n_channels"] = t_n_channels
-
-                t_channels = []
-                for i_ch in range(t_n_channels):
-                    fid.seek(t_data_address + 0x27 + (i_ch * 10))
-                    t_idx = np.fromfile(fid, np.uint8, 1)[0]
-                    t_channels.append(_chan_labels[t_idx])
-
-                t_datablock["channels"] = t_channels
-
-                fid.seek(t_data_address + 0x1C)
-                t_record_duration = np.fromfile(fid, np.uint32, 1)[0].astype(np.int64)
-                t_datablock["duration"] = t_record_duration
-
-                fid.seek(t_data_address + 0x1A)
-                sfreq = np.fromfile(fid, np.uint16, 1)[0] & 0x3FFF
-                t_datablock["sfreq"] = sfreq.astype(np.int64)
-
-                t_datablock["n_samples"] = np.int64(t_record_duration * sfreq // 10)
-                t_controlblock["datablocks"].append(t_datablock)
-            controlblocks.append(t_controlblock)
         header["controlblocks"] = controlblocks
 
     # Now check that every data block has the same channels and sfreq
@@ -282,7 +340,7 @@ def _read_nihon_header(fname):
             "I dont know how to read more than one "
             "control block for this type of file :("
         )
-    if header["controlblocks"][0]["n_datablocks"] > 1:  # ty: ignore[unsupported-operator]
+    if header["controlblocks"][0]["n_datablocks"] > 1:
         # Multiple blocks, check that they all have the same kind of data
         datablocks = header["controlblocks"][0]["datablocks"]
         block_0 = datablocks[0]
@@ -552,13 +610,12 @@ class RawNihon(BaseRaw):
             new_start = start
             sample_start = 0
             for t_block_idx in range(start_block, stop_block + 1):
-                t_block = datablocks[t_block_idx]
-                if t_block == stop_block:
+                if t_block_idx == stop_block:
                     # If its the last block, we stop on the last sample to read
                     new_stop = stop
                 else:
                     # Otherwise, stop on the last sample of the block
-                    new_stop = t_block["n_samples"] + new_start
+                    new_stop = ends[t_block_idx]
                 samples_to_read = new_stop - new_start
                 sample_stop = sample_start + samples_to_read
 
@@ -579,7 +636,7 @@ class RawNihon(BaseRaw):
             datablock = datablocks[start_block]
 
             n_channels = datablock["n_channels"] + 1
-            datastart = datablock["address"] + 0x27 + (datablock["n_channels"] * 10)
+            datastart = datablock["data_offset"]
 
             # Compute start offset based on the beginning of the block
             rel_start = start

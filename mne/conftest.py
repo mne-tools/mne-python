@@ -12,6 +12,7 @@ import shutil
 import sys
 import sysconfig
 import warnings
+import weakref
 from collections import defaultdict
 from contextlib import contextmanager, suppress
 from pathlib import Path
@@ -194,6 +195,8 @@ def pytest_configure(config: pytest.Config):
     ignore:numpy\.core\.records is deprecated.*:DeprecationWarning
     # joblib
     ignore:process .* is multi-threaded, use of fork/exec.*:DeprecationWarning
+    # raising in loky's manager thread kills it and hangs Parallel
+    always::UserWarning:joblib\.
     # sklearn
     ignore:Python binding for RankQuantileOptions.*:RuntimeWarning
     ignore:.*The `disp` and `iprint` options of the L-BFGS-B solver.*:DeprecationWarning
@@ -1089,6 +1092,7 @@ def options_3d():
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+            "MNE_3D_OPTION_SSAO": "false",
             "MNE_3D_OPTION_THEME": "light",  # unify colors across setups
         },
     ):
@@ -1131,6 +1135,8 @@ def brain_gc(request):
         return
     from mne.viz import Brain
 
+    # a failed test's traceback keeps its Brain alive, so only blame this test's
+    brains_before = weakref.WeakSet(Brain._instances)
     # Snapshot pins nothing alive, so VTK objects that pre-date the test (e.g.
     # held by module-level state) are never reported. freeze=True moves the live
     # heap into the permanent generation instead of recording ids
@@ -1164,7 +1170,10 @@ def brain_gc(request):
         # is set (see Brain.__init__), so use it instead of a slow gc.get_objects()
         # scan of the whole process to check for lingering Brain instances.
         assert_no_instances(
-            Brain, "after", request=request, objs=list(Brain._instances)
+            Brain,
+            "after",
+            request=request,
+            objs=[b for b in Brain._instances if b not in brains_before],
         )
     finally:
         snap.thaw()  # no-op once assert_no_new() has thawed

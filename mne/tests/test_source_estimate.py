@@ -241,9 +241,9 @@ def test_volume_stc(tmp_path):
     with pytest.raises(ValueError, match="'ftype' parameter"):
         stc.save(fname_vol, ftype="whatever", overwrite=True)
     for ftype in ["w", "h5"]:
-        for _ in range(2):
+        for save_ftype in (ftype, "auto"):
             fname_temp = tmp_path / f"temp-vol.{ftype}"
-            stc_new.save(fname_temp, ftype=ftype, overwrite=True)
+            stc_new.save(fname_temp, ftype=save_ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert isinstance(stc_new, VolSourceEstimate)
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
@@ -251,7 +251,10 @@ def test_volume_stc(tmp_path):
 
 
 @testing.requires_testing_data
-def test_save_stc_as_gifti(tmp_path):
+@pytest.mark.parametrize(
+    "scale, scale_rr, known_subject", [(1, 1e3, True), (2, 1, False)]
+)
+def test_save_stc_as_gifti(tmp_path, scale, scale_rr, known_subject):
     """Save the stc as a GIFTI file and export."""
     nib = pytest.importorskip("nibabel")
     surfpath_src = bem_path / "sample-oct-6-src.fif"
@@ -260,22 +263,96 @@ def test_save_stc_as_gifti(tmp_path):
     stc = read_source_estimate(surfpath_stc)  # need stc
     assert isinstance(src, SourceSpaces)
     assert isinstance(stc, SourceEstimate)
+    with pytest.raises(ValueError, match="vertices for lh must match"):
+        stc.save_as_surface(tmp_path / "mismatch", src)
+    assert not list(tmp_path.glob("mismatch*"))
+    vertices = [s["vertno"].copy() for s in src]
+    n_vertices = sum(map(len, vertices))
+    stc = SourceEstimate(
+        np.arange(n_vertices * 3).reshape(n_vertices, 3),
+        vertices,
+        tmin=-0.12345678901234567,
+        tstep=0.003456789012345678,
+        subject="sample",
+    )
+    if not known_subject:
+        src[0].pop("subject_his_id", None)
+        src[1]["subject_his_id"] = None
 
     surf_fname = tmp_path / "stc_write"
 
-    stc.save_as_surface(surf_fname, src)
+    stc.save_as_surface(surf_fname, src, scale=scale, scale_rr=scale_rr)
 
     # did structural get written?
     img_lh = nib.load(f"{surf_fname}-lh.gii")
     img_rh = nib.load(f"{surf_fname}-rh.gii")
     assert isinstance(img_lh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_rh, nib.gifti.gifti.GiftiImage)
+    for image, parent, hemi in zip((img_lh, img_rh), src, ("lh", "rh")):
+        assert len(image.darrays) == 2
+        vertices = np.fromstring(
+            image.meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert_array_equal(vertices, parent["vertno"])
+        assert image.meta["MNEParentHemisphere"] == hemi
+        assert int(image.meta["MNEParentVertexCount"]) == len(parent["rr"])
+        if known_subject:
+            assert image.meta["MNEParentSubject"] == parent["subject_his_id"]
+        else:
+            assert "MNEParentSubject" not in image.meta
+        coords, triangles = image.agg_data(("pointset", "triangle"))
+        assert_array_equal(
+            coords, (parent["rr"][vertices] * scale_rr).astype(np.float32)
+        )
+        assert triangles.dtype == np.int32
+        assert triangles.min() >= 0
+        assert triangles.max() < len(vertices)
+        assert_array_equal(vertices[triangles], parent["use_tris"])
 
     # did time series get written?
     img_timelh = nib.load(f"{surf_fname}-lh.time.gii")
     img_timerh = nib.load(f"{surf_fname}-rh.time.gii")
     assert isinstance(img_timelh, nib.gifti.gifti.GiftiImage)
     assert isinstance(img_timerh, nib.gifti.gifti.GiftiImage)
+
+    for image, anatomical, data in (
+        (img_timelh, img_lh, stc.lh_data),
+        (img_timerh, img_rh, stc.rh_data),
+    ):
+        parent_meta = {
+            key: value
+            for key, value in image.meta.items()
+            if key.startswith("MNEParent")
+        }
+        assert parent_meta == dict(anatomical.meta)
+        vertices = np.fromstring(
+            parent_meta["MNEParentVertexIndices"], dtype=int, sep=" "
+        )
+        assert len(vertices) == data.shape[0]
+        assert_allclose(float(image.meta["TimeStart"]), stc.tmin)
+        assert_allclose(float(image.meta["TimeStep"]), stc.tstep)
+        assert image.meta["TimeUnits"] == "s"
+        assert image.meta["TimeSamples"] == str(len(stc.times))
+        assert len(image.darrays) == len(stc.times)
+        for idx, (darray, time) in enumerate(
+            zip(image.darrays, stc.times, strict=True)
+        ):
+            assert darray.meta["TimeIndex"] == str(idx)
+            assert_allclose(float(darray.meta["TimeValue"]), time)
+            assert darray.meta["TimeUnits"] == "s"
+            assert darray.meta["Name"] == f"{time:g} s"
+            assert not any(key.startswith("MNEParent") for key in darray.meta)
+            assert darray.intent == nib.nifti1.intent_codes["pointset"]
+            assert_array_equal(darray.data, (data[:, idx] * scale).astype(np.float32))
+
+    for key in ("TimeStart", "TimeStep", "TimeUnits", "TimeSamples"):
+        assert img_timelh.meta[key] == img_timerh.meta[key]
+
+    # Reject reordered vertices in rh before writing either hemi
+    stc.vertices[1] = stc.vertices[1][::-1]
+    with pytest.raises(ValueError, match="vertices for rh must match"):
+        stc.save_as_surface(tmp_path / "mismatch", src)
+    assert not list(tmp_path.glob("mismatch*"))
 
 
 @testing.requires_testing_data
@@ -491,6 +568,16 @@ def test_io_stc(tmp_path):
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    stc.save(tmp_path / "tmp-lh.stc", overwrite=True)
+    assert not (tmp_path / "tmp-lh.stc-lh.stc").exists()
+    assert_array_almost_equal(stc.data, read_source_estimate(tmp_path / "tmp.stc").data)
+    # legacy stem ending in another extension is not stripped on read
+    stc.save(tmp_path / "legacy.w", ftype="stc")
+    assert (tmp_path / "legacy.w-lh.stc").is_file()
+    assert_array_almost_equal(
+        stc.data, read_source_estimate(tmp_path / "legacy.w").data
+    )
+
     # test warning for complex data
     stc2.data = stc2.data.astype(np.complex128)
     with pytest.raises(ValueError, match="Cannot save complex-valued STC"):
@@ -516,6 +603,8 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
     with pytest.raises(FileExistsError, match="Destination file exists"):
         stc.save(out_name, ftype="h5")
     stc.save(out_name, ftype="h5", overwrite=True)
+    stc.save(tmp_path / "auto.h5")  # default ftype infers h5
+    assert (tmp_path / "auto.h5").is_file()
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name.with_name(out_name.name + "-stc"))
     stc5 = read_source_estimate(out_name.with_name(out_name.name + "-stc.h5"))
@@ -541,6 +630,9 @@ def test_io_w(tmp_path):
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
+    src.save(tmp_path / "tmp-lh.w", overwrite=True)
+    assert not (tmp_path / "tmp-lh.w-lh.w").exists()
+    assert_array_almost_equal(src.data, read_source_estimate(tmp_path / "tmp.w").data)
 
 
 def test_stc_arithmetic():

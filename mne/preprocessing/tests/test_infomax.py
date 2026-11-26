@@ -10,7 +10,7 @@ from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy import signal, stats
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import check_random_state, pinv
+from mne.utils import check_random_state, check_version, pinv
 
 pytest.importorskip("sklearn")
 
@@ -31,12 +31,20 @@ def center_and_norm(x, axis=-1):
     x /= x.std(axis=0)
 
 
+def _sample_student_t(n_samples):
+    """Sample a Student-t source using an explicit seed."""
+    # TODO VERSION: remove the fallback when SciPy >= 1.15 is required.
+    if not check_version("scipy", "1.15"):
+        return stats.t.rvs(1, size=n_samples, random_state=0)
+    return stats.make_distribution(stats.t)(df=1).sample(shape=n_samples, rng=0)
+
+
 def test_infomax_blowup():
     """Test the infomax algorithm blowup condition."""
     n_samples = 100
     # Generate two sources:
     s1 = (2 * np.sin(np.linspace(0, 100, n_samples)) > 0) - 1
-    s2 = stats.t.rvs(1, size=n_samples, random_state=0)
+    s2 = _sample_student_t(n_samples)
     s = np.c_[s1, s2].T
     center_and_norm(s)
     s1, s2 = s
@@ -74,7 +82,7 @@ def test_infomax_simple():
     n_samples = 500
     # Generate two sources:
     s1 = (2 * np.sin(np.linspace(0, 100, n_samples)) > 0) - 1
-    s2 = stats.t.rvs(1, size=n_samples, random_state=0)
+    s2 = _sample_student_t(n_samples)
     s = np.c_[s1, s2].T
     center_and_norm(s)
     s1, s2 = s

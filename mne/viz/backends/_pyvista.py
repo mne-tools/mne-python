@@ -162,7 +162,7 @@ class PyVistaFigure(Figure3D):
         return self.plotter
 
     def _is_active(self):
-        return self.plotter.render_window is not None
+        return self.plotter is not None and self.plotter.render_window is not None
 
 
 class _Projection:
@@ -236,6 +236,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.tube_n_sides = 20
         self.antialias = _get_3d_option("antialias")
         self.depth_peeling = _get_3d_option("depth_peeling")
+        # TODO VERSION: SSAO renders subplots black on VTK < 9.7 (vtk MR !13411)
+        self.ssao = _get_3d_option("ssao") and pyvista.vtk_version_info >= (9, 7)
         self.multi_samples = multi_samples
         self.smooth_shading = smooth_shading
         if isinstance(fig, int):
@@ -292,6 +294,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             renderer.hide_axes()
 
     def _update(self):
+        self._update_ssao()
         for plotter in self._all_plotters:
             # PyVistaQt resolves plotter.update() to QWidget.update(), which only
             # schedules a repaint, and it makes Plotter.render() asynchronous. This is
@@ -939,6 +942,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             )
 
     def show(self):
+        self._update_ssao()
         self.plotter.show()
 
     def close(self):
@@ -989,20 +993,45 @@ class _PyVistaRenderer(_AbstractRenderer):
             else:
                 plotter.disable_depth_peeling()
 
+    def _update_ssao(self):
+        if not self.ssao:
+            return
+        for renderer in self._all_renderers:
+            # Use VTK's built-in renderer SSAO rather than PyVista's enable_ssao: the
+            # latter installs a render pass chain that draws translucent geometry
+            # inside the SSAO pass without depth peeling (so it is mis-sorted or
+            # vanishes) and makes VTK ignore UseFXAA. The built-in one shades only
+            # the opaque stage and leaves translucent geometry to depth peeling.
+            # The radius is in world units (mm for Brain, m for plot_alignment), so
+            # scale it with the scene: 0.075 gives ~15 mm for one hemisphere.
+            radius = 0.075 * renderer.length
+            renderer.SetUseSSAO(True)
+            renderer.SetSSAORadius(radius)
+            # VTK's default bias (0.01) is in world units too, so scale it as well
+            renderer.SetSSAOBias(radius / 30)
+            # VTK's default of 32 samples looks mottled in close-ups
+            renderer.SetSSAOKernelSize(256)
+            # Smooths the remaining sampling noise (VTK's default is off)
+            renderer.SetSSAOBlur(True)
+            # SSAO renders to a single-sample buffer, losing MSAA, so use FXAA
+            if self.antialias:
+                renderer.SetUseFXAA(True)
+
     def _toggle_antialias(self):
         """Enable it everywhere except on systems with problematic OpenGL."""
         # MESA can't seem to handle MSAA and depth peeling simultaneously, see
         # https://github.com/pyvista/pyvista/issues/4867
         bad_system = _is_osmesa(self.plotter)
         for plotter in self._all_plotters:
-            if bad_system or not self.antialias:
+            if not self.antialias:
                 plotter.disable_anti_aliasing()
+            elif bad_system:  # so use FXAA instead
+                plotter.enable_anti_aliasing(aa_type="fxaa")
             else:
-                if not bad_system:
-                    plotter.enable_anti_aliasing(
-                        aa_type="msaa",
-                        multi_samples=self.multi_samples,
-                    )
+                plotter.enable_anti_aliasing(
+                    aa_type="msaa",
+                    multi_samples=self.multi_samples,
+                )
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data

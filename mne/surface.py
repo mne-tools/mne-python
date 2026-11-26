@@ -1867,6 +1867,14 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
+def _apply_trans_mesh(trans, rr, tris):
+    """Transform mesh vertices, keeping the triangles wound the same way."""
+    rr = apply_trans(trans, rr)
+    if np.linalg.det(trans[:3, :3]) < 0:  # a reflection flips the winding
+        tris = tris[:, ::-1]
+    return rr, tris
+
+
 def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edges=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
@@ -1958,11 +1966,13 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
             selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
+        if polydata.GetPoints() is None:
+            out.append((np.zeros((0, 3)), np.zeros((0, 3), int)))
+            continue
         rr = vtk_to_numpy(polydata.GetPoints().GetData())
         tris = vtk_to_numpy(polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
-        rr = np.ascontiguousarray(rr)
-        tris = np.ascontiguousarray(tris)
-        out.append((rr, tris))
+        # copy, as views on VTK memory would keep the VTK arrays alive
+        out.append((rr.copy(), tris.copy()))
     return out
 
 

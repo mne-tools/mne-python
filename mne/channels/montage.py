@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from .._fiff._digitization import (
+    DigPoint,
     _coord_frame_const,
     _count_points_by_type,
     _ensure_fiducials_head,
@@ -28,17 +29,21 @@ from .._fiff.meas_info import create_info
 from .._fiff.open import fiff_open
 from .._fiff.pick import _picks_to_idx, channel_type, pick_types
 from .._freesurfer import get_mni_fiducials
+from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..surface import _project_onto_surface
 from ..transforms import (
     Transform,
     _ensure_trans,
     _frame_to_str,
+    _get_trans,
     _quat_to_affine,
     _sph_to_cart,
     _topo_to_sph,
     _verbose_frames,
     apply_trans,
     get_ras_to_neuromag_trans,
+    invert_transform,
 )
 from ..utils import (
     _check_fname,
@@ -796,6 +801,62 @@ class DigMontage:
         self.dig = fids_mri + self.dig
         return self
 
+    @verbose_static("trans_not_none")
+    def project_onto_scalp(self, trans, bem, verbose=None):
+        """Project EEG channel positions onto the scalp surface of a BEM.
+
+        Parameters
+        ----------
+        trans : str | dict | instance of Transform
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+        bem : path-like | ConductorModel
+            Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
+            use, or a loaded :class:`~mne.bem.ConductorModel`. Sphere models are not
+            supported, since they have no scalp surface.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place and in the ``head`` coordinate frame.
+
+        See Also
+        --------
+        mne.make_forward_solution
+        mne.viz.plot_alignment
+
+        Notes
+        -----
+        The channel positions are projected onto the closest point of the scalp
+        surface of ``bem``, as done by :func:`mne.make_forward_solution` when it is
+        given the same ``bem``.
+
+        .. versionadded:: 1.14
+        """
+        head_mri_t = _get_trans(trans, "head", "mri", allow_none=False)[0]
+        _validate_type(bem, ("path-like", ConductorModel), "bem")
+        bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel,))
+        if bem["is_sphere"]:
+            raise ValueError(
+                "Cannot project onto the scalp of a sphere model, use a BEM instead"
+            )
+        scalp = _bem_find_surface(bem, "head")
+        self.dig = transform_to_head(self).dig
+        eeg = [d for d in self.dig if d["kind"] == FIFF.FIFFV_POINT_EEG]
+        if not eeg:
+            return self
+        rrs = apply_trans(head_mri_t, np.array([d["r"] for d in eeg]))
+        rrs = _project_onto_surface(rrs, scalp, project_rrs=True)[2]
+        for d, rr in zip(eeg, apply_trans(invert_transform(head_mri_t), rrs)):
+            d["r"] = rr
+        return self
+
     @verbose_static("subjects_dir")
     def add_mni_fiducials(self, subjects_dir=None, verbose=None):
         """Add fiducials to a montage in MNI space.
@@ -1361,7 +1422,7 @@ def _set_montage_fnirs(info, montage):
     stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
     place.
     """
-    from ..preprocessing.nirs import _validate_nirs_info
+    from ..preprocessing.nirs import _parse_nirs_ch_name, _validate_nirs_info
 
     # Validate that the fNIRS info is correctly formatted
     picks = _validate_nirs_info(info)
@@ -1369,8 +1430,8 @@ def _set_montage_fnirs(info, montage):
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
     for ch_idx in picks:
-        ch = info["chs"][ch_idx]["ch_name"]
-        source, detector = ch.split(" ")[0].split("_")
+        source, detector, _ = _parse_nirs_ch_name(info["chs"][ch_idx]["ch_name"])
+        source, detector = f"S{source}", f"D{detector}"
         source_pos = montage.dig[montage.ch_names.index(source) + num_ficiduals]["r"]
         detector_pos = montage.dig[montage.ch_names.index(detector) + num_ficiduals][
             "r"
@@ -1596,13 +1657,20 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
         ch["coord_frame"] = FIFF.FIFFV_COORD_HEAD
     del ch_pos
 
-    # XXX this is probably wrong as it uses the order from the montage
-    # rather than the order of our info['ch_names'] ...
     digpoints = [
-        mnt_head.dig[ii]
+        mnt_head.dig[ii] if name is None else DigPoint(mnt_head.dig[ii], ident=0)
         for ii, name in enumerate(dig_names_use)
-        if name in (info_names_use + ref_names)
+        if name in ref_names
     ]
+    # renumber so enforce_order (which sorts by ident) keeps info["ch_names"] order
+    dig_idx = {name: ii for ii, name in enumerate(dig_names_use)}
+    ch_names_dig = [
+        name
+        for name in dict.fromkeys(info_names_use)
+        if name in dig_idx and name not in ref_names
+    ]
+    for ident, name in enumerate(ch_names_dig, 1):
+        digpoints.append(DigPoint(mnt_head.dig[dig_idx[name]], ident=ident))
 
     # get a copy of the old dig
     if info["dig"] is not None:

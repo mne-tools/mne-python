@@ -838,10 +838,10 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
         ]
     else:
         try_fnames = [
+            op.join(subject_dir, "bem", f"{subject}-head.fif"),
             op.join(subject_dir, "bem", "outer_skin.surf"),
             op.join(subject_dir, "bem", "flash", "outer_skin.surf"),
             op.join(subject_dir, "bem", f"{subject}-head-sparse.fif"),
-            op.join(subject_dir, "bem", f"{subject}-head.fif"),
         ]
     for fname in try_fnames:
         if op.exists(fname):

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .. import __version__ as MNE_VERSION  # ty: ignore[unresolved-import]
+from .. import __version__ as MNE_VERSION
 from ..utils import get_config, logger
 
 _RAW_PRELOAD_CACHE_VERSION = 1
@@ -96,7 +96,7 @@ def _raw_preload_auto(raw):
             raw._read_segment(data_buffer=data)
             data.flush()
         finally:
-            data._mmap.close()  # ty: ignore[unresolved-attribute]
+            data._mmap.close()  # ty: ignore[missing-attribute]
         if _raw_preload_cache_info(raw)[1] != sources:
             raise RuntimeError(
                 "Source data changed while decoded cache was created; retry"

@@ -91,7 +91,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-@verbose_static("n_jobs", "average_psd", "window_psd", "remove_dc")
+@verbose_static("n_jobs", "window_psd", "remove_dc")
 def psd_array_welch(
     x,
     sfreq,
@@ -142,9 +142,12 @@ def psd_array_welch(
         How to average the segments. If ``mean`` (default), calculate the
         arithmetic mean. If ``median``, calculate the median, corrected for
         its bias relative to the mean. If ``None``, returns the unaggregated
-        segments.
+        segments. Must be ``None`` when ``output="complex"``.
 
         .. versionadded:: 0.19.0
+        .. versionchanged:: 1.14
+           ``"mean"`` and ``"median"`` are not supported when
+           ``output="complex"``.
     window : str | float | tuple
         Windowing function to use. See :func:`scipy.signal.get_window`.
 
@@ -200,6 +203,8 @@ def psd_array_welch(
         n_per_seg = _ensure_int(n_per_seg, "n_per_seg")
     if average is False:
         average = None
+    if output == "complex" and average is not None:
+        raise ValueError(f'average must be None when output="complex", got {average}.')
 
     dshape = x.shape[:-1]
     n_times = x.shape[-1]

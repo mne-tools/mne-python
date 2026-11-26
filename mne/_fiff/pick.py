@@ -338,7 +338,7 @@ def pick_channels(
     --------
     pick_channels_regexp, pick_types
     """
-    if len(np.unique(ch_names)) != len(ch_names):
+    if len(set(ch_names)) != len(ch_names):
         raise RuntimeError("ch_names is not a unique list, picking is unsafe")
     _validate_type(ordered, bool, "ordered")
     _check_excludes_includes(include)
@@ -698,6 +698,9 @@ def pick_types(
     if isinstance(meg, bool):
         for key in ("grad", "mag"):
             param_dict[key] = meg
+    elif meg in ("grad", "mag"):  # channel_type also uses the unit to tell them apart
+        param_dict["grad"] = meg == "grad"
+        param_dict["mag"] = meg == "mag"
     if isinstance(fnirs, bool):
         for key in _FNIRS_CH_TYPES_SPLIT:
             param_dict[key] = fnirs
@@ -733,15 +736,19 @@ def pick_types(
             ):
                 pick[k] = False
 
-    myinclude = [info["ch_names"][k] for k in range(nchan) if pick[k]]
-    myinclude += include
-
-    if len(myinclude) == 0:
-        sel = np.array([], int)
-    else:
-        sel = pick_channels(info["ch_names"], myinclude, exclude, ordered=False)
-
-    return sel
+    if not pick.any() and len(include) == 0:
+        return np.array([], int)
+    # add chs in `include`, then remove chs in `exclude`. Names not in info are ignored.
+    # Equivalent to `pick_channels(info["ch_names"], picked_names + include, exclude,
+    # ordered=False)` but avoids its uniqueness check (Info._check_consistency already
+    # ensures unique names) and avoids unnecessary indices → names → indices roundtrip.
+    _check_excludes_includes(include)
+    _check_excludes_includes(exclude)
+    if len(include) or len(exclude):
+        name_to_idx = {name: ii for ii, name in enumerate(info["ch_names"])}
+        for value, names in ((True, include), (False, exclude)):
+            pick[[name_to_idx[name] for name in names if name in name_to_idx]] = value
+    return np.flatnonzero(pick).astype(int, copy=False)
 
 
 @verbose_static("info_not_none")

@@ -2,10 +2,10 @@
 
 The docs prepend a cell to every notebook that installs MNE and calls
 :func:`setup_notebook`. Pyodide has no OS threads, no VTK, and a virtual
-filesystem the datasets are not in, so this fetches the files the docs serve
-next to the pages over HTTP on first use, points the dataset fetchers at those
-served folders, stubs what WebAssembly cannot do, and selects the vtk.js
-renderer (see ``_lite.py``). Nothing here runs outside that kernel.
+filesystem the datasets are not in, so this fetches the files served from
+the mne-data GitHub Pages site over HTTP on first use, points the dataset
+fetchers at those served folders, stubs what WebAssembly cannot do, and
+selects the vtk.js renderer (see ``_lite.py``). Nothing here runs outside that kernel.
 """
 
 # Authors: The MNE-Python contributors.
@@ -26,7 +26,9 @@ from ...surface import _get_head_surface as _surface_head_surface
 from ...utils import progressbar
 from ...utils.check import _check_fname
 
-_base = None  # URL the docs serve the data at, set by setup_notebook
+_base = "https://mne.tools/mne-data/lite/"
+# files over GitHub's 100 MB limit, served as rel.000, rel.001, ...: their part counts
+_SPLIT_FILES = {"MNE-sample-data/MEG/sample/sample_audvis_raw.fif": 2}
 _data_root = None  # where the fetched files land
 _orig = dict()  # the functions patched below that are imported lazily, by name
 
@@ -40,15 +42,9 @@ def setup_notebook(data_path="/tmp/mne_data"):  # nosec B108
     data_path : str
         Where fetched data files are written; ``MNE_DATA`` is set to it.
     """
-    global _base, _data_root
+    global _data_root
     if _data_root is not None:  # the cell ran again: the wrappers below would
         return  # otherwise wrap their own wrapped selves and recurse
-    import js  # only exists inside Pyodide
-
-    # The docs serve the data next to the pages (/mne_data/, via
-    # html_extra_path). Pyodide may run in a web worker, where ``location``
-    # exists but ``window`` does not.
-    _base = str(js.location.href).split("/lite/")[0] + "/mne_data/"
     _data_root = Path(data_path)
     _data_root.mkdir(parents=True, exist_ok=True)
     os.environ["MNE_DATA"] = data_path
@@ -82,17 +78,25 @@ def _fetch_rel(rel):
     """
     dst = _data_root / rel
     if not dst.exists():
-        from js import XMLHttpRequest
-
-        xhr = XMLHttpRequest.new()
-        xhr.open("GET", _base + rel, False)
-        xhr.responseType = "arraybuffer"
-        xhr.send()
-        if xhr.status != 200:
-            raise FileNotFoundError(f"Could not fetch {rel} (HTTP {xhr.status})")
+        n_parts = _SPLIT_FILES.get(rel)
+        names = [f"{rel}.{ii:03d}" for ii in range(n_parts)] if n_parts else [rel]
+        data = b"".join(_get_bytes(name) for name in names)
         dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_bytes(bytes(xhr.response.to_py()))
+        dst.write_bytes(data)
     return dst
+
+
+def _get_bytes(rel):
+    """Download one served file and return its bytes."""
+    from js import XMLHttpRequest
+
+    xhr = XMLHttpRequest.new()
+    xhr.open("GET", _base + rel, False)
+    xhr.responseType = "arraybuffer"
+    xhr.send()
+    if xhr.status != 200:
+        raise FileNotFoundError(f"Could not fetch {rel} (HTTP {xhr.status})")
+    return bytes(xhr.response.to_py())
 
 
 def _fetch_optional(rels):

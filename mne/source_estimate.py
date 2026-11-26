@@ -307,6 +307,11 @@ def read_source_estimate(fname, subject=None):
             raise RuntimeError(f"Unknown extension for file {fname_arg}")
 
     if ftype != "volume":
+        # "foo.stc" -> "foo" if "foo-rh.stc" exists, but keep legacy stems
+        # like "foo.w" (for "foo.w-rh.stc") intact
+        for ext in (".stc", ".w"):
+            if fname.endswith(ext) and op.exists(fname[: -len(ext)] + f"-rh{ext}"):
+                fname = fname[: -len(ext)]
         stc_exist = [op.exists(f) for f in [fname + "-rh.stc", fname + "-lh.stc"]]
         w_exist = [op.exists(f) for f in [fname + "-rh.w", fname + "-lh.w"]]
         if all(stc_exist) and ftype != "w":
@@ -388,6 +393,14 @@ def read_source_estimate(fname, subject=None):
     if kwargs["data"].ndim < 3:
         klass = klass._scalar_class
     return klass(**kwargs)
+
+
+def _check_save_ftype(fname, ftype):
+    if ftype == "auto":
+        ext = op.splitext(fname)[1][1:]
+        ftype = ext if ext in ("h5", "w") else "stc"
+    _check_option("ftype", ftype, ["stc", "w", "h5"])
+    return ftype
 
 
 def _get_src_type(src, vertices, warn_text=None):
@@ -626,7 +639,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
         Parameters
         ----------
-        labels : Label | BiHemiLabel | list | tuple | str
+        labels : Label | BiHemiLabel | list | tuple | str | None
             If using a surface or mixed source space, this should be the
             :class:`~mne.Label`'s for which to extract the time course.
             If working with whole-brain volume source estimates, this must be one of:
@@ -638,8 +651,15 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
               and the second being a list or dict of ``volume_labels`` to extract
               (see :func:`mne.setup_volume_source_space` for details).
 
+            Each structure of a :func:`mne.setup_subcortical_source_space` source space
+            adds one time course after those of the labels, extracted using ``mode`` like
+            a label. Without cortical source spaces, ``labels`` must be ``None``.
+
             .. versionchanged:: 0.21.0
                Support for volume source estimates.
+
+            .. versionchanged:: 1.14
+               Support for subcortical surface source spaces.
         src : instance of SourceSpaces
             The source spaces for the source time courses.
         mode : str
@@ -947,6 +967,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -1107,6 +1128,15 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -1170,6 +1200,7 @@ class _BaseSourceEstimate(TimeMixin, FilterMixin):
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -2129,7 +2160,11 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             ``"basename.lh.time.gii"``, ``"basename.rh.gii"``, and
             ``"basename.rh.time.gii"``.
         src : instance of SourceSpaces
-            The source space of the forward solution.
+            The source space of the forward solution. For each hemisphere,
+            ``self.vertices[hemi]`` must equal ``src[hemi]['vertno']`` in both values
+            and order (``hemi=0`` for lh, ``hemi=1`` for rh).
+            Sparse or restricted estimates with different vertices
+            are not supported.
         scale : float
             Scale factor to apply to the data (functional) values.
         scale_rr : float
@@ -2138,16 +2173,40 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         Notes
         -----
+        Both the anatomical and time-series GIFTI files store the mapping back to
+        the full-resolution parent surface as image metadata.
+        ``MNEParentVertexIndices`` holds space-separated, zero-based parent vertex
+        numbers (FreeSurfer vertex numbers for FreeSurfer-derived source spaces),
+        one per exported vertex and data row. ``MNEParentVertexCount``,
+        ``MNEParentHemisphere``, and (when known) ``MNEParentSubject`` describe
+        the parent surface.
+
+        .. versionchanged:: 1.14
+            Anatomical and time-series GIFTI files store parent-mesh vertex
+            correspondence in file-level metadata.
+            Source-estimate and source-space vertices must match.
+            The time-series GIFTI files store ``TimeStart`` and ``TimeStep`` in
+            seconds as image metadata. Each data array also stores its zero-based
+            sample index and time value in seconds.
+
         .. versionadded:: 1.7
         """
         nib = _import_nibabel()
         _check_option("src.kind", src.kind, ("surface", "mixed"))
+        hemis = ("lh", "rh")
+        for vertices, parent, hemi in zip(self.vertices, src, hemis):
+            if not np.array_equal(vertices, parent["vertno"]):
+                raise ValueError(
+                    f"Source estimate vertices for {hemi} must match "
+                    "src['vertno'] in values and order. Use the source space "
+                    "used to compute the estimate, e.g. fwd['src'] or "
+                    "inv['src'], rather than one read from disk."
+                )
         ss = get_decimated_surfaces(src)
         assert len(ss) == 2  # should be guaranteed by _check_option above
 
         # Create lists to put DataArrays into
-        hemis = ("lh", "rh")
-        for s, hemi in zip(ss, hemis):
+        for s, parent, hemi in zip(ss, src, hemis):
             darrays = list()
             darrays.append(
                 nib.gifti.gifti.GiftiDataArray(
@@ -2167,7 +2226,16 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             )
 
             # Make the output GIFTI for anatomicals
-            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays)
+            parent_meta = nib.gifti.GiftiMetaData(
+                {
+                    "MNEParentVertexIndices": " ".join(map(str, parent["vertno"])),
+                    "MNEParentVertexCount": str(len(parent["rr"])),
+                    "MNEParentHemisphere": hemi,
+                }
+            )
+            if parent.get("subject_his_id") is not None:
+                parent_meta["MNEParentSubject"] = parent["subject_his_id"]
+            topo_gi_hemi = nib.gifti.gifti.GiftiImage(darrays=darrays, meta=parent_meta)
 
             # actually save the file
             nib.save(topo_gi_hemi, f"{fname}-{hemi}.gii")
@@ -2175,17 +2243,35 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             # Make the Time Series data arrays
             ts = []
             data = getattr(self, f"{hemi}_data") * scale
-            ts = [
-                nib.gifti.gifti.GiftiDataArray(
-                    data=data[:, idx].astype(np.float32),
-                    intent="NIFTI_INTENT_POINTSET",
-                    datatype="NIFTI_TYPE_FLOAT32",
+            image_meta = nib.gifti.GiftiMetaData(
+                {
+                    **parent_meta,
+                    "TimeStart": repr(float(self.tmin)),
+                    "TimeStep": repr(float(self.tstep)),
+                    "TimeUnits": "s",
+                    "TimeSamples": str(len(self.times)),
+                }
+            )
+            for idx, time in enumerate(self.times):
+                array_meta = nib.gifti.GiftiMetaData(
+                    {
+                        "TimeIndex": str(idx),
+                        "TimeValue": repr(float(time)),
+                        "TimeUnits": "s",
+                        "Name": f"{time:g} s",
+                    }
                 )
-                for idx in range(data.shape[1])
-            ]
+                ts.append(
+                    nib.gifti.GiftiDataArray(
+                        data=data[:, idx].astype(np.float32),
+                        intent="NIFTI_INTENT_POINTSET",
+                        datatype="NIFTI_TYPE_FLOAT32",
+                        meta=array_meta,
+                    )
+                )
 
             # save the time series
-            ts_gi = nib.gifti.gifti.GiftiImage(darrays=ts)
+            ts_gi = nib.gifti.GiftiImage(darrays=ts, meta=image_meta)
             nib.save(ts_gi, f"{fname}-{hemi}.time.gii")
 
     def expand(self, vertices):
@@ -2398,7 +2484,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     """
 
     @verbose_static("overwrite")
-    def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -2408,10 +2494,14 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             spaces are obtained by adding ``"-lh.stc"`` and ``"-rh.stc"`` (or
             ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
             the right hemisphere, respectively.
-        ftype : str
-            File format to use. Allowed values are ``"stc"`` (default),
-            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
-            time point.
+        ftype : "auto" | "stc" | "w" | "h5"
+            File format to use. If ``"auto"`` (default), the format is
+            inferred from the extension of ``fname`` (``".h5"`` or ``".w"``),
+            falling back to ``"stc"``. The ``"w"`` format only supports a
+            single time point.
+
+            .. versionchanged:: 1.14
+               Added and defaulted to ``"auto"``.
         overwrite : bool
             If True (default False), overwrite the destination file if it
             exists.
@@ -2424,10 +2514,19 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             argument.
         """
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
-        _check_option("ftype", ftype, ["stc", "w", "h5"])
+        ftype = _check_save_ftype(fname, ftype)
 
         lh_data = self.data[: len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno) :]
+
+        if ftype in ("stc", "w"):
+            # strip existing tags to avoid duplicate extensions
+            for tag in (f"-lh.{ftype}", f"-rh.{ftype}", f".{ftype}"):
+                if fname.endswith(tag):
+                    fname = fname[: -len(tag)]
+                    break
+            fname_l = str(_check_fname(f"{fname}-lh.{ftype}", overwrite=overwrite))
+            fname_r = str(_check_fname(f"{fname}-rh.{ftype}", overwrite=overwrite))
 
         if ftype == "stc":
             if np.iscomplexobj(self.data):
@@ -2438,8 +2537,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                     "real numbers before saving."
                 )
             logger.info("Writing STC to disk...")
-            fname_l = str(_check_fname(fname + "-lh.stc", overwrite=overwrite))
-            fname_r = str(_check_fname(fname + "-rh.stc", overwrite=overwrite))
             _write_stc(
                 fname_l,
                 tmin=self.tmin,
@@ -2458,8 +2555,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             if self.shape[1] != 1:
                 raise ValueError("w files can only contain a single time point.")
             logger.info("Writing STC to disk (w format)...")
-            fname_l = str(_check_fname(fname + "-lh.w", overwrite=overwrite))
-            fname_r = str(_check_fname(fname + "-rh.w", overwrite=overwrite))
             _write_w(fname_l, vertices=self.lh_vertno, data=lh_data[:, 0])
             _write_w(fname_r, vertices=self.rh_vertno, data=rh_data[:, 0])
         elif ftype == "h5":
@@ -2803,6 +2898,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -2950,6 +3046,15 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -3007,6 +3112,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -3046,6 +3152,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -3206,6 +3313,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -3266,6 +3382,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -3451,7 +3568,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        labels : Label | BiHemiLabel | list | tuple | str
+        labels : Label | BiHemiLabel | list | tuple | str | None
             If using a surface or mixed source space, this should be the
             :class:`~mne.Label`'s for which to extract the time course.
             If working with whole-brain volume source estimates, this must be one of:
@@ -3463,8 +3580,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
               and the second being a list or dict of ``volume_labels`` to extract
               (see :func:`mne.setup_volume_source_space` for details).
 
+            Each structure of a :func:`mne.setup_subcortical_source_space` source space
+            adds one time course after those of the labels, extracted using ``mode`` like
+            a label. Without cortical source spaces, ``labels`` must be ``None``.
+
             .. versionchanged:: 0.21.0
                Support for volume source estimates.
+
+            .. versionchanged:: 1.14
+               Support for subcortical surface source spaces.
         src : instance of SourceSpaces
             The source spaces for the source time courses.
         mode : str
@@ -3767,7 +3891,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     """
 
     @verbose_static("overwrite")
-    def save(self, fname, ftype="stc", *, overwrite=False, verbose=None):
+    def save(self, fname, ftype="auto", *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -3775,10 +3899,14 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         fname : path-like
             The stem of the file name. The stem is extended with ``"-vl.stc"``
             or ``"-vl.w"``.
-        ftype : str
-            File format to use. Allowed values are ``"stc"`` (default),
-            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
-            time point.
+        ftype : "auto" | "stc" | "w" | "h5"
+            File format to use. If ``"auto"`` (default), the format is
+            inferred from the extension of ``fname`` (``".h5"`` or ``".w"``),
+            falling back to ``"stc"``. The ``"w"`` format only supports a
+            single time point.
+
+            .. versionchanged:: 1.14
+               Added and defaulted to ``"auto"``.
         overwrite : bool
             If True (default False), overwrite the destination file if it
             exists.
@@ -3792,7 +3920,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         """
         # check overwrite individually below
         fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
-        _check_option("ftype", ftype, ["stc", "w", "h5"])
+        ftype = _check_save_ftype(fname, ftype)
         if ftype != "h5" and len(self.vertices) != 1:
             raise ValueError(
                 "Can only write to .stc or .w if a single volume "
@@ -3910,6 +4038,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
         show_traces="auto",
         src=None,
         volume_options=1.0,
+        trans=None,
         view_layout="vertical",
         add_data_kwargs=None,
         brain_kwargs=None,
@@ -4057,6 +4186,15 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
 
             A float input (default 1.) or None will be used for the ``'resolution'``
             entry.
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         view_layout : str
             Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
             the PyVista backend must be used and hemi cannot be "split".
@@ -4112,6 +4250,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate, _BaseVectorSourceEstimate)
             show_traces=show_traces,
             src=src,
             volume_options=volume_options,
+            trans=trans,
             view_layout=view_layout,
             add_data_kwargs=add_data_kwargs,
             brain_kwargs=brain_kwargs,
@@ -5004,8 +5143,12 @@ def _get_default_label_modes():
     return sorted(_label_funcs.keys(), key=lambda x: (x is None, x)) + ["auto"]
 
 
-def _get_allowed_label_modes(stc):
-    if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
+def _get_allowed_label_modes(stc, kind=None):
+    # subcortical surfaces have oriented sources like the cortex, even though
+    # their (scalar) source estimate class is a volume one
+    if isinstance(stc, _BaseVectorSourceEstimate) or (
+        isinstance(stc, _BaseVolSourceEstimate) and kind != "subcortical_surf"
+    ):
         return ("mean", "max", "auto")
     else:
         return _get_default_label_modes()
@@ -5024,6 +5167,8 @@ def _gen_extract_label_time_course(
     # loop through source estimates and extract time series
     from scipy import sparse
 
+    from .label import _ori_sign_flip
+
     if src is None and mode in ["mean", "max"]:
         kind = "surface"
     else:
@@ -5031,29 +5176,44 @@ def _gen_extract_label_time_course(
         kind = src.kind
     _check_option("mode", mode, _get_default_label_modes())
 
-    if kind in ("surface", "mixed"):
-        if not isinstance(labels, (list, tuple)):
-            labels = [labels]
+    n_cortex = 2 if kind == "surface" else 0
+    if kind in ("mixed", "subcortical_surf"):
+        # "mixed" need not start with cortex, e.g. subcortical + volume
+        for s in src[:2]:
+            if s["type"] != "surf" or s["id"] >= FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
+                break
+            n_cortex += 1
+    if kind in ("surface", "mixed", "subcortical_surf"):
         use_sparse = False
+        if n_cortex:
+            if not isinstance(labels, (list, tuple)):
+                labels = [labels]
+        elif labels is not None:
+            raise ValueError(
+                "labels must be None for a source space without cortical source "
+                f"spaces, got {labels!r}"
+            )
+        else:
+            labels = []
     else:
         labels = _volume_labels(src, labels, mri_resolution)
         use_sparse = bool(mri_resolution)
     n_mode = len(labels)  # how many processed with the given mode
-    n_mean = len(src[2:]) if kind == "mixed" else 0
-    n_labels = n_mode + n_mean
+    # source spaces after the cortical ones each give one time course
+    n_extra = len(src) - n_cortex if kind in ("mixed", "subcortical_surf") else 0
+    n_labels = n_mode + n_extra
     vertno = func = None
     for si, stc in enumerate(stcs):
         _validate_type(stc, _BaseSourceEstimate, f"stcs[{si}]", "source estimate")
+        allowed_modes = _get_allowed_label_modes(stc, kind)
         _check_option(
             "mode",
             mode,
-            _get_allowed_label_modes(stc),
+            allowed_modes,
             "when using a vector and/or volume source estimate",
         )
-        if isinstance(stc, _BaseVolSourceEstimate | _BaseVectorSourceEstimate):
-            mode = "mean" if mode == "auto" else mode
-        else:
-            mode = "mean_flip" if mode == "auto" else mode
+        if mode == "auto":
+            mode = "mean_flip" if "mean_flip" in allowed_modes else "mean"
         if vertno is None:
             vertno = copy.deepcopy(stc.vertices)  # avoid keeping a ref
             nvert = np.array([len(v) for v in vertno])
@@ -5061,6 +5221,12 @@ def _gen_extract_label_time_course(
                 stc, labels, src, mode, allow_empty, use_sparse
             )
             func = _label_funcs[mode]
+            # subcortical surfaces are closed, so averaging without the sign flip
+            # cancels; volumes have no orientation (None)
+            extra_flip = [
+                _ori_sign_flip(s["nn"][v])[:, None] if s["type"] == "surf" else None
+                for s, v in zip(src[n_cortex:] if n_extra else [], vertno[n_cortex:])
+            ]
         # make sure the stc is compatible with the source space
         if len(vertno) != len(stc.vertices):
             raise ValueError("stc not compatible with source space")
@@ -5100,12 +5266,15 @@ def _gen_extract_label_time_course(
                 label_tc[i] = func(flip, this_data)
 
         if mode is not None:
-            offset = nvert[:-n_mean].sum()  # effectively :2 or :0
-            for i, nv in enumerate(nvert[2:]):
+            offset = nvert[:n_cortex].sum()
+            for i, (nv, flip) in enumerate(zip(nvert[n_cortex:], extra_flip)):
                 if nv != 0:
-                    v2 = offset + nv
-                    label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
-                    offset = v2
+                    this_data = stc.data[offset : offset + nv]
+                    if flip is None:
+                        label_tc[n_mode + i] = np.mean(this_data, axis=0)
+                    else:
+                        label_tc[n_mode + i] = func(flip, this_data)
+                    offset += nv
         yield label_tc
 
 
@@ -5139,7 +5308,7 @@ def extract_label_time_course(
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    labels : Label | BiHemiLabel | list | tuple | str
+    labels : Label | BiHemiLabel | list | tuple | str | None
         If using a surface or mixed source space, this should be the
         :class:`~mne.Label`'s for which to extract the time course.
         If working with whole-brain volume source estimates, this must be one of:
@@ -5151,8 +5320,15 @@ def extract_label_time_course(
           and the second being a list or dict of ``volume_labels`` to extract
           (see :func:`mne.setup_volume_source_space` for details).
 
+        Each structure of a :func:`mne.setup_subcortical_source_space` source space
+        adds one time course after those of the labels, extracted using ``mode`` like
+        a label. Without cortical source spaces, ``labels`` must be ``None``.
+
         .. versionchanged:: 0.21.0
            Support for volume source estimates.
+
+        .. versionchanged:: 1.14
+           Support for subcortical surface source spaces.
     src : instance of SourceSpaces
         The source spaces for the source time courses.
     mode : str

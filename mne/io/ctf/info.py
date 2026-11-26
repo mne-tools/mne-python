@@ -94,7 +94,7 @@ def _convert_time(date_str, time_str):
             "POSIX epoch (1970/01/01 midnight)"
         )
 
-    for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y", "%Y/%m/%d"):
+    for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d-%b-%Y", "%a, %b %d, %Y", "%Y/%m/%d"):
         try:
             date = strptime(date_str.strip(), fmt)
         except ValueError:

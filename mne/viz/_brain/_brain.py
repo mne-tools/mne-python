@@ -2,6 +2,7 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+import copy
 import os
 import os.path as op
 import time
@@ -11,10 +12,11 @@ from io import BytesIO
 import numpy as np
 from scipy.interpolate import interp1d
 
+from ..._fiff.constants import FIFF
 from ..._freesurfer import _estimate_talxfm_rigid
 from ...defaults import _handle_default
 from ...surface import _decimate_surface_ico_oct, _mesh_borders, mesh_edges
-from ...transforms import apply_trans
+from ...transforms import _get_trans, apply_trans
 from ...utils import (
     Bunch,
     _auto_weakref,
@@ -57,6 +59,13 @@ from ._time_viewer import _TimeViewerMixin
 from .colormap import _CORTEX_PRESETS, calculate_lut
 from .surface import _Surface
 from .view import views_dicts
+
+
+def _seen_radius(bounds, direction):
+    """Get the radius of a bounding box as seen along a unit direction."""
+    corners = np.array(np.meshgrid(*bounds.T)).reshape(3, -1).T - bounds.mean(axis=0)
+    corners -= np.outer(corners @ direction, direction)
+    return np.linalg.norm(corners, axis=1).max()
 
 
 def _resolve_offset(offset, surf, hemi):
@@ -178,6 +187,11 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         defaulting to "auto" if it's not found.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
+    unfold : float | None
+        How far to unfold the cortex, see :meth:`set_unfold`. ``None`` (default)
+        shows ``surf`` as it is.
+
+        .. versionadded:: 1.14
 
     Attributes
     ----------
@@ -310,12 +324,17 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         silhouette=False,
         theme=None,
         show=True,
+        unfold=None,
     ):
         from ..backends import renderer as _renderer_mod
         from ..backends.renderer import _get_renderer, backend
 
         _validate_type(subject, str, "subject")
         self._surf = surf
+        self._folded = "white" if surf in ("inflated", "flat") else surf
+        self._unfold = dict(inflated=1.0, flat=2.0).get(surf, 0.0)
+        self._geos = dict()
+        self._warned_misaligned = False  # warn once, not per unfold step
         self._offset_request = offset
         if hemi is None:
             hemi = "vol"
@@ -446,7 +465,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
-            self.geo[h] = geo
+            self.geo[h] = self._geos[(h, surf)] = geo
             for _, _, v in self._iter_views(h):
                 if self.layered_meshes.get(h) is None:
                     mesh = LayeredMesh(
@@ -489,6 +508,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             self._renderer.set_interaction("rubber_band_2d")
             self._fit_flat_camera()
 
+        if unfold is not None:
+            self.set_unfold(unfold)
         self._renderer._update()
 
     def _setup_canonical_rotation(self):
@@ -679,6 +700,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         "transparent",
         "time_label",
         "src_volume_options",
+        "trans_subcortical",
     )
     def add_data(
         self,
@@ -707,6 +729,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         volume_options=0.4,
         colorbar_kwargs=None,
         key="data",
+        trans=None,
         verbose=None,
     ):
         """Display data from a numpy array on the surface or volume.
@@ -851,6 +874,15 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             :meth:`setup_time_viewer`).
 
             .. versionadded:: 1.12
+        trans : path-like | instance of Transform | ``"fsaverage"`` | None
+            If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+            during coregistration. Can also be ``'fsaverage'`` to use the built-in
+            fsaverage transformation.
+            Only needed when ``src`` contains subcortical surface source spaces (see
+            :func:`mne.setup_subcortical_source_space`) in head coordinates, such as
+            ``fwd["src"]``.
+
+            .. versionadded:: 1.14
         verbose : bool | str | int | None
             Control verbosity of the logging output. If ``None``, use the default
             verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -1029,7 +1061,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 actor = self.layered_meshes[hemi]._actor
             else:
                 src_vol = src[2:] if src.kind == "mixed" else src
-                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
+                actor, _ = self._add_volume_data(hemi, src_vol, volume_options, trans)
         assert actor is not None  # should have added one
         self._add_actor(key, actor)
 
@@ -1136,12 +1168,12 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             self._annots[hemi].clear()
         self._renderer._update()
 
-    def _add_volume_data(self, hemi, src, volume_options):
+    def _add_volume_data(self, hemi, src, volume_options, trans):
         from ...source_space import SourceSpaces
         from ..backends._pyvista import _hide_testing_actor
 
         _validate_type(src, SourceSpaces, "src")
-        _check_option("src.kind", src.kind, ("volume",))
+        _check_option("src.kind", src.kind, ("volume", "subcortical_surf"))
         _validate_type(volume_options, (dict, "numeric", None), "volume_options")
         assert hemi == "vol"
         if not isinstance(volume_options, dict):
@@ -1177,6 +1209,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         if alpha is None:
             alpha = 0.4 if self._data[hemi]["array"].ndim == 3 else 1.0
         alpha = np.clip(float(alpha), 0.0, 1.0)
+        if src.kind == "subcortical_surf":
+            self._data[hemi]["alpha"] = alpha
+            return self._add_subcortical_surf_data(hemi, src, trans), None
         resolution = volume_options["resolution"]
         surface_alpha = volume_options["surface_alpha"]
         if surface_alpha is None:
@@ -1268,6 +1303,58 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 _hide_testing_actor(actor)
 
         return actor_pos, actor_neg
+
+    def _add_subcortical_surf_data(self, hemi, src, trans):
+        hemi_data = self._data[hemi]
+        mesh = hemi_data.get("subcortical_mesh")
+        if mesh is not None:  # already created in another view
+            self._renderer.plotter.add_actor(mesh._actor, render=False)
+            return mesh._actor
+        # all meshes go in one LayeredMesh, so offset each one's vertex numbers
+        offsets = np.cumsum([0] + [s["np"] for s in src])[:-1]
+        rr = np.concatenate([s["rr"] for s in src])
+        nn = np.concatenate([s["nn"] for s in src])
+        scale = 1000.0 if self._units == "mm" else 1.0
+        if src[0]["coord_frame"] == FIFF.FIFFV_COORD_HEAD:  # e.g., fwd["src"]
+            if trans is None:
+                raise ValueError(
+                    "The subcortical source spaces are in head coordinates, so the "
+                    "head<->MRI transform must be provided with the trans parameter"
+                )
+            head_mri_t = _get_trans(trans, "head", "mri")[0]
+            rr = apply_trans(head_mri_t, rr)
+            nn = apply_trans(head_mri_t, nn, move=False)
+        rr = rr * scale
+        self.geo[hemi] = Bunch(coords=rr)  # e.g., for vector glyphs
+        tris = np.concatenate([s["tris"] + off for s, off in zip(src, offsets)])
+        vertices = np.concatenate([s["vertno"] + off for s, off in zip(src, offsets)])
+        if len(vertices) != len(hemi_data["vertices"]):
+            raise ValueError(
+                f"The stc has {len(hemi_data['vertices'])} subcortical vertices but "
+                f"src has {len(vertices)}, they must match"
+            )
+        mesh = LayeredMesh(self._renderer, vertices=rr, triangles=tris, normals=nn)
+        mesh._map()
+        # gray base layer like the cortex has, so the mesh stays visible where the
+        # data is transparent; the data overlay is added by _update_current_time_idx
+        mesh.add_overlay(
+            scalars=np.zeros(len(rr)),
+            colormap=np.array([self._brain_color]) * 255,
+            rng=[0, 1],
+            opacity=self._alpha,
+            name="curv",
+        )
+        hemi_data["subcortical_vertno"] = vertices  # smoothed by set_data_smoothing
+        hemi_data["subcortical_mesh"] = mesh
+        return mesh._actor
+
+    @property
+    def _subcortical_meshes(self):
+        return [
+            key_data["vol"]["subcortical_mesh"]
+            for key_data in self._all_data.values()
+            if "subcortical_mesh" in key_data.get("vol", {})
+        ]
 
     def add_label(
         self,
@@ -1976,8 +2063,9 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             The opacity of the cortical surface, between 0 and 1.
         """
         self._alpha = float(alpha)
-        for hemi in self._hemis:
-            self.layered_meshes[hemi].update_overlay("curv", opacity=self._alpha)
+        meshes = [self.layered_meshes[hemi] for hemi in self._hemis]
+        for mesh in meshes + self._subcortical_meshes:
+            mesh.update_overlay("curv", opacity=self._alpha)
         self._renderer._update()
 
     def set_cortex_colormap(self, cortex):
@@ -2007,6 +2095,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 colormap=geo_kwargs["colormap"],
                 rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
             )
+        for mesh in self._subcortical_meshes:
+            mesh.update_overlay("curv", colormap=np.array([self._brain_color]) * 255)
         self._renderer._update()
 
     def set_surf(self, surf):
@@ -2019,40 +2109,107 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             ``'flat'`` needs the ``?h.cortex.patch.flat`` and ``?h.sphere``
             files in the subject's ``surf`` directory, and switches the view to
             a non-rotatable 2D one for as long as it is shown.
+
+        Notes
+        -----
+        This is the same as :meth:`set_unfold` with ``0`` (``'pial'`` and
+        ``'white'``, which also become the folded surface), ``1``
+        (``'inflated'``), or ``2`` (``'flat'``).
         """
-        surfs = ("pial", "white", "inflated", "flat")
-        _check_option("surf", surf, surfs)
-        if surf == "flat" and not self._has_flatmaps():
+        _check_option("surf", surf, ("pial", "white", "inflated", "flat"))
+        target = dict(inflated=1.0, flat=2.0).get(surf, 0.0)
+        if target == 0:
+            self._folded = surf
+        animate = self.time_viewer and target != self._unfold
+        if animate and (target < 2 or self._has_flatmaps()):
+            start = self._unfold
+            n_frames = int(round(20 * abs(target - start)))
+            for t in np.linspace(0, 1, n_frames + 2)[1:-1]:
+                self.set_unfold(start + (target - start) * t * t * (3 - 2 * t))
+                self._renderer._process_events()  # set_unfold already rendered
+        self.set_unfold(target)
+
+    def set_unfold(self, unfold):
+        """Set how far the cortical surface is unfolded.
+
+        Parameters
+        ----------
+        unfold : float
+            ``0`` shows the folded surface (``'pial'`` or ``'white'``), ``1``
+            the inflated one, and ``2`` the flat one. Values in between blend
+            the two neighboring surfaces, e.g. ``0.5`` is half-inflated. Values
+            above ``1`` need the ``?h.cortex.patch.flat`` and ``?h.sphere``
+            files in the subject's ``surf`` directory, and ``2`` switches the
+            view to a non-rotatable 2D one for as long as it is shown.
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        _validate_type(unfold, "numeric", "unfold")
+        if not 0 <= unfold <= 2:
+            raise ValueError(f"unfold must be between 0 and 2, got {unfold}")
+        if unfold > 1 and not self._has_flatmaps():
             raise FileNotFoundError(
                 f"Subject {self._subject} has no flatmap surface file "
                 f"({{hemi}}.cortex.patch.flat) in {self._subjects_dir}"
             )
-        if surf == self._surf:
+        if abs(unfold - self._unfold) < 1e-4 and self._surf in (
+            self._folded,
+            "inflated",
+            "flat",
+        ):
             return
-        if any(self._labels[h] for h in self._hemis) or any(
-            "foci" in self._foci_data.get(h, {}) for h in self._hemis
+        if not self._warned_misaligned and any(
+            self._foci_data.get(h, {}).get("off_surface") for h in self._hemis
         ):
             warn(
-                "Foci and label/annotation outlines do not move when the "
-                "surface representation changes and may now be misaligned."
+                "Foci added with coordinates do not move when the surface "
+                "representation changes and may now be misaligned, use "
+                "coords_as_verts or map_surface for foci that follow it."
             )
-        flat_change = "flat" in (surf, self._surf)
-        offset = _resolve_offset(self._offset_request, surf, self._hemi)
-        for h in self._hemis:
-            geo = _Surface(
-                self._subject,
-                h,
-                surf,
-                self._subjects_dir,
-                offset,
-                units=self._units,
-                x_dir=self._rigid[0, :3],
-            )
-            geo.load_geometry()
-            geo.load_curvature()
+            self._warned_misaligned = True
+        previous = self._unfold
+        flat_change = 2 in (unfold, previous)
+        renderers = self._renderer._all_renderers
+        meshes = [self.layered_meshes[h] for h in self._hemis]
+        restore = previous > 1 and hasattr(self, "_view_3d")
+        if restore:
+            cameras, bounds = self._view_3d
+        else:
+            cameras = [renderer.camera_position for renderer in renderers]
+            bounds = np.concatenate([m._vertices for m in meshes])
+            bounds = np.array([bounds.min(axis=0), bounds.max(axis=0)])
+        idx = min(int(unfold), 1)
+        frac = unfold - idx
+        for h, mesh in zip(self._hemis, meshes):
+            ends = list()
+            for surf in (self._folded, "inflated", "flat")[idx : idx + 1 + (frac > 0)]:
+                if (h, surf) not in self._geos:
+                    self._geos[(h, surf)] = _Surface(
+                        self._subject,
+                        h,
+                        surf,
+                        self._subjects_dir,
+                        _resolve_offset(self._offset_request, surf, self._hemi),
+                        units=self._units,
+                        x_dir=self._rigid[0, :3],
+                    )
+                    self._geos[(h, surf)].load_geometry()
+                    self._geos[(h, surf)].load_curvature()
+                ends.append(self._geos[(h, surf)])
+            if frac in (0, 1):
+                geo = ends[-1]
+            else:
+                geo = copy.copy(ends[0])
+                geo.coords = (1 - frac) * ends[0].coords + frac * ends[1].coords
+                geo.nn = (1 - frac) * ends[0].nn + frac * ends[1].nn
+                geo.faces = ends[1].faces
             self.geo[h] = geo
-            self.layered_meshes[h].update_geometry(
-                geo.coords, geo.nn, geo.faces if flat_change else None
+            mesh.update_geometry(
+                geo.coords,
+                geo.nn,
+                geo.faces if len(geo.faces) != len(mesh._triangles) else None,
             )
             for data in self._all_data.values():
                 hemi_data = data.get(h)
@@ -2064,7 +2221,14 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 vertices = hemi_data["vertices"]
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
-        self._surf = surf
+            for foci in self._foci_data.get(h, {}).get("on_surface", []):
+                centers = np.array(geo.coords)[foci["vertices"]]
+                points = foci["glyph"].points.reshape(len(centers), -1, 3)
+                points += (centers - foci["centers"])[:, np.newaxis]
+                foci["glyph"].points = points.reshape(-1, 3)
+                foci["centers"] = centers
+        self._unfold = float(unfold)
+        self._surf = surf = (self._folded, "inflated", "flat")[int(unfold)]
         if flat_change:  # switch the camera and interaction to 2D/3D
             if surf == "flat":
                 self._pre_flat = (list(self._views), self._interaction)
@@ -2088,7 +2252,41 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             for actor in self._silhouette_actors:
                 self.plotter.remove_actor(actor)
             self._add_silhouette()
-        self.reset_view()
+        if flat_change:
+            self.reset_view()
+        if unfold == 2:
+            if previous <= 1:
+                self._view_3d = (cameras, bounds)
+            return
+        new_bounds = np.concatenate([m._vertices for m in meshes])
+        new_bounds = np.array([new_bounds.min(axis=0), new_bounds.max(axis=0)])
+        if previous == 2 and not restore:
+            cameras = [renderer.camera_position for renderer in renderers]
+            bounds = new_bounds
+        self._view_3d = (cameras, bounds)
+        turn = max(unfold - 1, 0)
+        flat_y, flat_z = self._rigid[1:3, :3]
+        for renderer, camera in zip(renderers, cameras):
+            position, focalpoint, view_up = map(np.array, camera)
+            direction = position - focalpoint
+            distance = np.linalg.norm(direction)
+            direction /= distance
+            new_direction = (1 - turn) * direction + turn * flat_z
+            new_direction /= np.linalg.norm(new_direction)
+            distance *= _seen_radius(new_bounds, new_direction)
+            distance /= _seen_radius(bounds, direction)
+            focalpoint += new_bounds.mean(axis=0) - bounds.mean(axis=0)
+            renderer.camera_position = [
+                focalpoint + distance * new_direction,
+                focalpoint,
+                (1 - turn) * view_up + turn * flat_y,
+            ]
+            if turn:
+                renderer.reset_camera()
+                framed = renderer.camera.distance
+                renderer.camera.Dolly(framed / ((1 - turn) * distance + turn * framed))
+            renderer.reset_camera_clipping_range()
+        self._renderer._update()
 
     def _add_silhouette(self):
         self._silhouette_actors = []
@@ -2215,12 +2413,13 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         for hemi in ["lh", "rh", "vol"]:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi in self.layered_meshes:
-                    mesh = self.layered_meshes[hemi]
+                mesh = self.layered_meshes.get(hemi, hemi_data.get("subcortical_mesh"))
+                if mesh is not None:
                     mesh.update_overlay(
                         name=self._active_data_key,
                         colormap=self._data["ctable"],
-                        opacity=alpha,
+                        # like volumes, subcortical meshes use volume_options alpha
+                        opacity=alpha if hemi != "vol" else hemi_data["alpha"],
                         rng=rng,
                     )
                     self._renderer._set_colormap_range(
@@ -2263,6 +2462,22 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         """
         from ...morph import _hemi_morph
 
+        morph_n_steps = "nearest" if n_steps == -1 else n_steps
+        for key_data in self._all_data.values():
+            hemi_data = key_data.get("vol", {})
+            if "subcortical_mesh" in hemi_data:
+                mesh = hemi_data["subcortical_mesh"]
+                vertno = hemi_data["subcortical_vertno"]
+                full = len(vertno) == len(mesh._vertices)
+                with use_log_level(False):
+                    hemi_data["smooth_mat"] = _hemi_morph(
+                        mesh._triangles,
+                        np.arange(len(mesh._vertices)),
+                        vertno,
+                        "nearest" if full else morph_n_steps,
+                        maps=None,
+                        warn=False,
+                    )
         for hemi in ["lh", "rh"]:
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
@@ -2277,7 +2492,6 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         f"{self.geo[hemi].x.shape[0]}): the vertices "
                         "parameter must not be None"
                     )
-                morph_n_steps = "nearest" if n_steps == -1 else n_steps
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
                         self.geo[hemi].orig_faces,
@@ -2349,7 +2563,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         time_actor = active.get("time_actor", None)
         time_label = active.get("time_label", None)
         for hemi in ["lh", "rh", "vol"]:
-            staged_keys = list()
+            staged_keys = dict()  # mesh -> keys (subcortical meshes are per key)
             for data_key, key_data in self._all_data.items():
                 hemi_data = key_data.get(hemi)
                 if hemi_data is None:
@@ -2396,8 +2610,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         #     grid.point_data["values"][21334] = values.max()
 
                 # update the mesh scalar values
-                if hemi in self.layered_meshes:
-                    mesh = self.layered_meshes[hemi]
+                mesh = self.layered_meshes.get(hemi, hemi_data.get("subcortical_mesh"))
+                if mesh is not None:
                     mesh.smooth_mat = hemi_data.get("smooth_mat")
                     key_rng = [
                         (
@@ -2411,7 +2625,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                         # Stage without recomposing; a single update below handles
                         # all overlays in O(N) instead of O(N²).
                         mesh.update_overlay(data_key, scalars=act_data, update=False)
-                        staged_keys.append(data_key)
+                        staged_keys.setdefault(mesh, []).append(data_key)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
@@ -2426,15 +2640,15 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 if vectors is not None and data_key == self._active_data_key:
                     self._update_glyphs(hemi, vectors)
 
-            if staged_keys and hemi in self.layered_meshes:
-                if len(staged_keys) == 1:
+            for mesh, keys in staged_keys.items():
+                if len(keys) == 1:
                     # Let update_overlay pick the cached path when the overlay we
                     # staged is the topmost one: the layers below it (curvature,
                     # labels, ...) have not changed, so their composite can be
                     # reused instead of color-mapping them all again.
-                    self.layered_meshes[hemi].update_overlay(staged_keys[0])
+                    mesh.update_overlay(keys[0])
                 else:
-                    self.layered_meshes[hemi].update()
+                    mesh.update()
 
         active["time_idx"] = time_idx
         self._renderer._update()
@@ -2479,7 +2693,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
     def _update_glyphs(self, hemi, vectors):
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
-        vertices = hemi_data["vertices"]
+        # subcortical meshes are combined, so use their offset vertex numbers
+        vertices = hemi_data.get("subcortical_vertno", hemi_data["vertices"])
         vector_alpha = self._data["vector_alpha"]
         scale_factor = self._data["scale_factor"]
         vertices = slice(None) if vertices is None else vertices

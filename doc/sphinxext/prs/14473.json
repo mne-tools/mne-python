@@ -1,0 +1,48 @@
+{
+  "merge_commit_sha": "3b73513b76f52065b3ea4f11f45b295028316756",
+  "authors": [
+    {
+      "n": "Eric Larson",
+      "e": "larson.eric.d@gmail.com",
+      "l": "larsoner"
+    }
+  ],
+  "changes": {
+    ".circleci/config.yml": {
+      "a": 18,
+      "d": 0
+    },
+    ".github/workflows/circleci_scheduled.yml": {
+      "a": 7,
+      "d": 1
+    },
+    ".gitignore": {
+      "a": 0,
+      "d": 1
+    },
+    "doc/Makefile": {
+      "a": 1,
+      "d": 1
+    },
+    "doc/conf.py": {
+      "a": 10,
+      "d": 14
+    },
+    "doc/sphinxext/jupyterlite_data.py": {
+      "a": 0,
+      "d": 181
+    },
+    "mne/viz/backends/_jupyterlite.py": {
+      "a": 25,
+      "d": 21
+    },
+    "mne/viz/backends/tests/test_renderer.py": {
+      "a": 13,
+      "d": 4
+    },
+    "tools/circleci_triage.sh": {
+      "a": 3,
+      "d": 0
+    }
+  }
+}

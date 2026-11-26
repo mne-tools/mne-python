@@ -1547,17 +1547,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
                 for k, v in dict(method=method, freqs=freqs).items()
                 if v is None
             ]
-            # TODO when py3.11 is min version, replace if/elif/else block with
-            # classname = inspect.currentframe().f_back.f_code.co_qualname.split(".")[0]
-            _varnames = inspect.currentframe().f_back.f_code.co_varnames
-            if "BaseRaw" in _varnames:
-                classname = "RawTFR"
-            elif "Evoked" in _varnames:
-                classname = "AverageTFR"
-            else:
-                assert "BaseEpochs" in _varnames and "Evoked" not in _varnames
-                classname = "EpochsTFR"
-            # end TODO
+            classname = inspect.currentframe().f_back.f_code.co_qualname.split(".")[0]
             raise ValueError(
                 f"{classname} got unsupported parameter value{_pl(problem)} "
                 f"{' and '.join(problem)}."

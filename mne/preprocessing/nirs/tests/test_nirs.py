@@ -564,6 +564,11 @@ def test_optode_loc():
     loc = _optode_position(raw.info, "D3")
     assert_array_almost_equal(loc, [0.082804, 0.01573, 0.024852])
 
+    # D1 is not confused with D13 when D13 channels come first
+    raw.pick(raw.ch_names[::-1])
+    want = raw.info["chs"][raw.ch_names.index("S1_D1 760")]["loc"][6:9]
+    assert_array_almost_equal(_optode_position(raw.info, "D1"), want)
+
 
 def test_order_agnostic(nirx_snirf):
     """Test that order does not matter to (pre)processing results."""

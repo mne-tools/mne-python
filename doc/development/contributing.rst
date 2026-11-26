@@ -1271,7 +1271,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. linting
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _ruff: https://beta.ruff.rs/docs
+.. _ruff: https://docs.astral.sh/ruff/
 
 .. misc
 

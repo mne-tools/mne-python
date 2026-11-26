@@ -13,7 +13,7 @@ from ..._freesurfer import (
     read_freesurfer_lut,
 )
 from ...defaults import DEFAULTS
-from ...surface import _marching_cubes
+from ...surface import _apply_trans_mesh, _marching_cubes
 from ...transforms import (
     Transform,
     _frame_to_str,
@@ -341,7 +341,7 @@ class _SceneMixin:
                     f"{repr(label)} in anatomical segmentation file "
                 )
                 continue
-            verts = apply_trans(vox_mri_t, verts)
+            verts, triangles = _apply_trans_mesh(vox_mri_t, verts, triangles)
             for _ in self._iter_views("vol"):
                 actor, _ = self._renderer.mesh(
                     *verts.T,
@@ -385,6 +385,8 @@ class _SceneMixin:
         from a volume-based analysis in MNI space can be displayed on an
         inflated average surface by finding the closest vertex on the
         white surface and mapping to that vertex on the inflated mesh.
+        Foci placed on vertices (with ``coords_as_verts`` or ``map_surface``)
+        follow the surface when it changes, e.g. with :meth:`set_unfold`.
 
         Parameters
         ----------
@@ -418,8 +420,10 @@ class _SceneMixin:
         hemi = self._check_hemi(hemi, extras=["vol"])
 
         # Figure out how to interpret the first parameter
+        vertices = None
         if coords_as_verts:
-            coords = self.geo[hemi].coords[coords]
+            vertices = np.atleast_1d(coords)
+            coords = self.geo[hemi].coords[vertices]
             map_surface = None
 
         # Possibly map the foci coords through a surface
@@ -434,8 +438,8 @@ class _SceneMixin:
                 x_dir=self._rigid[0, :3],
             )
             foci_surf.load_geometry()
-            foci_vtxs = np.argmin(cdist(foci_surf.coords, coords), axis=0)
-            coords = self.geo[hemi].coords[foci_vtxs]
+            vertices = np.argmin(cdist(foci_surf.coords, coords), axis=0)
+            coords = self.geo[hemi].coords[vertices]
 
         # Convert the color code
         color = _to_rgb(color)
@@ -443,22 +447,29 @@ class _SceneMixin:
         if self._units == "m":
             scale_factor = scale_factor / 1000.0
 
+        foci_data = self._foci_data.setdefault(hemi, {})
         for _, _, v in self._iter_views(hemi):
-            self._renderer.sphere(
+            _, glyph = self._renderer.sphere(
                 center=coords,
                 color=color,
                 scale=(10.0 * scale_factor),
                 opacity=alpha,
                 resolution=resolution,
             )
+            if vertices is not None and glyph is not None:  # can follow the surface
+                foci_data.setdefault("on_surface", []).append(
+                    dict(glyph=glyph, vertices=vertices, centers=coords)
+                )
             self._set_camera(**views_dicts[hemi][v])
         self._renderer._update()
+        if vertices is None:
+            foci_data["off_surface"] = True
 
         # Store the foci separately from overlay data
         data_foci = coords
-        if "foci" in self._foci_data.get(hemi, {}):
-            data_foci = np.vstack((self._foci_data[hemi]["foci"], data_foci))
-        self._foci_data.setdefault(hemi, {})["foci"] = data_foci
+        if "foci" in foci_data:
+            data_foci = np.vstack((foci_data["foci"], data_foci))
+        foci_data["foci"] = data_foci
 
     @verbose_static(
         "info_not_none",

@@ -1,0 +1,1 @@
+Fix bug where plotting functions (such as :meth:`mne.Evoked.plot`) raised a TypeError when plotting into a :class:`matplotlib.figure.SubFigure`, by `Ishaan Maheshwari`_.

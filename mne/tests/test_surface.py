@@ -22,6 +22,7 @@ from mne.channels import make_dig_montage
 from mne.datasets import testing
 from mne.io import read_info
 from mne.surface import (
+    _apply_trans_mesh,
     _compute_nearest,
     _get_ico_surface,
     _get_solids,
@@ -286,6 +287,14 @@ def test_marching_cubes(dtype, value, smooth, order):
     out = _marching_cubes(data, level, smooth=smooth)
     assert len(out) == 1
     verts, triangles = out[0]
+    assert verts.flags.owndata and triangles.flags.owndata  # not views on VTK data
+    verts_empty, tris_empty = _marching_cubes(data, [value + 1])[0]
+    assert verts_empty.shape == (0, 3) and tris_empty.shape == (0, 3)
+    # outward winding (positive signed volume) survives a reflection
+    for trans in (np.eye(4), np.diag([-1.0, 1.0, 1.0, 1.0])):
+        rr, tris = _apply_trans_mesh(trans, verts, triangles)
+        r = rr[tris] - rr.mean(axis=0)
+        assert np.einsum("ij,ij->i", r[:, 0], np.cross(r[:, 1], r[:, 2])).sum() > 0
     # verts and faces are rather large so use checksum
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)

@@ -815,17 +815,18 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
     if isinstance(n_permutations, str):
         if n_permutations != "all":
             raise ValueError('n_permutations as a string must be "all"')
-        n_permutations = max_perms
+        n_permutations = max_perms + 1  # including the identity
     n_permutations = int(n_permutations)
+    # Orders are used as signs via 2 * order - 1, so the identity (all ones) is
+    # omitted here b/c it's accounted for in H0.append() later. For tail == 0 the
+    # first sample is never flipped, so each +/- pair of patterns is used once.
     if max_perms < n_permutations:
-        # omit first perm b/c accounted for in H0.append() later;
-        # convert to binary array representation
         extra = " (exact test)"
-        orders = bin_perm_rep(n_samples)[1 : max_perms + 1]
+        orders = 1 - bin_perm_rep(n_samples)[1 : max_perms + 1]
     elif n_samples <= 20:  # fast way to do it for small(ish) n_samples
         orders = rng.choice(max_perms, n_permutations - 1, replace=False)
         orders = [
-            np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int) for s in orders
+            1 - np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int) for s in orders
         ]
     else:  # n_samples >= 64
         # Here we can just use the hash-table (w/collision detection)
@@ -1395,6 +1396,11 @@ def permutation_cluster_test(
         dfd = n_observations - n_conditions  # degrees of freedom denominator
         thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
 
+    A cluster is any set of samples exceeding ``threshold`` that are connected
+    through ``adjacency``. There is no minimum number of supra-threshold neighbors
+    (unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+    no supra-threshold neighbors forms its own cluster.
+
     References
     ----------
     .. footbibliography::
@@ -1621,6 +1627,11 @@ def permutation_cluster_1samp_test(
     For a one-tailed test (``tail=1``), don't divide the p-value by 2.
     For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 
+    A cluster is any set of samples exceeding ``threshold`` that are connected
+    through ``adjacency``. There is no minimum number of supra-threshold neighbors
+    (unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+    no supra-threshold neighbors forms its own cluster.
+
     If ``n_permutations`` exceeds the maximum number of possible permutations
     given the number of observations, then ``n_permutations``, ``seed``, and
     ``rng`` will be ignored since an exact test (full permutation test) will
@@ -1845,6 +1856,11 @@ def spatio_temporal_cluster_1samp_test(
     For a one-tailed test (``tail=1``), don't divide the p-value by 2.
     For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 
+    A cluster is any set of samples exceeding ``threshold`` that are connected
+    through ``adjacency``. There is no minimum number of supra-threshold neighbors
+    (unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+    no supra-threshold neighbors forms its own cluster.
+
     References
     ----------
     .. footbibliography::
@@ -2063,6 +2079,11 @@ def spatio_temporal_cluster_test(
         dfn = n_conditions - 1  # degrees of freedom numerator
         dfd = n_observations - n_conditions  # degrees of freedom denominator
         thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
+
+    A cluster is any set of samples exceeding ``threshold`` that are connected
+    through ``adjacency``. There is no minimum number of supra-threshold neighbors
+    (unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+    no supra-threshold neighbors forms its own cluster.
 
     References
     ----------
@@ -2593,6 +2614,11 @@ def cluster_test(
 
     For a one-tailed test (``tail=1``), don't divide the p-value by 2.
     For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+
+    A cluster is any set of samples exceeding ``threshold`` that are connected
+    through ``adjacency``. There is no minimum number of supra-threshold neighbors
+    (unlike FieldTrip's ``cfg.minnbchan``), so a single supra-threshold sample with
+    no supra-threshold neighbors forms its own cluster.
 
     .. versionadded:: 1.13
     """
