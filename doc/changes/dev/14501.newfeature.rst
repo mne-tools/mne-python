@@ -1,0 +1,1 @@
+Add a ``section`` parameter to :meth:`mne.Report.add_raw`, :meth:`mne.Report.add_epochs`, :meth:`mne.Report.add_evokeds` and :meth:`mne.Report.add_ica`, by `Sruthi Sureshkumar`_.
