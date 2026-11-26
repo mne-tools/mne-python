@@ -34,6 +34,7 @@ from sphinx.util.display import status_iterator
 
 # 2. If it's available on PyPI, add it to this set:
 PYPI_PACKAGES = {
+    "auto-eeg-analysis",
     "cross-domain-saliency-maps",
     "meggie",
     "niseq",
