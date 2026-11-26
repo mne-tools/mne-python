@@ -1,0 +1,1 @@
+Add support for noise-aware inverse resolution matrices using the ``noise_cov`` and ``snr`` parameters of :func:`mne.minimum_norm.make_inverse_resolution_matrix`.
