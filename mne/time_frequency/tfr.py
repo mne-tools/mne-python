@@ -13,7 +13,7 @@ from functools import partial
 
 import numpy as np
 
-from .._fiff.meas_info import ContainsMixin, Info
+from .._fiff.meas_info import ContainsMixin, Info, create_info
 from .._fiff.pick import _picks_to_idx, pick_info
 from ..baseline import _check_baseline, rescale
 from ..channels.channels import UpdateChannelsMixin
@@ -28,6 +28,7 @@ from ..utils import (
     _build_data_frame,
     _check_combine,
     _check_event_id,
+    _check_event_id_unique,
     _check_fname,
     _check_method_kwargs,
     _check_option,
@@ -1614,9 +1615,7 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
         # "apply" decim to the rest of the object (data is decimated in _compute_tfr)
         with self.info._unlock():
             self.info["sfreq"] /= self._decim.step
-        _decim_times = inst.times[self._decim]
-        _decim_time_mask = _time_mask(_decim_times, tmin, tmax, sfreq=self.sfreq)
-        self._raw_times = _decim_times[_decim_time_mask].copy()
+        self._raw_times = self._raw_times[self._decim].copy()
         self._set_times(self._raw_times)
         self._decim = 1
         # record data type (for repr and html_repr). ITC handled in the calling method.
@@ -4507,6 +4506,126 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             **method_kw,
         )
 
+    @classmethod
+    @verbose_static("epochs_tmin_tmax")
+    def from_raw_tfr(
+        cls,
+        raw_tfr,
+        events,
+        event_id=None,
+        tmin=-0.2,
+        tmax=0.5,
+        *,
+        picks=None,
+        reject_by_annotation=True,
+        on_missing="raise",
+        event_repeated="error",
+        metadata=None,
+        verbose=None,
+    ):
+        """Extract event-locked epochs from a continuous time-frequency transform.
+
+        Parameters
+        ----------
+        raw_tfr : RawTFR
+            Continuous time-frequency data.
+        events : ndarray, shape (n_events, 3)
+            Events in samples of the source recording, including its first sample
+            offset. For array-backed TFRs and older files without source timing,
+            use samples at the TFR sampling rate relative to time zero.
+        event_id : int | list of int | dict | None
+            Event codes to keep, optionally mapped from condition names.
+            The default includes all codes.
+        tmin, tmax : float
+            Start and end time of the epochs in seconds, relative to the time-locked
+            event. The closest or matching samples corresponding to the start and end
+            time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
+        picks : str | array-like | slice | None
+            Channels to include. The default includes all channels in the TFR.
+        reject_by_annotation : bool
+            Drop epochs overlapping a bad annotation from the source recording.
+        on_missing : 'raise' | 'warn' | 'ignore'
+            How to handle event IDs absent from the events array.
+        event_repeated : 'error' | 'drop' | 'merge'
+            How to handle coincident events, as in :class:`mne.Epochs`.
+        metadata : pandas.DataFrame | None
+            Trial metadata with one row per input event.
+        verbose : bool | str | int | None
+            Control verbosity of the logging output. If ``None``, use the default
+            verbosity level. See the :ref:`logging documentation <tut-logging>` and
+            :func:`mne.verbose` for details. Should only be passed as a keyword
+            argument.
+
+        Returns
+        -------
+        epochs_tfr : EpochsTFR
+            Slices of the continuous transform, aligned to the nearest TFR sample.
+            Use :meth:`apply_baseline` for epoch-relative baseline correction.
+        """
+        from mne.epochs import BaseEpochs
+
+        _validate_type(raw_tfr, RawTFR, "raw_tfr")
+        events = _ensure_events(events)
+        _check_event_id_unique(event_id)
+        picks = _picks_to_idx(raw_tfr.info, picks, none="all", exclude=())
+        # Only event bookkeeping is needed here. SSP projectors act on time-domain data.
+        epochs = BaseEpochs(
+            create_info(1, raw_tfr.sfreq),
+            None,
+            events,
+            event_id,
+            tmin,
+            tmax,
+            baseline=None,
+            proj=False,
+            metadata=metadata,
+            on_missing=on_missing,
+            event_repeated=event_repeated,
+        )
+        # Events use the source sampling rate, even after TFR decimation.
+        event_times = (
+            epochs.events[:, 0].astype(np.int64) - raw_tfr._first_samp
+        ) / raw_tfr._raw_sfreq
+        starts = raw_tfr.time_as_index(event_times, use_rounding=True)
+        starts += round(epochs.tmin * raw_tfr.sfreq)
+        n_times = len(epochs.times)
+        stops = starts + n_times
+        reasons = np.full(len(starts), "", dtype=object)
+        if reject_by_annotation:
+            left = raw_tfr.times[0] + starts / raw_tfr.sfreq
+            right = raw_tfr.times[0] + stops / raw_tfr.sfreq
+            for onset, end, description in raw_tfr._bad_intervals:
+                reasons[(reasons == "") & (left < end) & (right > onset)] = description
+        reasons[stops > raw_tfr.shape[-1]] = "TOO_SHORT"
+        reasons[starts < 0] = "NO_DATA"
+
+        keep = np.flatnonzero(reasons == "")
+        drop_log = list(epochs.drop_log)
+        for idx in np.flatnonzero(reasons != ""):
+            drop_log[epochs.selection[idx]] = (reasons[idx],)
+        epochs._getitem(keep, reason=None, copy=False, drop_event_id=False)
+        shape = (len(keep), len(picks), *raw_tfr.shape[1:-1], n_times)
+        data = np.empty(shape, dtype=raw_tfr.data.dtype)
+        for row, start in enumerate(starts[keep]):
+            data[row] = raw_tfr.data[picks, ..., start : start + n_times]
+        state = raw_tfr.__getstate__()
+        state.update(
+            data=data,
+            times=epochs.times,
+            info=pick_info(raw_tfr.info, picks),
+            inst_type_str="Epochs",
+            events=epochs.events,
+            selection=epochs.selection,
+            event_id=epochs.event_id,
+            drop_log=tuple(drop_log),
+            metadata=epochs.metadata,
+            freqs=raw_tfr.freqs.copy(),
+            weights=deepcopy(raw_tfr.weights),
+        )
+        out = cls.__new__(cls)
+        out.__setstate__(state)
+        return out
+
     @fill_doc_static("item", "getitem_epochstfr_return")
     def __getitem__(self, item):
         """Subselect epochs from an EpochsTFR.
@@ -4569,7 +4688,9 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
             "drop_log",
             tuple(
                 () if k in self.selection else ("IGNORED",)
-                for k in range(max(len(self.events), max(self.selection) + 1))
+                for k in range(
+                    max(len(self.events), max(self.selection, default=-1) + 1)
+                )
             ),
         )
         self._bad_dropped = True  # always true, need for `equalize_event_counts()`
@@ -6016,6 +6137,29 @@ class RawTFR(BaseTFR):
             **method_kw,
         )
 
+        if isinstance(inst, BaseRaw):
+            self._first_samp = inst.first_samp
+            self._raw_sfreq = inst.info["sfreq"]
+            self._bad_intervals = [
+                (onset - inst.first_time, onset - inst.first_time + duration, str(desc))
+                for onset, duration, desc in zip(
+                    inst.annotations.onset,
+                    inst.annotations.duration,
+                    inst.annotations.description,
+                )
+                if desc.lower().startswith("bad")
+            ]
+
+    def __getstate__(self):
+        """Preserve source timing for epoching after save/load."""
+        state = super().__getstate__()
+        state.update(
+            first_samp=self._first_samp,
+            raw_sfreq=self._raw_sfreq,
+            bad_intervals=self._bad_intervals,
+        )
+        return state
+
     def __setstate__(self, state):
         """Unpack RawTFR from serialized format."""
         if state["data"].ndim not in [3, 4]:
@@ -6028,6 +6172,9 @@ class RawTFR(BaseTFR):
             state["dims"] += ("taper",)
         state["dims"] += ("freq", "time")
         super().__setstate__(state)
+        self._first_samp = state.get("first_samp", 0)
+        self._raw_sfreq = state.get("raw_sfreq", self.sfreq)
+        self._bad_intervals = state.get("bad_intervals", [])
 
     @fill_doc_static("getitem_tfr_return")
     def __getitem__(self, item):
