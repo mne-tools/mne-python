@@ -5211,6 +5211,17 @@ units : dict | str
     it is assumed that all channels have the same units.
 """
 
+docdict["units_edf_io"] = """
+units : dict | str
+    The units of the channels as stored in the file. This argument can
+    override units specified in the file. If a dict, it must map channel
+    names to their units; channels not included in the dict retain their
+    units from the file. Keys must name channels being read. If str, it
+    is applied to all non-STIM channels.
+    STIM channels are left unchanged. The unit must be valid for the
+    channel type.
+"""
+
 _units = """
 units : {}str | None
     The units to use for the colorbar label. Ignored if ``colorbar=False``.

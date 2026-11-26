@@ -15,6 +15,7 @@ import numpy as np
 
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info, _unique_channel_names
+from ..._fiff.pick import channel_type
 from ..._fiff.utils import _blk_read_lims, _mult_cal_one
 from ...annotations import Annotations
 from ...filter import resample
@@ -61,7 +62,7 @@ CH_TYPE_MAPPING = {
 
 @fill_doc_static(
     "preload",
-    "units_edf_bdf_io",
+    "units_edf_io",
     "encoding_edf",
     "exclude_after_unique",
     "verbose",
@@ -125,10 +126,13 @@ class RawEDF(BaseRaw):
         .. versionchanged:: 1.13
            Support for the ``"auto"`` decoded-data cache was added.
     units : dict | str
-        The units of the channels as stored in the file. This argument
-        is useful only if the units are missing from the original file.
-        If a dict, it must map a channel name to its unit, and if str
-        it is assumed that all channels have the same units.
+        The units of the channels as stored in the file. This argument can
+        override units specified in the file. If a dict, it must map channel
+        names to their units; channels not included in the dict retain their
+        units from the file. Keys must name channels being read. If str, it
+        is applied to all non-STIM channels.
+        STIM channels are left unchanged. The unit must be valid for the
+        channel type.
     encoding : str
         Encoding of annotations channel(s). Default is "utf8" (the only correct
         encoding according to the EDF+ standard).
@@ -231,23 +235,27 @@ class RawEDF(BaseRaw):
         _validate_type(units, (str, None, dict), "units")
         if units is None:
             units = dict()
+        elif isinstance(units, dict):
+            for ch_name, unit in units.items():
+                _validate_type(unit, str, f"units[{ch_name!r}]")
+            unknown = [ch_name for ch_name in units if ch_name not in info["ch_names"]]
+            if unknown:
+                unknown = ", ".join(map(repr, unknown))
+                raise ValueError(
+                    "Channel names in units were not found among the EDF "
+                    f"channels being read: {unknown}."
+                )
         elif isinstance(units, str):
             units = {ch_name: units for ch_name in info["ch_names"]}
 
-        for k, (this_ch, this_unit) in enumerate(orig_units.items()):
+        for k, this_ch in enumerate(orig_units):
             if this_ch not in units:
                 continue
-            if this_unit not in ("", units[this_ch]):
-                raise ValueError(
-                    f"Unit for channel {this_ch} is present in the file as "
-                    f"{repr(this_unit)}, cannot overwrite it with the units "
-                    f"argument {repr(units[this_ch])}."
-                )
-            if this_unit == "":
-                orig_units[this_ch] = units[this_ch]
-                ch_type = edf_info["ch_types"][k]
-                scaling = _get_scaling(ch_type.lower(), orig_units[this_ch])
-                edf_info["units"][k] /= scaling
+            ch_type = channel_type(info, k)
+            if ch_type == "stim":
+                continue
+            orig_units[this_ch] = units[this_ch]
+            edf_info["units"][k] = 1 / _get_scaling(ch_type, units[this_ch])
 
         # Raw attributes
         last_samps = [edf_info["nsamples"] - 1]
@@ -2063,7 +2071,7 @@ def _check_args(input_fname, preload, target_ext):
 
 @fill_doc_static(
     "preload",
-    "units_edf_bdf_io",
+    "units_edf_io",
     "encoding_edf",
     "exclude_after_unique",
     "verbose",
@@ -2141,10 +2149,13 @@ def read_raw_edf(
         .. versionchanged:: 1.13
            Support for the ``"auto"`` decoded-data cache was added.
     units : dict | str
-        The units of the channels as stored in the file. This argument
-        is useful only if the units are missing from the original file.
-        If a dict, it must map a channel name to its unit, and if str
-        it is assumed that all channels have the same units.
+        The units of the channels as stored in the file. This argument can
+        override units specified in the file. If a dict, it must map channel
+        names to their units; channels not included in the dict retain their
+        units from the file. Keys must name channels being read. If str, it
+        is applied to all non-STIM channels.
+        STIM channels are left unchanged. The unit must be valid for the
+        channel type.
     encoding : str
         Encoding of annotations channel(s). Default is "utf8" (the only correct
         encoding according to the EDF+ standard).

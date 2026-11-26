@@ -151,12 +151,79 @@ def test_orig_units(tmp_path):
     assert set(raw_back._orig_units) == set(raw.ch_names)
 
 
-def test_units_params():
-    """Test enforcing original channel units."""
+def test_units_params(tmp_path):
+    """Test overriding channel units for EDF and preserving BDF behavior."""
+    raw = read_raw_edf(edf_path, preload=True)
+    raw_mV = read_raw_edf(edf_path, units="mV", preload=True)
+    ch_types = raw.get_channel_types()
+    non_stim = [
+        ch_name for ch_name, ch_type in zip(raw.ch_names, ch_types) if ch_type != "stim"
+    ]
+    stim = [
+        ch_name for ch_name, ch_type in zip(raw.ch_names, ch_types) if ch_type == "stim"
+    ]
+    expected_units = {
+        ch_name: "mV" if ch_name in non_stim else raw._orig_units[ch_name]
+        for ch_name in raw.ch_names
+    }
+    assert raw_mV._orig_units == expected_units
+    assert_allclose(raw_mV.get_data(picks=non_stim), raw.get_data(picks=non_stim) * 1e3)
+    assert_array_equal(raw_mV.get_data(picks=stim), raw.get_data(picks=stim))
+
+    raw_AU = read_raw_edf(edf_path, units={"A1": "AU"}, misc=["A1"], preload=True)
+    assert raw_AU._orig_units["A1"] == "n/a"
+    assert raw_AU._orig_units["A2"] == raw._orig_units["A2"]
+    assert_allclose(raw_AU.get_data(picks=["A1"]), raw.get_data(picks=["A1"]) * 1e6)
+    assert_array_equal(raw_AU.get_data(picks=["A2"]), raw.get_data(picks=["A2"]))
+    data_AU = raw_AU.get_data()
+    raw_AU.reorder_channels(raw_AU.ch_names[::-1])
+    assert_array_equal(raw_AU.get_data(), data_AU[::-1])
+
+    raw_excluded = read_raw_edf(
+        edf_path, exclude=["A1"], units={"A2": "mV"}, preload=True
+    )
+    assert_allclose(
+        raw_excluded.get_data(picks=["A2"]), raw.get_data(picks=["A2"]) * 1e3
+    )
+    assert_array_equal(raw_excluded.get_data(picks=["A3"]), raw.get_data(picks=["A3"]))
+
+    tal_fname = data_dir / "test_stim_channel.edf"
+    raw_tal = read_raw_edf(tal_fname, preload=True)
+    assert len(raw_tal._raw_extras[0]["tal_idx"]) > 0
+    raw_tal_mV = read_raw_edf(tal_fname, units={"sine 1 Hz": "mV"}, preload=True)
+    assert_allclose(
+        raw_tal_mV.get_data(picks=["sine 1 Hz"]),
+        raw_tal.get_data(picks=["sine 1 Hz"]) * 1e3,
+    )
+    assert_array_equal(
+        raw_tal_mV.get_data(picks=["stAtUs"]), raw_tal.get_data(picks=["stAtUs"])
+    )
+
+    # Supplying a unit for a missing EDF header unit must use the same
+    # physical-to-SI scaling as a unit present in the header.
+    missing_unit_fname = tmp_path / "missing_unit.edf"
+    shutil.copyfile(edf_path, missing_unit_fname)
+    with open(missing_unit_fname, "r+b") as fid:
+        fid.seek(252)
+        n_channels = int(fid.read(4).decode("ascii").strip())
+        units_offset = 256 + n_channels * (16 + 80)
+        fid.seek(units_offset)
+        assert fid.read(8).strip() == b"uV"
+        fid.seek(units_offset)
+        fid.write(b" " * 8)
+    raw_missing = read_raw_edf(missing_unit_fname, units={"A1": "uV"}, preload=True)
+    assert_allclose(raw_missing.get_data(picks=["A1"]), raw.get_data(picks=["A1"]))
+
+    with pytest.raises(TypeError, match=r"units\['A1'\].*instance of str"):
+        read_raw_edf(edf_path, units={"A1": 3})
+    with pytest.raises(ValueError, match="not found among the EDF channels.*missing"):
+        read_raw_edf(edf_path, units={"missing": "mV"})
+
+    # BDF retains its previous restriction on overriding units in the header.
     with pytest.raises(
         ValueError, match=r"Unit for channel .* is present .* cannot overwrite it"
     ):
-        _ = read_raw_edf(edf_path, units="V", preload=True)
+        read_raw_bdf(bdf_path, units="V")
 
 
 def test_edf_temperature(monkeypatch):
@@ -1309,11 +1376,10 @@ def test_ch_types():
     assert raw.get_channel_types() == types
     assert raw.ch_names == labels
 
-    with pytest.raises(ValueError, match="cannot overwrite"):
-        read_raw_edf(edf_chtypes_path, units="V")
-    raw = read_raw_edf(edf_chtypes_path, units="uV")  # should be okay
-    data_units = raw.get_data()
-    assert_allclose(data, data_units)
+    raw_volts = read_raw_edf(edf_chtypes_path, units="V")
+    raw_microvolts = read_raw_edf(edf_chtypes_path, units="uV")
+    assert_allclose(raw_volts.get_data(), raw_microvolts.get_data() * 1e6)
+    assert_allclose(data, raw_microvolts.get_data())
 
 
 @testing.requires_testing_data
