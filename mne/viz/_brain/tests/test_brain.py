@@ -26,6 +26,7 @@ from mne import (
     read_cov,
     read_evokeds,
     read_forward_solution,
+    read_labels_from_annot,
     read_source_estimate,
     vertex_to_mni,
     write_surface,
@@ -623,6 +624,17 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     sphere = next(iter(brain._picked_points.values()))[0]
     vertex_id = sphere["vertex_id"]
     old_center = np.array(sphere["mesh"].center)
+    labels = read_labels_from_annot(
+        subject, "aparc", hemi="both", subjects_dir=subjects_dir
+    )[:6]  # alternating lh and rh
+    con = [[0, 0, 0], [2, 0, 0], [-1, 0.5, 0]]
+    with pytest.raises(ValueError, match="label.hemi"):
+        brain.add_connectivity(con, labels[:3])
+    with pytest.raises(ValueError, match="con must have shape"):
+        brain.add_connectivity(con, labels[:4:2])
+    brain.add_connectivity(con, labels[::2], threshold=0.8)
+    conn = brain._connectivity[0]
+    assert_allclose(conn["lines"].cell_data["con"], [2, -1])
 
     brain.add_foci([vertex_id], coords_as_verts=True, hemi="lh")
     foci = brain._foci_data["lh"]["on_surface"][0]["glyph"]
@@ -643,6 +655,9 @@ def test_surface_controls(renderer_interactive_pyvistaqt, brain_gc):
     assert not np.allclose(new_center, old_center)
     assert_allclose(new_center, brain.geo["lh"].coords[vertex_id])
     assert_allclose(foci.center, brain.geo["lh"].coords[vertex_id], atol=1e-4)
+    assert_allclose(conn["lines"].points, brain.geo["lh"].coords[conn["vertices"]])
+    brain.remove_connectivity()
+    assert "connectivity" not in brain._actors
 
     brain.set_surf("white")  # no-op, same surf
     assert brain._surf == "white"
@@ -1529,6 +1544,16 @@ def test_brain_traces_vertex(
     for current_hemi in hemi_str:
         brain.add_foci([[0, 0, 0]], hemi=current_hemi)
         assert_array_equal(brain._foci_data[current_hemi]["foci"], [[0, 0, 0]])
+    if src == "surface":  # each split view only shows edges in its hemisphere
+        labels = read_labels_from_annot(
+            subject,
+            "aparc",
+            hemi=hemi if hemi in ("lh", "rh") else "both",
+            subjects_dir=subjects_dir,
+        )[:4]
+        brain.add_connectivity(np.ones((4, 4)), labels)
+        n_lines = [conn["lines"].n_lines for conn in brain._connectivity]
+        assert n_lines == ([1, 1] if hemi == "split" else [6])
 
     # test points picked by default
     picked_points = brain.get_picked_points()

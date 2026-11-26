@@ -54,7 +54,7 @@ from ..utils import (
     safe_event,
 )
 from ._movie import _MovieMixin
-from ._scene import _SceneMixin
+from ._scene import _SceneMixin, _update_connectivity
 from ._time_viewer import _TimeViewerMixin
 from .colormap import _CORTEX_PRESETS, calculate_lut
 from .surface import _Surface
@@ -423,6 +423,7 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         self._all_data = {}
         self._active_data_key = None
         self._foci_data = {}
+        self._connectivity = []
         self.geo = {}
         self.set_time_interpolation("nearest")
 
@@ -2227,6 +2228,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 points += (centers - foci["centers"])[:, np.newaxis]
                 foci["glyph"].points = points.reshape(-1, 3)
                 foci["centers"] = centers
+        for conn in self._connectivity:
+            _update_connectivity(self, conn)
         self._unfold = float(unfold)
         self._surf = surf = (self._folded, "inflated", "flat")[int(unfold)]
         if flat_change:  # switch the camera and interaction to 2D/3D
