@@ -336,7 +336,8 @@ FT_REF = {
         ],
     ),
     # cfg.statistic='depsamplesT', cfg.minnbchan=k, sensor adjacency from the
-    # montage; FieldTrip 1fe6ec79c in MATLAB R2025b (script: see gist)
+    # montage; FieldTrip 1fe6ec79c in MATLAB R2025b. Scripts and FieldTrip output:
+    # https://gist.github.com/dnacombo/12357c4de07c2b37f6eca86321df7cc5/a70691b13d550c6313120c1d0d78bf242fe0c319
     "min_adjacent_0": dict(
         stat_name="paired T-statistic",
         critval=2.20098516009,
