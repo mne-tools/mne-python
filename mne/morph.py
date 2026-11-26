@@ -1510,7 +1510,7 @@ def _check_vertices_match(v1, v2, name):
             ext = " Vertices were likely excluded during forward computation."
         raise ValueError(
             f"vertices do not match between morph ({len(v1)}) and stc ({len(v2)}) "
-            'for {name}:\n{v1}\n{v2}\nPerhaps src_to=fwd["src"] needs to be passed '
+            f'for {name}:\n{v1}\n{v2}\nPerhaps src_to=fwd["src"] needs to be passed '
             f"when calling compute_source_morph.{ext}"
         )
 
