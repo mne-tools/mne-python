@@ -202,6 +202,35 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch, renderer_interactive_pyv
     )
     assert coreg._lock_fids
     coreg._reset_fiducials()
+    from qtpy.QtWidgets import QFileDialog
+
+    assert coreg._widgets["info_file_field"].get_value() == ""
+    starts = list()
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        lambda **kw: (starts.append(kw["directory"]) or "", ""),
+    )
+    coreg._widgets["save_trans"].set_value(None)  # canceled
+    monkeypatch.setattr(
+        QFileDialog, "getOpenFileName", lambda **kw: (str(raw_path), "")
+    )
+    coreg._widgets["info_file"].set_value(None)
+    assert coreg._widgets["info_file_field"].get_value() == str(raw_path)
+    assert coreg._info_file == raw_path
+    coreg._save_trans(tmp_path / "test-trans.fif")
+    coreg._widgets["save_trans"].set_value(None)
+    assert starts == [str(fname_trans.parent), str(tmp_path)]
+    other_subjects_dir = tmp_path / "other_subjects"
+    shutil.copytree(tmp_subjects_dir / "sample", other_subjects_dir / "sample2")
+    monkeypatch.setattr(
+        QFileDialog, "getExistingDirectory", lambda **kw: str(other_subjects_dir)
+    )
+    coreg._widgets["subjects_dir"].set_value(None)
+    assert coreg._widgets["subjects_dir_field"].get_value() == str(other_subjects_dir)
+    subject_box = coreg._widgets["subject"]._widget
+    assert [subject_box.itemText(i) for i in range(subject_box.count())] == ["sample2"]
+    assert coreg._subject == subject_box.currentText() == "sample2"
     coreg.close()
 
     # make it always log the distances
