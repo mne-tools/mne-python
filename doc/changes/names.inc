@@ -22,6 +22,7 @@
 .. _Alexandre Barachant: https://alexandre.barachant.org
 .. _Aman Srivastava: https://github.com/aman-coder03
 .. _Amirali Moradniaei: https://github.com/AtomicGlance
+.. _Aml Elmotiem: https://github.com/AmlElmotiem
 .. _Ana Radanovic: https://github.com/anaradanovic
 .. _Andrea Brovelli: https://brovelli.github.io/
 .. _Andreas Højlund: https://github.com/ahoejlund

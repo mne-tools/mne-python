@@ -130,6 +130,27 @@ def test_gui_api_notebook(renderer_notebook, nbexec, *, backend="qt"):
     with _check_widget_trigger(widget, mock, 0, 5):
         widget.set_value(5)
 
+    # slider with tick labels
+    widget = renderer._dock_add_slider(
+        name="",
+        value=0,
+        rng=[0, 10],
+        callback=mock,
+        tooltip="slider",
+        tick_labels=["0", "10"],
+    )
+
+    # slider with tick positions
+    widget = renderer._dock_add_slider(
+        name="",
+        value=0,
+        rng=[0, 10],
+        callback=mock,
+        tooltip="slider",
+        tick_labels=["min", "mid", "max"],
+        tick_positions=[0, 0.3, 1],
+    )
+
     # check box
     widget = renderer._dock_add_check_box(
         name="",

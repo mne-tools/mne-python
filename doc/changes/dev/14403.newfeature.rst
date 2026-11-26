@@ -1,0 +1,1 @@
+Allow tick_labels parameter for 3D backend slider widgets to accept a list of labels, with an optional tick_positions parameter to specify their positions, by `Aml Elmotiem`_.
