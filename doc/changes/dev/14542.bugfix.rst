@@ -1,0 +1,1 @@
+Fix integer overflow in :func:`mne.stats.permutation_t_test` when squaring integer input data, by :newcontrib:`Eva B`.
