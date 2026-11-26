@@ -92,7 +92,7 @@ def compute_sme(epochs, start=None, stop=None):
         raise ValueError("stop is out of bounds.")
 
     data = epochs.get_data(tmin=start, tmax=stop)
-    return data.mean(axis=2).std(axis=0) / np.sqrt(data.shape[0])
+    return data.mean(axis=2).std(axis=0, ddof=1) / np.sqrt(data.shape[0])
 
 
 def _compute_peak(
