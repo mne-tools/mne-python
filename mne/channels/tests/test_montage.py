@@ -2007,6 +2007,12 @@ def test_read_dig_hpts():
         "<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>"
     )
 
+    biosemi_fname = io_dir / "edf" / "tests" / "data" / "biosemi.hpts"
+    biosemi_montage = read_dig_hpts(biosemi_fname)
+    assert repr(biosemi_montage) == (
+        "<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 64 channels>"
+    )
+
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
