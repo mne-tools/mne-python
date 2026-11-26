@@ -471,6 +471,155 @@ class _SceneMixin:
             data_foci = np.vstack((foci_data["foci"], data_foci))
         foci_data["foci"] = data_foci
 
+    def add_connectivity(
+        self,
+        con,
+        labels,
+        *,
+        threshold=None,
+        colormap=None,
+        vmin=None,
+        vmax=None,
+        line_width=3.0,
+        scale_factor=0.5,
+        alpha=1.0,
+    ):
+        """Add connectivity between labels, drawn as lines between their centers.
+
+        Parameters
+        ----------
+        con : array, shape (n_labels, n_labels)
+            The connectivity between the labels. Only the lower triangle is
+            used, as in :func:`mne_connectivity.viz.plot_connectivity_circle`.
+        labels : list of Label
+            The labels for the rows and columns of ``con``. Each one is drawn
+            as a disk on the surface, in the label's color, at its center of
+            mass (see :meth:`mne.Label.center_of_mass`).
+        threshold : float | None
+            Hide the connections whose absolute value is below this. If None,
+            only connections equal to zero are hidden.
+        colormap : str | None
+            The colormap of the lines. If None, ``'RdBu_r'`` is used when
+            ``con`` has negative values and ``'Reds'`` otherwise.
+        vmin : float | None
+            The minimum of the colormap. If None, the smallest value shown,
+            or ``-vmax`` when ``con`` has negative values.
+        vmax : float | None
+            The maximum of the colormap. If None, the largest absolute value
+            shown.
+        line_width : float
+            The width of the lines in pixels.
+        scale_factor : float
+            Controls the size of the disks (relative to 1cm).
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+
+        Notes
+        -----
+        The disks and lines follow the surface when it changes, e.g. with
+        :meth:`set_unfold`. The lines can pass through the brain, so a
+        transparent cortex (see ``alpha`` in :class:`Brain`) shows them better.
+        With ``hemi='split'``, connections between the hemispheres are not
+        shown.
+
+        .. versionadded:: 1.14
+        """
+        import pyvista as pv
+
+        from ...label import Label
+        from ..backends._pyvista import _add_mesh
+
+        _validate_type(labels, (list, tuple), "labels")
+        for label in labels:
+            _validate_type(label, Label, "each label")
+            _check_option("label.hemi", label.hemi, self._hemis)
+        con = np.asarray(con, dtype=float)
+        if con.shape != (len(labels),) * 2:
+            raise ValueError(
+                f"con must have shape {(len(labels),) * 2} to match labels, "
+                f"got {con.shape}"
+            )
+        hemis = [label.hemi for label in labels]
+        vertices = [
+            label.center_of_mass(
+                self._subject, restrict_vertices=True, subjects_dir=self._subjects_dir
+            )
+            for label in labels
+        ]
+        rows, cols = np.tril_indices(len(labels), -1)
+        values = con[rows, cols]
+        keep = np.abs(values) > 0 if threshold is None else np.abs(values) >= threshold
+        rows, cols, values = rows[keep], cols[keep], values[keep]
+        signed = (values < 0).any()
+        if colormap is None:
+            colormap = "RdBu_r" if signed else "Reds"
+        if vmax is None:
+            vmax = np.abs(values).max(initial=0)
+        if vmin is None:
+            vmin = -vmax if signed else values.min(initial=vmax)
+
+        radius = 5.0 * scale_factor / (1000 if self._units == "m" else 1)
+        colors = np.array([_to_rgb(label.color or "white") for label in labels])
+        for group in self._hemis if self._hemi == "split" else ["vol"]:
+            idx = np.flatnonzero([group in ("vol", h) for h in hemis])
+            if not len(idx):
+                continue
+            edges = np.isin(rows, idx) & np.isin(cols, idx)
+            lines = pv.PolyData(
+                np.zeros((len(idx), 3)),
+                lines=np.c_[
+                    np.full(edges.sum(), 2),
+                    np.searchsorted(idx, rows[edges]),
+                    np.searchsorted(idx, cols[edges]),
+                ],
+            )
+            lines.cell_data["con"] = values[edges]
+            conn = dict(
+                hemis=[hemis[i] for i in idx],
+                vertices=[vertices[i] for i in idx],
+                colors=colors[idx],
+                radius=radius,
+                nodes=pv.PolyData(),
+                lines=lines,
+            )
+            _update_connectivity(self, conn)
+            for _ in self._iter_views(group):
+                actor = _add_mesh(
+                    self._renderer.plotter,
+                    mesh=conn["nodes"],
+                    scalars="rgb",
+                    rgb=True,
+                    opacity=alpha,
+                    smooth_shading=self._renderer.smooth_shading,
+                )
+                self._add_actor("connectivity", actor)
+                if edges.any():
+                    actor = _add_mesh(
+                        self._renderer.plotter,
+                        mesh=lines,
+                        scalars="con",
+                        cmap=colormap,
+                        clim=(vmin, vmax),
+                        line_width=line_width,
+                        render_lines_as_tubes=True,
+                        opacity=alpha,
+                        show_scalar_bar=False,
+                        smooth_shading=False,
+                    )
+                    self._add_actor("connectivity", actor)
+            self._connectivity.append(conn)
+        self._renderer._update()
+
+    def remove_connectivity(self):
+        """Remove the connectivity from the rendered scene.
+
+        Notes
+        -----
+        .. versionadded:: 1.14
+        """
+        self._remove("connectivity", render=True)
+        self._connectivity.clear()
+
     @verbose_static(
         "info_not_none",
         "trans_not_none",
@@ -776,3 +925,21 @@ class _SceneMixin:
             )
             self._actors["text"].pop(name)
         self._renderer._update()
+
+
+def _update_connectivity(brain, conn):
+    """Put the connectivity disks and lines on the current surface."""
+    import pyvista as pv
+
+    pairs = list(zip(conn["hemis"], conn["vertices"]))
+    centers = np.array([brain.geo[h].coords[v] for h, v in pairs])
+    normals = np.array([brain.geo[h].nn[v] for h, v in pairs])
+    normals /= np.linalg.norm(normals, axis=1, keepdims=True)
+    height = conn["radius"] / 4
+    disk = pv.Cylinder(radius=conn["radius"], height=height, resolution=30)
+    points = pv.PolyData(centers + normals * height / 2)
+    points["normals"] = normals
+    nodes = points.glyph(orient="normals", scale=False, geom=disk)
+    nodes["rgb"] = np.repeat(conn["colors"], nodes.n_points // len(centers), axis=0)
+    conn["nodes"].copy_from(nodes)
+    conn["lines"].points = centers
