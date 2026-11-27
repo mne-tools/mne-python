@@ -135,7 +135,11 @@ formula = "evoked ~ condition"
 # levels alphabetically and the reference will be target.
 
 cluster_result = mne.stats.cluster_test(
-    df=df, formula=formula, within_id="subject_index", reference="non-target"
+    df=df,
+    formula=formula,
+    within_id="subject_index",
+    reference="non-target",
+    out_type="mask",
 )
 
 # We leave ``adjacency`` at its default of ``"auto"``, which reads the sensor
@@ -145,6 +149,9 @@ cluster_result = mne.stats.cluster_test(
 # ``"auto"`` will say so rather than guess; you can then set one, or build the
 # matrix yourself with :func:`mne.channels.find_ch_adjacency` and
 # :func:`mne.stats.combine_adjacency`.
+#
+# With ``adjacency="auto"`` you can also pass ``min_adjacent_channels``, which is
+# introduced in the last section of this tutorial.
 
 print(f"Smallest cluster p-value: {cluster_result.cluster_p_values.min():.4f}")
 
@@ -204,3 +211,60 @@ ax.set_xlabel("time (s)")
 ax.set_ylabel("channel")
 ax.set_title("Observed cluster statistic (target - non-target)")
 fig.colorbar(im, ax=ax, label="t-value")
+
+# %%
+# Drop isolated locations with ``min_adjacent_channels``
+# ------------------------------------------------------
+#
+# Applying a threshold at every channel and time point leaves many small clusters by
+# chance alone. With ``min_adjacent_channels=k`` a location is kept only if at least
+# ``k`` adjacent channels also exceed the threshold at the same time point (adjacent
+# channels are those found by ``adjacency="auto"``). Dropping a location can leave its
+# neighbors short of adjacent channels in turn, so this is repeated until no more
+# are dropped. The same rule is applied to the observed data and to every
+# permutation. It requires ``adjacency="auto"`` with MNE objects, which provide the
+# sensor adjacency.
+#
+# Here we require two adjacent channels and compare the clusters with and without it.
+# Only the t-values inside a cluster are shown.
+
+results = {
+    0: cluster_result,
+    2: mne.stats.cluster_test(
+        df=df,
+        formula=formula,
+        within_id="subject_index",
+        reference="non-target",
+        min_adjacent_channels=2,
+        out_type="mask",
+    ),
+}
+
+cmap = plt.get_cmap("RdBu_r").with_extremes(bad="0.92")
+fig, axes = plt.subplots(1, 2, sharey=True, layout="constrained")
+for ax, (min_adjacent, result) in zip(axes, results.items()):
+    in_cluster = np.any(result.clusters, axis=0)
+    im = ax.imshow(
+        np.where(in_cluster, result.stat_obs, np.nan),
+        aspect="auto",
+        origin="lower",
+        extent=[times[0], times[-1], 0, len(ch_names)],
+        cmap=cmap,
+        vmin=-vlim,
+        vmax=vlim,
+    )
+    ax.set_title(
+        f"min_adjacent_channels={min_adjacent}\n{len(result.clusters)} clusters"
+    )
+    ax.set_xlabel("time (s)")
+axes[0].set_yticks(np.arange(len(ch_names)) + 0.5)
+axes[0].set_yticklabels(ch_names)
+axes[0].set_ylabel("channel")
+fig.colorbar(im, ax=axes, label="t-value")
+
+# %%
+# The large cluster around the P3b effect remains, and so do most of its locations.
+# The clusters that vanish are the small ones, made of a few locations with no
+# adjacent channel above the threshold. The number of clusters is printed in each
+# title. Requiring more adjacent channels removes more, and with a high enough value
+# no cluster is left.

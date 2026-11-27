@@ -1,0 +1,1 @@
+Fix :func:`mne.stats.combine_adjacency` modifying a sparse input adjacency matrix in place, by `Eric Larson`_.

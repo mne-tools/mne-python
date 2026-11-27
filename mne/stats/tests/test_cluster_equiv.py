@@ -8,6 +8,8 @@ https://gist.github.com/larsoner/5c99b464bccf67f5641c1a2babc2c84e
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from functools import partial
+
 import numpy as np
 import pytest
 from scipy import sparse, stats
@@ -196,6 +198,31 @@ def scenario_rm_3level():
     return df, _kwargs(tail=1, threshold=threshold, n_permutations=1024)
 
 
+def scenario_min_adjacent(min_adjacent_channels):
+    """Paired t on 5 EEG channels with montage; cfg.minnbchan == min_adjacent_channels.
+
+    Adjacency is ``"auto"`` (Delaunay on the ``spherical_1020`` montage), exported to
+    FT as cfg.neighbours. Positive effect on Fz, Cz, Pz and C3 (t3-t8): with 3
+    required adjacent channels Cz and C3 survive one pass but not a repeated one,
+    which empties the map. Negative effect on C4 alone (t13-t18), with no active
+    neighbor. FT: depsamplesT with cfg.minnbchan.
+    """
+    rng = np.random.default_rng(8)
+    n_subjects, n_times = 12, 22
+    ch_names = ["Fz", "Cz", "Pz", "C3", "C4"]
+    info = mne.create_info(ch_names, 1000.0, "eeg")
+    info.set_montage("spherical_1020")
+    sig_a = np.zeros((len(ch_names), n_times))
+    for ch in range(4):  # Fz, Cz, Pz, C3
+        sig_a[ch] += _bump(n_times, slice(3, 9), 3.0)
+    sig_b = np.zeros_like(sig_a)
+    sig_b[4] += _bump(n_times, slice(13, 19), 2.5)  # a - b negative on C4
+    df = _within_rows(rng, {"a": sig_a, "b": sig_b}, n_subjects)
+    df["data"] = df["data"].map(lambda d: mne.EvokedArray(d[0], info, tmin=0.0))
+    threshold = stats.t.ppf(1 - 0.025, n_subjects - 1)
+    return df, _kwargs(threshold=threshold, min_adjacent_channels=min_adjacent_channels)
+
+
 SCENARIOS = {
     "one_sample": scenario_one_sample,
     "paired": scenario_paired,
@@ -204,6 +231,8 @@ SCENARIOS = {
     "rm_anova_interaction": scenario_rm_anova_interaction,
     "spatiotemporal_paired": scenario_spatiotemporal_paired,
     "rm_3level": scenario_rm_3level,
+    "min_adjacent_2": partial(scenario_min_adjacent, 2),
+    "min_adjacent_3": partial(scenario_min_adjacent, 3),
 }
 
 # FieldTrip reference values (see gist for the full cfg): ``critval`` is FT's
@@ -304,6 +333,48 @@ FT_REF = {
             ([12, 13, 14], 50.6420452705, 4.9997500125e-05),
         ],
     ),
+    # cfg.statistic='depsamplesT', cfg.minnbchan=k, sensor adjacency from the
+    # montage; FieldTrip 1fe6ec79c in MATLAB R2025b. Scripts and FieldTrip output:
+    # https://gist.github.com/dnacombo/12357c4de07c2b37f6eca86321df7cc5/a70691b13d550c6313120c1d0d78bf242fe0c319
+    "min_adjacent_2": dict(
+        stat_name="paired T-statistic",
+        critval=2.20098516009,
+        p_slack=0.001,
+        stat_max=9.57885821818,
+        stat_sum=89.6020117526,
+        clusters=[
+            (
+                [
+                    (4, 0),
+                    (4, 1),
+                    (4, 2),
+                    (4, 3),
+                    (5, 0),
+                    (5, 1),
+                    (5, 2),
+                    (5, 3),
+                    (6, 0),
+                    (6, 1),
+                    (6, 2),
+                    (6, 3),
+                    (7, 0),
+                    (7, 1),
+                    (7, 2),
+                    (7, 3),
+                ],
+                98.157336788,
+                0.0,
+            ),
+        ],
+    ),
+    "min_adjacent_3": dict(
+        stat_name="paired T-statistic",
+        critval=2.20098516009,
+        p_slack=0.001,
+        stat_max=9.57885821818,
+        stat_sum=89.6020117526,
+        clusters=[],
+    ),
 }
 # cfg.statistic='indepsamplesT' on the between_t data: same clusters and (via
 # F = t**2) masses as indepsamplesF, but a t critval and per-tail probs
@@ -360,7 +431,11 @@ def _assert_ft_equiv(result, ref, threshold):
 def test_fieldtrip_equivalence(name):
     """Compare cluster_test output against FieldTrip reference values."""
     df, kwargs = SCENARIOS[name]()
-    result = cluster_test(df, **kwargs, verbose="error")
+    if FT_REF[name]["clusters"]:
+        result = cluster_test(df, **kwargs, verbose="error")
+    else:  # FT found nothing either, e.g. with too high a min_adjacent_channels
+        with pytest.warns(RuntimeWarning, match="No clusters found"):
+            result = cluster_test(df, **kwargs)  # verbose="error" hides the warning
     _assert_ft_equiv(result, FT_REF[name], kwargs["threshold"])
     if name == "between_t":  # also equivalent to FT's independent-samples t
         _assert_ft_equiv(result, FT_REF["between_t_T"], kwargs["threshold"])
