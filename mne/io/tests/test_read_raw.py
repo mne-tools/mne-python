@@ -4,13 +4,16 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
+from io import BytesIO
 from pathlib import Path
 from shutil import copyfile
 
+import numpy as np
 import pytest
 
+from mne import create_info
 from mne.datasets import testing
-from mne.io import read_raw, read_raw_bci2k
+from mne.io import RawArray, read_raw, read_raw_bci2k
 from mne.io._read_raw import _get_readers, _get_supported, split_name_ext
 
 base = Path(__file__).parents[1]
@@ -165,3 +168,32 @@ def test_bci2k():
     read_raw_bci2k(bci2k_fname, preload=True)  # smoke test: if this works, below should
     raw = read_raw(bci2k_fname, preload=True)
     assert "RawBCI2k" in repr(raw)
+
+
+def test_read_raw_file_like(tmp_path):
+    """Test reading file-like objects with read_raw."""
+    info = create_info(["ch1", "ch2"], 100.0, "eeg")
+    data = np.arange(200, dtype=np.float64).reshape(2, 100)
+    raw = RawArray(data, info)
+
+    buf = BytesIO()
+    assert raw.save(buf) == []
+    buf.seek(0)
+    raw_loaded = read_raw(buf, preload=True)
+    np.testing.assert_allclose(raw_loaded.get_data(), raw.get_data(), rtol=1e-6)
+
+    # Open binary file handle with a .name attribute should resolve by extension
+    fif_path = tmp_path / "recording_raw.fif"
+    fif_path.write_bytes(buf.getvalue())
+    with open(fif_path, "rb") as fid:
+        raw_named = read_raw(fid, preload=True)
+    np.testing.assert_allclose(raw_named.get_data(), raw.get_data(), rtol=1e-6)
+
+    # EDF magic-byte detection
+    edf_buf = BytesIO((base / "edf/tests/data/test.edf").read_bytes())
+    raw_edf = read_raw(edf_buf, preload=True)
+    assert "data loaded" in str(raw_edf)
+
+    # Unsupported file-like content
+    with pytest.raises(ValueError, match="Unsupported file-like object"):
+        read_raw(BytesIO(b"not a supported format"))
