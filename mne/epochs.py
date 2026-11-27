@@ -6482,12 +6482,12 @@ def _concatenate_epochs(
                 raise ValueError("Spectra must have the same frequencies")
             if epochs.method != out.method:
                 raise ValueError("Spectra must have the same method")
-            if (
-                tuple(epochs._dims) != tuple(out._dims)
-                or epochs._data_type != out._data_type
-                or not np.array_equal(epochs.weights, out.weights)
-            ):
-                raise ValueError("Spectrum dimensions, type and weights must match")
+            if tuple(epochs._dims) != tuple(out._dims):
+                raise ValueError("Spectra must have the same dimensions")
+            if epochs._data_type != out._data_type:
+                raise ValueError("Spectra must have the same data type")
+            if not np.array_equal(epochs.weights, out.weights):
+                raise ValueError("Spectra must have the same weights")
             if (epochs.events is None) != (out.events is None):
                 raise ValueError("Either all or none of the spectra must have events")
         elif not np.allclose(epochs.times, out.times):
