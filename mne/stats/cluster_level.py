@@ -2851,7 +2851,7 @@ def cluster_test(
     )
 
     stat_obs = stat_obs.T
-    if out_type == "mask":
+    if out_type == "mask" and len(clusters):
         if isinstance(clusters[0], np.ndarray) and clusters[0].dtype == "bool":
             clusters = [cl.T for cl in clusters]
         elif isinstance(clusters[0], tuple) and isinstance(clusters[0][0], slice):

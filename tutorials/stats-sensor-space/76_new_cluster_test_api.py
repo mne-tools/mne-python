@@ -135,7 +135,11 @@ formula = "evoked ~ condition"
 # levels alphabetically and the reference will be target.
 
 cluster_result = mne.stats.cluster_test(
-    df=df, formula=formula, within_id="subject_index", reference="non-target"
+    df=df,
+    formula=formula,
+    within_id="subject_index",
+    reference="non-target",
+    out_type="mask",
 )
 
 # We leave ``adjacency`` at its default of ``"auto"``, which reads the sensor
@@ -225,15 +229,15 @@ fig.colorbar(im, ax=ax, label="t-value")
 # Only the t-values inside a cluster are shown.
 
 results = {
-    min_adjacent: mne.stats.cluster_test(
+    0: cluster_result,
+    2: mne.stats.cluster_test(
         df=df,
         formula=formula,
         within_id="subject_index",
         reference="non-target",
-        min_adjacent_channels=min_adjacent,
+        min_adjacent_channels=2,
         out_type="mask",
-    )
-    for min_adjacent in (0, 2)
+    ),
 }
 
 cmap = plt.get_cmap("RdBu_r").with_extremes(bad="0.92")

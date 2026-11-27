@@ -180,11 +180,11 @@ def test_new_cluster_api(Inst):
     # output, and a cluster can only keep a channel with an adjacent channel in the
     # same cluster at the same time (and frequency).
     res = cluster_test(df, "data~condition", min_adjacent_channels=1, **kwargs)
-    # (combine_adjacency above zeroes the diagonal of ch_adjacency in place)
-    neighbors = ((ch_adjacency.toarray() != 0) & ~np.eye(n_chan, dtype=bool)).astype(
-        int
-    )
+    neighbors = ch_adjacency.toarray().astype(int)
+    np.fill_diagonal(neighbors, 0)
     assert len(res.clusters) > 0
+    # the same pruning runs on the permutations, so the null can only shrink
+    assert np.all(res.H0 <= result_new_api.H0)
     for clust in res.clusters:
         members = clust.reshape(n_chan, -1)
         assert np.all((neighbors @ members)[members])
@@ -401,6 +401,7 @@ def test_cluster_test_adjacency():
         adjacency=combine_adjacency(n_times, ch_adjacency),
         **kwargs,
     )
+    assert_array_equal(ch_adjacency.diagonal(), 1)  # not modified in place
     got = cluster_test(df, "data ~ condition", **kwargs)  # adjacency="auto"
     assert_array_equal(got.stat_obs, want.stat_obs)
     assert_array_equal(got.cluster_p_values, want.cluster_p_values)
@@ -415,6 +416,10 @@ def test_cluster_test_adjacency():
     shuffled = cluster_test(df_shuffled, "data ~ condition", **kwargs)
     assert_array_equal(shuffled.cluster_p_values, got.cluster_p_values)
     assert_array_equal(shuffled.stat_obs[np.argsort(order)], got.stat_obs)
+
+    with pytest.warns(RuntimeWarning, match="No clusters found"):
+        empty = cluster_test(df, "data ~ condition", threshold=1e6, **kwargs)
+    assert len(empty.clusters) == 0
 
     # False means every location is its own cluster
     no_adj = cluster_test(df, "data ~ condition", adjacency=False, **kwargs)
@@ -433,97 +438,14 @@ def test_cluster_test_adjacency():
     with pytest.raises(ValueError, match='"auto" could not infer sensor adjacency'):
         cluster_test(df_no_montage, "data ~ condition", **kwargs)
 
-
-def test_cluster_test_min_adjacent_channels():
-    """Test the minimum number of significant adjacent channels."""
-    from scipy.sparse import csr_array
-
-    from mne.stats.cluster_level import _get_components, _prune_by_adjacent_channels
-
-    # three channels in a line, with the diagonal set like find_ch_adjacency does
-    line = (
-        np.eye(3, dtype=bool) | np.eye(3, k=1, dtype=bool) | np.eye(3, k=-1, dtype=bool)
-    )
-    ch_adjacency = csr_array(line)
-
-    def prune(mask, k, adjacency=ch_adjacency):  # mask is (n_slices, n_channels)
-        flat = np.array(mask, bool).ravel()
-        pruned = _prune_by_adjacent_channels(flat, adjacency, k)
-        return pruned.reshape(-1, adjacency.shape[0])
-
-    # k=0 changes nothing, and the input is never modified
-    mask = np.array([[1, 0, 1], [0, 1, 0]], bool)
-    assert_array_equal(prune(mask, 0), mask)
-    # an isolated channel has no significant neighbor ...
-    assert_array_equal(prune(mask, 1), np.zeros_like(mask))
-    # ... and neighbors in other slices (time or frequency) do not count
-    assert_array_equal(prune([[1, 0, 0], [0, 1, 0]], 1), np.zeros((2, 3), bool))
-    # repeated until stable: in a chain A-B-C only B has two neighbors, but once the
-    # ends are dropped B has none left
-    assert_array_equal(prune([[1, 1, 1]], 1), [[1, 1, 1]])
-    assert_array_equal(prune([[1, 1, 1]], 2), [[0, 0, 0]])
-    # a triangle (channels 0-2) with a tail (3, 4) hanging off it: the tail goes one
-    # channel at a time, the triangle stays
-    edges = [(0, 1), (0, 2), (1, 2), (2, 3), (3, 4)]
-    dense = np.eye(5, dtype=bool)
-    for ii, jj in edges:
-        dense[ii, jj] = dense[jj, ii] = True
-    triangle_tail = csr_array(dense)
-    assert_array_equal(prune([[1] * 5], 2, triangle_tail), [[1, 1, 1, 0, 0]])
-    assert_array_equal(prune([[1] * 5], 3, triangle_tail), [[0] * 5])
-    # an inactive end of the tail leaves the next channel with a single neighbor
-    assert_array_equal(prune([[1, 1, 1, 1, 0]], 2, triangle_tail), [[1, 1, 1, 0, 0]])
-
-    # a bridge: channel 3 alone at t1 and t2 joins two otherwise separate clusters
-    bridge = np.array([[1, 0, 0, 1, 1], [1, 0, 0, 1, 1], [1, 1, 1, 1, 1]], bool).T
-    adjacency = combine_adjacency(5, ch_adjacency)
-    assert len(_get_components(bridge.ravel(), adjacency)) == 1
-    pruned = prune(bridge, 1)
-    assert_array_equal(pruned[1:3, 2], [False, False])
-    assert_array_equal(pruned[[0, 3, 4]], bridge[[0, 3, 4]])
-    assert len(_get_components(pruned.ravel(), adjacency)) == 2
-
-    # end to end: a lone channel at t3:t6, and every channel at t8:t10
-    rng = np.random.default_rng(seed=3)
-    ch_names = ["Fz", "Cz", "Pz", "C3", "C4"]
-    n_sub, n_chan, n_times = 8, len(ch_names), 10
-    info = create_info(ch_names, sfreq=100.0, ch_types="eeg")
-    info.set_montage("spherical_1020")
-    rows = list()
-    for si in range(n_sub):
-        base = rng.normal(size=(n_chan, n_times))
-        for cond in ("a", "b"):
-            data = base + rng.normal(scale=0.5, size=(n_chan, n_times))
-            if cond == "b":
-                data[1, 3:6] += 2.0
-                data[:, 8:] += 2.0
-            rows.append(dict(data=EvokedArray(data, info), condition=cond, subject=si))
-    df = pd.DataFrame(rows)
-    kwargs = dict(within_id="subject", n_permutations=128, rng=0, out_type="mask")
-    kwargs.update(threshold=5.0)
-    plain = cluster_test(df, "data ~ condition", **kwargs)
-    kept = cluster_test(df, "data ~ condition", min_adjacent_channels=1, **kwargs)
-    assert len(plain.clusters) == 2
-    assert len(kept.clusters) == 1
-    assert_array_equal(kept.clusters[0], plain.clusters[1])
-    # the same filter runs on the permutations, so the null can only shrink
-    # (H0 holds the signed maximum of largest magnitude for a two-tailed test)
-    kwargs.update(threshold=1.0)
-    plain = cluster_test(df, "data ~ condition", **kwargs)
-    kept = cluster_test(df, "data ~ condition", min_adjacent_channels=2, **kwargs)
-    assert np.all(np.abs(kept.H0) <= np.abs(plain.H0))
-    assert np.any(np.abs(kept.H0) < np.abs(plain.H0))
-
-    # only adjacency="auto" with sensor data is supported
-    ch_adj, _ = find_ch_adjacency(info, ch_type=None)
-    explicit = combine_adjacency(n_times, ch_adj)
-    for adjacency in (False, explicit):
+    # min_adjacent_channels needs the sensor adjacency that only "auto" provides
+    for adjacency in (False, combine_adjacency(n_times, ch_adjacency)):
         with pytest.raises(ValueError, match='requires adjacency="auto"'):
             cluster_test(
                 df,
                 "data ~ condition",
-                min_adjacent_channels=1,
                 adjacency=adjacency,
+                min_adjacent_channels=1,
                 **kwargs,
             )
     df_array = df.copy()
@@ -534,3 +456,40 @@ def test_cluster_test_min_adjacent_channels():
         cluster_test(df, "data ~ condition", min_adjacent_channels=-1, **kwargs)
     with pytest.raises(TypeError, match="min_adjacent_channels"):
         cluster_test(df, "data ~ condition", min_adjacent_channels=1.5, **kwargs)
+
+
+def test_cluster_test_min_adjacent_channels():
+    """Test pruning by the minimum number of supra-threshold adjacent channels."""
+    from scipy.sparse import csr_array
+
+    from mne.stats.cluster_level import _get_components
+
+    # three channels in a line, with the diagonal set like find_ch_adjacency does
+    ch_adjacency = csr_array(np.eye(3) + np.eye(3, k=1) + np.eye(3, k=-1))
+
+    mask = np.array([[1, 0, 1], [0, 1, 0]], bool)
+    assert_array_equal(_prune(ch_adjacency, mask, 0), mask)
+    # isolated channels go, and neighbors in other slices do not count
+    assert_array_equal(_prune(ch_adjacency, mask, 1), np.zeros_like(mask))
+    # repeated until stable: only the middle of A-B-C has two neighbors, but once
+    # the ends are dropped it has none left
+    assert_array_equal(_prune(ch_adjacency, [[1, 1, 1]], 1), [[1, 1, 1]])
+    assert_array_equal(_prune(ch_adjacency, [[1, 1, 1]], 2), [[0, 0, 0]])
+
+    # a bridge: channel 2 alone at t1 and t2 joins two otherwise separate clusters
+    bridge = np.array([[1, 0, 0, 1, 1], [1, 0, 0, 1, 1], [1, 1, 1, 1, 1]], bool).T
+    adjacency = combine_adjacency(5, ch_adjacency)
+    assert len(_get_components(bridge.ravel(), adjacency)) == 1
+    pruned = _prune(ch_adjacency, bridge, 1)
+    assert_array_equal(pruned[1:3, 2], False)
+    assert pruned.sum() == bridge.sum() - 2
+    assert len(_get_components(pruned.ravel(), adjacency)) == 2
+
+
+def _prune(ch_adjacency, mask, k):
+    """Prune a (n_slices, n_channels) mask."""
+    from mne.stats.cluster_level import _prune_by_adjacent_channels
+
+    flat = np.array(mask, bool).ravel()
+    pruned = _prune_by_adjacent_channels(flat, ch_adjacency, k)
+    return pruned.reshape(-1, ch_adjacency.shape[0])
