@@ -3104,10 +3104,9 @@ can set the default for your computer via
 """
 
 docdict["notes_fourier_coefficient_scaling"] = """
-For one-sided spectra, the DC coefficient and, for even-length FFTs, the Nyquist
-coefficient are divided by the square root of two. At every frequency,
-``(coefs * np.conj(coefs)).real * 2`` gives the power before averaging over
-segments or tapers.
+The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+conversion to power at every frequency, before averaging over segments or tapers.
 """
 
 _notes_plot_psd = """\

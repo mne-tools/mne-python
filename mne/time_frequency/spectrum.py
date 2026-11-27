@@ -2253,10 +2253,9 @@ class SpectrumArray(Spectrum):
     convert these coefficients to power before visualisation. If you pass in
     complex-valued data that is not Fourier coefficients, axis labels will be incorrect.
 
-    For one-sided spectra, the DC coefficient and, for even-length FFTs, the Nyquist
-    coefficient are divided by the square root of two. At every frequency,
-    ``(coefs * np.conj(coefs)).real * 2`` gives the power before averaging over
-    segments or tapers.
+    The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+    the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+    conversion to power at every frequency, before averaging over segments or tapers.
 
         .. versionadded:: 1.6
     """
@@ -2638,10 +2637,9 @@ class EpochsSpectrumArray(EpochsSpectrum):
     convert these coefficients to power before visualisation. If you pass in
     complex-valued data that is not Fourier coefficients, axis labels will be incorrect.
 
-    For one-sided spectra, the DC coefficient and, for even-length FFTs, the Nyquist
-    coefficient are divided by the square root of two. At every frequency,
-    ``(coefs * np.conj(coefs)).real * 2`` gives the power before averaging over
-    segments or tapers.
+    The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+    the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+    conversion to power at every frequency, before averaging over segments or tapers.
 
         .. versionadded:: 1.6
     """
@@ -2781,12 +2779,6 @@ def read_spectrum(fname):
     See Also
     --------
     mne.time_frequency.Spectrum.save
-
-    Notes
-    -----
-    Complex Welch spectra saved before version 1.14 retain their original
-    coefficient scaling. Recompute the spectrum from the time series to use the
-    scaling described in :func:`~mne.time_frequency.psd_array_welch`.
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, "path-like", "fname")

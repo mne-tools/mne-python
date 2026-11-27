@@ -195,13 +195,9 @@ def psd_array_welch(
 
     Notes
     -----
-    For one-sided spectra, the DC coefficient and, for even-length FFTs, the Nyquist
-    coefficient are divided by the square root of two. At every frequency,
-    ``(coefs * np.conj(coefs)).real * 2`` gives the power before averaging over
-    segments or tapers.
-
-    For complex-valued input, Welch uses a two-sided FFT and divides all
-    coefficients by the square root of two.
+    The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+    the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+    conversion to power at every frequency, before averaging over segments or tapers.
 
     .. versionadded:: 0.14.0
 
