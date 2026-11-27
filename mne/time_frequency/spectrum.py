@@ -1717,18 +1717,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         )
 
     def _prepare_data_for_plot(self, data):
-        # handle unaggregated Welch
-        if "segment" in self._dims:
-            logger.info("Aggregating Welch estimates (median) before plotting...")
-            data = np.nanmedian(data, axis=self._dims.index("segment"))
-        # handle unaggregated multitaper (also handles complex -> power)
-        elif "taper" in self._dims:
+        # Convert coefficients to power before aggregating segments.
+        if "taper" in self._dims:
             logger.info("Aggregating multitaper estimates before plotting...")
+            # _psd_from_mt expects tapers second from last, even for segmented data.
+            data = np.moveaxis(data, self._dims.index("taper"), -2)
             data = _psd_from_mt(data, self.weights)
-
-        # handle complex data (should only be Welch remaining)
-        if np.iscomplexobj(data):
-            data = (data * data.conj()).real  # Scaling may be slightly off
+        elif np.iscomplexobj(data):
+            data = (data * data.conj()).real * 2
+        if "segment" in self._dims:
+            logger.info("Aggregating segments (median) before plotting...")
+            data = np.nanmedian(data, axis=-1)
 
         # handle epochs
         if "epoch" in self._dims:
@@ -2198,7 +2197,13 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
         )
 
 
-@fill_doc_static("info_not_none", "freqs_tfr_array", "verbose", "notes_spectrum_array")
+@fill_doc_static(
+    "info_not_none",
+    "freqs_tfr_array",
+    "verbose",
+    "notes_spectrum_array",
+    "notes_fourier_coefficient_scaling",
+)
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
 
@@ -2244,9 +2249,13 @@ class SpectrumArray(Spectrum):
     real-valued data that is not power, axis labels will be incorrect.
 
     If the data passed in is complex-valued, it is assumed to represent Fourier
-    coefficients. Downstream plotting methods will treat the data as such, attempting to
-    convert this to power before visualisation. If you pass in complex-valued data that
-    is not Fourier coefficients, axis labels will be incorrect.
+    coefficients with the scaling described below. Downstream plotting methods
+    convert these coefficients to power before visualisation. If you pass in
+    complex-valued data that is not Fourier coefficients, axis labels will be incorrect.
+
+    The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+    the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+    conversion to power at every frequency, before averaging over segments or tapers.
 
         .. versionadded:: 1.6
     """
@@ -2564,6 +2573,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     "event_id",
     "verbose",
     "notes_spectrum_array",
+    "notes_fourier_coefficient_scaling",
 )
 class EpochsSpectrumArray(EpochsSpectrum):
     """Data object for precomputed epoched spectral data (in NumPy array format).
@@ -2623,9 +2633,13 @@ class EpochsSpectrumArray(EpochsSpectrum):
     real-valued data that is not power, axis labels will be incorrect.
 
     If the data passed in is complex-valued, it is assumed to represent Fourier
-    coefficients. Downstream plotting methods will treat the data as such, attempting to
-    convert this to power before visualisation. If you pass in complex-valued data that
-    is not Fourier coefficients, axis labels will be incorrect.
+    coefficients with the scaling described below. Downstream plotting methods
+    convert these coefficients to power before visualisation. If you pass in
+    complex-valued data that is not Fourier coefficients, axis labels will be incorrect.
+
+    The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+    the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+    conversion to power at every frequency, before averaging over segments or tapers.
 
         .. versionadded:: 1.6
     """

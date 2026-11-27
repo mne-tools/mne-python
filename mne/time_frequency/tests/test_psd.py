@@ -217,11 +217,19 @@ def _median_bias(n):
     return 1 + np.sum(1.0 / (ii_2 + 1) - 1.0 / ii_2)
 
 
-def test_complex_welch():
+@pytest.mark.parametrize("n_fft", (255, 256))
+@pytest.mark.parametrize("fmin, fmax", [(0, np.inf), (5, 100)])
+@pytest.mark.parametrize("complex_input", (False, True))
+@pytest.mark.filterwarnings(
+    "ignore:Input data is complex, switching to return_onesided"
+)
+def test_complex_welch(n_fft, fmin, fmax, complex_input):
     """Test complex-valued Welch output."""
     data, sfreq, _ = _make_psd_data()
     data = data[:4]
-    kwargs = dict(n_fft=256, n_overlap=0, verbose=False)
+    if complex_input:
+        data = data + 1j * data[::-1]
+    kwargs = dict(n_fft=n_fft, fmin=fmin, fmax=fmax, remove_dc=False, verbose=False)
     for average in ("mean", "median"):
         with pytest.raises(ValueError, match='output="complex"'):
             psd_array_welch(data, sfreq, average=average, output="complex", **kwargs)
@@ -230,8 +238,9 @@ def test_complex_welch():
         data, sfreq, average=None, output="complex", **kwargs
     )
     assert coefs.shape[-1] > 1
-    scale = np.where((freqs == 0) | np.isclose(freqs, sfreq / 2), 1.0, 2.0)
-    segment_power = (coefs * np.conj(coefs)).real * scale[:, np.newaxis]
+    segment_power = (coefs * np.conj(coefs)).real * 2
+    power, _ = psd_array_welch(data, sfreq, average=None, **kwargs)
+    assert_allclose(segment_power, power)
     for average in ("mean", "median"):
         power, freqs_power = psd_array_welch(
             data, sfreq, average=average, output="power", **kwargs

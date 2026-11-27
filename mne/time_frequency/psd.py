@@ -44,8 +44,16 @@ def _median_biases(n):
     return biases
 
 
-def _decomp_aggregate_mask(epoch, func, average, freq_sl):
+def _decomp_aggregate_mask(epoch, func, average, freq_sl, output):
     _, _, spect = func(epoch)
+    if output == "complex":
+        if np.iscomplexobj(epoch):
+            # SciPy switches to a two-sided spectrum for complex input.
+            spect /= np.sqrt(2.0)
+        else:
+            spect[..., 0, :] /= np.sqrt(2.0)
+            if func.keywords["nfft"] % 2 == 0:
+                spect[..., -1, :] /= np.sqrt(2.0)
     spect = spect[..., freq_sl, :]
     # Do the averaging here (per epoch) to save memory
     if average == "mean":
@@ -64,7 +72,7 @@ def _spect_func(epoch, func, freq_sl, average, *, output="power"):
     # want to write (really, go back to) our own spectrogram implementation
     # that, if possible, averages after each transform, but this will incur
     # a lot of overhead because of the many Python calls required.
-    kwargs = dict(func=func, average=average, freq_sl=freq_sl)
+    kwargs = dict(func=func, average=average, freq_sl=freq_sl, output=output)
     if epoch.nbytes > 10e6:
         spect = np.apply_along_axis(_decomp_aggregate_mask, -1, epoch, **kwargs)
     else:
@@ -91,7 +99,9 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-@verbose_static("n_jobs", "window_psd", "remove_dc")
+@verbose_static(
+    "n_jobs", "window_psd", "remove_dc", "notes_fourier_coefficient_scaling"
+)
 def psd_array_welch(
     x,
     sfreq,
@@ -161,7 +171,7 @@ def psd_array_welch(
         ``'power'``:
 
         * ``'power'`` : the power spectral density is returned.
-        * ``'complex'`` : the complex fourier coefficients are returned per
+        * ``'complex'`` : the complex Fourier coefficients are returned per
           window.
 
         .. versionadded:: 1.4.0
@@ -185,6 +195,10 @@ def psd_array_welch(
 
     Notes
     -----
+    The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+    the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+    conversion to power at every frequency, before averaging over segments or tapers.
+
     .. versionadded:: 0.14.0
 
     References

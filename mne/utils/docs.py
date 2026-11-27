@@ -3110,6 +3110,12 @@ can set the default for your computer via
           of ``mne-qt-browser``.
 """
 
+docdict["notes_fourier_coefficient_scaling"] = """
+The DC coefficient and, for even-length FFTs, the Nyquist coefficient are divided by
+the square root of two, so that ``(coefs * np.conj(coefs)).real * 2`` gives the
+conversion to power at every frequency, before averaging over segments or tapers.
+"""
+
 _notes_plot_psd = """\
 This {} exists to support legacy code; for new code the preferred
 idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
@@ -3126,9 +3132,9 @@ If the data passed in is real-valued, it is assumed to represent spectral *power
 real-valued data that is not power, axis labels will be incorrect.
 
 If the data passed in is complex-valued, it is assumed to represent Fourier
-coefficients. Downstream plotting methods will treat the data as such, attempting to
-convert this to power before visualisation. If you pass in complex-valued data that
-is not Fourier coefficients, axis labels will be incorrect.
+coefficients with the scaling described below. Downstream plotting methods
+convert these coefficients to power before visualisation. If you pass in
+complex-valued data that is not Fourier coefficients, axis labels will be incorrect.
 """
 
 docdict["notes_timefreqs_tfr_plot_joint"] = """
