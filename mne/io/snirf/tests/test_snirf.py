@@ -719,6 +719,51 @@ def test_get_dataunit_scaling():
         _get_dataunit_scaling("bad_unit")
 
 
+@pytest.mark.parametrize(
+    "labels, ch_names, ch_types",
+    [
+        (["HbO", "HbR"], ["S1_D1 hbo", "S1_D1 hbr"], ["hbo", "hbr"]),
+        (
+            ["HbO", "HbR", "HbT"],
+            ["S1_D1 hbo", "S1_D1 hbr", "S1_D1 HbT"],
+            ["hbo", "hbr", "misc"],
+        ),
+        (["StO2"], ["S1_D1 StO2"], ["misc"]),
+    ],
+)
+def test_snirf_processed_labels(tmp_path, labels, ch_names, ch_types):
+    """Test reading processed data without wavelengths or an MNE channel type."""
+    fname = tmp_path / "processed.snirf"
+    data = np.arange(10.0 * len(labels)).reshape(10, -1)
+    with h5py.File(fname, "w") as f:
+        for key, val in dict(SubjectID=b"0", TimeUnit=b"s", LengthUnit=b"m").items():
+            f[f"nirs/metaDataTags/{key}"] = val
+        f["nirs/probe/sourcePos3D"] = np.zeros((1, 3))
+        f["nirs/probe/detectorPos3D"] = np.full((1, 3), 0.03)
+        f["nirs/data1/dataTimeSeries"] = data
+        f["nirs/data1/time"] = np.arange(10) / 10.0
+        for ii, label in enumerate(labels, 1):
+            ml = f.create_group(f"nirs/data1/measurementList{ii}")
+            ml["sourceIndex"] = 1
+            ml["detectorIndex"] = 1
+            ml["dataType"] = 99999
+            ml["dataTypeLabel"] = label.encode()
+    ctx = nullcontext()
+    if "misc" in ch_types:
+        ctx = pytest.warns(RuntimeWarning, match="will be read as misc")
+    with ctx:
+        raw = read_raw_snirf(fname, preload=True)
+    assert raw.ch_names == ch_names
+    assert raw.get_channel_types() == ch_types
+    assert_allclose(raw.get_data(), data.T)
+    # optical density still needs its wavelengths
+    with h5py.File(fname, "r+") as f:
+        del f["nirs/data1/measurementList1/dataTypeLabel"]
+        f["nirs/data1/measurementList1/dataTypeLabel"] = b"dOD"
+    with pytest.raises(RuntimeError, match="at least two wavelengths"):
+        read_raw_snirf(fname)
+
+
 @requires_testing_data
 def test_snirf_multiple_wavelengths():
     """Test importing synthetic SNIRF files with >=3 wavelengths."""

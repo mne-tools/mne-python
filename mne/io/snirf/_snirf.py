@@ -221,10 +221,16 @@ class RawSNIRF(BaseRaw):
             if sampling_rate == 0:
                 warn("Unable to extract sample rate from SNIRF file.")
 
-            # Extract wavelengths
-            fnirs_wavelengths = np.array(dat.get("nirs/probe/wavelengths"))
-            fnirs_wavelengths = [int(w) for w in fnirs_wavelengths]
-            if len(fnirs_wavelengths) < 2:
+            # Extract wavelengths, which processed data other than dOD does not use
+            needs_wavelengths = snirf_data_type != SNIRF_PROCESSED or any(
+                _correct_shape(np.array(ml["dataTypeLabel"]))[0].lower() == b"dod"
+                for name, ml in dat["nirs/data1"].items()
+                if "measurementList" in name
+            )
+            fnirs_wavelengths = np.atleast_1d(dat.get("nirs/probe/wavelengths", []))
+            if needs_wavelengths:
+                fnirs_wavelengths = [int(w) for w in fnirs_wavelengths]
+            if needs_wavelengths and len(fnirs_wavelengths) < 2:
                 raise RuntimeError(
                     f"The data contains "
                     f"{len(fnirs_wavelengths)}"
@@ -337,6 +343,7 @@ class RawSNIRF(BaseRaw):
             chnames = []
             ch_types = []
             ch_cals = []
+            misc_labels = set()
             for chan in channels:
                 ch_root = f"nirs/data1/{chan}"
                 src_idx = int(
@@ -399,6 +406,7 @@ class RawSNIRF(BaseRaw):
                     )[0].decode("UTF-8")
 
                     # Convert between SNIRF processed names and MNE type names
+                    suffix = dt_id
                     dt_id = dt_id.lower().replace("dod", "fnirs_od")
 
                     if dt_id == "fnirs_od":
@@ -408,14 +416,12 @@ class RawSNIRF(BaseRaw):
                             )[0]
                         )
                         suffix = str(fnirs_wavelengths[wve_idx - 1])
+                    elif dt_id in ("hbo", "hbr"):
+                        suffix = dt_id
                     else:
-                        if dt_id not in ("hbo", "hbr"):
-                            raise RuntimeError(
-                                "read_raw_snirf can only handle processed "
-                                "data in the form of optical density or "
-                                f"HbO/HbR, but got type f{dt_id}"
-                            )
-                        suffix = dt_id.lower()
+                        # e.g. HbT or StO2, which have no MNE channel type
+                        misc_labels.add(suffix)
+                        dt_id = "misc"
                     ch_name = f"{ch_name} {suffix}"
                     ch_type = dt_id
                 chnames.append(ch_name)
@@ -423,6 +429,11 @@ class RawSNIRF(BaseRaw):
                 ch_cals.append(ch_cal)
                 del ch_root, ch_name, ch_type, ch_cal
             del scale
+            if misc_labels:
+                warn(
+                    "MNE has no channel type for processed SNIRF data labeled "
+                    f"{sorted(misc_labels)}, these channels will be read as misc."
+                )
 
             # Create mne structure
             info = create_info(chnames, sampling_rate, ch_types=ch_types)
@@ -534,7 +545,7 @@ class RawSNIRF(BaseRaw):
                         info["chs"][idx]["loc"][10] = fnirs_moment_orders[
                             moment_idx - 1
                         ]
-                elif snirf_data_type == SNIRF_PROCESSED:
+                elif ch_types[idx] in ("hbo", "hbr"):
                     hb_id = (
                         np.array(dat.get(f"{ch_root}/dataTypeLabel"))
                         .item()
@@ -672,7 +683,8 @@ class RawSNIRF(BaseRaw):
             self.set_annotations(annot, emit_warning=False)
 
         # Validate that the fNIRS info is correctly formatted
-        _validate_nirs_info(self.info)
+        if set(ch_types) != {"misc"}:
+            _validate_nirs_info(self.info)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
