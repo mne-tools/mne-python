@@ -7,11 +7,17 @@
 from functools import partial
 from pathlib import Path
 
-from ..utils import fill_doc_static
+from ..utils import _file_like, fill_doc_static
+from ..utils._typing import FileLike
 from .base import BaseRaw
 
 
 def _read_unsupported(fname, **kwargs):
+    if _file_like(fname):
+        raise ValueError(
+            "Unsupported file-like object. Consider using a dedicated reader "
+            "function for more options."
+        )
     ext = "".join(Path(fname).suffixes)
     msg = f"Unsupported file type ({ext})."
     suggest = kwargs.get("suggest")
@@ -113,8 +119,37 @@ def _get_readers():
     return {**_get_supported(), **_suggested}
 
 
+_MAGIC_BYTES = (
+    (b"\x00\x00\x00d\x00\x00\x00\x1f", ".fif"),
+    (b"0       ", ".edf"),
+    (b"\xffBIOSEMI", ".bdf"),
+    (b"GDF ", ".gdf"),
+)
+
+
+def _detect_file_like_ext(fname):
+    name = getattr(fname, "name", None)
+    if isinstance(name, (str, Path)):
+        stem, ext = split_name_ext(name)
+        if ext is not None:
+            return stem, ext
+    if getattr(fname, "seekable", lambda: False)():
+        pos = fname.tell()
+        try:
+            header = fname.read(16)
+        finally:
+            fname.seek(pos)
+        if isinstance(header, bytes):
+            for magic, ext in _MAGIC_BYTES:
+                if header.startswith(magic):
+                    return fname, ext
+    return fname, None
+
+
 def split_name_ext(fname):
     """Return name and supported file extension."""
+    if _file_like(fname):
+        return _detect_file_like_ext(fname)
     maxsuffixes = max(ext.count(".") for ext in _get_supported())
     suffixes = Path(fname).suffixes
     for si in range(-maxsuffixes, 0):
@@ -126,7 +161,7 @@ def split_name_ext(fname):
 
 @fill_doc_static("preload", "verbose")
 def read_raw(
-    fname: Path | str,
+    fname: Path | str | FileLike,
     *,
     preload: bool | str = False,
     verbose: bool | str | int | None = None,
@@ -171,8 +206,11 @@ def read_raw(
 
     Parameters
     ----------
-    fname : path-like
-        Name of the file to read.
+    fname : path-like | file-like
+        Name of the file to read, or a binary file-like object.
+
+        .. versionchanged:: 1.14
+           Added support for file-like objects.
     preload : bool | str
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
