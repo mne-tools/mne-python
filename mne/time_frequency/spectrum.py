@@ -2196,9 +2196,24 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
             f"The number of frequencies in `data` ({got_n_freq}) must match the number "
             f"of elements in `freqs` ({want_n_freq})."
         )
+    if np.any(freqs < 0):
+        raise ValueError(
+            "Frequencies must be non-negative (i.e., representing a one-sided "
+            "spectrum), got negative frequencies."
+        )
+    if np.any(freqs > info["sfreq"] / 2):
+        raise ValueError(
+            f"Frequencies cannot exceed the Nyquist frequency ({info['sfreq'] / 2} Hz)."
+        )
 
 
-@fill_doc_static("info_not_none", "freqs_tfr_array", "verbose", "notes_spectrum_array")
+@fill_doc_static(
+    "info_not_none",
+    "freqs_tfr_array",
+    "verbose",
+    "warn_spectrum_array",
+    "notes_spectrum_array",
+)
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
 
@@ -2238,6 +2253,10 @@ class SpectrumArray(Spectrum):
 
     Notes
     -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
+
     If the data passed in is real-valued, it is assumed to represent spectral *power*
     (not amplitude, phase, etc), and downstream methods (such as
     :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
@@ -2563,6 +2582,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     "events_epochs",
     "event_id",
     "verbose",
+    "warn_spectrum_array",
     "notes_spectrum_array",
 )
 class EpochsSpectrumArray(EpochsSpectrum):
@@ -2617,6 +2637,10 @@ class EpochsSpectrumArray(EpochsSpectrum):
 
     Notes
     -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
+
     If the data passed in is real-valued, it is assumed to represent spectral *power*
     (not amplitude, phase, etc), and downstream methods (such as
     :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in

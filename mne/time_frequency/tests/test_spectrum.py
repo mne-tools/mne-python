@@ -648,6 +648,20 @@ def test_spectrum_array_errors():
     # test mismatching number of frequencies
     with pytest.raises(ValueError, match=r"number of frequencies.*number of elements"):
         EpochsSpectrumArray(data[:, :, :-1], info, freqs, dim_names=dim_names)
+    # test negative frequencies
+    bad_freqs = freqs.copy()
+    bad_freqs[0] = -1.0
+    with pytest.raises(ValueError, match="Frequencies must be non-negative"):
+        SpectrumArray(data[0, :, :], info, bad_freqs, dim_names=("channel", "freq"))
+    with pytest.raises(ValueError, match="Frequencies must be non-negative"):
+        EpochsSpectrumArray(data, info, bad_freqs, dim_names=dim_names)
+    # test frequencies exceeding Nyquist
+    bad_freqs = freqs.copy()
+    bad_freqs[-1] = sfreq / 2 + 1.0
+    with pytest.raises(ValueError, match="cannot exceed the Nyquist frequency"):
+        SpectrumArray(data[0, :, :], info, bad_freqs, dim_names=("channel", "freq"))
+    with pytest.raises(ValueError, match="cannot exceed the Nyquist frequency"):
+        EpochsSpectrumArray(data, info, bad_freqs, dim_names=dim_names)
 
 
 @pytest.mark.parametrize(
