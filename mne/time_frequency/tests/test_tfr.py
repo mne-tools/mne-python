@@ -789,6 +789,17 @@ def test_tfr_init_errors(inst, request, average_tfr):
         TFR(inst=state | dict(times=inst.times[:-1]))
     with pytest.raises(ValueError, match="Frequency axis of.*doesn't match freqs attr"):
         TFR(inst=state | dict(freqs=inst.freqs[:-1]))
+    TFRArray = dict(
+        RawTFR=RawTFRArray, EpochsTFR=EpochsTFRArray, AverageTFR=AverageTFRArray
+    )[inst_name]
+    nyq = inst.info["sfreq"] / 2
+    TFRArray(inst.info, inst.data, inst.times, np.linspace(0, nyq, len(inst.freqs)))
+    for val, match in (
+        (-1, "Frequencies must be non-negative"),
+        (nyq + 1, "cannot exceed the Nyquist frequency"),
+    ):
+        with pytest.raises(ValueError, match=match):
+            TFRArray(inst.info, inst.data, inst.times, np.full_like(inst.freqs, val))
 
 
 @pytest.mark.parametrize(

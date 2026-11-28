@@ -1,0 +1,1 @@
+Add validation to :class:`~mne.time_frequency.AverageTFRArray`, :class:`~mne.time_frequency.EpochsTFRArray`, and :class:`~mne.time_frequency.RawTFRArray` to ensure frequencies are non-negative and do not exceed the Nyquist frequency, by `Ishaan Maheshwari`_.
