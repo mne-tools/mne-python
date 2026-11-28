@@ -898,6 +898,75 @@ class BaseEpochs(
         self._check_consistency()
         self.set_annotations(annotations, on_missing="ignore")
 
+    def mark_bad_channels_per_epoch(self, reject_mask=None):
+        """Mark bad channels on an epoch-by-epoch basis.
+
+        The data of the flagged epoch/channel combinations are set to ``NaN``. The
+        epochs themselves are not dropped, so the other channels of the same epoch
+        remain usable.
+
+        Parameters
+        ----------
+        reject_mask : array-like of bool, shape (n_epochs, n_channels) | None
+            Boolean mask where ``True`` marks the data of that epoch and channel as
+            bad (sets it to ``NaN``). If ``None``, nothing is marked.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs object with the marked epoch/channel combinations set to
+            ``NaN``. Operates in-place.
+
+        Notes
+        -----
+        This is only useful for channel-wise analyses (e.g., of ECoG or LFP
+        recordings). The rejection is stored as ``NaN`` values in the data, so it
+        is preserved when selecting epochs or channels. The number of valid epochs
+        per channel is available as :attr:`mne.Epochs.nave_per_channel`.
+
+        Epochs containing ``NaN`` cannot be averaged in the usual way:
+        :meth:`mne.Epochs.average` raises an error if any of the picked channels
+        has marked epochs. Use :meth:`mne.Epochs.get_data` and :func:`numpy.nanmean`
+        for per-channel averages.
+        """
+        if reject_mask is None:
+            return self
+
+        _check_preload(self, "mark_bad_channels_per_epoch")
+        data = self._data
+        assert data is not None
+
+        reject_mask = np.asarray(reject_mask)
+        n_epochs, n_channels, _ = data.shape
+        if reject_mask.shape != (n_epochs, n_channels):
+            raise ValueError(
+                f"reject_mask must have shape ({n_epochs}, {n_channels}), "
+                f"got {reject_mask.shape}"
+            )
+
+        # required: bool -> boolean indexing, not int
+        reject_mask = reject_mask.astype(bool, copy=False)
+
+        data[reject_mask] = np.nan
+
+        return self
+
+    @property
+    def _bad_mask(self):
+        """Bool array (n_epochs, n_channels): True where an epoch is NaN."""
+        if not self.preload:
+            return np.zeros((len(self.events), len(self.ch_names)), dtype=bool)
+        assert self._data is not None
+        return np.isnan(self._data).any(axis=-1)
+
+    @property
+    def nave_per_channel(self):
+        """Number of valid (non-NaN) epochs per channel.
+
+        :type: :class:`numpy.ndarray`, shape (n_channels,)
+        """
+        return np.sum(~self._bad_mask, axis=0)
+
     def _check_events_outside_data(self, on_outside, raw):
         """Warn when events fall outside the range of the recorded data (gh-12989)."""
         if raw is not None and hasattr(raw, "first_samp") and len(self.events) > 0:
@@ -1476,6 +1545,17 @@ class BaseEpochs(
             n_events = len(self.events)
             fun = _check_combine(mode, valid=("mean", "median", "std"))
             data = fun(self._data)
+            pick_idx = _picks_to_idx(self.info, picks, "data_or_ica", ())
+            nan_chs = np.isnan(data[pick_idx]).any(axis=-1)
+            if nan_chs.any():
+                bad_names = [self.ch_names[p] for p in pick_idx[nan_chs]]
+                raise ValueError(
+                    "Cannot average epochs containing NaNs (possibly introduced by "
+                    "mark_bad_channels_per_epoch) in the picked channels "
+                    f"{bad_names}: they would average to NaN. Extract the data with "
+                    "get_data() and use np.nanmean over the epoch axis if you need "
+                    "per-channel averages."
+                )
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
                 raise RuntimeError(

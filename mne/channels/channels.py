@@ -757,12 +757,10 @@ class UpdateChannelsMixin:
             for ch_type in list(self.reject):
                 if ch_type not in self:
                     del self.reject[ch_type]
-
         if getattr(self, "flat", None) is not None:
             for ch_type in list(self.flat):
                 if ch_type not in self:
                     del self.flat[ch_type]
-
         return self
 
     def reorder_channels(self, ch_names):

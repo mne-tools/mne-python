@@ -5386,6 +5386,52 @@ def test_empty_error(method, epochs_empty):
         getattr(epochs_empty.copy(), method[0])(**method[1])
 
 
+def test_mark_bad_channels_per_epoch():
+    """Test channel-specific epoch rejection."""
+    raw, ev, _ = _get_data(preload=False)
+    ep = Epochs(raw, ev, tmin=0, tmax=0.1, baseline=(0, 0), preload=False)
+    n_epochs, n_ch = len(ep.events), len(ep.ch_names)
+    # create empty mask
+    mask = np.zeros((n_epochs, n_ch), dtype=bool)
+
+    # test data needs to be loaded to disk
+    with pytest.raises(RuntimeError, match="data to be loaded"):
+        ep.mark_bad_channels_per_epoch(mask)
+    ep.load_data()
+
+    # test None
+    assert ep.mark_bad_channels_per_epoch(None) is ep
+    assert_array_equal(ep.nave_per_channel, n_epochs)
+
+    # test wrong shape
+    with pytest.raises(ValueError, match="reject_mask must have shape"):
+        ep.mark_bad_channels_per_epoch(mask[:, :-1])
+
+    # Test NaNs and nave_per_channel
+    mask[:2, 0] = mask[2, 1] = True
+    ep.mark_bad_channels_per_epoch(mask)
+    data = ep.get_data()
+    assert np.isnan(data[:2, 0]).all() and np.isnan(data[2, 1]).all()
+    expected = n_epochs - mask.sum(axis=0)
+    assert_array_equal(ep.nave_per_channel, expected)
+
+    # Indexing updates nave_per_channel
+    assert_array_equal(ep[:2].nave_per_channel, 2 - mask[:2].sum(axis=0))
+    assert_array_equal(ep[[2, 3]].nave_per_channel, 2 - mask[[2, 3]].sum(axis=0))
+    assert_array_equal(
+        ep.copy().drop([0]).nave_per_channel, n_epochs - 1 - mask[1:].sum(axis=0)
+    )
+    assert_array_equal(ep.copy().pick(ep.ch_names[1:3]).nave_per_channel, expected[1:3])
+    assert_array_equal(
+        ep.copy().drop_channels(ep.ch_names[0]).nave_per_channel, expected[1:]
+    )
+
+    # averaging only fails for channel picks containing NaNs
+    assert ep.average(picks=ep.ch_names[2]).nave == n_epochs
+    with pytest.raises(ValueError, match="Cannot average epochs containing NaNs"):
+        ep.average(picks=ep.ch_names[:2])
+
+
 def test_epochs_warn_out_of_bounds_events():
     """Warn when event sample numbers fall outside the recorded data (gh-12989)."""
     sfreq = 100.0

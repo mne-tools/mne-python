@@ -1,0 +1,6 @@
+Add :meth:`mne.Epochs.mark_bad_channels_per_epoch` for channel-specific epoch rejection. 
+The method sets the data of the selected epoch/channel combinations to ``NaN`` (preloaded epochs only),
+and the new property :attr:`mne.Epochs.nave_per_channel` returns the number of valid epochs for each channel.
+Averaging with :meth:`mne.Epochs.average` raises an error if any of the picked channels contain rejected epochs, 
+because source estimation assumes a single ``nave`` for all channels. 
+By `Carina Forster`_.
