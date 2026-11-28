@@ -210,15 +210,10 @@ fig = cluster_result.plot_joint(
     info=df["evoked"][0].info,
     times_sec=df["evoked"][0].times,
     show=False,
-    cluster_alpha=0.07,
+    cluster_alpha=1.0,
 )
-ax.set_yticks(np.arange(len(ch_names)) + 0.5)
-ax.set_yticklabels(ch_names)
-ax.set_xlabel("time (s)")
-ax.set_ylabel("channel")
-ax.set_title("Observed cluster statistic (target - non-target)")
-fig.colorbar(im, ax=ax, label="t-value")
-
+# Not sure if this should go in this tutorial
+# TODO: implement a max clusters shown or something like that
 # %%
 # Drop isolated locations with ``min_adjacent_channels``
 # ------------------------------------------------------
@@ -247,27 +242,19 @@ results = {
     ),
 }
 
-cmap = plt.get_cmap("RdBu_r").with_extremes(bad="0.92")
-fig, axes = plt.subplots(1, 2, sharey=True, layout="constrained")
-for ax, (min_adjacent, result) in zip(axes, results.items()):
-    in_cluster = np.any(result.clusters, axis=0)
-    im = ax.imshow(
-        np.where(in_cluster, result.stat_obs, np.nan),
-        aspect="auto",
-        origin="lower",
-        extent=[times[0], times[-1], 0, len(ch_names)],
-        cmap=cmap,
-        vmin=-vlim,
-        vmax=vlim,
+info = df["evoked"][0].info
+times = df["evoked"][0].times
+
+for min_adjacent, result in results.items():
+    fig = result.plot_joint(
+        info=info,
+        times_sec=times,
+        cluster_alpha=1.00,  # see caveat below
+        show=False,
     )
-    ax.set_title(
-        f"min_adjacent_channels={min_adjacent}\n{len(result.clusters)} clusters"
+    fig.suptitle(
+        f"min_adjacent_channels={min_adjacent}: {len(result.clusters)} clusters"
     )
-    ax.set_xlabel("time (s)")
-axes[0].set_yticks(np.arange(len(ch_names)) + 0.5)
-axes[0].set_yticklabels(ch_names)
-axes[0].set_ylabel("channel")
-fig.colorbar(im, ax=axes, label="t-value")
 
 # %%
 # The large cluster around the P3b effect remains, and so do most of its locations.
