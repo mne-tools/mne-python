@@ -1,0 +1,1 @@
+Fix bug where :func:`~mne.io.read_raw_fif` and :func:`~mne.read_epochs` failed to load BIDS datasets split across multiple files when passed a :class:`~mne_bids.BIDSPath` with ``split=None``, by :newcontrib:`Aditya Kumar Singh` and `Eric Larson`_.

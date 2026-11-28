@@ -9,6 +9,7 @@ from typing import IO
 
 import numpy as np
 
+from ..utils import logger
 from .constants import FIFF
 from .meas_info import _get_valid_units
 
@@ -354,3 +355,25 @@ def _make_split_fnames(fname, n_splits, split_naming):
             path = Path(_construct_bids_filename(base, ext, i))
             res.append(path)
     return res
+
+
+def _check_bids_path_split(fname):
+    """Check if a BIDSPath without split exists, or if split-01 exists instead."""
+    if hasattr(fname, "fpath") and getattr(fname, "split", None) is None:
+        try:
+            from mne_bids import BIDSPath
+        except Exception:
+            pass
+        else:
+            if isinstance(fname, BIDSPath):
+                if not Path(fname.fpath).exists():
+                    split_01 = fname.copy().update(split="01")
+                    if Path(split_01.fpath).exists():
+                        logger.info(
+                            "BIDS file %s missing but adjacent split file %s found, "
+                            "loading that one.",
+                            fname.fpath,
+                            split_01.fpath,
+                        )
+                        return split_01
+    return fname
