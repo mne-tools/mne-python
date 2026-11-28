@@ -5532,7 +5532,9 @@ def plot_bridged_electrodes(
     return fig
 
 
-def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
+def plot_ch_adjacency(
+    info, adjacency, ch_names, kind="2d", edit=False, show_names=False
+):
     """Plot channel adjacency.
 
     Parameters
@@ -5556,6 +5558,9 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
         not); the newly clicked channel now becomes activated. Clicking on
         an activated channel deactivates it. Editing is currently only
         supported for ``kind='2d'``.
+    show_names : bool | array of str
+        Whether to display all channel names. If an array, only the channel
+        names in the array are shown. Defaults to False.
 
     Returns
     -------
@@ -5598,13 +5603,16 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
             f" {n_channels} for ``inst``."
         )
 
+    # Forward show_names to underlying sensor plots
+    if isinstance(show_names, np.ndarray):
+        show_names = show_names.tolist()
     if kind == "3d":
         with plt.rc_context({"toolbar": "None"}):
-            fig = plot_sensors(info, kind=kind, show=False)
+            fig = plot_sensors(info, kind=kind, show=False, show_names=show_names)
         _set_3d_axes_equal(fig.axes[0])
     elif kind == "2d":
         with plt.rc_context({"toolbar": "None"}):
-            fig = plot_sensors(info, kind="topomap", show=False)
+            fig = plot_sensors(info, kind="topomap", show=False, show_names=show_names)
         fig.axes[0].axis("equal")
 
     path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)

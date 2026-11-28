@@ -1191,6 +1191,17 @@ def test_plot_ch_adjacency():
     adj = adj_sparse.toarray()
     fig = plot_ch_adjacency(info, adj, ch_names, kind="3d")
 
+    # verify show_names displays channel labels in 2d and 3d
+    fig_names = plot_ch_adjacency(
+        info, adj_sparse, ch_names, kind="2d", show_names=True
+    )
+    assert {t.get_text() for t in fig_names.axes[0].texts} >= set(ch_names)
+
+    fig_sub = plot_ch_adjacency(
+        info, adj, ch_names, kind="3d", show_names=np.array(["a", "c"])
+    )
+    assert {t.get_text() for t in fig_sub.axes[0].texts} >= {"a", "c"}
+
     # test errors
     # -----------
     # number of channels in the adjacency matrix and info must match
