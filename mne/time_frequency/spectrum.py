@@ -2211,15 +2211,11 @@ def _check_data_shape(data, info, freqs, dim_names, weights, is_epoched):
     "info_not_none",
     "freqs_tfr_array",
     "verbose",
-    "notes_spectrum_array",
     "warn_spectrum_array",
+    "notes_spectrum_array",
 )
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
-
-    .. warning:: Input validation is minimal. Inconsistently or incorrectly
-                 specifying parameters can lead to unexpected errors or
-                 incorrect results downstream.
 
     Parameters
     ----------
@@ -2257,6 +2253,10 @@ class SpectrumArray(Spectrum):
 
     Notes
     -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
+
     If the data passed in is real-valued, it is assumed to represent spectral *power*
     (not amplitude, phase, etc), and downstream methods (such as
     :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
@@ -2582,15 +2582,11 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     "events_epochs",
     "event_id",
     "verbose",
-    "notes_spectrum_array",
     "warn_spectrum_array",
+    "notes_spectrum_array",
 )
 class EpochsSpectrumArray(EpochsSpectrum):
     """Data object for precomputed epoched spectral data (in NumPy array format).
-
-    .. warning:: Input validation is minimal. Inconsistently or incorrectly
-                 specifying parameters can lead to unexpected errors or
-                 incorrect results downstream.
 
     Parameters
     ----------
@@ -2641,6 +2637,10 @@ class EpochsSpectrumArray(EpochsSpectrum):
 
     Notes
     -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
+
     If the data passed in is real-valued, it is assumed to represent spectral *power*
     (not amplitude, phase, etc), and downstream methods (such as
     :meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
