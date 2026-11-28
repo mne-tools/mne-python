@@ -2,12 +2,10 @@
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-from functools import partial
-from unittest import mock
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import EpochsArray, EvokedArray, combine_evoked, create_info
 from mne.channels import find_ch_adjacency
@@ -15,13 +13,10 @@ from mne.stats import (
     cluster_test,
     combine_adjacency,
     f_mway_rm,
-    f_oneway,
     f_threshold_mway_rm,
     permutation_cluster_1samp_test,
     permutation_cluster_test,
-    ttest_1samp_no_p,
 )
-from mne.stats.cluster_level import ClusterResult, _rm_anova_stat_fun
 from mne.time_frequency import AverageTFRArray, BaseTFR, EpochsTFRArray
 from mne.utils import GetEpochsMixin
 
