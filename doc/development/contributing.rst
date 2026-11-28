@@ -382,7 +382,7 @@ feature, you should first synchronize your local ``main`` branch with the
 .. tip::
     :class: sidebar
 
-    You can save some typing by using ``git pull upstream/main`` to replace
+    You can save some typing by using ``git pull upstream main`` to replace
     the ``fetch`` and ``merge`` lines above.
 
 Now that you're on a new branch, you can fix a bug or add a new feature, add a
