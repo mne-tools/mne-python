@@ -6422,14 +6422,19 @@ def _concatenate_epochs(
     if not isinstance(epochs_list, list | tuple):
         raise TypeError(f"epochs_list must be a list or tuple, got {type(epochs_list)}")
 
+    out = epochs_list[0]
+    spectrum = isinstance(out, EpochsSpectrum)
+    expected = EpochsSpectrum if spectrum else BaseEpochs
     # to make warning messages only occur once during concatenation
     warned = False
 
     for ei, epochs in enumerate(epochs_list):
-        if not isinstance(epochs, BaseEpochs):
-            raise TypeError(
-                f"epochs_list[{ei}] must be an instance of Epochs, got {type(epochs)}"
-            )
+        _validate_type(
+            epochs,
+            expected,
+            f"epochs_list[{ei}]",
+            "EpochsSpectrum" if spectrum else "Epochs",
+        )
 
         if (
             getattr(epochs, "annotations", None) is not None
@@ -6446,38 +6451,53 @@ def _concatenate_epochs(
             # from the original object
             epochs = epochs.copy()
             epochs.set_annotations(None)
-    out = epochs_list[0]
     offsets = [0]
-    if with_data:
+    if with_data and not spectrum:
         out.drop_bad()
         offsets.append(len(out))
     events = [out.events]
     metadata = [out.metadata]
-    baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
-    raw_sfreq = out._raw_sfreq
+    if spectrum:
+        baseline = tmin = tmax = raw_sfreq = None
+        shift = len(out.freqs)
+    else:
+        baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
+        raw_sfreq = out._raw_sfreq
+        shift = np.int64((10 + tmax) * out.info["sfreq"])
     info = deepcopy(out.info)
     drop_log = out.drop_log
-    event_id = deepcopy(out.event_id)
+    event_id = deepcopy(out.event_id) or {}
     selection = out.selection
-    # offset is the last epoch + tmax + 10 second
-    shift = np.int64((10 + tmax) * out.info["sfreq"])
     # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
-    if out._allow_empty:
+    if out.events is None or not len(out.events) or getattr(out, "_allow_empty", False):
         events_offset = 0
     else:
-        events_offset = int(np.max(events[0][:, 0])) + shift
+        events_offset = int(out.events[:, 0].max()) + shift
     events_offset = np.int64(events_offset)
     events_overflow = False
     warned = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f"epochs[{ii}]", on_mismatch=on_mismatch)
-        if not np.allclose(epochs.times, epochs_list[0].times):
+        if spectrum:
+            if not np.array_equal(epochs.freqs, out.freqs):
+                raise ValueError("Spectra must have the same frequencies")
+            if epochs.method != out.method:
+                raise ValueError("Spectra must have the same method")
+            if tuple(epochs._dims) != tuple(out._dims):
+                raise ValueError("Spectra must have the same dimensions")
+            if epochs._data_type != out._data_type:
+                raise ValueError("Spectra must have the same data type")
+            if not np.array_equal(epochs.weights, out.weights):
+                raise ValueError("Spectra must have the same weights")
+            if (epochs.events is None) != (out.events is None):
+                raise ValueError("Either all or none of the spectra must have events")
+        elif not np.allclose(epochs.times, out.times):
             raise ValueError("Epochs must have same times")
 
-        if epochs.baseline != baseline:
+        if not spectrum and epochs.baseline != baseline:
             raise ValueError("Baseline must be same for all epochs")
 
-        if epochs._raw_sfreq != raw_sfreq and not warned:
+        if not spectrum and epochs._raw_sfreq != raw_sfreq and not warned:
             warned = True
             warn(
                 "The original raw sampling rate of the Epochs does not "
@@ -6487,7 +6507,7 @@ def _concatenate_epochs(
         # compare event_id
         for kind in ("keys", "values"):
             a = event_id
-            b = epochs.event_id
+            b = epochs.event_id or {}
             if kind == "keys":
                 other = "values"
                 what = "maps to"
@@ -6506,9 +6526,17 @@ def _concatenate_epochs(
                         f"in epochs_list[0] and to {b[k_v]} in epochs_list[{ii}]."
                     )
 
-        if with_data:
+        if with_data and not spectrum:
             epochs.drop_bad()
             offsets.append(len(epochs))
+        selection = np.concatenate(
+            (selection, epochs.selection + (len(drop_log) if spectrum else 0))
+        )
+        drop_log = drop_log + epochs.drop_log
+        event_id.update(epochs.event_id or {})
+        metadata.append(epochs.metadata)
+        if epochs.events is None:
+            continue
         evs = epochs.events.copy()
         if len(epochs.events) == 0:
             warn("One of the Epochs objects to concatenate was empty.")
@@ -6527,13 +6555,9 @@ def _concatenate_epochs(
                 events_overflow = True
                 add_offset = False  # we no longer need to add offset
         events.append(evs)
-        selection = np.concatenate((selection, epochs.selection))
-        drop_log = drop_log + epochs.drop_log
-        event_id.update(epochs.event_id)
-        metadata.append(epochs.metadata)
-    events = np.concatenate(events, axis=0)
+    events = None if out.events is None else np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_overflow:
+    if events_overflow and events is not None:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
@@ -6551,9 +6575,10 @@ def _concatenate_epochs(
             metadata = pd.concat(metadata)
         else:  # dict of dicts
             metadata = sum(metadata, list())
-    assert len(offsets) == (len(epochs_list) if with_data else 0) + 1
     data = None
-    if with_data:
+    if spectrum:
+        data = np.concatenate([epochs.data for epochs in epochs_list])
+    elif with_data:
         offsets = np.cumsum(offsets)
         for start, stop, epochs in zip(offsets[:-1], offsets[1:], epochs_list):
             this_data = epochs.get_data(copy=False)
@@ -6585,8 +6610,8 @@ def concatenate_epochs(
     *,
     on_mismatch: Literal["raise", "warn", "ignore"] = "raise",
     verbose: bool | str | int | None = None,
-) -> EpochsArray:
-    """Concatenate a list of `~mne.Epochs` into one `~mne.Epochs` object.
+) -> EpochsArray | EpochsSpectrum:
+    """Concatenate epochs or epoched spectra along the epoch dimension.
 
     .. note:: Unlike `~mne.concatenate_raws`, this function does **not**
               modify any of the input data.
@@ -6594,7 +6619,8 @@ def concatenate_epochs(
     Parameters
     ----------
     epochs_list : list
-        List of `~mne.Epochs` instances to concatenate (in that order).
+        List of `~mne.Epochs` or `~mne.time_frequency.EpochsSpectrum` instances
+        of the same kind to concatenate in order.
     add_offset : bool
         If True, a fixed offset is added to the event times from different
         Epochs sets, such that they are easy to distinguish after the
@@ -6617,7 +6643,7 @@ def concatenate_epochs(
 
     Returns
     -------
-    epochs : instance of EpochsArray
+    epochs : instance of EpochsArray or EpochsSpectrum
         The result of the concatenation. All data will be loaded into memory.
 
     Notes
@@ -6642,6 +6668,16 @@ def concatenate_epochs(
         add_offset=add_offset,
         on_mismatch=on_mismatch,
     )
+    if isinstance(epochs_list[0], EpochsSpectrum):
+        first = epochs_list[0]
+        # Reuse the concatenated data and copied info when copying spectral attributes.
+        out = deepcopy(first, {id(first.data): data, id(first.info): info})
+        out.events = events
+        out.event_id = event_id or None
+        out.selection = selection.copy()
+        out.drop_log = drop_log
+        out.metadata = metadata
+        return out
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = EpochsArray(
         data=data,

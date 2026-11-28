@@ -59,6 +59,7 @@ from mne.epochs import (
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import maxwell_filter
+from mne.time_frequency import EpochsSpectrumArray
 from mne.utils import (
     _dt_to_stamp,
     _record_warnings,
@@ -3868,6 +3869,31 @@ def test_concatenate_epochs():
     epochs = Epochs(
         raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax, picks=picks
     )
+    spectrum = epochs.compute_psd(method="welch", n_fft=64)
+    joined = concatenate_epochs([spectrum, spectrum])
+    assert_array_equal(joined.data, np.concatenate([spectrum.data] * 2))
+    assert_array_equal(joined.freqs, spectrum.freqs)
+    assert_array_equal(joined.events[:, 2], np.tile(spectrum.events[:, 2], 2))
+    offset = spectrum.events[-1, 0] + len(spectrum.freqs)
+    assert_array_equal(
+        joined.events[len(spectrum.events) :, 0], spectrum.events[:, 0] + offset
+    )
+    assert joined.drop_log == spectrum.drop_log * 2
+    with pytest.raises(ValueError, match="frequencies"):
+        concatenate_epochs([spectrum, epochs.compute_psd(method="welch", n_fft=32)])
+    with pytest.raises(TypeError, match="EpochsSpectrum"):
+        concatenate_epochs([spectrum, epochs])
+    spect_arr = EpochsSpectrumArray(
+        data=spectrum.get_data(),
+        info=spectrum.info,
+        freqs=spectrum.freqs,
+        weights=spectrum.weights,
+    )
+    joined = concatenate_epochs([spect_arr, spect_arr])
+    assert_array_equal(joined.data, np.concatenate([spect_arr.data] * 2))
+    assert_array_equal(joined.weights, spect_arr.weights)
+    assert joined.events is None
+
     epochs2 = epochs.copy()
     epochs_list = [epochs, epochs2]
     epochs_conc = concatenate_epochs(epochs_list)
@@ -4081,6 +4107,15 @@ def test_metadata(tmp_path, monkeypatch):
             epochs.metadata = meta
     log = log.getvalue().strip()
     assert log == "Replacing existing metadata with 2 columns", f"{log}"
+    spectrum = epochs.compute_psd(method="welch", picks="all")
+    joined = concatenate_epochs([spectrum[5:], spectrum[:5]], add_offset=False)
+    order = np.r_[5:10, :5]
+    assert_array_equal(joined.events, events[order])
+    assert_array_equal(joined.metadata.to_numpy(), meta.iloc[order].to_numpy())
+    assert_array_equal(joined.metadata.index, joined.selection)
+    assert_array_equal(joined.selection, np.arange(5, 15))
+    assert joined.event_id == event_id
+
     indices = np.arange(len(epochs))  # expected indices
     assert_array_equal(epochs.metadata.index, indices)
 
