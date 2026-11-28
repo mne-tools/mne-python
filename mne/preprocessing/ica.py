@@ -16,6 +16,7 @@ from time import time
 from typing import Literal
 
 import numpy as np
+from numpy.random import Generator, RandomState
 from scipy.special import expit
 
 from .._fiff.constants import FIFF
@@ -497,16 +498,16 @@ class ICA(ContainsMixin):
     @_verbose_control
     def __init__(
         self,
-        n_components=None,
+        n_components: int | float | None = None,
         *,
-        noise_cov=None,
-        rng=None,
-        random_state=None,
-        method="fastica",
-        fit_params=None,
-        max_iter="auto",
-        allow_ref_meg=False,
-        verbose=None,
+        noise_cov: Covariance | None = None,
+        rng: int | Generator | RandomState | None = None,
+        random_state: int | RandomState | None = None,
+        method: Literal["fastica", "infomax", "jamica", "picard"] = "fastica",
+        fit_params: dict | None = None,
+        max_iter: int | Literal["auto"] = "auto",
+        allow_ref_meg: bool = False,
+        verbose: bool | str | int | None = None,
     ):
         _validate_type(method, str, "method")
         _validate_type(n_components, (float, "int-like", None))
@@ -4437,7 +4438,10 @@ def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     rank = eeg.icasphere.shape[0]
     n_components = eeg.icaweights.shape[0]
 
-    ica = ICA(method="imported_eeglab", n_components=n_components)
+    ica = ICA(
+        method="imported_eeglab",  # ty: ignore[invalid-argument-type]
+        n_components=n_components,
+    )
 
     ica.current_fit = "eeglab"
     ica.ch_names = info["ch_names"]

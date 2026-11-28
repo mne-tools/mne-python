@@ -1,3 +1,4 @@
+.. _Aariv Patel: https://github.com/draarivpatel-ui
 .. _Aaron Earle-Richardson: https://github.com/Aaronearlerichardson
 .. _Abram Hindle: https://softwareprocess.es
 .. _Achilleas Koutsou: https://github.com/achilleas-k
