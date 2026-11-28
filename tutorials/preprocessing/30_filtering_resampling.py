@@ -158,7 +158,7 @@ add_arrows(fig.axes[:2])
 # so that only the magnetometers and gradiometers get filtered:
 
 meg_picks = mne.pick_types(raw.info, meg=True)
-freqs = (60, 120, 180, 240)
+freqs = np.arange(60, 241, 60)
 raw_notch = raw.copy().notch_filter(
     freqs=freqs, notch_widths=freqs / 200.0, picks=meg_picks
 )
