@@ -182,6 +182,19 @@ def test_new_cluster_api(Inst):
     for clu1, clu2 in zip(result_new_api.clusters, clusters):
         assert_array_equal(clu1, clu2.T)
 
+    # min_adjacent_channels, for every kind of data. The channels come first in the
+    # output, and a cluster can only keep a channel with an adjacent channel in the
+    # same cluster at the same time (and frequency).
+    res = cluster_test(df, "data~condition", min_adjacent_channels=1, **kwargs)
+    neighbors = ch_adjacency.toarray().astype(int)
+    np.fill_diagonal(neighbors, 0)
+    assert len(res.clusters) > 0
+    # the same pruning runs on the permutations, so the null can only shrink
+    assert np.all(res.H0 <= result_new_api.H0)
+    for clust in res.clusters:
+        members = clust.reshape(n_chan, -1)
+        assert np.all((neighbors @ members)[members])
+
 
 @pytest.mark.filterwarnings('ignore:Ignoring argument "tail":RuntimeWarning')
 def test_cluster_test_rm_anova():
@@ -394,6 +407,7 @@ def test_cluster_test_adjacency():
         adjacency=combine_adjacency(n_times, ch_adjacency),
         **kwargs,
     )
+    assert_array_equal(ch_adjacency.diagonal(), 1)  # not modified in place
     got = cluster_test(df, "data ~ condition", **kwargs)  # adjacency="auto"
     assert_array_equal(got.stat_obs, want.stat_obs)
     assert_array_equal(got.cluster_p_values, want.cluster_p_values)
@@ -408,6 +422,10 @@ def test_cluster_test_adjacency():
     shuffled = cluster_test(df_shuffled, "data ~ condition", **kwargs)
     assert_array_equal(shuffled.cluster_p_values, got.cluster_p_values)
     assert_array_equal(shuffled.stat_obs[np.argsort(order)], got.stat_obs)
+
+    with pytest.warns(RuntimeWarning, match="No clusters found"):
+        empty = cluster_test(df, "data ~ condition", threshold=1e6, **kwargs)
+    assert len(empty.clusters) == 0
 
     # False means every location is its own cluster
     no_adj = cluster_test(df, "data ~ condition", adjacency=False, **kwargs)
@@ -426,93 +444,58 @@ def test_cluster_test_adjacency():
     with pytest.raises(ValueError, match='"auto" could not infer sensor adjacency'):
         cluster_test(df_no_montage, "data ~ condition", **kwargs)
 
-
-@pytest.mark.parametrize(
-    ("stat_fun", "unit"),
-    [
-        (ttest_1samp_no_p, "t"),
-        (f_oneway, "F"),
-        pytest.param(
-            partial(_rm_anova_stat_fun, factor_levels=[2, 2], effects="A:B"),
-            "F",
-            id="rm_anova-F",
-        ),
-    ],
-)
-def test_cluster_result_plot_joint_units(stat_fun, unit):
-    """Test plot_joint labels the statistic and does not rescale it to µV."""
-    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
-    result = ClusterResult(
-        stat_obs=np.zeros((4, 10)),  # required keywords
-        clusters=[],
-        cluster_p_values=np.array([]),
-        H0=np.array([]),
-        stat_fun=stat_fun,
-        n_permutations=1,
-    )
-    # mock a figure
-    with mock.patch("mne.viz.evoked.plot_evoked_joint") as plot:
-        result.plot_joint(info, np.arange(10) / 100, times=[0.02])
-    for key in ("ts_args", "topomap_args"):
-        assert plot.call_args.kwargs[key]["units"]["eeg"] == unit
-        assert plot.call_args.kwargs[key]["scalings"] == dict(eeg=1.0)
+    # min_adjacent_channels needs the sensor adjacency that only "auto" provides
+    for adjacency in (False, combine_adjacency(n_times, ch_adjacency)):
+        with pytest.raises(ValueError, match='requires adjacency="auto"'):
+            cluster_test(
+                df,
+                "data ~ condition",
+                adjacency=adjacency,
+                min_adjacent_channels=1,
+                **kwargs,
+            )
+    df_array = df.copy()
+    df_array["data"] = df["data"].map(lambda ev: ev.data.T)
+    with pytest.raises(ValueError, match="sensor adjacency"):
+        cluster_test(df_array, "data ~ condition", min_adjacent_channels=1, **kwargs)
+    with pytest.raises(ValueError, match="must be at least 0"):
+        cluster_test(df, "data ~ condition", min_adjacent_channels=-1, **kwargs)
+    with pytest.raises(TypeError, match="min_adjacent_channels"):
+        cluster_test(df, "data ~ condition", min_adjacent_channels=1.5, **kwargs)
 
 
-def test_cluster_result_plot_joint_errors():
-    """Test plot_joint rejects input it cannot plot."""
-    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
-    kwargs = dict(
-        clusters=[],
-        cluster_p_values=np.array([]),
-        H0=np.array([]),
-        stat_fun=ttest_1samp_no_p,
-        n_permutations=1,
-    )
-    times = np.arange(10) / 100.0
-    tfr = ClusterResult(stat_obs=np.zeros((4, 3, 10)), **kwargs)
-    with pytest.raises(ValueError, match="Time-frequency results"):
-        tfr.plot_joint(info, times)
-    result = ClusterResult(stat_obs=np.zeros((4, 10)), **kwargs)
-    with pytest.raises(ValueError, match="info has 2 channels"):
-        result.plot_joint(create_info(["Fz", "Cz"], 100, "eeg"), times)
-    with pytest.raises(ValueError, match="times_sec does not match"):
-        result.plot_joint(info, times[:5])
-    with pytest.raises(ValueError, match="times_sec does not match"):
-        result.plot_joint(info, np.arange(10) / 50.0)  # wrong sfreq
+def test_cluster_test_min_adjacent_channels():
+    """Test pruning by the minimum number of supra-threshold adjacent channels."""
+    from scipy.sparse import csr_array
+
+    from mne.stats.cluster_level import _get_components
+
+    # three channels in a line, with the diagonal set like find_ch_adjacency does
+    ch_adjacency = csr_array(np.eye(3) + np.eye(3, k=1) + np.eye(3, k=-1))
+
+    mask = np.array([[1, 0, 1], [0, 1, 0]], bool)
+    assert_array_equal(_prune(ch_adjacency, mask, 0), mask)
+    # isolated channels go, and neighbors in other slices do not count
+    assert_array_equal(_prune(ch_adjacency, mask, 1), np.zeros_like(mask))
+    # repeated until stable: only the middle of A-B-C has two neighbors, but once
+    # the ends are dropped it has none left
+    assert_array_equal(_prune(ch_adjacency, [[1, 1, 1]], 1), [[1, 1, 1]])
+    assert_array_equal(_prune(ch_adjacency, [[1, 1, 1]], 2), [[0, 0, 0]])
+
+    # a bridge: channel 2 alone at t1 and t2 joins two otherwise separate clusters
+    bridge = np.array([[1, 0, 0, 1, 1], [1, 0, 0, 1, 1], [1, 1, 1, 1, 1]], bool).T
+    adjacency = combine_adjacency(5, ch_adjacency)
+    assert len(_get_components(bridge.ravel(), adjacency)) == 1
+    pruned = _prune(ch_adjacency, bridge, 1)
+    assert_array_equal(pruned[1:3, 2], False)
+    assert pruned.sum() == bridge.sum() - 2
+    assert len(_get_components(pruned.ravel(), adjacency)) == 2
 
 
-def test_cluster_result_plot_joint_mask():
-    """Test plot_joint highlights only significant clusters."""
-    # TODO put in fixture if reused
-    info = create_info(["Fz", "Cz", "Pz", "Oz"], 100, "eeg")
-    times = np.arange(10) / 100.0
-    sig = np.zeros((4, 10), bool)
-    sig[:2, 2:5] = True  # Fz, Cz at 20-40 ms
-    nonsig = np.zeros((4, 10), bool)
-    nonsig[3, 7:9] = True
-    stat_obs = 2.0 * sig
-    stat_obs[1, 3] = -4.0  # |peak| of the significant cluster
-    stat_obs[3, 8] = 9.0  # larger, but not significant
-    result = ClusterResult(
-        stat_obs=stat_obs,
-        clusters=[sig, nonsig],
-        cluster_p_values=np.array([0.01, 0.2]),
-        H0=np.array([]),
-        stat_fun=ttest_1samp_no_p,
-        n_permutations=1,
-    )
+def _prune(ch_adjacency, mask, k):
+    """Prune a (n_slices, n_channels) mask."""
+    from mne.stats.cluster_level import _prune_by_adjacent_channels
 
-    def call(**kwargs):
-        with mock.patch("mne.viz.evoked.plot_evoked_joint") as plot:
-            result.plot_joint(info, times, **kwargs)
-        return plot.call_args.kwargs
-
-    # test sign mask is plotted (padding on both ends)
-    kw = call()
-    assert_array_equal(kw["topomap_args"]["mask"], sig)
-    assert_allclose(kw["ts_args"]["highlight"], [(0.015, 0.045)])
-    assert_allclose(kw["times"], [0.03])
-    assert_array_equal(call(picks=["Cz", "Pz"])["topomap_args"]["mask"], sig[1:3])
-    for alpha in (None, 0.001):  # test nothing to highlight
-        kw = call(cluster_alpha=alpha)
-        assert "mask" not in kw["topomap_args"] and "highlight" not in kw["ts_args"]
+    flat = np.array(mask, bool).ravel()
+    pruned = _prune_by_adjacent_channels(flat, ch_adjacency, k)
+    return pruned.reshape(-1, ch_adjacency.shape[0])

@@ -1,0 +1,1 @@
+Add ``min_adjacent_channels`` to :func:`mne.stats.cluster_test` to require a minimum number of adjacent supra-threshold channels for a location to be part of a cluster, by `Maximilien Chaumon`_.

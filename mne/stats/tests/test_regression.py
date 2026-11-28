@@ -11,7 +11,7 @@ import mne
 from mne import read_source_estimate
 from mne.datasets import testing
 from mne.io import RawArray
-from mne.stats.regression import linear_regression, linear_regression_raw
+from mne.stats.regression import _fit_lm, linear_regression, linear_regression_raw
 
 data_path = testing.data_path(download=False)
 stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
@@ -74,6 +74,21 @@ def test_regression():
     with pytest.warns(RuntimeWarning, match="non-data"):
         linear_regression(epochs, design_matrix)
     linear_regression(epochs.copy().pick("eeg"), design_matrix)
+
+
+@pytest.mark.parametrize("sign", (1, -1))
+def test_fit_lm_perfect_fit(sign):
+    """Test that a perfect fit gives an infinite t-value of the correct sign."""
+    design_matrix = np.eye(4)[:, :2]
+    data = sign * 2.0 * design_matrix[:, :1] * np.ones((1, 3))
+    beta, stderr, t_val, p_val, _ = _fit_lm(data, design_matrix, ["x0", "x1"])
+    assert_allclose(beta["x0"], sign * 2.0)
+    assert_array_equal(stderr["x0"], 0.0)
+    assert_array_equal(t_val["x0"], sign * np.inf)
+    assert (p_val["x0"] < 1e-300).all()
+    # a coefficient of exactly zero is not significant
+    assert_array_equal(t_val["x1"], 0.0)
+    assert_array_equal(p_val["x1"], 1.0)
 
 
 @testing.requires_testing_data
@@ -157,3 +172,18 @@ def test_continuous_regression_with_overlap():
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver="err")
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
+
+
+def test_continuous_regression_flat():
+    """Test flat-only rejection without requiring an external dataset."""
+    # rejection based on flat alone (reject=None) must not be ignored
+    data = np.random.default_rng(0).standard_normal((1, 3000)) * 1e-5
+    data[0, 1000:1300] = 0.0
+    raw = RawArray(data, mne.create_info(1, 100, "eeg"))
+    events = np.array([[sample, 0, 1] for sample in range(100, 2900, 200)])
+    kwargs = dict(event_id={"a": 1}, tmin=0, tmax=0.5)
+    evoked_both = linear_regression_raw(
+        raw, events, reject=dict(eeg=1.0), flat=dict(eeg=1e-7), **kwargs
+    )["a"]
+    evoked_flat = linear_regression_raw(raw, events, flat=dict(eeg=1e-7), **kwargs)["a"]
+    assert_allclose(evoked_both.data, evoked_flat.data)

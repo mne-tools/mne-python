@@ -1,0 +1,1 @@
+Speed up :meth:`mne.io.Raw.interpolate_bads` by early-exiting on clean/empty bads and optimizing channel type checks, by `Ishaan Maheshwari`_.

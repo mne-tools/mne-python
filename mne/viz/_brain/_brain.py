@@ -2123,7 +2123,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
         animate = self.time_viewer and target != self._unfold
         if animate and (target < 2 or self._has_flatmaps()):
             start = self._unfold
-            for t in np.linspace(0, 1, 22)[1:-1]:
+            n_frames = int(round(20 * abs(target - start)))
+            for t in np.linspace(0, 1, n_frames + 2)[1:-1]:
                 self.set_unfold(start + (target - start) * t * t * (3 - 2 * t))
                 self._renderer._process_events()  # set_unfold already rendered
         self.set_unfold(target)
@@ -2159,13 +2160,13 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             "flat",
         ):
             return
-        if not self._warned_misaligned and (
-            any(self._labels[h] for h in self._hemis)
-            or any("foci" in self._foci_data.get(h, {}) for h in self._hemis)
+        if not self._warned_misaligned and any(
+            self._foci_data.get(h, {}).get("off_surface") for h in self._hemis
         ):
             warn(
-                "Foci and label/annotation outlines do not move when the "
-                "surface representation changes and may now be misaligned."
+                "Foci added with coordinates do not move when the surface "
+                "representation changes and may now be misaligned, use "
+                "coords_as_verts or map_surface for foci that follow it."
             )
             self._warned_misaligned = True
         previous = self._unfold
@@ -2220,6 +2221,12 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                 vertices = hemi_data["vertices"]
                 vertices = slice(None) if vertices is None else vertices
                 glyph_dataset.points = np.array(geo.coords)[vertices]
+            for foci in self._foci_data.get(h, {}).get("on_surface", []):
+                centers = np.array(geo.coords)[foci["vertices"]]
+                points = foci["glyph"].points.reshape(len(centers), -1, 3)
+                points += (centers - foci["centers"])[:, np.newaxis]
+                foci["glyph"].points = points.reshape(-1, 3)
+                foci["centers"] = centers
         self._unfold = float(unfold)
         self._surf = surf = (self._folded, "inflated", "flat")[int(unfold)]
         if flat_change:  # switch the camera and interaction to 2D/3D

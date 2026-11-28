@@ -56,7 +56,7 @@ jobs:
           fi
       - name: Setup Remote SSH Connection
         if: env.ENABLE_SSH == 'true'
-        uses: Warpbuilds/action-debugger@v1.3
+        uses: Warpbuilds/action-debugger@v2
         timeout-minutes: 10
         with:
           detached: true
@@ -83,7 +83,7 @@ jobs:
             echo "dirty=true" >> $GITHUB_OUTPUT
           fi
         id: status
-      - uses: j178/prek-action@v3.1.0
+      - uses: j178/prek-action@v3.1.1
         if: steps.status.outputs.dirty == 'true'
       - name: Create PR
         env:

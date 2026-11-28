@@ -139,6 +139,7 @@
 .. _Erik Hornberger: https://github.com/moppymopperson
 .. _Erkka Heinila: https://github.com/Teekuningas
 .. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+.. _Eva B: https://github.com/evadiva3
 .. _Evan Hathaway: https://github.com/ephathaway
 .. _Evgenii Kalenkovich: https://github.com/kalenkovich
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
@@ -278,6 +279,7 @@
 .. _Maggie Clarke: https://github.com/mdclarke
 .. _Mainak Jas: https://jasmainak.github.io
 .. _Maksym Balatsko: https://github.com/mbalatsko
+.. _Malhaar Phadtare: https://github.com/Mal-1702
 .. _manoj kumar: https://github.com/MechCoder
 .. _Manorama Kadwani: https://github.com/synapse-stream
 .. _Manu Sutela: https://github.com/MJAS1

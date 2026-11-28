@@ -73,7 +73,7 @@ The minimum required dependencies to run MNE-Python are:
 .. ↓↓↓ BEGIN CORE DEPS LIST. DO NOT EDIT! HANDLED BY MNE-TOOLS ↓↓↓
 
 - `Python <https://www.python.org>`__ ≥ 3.11
-- `decorator <https://pypi.org/project/decorator/>`__ ≥ 5.1
+- `decorator <https://github.com/micheles/decorator>`__ ≥ 5.1
 - `Jinja2 <https://jinja.palletsprojects.com/>`__ ≥ 3.1
 - `lazy-loader <https://pypi.org/project/lazy-loader/>`__ ≥ 0.3
 - `Matplotlib <https://matplotlib.org>`__ ≥ 3.9
