@@ -33,6 +33,7 @@ from mne.surface import (
     _read_patch,
     _tessellate_sphere,
     _voxel_neighbors,
+    _warn_bad_coregistration,
     fast_cross_3d,
     get_head_surf,
     get_meg_helmet_surf,
@@ -404,3 +405,14 @@ def test_project_onto_surface(method, ret_nn):
             atol=0.05,  # ico > 3 would be even better tol
             err_msg=f"{kind} not in same direction as locs for {method}",
         )
+
+
+def test_warn_bad_coregistration():
+    """Test warning for bad coregistration."""
+    # case 1: good fit, median below 5 mm -> no warning
+    arr = np.array([0.001, 0.002, 0.003])
+    _warn_bad_coregistration(arr, limits=0.005)
+    # case 2: bad fit, median above 5 mm -> must warn
+    arr = np.array([0.007, 0.008, 0.006])
+    with pytest.warns(RuntimeWarning, match="Median distance"):
+        _warn_bad_coregistration(arr)

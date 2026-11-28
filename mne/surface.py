@@ -1859,6 +1859,20 @@ def dig_mri_distances(
     return dists
 
 
+def _warn_bad_coregistration(dists, limits=0.005):  # default 5 mm
+    """Warn if the median head shape distance is above the limit."""
+    median_dist = np.median(dists)
+    if median_dist > limits:
+        warn(
+            "Median distance between head-shape-points "
+            f"and MRI scalp surface is {median_dist * 1000:.1f} mm,"
+            f" which is above the limit of {limits * 1000:.1f} mm."
+            " This may indicate a bad coregistration and may not be precise."
+            " Please check your coregistration"
+            " and use mne.gui.coregistration() to fix it."
+        )
+
+
 def _mesh_borders(tris, mask):
     assert isinstance(mask, np.ndarray) and mask.ndim == 1
     edges = mesh_edges(tris)
