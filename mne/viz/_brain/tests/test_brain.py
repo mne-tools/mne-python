@@ -99,7 +99,7 @@ class TstVTKPicker:
         """Return the picked position."""
         if self.hemi == "vol":
             self.point_id = self.cell_id
-            return self.brain._data["vol"]["grid_coords"][self.cell_id]
+            return self.brain._data["vol"].grid_coords[self.cell_id]
         else:
             vtk_cell = self.mesh.GetCell(self.cell_id)
             cell = [
@@ -1390,7 +1390,7 @@ def test_brain_overlay_switch_label_mode(renderer_interactive_pyvistaqt, brain_g
     """
     brain = _create_testing_brain(hemi="lh", show_traces="label", initial_time=0)
     assert brain.traces_mode == "label"
-    vertices = brain._all_data["data"]["lh"]["vertices"]
+    vertices = brain._all_data["data"]["lh"].vertices
     time = brain._all_data["data"]["time"]
     array2 = np.zeros((len(vertices), len(time)))
     array2[0] = 1.0
@@ -1561,8 +1561,8 @@ def test_brain_traces_vertex(
     for idx, current_hemi in enumerate(hemi_str):
         assert len(spheres) == 0
         if current_hemi == "vol":
-            current_mesh = brain._data["vol"]["grid"]
-            vertices = brain._data["vol"]["vertices"]
+            current_mesh = brain._data["vol"].grid
+            vertices = brain._data["vol"].vertices
             values = current_mesh.point_data["values"][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
@@ -1613,8 +1613,8 @@ def test_brain_traces_vertex(
         assert len(spheres) < old_len
 
     if src == "vector":
-        glyph_dataset = brain._data["lh"]["glyph_dataset"]
-        vertices = brain._data["lh"]["vertices"]
+        glyph_dataset = brain._data["lh"].glyph_dataset
+        vertices = brain._data["lh"].vertices
         old_points = np.array(glyph_dataset.points)
         with pytest.warns(RuntimeWarning, match="Foci added with coordinates"):
             brain.set_surf("inflated")
@@ -1767,7 +1767,7 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     # the data_key widget before set_data_smoothing, crashing on decimated
     # overlays)
     peak1 = brain._peak_vertices["lh"]
-    vertices2 = brain._all_data["data"]["lh"]["vertices"]
+    vertices2 = brain._all_data["data"]["lh"].vertices
     peak2 = int(vertices2[-1] if peak1 != vertices2[-1] else vertices2[-2])
     manual_vertex = next(v for v in (0, 1, 2) if v not in (peak1, peak2))
     ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=manual_vertex))
@@ -1814,7 +1814,7 @@ def test_brain_native_trace_list(renderer_interactive_pyvistaqt, brain_gc):
     peak_line1 = brain._picked_points[("lh", peak1)][0]["line"]
     y1 = peak_line1.get_ydata().copy()
     brain.add_data(
-        2.0 * brain._all_data["data"]["lh"]["array"],
+        2.0 * brain._all_data["data"]["lh"].array,
         fmin=0.0,
         fmid=0.5,
         fmax=1.0,
@@ -1957,7 +1957,7 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
             initial_time=0,
             volume_options=None,  # for speed, don't upsample
         )
-        brain._data[hemi]["grid_volume_pos"].SetVisibility(True)
+        brain._data[hemi].grid_volume_pos.SetVisibility(True)
         brain.plotter.reset_camera()
     with qtbot.waitExposed(brain.plotter.app_window):
         brain.show()
@@ -1970,9 +1970,9 @@ def test_brain_click_picking(renderer_interactive_pyvistaqt, brain_gc, qtbot, sr
     else:
         # aim at the source point farthest from the peak so the click adds a
         # new vertex instead of hitting the already-picked one
-        vertices = brain._data[hemi]["vertices"]
-        coords = brain._data[hemi]["grid_coords"][vertices]
-        peak_pos = brain._data[hemi]["grid_coords"][peak_key[1]]
+        vertices = brain._data[hemi].vertices
+        coords = brain._data[hemi].grid_coords[vertices]
+        peak_pos = brain._data[hemi].grid_coords[peak_key[1]]
         target = coords[np.argmax(np.linalg.norm(coords - peak_pos, axis=1))]
         point = _world_to_widget_point(brain, widget, target)
     events = list()
@@ -2123,8 +2123,8 @@ def test_brain_traces_colormap(renderer_interactive_pyvistaqt, brain_gc, src):
         # actors, so a pair of them composites in the order they were added and
         # the negative half would hide the positive half from every angle.
         vol = brain._data["vol"]
-        assert vol["grid_volume_neg"] is None
-        grid = vol["grid"]
+        assert vol.grid_volume_neg is None
+        grid = vol.grid
         values = np.asarray(grid.point_data["values"])
         rgba = np.asarray(grid.point_data["rgba"])
         # component 3 is the magnitude that the projection maximizes over, so
@@ -2367,7 +2367,7 @@ def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
 
     mesh = brain.layered_meshes["lh"]._polydata
     faces = brain.geo["lh"].faces
-    vertices = brain._data["lh"]["vertices"]
+    vertices = brain._data["lh"].vertices
     smooth_mat = brain.act_data_smooth["lh"][1]
 
     # each for existing and missing source vertex cases
