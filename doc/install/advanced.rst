@@ -94,6 +94,15 @@ system package manager or with:
 
     $ conda install -c conda-forge mesalib
 
+To render 3D figures without any window, for example to save
+:meth:`mne.viz.Brain.screenshot` images from a script or a report, select the
+``offscreen`` 3D backend, which needs neither Qt nor the notebook packages:
+
+.. code-block:: ipython
+
+   In [1]: import mne
+   In [2]: mne.viz.set_3d_backend("offscreen")
+
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -2763,11 +2763,19 @@ def _check_st_tv(show_traces, time_viewer, times):
             ("auto", "separate", "vertex", "label"),
             extra="when a string",
         )
-    if time_viewer == "auto":
-        from .backends.renderer import _get_3d_backend
+    from .backends._utils import _check_time_viewer_backend
+    from .backends.renderer import _get_3d_backend
 
-        # the browser backend writes a static scene, so there is no slider to show
-        time_viewer = _get_3d_backend() != "jupyterlite_notebook"
+    backend = _get_3d_backend()
+    if time_viewer == "auto":
+        # the browser backend writes a static scene and the offscreen backend
+        # has no window, so there is no slider to show
+        time_viewer = backend not in ("jupyterlite_notebook", "offscreen")
+        asked = show_traces != "auto" and show_traces  # traces need the time viewer
+    else:
+        asked = time_viewer
+    if asked:  # before a figure exists that the error would leave open
+        _check_time_viewer_backend(backend)
     if show_traces == "auto":
         show_traces = time_viewer and times is not None and len(times) > 1
     if show_traces and not time_viewer:
@@ -3309,7 +3317,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
                 stc, SourceEstimate, "stc", "SourceEstimate when a flatmap is used"
             )
         if backend is not None:
-            if backend not in ("pyvistaqt", "notebook"):
+            if backend not in ("pyvistaqt", "notebook", "offscreen"):
                 raise RuntimeError(
                     "The PyVista 3D backend must be used to plot a flatmap"
                 )

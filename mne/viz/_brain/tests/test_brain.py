@@ -38,7 +38,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.utils import catch_logging, check_version
-from mne.viz import ui_events
+from mne.viz import close_3d_figure, ui_events
 from mne.viz._brain import Brain, LayeredMesh, _BrainScraper, _LinkViewer
 from mne.viz._brain._brain import _auto_scalar_bar_fmt
 from mne.viz._brain.colormap import calculate_lut
@@ -221,6 +221,30 @@ def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
     """Test that a version of Brain with added data gets GC'ed."""
     brain = _create_testing_brain(hemi="both", show_traces="vertex")
     brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_offscreen(renderer_offscreen, brain_gc):
+    """Test what is specific to the offscreen backend: no window, no time viewer."""
+    stc = read_source_estimate(fname_stc, subject=subject)
+    kwargs = dict(subjects_dir=subjects_dir, hemi="lh", size=(300, 250))
+    # asking for the time viewer fails before a Brain is created
+    brains = set(Brain._instances)
+    for bad in (dict(time_viewer=True), dict(show_traces=True)):
+        with pytest.raises(RuntimeError, match="time viewer is not available"):
+            stc.plot(**kwargs, **bad)
+    assert set(Brain._instances) == brains
+    brain = stc.plot(**kwargs)  # time_viewer="auto" resolves to no time viewer
+    assert not brain.time_viewer
+    with pytest.raises(RuntimeError, match="time viewer is not available"):
+        brain.setup_time_viewer()
+    brain.add_annotation("aparc")  # without the hover labels
+    assert brain.screenshot().shape == (250, 300, 3)
+    # closing the figure rather than the Brain cleans up the Brain too
+    close_3d_figure(brain._renderer.figure)
+    assert brain._cleaned
+    stc.subject = "fsaverage"  # wrong, but it has the patch files a flat map needs
+    stc.plot(surface="flat", **kwargs).close()
 
 
 @testing.requires_testing_data

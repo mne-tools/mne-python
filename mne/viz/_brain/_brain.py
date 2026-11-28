@@ -540,7 +540,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ("lighting", "interactor", "_RenderWindow"):
-            setattr(self.plotter, key, None)
+            if hasattr(self.plotter, key):  # a plain pyvista.Plotter has none
+                setattr(self.plotter, key, None)
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
         self.plotter._Iren = _FakeIren()
@@ -1603,7 +1604,8 @@ class Brain(_SceneMixin, _MovieMixin, _TimeViewerMixin):
                     name=name,
                 )
 
-        if hover:
+        # only a Qt plotter is an interactor that delivers mouse events
+        if hover and hasattr(self.plotter, "AddObserver"):
 
             @_auto_weakref
             def on_annotation_hover(iren, event):

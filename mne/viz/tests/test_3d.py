@@ -214,6 +214,14 @@ def test_plot_evoked_field(renderer):
     renderer.backend._close_all()
     if lite:  # and Brain needs the dock widgets the browser does not draw
         return
+    if renderer.get_3d_backend() == "offscreen":  # draws, but has no widgets
+        brain = Brain("fsaverage", "lh", "inflated", subjects_dir=subjects_dir)
+        fig = evoked.plot_field(maps, time=0.1, fig=brain)
+        assert fig is brain._renderer.figure  # no time viewer, so the Figure3D
+        with pytest.raises(RuntimeError, match="time viewer is not available"):
+            EvokedField(evoked, maps, time_viewer=True)
+        renderer.backend._close_all()
+        return
 
     # Test plotting inside an existing Brain figure. Check that units are taken into
     # account.

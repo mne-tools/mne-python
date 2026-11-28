@@ -17,7 +17,6 @@ and figure size (pyvista-js writes a 600x400 canvas).
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
-import inspect
 import weakref
 from contextlib import nullcontext
 
@@ -35,7 +34,14 @@ from ...transforms import (
 )
 from ...utils import _check_option, _validate_type
 from ._abstract import Figure3D, _AbstractRenderer
-from ._utils import ALLOWED_QUIVER_MODES, LIGHTS, _to_pos, _vtk_faces
+from ._utils import (
+    ALLOWED_QUIVER_MODES,
+    LIGHTS,
+    _CloseCallbackMixin,
+    _run_close_callbacks,
+    _to_pos,
+    _vtk_faces,
+)
 
 # vtk.js places text in normalized window coordinates; PyVista takes these names
 _TITLE_POSITIONS = {
@@ -185,7 +191,7 @@ class _LiteFigure(Figure3D):
         return self
 
 
-class _LiteRenderer(_AbstractRenderer):
+class _LiteRenderer(_CloseCallbackMixin, _AbstractRenderer):
     """MNE 3D renderer backed by pyvista-js."""
 
     # not "notebook": that backend has VTK, a filesystem and OS threads
@@ -586,32 +592,16 @@ class _LiteRenderer(_AbstractRenderer):
     def _update(self):
         pass  # the page paints after the cell finishes
 
-    def _window_close_connect(self, func, *, after=True):
-        # an output cell has no close event, so close() runs these; ui_events
-        # drops its channel here, without which its subscribers pin the figure.
-        # Weak for bound methods (Brain._clean) so a figure dropped without
-        # close() still dies by refcount rather than waiting on the collector
-        if inspect.ismethod(func):
-            func = weakref.WeakMethod(func)
-        self._close_callbacks[after].append(func)
-
-    def _window_close_disconnect(self, after=True):
-        self._close_callbacks[after].clear()
-
-    def _run_close_callbacks(self, after):
-        for func in list(self._close_callbacks[after]):  # Brain._clean disconnects
-            if isinstance(func, weakref.WeakMethod):
-                func = func()
-            if func is not None:
-                func()
-
     def text3d(self, x, y, z, text, font_size, color="white", *, shadow=False):
         pass  # no camera-facing 3D text, so sensors go unlabeled
 
     def close(self):
-        self._run_close_callbacks(after=False)
+        # an output cell has no close event, so this runs the close callbacks;
+        # ui_events drops its channel there, without which its subscribers pin
+        # the figure
+        _run_close_callbacks(self._close_callbacks, after=False)
         _lite_release_plotter(self.plotter)
-        self._run_close_callbacks(after=True)
+        _run_close_callbacks(self._close_callbacks, after=True)
 
     # -- things pyvista-js cannot do ----------------------------------------
     def contour(self, *args, **kwargs):

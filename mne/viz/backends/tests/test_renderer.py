@@ -34,6 +34,7 @@ def _unsupported(renderer):
     "backend",
     [
         pytest.param("pyvistaqt"),
+        pytest.param("offscreen"),
         pytest.param("foo", marks=pytest.mark.xfail(raises=ValueError)),
     ],
 )
@@ -41,6 +42,8 @@ def test_backend_environment_setup(backend, monkeypatch):
     """Test set up 3d backend based on env."""
     if backend == "pyvistaqt":
         pytest.importorskip("pyvistaqt")
+    elif backend == "offscreen":
+        pytest.importorskip("pyvista")
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     monkeypatch.setattr("mne.viz.backends.renderer.MNE_3D_BACKEND", None)
     assert os.environ["MNE_3D_BACKEND"] == backend  # just double-check
@@ -319,7 +322,7 @@ def test_renderer(renderer, monkeypatch):
 
 def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'notebook', and 'jupyterlite_notebook'"
+    match = "are 'pyvistaqt', 'notebook', 'offscreen', and 'jupyterlite_notebook'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend("invalid")
 
@@ -329,7 +332,7 @@ def test_set_3d_backend_bad(monkeypatch, tmp_path):
 
     monkeypatch.setattr("mne.viz.backends.renderer._reload_backend", fail)
     monkeypatch.setattr("mne.viz.backends.renderer.MNE_3D_BACKEND", None)
-    match = "Could not load any valid 3D.*\npyvistaqt: .*"
+    match = r"(?s)Could not load any valid 3D.*\npyvistaqt: .*offscreen"
     assert get_3d_backend() is None
     with pytest.raises(RuntimeError, match=match):
         _get_renderer()

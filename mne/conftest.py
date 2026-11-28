@@ -735,6 +735,7 @@ def browser_backend(request, garbage_collect, monkeypatch):
 @pytest.fixture(
     params=[
         pytest.param("pyvistaqt", marks=pytest.mark.pvtest),
+        pytest.param("offscreen", marks=pytest.mark.pvtest),
         pytest.param("jupyterlite_notebook", marks=pytest.mark.pvtest),
     ]
 )
@@ -747,6 +748,13 @@ def renderer(request, options_3d, garbage_collect):
 @pytest.fixture(params=[pytest.param("pyvistaqt", marks=pytest.mark.pvtest)])
 def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(params=[pytest.param("offscreen", marks=pytest.mark.pvtest)])
+def renderer_offscreen(request, options_3d, garbage_collect):
+    """Yield the offscreen PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
@@ -828,6 +836,8 @@ def _check_skip_backend(name):
         pytest.importorskip("pyvistaqt")
         if not _check_qt_version():
             pytest.skip("Test skipped, requires Qt.")
+    elif name == "offscreen":
+        pass  # draws with a plain pyvista.Plotter: nothing else to need
     else:
         assert name == "notebook", name
         pytest.importorskip("jupyter")
@@ -1123,14 +1133,15 @@ def brain_gc(request):
         "renderer",
         "renderer_pyvistaqt",
         "renderer_notebook",
+        "renderer_offscreen",
     )
     assert set(request.fixturenames) & set(keys) != set()
     for key in keys:
         if key in request.fixturenames:
-            is_pv = request.getfixturevalue(key)._get_3d_backend() == "pyvistaqt"
+            backend_name = request.getfixturevalue(key)._get_3d_backend()
             close_func = request.getfixturevalue(key).backend._close_all
             break
-    if not is_pv:
+    if backend_name not in ("pyvistaqt", "offscreen"):
         yield
         return
     from mne.viz import Brain
@@ -1144,17 +1155,19 @@ def brain_gc(request):
     try:
         yield
         close_func()
-        # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred deletion
-        # (deleteLater) on close; until Qt processes it, the C++ window object
-        # keeps its Python wrapper (and thereby the whole plotter graph) alive.
-        from qtpy.QtCore import QEvent
-        from qtpy.QtWidgets import QApplication
+        if backend_name == "pyvistaqt":
+            # pyvistaqt >= 0.11.3 schedules the plotter's window for deferred
+            # deletion (deleteLater) on close; until Qt processes it, the C++ window
+            # object keeps its Python wrapper (and thereby the whole plotter graph)
+            # alive.
+            from qtpy.QtCore import QEvent
+            from qtpy.QtWidgets import QApplication
 
-        app = QApplication.instance()
-        if app is not None:
-            for _ in range(2):
-                app.processEvents()
-                app.sendPostedEvents(None, QEvent.DeferredDelete)
+            app = QApplication.instance()
+            if app is not None:
+                for _ in range(2):
+                    app.processEvents()
+                    app.sendPostedEvents(None, QEvent.DeferredDelete)
         if not _test_passed(request):
             return
         # The collect must happen *before* list(Brain._instances) is evaluated:
