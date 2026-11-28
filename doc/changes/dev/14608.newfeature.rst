@@ -1,0 +1,1 @@
+Add support for reading processed SNIRF data that has no MNE channel type (e.g., ``HbT`` or ``StO2``) as ``misc`` channels in :func:`mne.io.read_raw_snirf`, and stop requiring wavelengths for processed data that does not use them, by `Bruno Aristimunha`_.
