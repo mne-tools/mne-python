@@ -661,10 +661,11 @@ def make_bem_model(
         The surface ico downsampling to use, e.g. ``5=20484``, ``4=5120``,
         ``3=1280``. If None, no subsampling is applied.
     conductivity : float | array of float of shape (3,) or (1,)
-        The conductivities to use for each shell. Should be a single element
-        for a one-layer model, or three elements for a three-layer model.
-        Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
-        single-layer model is ``[0.3]``.
+        The conductivities to use for each shell (in S/m). Should be a single
+        element for a one-layer model, or three elements for a three-layer
+        model (brain, skull, and scalp, respectively). Defaults to
+        ``[0.3, 0.006, 0.3]``. The MNE-C default for a single-layer model is
+        ``[0.3]``.
     subjects_dir : path-like | None
         The path to the directory containing the FreeSurfer subjects
         reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
