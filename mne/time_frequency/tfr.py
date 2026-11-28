@@ -1926,6 +1926,16 @@ class BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
             msg = msg.format("Taper", n_taper, "weights", self._weights.shape[0])
         elif n_taper is not None and n_freq != self._weights.shape[1]:
             msg = msg.format("Frequency", n_freq, "weights", self._weights.shape[1])
+        elif np.any(self.freqs < 0):
+            msg = (
+                "Frequencies must be non-negative (i.e., representing a one-sided "
+                "spectrum), got negative frequencies."
+            )
+        elif np.any(self.freqs > self.info["sfreq"] / 2):
+            msg = (
+                f"Frequencies cannot exceed the Nyquist frequency "
+                f"({self.info['sfreq'] / 2} Hz)."
+            )
         else:
             return
         raise ValueError(msg)
@@ -4242,6 +4252,7 @@ class AverageTFR(BaseTFR):
     "sfreq_tfr_attr",
     "shape_tfr_attr",
     "weights_tfr_attr",
+    "warn_spectrum_array",
 )
 class AverageTFRArray(AverageTFR):
     """Data object for *precomputed* spectrotemporal representations of averaged data.
@@ -4304,6 +4315,12 @@ class AverageTFRArray(AverageTFR):
     EpochsTFRArray
     mne.Epochs.compute_tfr
     mne.Evoked.compute_tfr
+
+    Notes
+    -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
     """
 
     def __init__(
@@ -5737,6 +5754,7 @@ class EpochsTFR(BaseTFR, GetEpochsMixin):
     "sfreq_tfr_attr",
     "shape_tfr_attr",
     "weights_tfr_attr",
+    "warn_spectrum_array",
 )
 class EpochsTFRArray(EpochsTFR):
     """Data object for *precomputed* spectrotemporal representations of epoched data.
@@ -5829,6 +5847,12 @@ class EpochsTFRArray(EpochsTFR):
     AverageTFR
     mne.Epochs.compute_tfr
     mne.Evoked.compute_tfr
+
+    Notes
+    -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
     """
 
     def __init__(
@@ -6103,6 +6127,7 @@ class RawTFR(BaseTFR):
     "sfreq_tfr_attr",
     "shape_tfr_attr",
     "weights_tfr_attr",
+    "warn_spectrum_array",
 )
 class RawTFRArray(RawTFR):
     """Data object for *precomputed* spectrotemporal representations of continuous data.
@@ -6154,6 +6179,12 @@ class RawTFRArray(RawTFR):
     mne.io.Raw.compute_tfr
     EpochsTFRArray
     AverageTFRArray
+
+    Notes
+    -----
+    .. warning:: Input validation is minimal. Inconsistently or incorrectly
+                 specifying parameters can lead to unexpected errors or
+                 incorrect results downstream.
     """
 
     def __init__(
