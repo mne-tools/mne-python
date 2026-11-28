@@ -165,7 +165,9 @@ if not use_precomputed:
         picks="data", exclude="bads", amplitude=False
     )
     notches = np.arange(60, 181, 60)
-    raw.notch_filter(notches, phase="zero-double", fir_design="firwin2")
+    raw.notch_filter(
+        notches, notch_widths=notches / 200.0, phase="zero-double", fir_design="firwin2"
+    )
     raw.compute_psd(tmax=np.inf, picks="meg").plot(
         picks="data", exclude="bads", amplitude=False
     )

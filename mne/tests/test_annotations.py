@@ -533,8 +533,10 @@ def test_annotation_filtering(first_samp):
 
     n_times = raw_notch._data.shape[1]
     with catch_logging() as log:
+        notch_freq = 60.0
         raw_notch.notch_filter(
-            60.0,
+            notch_freq,
+            notch_widths=notch_freq / 200.0,
             fir_design="firwin",
             trans_bandwidth=5.0,
             skip_by_annotation="foo_notch",

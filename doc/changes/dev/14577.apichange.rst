@@ -1,0 +1,1 @@
+Prepare for ``notch_widths=None`` in :func:`mne.filter.notch_filter` to change from ``freqs / 200`` to ``freqs / 100`` in MNE 1.15, by `Thomas Binns`_.

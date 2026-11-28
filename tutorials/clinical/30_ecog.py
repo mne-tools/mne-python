@@ -81,7 +81,7 @@ raw.pick(picks="ecog")
 raw.load_data()
 
 # Then we remove line frequency interference
-raw.notch_filter([60], trans_bandwidth=3)
+raw.notch_filter([60], notch_widths=0.3, trans_bandwidth=3)
 
 # drop bad channels
 raw.drop_channels(raw.info["bads"])

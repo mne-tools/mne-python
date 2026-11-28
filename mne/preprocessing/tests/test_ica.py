@@ -950,7 +950,13 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_equal(ica_raw.info["highpass"], 4.0)
     assert (d1 != ica_raw._data[0]).any()
     d1 = ica_raw._data[0].copy()
-    ica_raw.notch_filter([10], trans_bandwidth=10, fir_design="firwin")
+    notch_freq = 10
+    ica_raw.notch_filter(
+        notch_freq,
+        notch_widths=notch_freq / 200.0,
+        trans_bandwidth=10,
+        fir_design="firwin",
+    )
     assert (d1 != ica_raw._data[0]).any()
 
     test_ica_fname = tmp_path / "test-ica.fif"
